@@ -8,7 +8,7 @@ output matching the supplied JSON schema.
 
 ## Claim
 
-<one decision or done-claim to falsify>
+{{one decision or done-claim to falsify}}
 
 ## Acceptance and scope
 
@@ -19,7 +19,7 @@ output matching the supplied JSON schema.
 
 ## Local verification
 
-<exact commands and observed results>
+{{exact commands and observed results}}
 
 ## Proof boundaries
 
@@ -29,7 +29,7 @@ output matching the supplied JSON schema.
 
 ## Current evidence
 
-<bounded diff or numbered excerpts; no secrets or raw proprietary corpus>
+{{bounded diff or numbered excerpts; no secrets or raw proprietary corpus}}
 
 </checker-contract>
 

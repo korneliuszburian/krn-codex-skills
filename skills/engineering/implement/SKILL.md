@@ -5,113 +5,95 @@ description: Build or refactor an already-scoped code change in one production-f
 
 # Implement
 
-Ship the smallest complete slice through a real caller, public seam, and
-observable result. Production code is the work; proof protects the changed
-risk.
+Build the smallest complete production path from a real caller to an observable
+result. **Production behavior is the work; proof protects only the risk changed
+by this slice.**
 
-## Process
+1. **Fix one outcome and one vertical slice.** Read the closest repository
+   instructions, then trace the current caller, public seam, and result before
+   choosing files.
 
-### 1. Pin The Slice
+   <implementation-contract>
+   Outcome:
+   Acceptance requirement:
+   Caller -> public seam -> observable result:
+   Owned paths:
+   Changed risk:
+   Fastest signal that can disagree:
+   Required completion gates:
+   </implementation-contract>
 
-Write down:
+   Resolve unclear behavior before editing. If the failure is real but its
+   cause is still unknown, switch to `$diagnosing-bugs` and earn a repro before
+   returning here.
 
-```text
-Outcome:
-Caller -> public seam -> observable result:
-Owned paths:
-Changed risk:
-Proof budget: 0 | 1 | N
-Focused command:
-Completion command:
-```
+   **Done when:** every planned edit traces to one accepted outcome and the
+   chosen signal can distinguish success from a nearby failure.
 
-Use the user's acceptance criteria and the closest repository instructions.
-When the desired behavior is unclear, resolve it before editing. When a fault's
-cause is unknown, switch to `$diagnosing-bugs`.
+2. **Spend the proof budget on changed risk.** Select `0`, `1`, or `N` from the
+   global contract before adding proof and reuse an existing observer first.
+   Read [behavior-proof.md](references/behavior-proof.md) only when runtime
+   behavior, validation, migration, authority, persistence, or a repaired bug
+   needs a new falsifier.
 
-This step is complete when every planned edit traces to one outcome and the
-chosen proof can disagree with the change.
+   An already-scoped change does not need test-first ceremony. Build the
+   production path first; add a red-capable falsifier only when changed risk
+   earns one. Broad suites are completion evidence, never the inner loop.
 
-### 2. Select Proof Before Code
+   **Done when:** the budget names the changed risk, or zero names the existing
+   observer and why another test would add no information.
 
-Load [behavior-proof.md](references/behavior-proof.md) when runtime behavior,
-validation, migration, authority, or a bug contract changes.
+3. **Build through the real public seam.** Change the path from caller to
+   result in one slice. Keep the interface small. Add an abstraction only when
+   it owns policy or isolates a genuinely varying or external boundary.
 
-- **0** new tests for type-only, mechanical, documentation, topology, or
-  behavior-preserving work already observed at the public seam.
-- **1** focused falsifier for one changed runtime contract.
-- **N** only when each case maps to a distinct acceptance requirement.
+   For TypeScript source, declarations, or compiler configuration, use
+   `$typescript-engineering` beside this workflow and load only its reference
+   for the boundary being changed.
 
-Use existing proof before adding a new test. Broad suites are completion
-evidence, not the inner loop.
+   <slice-example>
+   Requirement: reject an empty source ID at the public parser boundary.
+   Production slice: change the parser-owned validation path.
+   Proof: one parser behavior case, if no existing case already falsifies it.
+   Not the slice: a helper layer, private call-order tests, or a matrix of
+   malformed strings that all represent the same invalid state.
+   </slice-example>
 
-This step is complete when the proof budget has a named risk, or zero has an
-existing observer and an explicit reason.
+   **Done when:** the accepted behavior is reachable through the real caller,
+   no production seam exists only for a test, and the diff contains no
+   speculative branch.
 
-### 3. Build One Vertical Slice
+4. **Tighten in the fastest credible loop.** Run the focused signal after the
+   relevant production edit. Read the diff as a design artifact: delete
+   pass-through helpers, duplicate models, unused options, temporary probes,
+   and ceremony introduced by this slice. Preserve strict validation and type
+   boundaries; leave unrelated cleanup untouched.
 
-Change the production path from caller to result. Keep the public interface
-small and hide complexity behind it. Add an abstraction only when it owns
-policy or isolates a real varying or external seam.
+   Apply the global gate policy to the actual changed surface. Record the
+   distinct risk behind any signal broader than the focused observer instead
+   of replaying evidence already collected.
 
-For any TypeScript source, declaration, or compiler-configuration change, use
-`$typescript-engineering` beside this workflow. Load only the reference branch
-for the changed boundary.
+   **Done when:** every changed line serves the outcome, the fastest relevant
+   signal passes, and every broader gate has a concrete reason to run once.
 
-If a new falsifier is justified, run one red-capable slice, implement only
-enough to satisfy it, then review the design. Do not write a horizontal batch
-of imagined tests before learning from production code.
+5. **Make the narrowest honest completion claim.** Account for every changed
+   and untracked path, then report behavior separately from publication and
+   CI state.
 
-This step is complete when the accepted behavior is reachable through the real
-public seam and the diff contains no speculative branch.
+   <implementation-result>
+   Outcome present in production:
+   Caller -> public seam -> result:
+   Proof budget and evidence:
+   Repository gates actually run:
+   Changed paths:
+   Does not prove:
+   Publication state:
+   </implementation-result>
 
-### 4. Tighten
+   Use `$code-review` for an independent fixed-point check when the slice is
+   non-trivial or the user asks for review. A green check is evidence for its
+   claim, not a substitute for the delivered behavior.
 
-Run the focused command. Read the resulting diff as a design artifact:
-
-- delete pass-through helpers, unused options, duplicate models, and ceremony
-  introduced by this slice;
-- preserve strict boundaries instead of weakening types or validation;
-- remove temporary probes and artifacts;
-- leave unrelated pre-existing cleanup untouched.
-
-Prefer deletion when behavior and proof remain equal.
-
-### 5. Verify The Claim
-
-Run focused proof first. Run typecheck, lint, build, broad tests, rendered
-checks, or remote checks only when the repository contract or claimed outcome
-requires that level.
-
-For changed TypeScript source, declarations, or compiler configuration, run
-the narrowest repository-supported typecheck before completion. Use the root
-or workspace typecheck only when no narrower command proves the affected
-boundary or the repository contract requires it. Typecheck proves static
-relationships, not runtime behavior.
-
-Account for every changed and untracked path. Record:
-
-```text
-Outcome:
-Production path:
-Proof budget and evidence:
-Repository gates:
-Does not prove:
-Publication state:
-```
-
-Use `$code-review` for an independent checker pass when the slice is
-non-trivial or the user requests review.
-
-## Stop Condition
-
-Stop when the requested outcome is present in production code, every owned path
-is accounted for, proportional proof passes or is honestly blocked, and no
-remaining work is hidden behind green CI.
-
-## Hard Boundaries
-
-- Keep expected results independent from the implementation algorithm.
-- Exercise public behavior instead of private call order.
-- Preserve unrelated user changes and external state.
-- Separate semantic completion from commit, push, deployment, and CI status.
+   **Done when:** acceptance is satisfied through production code, proportional
+   proof passes or is honestly blocked, all owned paths are accounted for, and
+   no remaining work is hidden behind green CI.

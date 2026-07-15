@@ -5,64 +5,115 @@ description: Find architecture hotspots or deepen a module interface, public sea
 
 # Codebase Design
 
-Design deep modules: substantial behavior behind a small interface at a clean
-seam. Callers and tests should learn the same surface.
+Start from observed change friction, not a preferred abstraction. Deepen one
+real boundary so callers learn a smaller interface while one owner hides more
+policy. A large cohesive module may already be deeper than many tiny wrappers.
 
-## Choose The Mode
+Use the vocabulary precisely:
 
-- **Directed design** — the caller, module, or interface is already named. Use
-  the design questions below.
-- **Architecture audit** — the user asks where monoliths, friction, or
-  deepening opportunities exist. Load
-  [architecture-audit.md](references/architecture-audit.md), rank candidates,
-  then apply the design questions only to the strongest candidate.
+- **Module** — any function, class, package, or tier-spanning slice with an
+  interface and implementation.
+- **Interface** — everything a caller must know, including invariants, errors,
+  ordering, configuration, and performance.
+- **Seam** — where behavior can vary without editing the caller.
+- **Adapter** — one concrete implementation occupying a seam.
+- **Depth** — useful leverage per unit of interface a caller must learn.
+- **Locality** — change, bugs, knowledge, and proof concentrated behind one
+  interface instead of repeated across callers.
 
-An audit is read-only unless the user also authorizes implementation.
+1. **Choose the decision surface.** Use `directed-design` when the caller,
+   module, interface, or dependency is already named. Use `architecture-audit`
+   when the user asks where ownership or monolith friction lives; then read
+   [architecture-audit.md](references/architecture-audit.md) and carry only its
+   strongest evidenced candidate into the remaining steps.
 
-## Vocabulary
+   <design-contract>
+   Mode: directed-design | architecture-audit
+   Scope and current ref:
+   Named caller or candidate:
+   Observed friction:
+   Decision requested:
+   Implementation authority: none | separate scoped handoff
+   </design-contract>
 
-**Module** — anything with an interface and implementation: function, class,
-package, or tier-spanning slice.
+   Discovery remains read-only. Separate implementation authority permits a
+   scoped handoff; it does not turn the audit into an opportunistic refactor.
 
-**Interface** — everything a caller must know, including invariants, errors,
-ordering, configuration, and performance.
+   **Done when:** the work names one current boundary and one concrete cost;
+   file size, aesthetics, and hypothetical reuse are not the problem statement.
 
-**Seam** — the location where behavior can vary without editing the caller.
+2. **Map what the caller must know.** Trace the real caller through its public
+   seam into implementation and any dependency, persistence, or IO boundary.
+   Record sequencing, invariants, configuration, failure recovery, and policy
+   that leak back into callers.
 
-**Adapter** — a concrete implementation that occupies a seam.
+   <boundary-map>
+   Caller and desired outcome:
+   Current interface:
+   Caller-owned sequencing and invariants:
+   Leaked or duplicated policy:
+   External or varying dependency:
+   Current behavior and failure contract:
+   Current proof surface:
+   </boundary-map>
 
-**Depth** — leverage delivered per unit of interface a caller must learn.
+   **Done when:** the current path is concrete enough to point to where each
+   piece of knowledge and policy lives.
 
-**Locality** — change, bugs, knowledge, and proof concentrated behind one
-interface instead of repeated across callers.
+3. **Earn the seam.** Read
+   [deep-modules.md](references/deep-modules.md) when proposing a new seam,
+   comparing module shapes, or deepening an existing cluster. Apply its
+   deletion probe, interface-pressure test, and seam evidence to the mapped
+   boundary. One adapter proves a concrete implementation, not an abstraction.
 
-Load [deep-modules.md](references/deep-modules.md) when comparing module shapes
-or deepening an existing cluster.
+   Prefer a direct call, move, rename, or deletion when it resolves the
+   friction with fewer concepts. Improve testability through the production
+   interface; never export internals only for tests.
 
-## Design Questions
+   **Done when:** the proposed boundary owns real policy or variation and can
+   state what becomes local or disappears.
 
-1. Who is the real caller and what outcome does it need?
-2. What is the smallest interface that gives that caller the outcome?
-3. Which complexity can move behind the interface?
-4. Which policy has one owner after the change?
-5. Is the seam real because behavior varies, or hypothetical?
-6. Can production callers and proof both cross the same interface?
-7. What disappears if the module is deleted?
+4. **Design ownership twice.** For a consequential public boundary, sketch two
+   meaningfully different ownership shapes. Moving the same methods behind a
+   differently named wrapper is one design, not two.
 
-For a consequential interface, sketch two meaningfully different designs
-before choosing. Compare caller knowledge, hidden complexity, locality, failure
-modes, and migration cost.
+   <design-option>
+   Interface the caller learns:
+   Policy and complexity hidden:
+   Failure model:
+   Dependency direction:
+   Production proof surface:
+   Incremental migration cost:
+   Deletion result:
+   </design-option>
 
-## Stop Condition
+   Compare current call sites and concrete failure modes. Use a focused static
+   or behavior probe only when it can distinguish the options; a broad test
+   suite or green CI cannot select an architecture.
 
-Stop when one interface has a named caller, hidden policy, stable observable
-behavior, a credible proof surface, and fewer concepts than the alternatives.
+   **Done when:** the options differ in ownership, their costs are explicit,
+   and one wins by reducing caller knowledge without hiding unresolved risk.
 
-## Hard Boundaries
+5. **Make the smallest durable decision.** Choose one interface, policy owner,
+   and migration slice. Reject or defer adjacent cleanup whose consumer,
+   owner, or falsifier is unclear.
 
-- One adapter is evidence for a concrete implementation, not an automatic
-  abstraction.
-- Pass-through wrappers, mapper chains, and storage-shaped public types are
-  shallow until they hide real policy.
-- Testability improves by changing the production interface, not by exporting
-  internals only for tests.
+   <design-decision>
+   Smallest decision:
+   Real caller and outcome:
+   Chosen interface:
+   Policy owner and hidden complexity:
+   Failure contract:
+   Rejected alternative and reason:
+   First vertical slice:
+   Falsifier at the production seam:
+   Does not prove:
+   </design-decision>
+
+   If implementation is authorized, hand this decision to `$implement` as one
+   production-first vertical slice. Otherwise stop with the decision and
+   explicit non-proof; do not begin a speculative refactor.
+
+   **Done when:** the decision shows how one named caller would gain a smaller
+   contract, assigns real policy to one owner, bounds the first slice, and can
+   be handed off without inventing another abstraction.

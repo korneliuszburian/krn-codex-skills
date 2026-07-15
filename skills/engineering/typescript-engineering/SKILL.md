@@ -5,9 +5,8 @@ description: Sharpen TypeScript inference, boundaries, public APIs, compiler con
 
 # TypeScript Engineering
 
-TypeScript is a model of JavaScript, not a runtime shield. Preserve useful
-relationships in the compiler, validate values at runtime, and make every
-unsound claim visible.
+TypeScript models JavaScript; it is not a runtime shield. Preserve compiler
+relationships, validate values at runtime, and expose every unsound claim.
 
 The active workflow skill still owns sequencing, edits, diagnosis, review, or
 architecture. This companion owns the TypeScript decision inside that work.
@@ -35,24 +34,25 @@ architecture. This companion owns the TypeScript decision inside that work.
    - [objects-indexing-and-state.md](references/objects-indexing-and-state.md)
      for structural objects, keys, unions, and exhaustive states;
    - [functions-generics-and-callbacks.md](references/functions-generics-and-callbacks.md)
-     for signatures, variance, overloads, predicates, and generic relations;
+     for signatures, receiver/dispatch variance, overloads, predicates,
+     generic relations, and utility ownership;
    - [type-transformations.md](references/type-transformations.md) for
      derivation, conditional, mapped, and template-literal types;
    - [runtime-boundaries-and-escape-hatches.md](references/runtime-boundaries-and-escape-hatches.md)
-     for `unknown`, validation, assertions, and suppressions;
+     for `unknown`, validation, assertions including TSX syntax, and suppressions;
    - [public-apis-modules-and-declarations.md](references/public-apis-modules-and-declarations.md)
      for library surfaces, classes, modules, declarations, and augmentation;
    - [compiler-resolution-and-proof.md](references/compiler-resolution-and-proof.md)
-     for tsconfig, emit, module resolution, JSX, project references, and proof.
+     for tsconfig, emit/erasable-host boundaries, module resolution, JSX,
+     project references, and proof.
 
    **Done when:** every loaded reference changes a current decision; branch-only
    material stays out of context.
 
 3. **Preserve the relationship, not ceremony.** Infer implementation details.
-   Annotate public inputs and independently owned contracts. Derive types when
-   value and type share an owner; decouple them when their consumers evolve
-   separately. Prefer a union or overload to clever machinery callers cannot
-   read.
+   Annotate public inputs and independent contracts. Derive types when value and
+   type share an owner; decouple them when consumers evolve separately. Prefer
+   a union or overload over machinery callers cannot read.
 
    <typescript-example id="checked-literal-config">
 

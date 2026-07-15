@@ -35,6 +35,143 @@ function filesNamed(directory, basename) {
   return results;
 }
 
+function filesUnder(directory, predicate = () => true) {
+  if (!fs.existsSync(directory)) return [];
+  const results = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const file = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...filesUnder(file, predicate));
+    } else if (predicate(file)) {
+      results.push(file);
+    }
+  }
+  return results;
+}
+
+function unfencedLines(content) {
+  const lines = [];
+  let fenced = false;
+  for (const [index, line] of content.split("\n").entries()) {
+    if (/^\s*```/.test(line)) {
+      fenced = !fenced;
+      continue;
+    }
+    if (!fenced) lines.push({ line, number: index + 1 });
+  }
+  return lines;
+}
+
+function activeShellLines(content) {
+  return content
+    .split("\n")
+    .map((line) => {
+      let singleQuoted = false;
+      let doubleQuoted = false;
+      let escaped = false;
+      for (let index = 0; index < line.length; index += 1) {
+        const character = line[index];
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+        if (character === "\\" && !singleQuoted) {
+          escaped = true;
+          continue;
+        }
+        if (character === "'" && !doubleQuoted) {
+          singleQuoted = !singleQuoted;
+          continue;
+        }
+        if (character === '"' && !singleQuoted) {
+          doubleQuoted = !doubleQuoted;
+          continue;
+        }
+        if (
+          character === "#" &&
+          !singleQuoted &&
+          !doubleQuoted &&
+          (index === 0 || /\s/.test(line[index - 1]))
+        ) {
+          return line.slice(0, index).trim();
+        }
+      }
+      return line.trim();
+    })
+    .filter(Boolean);
+}
+
+function shellWords(line) {
+  return line.match(/"(?:\\.|[^"\\])*"|'[^']*'|[^\s]+/g) ?? [];
+}
+
+function unquoteShellWord(word) {
+  if (
+    (word.startsWith('"') && word.endsWith('"')) ||
+    (word.startsWith("'") && word.endsWith("'"))
+  ) {
+    return word.slice(1, -1);
+  }
+  return word;
+}
+
+function isClaudeInvocation(line) {
+  const words = shellWords(line).map(unquoteShellWord);
+  let command = 0;
+  if (words[command] === "rtk") command += 1;
+  if (words[command] === "claude") return true;
+  return (
+    words[command] === "timeout" &&
+    words.slice(command + 1).includes("claude")
+  );
+}
+
+function isClaudeWindowGuard(line) {
+  const words = shellWords(line).map(unquoteShellWord);
+  return (
+    words[0] === "rtk" &&
+    words[1] === "node" &&
+    words[2]?.endsWith("check-claude-window.mjs") &&
+    words[3] === "check"
+  );
+}
+
+function validateMarkdownLinks(file) {
+  for (const { line, number } of unfencedLines(read(file))) {
+    for (const match of line.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
+      let target = match[1].trim().split(/\s+"/)[0];
+      if (/^<.*>$/.test(target)) target = target.slice(1, -1);
+      if (!target || target.startsWith("#") || /^[a-z][a-z+.-]*:/i.test(target)) {
+        continue;
+      }
+      target = decodeURIComponent(target.split("#")[0]);
+      if (!fs.existsSync(path.resolve(path.dirname(file), target))) {
+        fail(`${relative(file)}:${number}: broken Markdown link ${match[1]}`);
+      }
+    }
+  }
+}
+
+function validateSemanticXml(file) {
+  const stack = [];
+  for (const { line, number } of unfencedLines(read(file))) {
+    const trimmed = line.trim();
+    const close = trimmed.match(/^<\/([a-z][a-z0-9-]*)>$/);
+    if (close) {
+      const open = stack.pop();
+      if (!open || open.name !== close[1]) {
+        fail(`${relative(file)}:${number}: unmatched </${close[1]}>`);
+      }
+      continue;
+    }
+    const open = trimmed.match(/^<([a-z][a-z0-9-]*)(?:\s+[^>]*)?>$/);
+    if (open) stack.push({ name: open[1], number });
+  }
+  for (const open of stack) {
+    fail(`${relative(file)}:${open.number}: unclosed <${open.name}>`);
+  }
+}
+
 function parseFrontmatter(file) {
   const content = read(file);
   const match = content.match(/^---\n([\s\S]*?)\n---\n/);
@@ -56,10 +193,6 @@ function parseFrontmatter(file) {
     fail(`${relative(file)}: frontmatter must contain only name and description`);
   }
   return fields;
-}
-
-function yamlString(content, key) {
-  return content.match(new RegExp(`^\\s{2}${key}: "([^"]+)"$`, "m"))?.[1];
 }
 
 function lineCount(file) {
@@ -156,25 +289,23 @@ for (const skill of manifest.skills) {
   }
 
   const metadata = read(metadataFile);
-  const displayName = yamlString(metadata, "display_name");
-  const shortDescription = yamlString(metadata, "short_description");
-  const defaultPrompt = yamlString(metadata, "default_prompt");
-  const policy = metadata.match(
-    /^\s{2}allow_implicit_invocation:\s*(true|false)$/m,
-  )?.[1];
-  if (!displayName) fail(`${skill.path}: missing quoted display_name`);
-  if (
-    !shortDescription ||
-    shortDescription.length < 25 ||
-    shortDescription.length > 64
-  ) {
-    fail(`${skill.path}: short_description must be 25-64 characters`);
-  }
-  if (!defaultPrompt?.includes(`$${skill.name}`)) {
-    fail(`${skill.path}: default_prompt must mention $${skill.name}`);
-  }
-  if (policy !== String(skill.implicit)) {
-    fail(`${skill.path}: invocation policy differs from manifest`);
+  const metadataMatch = metadata.match(
+    /^interface:\n  display_name: "([^"\n]+)"\n  short_description: "([^"\n]+)"\n  default_prompt: "([^"\n]+)"\npolicy:\n  allow_implicit_invocation: (true|false)\n?$/,
+  );
+  if (!metadataMatch) {
+    fail(`${skill.path}: agents/openai.yaml must match the canonical schema`);
+  } else {
+    const [, displayName, shortDescription, defaultPrompt, policy] = metadataMatch;
+    if (!displayName) fail(`${skill.path}: missing quoted display_name`);
+    if (shortDescription.length < 25 || shortDescription.length > 64) {
+      fail(`${skill.path}: short_description must be 25-64 characters`);
+    }
+    if (!defaultPrompt.includes(`$${skill.name}`)) {
+      fail(`${skill.path}: default_prompt must mention $${skill.name}`);
+    }
+    if (policy !== String(skill.implicit)) {
+      fail(`${skill.path}: invocation policy differs from manifest`);
+    }
   }
 
   const content = read(skillFile);
@@ -193,6 +324,19 @@ for (const skill of manifest.skills) {
   if (/\]\(\.\.\//.test(content)) {
     fail(`${skill.path}: cross-skill relative pointers are not allowed`);
   }
+
+  const referenceRoot = path.join(skillDir, "references");
+  for (const reference of filesUnder(referenceRoot)) {
+    const pointer = relative(reference).slice(`${skill.path}/`.length);
+    if (!content.includes(`(${pointer})`)) {
+      fail(`${skill.path}: ${pointer} is not linked directly from SKILL.md`);
+    }
+  }
+
+  for (const markdown of filesUnder(skillDir, (file) => file.endsWith(".md"))) {
+    validateMarkdownLinks(markdown);
+    validateSemanticXml(markdown);
+  }
 }
 
 for (const discovered of discoveredPaths) {
@@ -204,6 +348,18 @@ for (const promoted of manifestPaths) {
   if (!discoveredPaths.has(promoted)) {
     fail(`${promoted}: manifest path has no SKILL.md`);
   }
+}
+
+const repositoryMarkdown = new Set([
+  path.join(root, "AGENTS.md"),
+  path.join(root, "CONTEXT.md"),
+  path.join(root, "README.md"),
+  ...filesUnder(path.join(root, "config"), (file) => file.endsWith(".md")),
+  ...filesUnder(path.join(root, "docs"), (file) => file.endsWith(".md")),
+]);
+for (const markdown of repositoryMarkdown) {
+  validateMarkdownLinks(markdown);
+  validateSemanticXml(markdown);
 }
 
 const secondOpinion = manifest.skills.find(
@@ -227,8 +383,18 @@ if (secondOpinion) {
     const runnerPath = path.join(skillRoot, "scripts", runner);
     if (!fs.existsSync(runnerPath)) {
       fail(`${secondOpinion.path}: missing ${runner}`);
-    } else if (!read(runnerPath).includes(windowGuard)) {
-      fail(`${secondOpinion.path}: ${runner} bypasses the Claude time guard`);
+      continue;
+    }
+
+    const activeLines = activeShellLines(read(runnerPath));
+    const firstClaude = activeLines.findIndex(isClaudeInvocation);
+    const firstGuard = activeLines.findIndex(isClaudeWindowGuard);
+    if (firstClaude === -1) {
+      fail(`${secondOpinion.path}: ${runner} has no active Claude invocation`);
+    } else if (firstGuard === -1 || firstGuard >= firstClaude) {
+      fail(
+        `${secondOpinion.path}: ${runner} must run an active ${windowGuard} check before its first Claude invocation`,
+      );
     }
   }
 }
@@ -266,13 +432,38 @@ for (const testCase of triggerCases.cases ?? []) {
   if (typeof testCase.prompt !== "string" || !testCase.prompt.trim()) {
     fail(`${testCase.id}: prompt must be non-empty`);
   }
-  for (const name of testCase.expected_skills ?? []) {
+  const skillLists = {};
+  for (const field of ["expected_skills", "forbidden_skills"]) {
+    const names = testCase[field];
+    if (!Array.isArray(names)) {
+      fail(`${testCase.id}: ${field} must be an array`);
+      skillLists[field] = [];
+      continue;
+    }
+    const unique = new Set();
+    for (const name of names) {
+      if (unique.has(name)) {
+        fail(`${testCase.id}: duplicate ${field} member ${name}`);
+      }
+      unique.add(name);
+    }
+    skillLists[field] = names;
+  }
+  const expectedSkills = skillLists.expected_skills;
+  const forbiddenSkills = skillLists.forbidden_skills;
+  for (const name of expectedSkills) {
     if (!manifestNames.has(name)) fail(`${testCase.id}: unknown expected skill ${name}`);
     positivelyCovered.add(name);
   }
-  for (const name of testCase.forbidden_skills ?? []) {
+  for (const name of forbiddenSkills) {
     if (!manifestNames.has(name)) fail(`${testCase.id}: unknown forbidden skill ${name}`);
     negativelyCovered.add(name);
+  }
+  const forbiddenSet = new Set(forbiddenSkills);
+  for (const name of new Set(expectedSkills)) {
+    if (forbiddenSet.has(name)) {
+      fail(`${testCase.id}: skill ${name} is both expected and forbidden`);
+    }
   }
 }
 for (const name of manifestNames) {

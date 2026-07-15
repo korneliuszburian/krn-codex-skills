@@ -50,6 +50,24 @@ A double assertion through `unknown` bypasses overlap checking and carries the
 same trust cost as `any`. Keep unavoidable `any` at an adapter boundary and
 prevent it from flowing into domain code.
 
+## Keep TSX assertion syntax unambiguous
+
+In `.tsx`, an angle-bracket assertion conflicts with JSX grammar. Use `as` only
+after the same owned evidence required in `.ts`; changing syntax does not make
+the claim safer.
+
+<typescript-example id="tsx-assertion-syntax">
+
+```tsx
+declare const value: unknown;
+const claimed = value as { id: string }; // parses in TSX; still unvalidated
+```
+
+</typescript-example>
+
+Falsify syntax with the pinned compiler in a `.tsx` fixture. If the value is
+external, malformed runtime input must still reject the asserted shape.
+
 ## Suppress only intentional compiler failures
 
 - `@ts-expect-error` is acceptable for an intentionally illegal public use or

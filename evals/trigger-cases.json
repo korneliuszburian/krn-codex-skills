@@ -39,6 +39,42 @@
       ]
     },
     {
+      "id": "typescript-review-composition",
+      "prompt": "Review this fixed TypeScript public API diff against its spec and type-boundary standards without redesigning it.",
+      "expected_skills": [
+        "code-review",
+        "typescript-engineering"
+      ],
+      "forbidden_skills": [
+        "codebase-design",
+        "implement"
+      ]
+    },
+    {
+      "id": "typescript-diagnosis-composition",
+      "prompt": "This TypeScript module-resolution failure has an unknown cause. Reproduce and diagnose it without repairing it.",
+      "expected_skills": [
+        "diagnosing-bugs",
+        "typescript-engineering"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "code-review"
+      ]
+    },
+    {
+      "id": "typescript-design-composition",
+      "prompt": "Design the smallest deep TypeScript interface for this exported module boundary without implementing it.",
+      "expected_skills": [
+        "codebase-design",
+        "typescript-engineering"
+      ],
+      "forbidden_skills": [
+        "code-review",
+        "implement"
+      ]
+    },
+    {
       "id": "plain-javascript-is-not-typescript",
       "prompt": "Implement the already-scoped behavior change in this plain JavaScript module.",
       "expected_skills": [
@@ -50,13 +86,25 @@
       ]
     },
     {
-      "id": "diagnose-unknown-flake",
-      "prompt": "This database smoke flakes about one run in twenty. Find the cause and fix it.",
+      "id": "diagnose-only-unknown-flake",
+      "prompt": "This database smoke flakes about one run in twenty. Find the cause, but do not repair it.",
       "expected_skills": [
         "diagnosing-bugs"
       ],
       "forbidden_skills": [
         "implement",
+        "code-review",
+        "second-opinion-review"
+      ]
+    },
+    {
+      "id": "diagnose-and-repair-unknown-flake",
+      "prompt": "This database smoke flakes about one run in twenty. Find the cause and fix it.",
+      "expected_skills": [
+        "diagnosing-bugs",
+        "implement"
+      ],
+      "forbidden_skills": [
         "code-review",
         "second-opinion-review"
       ]
@@ -118,6 +166,18 @@
       ]
     },
     {
+      "id": "resolve-and-apply-domain-name",
+      "prompt": "Resolve whether account means the paying customer or login identity, then update the public API and its callers to the chosen language.",
+      "expected_skills": [
+        "domain-modeling",
+        "implement"
+      ],
+      "forbidden_skills": [
+        "code-review",
+        "source-to-decision"
+      ]
+    },
+    {
       "id": "apply-external-source",
       "prompt": "Read this framework design paper and decide which mechanism we should adopt or reject.",
       "expected_skills": [
@@ -129,6 +189,18 @@
       ]
     },
     {
+      "id": "decide-and-implement-external-source",
+      "prompt": "Evaluate this framework design paper for our named consumer, then implement the selected mechanism if the evidence supports adoption.",
+      "expected_skills": [
+        "source-to-decision",
+        "implement"
+      ],
+      "forbidden_skills": [
+        "domain-modeling",
+        "second-opinion-review"
+      ]
+    },
+    {
       "id": "operate-on-other-checkout",
       "prompt": "Inspect the dirty repository in ../customer-app and run its init trial without overwriting their changes.",
       "expected_skills": [
@@ -137,6 +209,18 @@
       "forbidden_skills": [
         "implement",
         "code-review"
+      ]
+    },
+    {
+      "id": "repair-other-checkout",
+      "prompt": "In the dirty ../customer-app checkout, implement the already-scoped import validation change without overwriting existing work; local target writes are authorized but publication is not.",
+      "expected_skills": [
+        "target-repo-work",
+        "implement"
+      ],
+      "forbidden_skills": [
+        "code-review",
+        "diagnosing-bugs"
       ]
     },
     {

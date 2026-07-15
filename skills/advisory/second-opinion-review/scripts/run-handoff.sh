@@ -10,8 +10,6 @@ job_name=$1
 handoff_file=$2
 script_dir=$(cd "${BASH_SOURCE[0]%/*}" && pwd)
 
-rtk node "$script_dir/check-claude-window.mjs" check
-
 if [[ ! -f "$handoff_file" ]]; then
   echo "handoff file not found: $handoff_file" >&2
   exit 66
@@ -44,6 +42,34 @@ for heading in "## Objective" "## Role and completion" "## Sources" \
     exit 65
   fi
 done
+
+role_lines=0
+handoff_role=
+while IFS= read -r line; do
+  case "$line" in
+    "- Role:"*)
+      ((role_lines += 1))
+      case "$line" in
+        "- Role: researcher" | '- Role: `researcher`')
+          handoff_role=researcher
+          ;;
+        "- Role: rewrite-maker" | '- Role: `rewrite-maker`')
+          handoff_role=rewrite-maker
+          ;;
+        *)
+          echo "background handoff role must be researcher or rewrite-maker; use run-review.sh for checker" >&2
+          exit 65
+          ;;
+      esac
+      ;;
+  esac
+done < "$handoff_file"
+if (( role_lines != 1 )) || [[ -z "$handoff_role" ]]; then
+  echo "handoff must contain exactly one background Role: researcher or rewrite-maker" >&2
+  exit 65
+fi
+
+rtk node "$script_dir/check-claude-window.mjs" check
 
 if ! repo_root=$(rtk git rev-parse --show-toplevel 2>/dev/null); then
   echo "run the background handoff from a disposable Git worktree" >&2

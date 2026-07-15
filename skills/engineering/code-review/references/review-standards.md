@@ -1,49 +1,63 @@
 # Review Standards
 
-Repository rules override this baseline. Skip a tooling-enforced issue unless
-the diff still carries a distinct behavioral or design risk.
+Use this baseline only after loading the closest repository rules. A smell is
+not a finding until the current diff demonstrates a violated rule, behavior
+risk, or concrete maintenance cost.
 
-## Hard Questions
+<actionable-standard>
+Rule or contract:
+Current diff evidence:
+Affected caller or behavior:
+Concrete cost:
+Counterexample that would dismiss it:
+</actionable-standard>
+
+## Boundary And Proof Checks
 
 - Does external data remain `unknown` until runtime validation?
 - Is there one public model instead of aliases, compatibility shims, or
   duplicate read models?
-- Does the proof observe the highest stable public seam with an independent
-  expected result?
+- Does proof observe the highest stable public seam with an independently
+  derived expected result?
 - Does persistence or migration work include executable readback and a
   contraction or rollback path?
-- Are semantic proof, CI, review, and publication reported separately?
-- Does every changed line trace to the requested slice?
+- Are behavior proof, CI, review, and publication reported as separate facts?
+- Does every changed line serve the requested slice?
 - Did the slice remove only artifacts it made obsolete?
+- Are tests protecting a behavior or authority boundary rather than prose,
+  file topology, private call order, command lists, tautological expected
+  values, or implementation ceremony?
 
-## Concrete Smells
+## Concrete Design Costs
 
-Report only when the diff demonstrates the cost:
+Report these only when changed paths show the cost:
 
-- **Mysterious Name** — the public name hides the owned concept.
-- **Duplicated Policy** — the same decision is implemented in multiple places.
-- **Feature Envy / Message Chain** — a caller traverses another module's
-  internals instead of using one interface.
-- **Data Clump / Primitive Obsession** — recurring values represent an unnamed
+- **Mysterious name** — a public name hides the concept it owns.
+- **Duplicated policy** — one decision is implemented in multiple owners.
+- **Message chain or feature envy** — a caller sequences another module's
+  internals instead of asking one interface for an outcome.
+- **Data clump or primitive obsession** — recurring values are an unnamed
   domain concept.
-- **Repeated Switch** — one state dispatch is scattered across owners.
-- **Shotgun Surgery** — one behavior requires unrelated edits across callers.
-- **Divergent Change** — one module owns unrelated policies.
-- **Speculative Generality** — an option, abstraction, hook, or adapter has no
+- **Repeated switch** — one state dispatch is scattered across owners.
+- **Shotgun surgery** — one behavior needs unrelated caller edits.
+- **Divergent change** — one module owns unrelated policies.
+- **Speculative generality** — an option, hook, adapter, or abstraction has no
   current consumer.
-- **Middle Man** — a pass-through layer adds interface without hiding
+- **Middle man** — a pass-through layer enlarges the interface without hiding
   complexity.
-- **Test Theater** — tests freeze internals, topology, prose, command lists, or
-  tautological expected values.
-- **Context Sediment** — always-loaded instructions repeat a workflow or carry
-  stale history.
+- **Context sediment** — always-loaded instructions duplicate workflow or
+  preserve stale history.
 
-## TypeScript
+## TypeScript Branch
 
-- Are locals inferred while public and IO boundaries are explicit?
-- Are exclusive states discriminated rather than optional bags?
+Use these checks only when TypeScript source, declarations, or compiler
+configuration changed:
+
+- Are implementation details inferred while public and IO boundaries remain
+  explicit?
+- Are exclusive states discriminated instead of modeled as optional bags?
 - Are derived types coupled only when their owners evolve together?
 - Could `satisfies` or narrowing replace an assertion?
 - Is every `any`, double assertion, predicate, assertion function, ambient
   declaration, or suppression isolated and justified?
-- Does the proof separate compile-time relationships from runtime validity?
+- Does proof separate compile-time relationships from runtime validity?

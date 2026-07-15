@@ -5,92 +5,117 @@ description: Review a fixed-point diff, pull request, or working tree without ed
 
 # Code Review
 
-Review the change on two independent axes:
+Freeze the change before judging it. Review one resolvable surface on two
+independent axes — **Standards** and **Spec** — then report only findings that
+survive current-code verification. This skill never edits the reviewed work.
 
-- **Standards** — does the implementation respect current repository and
-  engineering rules?
-- **Spec** — does it deliver the requested behavior without omissions or scope
-  creep?
+1. **Pin the fixed point.** Resolve a supplied commit, branch, tag, PR base, or
+   merge base before reading conclusions into the diff. Inspect its three-dot
+   diff and commit list. For a working tree, include status, staged and
+   unstaged diffs, and every in-scope untracked file.
 
-Passing one axis cannot hide failure on the other.
+   <review-surface>
+   Target:
+   Base and comparison:
+   Commit list:
+   Staged paths:
+   Unstaged paths:
+   Untracked paths:
+   Generated paths:
+   Explicitly out of scope:
+   </review-surface>
 
-## Process
+   Build a path ledger and mark every entry `reviewed`, `generated`, or
+   `out-of-scope-with-reason`. Stop on an invalid ref or an empty surface. If
+   the working tree changes during review, re-pin it before reporting. Derive
+   the fixed point from current branch or PR context when possible; ask for it
+   only when that context cannot resolve the comparison.
 
-### 1. Pin The Surface
+   **Done when:** the exact comparison is reproducible and every changed path
+   has a review disposition.
 
-For a supplied commit, branch, tag, or merge base, resolve it before review and
-inspect the three-dot diff plus commit list.
+2. **Locate both authorities.** Find the Spec in this order: the user request,
+   active tracker acceptance, linked issue or product/design artifact, then an
+   explicit statement that no further spec exists. Load the closest repository
+   instructions and only the domain material needed by the changed boundary.
 
-For a working tree, inspect status, staged and unstaged diffs, and every
-in-scope untracked file. Build a changed-path ledger and mark each path
-reviewed, generated, or explicitly out of scope.
+   Read [review-standards.md](references/review-standards.md) after repository
+   rules to fill gaps on the Standards axis. Its baseline never overrides a
+   closer rule.
 
-Stop early on a bad ref or empty surface. Ask for a fixed point only when the
-request cannot be resolved from current branch or PR context.
+   <review-authority>
+   Spec source:
+   Standards sources:
+   Changed public boundary:
+   Acceptance claims:
+   Known proof and gaps:
+   </review-authority>
 
-### 2. Locate Authority
+   **Done when:** each requirement and standard has a named authority, and no
+   test result or reviewer preference is standing in for one.
 
-Find the Spec in this order:
+3. **Run the axes independently.** On **Standards**, inspect documented rules,
+   public seams, external and type boundaries, migrations, naming, proof
+   quality, and concrete design costs. On **Spec**, inspect missing or partial
+   behavior, wrong outcomes, scope creep, and claims unsupported by the diff.
 
-1. user request;
-2. active tracker acceptance;
-3. linked issue, PRD, or design;
-4. explicit confirmation that no spec exists.
+   For a substantial surface, use two bounded read-only passes when separate
+   context materially improves independence; otherwise run the same passes
+   sequentially without carrying one axis's verdict into the other.
 
-Load the closest `AGENTS.md`, contributing rules, and only the domain material
-needed by the changed boundary. Load
-[review-standards.md](references/review-standards.md) for the Standards axis.
+   <axis-result>
+   Axis: Standards | Spec
+   Paths inspected:
+   Claims checked:
+   Candidate findings:
+   Verification gaps:
+   </axis-result>
 
-### 3. Run Independent Axes
+   Passing one axis cannot compensate for failure on the other.
 
-Run Standards and Spec without sharing conclusions. For a substantial diff,
-use two bounded read-only subagents in parallel when independent context would
-improve signal; otherwise perform the same passes sequentially.
+   **Done when:** both axes have inspected the whole in-scope ledger and
+   produced separate candidate findings or an explicit no-finding result.
 
-Standards checks documented rules, public seams, strict boundaries, migrations,
-proof quality, naming, and concrete design costs.
+4. **Try to kill every finding.** Reopen the cited path and current line. Drop
+   a candidate that lacks current evidence, invents a requirement, expresses
+   preference without a documented rule or concrete cost, or duplicates a
+   deterministic tool result without a distinct behavior risk.
 
-Spec checks missing or partial requirements, wrong behavior, scope creep, and
-claims unsupported by the diff.
+   A finding that needs runtime support may reuse or run the cheapest focused
+   observer that can falsify it. Do not expand read-only review into general
+   gate execution, and do not restate a deterministic tool finding unless it
+   exposes a distinct behavior risk.
 
-### 4. Verify Findings
+   <review-finding>
+   Axis: Standards | Spec
+   Severity and affected behavior:
+   Current path and line:
+   Authority or violated contract:
+   Evidence:
+   Impact:
+   Smallest credible fix:
+   Falsifying check, if needed:
+   </review-finding>
 
-Reopen every cited file and current line. Drop a finding that:
+   **Done when:** every retained finding is actionable from the report and
+   every executed gate can disagree with a specific review claim.
 
-- lacks current path and line evidence;
-- is only a style preference with no documented rule or concrete cost;
-- is already settled by deterministic tooling and has no distinct behavior
-  risk;
-- invents a requirement absent from the Spec.
+5. **Report without repairing.** Lead with Standards and Spec findings,
+   ordered by severity within each axis. If an axis has none, say so and name
+   its residual proof gap. Never collapse the axes into a score.
 
-Each retained finding needs severity, evidence, impact, and the smallest
-credible fix.
+   <review-summary>
+   Fixed point:
+   Changed paths accounted for:
+   Standards result:
+   Spec result:
+   Checks observed or run:
+   Verification gaps:
+   Residual risk:
+   </review-summary>
 
-### 5. Report Without Editing
+   A finding authorizes no edit. Hand any accepted repair to a separate scoped
+   implementation task.
 
-```text
-Scope and fixed point:
-Changed paths accounted for:
-Standards findings:
-Spec findings:
-Verification gaps:
-Residual risk:
-```
-
-Put findings first and order severity within each axis. If an axis has no
-finding, say so and name its residual proof gap. Do not merge the axes into one
-score.
-
-## Stop Condition
-
-Stop when every in-scope path is accounted for, both axes have an independent
-result, every finding survives current-code verification, and uncertainty is
-explicit.
-
-## Hard Boundaries
-
-- Review is read-only; fixing begins in a separate authorized task.
-- Include staged, unstaged, and untracked work when reviewing a working tree.
-- Green tests do not prove Spec compliance or design quality.
-- A smell is a judgment call until a rule or concrete behavior risk makes it
-  actionable.
+   **Done when:** every in-scope path is accounted for, both axes remain
+   visible, uncertainty is explicit, and the reviewed source is unchanged.

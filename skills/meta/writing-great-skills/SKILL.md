@@ -1,90 +1,121 @@
 ---
 name: writing-great-skills
-description: Design, revise, or prune Codex agent skills for predictable invocation and execution. Use when creating SKILL.md, trigger descriptions, invocation metadata, references, scripts, or a repository skill system; skip ordinary documentation.
+description: Design, rewrite, route, or prune Codex skills so invocation and execution stay predictable. Use for SKILL.md, trigger descriptions, metadata, references, scripts, catalogs, or skill collisions; skip ordinary documentation.
 ---
 
 # Writing Great Skills
 
-A skill wrangles predictability from a stochastic agent: the same useful
-process on repeated runs, not identical output.
+A skill wrangles **predictability** from a stochastic agent: the same useful
+process on repeated runs, not identical output. Every line must improve
+invocation, execution, or completion enough to earn its context.
 
-Load [glossary.md](references/glossary.md) when diagnosing invocation,
-information-hierarchy, or pruning failures.
+Read [glossary.md](references/glossary.md) when a term below is disputed or a
+skill misfires through collision, premature completion, sediment, or sprawl.
 
-## Process
+1. **Give one job one owner.** Collect real prompts before prose: obvious
+   positives, closest negatives, explicit mentions, and composition cases.
+   Name the workflow, its input, its observable output, and what the neighboring
+   skill still owns.
 
-### 1. Own One Job
+   <skill-contract>
+   Job:
+   Leading word:
+   Inputs:
+   Observable output:
+   Completion criterion:
+   Positive prompts:
+   Closest negative prompts:
+   Composes with:
+   Must not own:
+   </skill-contract>
 
-Collect realistic positive and negative prompts. Name the single workflow the
-skill owns, its inputs, output, completion criterion, and adjacent workflows it
-must not steal.
+   Split only for a distinct invocation or when hiding later steps fixes an
+   observed premature-completion failure.
 
-Split only when a branch has a distinct invocation or when hiding later steps
-prevents observed premature completion. Each model-visible description spends
-context and competes for attention.
+   **Done when:** every positive has one owner and every nearest negative has a
+   different owner or deliberately invokes no skill.
 
-### 2. Choose Invocation
+2. **Choose who invokes it.** An implicit skill earns always-visible context by
+   firing autonomously or by serving another workflow. Put the distinct task,
+   live branches, and nearest boundary in its concise model-facing description;
+   set `policy.allow_implicit_invocation: true` in `agents/openai.yaml`.
 
-- **Model or user** — set
-  `policy.allow_implicit_invocation: true`. Write a concise model-facing
-  description that front-loads the distinct task and boundary.
-- **Explicit only** — set
-  `policy.allow_implicit_invocation: false`. Keep the description useful to
-  the human picker without implying autonomous reach.
+   An explicit-only skill trades context load for human recall. Keep its
+   description useful to the picker and set
+   `policy.allow_implicit_invocation: false`. Do not add harness-specific
+   frontmatter rejected by the repository validator.
 
-Codex policy lives in `agents/openai.yaml`. Do not add harness-specific
-frontmatter that the Codex validator rejects.
+   <trigger-case expected="invoke | compose | skip">
+   Raw prompt:
+   Expected owner:
+   Why the nearest alternative loses:
+   </trigger-case>
 
-This step is complete when the description can separate every positive case
-from its nearest negative case without relying on the body.
+   **Done when:** the description alone separates the prompt matrix without
+   relying on the body or on aliases.
 
-### 3. Build The Information Hierarchy
+3. **Build the information ladder.** Put common ordered actions in `SKILL.md`.
+   End each step with a checkable, exhaustive **Done when**. Keep a flat rule in
+   the entrypoint only when every branch needs it. Move branch-only mechanisms,
+   schemas, examples, and catalogs behind a direct context pointer. Add a script
+   only for deterministic work that prose performs unreliably.
 
-Keep common ordered actions and their checkable completion criteria in
-`SKILL.md`. Move branch-only rules, examples, schemas, and catalogs into a
-directly linked `references/` file. Add a script only when deterministic
-reliability or repeated fragile code earns it.
+   A workflow may be all steps; a durable reference may be all peer rules. Do
+   not force numbering onto material with no sequence. Co-locate each concept's
+   rule, caveat, and smallest useful example.
 
-Every pointer states when to read or run its target. Avoid deep reference
-chains, duplicated procedures, empty scaffolding, and auxiliary README files
-inside a skill.
+   <context-pointer>
+   Read or run this when:
+   Resource:
+   Decision it changes:
+   Why it stays out of the entrypoint:
+   </context-pointer>
 
-### 4. Prune
+   **Done when:** every resource is reachable exactly on the branch that needs
+   it, with no deep reference chain or duplicated procedure.
 
-For every sentence ask:
+4. **Write the behavioral grammar.** Lead with the mental model the agent should
+   think through. Use imperative numbered steps for real sequence, bold the
+   decision each step owns, place conditions beside the action, and finish
+   locally with **Done when**. Use semantic XML blocks for contracts, handoffs,
+   ledgers, or output shapes the agent must fill—not as ornamental headings.
+   Put an inline example beside the choice it disambiguates.
 
-1. Does it change behavior from the capable-model default?
-2. Is it still relevant to this workflow?
-3. Does the same meaning already have another owner?
-4. Can a strong leading word replace repeated explanation?
-5. Is this reference needed on every branch?
+   Prefer one strong leading word such as _vertical slice_, _red repro_, or
+   _proof budget_ over repeated weak explanation. State the desired behavior
+   positively; reserve prohibitions for hard safety boundaries and pair them
+   with the safe action.
 
-Delete no-ops, sediment, duplication, and aliases. Prefer positive target
-behavior; retain a prohibition only as a hard safety boundary paired with the
-safe action.
+   **Done when:** a fresh agent can execute the skill from top to bottom without
+   inventing order, output shape, stopping condition, or branch selection.
 
-### 5. Validate And Forward-Test
+5. **Prune until every sentence moves behavior.** Apply the no-op test sentence
+   by sentence: would a capable agent behave differently without it? Delete
+   duplication, stale sediment, generic encouragement, premature summaries,
+   repeated source material, and compatibility names. Keep each meaning under
+   one semantic owner.
 
-Validate frontmatter, folder/name identity, `agents/openai.yaml`, direct
-pointers, and deterministic scripts. Forward-test with fresh agents and raw
-artifacts:
+   **Done when:** removing any remaining instruction would change routing,
+   execution, safety, or completion for a representative prompt.
 
-- positive prompts should select and follow the skill;
-- adjacent negative prompts should select the correct owner or no skill;
-- explicit-only skills should stay absent unless named;
-- completion criteria should prevent early stopping.
+6. **Validate, then forward-test.** Validate frontmatter, folder/name identity,
+   invocation metadata, direct pointers, manifests, and changed deterministic
+   scripts. Then use fresh agents with raw prompts and artifacts; never leak the
+   expected answer or suspected flaw into the trial.
 
-Do not leak the expected answer or suspected flaw into the evaluator prompt.
+   <forward-trial>
+   Prompt class: positive | nearest-negative | explicit-only | composition
+   Raw prompt:
+   Observed owner:
+   Observed process:
+   Completion evidence:
+   Failure or ambiguity:
+   </forward-trial>
 
-## Stop Condition
+   Schema green proves structure only. Retain a skill when positives route and
+   finish correctly, negatives stay out, composition preserves one workflow
+   owner, and repeated trials expose no systematic early stop.
 
-Stop when one workflow has one owner, trigger cases discriminate it from every
-neighbor, the entrypoint contains only common live instructions, resources are
-reachable on the correct branch, and representative forward tests pass.
-
-## Hard Boundaries
-
-- Never solve description collisions with aliases or duplicated names.
-- Never vendor a source corpus as always-loaded skill context.
-- Never treat schema validation as evidence that the skill changes agent
-  behavior.
+   **Done when:** the fixed prompt matrix passes behaviorally and every remaining
+   miss changes either the description, the information ladder, or the
+   completion criterion before another trial.

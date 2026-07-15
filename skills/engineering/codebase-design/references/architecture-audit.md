@@ -1,52 +1,50 @@
 # Architecture Audit
 
-Find concrete change friction before proposing a refactor. File size is a clue,
-not a verdict; a large cohesive module may be deeper than several small files
-that leak one policy across callers.
+Find demonstrated change friction before proposing a refactor. File size,
+dependency fan-out, churn, and test volume are navigation signals — none is a
+verdict by itself.
 
-## 1. Pin The Scope
+1. **Pin the audit.** Name the package, subsystem, or changed surface and
+   whether evidence comes from current code, a fixed-point diff, or bounded
+   recent history. Keep discovery read-only.
 
-Name the package, subsystem, or changed surface and whether the audit covers
-current code, a fixed-point diff, or recent history. Keep the audit read-only.
-Do not silently turn “find opportunities” into a repository-wide rewrite.
+   **Done when:** the search boundary and evidence window are explicit.
 
-## 2. Gather Friction
+2. **Trace concrete friction.** Look for one behavior requiring unrelated
+   caller edits, repeated policy or recovery, callers sequencing internals, a
+   public contract exposing storage or transport, one module changing for
+   unrelated reasons, or missing production seams behind recurring bug and
+   proof friction.
 
-Use current code and the cheapest available history to look for:
+   Use current code first and only the cheapest history needed to confirm a
+   repeated cost. Do not run broad tests or CI to manufacture architecture
+   evidence.
 
-- one behavior requiring edits across unrelated callers;
-- repeated policy, validation, state dispatch, or error recovery;
-- callers sequencing another module's internals;
-- a public contract exposing storage, transport, or pipeline history;
-- a module changing for unrelated reasons;
-- bug or test friction caused by a missing production seam;
-- recent churn concentrated around the same ownership boundary.
+   **Done when:** every candidate cites current paths and the caller cost they
+   demonstrate.
 
-Treat line count, dependency fan-out, and test volume as navigation signals
-only. Retain a candidate only when current paths demonstrate a concrete cost.
+3. **Rank at most three candidates.** Rank repeated change cost and interface
+   leakage above aesthetics. Reject anything that only needs formatting, a
+   rename, file splitting, or an abstraction for a hypothetical consumer.
 
-## 3. Rank Candidates
+   <architecture-candidate>
+   Boundary and current paths:
+   Real callers:
+   Current caller knowledge:
+   Leaked or duplicated policy:
+   Likely deeper seam:
+   Expected deletion or locality gain:
+   Migration risk:
+   Evidence against this candidate:
+   </architecture-candidate>
 
-Report at most three candidates:
+   **Done when:** no more than three candidates remain and the strongest one
+   wins on evidenced ownership cost.
 
-```text
-Candidate and evidence:
-Current caller knowledge:
-Leaked or duplicated policy:
-Likely deeper seam:
-Expected deletion or locality gain:
-Migration risk:
-```
+4. **Return the frontier.** If no candidate survives, stop with the evidence
+   and an honest no-op result. Otherwise return only the strongest candidate to
+   the main workflow; its remaining steps own the deletion probe, interface
+   design, and migration decision.
 
-Rank by repeated change cost and interface leakage, not aesthetic preference.
-Reject candidates that merely need a rename, formatting cleanup, or speculative
-abstraction.
-
-## 4. Deepen One Boundary
-
-For the strongest candidate, run the deletion test and compare two designs that
-differ in ownership. Identify the real caller, smallest useful interface,
-hidden behavior, failure model, proof surface, and incremental migration slice.
-
-Hand an authorized change to `$implement` as one vertical slice. Otherwise stop
-with the ranked audit and explicit non-proof; do not edit during discovery.
+   **Done when:** one evidenced boundary is ready for directed design, or zero
+   candidates remain and the audit states what current evidence does not prove.

@@ -5,110 +5,115 @@ description: Diagnose an unknown failure, flake, regression, or slowdown with a 
 
 # Diagnosing Bugs
 
-A tight feedback loop turns an unknown fault into a testable cause. Diagnosis
-does not begin with a code theory.
+Make the symptom fail on command before explaining it. **A red-capable repro,
+or a measured performance baseline, is the entry ticket to causal reasoning.**
 
-## Choose The Mode
+1. **Fix authority and the symptom without naming a cause.** Choose
+   `diagnose-only` for evidence without mutation or `repair-authorized` when the
+   user also asked for a scoped fix. Preserve the exact input and environment
+   that produced the report.
 
-| Mode | Authority | Result |
-|---|---|---|
-| `diagnose-only` | read-only | evidence-backed cause or bounded uncertainty |
-| `repair-authorized` | scoped writes | cause-level fix and focused regression proof |
-| `missing-repro` | read-only | attempted ladder and exact missing input or access |
+   <diagnosis-contract>
+   Mode: diagnose-only | repair-authorized
+   Expected result:
+   Actual result:
+   Affected caller or public boundary:
+   Exact input and environment:
+   Candidate observer:
+   Allowed writes:
+   </diagnosis-contract>
 
-Performance work uses a measured baseline and the same input and environment in
-place of a binary red assertion.
+   **Done when:** authority, symptom, boundary, and candidate observer are
+   explicit while no cause has yet been asserted.
 
-## Process
+2. **Make the symptom observable.** Run the narrowest observer that can
+   disagree with the expected result:
 
-### 1. Make The Symptom Observable
+   1. one existing test or fixture;
+   2. one focused package command;
+   3. a CLI, HTTP, browser, runtime, database, or migration smoke with fixed
+      input;
+   4. a replayed trace or differential known-good versus known-bad run;
+   5. a broad suite only when no narrower observer can expose the symptom.
 
-State the expected result, actual result, affected public boundary, and one
-candidate command. Do not name a cause.
+   For a slowdown, measure the same workload in the same environment and
+   capture a baseline instead of forcing a binary assertion.
 
-Try the narrowest observer that can reproduce the user's exact symptom:
+   <repro-record>
+   Command or observer:
+   Fixed input and environment:
+   Expected:
+   Observed:
+   Reproduction rate or baseline:
+   Why this observer can go red:
+   </repro-record>
 
-1. one existing test or fixture;
-2. focused package command;
-3. CLI or HTTP call with fixed input;
-4. browser or runtime script;
-5. database or migration smoke;
-6. replayed trace or differential old-versus-new run;
-7. broad suite only when no narrower observer can disagree.
+   **Done when:** an already-run command reproduces the wrong result or
+   measurable breach, or every available rung is recorded and the exact
+   missing artifact, access, or environment is named.
 
-This step is complete when one already-run command is red-capable and specific,
-or the available evidence proves that a repro is missing.
+3. **Tighten the loop until the failure is minimal.** Remove one caller, input,
+   configuration value, dependency, or environment variable at a time. For a
+   flake, raise and record the reproduction rate. Keep everything that remains
+   load-bearing.
 
-### 2. Tighten And Minimize
+   Read [hard-bugs.md](references/hard-bugs.md) only when the ordinary loop
+   cannot isolate a regression range, race, input family, intermittent fault,
+   or environment-only symptom. Return to this loop as soon as one stable
+   failure becomes observable.
 
-Make the loop faster, sharper, and repeatable. For a flake, raise and record the
-reproduction rate. Remove one input, caller, config value, or environment
-variable at a time until every remaining part is load-bearing.
+   If every available observer stays green, stop in `missing-repro` state. Do
+   not replace unavailable evidence with a confident code theory.
 
-Load [hard-bugs.md](references/hard-bugs.md) when the ordinary ladder cannot
-isolate a regression range, intermittent failure, race, input family, or
-environment-only symptom.
+   **Done when:** the fastest repeatable case still exhibits the original
+   symptom, or the next evidence needed from the operator is exact and
+   actionable.
 
-If every available rung stays green, switch to `missing-repro`. Ask only for
-the artifact, access, or environment that would make the symptom observable.
+4. **Falsify ranked causal hypotheses one variable at a time.** Derive a short
+   list from the minimal case, and give every hypothesis a prediction before
+   changing anything.
 
-### 3. Test Causal Hypotheses
+   <causal-hypothesis>
+   Proposed cause:
+   If true, observing or changing:
+   Must produce:
+   Result that would falsify it:
+   Observation:
+   Disposition: survives | rejected | unresolved
+   </causal-hypothesis>
 
-Form a short ranked list from the minimal evidence. Give each hypothesis a
-prediction:
+   Prefer a debugger or focused inspection, then boundary logs with a unique
+   removal marker. Hold the input and environment constant. For performance,
+   compare the same workload against the captured baseline.
 
-```text
-If <cause>, then changing or observing <variable> will produce <result>.
-```
+   **Done when:** one cause survives an observation designed to falsify it, or
+   uncertainty is bounded to named alternatives with distinct missing proof.
 
-Change one causal variable at a time. Prefer debugger or focused inspection,
-then tagged boundary logs. For performance, compare the same workload against
-the baseline.
+5. **Stop at evidence or repair only the proven cause.** In `diagnose-only`,
+   report the cause and smallest credible repair without mutating production.
+   A plausible reading of code without the red-capable chain is not diagnosis.
 
-This step is complete when one hypothesis survives an observation that would
-have falsified it, or uncertainty is bounded to named alternatives.
+   In `repair-authorized`, the proven cause has turned the work into a scoped
+   change. Continue with `$implement`: carry the minimized repro as its focused
+   signal, retain at most one new regression falsifier when a stable public
+   seam exists and existing proof is insufficient, apply the smallest
+   cause-level slice, then rerun both the minimized and original repro. Remove
+   every temporary probe by its marker. A missing public seam is an architecture
+   finding, not permission to freeze private call order in a test.
 
-### 4. Stop Or Repair
+   <diagnosis-result>
+   Mode and authority:
+   Symptom and public boundary:
+   Repro or baseline before:
+   Minimal case:
+   Proven cause or bounded uncertainty:
+   Repair, if authorized:
+   Repro after:
+   Retained regression proof:
+   Temporary probes removed:
+   Does not prove:
+   </diagnosis-result>
 
-In `diagnose-only`, report the cause and smallest credible fix without
-mutation.
-
-In `repair-authorized`:
-
-1. turn the minimized repro into at most one retained regression falsifier when
-   a stable public seam exists;
-2. apply the smallest cause-level fix;
-3. rerun the minimized and original repro;
-4. remove temporary instrumentation and harnesses;
-5. run only the repository gates required by the changed surface.
-
-Absence of a useful seam is an architecture finding, not permission to freeze
-internals in a test.
-
-## Output
-
-```text
-Mode:
-Symptom and boundary:
-Repro or baseline:
-Before:
-Minimal case:
-Cause or bounded uncertainty:
-Fix:
-After:
-Regression proof:
-Does not prove:
-```
-
-## Stop Condition
-
-Stop when the reported symptom and cause are connected by reproducible
-evidence, or the exact missing evidence is named. A plausible code explanation
-without a red-capable loop is not diagnosis.
-
-## Hard Boundaries
-
-- Preserve the original input and environment while comparing changes.
-- Remove every temporary probe by its unique marker.
-- Keep repair scope at the proven cause.
-- Add one regression test for one fault, not a taxonomy of imagined variants.
+   **Done when:** the symptom and reported cause are connected by reproducible
+   evidence, or the exact missing evidence is named; any authorized repair is
+   limited to that cause and protected by proportional proof.

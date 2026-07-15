@@ -14,26 +14,6 @@ Prefer the highest stable interface that exposes the acceptance requirement:
 
 Do not add a production seam only to make internals mockable.
 
-## Apply The Budget
-
-### Zero
-
-Use zero new tests when the change is type-only, mechanical, documentation,
-topology, or a behavior-preserving refactor already covered through the public
-seam. Run the existing observer before and after.
-
-### One
-
-Use one focused behavior test for one changed contract, parser, validator, bug,
-migration, or authority rule. One logical case may contain several assertions
-about the same outcome.
-
-### N
-
-Use more only when each case has a different acceptance statement or failure
-mode. Discriminated states may need one case per behaviorally distinct member.
-Do not expand combinatorial type possibilities into runtime test matrices.
-
 ## A Valuable Falsifier
 
 - drives a real public path;

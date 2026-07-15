@@ -10,9 +10,9 @@ This repository stores distilled mechanisms, not source corpora.
   disclosure, resumable background handoffs that point to durable artifacts,
   pre-agreed public seams, vertical slices, independent Standards and Spec
   review, deep modules, and deletion as a design test.
-- Rejected: copying the full upstream skill collection, generic destructive link scripts,
-  mandatory test-first work for changes with no runtime risk, and
-  Claude-specific invocation frontmatter as Codex policy.
+- Rejected: copying the full upstream skill collection, generic destructive
+  link scripts, mandatory test-first work for changes with no runtime risk,
+  and Claude-specific invocation frontmatter as Codex policy.
 - KRN adaptation: Claude handoffs use a clean linked worktree, keep private
   corpora out of the handoff, and are mechanically denied from 08:00 inclusive
   until 12:00 exclusive in `Europe/Warsaw`.
@@ -31,9 +31,10 @@ This repository stores distilled mechanisms, not source corpora.
   `unknown`; runtime validation at ingress; discriminated state; deliberate
   derive-versus-decouple; `satisfies` before assertions; strict compiler
   boundaries; compile-time and runtime proof kept separate.
-- Auditable decisions: [typescript-coverage.md](typescript-coverage.md) maps
-  every chapter, the index, companion gaps, consumers, falsifiers, non-proof,
-  and deliberate omissions into the global companion.
+- Auditable decisions: [typescript-coverage.md](typescript-coverage.md) maps all
+  16 chapters, scoped chapter-derived index families, companion gaps,
+  consumers, falsifiers, non-proof, and deliberate omissions into the global
+  companion. It does not claim a disposition for every individual index term.
 - Current official sources:
   [TypeScript 7.0](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/),
   [module reference](https://www.typescriptlang.org/docs/handbook/modules/reference),
@@ -63,6 +64,23 @@ This repository stores distilled mechanisms, not source corpora.
 - Rejected for shared software work: infinite destructive loops, one metric as
   a substitute for behavioral correctness, unrestricted mutation, and no human
   checkpoint for irreversible or public actions.
+
+## ThePrimeagen
+
+- Source: [My Dev Setup Is Better Than Yours](https://frontendmasters.com/courses/developer-productivity-v2/),
+  published 2025-01-31 and verified 2026-07-15.
+- Adopted: optimize the working loop for fast access and real use rather than
+  aesthetic ceremony; prefer small inspectable shell tools when a general
+  automation layer adds more maintenance than leverage; customize around
+  observed operator friction instead of copying another person's setup.
+- KRN implication: skills expose direct entrypoints, the installer is a small
+  auditable script, and deterministic helpers exist only for repeated fragile
+  work. A tool must shorten discovery or execution for a named workflow.
+- Rejected: editor, terminal, and window-manager preferences as universal
+  engineering policy; reinventing infrastructure without a learning or
+  production consumer; tool enthusiasm as proof of productivity.
+- Falsifier: a fresh operator cannot find the workflow or inspect what a helper
+  will mutate faster than with the direct repository path.
 
 ## Codex
 

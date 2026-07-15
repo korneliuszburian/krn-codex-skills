@@ -1,50 +1,95 @@
 ---
 name: domain-modeling
-description: Resolve or sharpen a product term, public concept, ubiquitous language, or rare durable architecture decision. Use when language or ownership is actively changing; skip passive reading of existing domain docs.
+description: Resolve an actively changing public name, product concept, ubiquitous-language conflict, or rare durable architecture decision. Use when one live meaning or owner must replace competing meanings; skip passive reading, ordinary implementation naming, and routine design choices.
 ---
 
 # Domain Modeling
 
-Make one concept precise enough that people, code, interfaces, and proof use the
-same language.
+**One active concept, one meaning.** Resolve it everywhere it matters. The work
+ends at a real boundary used by people or code, not at a better paragraph.
 
-## Process
+1. **Pin the live conflict.** Name the decision before reading broadly.
 
-1. Find the current glossary, context map, code symbol, public wording, and
-   decision record that claim the concept.
-2. State the ambiguity as concrete competing meanings. Invent edge scenarios
-   that force the meanings apart.
-3. Check current code and behavior. Surface contradictions instead of treating
-   prose as automatically authoritative.
-4. Choose one canonical term, owner, invariants, and excluded meanings.
-5. Update the smallest authoritative surface immediately. Rename the exported
-   boundary when the exported name is wrong; a local alias does not resolve the
-   model.
-6. Record an ADR only when the decision is hard to reverse, surprising without
-   context, and the result of a real trade-off.
+   <domain-question>
+   Change: public naming | product concept | durable architecture decision
+   Current term or decision:
+   Competing meanings:
+   Public seam:
+   Owner:
+   Consumers:
+   Observed contradiction:
+   Reversibility and trade-off:
+   Change authority: decision-only | domain-artifact | production-handoff
+   </domain-question>
 
-## Output
+   **Done when:** two plausible meanings can be distinguished at a named
+   public seam and the decision has an owner.
 
-```text
-Concept:
-Canonical term:
-Meaning and invariants:
-Excluded meanings:
-Owner and consumers:
-Code/doc changes:
-Decision record: not_needed | <path>
-Falsifier:
-```
+2. **Load only the live authority.** For naming, inspect the exported symbol,
+   API, CLI, or UI wording plus its closest glossary entry. For a product
+   concept, inspect the context map, owning behavior, and current consumers.
+   For a durable decision, inspect the architecture boundary and the
+   repository's decision-record policy. Read history only when it still
+   explains active authority; preserve records that no longer participate in
+   that authority.
 
-## Stop Condition
+   If an external source must justify the choice, compose
+   `$source-to-decision` after the conflict is pinned; do not duplicate that
+   workflow here.
 
-Stop when one authoritative meaning is reflected at the public boundary, stale
-active vocabulary is removed, and a realistic scenario can falsify the model.
+   **Done when:** every loaded artifact can confirm or contradict one competing
+   meaning; unrelated domain history remains unloaded.
 
-## Hard Boundaries
+3. **Grill the meanings.** Invent the smallest realistic scenario that forces
+   the alternatives to produce different language, ownership, or behavior.
+   Compare that scenario with current code and runtime behavior; prose is not
+   automatically authoritative.
 
-- A glossary stores domain meaning, not implementation history or plans.
-- An ADR records a durable trade-off, not routine implementation.
-- Reading a domain document for vocabulary does not invoke this workflow.
-- Preserve historical records unless they falsely participate in the active
-  authority surface.
+   <domain-grill>
+   Scenario:
+   Meaning A predicts:
+   Meaning B predicts:
+   Current behavior:
+   Contradiction:
+   Falsifier:
+   </domain-grill>
+
+   **Done when:** the alternatives disagree observably and the preferred model
+   can still be proven wrong.
+
+4. **Choose one model and its migration.** Select one canonical term,
+   definition, owner, and set of invariants. Name the smallest authoritative
+   surfaces that must change and the stale vocabulary that must disappear.
+   Do not preserve a wrong exported name behind an active compatibility alias.
+
+   <domain-model>
+   Canonical term:
+   Meaning and invariants:
+   Excluded meanings:
+   Owner and consumers:
+   Public seams to change:
+   Stale active vocabulary to remove:
+   First migration slice:
+   Decision artifact: not_needed | response | <authorized-path>
+   Falsifier:
+   </domain-model>
+
+   Record a durable decision only when it is hard to reverse, surprising
+   without context, and chosen through a real trade-off. Routine implementation
+   belongs in code and current documentation. A glossary stores the current
+   meaning, never implementation history or a future plan.
+
+   **Done when:** one model explains the public boundary, assigns its owner,
+   rejects the competing meanings, and yields a bounded migration without
+   claiming that production already changed.
+
+5. **Hand the model to its consumer.** If the request includes production
+   writes, invoke `$implement` with the `<domain-model>` as acceptance, the
+   first migration slice as scope, and the named public-seam falsifier. That
+   workflow owns edits and proof. If authority is `decision-only`, return the
+   model and stop; if an explicit domain artifact was requested, write only
+   that artifact and do not imply production adoption.
+
+   **Done when:** the consumer has an executable decision or bounded handoff,
+   every unresolved trade-off has an owner, and this workflow makes no
+   unverified implementation claim.

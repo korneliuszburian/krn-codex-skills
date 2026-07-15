@@ -7,11 +7,11 @@ and reference durable artifacts instead of duplicating them.
 
 ## Objective
 
-<one concrete outcome for this pass>
+{{one concrete outcome for this pass}}
 
 ## Role and completion
 
-- Role: `researcher` | `rewrite-maker` | `checker`
+- Role: `researcher` | `rewrite-maker`
 - Done when:
 - Do not decide:
 
@@ -31,13 +31,13 @@ do not paste the corpus into this file.
 
 ## Work
 
-1. **<first action>.** <what to inspect or produce>
+1. **{{first action}}.** {{what to inspect or produce}}
 
-   **Done when:** <observable criterion>.
+   **Done when:** {{observable criterion}}.
 
-2. **<next action>.** <what to inspect or produce>
+2. **{{next action}}.** {{what to inspect or produce}}
 
-   **Done when:** <observable criterion>.
+   **Done when:** {{observable criterion}}.
 
 ## Deliverables
 
@@ -65,6 +65,6 @@ do not paste the corpus into this file.
 
 ## Suggested skills
 
-- <skill and why it applies>
+- {{skill and why it applies}}
 
 </claude-handoff>

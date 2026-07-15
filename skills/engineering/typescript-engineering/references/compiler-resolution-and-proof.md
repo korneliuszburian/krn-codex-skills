@@ -15,6 +15,32 @@ tooling compatibility boundaries. Do not upgrade or select it globally from
 this skill. Follow the target repository and current official compatibility
 guidance, especially for tools that embed the TypeScript programmatic API.
 
+## Match emitted syntax to the host
+
+TypeScript syntax has two host contracts: syntax erased without runtime work,
+and syntax that requires a transform. A host that only strips types cannot
+execute parameter properties, enums, runtime namespaces, or other non-erasable
+syntax unless a named transform owns them. Host execution rules—including file
+extension and module mode—decide the boundary.
+
+<typescript-example id="erasable-host-boundary">
+
+```json
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "erasableSyntaxOnly": true
+  }
+}
+```
+
+</typescript-example>
+
+Use this guard only when the pinned compiler supports it and the runtime path
+really strips types. It does not prove compatible module syntax or runtime
+APIs. Falsify the boundary with one non-erasable fixture: the pinned compiler
+must reject it, or a named transform must emit code that the actual host runs.
+
 ## Keep strictness and host semantics honest
 
 - Preserve `strict` and `noUncheckedIndexedAccess` unless a named compatibility
@@ -62,8 +88,6 @@ guidance for component types, runtime transforms, and embedded language tools.
 | tsconfig or project references | focused package compiler/build, then required workspace typecheck |
 | persisted typed JSON | adapter or database round-trip plus typecheck |
 
-Run the narrowest repository-supported typecheck during the loop. Run the root
-or workspace check at completion only when no narrower command covers the
-boundary or the repository contract requires it. Do not add snapshots of
-diagnostic wording, declaration text, or file topology unless that exact output
-is the public contract.
+Choose the row matching the changed risk. Do not add snapshots of diagnostic
+wording, declaration text, or file topology unless that exact output is the
+public contract.

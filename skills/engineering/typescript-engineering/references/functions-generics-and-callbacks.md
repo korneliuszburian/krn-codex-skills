@@ -6,22 +6,48 @@ parameters and overloads are debt unless they improve that relationship.
 ## Shape ordinary signatures plainly
 
 - Annotate public parameters; infer local callback parameters from context.
-- Use optional parameters only when omission is meaningful. A default value
-  also makes a parameter optional to callers but supplies a runtime value.
-- Model fixed positional data with tuples and variable tails with rest tuples;
-  prefer an object once positions lose obvious meaning.
-- A callback returning a value is assignable to a `() => void` slot because the
-  caller promises to ignore the result. A function explicitly declared to
-  return `void` does not provide a usable value.
-- Keep `strictFunctionTypes` behavior intact. Do not widen callback parameters
-  to silence a variance error; fix who may call the function with which value.
+- Optional parameters model meaningful omission; defaults also supply values.
+- Use tuples for fixed positions/rest tails; use objects when positions blur.
+- A callback may return into `() => void` when ignored; explicit `void` exposes no value.
+- Preserve `strictFunctionTypes`; fix caller ownership instead of widening callbacks.
+
+## Preserve receiver and dispatch relationships
+
+A `this` declaration checks callers but erases; call form supplies the receiver.
+Arrows capture lexical receivers. Assignment may typecheck, but they cannot
+provide caller-supplied dynamic-`this` semantics.
+
+A union of function types is not a dispatcher: its input must satisfy every
+member, often collapsing to an impossible intersection. Preserve correlation
+with a keyed map, generic, discriminated tuple, or honest overload instead.
+
+<typescript-example id="receiver-and-dispatch-boundary">
+
+```ts
+type Events = { click: { x: number }; key: { key: string } };
+type Listeners = {
+  [Key in keyof Events]: (this: { id: string }, event: Events[Key]) => void;
+};
+declare const listeners: Listeners, receiver: { id: string };
+type Ambiguous = Listeners[keyof Listeners]; // requires every member's input
+function on<Key extends keyof Events>(key: Key): Listeners[Key] {
+  return listeners[key];
+}
+const click = on("click");
+click.call(receiver, { x: 1 });
+// @ts-expect-error the selected key rejects another payload
+click.call(receiver, { key: "Enter" });
+```
+
+</typescript-example>
+
+Falsify one wrong key/payload pair at compile time and invoke a valid listener
+with the real receiver. Static acceptance does not prove the runtime call form.
 
 ## Add a generic only for a live relationship
 
-Every type parameter should appear in at least two useful positions or
-constrain one returned structure. Infer it from inputs when possible. Use the
-narrowest constraint required by the implementation and a default only when
-omitting the argument has one unambiguous meaning.
+Connect each type parameter to two positions or one constrained return. Infer
+from inputs; use the narrowest constraint and default only for clear omission.
 
 <typescript-example id="keyed-read-relationship">
 
@@ -34,18 +60,16 @@ function readField<Shape, Key extends keyof Shape>(
 }
 ```
 
-This generic preserves the selected key-to-value relationship. A generic
-`identity<T>(value: T): T` may also be valid; a type parameter used only once
-usually wants a concrete type instead.
+This preserves the selected key-to-value relationship. `identity<T>(value: T)`
+can be valid; a type parameter used once usually wants a concrete type.
 
 </typescript-example>
 
 ## Prefer unions, then overloads, then conditional signatures
 
-Use a union when callers receive one shared result. Use overloads when distinct
-call shapes produce meaningfully distinct results and the implementation can
-honestly handle their combined input. Keep the implementation signature broad
-enough for every overload but invisible to callers.
+Use a union for one shared result. Overload only for meaningfully distinct call
+shapes whose combined input the implementation handles honestly. Keep its broad
+signature invisible to callers.
 
 <typescript-example id="honest-overload">
 
@@ -64,12 +88,12 @@ branch when behavior differs.
 
 ## Predicates and assertion functions are privileged
 
-`value is T` and `asserts value is T` make the implementation an authority the
-compiler cannot verify. Keep them beside the runtime check, accept `unknown`,
-and include malformed values in runtime proof. Prefer a function returning a
-parsed domain value when validation also normalizes data.
+`value is T` and `asserts value is T` create authority the compiler cannot
+verify. Keep them beside the check, accept `unknown`, and prove malformed values;
+return a parsed domain value when validation also normalizes.
 
-Classes occupy both type and value space. Use them when construction,
-encapsulation, identity, or runtime `instanceof` is part of the domain—not as a
-default wrapper around functions. `implements` checks the instance surface; it
-does not validate static members or runtime invariants.
+## Put shared utilities with their concept
+
+Place a generic beside the concept it preserves. Share only domain-neutral
+policy with multiple consumers; `utils` is a location, not an owner. Name owner
+and callers, then delete it: clearer consumers mean the helper was not earned.

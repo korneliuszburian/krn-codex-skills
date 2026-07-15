@@ -57,11 +57,12 @@ rtk bash scripts/install.sh check
 rtk bash scripts/install.sh install
 ```
 
-On the one-time legacy migration, inspect every reported legacy/global path,
-then authorize only those two archival classes explicitly:
+On the one-time migration, inspect every reported legacy or global path, then
+authorize only the replacement classes you actually reviewed:
 
 ```bash
 rtk env KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
+  KRN_REPLACE_GLOBAL_CLAUDE=1 \
   bash scripts/install.sh install
 ```
 

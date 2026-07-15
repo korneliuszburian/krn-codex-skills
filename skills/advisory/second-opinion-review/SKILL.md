@@ -76,7 +76,9 @@ adversarial challenge.
 
    For a fixed-point checker, fill
    [prompt-template.md](references/prompt-template.md), then run the tool-free
-   structured reviewer:
+   structured reviewer. The runner binds output to
+   [review.schema.json](references/review.schema.json); change that transport
+   contract deliberately, never ad hoc in a prompt.
 
    ```bash
    rtk env SECOND_OPINION_MAX_BUDGET_USD=unlimited \
