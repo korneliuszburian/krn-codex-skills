@@ -17,6 +17,7 @@ clear change  -> implement          -> focused proof -> code-review
 unknown fault -> diagnosing-bugs    -> cause-level fix or bounded diagnosis
 source claim  -> source-to-decision -> decision      -> implement
 another repo  -> target-repo-work   -> scoped result -> handoff
+TypeScript    -> workflow owner + typescript-engineering companion
 ```
 
 `config/AGENTS.md` carries universal hard defaults; the repository `AGENTS.md`
@@ -35,8 +36,9 @@ branch that needs them.
 | `domain-modeling` | model or user | active terminology and rare durable decisions |
 | `source-to-decision` | model or user | external evidence turned into an owned decision |
 | `target-repo-work` | model or user | authority and state when operating on another repo |
+| `typescript-engineering` | model or user | TypeScript boundaries, APIs, compiler mechanics, and proof |
 | `writing-great-skills` | model or user | predictable skill authoring and trigger design |
-| `second-opinion-review` | explicit only | advisory Claude challenge with validated citations |
+| `second-opinion-review` | explicit only | isolated Claude research/rewrite handoff or validated checker |
 
 No top-level “coding system” orchestrates everything. Native Codex goal mode
 owns long-running outcome state; repositories choose their durable tracker;
@@ -102,6 +104,6 @@ docs/         provenance and migration ownership
 CONTEXT.md    the shared vocabulary
 ```
 
-See `docs/SOURCES.md` for the mechanisms distilled from Matt Pocock, *Total
-TypeScript*, official Codex documentation, and Andrej Karpathy. The source
-material itself is not vendored.
+See `docs/SOURCES.md` for provenance and `docs/typescript-coverage.md` for the
+chapter-to-mechanism decision ledger distilled from *Total TypeScript*. The
+source material itself is not vendored.

@@ -10,18 +10,43 @@
       "forbidden_skills": [
         "diagnosing-bugs",
         "code-review",
-        "second-opinion-review"
+        "second-opinion-review",
+        "typescript-engineering"
       ]
     },
     {
       "id": "implement-typescript-boundary",
       "prompt": "Change this TypeScript JSON boundary so external data stays unknown until parsed.",
       "expected_skills": [
-        "implement"
+        "implement",
+        "typescript-engineering"
       ],
       "forbidden_skills": [
         "source-to-decision",
         "domain-modeling"
+      ]
+    },
+    {
+      "id": "typescript-public-generic-design",
+      "prompt": "Sharpen this exported TypeScript generic and its negative compile-time proof without implementing unrelated behavior.",
+      "expected_skills": [
+        "typescript-engineering"
+      ],
+      "forbidden_skills": [
+        "diagnosing-bugs",
+        "source-to-decision",
+        "second-opinion-review"
+      ]
+    },
+    {
+      "id": "plain-javascript-is-not-typescript",
+      "prompt": "Implement the already-scoped behavior change in this plain JavaScript module.",
+      "expected_skills": [
+        "implement"
+      ],
+      "forbidden_skills": [
+        "typescript-engineering",
+        "diagnosing-bugs"
       ]
     },
     {
@@ -198,6 +223,7 @@
         "domain-modeling",
         "source-to-decision",
         "target-repo-work",
+        "typescript-engineering",
         "second-opinion-review",
         "writing-great-skills"
       ]

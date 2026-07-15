@@ -54,9 +54,9 @@ Change the production path from caller to result. Keep the public interface
 small and hide complexity behind it. Add an abstraction only when it owns
 policy or isolates a real varying or external seam.
 
-For any TypeScript source, declaration, or compiler-configuration change, load
-[typescript.md](references/typescript.md). Apply its boundary procedure only
-as deeply as the changed risk requires.
+For any TypeScript source, declaration, or compiler-configuration change, use
+`$typescript-engineering` beside this workflow. Load only the reference branch
+for the changed boundary.
 
 If a new falsifier is justified, run one red-capable slice, implement only
 enough to satisfy it, then review the design. Do not write a horizontal batch

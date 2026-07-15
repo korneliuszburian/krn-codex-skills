@@ -38,6 +38,11 @@
       "implicit": true
     },
     {
+      "name": "typescript-engineering",
+      "path": "skills/engineering/typescript-engineering",
+      "implicit": true
+    },
+    {
       "name": "second-opinion-review",
       "path": "skills/advisory/second-opinion-review",
       "implicit": false

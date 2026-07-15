@@ -7,11 +7,15 @@ This repository stores distilled mechanisms, not source corpora.
 - Source: [mattpocock/skills](https://github.com/mattpocock/skills)
 - Inspected commit: `e9fcdf95b402d360f90f1db8d776d5dd450f9234`
 - Adopted: concise entrypoints, explicit invocation policy, progressive
-  disclosure, pre-agreed public seams, vertical slices, independent Standards
-  and Spec review, deep modules, and deletion as a design test.
+  disclosure, resumable background handoffs that point to durable artifacts,
+  pre-agreed public seams, vertical slices, independent Standards and Spec
+  review, deep modules, and deletion as a design test.
 - Rejected: copying the full upstream skill collection, generic destructive link scripts,
   mandatory test-first work for changes with no runtime risk, and
   Claude-specific invocation frontmatter as Codex policy.
+- KRN adaptation: Claude handoffs use a clean linked worktree, keep private
+  corpora out of the handoff, and are mechanically denied from 08:00 inclusive
+  until 12:00 exclusive in `Europe/Warsaw`.
 
 ## Total TypeScript
 
@@ -27,6 +31,18 @@ This repository stores distilled mechanisms, not source corpora.
   `unknown`; runtime validation at ingress; discriminated state; deliberate
   derive-versus-decouple; `satisfies` before assertions; strict compiler
   boundaries; compile-time and runtime proof kept separate.
+- Auditable decisions: [typescript-coverage.md](typescript-coverage.md) maps
+  every chapter, the index, companion gaps, consumers, falsifiers, non-proof,
+  and deliberate omissions into the global companion.
+- Current official sources:
+  [TypeScript 7.0](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/),
+  [module reference](https://www.typescriptlang.org/docs/handbook/modules/reference),
+  [declaration files](https://www.typescriptlang.org/docs/handbook/declaration-files/introduction.html),
+  and [project references](https://www.typescriptlang.org/docs/handbook/project-references).
+  Verified: 2026-07-15.
+- Current decision: follow the repository-pinned compiler and its real host.
+  TypeScript 7's native toolchain is not a universal upgrade while embedded
+  language tooling and programmatic-API consumers retain compatibility limits.
 - Does not prove: application runtime correctness, framework-specific behavior,
   database contracts, emitted bundle quality, or every advanced TypeScript
   edge case.
