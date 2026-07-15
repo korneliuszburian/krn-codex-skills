@@ -43,7 +43,9 @@ adversarial challenge.
    Claude.
 
 3. **Write the smallest complete handoff.** Start from
-   [handoff-template.md](references/handoff-template.md) in `/tmp`, then point
+   [handoff-template.md](references/handoff-template.md) in a durable
+   directory you control — parallel background jobs and restarts clobber shared
+   `/tmp` — then point
    to existing issues, plans, commits, diffs, and source paths instead of
    restating them. Include hashes or refs for mutable sources. Redact secrets,
    private data, credentials, environment files, and raw copyrighted corpus.
@@ -71,7 +73,7 @@ adversarial challenge.
    ```bash
    rtk bash ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
      "TypeScript skill research" \
-     /tmp/second-opinion/typescript-handoff.md
+     /absolute/persistent/typescript-handoff.md
    ```
 
    For an authorized rewrite, grant edit acceptance explicitly. Add only the
@@ -102,8 +104,8 @@ adversarial challenge.
    ```bash
    rtk env SECOND_OPINION_MAX_BUDGET_USD=unlimited \
      ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
-     /tmp/second-opinion/topic.md \
-     /tmp/second-opinion/topic.review.json
+     /absolute/persistent/topic.md \
+     /absolute/persistent/topic.review.json
    ```
 
    Use an uncapped checker only when the operator explicitly authorizes it;
@@ -120,8 +122,8 @@ adversarial challenge.
 
    ```bash
    rtk python3 ~/.agents/skills/second-opinion-review/scripts/validate-review.py \
-     check /tmp/second-opinion/topic.review.json \
-     /tmp/second-opinion/topic.md
+     check /absolute/persistent/topic.review.json \
+     /absolute/persistent/topic.md
    ```
 
    Inspect cited lines and source coverage locally. Classify each item as
