@@ -15,6 +15,32 @@ actually receive, through the same entry points they actually import.
   inheritance is part of the contract. An `implements` clause does not prove
   constructor behavior or invariants.
 
+<typescript-example id="implements-instance-surface">
+
+```ts
+interface Counter {
+  count: number;
+  bump(): void;
+}
+
+// `implements` checks the instance surface only. It proves nothing about
+// construction, runtime invariants, or that bump() behaves as named.
+class Tally implements Counter {
+  count = 0;
+  bump() {
+    this.count += 1;
+  }
+}
+
+// A plain object with impossible state satisfies the same interface.
+const fake: Counter = { count: -99, bump() {} };
+```
+
+A class earns its place through construction, identity, or prototype behavior;
+an interface alone enforces none of it.
+
+</typescript-example>
+
 ## Distinguish modules from scripts
 
 A file with a top-level import or export is a module with local scope. A script

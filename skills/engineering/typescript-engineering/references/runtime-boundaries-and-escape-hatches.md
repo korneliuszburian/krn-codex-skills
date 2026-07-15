@@ -9,6 +9,11 @@ Treat JSON, fetch results, files, argv, environment, connectors, database JSON,
 plugin messages, and user configuration as `unknown`. Validate required shape,
 semantic constraints, and cross-field state before returning a trusted type.
 
+`JSON.parse` is the canonical ingress of `any`: it is not generic (a type
+argument is rejected), it returns `any`, and annotating its result is type faith,
+not validation. Route its output through one ingress validator before trusting
+the shape.
+
 <typescript-example id="unknown-ingress-parser">
 
 ```ts
