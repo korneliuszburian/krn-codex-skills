@@ -45,15 +45,15 @@ After `scripts/install.sh install`, run the manifest-owned executable from any
 working directory:
 
 ```bash
-rtk krn-codex-catalog inventory
-rtk krn-codex-catalog usage --days 30
-rtk krn-codex-catalog profile show lean
-rtk krn-codex-catalog plan lean
-rtk krn-codex-catalog apply lean
-rtk krn-codex-catalog check lean
+krn-codex-catalog inventory
+krn-codex-catalog usage --days 30
+krn-codex-catalog profile show lean
+krn-codex-catalog plan lean
+krn-codex-catalog apply lean
+krn-codex-catalog check lean
 ```
 
-Inside the source checkout, `rtk npm run catalog -- <command>` is equivalent.
+Inside the source checkout, `npm run catalog -- COMMAND` is equivalent.
 
 `apply` is the only mutating command. Restart Codex after it succeeds: current
 sessions retain the capability index loaded at session start.

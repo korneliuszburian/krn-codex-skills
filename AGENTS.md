@@ -19,7 +19,7 @@ commands, and constraints.
 
 ## Before Editing
 
-1. Run `rtk git status --short --branch` and preserve unrelated work.
+1. Run `git status --short --branch` and preserve unrelated work.
 2. Read `config/AGENTS.md`; it owns the universal shell, safety, and
    production-first defaults that this repository installs.
 3. Read `CONTEXT.md`.
@@ -36,6 +36,8 @@ commands, and constraints.
 - Keep common steps in `SKILL.md`; disclose branch-only detail through a
   direct pointer into `references/`.
 - Add scripts only for fragile or repeated deterministic work.
+- Keep reusable skill prose and script internals independent of the active
+  shell-command wrapper; `config/AGENTS.md` owns that injected policy.
 - Prefer positive instructions. Keep prohibitions for hard safety boundaries.
 - Delete aliases, duplicated procedures, stale references, and unused agents.
 
@@ -57,10 +59,10 @@ Select proof by changed surface:
 
 | Changed surface | Required signal |
 |---|---|
-| skill, metadata, manifest, or direct pointer | `rtk npm run validate` |
-| installer or migration behavior | isolated install/collision smoke plus `rtk bash -n scripts/install.sh` |
+| skill, metadata, manifest, or direct pointer | `npm run validate` |
+| installer or migration behavior | isolated install/collision smoke plus `bash -n scripts/install.sh` |
 | trigger description or composition | one fresh positive and nearest negative prompt |
-| final owned diff | `rtk git diff --check` before commit |
+| final owned diff | `git diff --check` before commit |
 
 Do not run untouched rows during the inner loop. Run the full relevant set once
 before publishing a release-sized catalog change. Use Conventional Commits on

@@ -39,17 +39,28 @@ if [[ "$job_name" == --* ]]; then
   usage
   exit 64
 fi
-script_path=$(rtk readlink -f "${BASH_SOURCE[0]}")
+script_path=$(readlink -f "${BASH_SOURCE[0]}")
 script_dir=${script_path%/*}
 
 if [[ ! -f "$handoff_file" ]]; then
   echo "handoff file not found: $handoff_file" >&2
   exit 66
 fi
-handoff_file=$(rtk readlink -f "$handoff_file")
+handoff_file=$(readlink -f "$handoff_file")
 
 resolved_additional_dirs=()
-home_directory=$(rtk readlink -f "$HOME")
+home_directory=$(readlink -f "$HOME")
+protected_agent_config_dirs=()
+for config_dir in "$HOME/.codex" "$HOME/.agents" "$HOME/.claude" \
+  "${CLAUDE_CONFIG_DIR:-}"; do
+  if [[ -z "$config_dir" ]]; then
+    continue
+  fi
+  if [[ "$config_dir" != /* ]]; then
+    config_dir="$PWD/$config_dir"
+  fi
+  protected_agent_config_dirs+=("$(readlink -m "$config_dir")")
+done
 for requested_dir in "${additional_dirs[@]}"; do
   if [[
     "$requested_dir" != /* ||
@@ -69,18 +80,27 @@ for requested_dir in "${additional_dirs[@]}"; do
     echo "--add-dir path is not a directory: $requested_dir" >&2
     exit 66
   fi
-  resolved_dir=$(rtk readlink -f "$requested_dir")
+  resolved_dir=$(readlink -f "$requested_dir")
   if [[ "$home_directory" == "$resolved_dir"/* ]]; then
     echo "refusing --add-dir ancestor of the home directory: $resolved_dir" >&2
     exit 65
   fi
   case "$resolved_dir" in
-    / | "$home_directory" | "$home_directory/.codex" | "$home_directory/.agents" | \
-      "$home_directory/.codex"/* | "$home_directory/.agents"/*)
+    / | "$home_directory")
       echo "refusing broad or agent-configuration --add-dir path: $resolved_dir" >&2
       exit 65
       ;;
   esac
+  for config_dir in "${protected_agent_config_dirs[@]}"; do
+    if [[
+      "$resolved_dir" == "$config_dir" ||
+      "$resolved_dir" == "$config_dir"/* ||
+      "$config_dir" == "$resolved_dir"/*
+    ]]; then
+      echo "refusing broad or agent-configuration --add-dir path: $resolved_dir" >&2
+      exit 65
+    fi
+  done
   case "${resolved_dir,,}" in
     *superpowers*)
       echo "refusing hard-quarantined --add-dir path" >&2
@@ -96,14 +116,14 @@ if [[ "$job_name" == *$'\n'* || ${#job_name} -lt 3 || ${#job_name} -gt 80 ]]; th
 fi
 
 handoff_max_bytes=${SECOND_OPINION_HANDOFF_MAX_BYTES:-64000}
-handoff_bytes=$(rtk wc -c < "$handoff_file")
+handoff_bytes=$(wc -c < "$handoff_file")
 if (( handoff_bytes > handoff_max_bytes )); then
   echo "handoff exceeds SECOND_OPINION_HANDOFF_MAX_BYTES=$handoff_max_bytes" >&2
   exit 65
 fi
 
-if ! rtk rg -q '^<claude-handoff>$' "$handoff_file" || \
-   ! rtk rg -q '^</claude-handoff>$' "$handoff_file"; then
+if ! rg -q '^<claude-handoff>$' "$handoff_file" || \
+   ! rg -q '^</claude-handoff>$' "$handoff_file"; then
   echo "handoff must contain the <claude-handoff> template boundary" >&2
   exit 65
 fi
@@ -111,7 +131,7 @@ fi
 for heading in "## Objective" "## Role and completion" "## Sources" \
   "## Work" "## Deliverables" "## Proof boundaries" \
   "## Safety and ownership" "## Suggested skills"; do
-  if ! rtk rg -q -F "$heading" "$handoff_file"; then
+  if ! rg -q -F "$heading" "$handoff_file"; then
     echo "handoff missing required heading: $heading" >&2
     exit 65
   fi
@@ -142,10 +162,18 @@ if (( role_lines != 1 )) || [[ -z "$handoff_role" ]]; then
   echo "handoff must contain exactly one background Role: researcher or rewrite-maker" >&2
   exit 65
 fi
+if [[ "$handoff_role" == "researcher" && "$accept_edits" == true ]]; then
+  echo "researcher handoffs cannot use --accept-edits" >&2
+  exit 65
+fi
+if [[ "$handoff_role" == "rewrite-maker" && "$accept_edits" == false ]]; then
+  echo "rewrite-maker handoffs require explicit --accept-edits authority" >&2
+  exit 65
+fi
 
-rtk node "$script_dir/check-claude-window.mjs" check
+node "$script_dir/check-claude-window.mjs" check
 
-if ! repo_root=$(rtk git rev-parse --show-toplevel 2>/dev/null); then
+if ! repo_root=$(git rev-parse --show-toplevel 2>/dev/null); then
   echo "run the background handoff from a disposable Git worktree" >&2
   exit 65
 fi
@@ -155,22 +183,22 @@ case "$handoff_file" in
     exit 65
     ;;
 esac
-git_dir=$(rtk git rev-parse --path-format=absolute --git-dir)
-common_dir=$(rtk git rev-parse --path-format=absolute --git-common-dir)
+git_dir=$(git rev-parse --path-format=absolute --git-dir)
+common_dir=$(git rev-parse --path-format=absolute --git-common-dir)
 if [[ "$git_dir" == "$common_dir" ]]; then
   echo "background handoff refuses the primary checkout; use a disposable linked worktree" >&2
   exit 65
 fi
-if [[ "$(rtk pwd -P)" != "$repo_root" ]]; then
+if [[ "$(pwd -P)" != "$repo_root" ]]; then
   echo "run the background handoff from the disposable worktree root: $repo_root" >&2
   exit 65
 fi
-if [[ -n "$(rtk proxy git status --porcelain)" ]]; then
+if [[ -n "$(git status --porcelain)" ]]; then
   echo "disposable worktree must be clean before Claude takes ownership" >&2
   exit 65
 fi
 
-if ! rtk which claude >/dev/null 2>&1; then
+if ! which claude >/dev/null 2>&1; then
   echo "claude CLI not found on PATH" >&2
   exit 127
 fi
@@ -200,5 +228,5 @@ for additional_dir in "${resolved_additional_dirs[@]}"; do
 done
 
 handoff=$(<"$handoff_file")
-rtk claude --bg --name "$job_name" "${directory_args[@]}" \
+claude --bg --name "$job_name" "${directory_args[@]}" \
   "${model_args[@]}" "${permission_args[@]}" "$handoff"

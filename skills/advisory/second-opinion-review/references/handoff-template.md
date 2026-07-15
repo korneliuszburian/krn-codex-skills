@@ -20,20 +20,27 @@ another explicit alias or pinned identifier. Local provider configuration owns
 the actual backend, so record what the session reports and never infer the
 provider from the alias.
 
-Research is read-only by default:
+Bounded source access and edit authority are separate grants. Research is
+read-only by default. When a named local source is outside the disposable
+worktree, repeat `--add-dir` for each smallest containing root; every external
+local path under `## Sources` must fall beneath one of those roots.
 
 ```bash
-rtk bash ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
+bash ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
+  --add-dir /absolute/bounded/research-root \
   "TypeScript skill research" \
   /absolute/persistent/typescript-handoff.md
 ```
 
-For an authorized rewrite, accept edits explicitly and expose only the smallest
-additional source root. `--add-dir` grants tool access; it does not enforce a
-read-only source boundary.
+Omit `--add-dir` when every source is already in the worktree. It grants tool
+access to a root; it does not grant edit acceptance or enforce a read-only
+source boundary. The runner rejects `--accept-edits` for a `researcher` role.
+
+For an authorized `rewrite-maker`, add the required `--accept-edits` flag and
+retain only the smallest required source roots:
 
 ```bash
-rtk env SECOND_OPINION_EFFORT=max \
+env SECOND_OPINION_EFFORT=max \
   ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
   --accept-edits \
   --add-dir /absolute/bounded/research-root \
@@ -42,7 +49,7 @@ rtk env SECOND_OPINION_EFFORT=max \
 ```
 
 The command returns immediately. Manage or resume the named job with
-`rtk claude agents`, and inspect its work only after the pass finishes. The linked
+`claude agents`, and inspect its work only after the pass finishes. The linked
 worktree is an ownership boundary, not a filesystem or network sandbox.
 
 <claude-handoff>

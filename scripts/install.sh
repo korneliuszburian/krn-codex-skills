@@ -17,10 +17,10 @@ skill_dest=${KRN_SKILLS_DEST:-"$HOME/.agents/skills"}
 bin_dest=${KRN_BIN_DEST:-"$HOME/.local/bin"}
 codex_home=${CODEX_HOME:-"$HOME/.codex"}
 claude_home=${CLAUDE_CONFIG_DIR:-"$HOME/.claude"}
-global_agents_source="$repo_root/$(rtk jq -r '.global_agents' "$manifest")"
+global_agents_source="$repo_root/$(jq -r '.global_agents' "$manifest")"
 global_agents_target="$codex_home/AGENTS.md"
 global_agents_override="$codex_home/AGENTS.override.md"
-global_claude_source="$repo_root/$(rtk jq -r '.global_claude' "$manifest")"
+global_claude_source="$repo_root/$(jq -r '.global_claude' "$manifest")"
 global_claude_target="$claude_home/CLAUDE.md"
 archive_legacy=${KRN_ARCHIVE_LEGACY:-0}
 replace_global_agents=${KRN_REPLACE_GLOBAL_AGENTS:-0}
@@ -39,23 +39,23 @@ if [[ "$replace_global_claude" != 0 && "$replace_global_claude" != 1 ]]; then
   exit 64
 fi
 
-rtk node "$repo_root/scripts/validate.mjs"
+node "$repo_root/scripts/validate.mjs"
 
 mapfile -t skill_rows < <(
-  rtk jq -r '.skills[] | [.name, .path] | @tsv' "$manifest"
+  jq -r '.skills[] | [.name, .path] | @tsv' "$manifest"
 )
 mapfile -t bin_rows < <(
-  rtk jq -r '.bins[] | [.name, .path] | @tsv' "$manifest"
+  jq -r '.bins[] | [.name, .path] | @tsv' "$manifest"
 )
 mapfile -t legacy_rows < <(
-  rtk jq -r '.legacy_user_paths[] | [.path, .replacement] | @tsv' "$manifest"
+  jq -r '.legacy_user_paths[] | [.path, .replacement] | @tsv' "$manifest"
 )
 
 link_matches() {
   local link=$1
   local expected=$2
   [[ -L "$link" ]] || return 1
-  [[ "$(rtk readlink -f "$link")" == "$(rtk readlink -f "$expected")" ]]
+  [[ "$(readlink -f "$link")" == "$(readlink -f "$expected")" ]]
 }
 
 check_install() {
@@ -187,8 +187,8 @@ for row in "${legacy_rows[@]}"; do
   fi
 done
 
-rtk mkdir -p "$skill_dest" "$bin_dest" "$codex_home" "$claude_home"
-timestamp=$(rtk date -u +%Y%m%dT%H%M%SZ)
+mkdir -p "$skill_dest" "$bin_dest" "$codex_home" "$claude_home"
+timestamp=$(date -u +%Y%m%dT%H%M%SZ)
 backup_dir="$codex_home/skill-migration-backups/$timestamp-$$"
 backup_created=false
 
@@ -199,10 +199,10 @@ archive_path() {
     return
   fi
   if [[ "$backup_created" == false ]]; then
-    rtk mkdir -p "$backup_dir"
+    mkdir -p "$backup_dir"
     backup_created=true
   fi
-  rtk mv -- "$source" "$backup_dir/$label"
+  mv -- "$source" "$backup_dir/$label"
   printf 'archived %s -> %s\n' "$source" "$backup_dir/$label"
 }
 
@@ -213,7 +213,7 @@ for row in "${bin_rows[@]}"; do
   if link_matches "$target" "$source"; then
     continue
   fi
-  rtk ln -s "$source" "$target"
+  ln -s "$source" "$target"
   printf 'linked   %s -> %s\n' "$target" "$source"
 done
 
@@ -234,19 +234,19 @@ for row in "${skill_rows[@]}"; do
     echo "refusing unowned destination collision: $target" >&2
     exit 73
   fi
-  rtk ln -s "$source" "$target"
+  ln -s "$source" "$target"
   printf 'linked   %s -> %s\n' "$target" "$source"
 done
 
 if ! link_matches "$global_agents_target" "$global_agents_source"; then
   archive_path "$global_agents_target" "global__AGENTS.md"
-  rtk ln -s "$global_agents_source" "$global_agents_target"
+  ln -s "$global_agents_source" "$global_agents_target"
   printf 'linked   %s -> %s\n' "$global_agents_target" "$global_agents_source"
 fi
 
 if ! link_matches "$global_claude_target" "$global_claude_source"; then
   archive_path "$global_claude_target" "claude__CLAUDE.md"
-  rtk ln -s "$global_claude_source" "$global_claude_target"
+  ln -s "$global_claude_source" "$global_claude_target"
   printf 'linked   %s -> %s\n' "$global_claude_target" "$global_claude_source"
 fi
 
@@ -254,4 +254,4 @@ if [[ "$backup_created" == true ]]; then
   printf 'backup   %s\n' "$backup_dir"
 fi
 
-rtk bash "$0" check
+bash "$0" check

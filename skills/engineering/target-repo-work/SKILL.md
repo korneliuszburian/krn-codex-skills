@@ -34,7 +34,21 @@ the source system by implication.
    instructions and only the requested seam. Capture branch, HEAD, status, and
    pre-existing changed paths without investigating unrelated content. Run the
    named non-mutating observer, keep any report outside target source, then
-   recheck identity and status. Stop if this run changed the checkout.
+   recheck identity and status.
+
+   If this run changed the checkout, stop immediately and emit an exception
+   handoff. Name every created or modified path, the command that can account
+   for it, this run as the current mutation owner, and the person or workflow
+   receiving the handoff. Preserve the unexpected state; do not clean up,
+   rollback, investigate, or repair without renewed authority.
+
+   <target-observation-exception>
+   Unexpected changed paths:
+   Accounting command:
+   Current owner:
+   Handoff owner:
+   Forbidden without renewed authority:
+   </target-observation-exception>
 
    <target-observation>
    Target identity:
@@ -44,11 +58,14 @@ the source system by implication.
    Does not prove:
    </target-observation>
 
-   Report that record and stop; rollback, implementation, publication, and
-   mutation accounting do not belong to an observation-only crossing.
+   On an unchanged target, report that record and stop; rollback,
+   implementation, publication, and planned mutation accounting do not belong
+   to an observation-only crossing. An exception is a failed observation and
+   a mutation handoff, not implicit repair authority.
 
    **Done when:** the requested observation is bound to an unchanged target and
-   its proof boundary is explicit.
+   its proof boundary is explicit, or every unexpected delta is attributed and
+   handed off without further mutation.
 
 3. **Open a write-capable branch only with authority.** For
    `headless-repair` or `real-operator`, read

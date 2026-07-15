@@ -35,7 +35,7 @@ adversarial challenge.
    window. There is no override.
 
    ```bash
-   rtk node ~/.agents/skills/second-opinion-review/scripts/check-claude-window.mjs check
+   node ~/.agents/skills/second-opinion-review/scripts/check-claude-window.mjs check
    ```
 
    **Done when:** the preflight reports an open window. A denied window means

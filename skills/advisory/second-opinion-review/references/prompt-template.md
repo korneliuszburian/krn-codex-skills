@@ -6,25 +6,62 @@ output matching the supplied JSON schema.
 
 ## Launch
 
-Fill the contract below, then run the tool-free structured reviewer. The runner
-binds output to [review.schema.json](review.schema.json); change that transport
-contract deliberately, never ad hoc in a prompt. It uses the current `opus`
-alias unless `SECOND_OPINION_MODEL` names another explicit alias or pinned
-identifier. Record the backend reported by the session rather than inferring it
-from the alias.
+Fill the contract below, choose one mechanical evidence identity, then run the
+tool-free structured reviewer. The runner binds output to
+[review.schema.json](review.schema.json); change that transport contract
+deliberately, never ad hoc in a prompt. It uses the current `opus` alias unless
+`SECOND_OPINION_MODEL` names another explicit alias or pinned identifier.
+Record the backend reported by the session rather than inferring it from the
+alias.
+
+For a repository review, fingerprint the exact checkout from its root. Preserve
+the emitted full commit, tree, `clean` or `dirty` state, and `state_sha256` in
+the checker contract:
 
 ```bash
-rtk env SECOND_OPINION_MAX_BUDGET_USD=unlimited \
-  ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
+python3 ~/.agents/skills/second-opinion-review/scripts/validate-review.py \
+  fingerprint-git /absolute/evidence-repository
+```
+
+Pass all four values back to the runner; it enters that explicit root rather
+than trusting the ambient directory:
+
+```bash
+bash ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
+  git /absolute/evidence-repository FULL_COMMIT_OID FULL_TREE_OID clean \
+  WORKTREE_SHA256 \
   /absolute/persistent/topic.md \
   /absolute/persistent/topic.review.json
 ```
 
-Use an uncapped checker only with explicit operator authority; otherwise keep
-the runner's bounded default. Validate the result before using any finding:
+For one standalone artifact, bind its current content hash. The runner also
+captures its mode and size, then enters the artifact parent before validation:
 
 ```bash
-rtk python3 ~/.agents/skills/second-opinion-review/scripts/validate-review.py \
+bash ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
+  artifact /absolute/evidence/artifact.md ARTIFACT_SHA256 \
+  /absolute/persistent/topic.md \
+  /absolute/persistent/topic.review.json
+```
+
+Keep the output outside the evidence root. The runner checks identity before
+the Claude window or model invocation, fingerprints dirty Git content, and
+captures the prompt hash. Its private preflight manifest binds every cited
+regular file by mode, size, and full content hash; citations must be UTF-8 text
+no larger than 5 MiB and cannot traverse symlinks. Filesystem-root evidence and
+Git roots containing submodules are rejected rather than fingerprinted
+partially. Temporary transport state and Claude's tool-free working directory
+are placed under a private system temp root proven outside the evidence root.
+It rechecks the prompt, manifest, and fixed point before accepting output. A
+later validation also fails if the prompt, repository, or artifact has changed.
+
+Use an uncapped checker only with explicit operator authority by setting
+`SECOND_OPINION_MAX_BUDGET_USD=unlimited`; otherwise keep the runner's bounded
+default. Validate the result from the same evidence root before using any
+finding:
+
+```bash
+python3 ~/.agents/skills/second-opinion-review/scripts/validate-review.py \
   check /absolute/persistent/topic.review.json \
   /absolute/persistent/topic.md
 ```
@@ -39,6 +76,7 @@ rtk python3 ~/.agents/skills/second-opinion-review/scripts/validate-review.py \
 
 - Request or tracker:
 - Fixed ref or artifact:
+- Evidence root and identity: commit + tree + dirty state + state SHA-256 | artifact SHA-256
 - In-scope paths:
 - Explicitly out of scope:
 

@@ -119,8 +119,7 @@ function unquoteShellWord(word) {
 
 function isClaudeInvocation(line) {
   const words = shellWords(line).map(unquoteShellWord);
-  let command = 0;
-  if (words[command] === "rtk") command += 1;
+  const command = 0;
   if (words[command] === "claude") return true;
   return (
     words[command] === "timeout" &&
@@ -130,11 +129,11 @@ function isClaudeInvocation(line) {
 
 function isClaudeWindowGuard(line) {
   const words = shellWords(line).map(unquoteShellWord);
+  const command = 0;
   return (
-    words[0] === "rtk" &&
-    words[1] === "node" &&
-    words[2]?.endsWith("check-claude-window.mjs") &&
-    words[3] === "check"
+    words[command] === "node" &&
+    words[command + 1]?.endsWith("check-claude-window.mjs") &&
+    words[command + 2] === "check"
   );
 }
 

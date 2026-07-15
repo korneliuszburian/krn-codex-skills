@@ -34,16 +34,23 @@ crossing; this branch owns mutation-grade state and handoff.
    **Done when:** every command and mutation fits the selected mode and every
    changed path remains attributable.
 
-3. **Compose the production workflow.** Use `$diagnosing-bugs` first when the
-   cause is unknown, then hand the proven or already-scoped change to
-   `$implement` with the target root, path budget, closest instructions, and
-   rollback. Those skills own diagnosis, production edits, and proportional
-   proof; this branch keeps target authority around them.
+3. **Follow the selected write branch.** In `headless-repair`, use
+   `$diagnosing-bugs` first when the cause is unknown, then hand the proven or
+   already-scoped change to `$implement` with the target root, path budget,
+   closest instructions, and rollback. Those skills own diagnosis, production
+   edits, and proportional proof; this branch keeps target authority around
+   them.
 
-   **Done when:** the composed workflow returns a scoped result without
-   widening target writes, paths, publication, or operator claims.
+   In `real-operator`, perform and preserve only the named genuine operator
+   action or transcript. Do not compose diagnosis or implementation merely
+   because that action exposes a fault. Stop and open a separately authorized
+   `headless-repair` crossing when repair is also requested.
 
-4. **Bind evidence to the target.** Reuse the composed workflow's focused
+   **Done when:** the selected branch returns its scoped repair or authentic
+   operator result without widening target writes, paths, publication, or
+   operator claims.
+
+4. **Bind evidence to the target.** Reuse the selected branch's focused
    evidence. Add one target-specific observation only when the cross-repository
    claim has not yet been observed; never replay the same proof through an
    umbrella command.

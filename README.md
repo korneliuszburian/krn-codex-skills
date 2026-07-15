@@ -54,16 +54,16 @@ contains symlinks into it, so a pull updates installed KRN skills without
 copying or forking them again.
 
 ```bash
-rtk npm run validate
-rtk bash scripts/install.sh check
-rtk bash scripts/install.sh install
+npm run validate
+bash scripts/install.sh check
+bash scripts/install.sh install
 ```
 
 On the one-time migration, inspect every reported legacy or global path, then
 authorize only the replacement classes you actually reviewed:
 
 ```bash
-rtk env KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
+env KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
   KRN_REPLACE_GLOBAL_CLAUDE=1 \
   bash scripts/install.sh install
 ```
@@ -96,10 +96,10 @@ Global integrations are managed through named, reviewable profiles instead of
 accumulating version-pinned skill overrides by hand:
 
 ```bash
-rtk krn-codex-catalog inventory
-rtk krn-codex-catalog usage --days 30
-rtk krn-codex-catalog plan lean
-rtk krn-codex-catalog apply lean
+krn-codex-catalog inventory
+krn-codex-catalog usage --days 30
+krn-codex-catalog plan lean
+krn-codex-catalog apply lean
 ```
 
 `lean` keeps the daily engineering surface small; `design`, `web-qa`, and
