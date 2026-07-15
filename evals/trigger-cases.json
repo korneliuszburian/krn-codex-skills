@@ -75,6 +75,54 @@
       ]
     },
     {
+      "id": "typescript-tsx-assertion-grammar",
+      "prompt": "In this .tsx file, replace the angle-bracket type assertion that collides with JSX grammar with the as form, keeping the same evidence.",
+      "expected_skills": [
+        "implement",
+        "typescript-engineering"
+      ],
+      "forbidden_skills": [
+        "diagnosing-bugs",
+        "source-to-decision"
+      ]
+    },
+    {
+      "id": "typescript-declaration-file-authoring",
+      "prompt": "Author a .d.ts declaration for this untyped JavaScript module so its imports get a real type, then prove a consumer compiles against it.",
+      "expected_skills": [
+        "implement",
+        "typescript-engineering"
+      ],
+      "forbidden_skills": [
+        "diagnosing-bugs",
+        "domain-modeling"
+      ]
+    },
+    {
+      "id": "typescript-tsconfig-erasable-host",
+      "prompt": "This tsconfig emits syntax the runtime only strips; align the erasable-syntax guard with the real host without changing unrelated options.",
+      "expected_skills": [
+        "implement",
+        "typescript-engineering"
+      ],
+      "forbidden_skills": [
+        "diagnosing-bugs",
+        "source-to-decision"
+      ]
+    },
+    {
+      "id": "typescript-package-consumer-contract",
+      "prompt": "Compile a small consumer against the package's published entry point to prove the declaration emit and exports changed safely, without editing the package.",
+      "expected_skills": [
+        "code-review",
+        "typescript-engineering"
+      ],
+      "forbidden_skills": [
+        "codebase-design",
+        "implement"
+      ]
+    },
+    {
       "id": "plain-javascript-is-not-typescript",
       "prompt": "Implement the already-scoped behavior change in this plain JavaScript module.",
       "expected_skills": [
