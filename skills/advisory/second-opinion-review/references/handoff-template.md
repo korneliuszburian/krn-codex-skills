@@ -42,7 +42,7 @@ rtk env SECOND_OPINION_EFFORT=max \
 ```
 
 The command returns immediately. Manage or resume the named job with
-`claude agents`, and inspect its work only after the pass finishes. The linked
+`rtk claude agents`, and inspect its work only after the pass finishes. The linked
 worktree is an ownership boundary, not a filesystem or network sandbox.
 
 <claude-handoff>
