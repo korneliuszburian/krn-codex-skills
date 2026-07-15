@@ -51,13 +51,11 @@ by this slice.**
    `$typescript-engineering` beside this workflow and load only its reference
    for the boundary being changed.
 
-   <slice-example>
-   Requirement: reject an empty source ID at the public parser boundary.
-   Production slice: change the parser-owned validation path.
-   Proof: one parser behavior case, if no existing case already falsifies it.
-   Not the slice: a helper layer, private call-order tests, or a matrix of
-   malformed strings that all represent the same invalid state.
-   </slice-example>
+   **Example.** Reject an empty source ID at the public parser boundary.
+   Production slice: change the parser-owned validation path. Proof: one parser
+   behavior case, if no existing case already falsifies it. Not the slice: a
+   helper layer, private call-order tests, or a matrix of malformed strings that
+   all represent the same invalid state.
 
    **Done when:** the accepted behavior is reachable through the real caller,
    no production seam exists only for a test, and the diff contains no
