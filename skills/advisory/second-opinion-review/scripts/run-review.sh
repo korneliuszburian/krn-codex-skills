@@ -12,6 +12,8 @@ script_dir=$(cd "${BASH_SOURCE[0]%/*}" && pwd)
 skill_dir=$(cd "$script_dir/.." && pwd)
 schema_file="$skill_dir/references/review.schema.json"
 
+rtk node "$script_dir/check-claude-window.mjs" check
+
 if [[ ! -f "$prompt_file" ]]; then
   echo "prompt file not found: $prompt_file" >&2
   exit 66

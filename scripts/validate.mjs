@@ -205,9 +205,9 @@ const secondOpinion = manifest.skills.find(
   (skill) => skill.name === "second-opinion-review",
 );
 if (secondOpinion) {
+  const skillRoot = path.join(root, secondOpinion.path);
   const reviewSchemaPath = path.join(
-    root,
-    secondOpinion.path,
+    skillRoot,
     "references",
     "review.schema.json",
   );
@@ -215,6 +215,16 @@ if (secondOpinion) {
     fail(`${secondOpinion.path}: missing review.schema.json`);
   } else {
     validateTransportSchema(json(reviewSchemaPath));
+  }
+
+  const windowGuard = "check-claude-window.mjs";
+  for (const runner of ["run-review.sh", "run-handoff.sh"]) {
+    const runnerPath = path.join(skillRoot, "scripts", runner);
+    if (!fs.existsSync(runnerPath)) {
+      fail(`${secondOpinion.path}: missing ${runner}`);
+    } else if (!read(runnerPath).includes(windowGuard)) {
+      fail(`${secondOpinion.path}: ${runner} bypasses the Claude time guard`);
+    }
   }
 }
 

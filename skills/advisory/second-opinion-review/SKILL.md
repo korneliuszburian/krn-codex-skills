@@ -1,75 +1,130 @@
 ---
 name: second-opinion-review
-description: Run a read-only Claude challenge of a scoped diff, skill, or architecture claim and validate its citations locally. Invoke explicitly after local evidence exists; the result is advisory and never approval.
+description: Hand scoped research, rewrite, or fixed-point challenge to Claude and verify the result locally. Invoke explicitly after defining evidence and authority; Claude is advisory, never approval.
 ---
 
 # Second Opinion Review
 
-Use this explicitly when a consequential slice benefits from an independent
-falsifier after local proof exists. Claude adds adversarial evidence; it does
-not replace typecheck, tests, runtime smokes, repository review, or human
-product decisions.
+Claude is a fresh pair of eyes with a bounded brief, not a gate. Use a
+background handoff when it needs to investigate or rewrite in an isolated
+worktree; use the tool-free checker when a fixed artifact only needs an
+adversarial challenge.
 
-## Process
+1. **Choose one role.** Use `researcher` to turn sources into mechanisms,
+   `rewrite-maker` to produce a candidate patch in a disposable worktree, or
+   `checker` to falsify a fixed claim. Never ask one pass to make and approve
+   the same result.
 
-1. Record one question, acceptance criteria, fixed point or artifact, changed
-   paths, verification already run, known non-goals, and proof/non-proof.
+   <review-contract>
+   Question or objective:
+   Role: researcher | rewrite-maker | checker
+   Current ref or artifact:
+   Allowed sources and paths:
+   Expected deliverables:
+   Local evidence already available:
+   Proof required:
+   Does not prove:
+   Human-only decisions:
+   </review-contract>
 
-2. Create a compact prompt outside the repository from
-   [prompt-template.md](references/prompt-template.md). Include only the diff or
-   numbered excerpts needed for the question. Exclude secrets, environment
-   files, credentials, private data, database dumps, and raw proprietary
-   material.
+   **Done when:** the pass has one role, one fixed point, and an observable
+   deliverable.
 
-3. Run the tool-free reviewer from the repository being reviewed:
+2. **Check the Claude window.** Claude must not run from 08:00 inclusive until
+   12:00 exclusive in `Europe/Warsaw`; that is the operator's premium-token
+   window. There is no override.
 
    ```bash
-   rtk env SECOND_OPINION_MAX_BUDGET_USD=2 \
+   rtk node ~/.agents/skills/second-opinion-review/scripts/check-claude-window.mjs check
+   ```
+
+   **Done when:** the preflight reports an open window. A denied window means
+   prepare the handoff and continue local work until noon; do not invoke
+   Claude.
+
+3. **Write the smallest complete handoff.** Start from
+   [handoff-template.md](references/handoff-template.md) in `/tmp`, then point
+   to existing issues, plans, commits, diffs, and source paths instead of
+   restating them. Include hashes or refs for mutable sources. Redact secrets,
+   private data, credentials, environment files, and raw copyrighted corpus.
+
+   For a source pass, require a ledger entry shaped like this:
+
+   <source-decision>
+   Source and version -> mechanism -> conditions and traps -> local standard
+   -> workflow consumer -> example -> falsifier -> does-not-prove ->
+   adopted | rejected | omitted-with-reason
+   </source-decision>
+
+   **Done when:** a fresh agent can resume from paths and artifacts without
+   reconstructing the conversation or receiving material it should not see.
+
+4. **Launch the right pass.** For research or a candidate rewrite, start from
+   a clean disposable worktree and hand it to Claude in the background:
+
+   ```bash
+   rtk bash ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
+     "TypeScript skill research" \
+     /tmp/second-opinion/typescript-handoff.md
+   ```
+
+   The command returns immediately. Manage or resume the named job with
+   `claude agents`; inspect its work only after that background pass finishes.
+   The linked worktree separates Git ownership, but it is not a filesystem or
+   network sandbox. Claude does not mutate the canonical branch, publish,
+   merge, close work, or decide product trade-offs.
+
+   For a fixed-point checker, fill
+   [prompt-template.md](references/prompt-template.md), then run the tool-free
+   structured reviewer:
+
+   ```bash
+   rtk env SECOND_OPINION_MAX_BUDGET_USD=unlimited \
      ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
      /tmp/second-opinion/topic.md \
      /tmp/second-opinion/topic.review.json
    ```
 
-   The default is budget-bounded. Set
-   `SECOND_OPINION_MAX_BUDGET_USD=unlimited` only when the operator explicitly
-   authorizes an uncapped pass.
+   Use an uncapped checker only when the operator explicitly authorizes it;
+   otherwise keep the runner's bounded default.
 
-4. Revalidate the retained prompt and current citations before triage:
+   **Done when:** the background job is named and resumable and this execution
+   thread has yielded, or the synchronous checker emitted schema-compatible
+   JSON.
+
+5. **Verify before retaining anything.** Resume here only after the background
+   pass finishes, or continue directly after a synchronous checker. Treat all
+   Claude output as a hypothesis. For a checker, bind every citation to the
+   current repository state:
 
    ```bash
    rtk python3 ~/.agents/skills/second-opinion-review/scripts/validate-review.py \
-     check /tmp/second-opinion/topic.review.json /tmp/second-opinion/topic.md
+     check /tmp/second-opinion/topic.review.json \
+     /tmp/second-opinion/topic.md
    ```
 
-   Then read every cited line locally and classify each item:
+   Inspect cited lines and source coverage locally. Classify each item as
+   `accept_and_fix`, `evidence_gap`, `reject_with_evidence`, `follow_up`, or
+   `human_decision`.
 
-   - `accept_and_fix` — correct and in scope;
-   - `evidence_gap` — run the smallest requested proof;
-   - `reject_with_evidence` — current code or command output contradicts it;
-   - `follow_up` — concrete but outside the owned slice;
-   - `human_decision` — product, budget, or irreversible trade-off.
+   <review-output>
+   Retained findings:
+   Rejected findings and evidence:
+   Missing evidence:
+   Focused verification:
+   Follow-up owner:
+   Proof:
+   Does not prove:
+   </review-output>
 
-5. Re-run at most once, and only with the disputed finding plus new evidence.
-   Open-ended reviewer debate is not product progress.
+   **Done when:** every retained factual claim survives current local evidence,
+   every accepted change has proportionate proof, and no reviewer prose is
+   presented as approval or readiness.
 
-## Output
+6. **Stop the loop.** Run at most one maker pass and one independent checker
+   pass for the same fixed point. Continue only for a newly evidenced finding;
+   open-ended reviewer debate is not production progress.
 
-- validated advisory JSON with findings, evidence gaps, human decisions,
-  non-proof, and prompt/evidence hashes;
-- local triage for every item;
-- focused proof for accepted findings;
-- an explicit statement of what the review did not prove.
-
-## Stop Condition
-
-Stop when every factual claim survives current file and line inspection or is
-rejected, every accepted item has focused proof, and no reviewer language is
-presented as a merge, release, or product-readiness gate.
-
-## Hard Boundaries
-
-- Claude receives only prompt stdin: no tools, slash commands, default dynamic
-  system prompt, repository working directory, plugins, or MCP.
-- The validator proves citation presence and freshness, not semantic truth.
-- The schema has no approve, block, merge, close, or readiness verdict.
-- Keep proprietary corpora and operator secrets outside the prompt.
+   **Done when:** the owned artifact is locally verified, remaining work has a
+   named owner, and the canonical branch contains only decisions supported by
+   local evidence.
