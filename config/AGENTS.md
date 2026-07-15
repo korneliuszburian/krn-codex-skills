@@ -53,7 +53,7 @@ claiming completion. Static success does not validate runtime input or behavior.
 
 ## Instruction ownership
 
-The closest repository instructions own product language, architecture,
-commands, genuinely mandatory gates, and domain constraints. Global skills own
-reusable workflows. Keep multi-step procedures and branch-only knowledge in
-skills instead of growing always-loaded instructions.
+Closest repository instructions own product language, architecture, commands,
+mandatory gates, and domain constraints; global skills own reusable workflows.
+Keep `AGENTS.md` and `CLAUDE.md` evergreen: feature specs, migrations, handoffs,
+tickets, inventories, and branch detail belong in task artifacts loaded only when needed.
