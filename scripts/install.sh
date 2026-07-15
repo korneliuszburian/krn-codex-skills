@@ -22,9 +22,13 @@ global_agents_target="$codex_home/AGENTS.md"
 global_agents_override="$codex_home/AGENTS.override.md"
 global_claude_source="$repo_root/$(jq -r '.global_claude' "$manifest")"
 global_claude_target="$claude_home/CLAUDE.md"
+global_hooks_source="$repo_root/$(jq -r '.global_hooks' "$manifest")"
+global_hooks_target="$codex_home/hooks.json"
+hook_dest="$codex_home/hooks"
 archive_legacy=${KRN_ARCHIVE_LEGACY:-0}
 replace_global_agents=${KRN_REPLACE_GLOBAL_AGENTS:-0}
 replace_global_claude=${KRN_REPLACE_GLOBAL_CLAUDE:-0}
+replace_global_hooks=${KRN_REPLACE_GLOBAL_HOOKS:-0}
 
 if [[ "$archive_legacy" != 0 && "$archive_legacy" != 1 ]]; then
   echo "KRN_ARCHIVE_LEGACY must be 0 or 1" >&2
@@ -36,6 +40,10 @@ if [[ "$replace_global_agents" != 0 && "$replace_global_agents" != 1 ]]; then
 fi
 if [[ "$replace_global_claude" != 0 && "$replace_global_claude" != 1 ]]; then
   echo "KRN_REPLACE_GLOBAL_CLAUDE must be 0 or 1" >&2
+  exit 64
+fi
+if [[ "$replace_global_hooks" != 0 && "$replace_global_hooks" != 1 ]]; then
+  echo "KRN_REPLACE_GLOBAL_HOOKS must be 0 or 1" >&2
   exit 64
 fi
 
@@ -50,6 +58,12 @@ mapfile -t bin_rows < <(
 mapfile -t legacy_rows < <(
   jq -r '.legacy_user_paths[] | [.path, .replacement] | @tsv' "$manifest"
 )
+mapfile -t hook_rows < <(
+  jq -r '.global_hook_files[] | [.name, .path] | @tsv' "$manifest"
+)
+mapfile -t legacy_hook_rows < <(
+  jq -r '.legacy_global_hook_paths[]' "$manifest"
+)
 
 link_matches() {
   local link=$1
@@ -60,7 +74,7 @@ link_matches() {
 
 check_install() {
   local failures=0
-  local name relative source target legacy legacy_relative replacement
+  local name relative source target legacy legacy_relative replacement legacy_hook
 
   for row in "${bin_rows[@]}"; do
     IFS=$'\t' read -r name relative <<< "$row"
@@ -88,6 +102,29 @@ check_install() {
       failures=1
     else
       printf 'missing %s\n' "$target"
+      failures=1
+    fi
+  done
+
+  for row in "${hook_rows[@]}"; do
+    IFS=$'\t' read -r name relative <<< "$row"
+    source="$repo_root/$relative"
+    target="$hook_dest/$name"
+    if link_matches "$target" "$source"; then
+      printf 'ok      %s -> %s\n' "$target" "$source"
+    elif [[ -e "$target" || -L "$target" ]]; then
+      printf 'foreign %s (explicit hook replacement authority required)\n' "$target"
+      failures=1
+    else
+      printf 'missing %s\n' "$target"
+      failures=1
+    fi
+  done
+
+  for legacy_hook in "${legacy_hook_rows[@]}"; do
+    target="$codex_home/$legacy_hook"
+    if [[ -e "$target" || -L "$target" ]]; then
+      printf 'legacy  %s -> managed global PreToolUse hook\n' "$target"
       failures=1
     fi
   done
@@ -124,6 +161,16 @@ check_install() {
     failures=1
   else
     printf 'missing %s\n' "$global_claude_target"
+    failures=1
+  fi
+
+  if link_matches "$global_hooks_target" "$global_hooks_source"; then
+    printf 'ok      %s -> %s\n' "$global_hooks_target" "$global_hooks_source"
+  elif [[ -e "$global_hooks_target" || -L "$global_hooks_target" ]]; then
+    printf 'foreign %s (explicit hook replacement authority required)\n' "$global_hooks_target"
+    failures=1
+  else
+    printf 'missing %s\n' "$global_hooks_target"
     failures=1
   fi
 
@@ -176,6 +223,36 @@ if [[ -e "$global_claude_target" || -L "$global_claude_target" ]] &&
   exit 77
 fi
 
+if [[ -e "$global_hooks_target" || -L "$global_hooks_target" ]] &&
+  ! link_matches "$global_hooks_target" "$global_hooks_source" &&
+  [[ "$replace_global_hooks" != 1 ]]; then
+  echo "refusing unowned global hooks: $global_hooks_target" >&2
+  echo "set KRN_REPLACE_GLOBAL_HOOKS=1 only after reviewing that file" >&2
+  exit 79
+fi
+
+for row in "${hook_rows[@]}"; do
+  IFS=$'\t' read -r name relative <<< "$row"
+  source="$repo_root/$relative"
+  target="$hook_dest/$name"
+  if [[ -e "$target" || -L "$target" ]] &&
+    ! link_matches "$target" "$source" &&
+    [[ "$replace_global_hooks" != 1 ]]; then
+    echo "refusing unowned global hook file: $target" >&2
+    echo "set KRN_REPLACE_GLOBAL_HOOKS=1 only after reviewing that file" >&2
+    exit 79
+  fi
+done
+
+for legacy_hook in "${legacy_hook_rows[@]}"; do
+  target="$codex_home/$legacy_hook"
+  if [[ -e "$target" || -L "$target" ]] && [[ "$replace_global_hooks" != 1 ]]; then
+    echo "refusing legacy global hook path: $target" >&2
+    echo "set KRN_REPLACE_GLOBAL_HOOKS=1 only after reviewing that file" >&2
+    exit 80
+  fi
+done
+
 for row in "${legacy_rows[@]}"; do
   IFS=$'\t' read -r legacy replacement <<< "$row"
   legacy_relative=${legacy#.codex/}
@@ -187,7 +264,7 @@ for row in "${legacy_rows[@]}"; do
   fi
 done
 
-mkdir -p "$skill_dest" "$bin_dest" "$codex_home" "$claude_home"
+mkdir -p "$skill_dest" "$bin_dest" "$codex_home" "$claude_home" "$hook_dest"
 timestamp=$(date -u +%Y%m%dT%H%M%SZ)
 backup_dir="$codex_home/skill-migration-backups/$timestamp-$$"
 backup_created=false
@@ -205,6 +282,23 @@ archive_path() {
   mv -- "$source" "$backup_dir/$label"
   printf 'archived %s -> %s\n' "$source" "$backup_dir/$label"
 }
+
+for legacy_hook in "${legacy_hook_rows[@]}"; do
+  target="$codex_home/$legacy_hook"
+  archive_path "$target" "hook__${legacy_hook//\//__}"
+done
+
+for row in "${hook_rows[@]}"; do
+  IFS=$'\t' read -r name relative <<< "$row"
+  source="$repo_root/$relative"
+  target="$hook_dest/$name"
+  if link_matches "$target" "$source"; then
+    continue
+  fi
+  archive_path "$target" "hook__${name}"
+  ln -s "$source" "$target"
+  printf 'linked   %s -> %s\n' "$target" "$source"
+done
 
 for row in "${bin_rows[@]}"; do
   IFS=$'\t' read -r name relative <<< "$row"
@@ -248,6 +342,12 @@ if ! link_matches "$global_claude_target" "$global_claude_source"; then
   archive_path "$global_claude_target" "claude__CLAUDE.md"
   ln -s "$global_claude_source" "$global_claude_target"
   printf 'linked   %s -> %s\n' "$global_claude_target" "$global_claude_source"
+fi
+
+if ! link_matches "$global_hooks_target" "$global_hooks_source"; then
+  archive_path "$global_hooks_target" "global__hooks.json"
+  ln -s "$global_hooks_source" "$global_hooks_target"
+  printf 'linked   %s -> %s\n' "$global_hooks_target" "$global_hooks_source"
 fi
 
 if [[ "$backup_created" == true ]]; then

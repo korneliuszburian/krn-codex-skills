@@ -2,6 +2,22 @@
   "schema_version": 1,
   "global_agents": "config/AGENTS.md",
   "global_claude": "config/CLAUDE.md",
+  "global_hooks": "config/hooks.json",
+  "global_hook_files": [
+    {
+      "name": "krn_pretooluse.py",
+      "path": "scripts/hooks/krn_pretooluse.py",
+      "executable": true
+    },
+    {
+      "name": "destructive_guard.py",
+      "path": "scripts/hooks/destructive_guard.py",
+      "executable": false
+    }
+  ],
+  "legacy_global_hook_paths": [
+    "hooks/rtk_pretooluse.py"
+  ],
   "bins": [
     {
       "name": "krn-codex-catalog",

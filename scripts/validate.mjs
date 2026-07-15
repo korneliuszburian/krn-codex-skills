@@ -233,6 +233,82 @@ const globalClaudePathSafe = safeRelativePath(manifest.global_claude);
 if (!globalClaudePathSafe) {
   fail("manifest: unsafe global_claude path");
 }
+const globalHooksPathSafe = safeRelativePath(manifest.global_hooks);
+if (!globalHooksPathSafe) {
+  fail("manifest: unsafe global_hooks path");
+}
+
+const hookFileNames = new Set();
+for (const hookFile of manifest.global_hook_files ?? []) {
+  if (!/^[a-zA-Z0-9_.-]{1,80}$/.test(hookFile.name ?? "")) {
+    fail(`manifest: invalid global hook file name ${hookFile.name}`);
+  }
+  if (hookFileNames.has(hookFile.name)) {
+    fail(`manifest: duplicate global hook file name ${hookFile.name}`);
+  }
+  hookFileNames.add(hookFile.name);
+  if (!safeRelativePath(hookFile.path)) {
+    fail(`manifest: unsafe global hook path for ${hookFile.name}`);
+    continue;
+  }
+  if (typeof hookFile.executable !== "boolean") {
+    fail(`manifest: executable must be boolean for global hook ${hookFile.name}`);
+  }
+  const hookPath = path.join(root, hookFile.path);
+  if (!fs.existsSync(hookPath) || !fs.statSync(hookPath).isFile()) {
+    fail(`manifest: missing global hook target for ${hookFile.name}`);
+    continue;
+  }
+  if (hookFile.executable) {
+    try {
+      fs.accessSync(hookPath, fs.constants.X_OK);
+    } catch {
+      fail(`manifest: global hook target is not executable for ${hookFile.name}`);
+    }
+  }
+}
+
+const legacyGlobalHookPaths = new Set();
+for (const legacyPath of manifest.legacy_global_hook_paths ?? []) {
+  if (!safeRelativePath(legacyPath)) {
+    fail(`manifest: unsafe legacy global hook path ${legacyPath}`);
+  }
+  if (legacyGlobalHookPaths.has(legacyPath)) {
+    fail(`manifest: duplicate legacy global hook path ${legacyPath}`);
+  }
+  legacyGlobalHookPaths.add(legacyPath);
+  const legacyName = legacyPath.split("/").at(-1);
+  if (hookFileNames.has(legacyName)) {
+    fail(`manifest: legacy global hook path overlaps installed hook ${legacyPath}`);
+  }
+}
+
+if (globalHooksPathSafe) {
+  const hooks = json(path.join(root, manifest.global_hooks));
+  const preToolUse = hooks.hooks?.PreToolUse;
+  if (!Array.isArray(preToolUse) || preToolUse.length !== 1) {
+    fail(`${manifest.global_hooks}: expected one PreToolUse matcher group`);
+  } else {
+    const group = preToolUse[0];
+    const handlers = group?.hooks;
+    if (
+      group?.matcher !== "^(Bash|apply_patch)$" ||
+      !Array.isArray(handlers) ||
+      handlers.length !== 1
+    ) {
+      fail(`${manifest.global_hooks}: expected one exact command and edit hook`);
+    } else {
+      const handler = handlers[0];
+      if (
+        handler?.type !== "command" ||
+        typeof handler?.command !== "string" ||
+        !handler.command.includes("/hooks/krn_pretooluse.py")
+      ) {
+        fail(`${manifest.global_hooks}: invalid global PreToolUse handler`);
+      }
+    }
+  }
+}
 
 const binNames = new Set();
 for (const bin of manifest.bins ?? []) {

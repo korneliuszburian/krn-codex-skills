@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(Bash|apply_patch)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CODEX_HOME:-$HOME/.codex}/hooks/krn_pretooluse.py\"",
+            "timeout": 10,
+            "statusMessage": "Applying global command safety policy"
+          }
+        ]
+      }
+    ]
+  }
+}

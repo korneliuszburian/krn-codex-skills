@@ -13,6 +13,7 @@
 | generic review, diagnosis, implementation, TypeScript, and advisory workflow formerly in `mise` | this repository | removed from `mise` main; discover only from the installed global catalog |
 | KRN product language, `krn-memory-core`, and Beads | `mise` | retain as domain guidance only |
 | global Claude instructions | this repository | install `CLAUDE.md` as a symlink resolving to the same managed `AGENTS.md` core |
+| hand-maintained user `PreToolUse` hook | this repository | archive the reviewed legacy RTK hook and install one versioned RTK plus destructive-command guard |
 
 ## Installation Invariants
 
@@ -31,6 +32,9 @@
    `KRN_SKILLS_DEST` independently scopes the installed user skill index.
 9. `CLAUDE_CONFIG_DIR` scopes Claude instructions. A foreign `CLAUDE.md`
    requires `KRN_REPLACE_GLOBAL_CLAUDE=1` and is archived before replacement.
+10. User-level `hooks.json`, manifest-owned hook files, and named legacy hook
+    paths stay inside `CODEX_HOME`. A foreign target requires
+    `KRN_REPLACE_GLOBAL_HOOKS=1` and is archived before replacement.
 
 ## Rollback
 

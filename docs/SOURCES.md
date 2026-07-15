@@ -115,13 +115,21 @@ This repository stores distilled mechanisms, not source corpora.
 - Sources:
   [Build skills](https://learn.chatgpt.com/docs/build-skills.md),
   [AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md.md),
+  [Hooks](https://learn.chatgpt.com/docs/hooks.md),
   [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents.md),
   and [Long-running work](https://learn.chatgpt.com/docs/long-running-work.md)
-- Verified: 2026-07-15.
+- Verified: 2026-07-16.
 - Adopted: `~/.agents/skills` as the user authoring location, symlinked skill
   support, descriptions as the implicit routing surface, explicit invocation
   via `policy.allow_implicit_invocation: false`, compact layered
   `AGENTS.md`, and worktrees for concurrent writers.
+- Hook decision: adopt one user-level `PreToolUse` command/edit guard for
+  narrow, deterministic inspection. It returns the supported
+  `permissionDecision: deny` shape for protected destructive targets and keeps
+  RTK rewriting at the tool boundary. Treat it as defense in depth: official
+  documentation says current interception is incomplete and equivalent work
+  may remain possible through another supported tool path. Sandbox, scoped
+  authority, backups, and manual review remain separate controls.
 - Constraint: same-name skills are not merged; both may appear. Unique active
   ownership is therefore an installation invariant, not a naming preference.
 

@@ -64,7 +64,7 @@ authorize only the replacement classes you actually reviewed:
 
 ```bash
 env KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
-  KRN_REPLACE_GLOBAL_CLAUDE=1 \
+  KRN_REPLACE_GLOBAL_CLAUDE=1 KRN_REPLACE_GLOBAL_HOOKS=1 \
   bash scripts/install.sh install
 ```
 
@@ -78,17 +78,24 @@ The installer:
 - installs the versioned global `AGENTS.md`;
 - installs a collision-safe Claude `CLAUDE.md` symlink to that same semantic
   core;
+- installs one versioned user-level `PreToolUse` hook that preserves RTK
+  rewriting, denies the forbidden capability family, and blocks destructive
+  removal of repository roots, agent configuration, secrets, Beads state, and
+  database files;
 - refuses unowned skill/global-instruction collisions and masking
-  `AGENTS.override.md` files.
+  `AGENTS.override.md` files, and refuses foreign hook replacement without
+  `KRN_REPLACE_GLOBAL_HOOKS=1`.
 
 `CODEX_HOME` selects Codex legacy paths, backups, and its global instruction
-target. `CLAUDE_CONFIG_DIR` selects Claude's instruction targets.
+target, hook configuration, and hook scripts. `CLAUDE_CONFIG_DIR` selects Claude's instruction targets.
 `KRN_SKILLS_DEST` independently selects the user skill index, and
 `KRN_BIN_DEST` selects the executable directory. Set all four for an isolated
 temp-root trial. Overriding one never silently redirects another.
 
 Run `check` again after installation. Restart Codex if the current session
-does not refresh its installed skill index.
+does not refresh its installed skill index. New or changed non-managed hooks
+must also be reviewed and trusted through `/hooks`; Codex binds trust to the
+exact hook definition.
 
 ## Capability Catalog
 
