@@ -15,11 +15,15 @@ repo_root=$(cd "$script_dir/.." && pwd)
 manifest="$repo_root/skills/manifest.json"
 skill_dest=${KRN_SKILLS_DEST:-"$HOME/.agents/skills"}
 codex_home=${CODEX_HOME:-"$HOME/.codex"}
+claude_home=${CLAUDE_CONFIG_DIR:-"$HOME/.claude"}
 global_agents_source="$repo_root/$(rtk jq -r '.global_agents' "$manifest")"
 global_agents_target="$codex_home/AGENTS.md"
 global_agents_override="$codex_home/AGENTS.override.md"
+global_claude_source="$repo_root/$(rtk jq -r '.global_claude' "$manifest")"
+global_claude_target="$claude_home/CLAUDE.md"
 archive_legacy=${KRN_ARCHIVE_LEGACY:-0}
 replace_global_agents=${KRN_REPLACE_GLOBAL_AGENTS:-0}
+replace_global_claude=${KRN_REPLACE_GLOBAL_CLAUDE:-0}
 
 if [[ "$archive_legacy" != 0 && "$archive_legacy" != 1 ]]; then
   echo "KRN_ARCHIVE_LEGACY must be 0 or 1" >&2
@@ -27,6 +31,10 @@ if [[ "$archive_legacy" != 0 && "$archive_legacy" != 1 ]]; then
 fi
 if [[ "$replace_global_agents" != 0 && "$replace_global_agents" != 1 ]]; then
   echo "KRN_REPLACE_GLOBAL_AGENTS must be 0 or 1" >&2
+  exit 64
+fi
+if [[ "$replace_global_claude" != 0 && "$replace_global_claude" != 1 ]]; then
+  echo "KRN_REPLACE_GLOBAL_CLAUDE must be 0 or 1" >&2
   exit 64
 fi
 
@@ -90,6 +98,16 @@ check_install() {
     failures=1
   fi
 
+  if link_matches "$global_claude_target" "$global_claude_source"; then
+    printf 'ok      %s -> %s\n' "$global_claude_target" "$global_claude_source"
+  elif [[ -e "$global_claude_target" || -L "$global_claude_target" ]]; then
+    printf 'foreign %s (explicit Claude replacement authority required)\n' "$global_claude_target"
+    failures=1
+  else
+    printf 'missing %s\n' "$global_claude_target"
+    failures=1
+  fi
+
   return "$failures"
 }
 
@@ -121,6 +139,14 @@ if [[ -e "$global_agents_target" || -L "$global_agents_target" ]] &&
   exit 74
 fi
 
+if [[ -e "$global_claude_target" || -L "$global_claude_target" ]] &&
+  ! link_matches "$global_claude_target" "$global_claude_source" &&
+  [[ "$replace_global_claude" != 1 ]]; then
+  echo "refusing unowned Claude instructions: $global_claude_target" >&2
+  echo "set KRN_REPLACE_GLOBAL_CLAUDE=1 only after reviewing that file" >&2
+  exit 77
+fi
+
 for row in "${legacy_rows[@]}"; do
   IFS=$'\t' read -r legacy replacement <<< "$row"
   legacy_relative=${legacy#.codex/}
@@ -132,7 +158,7 @@ for row in "${legacy_rows[@]}"; do
   fi
 done
 
-rtk mkdir -p "$skill_dest" "$codex_home"
+rtk mkdir -p "$skill_dest" "$codex_home" "$claude_home"
 timestamp=$(rtk date -u +%Y%m%dT%H%M%SZ)
 backup_dir="$codex_home/skill-migration-backups/$timestamp-$$"
 backup_created=false
@@ -176,6 +202,12 @@ if ! link_matches "$global_agents_target" "$global_agents_source"; then
   archive_path "$global_agents_target" "global__AGENTS.md"
   rtk ln -s "$global_agents_source" "$global_agents_target"
   printf 'linked   %s -> %s\n' "$global_agents_target" "$global_agents_source"
+fi
+
+if ! link_matches "$global_claude_target" "$global_claude_source"; then
+  archive_path "$global_claude_target" "claude__CLAUDE.md"
+  rtk ln -s "$global_claude_source" "$global_claude_target"
+  printf 'linked   %s -> %s\n' "$global_claude_target" "$global_claude_source"
 fi
 
 if [[ "$backup_created" == true ]]; then

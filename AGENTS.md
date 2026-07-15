@@ -6,7 +6,8 @@ commands, and constraints.
 
 ## Repository Map
 
-- `config/AGENTS.md` — installed global shell, safety, and production defaults.
+- `config/AGENTS.md` — one installed global shell, safety, and production core.
+- `config/CLAUDE.md` — Claude symlink resolving to that same core without a copy.
 - `skills/engineering/` — implicitly routed engineering workflow owners.
 - `skills/advisory/` — explicit-only external challenge workflows.
 - `skills/meta/` — skill authoring and pruning standards.
@@ -52,14 +53,15 @@ commands, and constraints.
 
 ## Verification
 
-Run:
+Select proof by changed surface:
 
-```bash
-rtk npm run validate
-rtk bash scripts/install.sh check
-rtk git diff --check
-```
+| Changed surface | Required signal |
+|---|---|
+| skill, metadata, manifest, or direct pointer | `rtk npm run validate` |
+| installer or migration behavior | isolated install/collision smoke plus `rtk bash -n scripts/install.sh` |
+| trigger description or composition | one fresh positive and nearest negative prompt |
+| final owned diff | `rtk git diff --check` before commit |
 
-Forward-test changed trigger descriptions with positive and negative prompts.
-Use the smallest representative script smoke for changed deterministic tooling.
-Use Conventional Commits on an owned branch.
+Do not run untouched rows during the inner loop. Run the full relevant set once
+before publishing a release-sized catalog change. Use Conventional Commits on
+an owned branch.

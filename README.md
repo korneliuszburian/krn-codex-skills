@@ -20,7 +20,8 @@ another repo  -> target-repo-work   -> scoped result -> handoff
 TypeScript    -> workflow owner + typescript-engineering companion
 ```
 
-`config/AGENTS.md` carries universal hard defaults; the repository `AGENTS.md`
+`config/AGENTS.md` carries one universal production-first core. Codex loads it
+directly; Claude's `CLAUDE.md` resolves to the same file. The repository `AGENTS.md`
 adds only this source repo's contract. Skill descriptions route work. A
 selected `SKILL.md` carries the repeated process. References load only for the
 branch that needs them.
@@ -70,13 +71,15 @@ The installer:
 - leaves vendor and unrelated skills untouched;
 - archives named legacy paths only with explicit migration authority;
 - installs the versioned global `AGENTS.md`;
+- installs a collision-safe Claude `CLAUDE.md` symlink to that same semantic
+  core;
 - refuses unowned skill/global-instruction collisions and masking
   `AGENTS.override.md` files.
 
-`CODEX_HOME` selects legacy paths, backups, and the global instruction target;
-`KRN_SKILLS_DEST` independently selects the user skill index. Set both for an
-isolated temp-root trial. Overriding either one never silently redirects the
-other.
+`CODEX_HOME` selects Codex legacy paths, backups, and its global instruction
+target. `CLAUDE_CONFIG_DIR` selects Claude's instruction targets.
+`KRN_SKILLS_DEST` independently selects the user skill index. Set all three for
+an isolated temp-root trial. Overriding one never silently redirects another.
 
 Run `check` again after installation. Restart Codex if the current session
 does not refresh its installed skill index.

@@ -12,6 +12,11 @@ const errors = [];
 const read = (file) => fs.readFileSync(file, "utf8");
 const json = (file) => JSON.parse(read(file));
 const relative = (file) => path.relative(root, file).split(path.sep).join("/");
+const safeRelativePath = (value) =>
+  typeof value === "string" &&
+  Boolean(value.trim()) &&
+  !path.isAbsolute(value) &&
+  !value.split("/").includes("..");
 
 function fail(message) {
   errors.push(message);
@@ -83,13 +88,13 @@ const manifest = json(manifestPath);
 if (manifest.schema_version !== 1) {
   fail("skills/manifest.json: schema_version must be 1");
 }
-const globalAgentsPathSafe =
-  typeof manifest.global_agents === "string" &&
-  Boolean(manifest.global_agents.trim()) &&
-  !path.isAbsolute(manifest.global_agents) &&
-  !manifest.global_agents.split("/").includes("..");
+const globalAgentsPathSafe = safeRelativePath(manifest.global_agents);
 if (!globalAgentsPathSafe) {
   fail("manifest: unsafe global_agents path");
+}
+const globalClaudePathSafe = safeRelativePath(manifest.global_claude);
+if (!globalClaudePathSafe) {
+  fail("manifest: unsafe global_claude path");
 }
 
 const manifestNames = new Set();
@@ -283,6 +288,22 @@ if (
   lineCount(path.join(root, manifest.global_agents)) > 60
 ) {
   fail(`${manifest.global_agents} exceeds 60 lines`);
+}
+if (globalClaudePathSafe) {
+  const globalClaude = path.join(root, manifest.global_claude);
+  if (
+    !fs.lstatSync(globalClaude).isSymbolicLink() ||
+    fs.readlinkSync(globalClaude) !== "AGENTS.md"
+  ) {
+    fail(`${manifest.global_claude} must symlink to the shared AGENTS.md`);
+  }
+}
+const sourceClaude = path.join(root, "CLAUDE.md");
+if (
+  !fs.lstatSync(sourceClaude).isSymbolicLink() ||
+  fs.readlinkSync(sourceClaude) !== "AGENTS.md"
+) {
+  fail("CLAUDE.md must symlink to the source-repository AGENTS.md");
 }
 
 if (errors.length) {

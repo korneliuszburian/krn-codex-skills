@@ -78,3 +78,15 @@ This repository stores distilled mechanisms, not source corpora.
   `AGENTS.md`, and worktrees for concurrent writers.
 - Constraint: same-name skills are not merged; both may appear. Unique active
   ownership is therefore an installation invariant, not a naming preference.
+
+## Claude Code
+
+- Source: [Claude Code memory](https://code.claude.com/docs/en/memory).
+- Verified: 2026-07-15.
+- Adopted: Claude reads `CLAUDE.md`, officially supports symlinking it to
+  `AGENTS.md`, and treats layered instruction files as additive context. KRN
+  therefore installs one semantic core through tool-specific symlinks instead
+  of maintaining two copies.
+- Boundary: a `CLAUDE.md` instruction guides behavior but is not a security
+  sandbox or permission control. Hard execution policy stays in deterministic
+  scripts, settings, or hooks.

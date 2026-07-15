@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "global_agents": "config/AGENTS.md",
+  "global_claude": "config/CLAUDE.md",
   "skills": [
     {
       "name": "code-review",

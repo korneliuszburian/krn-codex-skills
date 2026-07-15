@@ -12,6 +12,7 @@
 | `mini-metalab-skills` and `krn-skills-lab` | evaluation owners | keep as labs, never runtime sources |
 | generic review, diagnosis, implementation, TypeScript, and advisory workflow formerly in `mise` | this repository | removed from `mise` main; discover only from the installed global catalog |
 | KRN product language, `krn-memory-core`, and Beads | `mise` | retain as domain guidance only |
+| global Claude instructions | this repository | install `CLAUDE.md` as a symlink resolving to the same managed `AGENTS.md` core |
 
 ## Installation Invariants
 
@@ -28,6 +29,8 @@
    file.
 8. `CODEX_HOME` scopes Codex config and migration backups;
    `KRN_SKILLS_DEST` independently scopes the installed user skill index.
+9. `CLAUDE_CONFIG_DIR` scopes Claude instructions. A foreign `CLAUDE.md`
+   requires `KRN_REPLACE_GLOBAL_CLAUDE=1` and is archived before replacement.
 
 ## Rollback
 

@@ -12,6 +12,10 @@ installation metadata, validation, and migration history.
 `~/.agents/skills`. It may contain KRN symlinks, vendor skills, and other
 independently owned entries; discovery does not imply ownership.
 
+**Global instruction core** — the one semantic contract in
+`config/AGENTS.md`. Codex loads its installed symlink directly; Claude loads it
+through a `CLAUDE.md` symlink. Tool-specific entrypoints do not copy the rules.
+
 **Domain extension** — repo-local knowledge or procedure that only makes sense
 inside one product. It may compose a global workflow but does not copy it.
 
