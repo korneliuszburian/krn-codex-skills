@@ -44,7 +44,8 @@
         ],
         "enableFamilies": [],
         "disable": [
-          "agent-browser"
+          "agent-browser",
+          "skill-creator"
         ],
         "disableFamilies": [
           "gsap"
@@ -104,7 +105,8 @@
         ],
         "enableFamilies": [],
         "disable": [
-          "agent-browser"
+          "agent-browser",
+          "skill-creator"
         ],
         "disableFamilies": [
           "gsap"
@@ -168,7 +170,8 @@
           "gsap"
         ],
         "disable": [
-          "agent-browser"
+          "agent-browser",
+          "skill-creator"
         ],
         "disableFamilies": [],
         "preserveScopes": [
@@ -227,7 +230,9 @@
           "openai-docs"
         ],
         "enableFamilies": [],
-        "disable": [],
+        "disable": [
+          "skill-creator"
+        ],
         "disableFamilies": [
           "gsap"
         ],
@@ -289,7 +294,8 @@
         ],
         "enableFamilies": [],
         "disable": [
-          "agent-browser"
+          "agent-browser",
+          "skill-creator"
         ],
         "disableFamilies": [
           "gsap"
@@ -325,7 +331,7 @@
       }
     },
     "full": {
-      "description": "Enable every allowed capability while keeping duplicate plugin and MCP owners collapsed.",
+      "description": "Use the broadest managed integration surface while keeping duplicate and displaced workflow owners collapsed.",
       "plugins": {
         "enable": [
           "asana@openai-curated",
@@ -353,7 +359,9 @@
         "enableFamilies": [
           "gsap"
         ],
-        "disable": [],
+        "disable": [
+          "skill-creator"
+        ],
         "disableFamilies": [],
         "preserveScopes": [
           "krn-global",

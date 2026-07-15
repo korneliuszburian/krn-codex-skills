@@ -34,7 +34,7 @@ reads its files.
 | `design` | lean engineering plus Figma, Canva, and GSAP |
 | `web-qa` | lean engineering plus browser automation |
 | `comms` | lean engineering plus mail, calendar, and task coordination |
-| `full` | every known non-quarantined capability |
+| `full` | broadest managed integration surface; duplicate and displaced workflow owners stay off |
 
 Profiles are complete policy documents rather than inheritance chains. A
 reader can see every intended state without mentally expanding a parent.

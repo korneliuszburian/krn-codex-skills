@@ -7,6 +7,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { planCatalogConfig } from "./lib/catalog-config.mjs";
+import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
 import { resolveProfile } from "./lib/catalog-profile.mjs";
 
 test("resolves lexical quarantine evidence without executing the CLI", async (context) => {
@@ -282,4 +283,49 @@ test("disables config-only siblings of the enabled plugin owner", () => {
     desired: resolved.desired,
   });
   assert.equal(converged.changed, false);
+});
+
+test("every profile disables the displaced system author while leaving its siblings unmanaged", async () => {
+  const paths = {
+    author: "/home/example/.codex/skills/.system/skill-creator/SKILL.md",
+    installer: "/home/example/.codex/skills/.system/skill-installer/SKILL.md",
+    plugin: "/home/example/.codex/skills/.system/plugin-creator/SKILL.md",
+  };
+  const systemSkill = (name, path) => ({
+    id: name,
+    name,
+    family: name,
+    path,
+    scope: "system",
+  });
+  const inventory = {
+    plugins: [],
+    skills: [
+      systemSkill("skill-creator", paths.author),
+      systemSkill("skill-installer", paths.installer),
+      systemSkill("plugin-creator", paths.plugin),
+    ],
+    hardQuarantine: [],
+  };
+  const document = await loadCapabilityProfiles();
+
+  for (const [name, profile] of Object.entries(document.profiles)) {
+    const resolved = resolveProfile(profile, inventory);
+
+    assert.equal(
+      resolved.desired.skills[paths.author],
+      false,
+      `${name} must give writing-great-skills sole authoring ownership`,
+    );
+    assert.equal(
+      Object.hasOwn(resolved.desired.skills, paths.installer),
+      false,
+      `${name} must leave skill-installer unmanaged`,
+    );
+    assert.equal(
+      Object.hasOwn(resolved.desired.skills, paths.plugin),
+      false,
+      `${name} must leave plugin-creator unmanaged`,
+    );
+  }
 });

@@ -222,7 +222,7 @@ test("profiles and inventory expose only current, global, sanitized capabilities
     "github@openai-curated-remote",
   ]);
   assert.deepEqual(lean.plugins.enable, ["github@openai-curated"]);
-  assert.deepEqual(lean.skills.disable, ["agent-browser"]);
+  assert.deepEqual(lean.skills.disable, ["agent-browser", "skill-creator"]);
   assert.deepEqual(lean.skills.disableFamilies, ["gsap"]);
   assert.deepEqual(lean.mcps.disable, [
     "agent_browser",
