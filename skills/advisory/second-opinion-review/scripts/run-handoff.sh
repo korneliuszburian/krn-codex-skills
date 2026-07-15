@@ -200,5 +200,5 @@ for additional_dir in "${resolved_additional_dirs[@]}"; do
 done
 
 handoff=$(<"$handoff_file")
-rtk claude --bg --name "$job_name" "${model_args[@]}" \
-  "${permission_args[@]}" "${directory_args[@]}" "$handoff"
+rtk claude --bg --name "$job_name" "${directory_args[@]}" \
+  "${model_args[@]}" "${permission_args[@]}" "$handoff"
