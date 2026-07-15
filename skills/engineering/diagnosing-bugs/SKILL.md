@@ -45,6 +45,10 @@ Make the loop faster, sharper, and repeatable. For a flake, raise and record the
 reproduction rate. Remove one input, caller, config value, or environment
 variable at a time until every remaining part is load-bearing.
 
+Load [hard-bugs.md](references/hard-bugs.md) when the ordinary ladder cannot
+isolate a regression range, intermittent failure, race, input family, or
+environment-only symptom.
+
 If every available rung stays green, switch to `missing-repro`. Ask only for
 the artifact, access, or environment that would make the symptom observable.
 

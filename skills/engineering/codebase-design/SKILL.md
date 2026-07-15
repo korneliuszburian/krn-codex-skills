@@ -1,12 +1,23 @@
 ---
 name: codebase-design
-description: Design or improve a module interface, public seam, or dependency shape using deep-module principles. Use when deciding where behavior belongs or making code easier to change and test; skip routine implementation with a settled interface.
+description: Find architecture hotspots or deepen a module interface, public seam, or dependency shape. Use for growing monoliths, behavior ownership, or testability through production seams; skip routine implementation and fixed-point review without an architecture question.
 ---
 
 # Codebase Design
 
 Design deep modules: substantial behavior behind a small interface at a clean
 seam. Callers and tests should learn the same surface.
+
+## Choose The Mode
+
+- **Directed design** — the caller, module, or interface is already named. Use
+  the design questions below.
+- **Architecture audit** — the user asks where monoliths, friction, or
+  deepening opportunities exist. Load
+  [architecture-audit.md](references/architecture-audit.md), rank candidates,
+  then apply the design questions only to the strongest candidate.
+
+An audit is read-only unless the user also authorizes implementation.
 
 ## Vocabulary
 

@@ -27,6 +27,8 @@ provided by the user and repository.
 - Select proof by changed risk: `0` new tests for mechanical or already-covered
   work, `1` falsifier for one changed runtime contract, and `N` only for
   distinct acceptance requirements.
+- For changed TypeScript source, declarations, or compiler configuration, run
+  the narrowest repository-supported typecheck before claiming completion.
 - Run the narrow feedback loop while building. Run broad suites once at the end
   when the repository contract or completion claim requires them.
 - Test behavior through a stable public seam with an independent expected

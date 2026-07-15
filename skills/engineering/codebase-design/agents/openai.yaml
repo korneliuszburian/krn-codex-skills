@@ -1,6 +1,6 @@
 interface:
   display_name: "Codebase Design"
-  short_description: "Design deep modules and clean public seams"
-  default_prompt: "Use $codebase-design to compare interfaces for this module."
+  short_description: "Find hotspots and design deeper public seams"
+  default_prompt: "Use $codebase-design to find architecture hotspots or deepen this module."
 policy:
   allow_implicit_invocation: true

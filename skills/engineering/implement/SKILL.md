@@ -54,9 +54,9 @@ Change the production path from caller to result. Keep the public interface
 small and hide complexity behind it. Add an abstraction only when it owns
 policy or isolates a real varying or external seam.
 
-For TypeScript boundaries, external values, public types, generics,
-declarations, or compiler configuration, load
-[typescript.md](references/typescript.md).
+For any TypeScript source, declaration, or compiler-configuration change, load
+[typescript.md](references/typescript.md). Apply its boundary procedure only
+as deeply as the changed risk requires.
 
 If a new falsifier is justified, run one red-capable slice, implement only
 enough to satisfy it, then review the design. Do not write a horizontal batch
@@ -82,6 +82,12 @@ Prefer deletion when behavior and proof remain equal.
 Run focused proof first. Run typecheck, lint, build, broad tests, rendered
 checks, or remote checks only when the repository contract or claimed outcome
 requires that level.
+
+For changed TypeScript source, declarations, or compiler configuration, run
+the narrowest repository-supported typecheck before completion. Use the root
+or workspace typecheck only when no narrower command proves the affected
+boundary or the repository contract requires it. Typecheck proves static
+relationships, not runtime behavior.
 
 Account for every changed and untracked path. Record:
 

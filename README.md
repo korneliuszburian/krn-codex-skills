@@ -93,6 +93,7 @@ stable public seam. Broad suites are completion evidence, not the inner loop.
 ## Repository Map
 
 ```text
+AGENTS.md    source-repository editing contract and map
 config/       installed global guidance
 skills/       promoted skills grouped by responsibility
 evals/        positive and negative trigger cases

@@ -4,6 +4,18 @@ This private source repository owns KRN's universal Codex engineering skills
 and reusable process. Product repositories own their domain language,
 commands, and constraints.
 
+## Repository Map
+
+- `config/AGENTS.md` — installed global shell, safety, and production defaults.
+- `skills/engineering/` — implicitly routed engineering workflow owners.
+- `skills/advisory/` — explicit-only external challenge workflows.
+- `skills/meta/` — skill authoring and pruning standards.
+- `skills/manifest.json` — canonical names, paths, invocation, and migration scope.
+- `evals/` — positive and negative routing cases.
+- `scripts/` — deterministic validation and collision-safe installation.
+- `docs/` — source provenance and migration ownership, never runtime memory.
+- `README.md` and `CONTEXT.md` — operator overview and shared vocabulary.
+
 ## Before Editing
 
 1. Run `rtk git status --short --branch` and preserve unrelated work.
@@ -30,6 +42,9 @@ commands, and constraints.
 
 - Do not vendor source repositories, private course text, transcripts, or raw
   research corpora. Record mechanisms and provenance in `docs/SOURCES.md`.
+- Never copy or mirror a global workflow into a product repository. A local
+  skill may add domain-only knowledge or compose a global owner without
+  restating its procedure.
 - Do not mutate another repository or the installed skill index while merely
   reviewing this repository.
 - The installer may touch only paths named in `skills/manifest.json`; it must

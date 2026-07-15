@@ -60,6 +60,28 @@
       ]
     },
     {
+      "id": "design-audit-monoliths",
+      "prompt": "Audit this package for growing monoliths and rank the best deep-module opportunities without editing code.",
+      "expected_skills": [
+        "codebase-design"
+      ],
+      "forbidden_skills": [
+        "code-review",
+        "implement"
+      ]
+    },
+    {
+      "id": "review-is-not-architecture-audit",
+      "prompt": "Review the fixed-point diff against its issue and repository standards; do not redesign untouched modules.",
+      "expected_skills": [
+        "code-review"
+      ],
+      "forbidden_skills": [
+        "codebase-design",
+        "implement"
+      ]
+    },
+    {
       "id": "resolve-domain-name",
       "prompt": "We use account for both the paying customer and login identity. Resolve the public language.",
       "expected_skills": [

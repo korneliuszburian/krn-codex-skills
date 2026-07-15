@@ -10,8 +10,8 @@
 | old public `krn-codex-skills` layout | this branch | replace project-local pack with global source |
 | private `krn-skills` | WordPress/domain owner | keep domain-only; do not install as global engineering canon |
 | `mini-metalab-skills` and `krn-skills-lab` | evaluation owners | keep as labs, never runtime sources |
-| generic review, diagnosis, implementation, TypeScript, and advisory workflow in `mise` | this repository | remove repo copies after global installation |
-| KRN product language, Memory Core constraints, and Beads | `mise` | retain as domain guidance only |
+| generic review, diagnosis, implementation, TypeScript, and advisory workflow formerly in `mise` | this repository | removed from `mise` main; discover only from the installed global catalog |
+| KRN product language, `krn-memory-core`, and Beads | `mise` | retain as domain guidance only |
 
 ## Installation Invariants
 
