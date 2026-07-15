@@ -34,8 +34,9 @@ Source: PDF chapter 1; companion `01-setup-typescript.md`.
 Mechanisms: static JavaScript model, language service, compiler, runtime, and toolchain setup.
 Conditions and traps: types erase; global tools may differ from the repository-pinned compiler.
 KRN standard: treat typecheck, emit, and runtime as separate observers; use repository-local tooling.
-Consumers: implement, diagnosing-bugs, compiler configuration.
+Consumers: implement, diagnosing-bugs, target-repo-work.
 Reference: `compiler-resolution-and-proof.md` — compiler version and proof selection.
+Original example: a type annotation that typechecks green while the emitted, type-stripped JavaScript throws at runtime.
 Falsifier: typecheck passes while emitted or executed JavaScript fails.
 Does not prove: static success is runtime correctness or toolchain compatibility.
 Disposition: adopted; installation walkthrough omitted as operator-specific.
@@ -48,6 +49,7 @@ Conditions and traps: editor gestures and displayed wording vary by IDE and comp
 KRN standard: retain CLI-translatable diagnosis—inspect inferred declarations, trace symbols, and use the narrow compiler loop.
 Consumers: diagnosing-bugs, implement, code-review.
 Reference: `inference-and-annotations.md` and `compiler-resolution-and-proof.md`.
+Original example: an editor hover whose inferred return type is confirmed by emitting the declaration with the pinned compiler.
 Falsifier: the CLI or emitted declaration contradicts the inferred editor model.
 Does not prove: a diagnostic identifies root cause or a refactor preserves runtime behavior.
 Disposition: TypeScript diagnosis mechanisms adopted; JavaScript tooling, VS Code keystrokes, and UI walkthroughs omitted-with-reason because this companion does not own ordinary JavaScript or migration workflow.
@@ -60,6 +62,7 @@ Conditions and traps: a framework may transpile without typechecking; `tsc` may 
 KRN standard: identify the owner of typecheck, emit, bundle, and execution before selecting proof.
 Consumers: implement, diagnosing-bugs, target-repo-work.
 Reference: `compiler-resolution-and-proof.md` — host semantics and proof table.
+Original example: a bundler that strips types without typechecking beside a `tsc --noEmit` that checks without emitting.
 Falsifier: the claimed build stage is skipped or uses a different configuration.
 Does not prove: green typecheck means the bundle or application runs.
 Disposition: adopted.
@@ -67,11 +70,12 @@ Disposition: adopted.
 
 <source-decision id="tt-04">
 Source: PDF chapter 4; companion `04-essential-types-and-annotations.md` and concrete essential-type workshops.
-Mechanisms: primitive and object annotations, aliases, arrays, tuples, optionals, defaults, rest parameters, function types, `void`, async returns, and `any`.
-Conditions and traps: empty values lack context; `void` callback assignability differs from an explicit unusable return; `any` propagates.
+Mechanisms: primitive and object annotations, aliases, arrays, tuples, optionals, defaults, rest parameters, function types, `void`, async returns, and `any` (including `JSON.parse`, which is not generic and returns `any`).
+Conditions and traps: empty values lack context; `void` callback assignability differs from an explicit unusable return; `any` propagates; annotating a `JSON.parse` result is type faith.
 KRN standard: infer implementations, annotate public inputs, model positions only while a tuple stays legible, and isolate `any` at adapters.
-Consumers: implement, code-review, public API design.
+Consumers: implement, code-review, codebase-design.
 Reference: `inference-and-annotations.md`, `functions-generics-and-callbacks.md`, and `runtime-boundaries-and-escape-hatches.md`.
+Original example: `public-result-boundary`; `unknown-ingress-parser`.
 Falsifier: invalid callers compile or a supposedly typed external value bypasses validation.
 Does not prove: annotations validate runtime input.
 Disposition: adopted; course exercises and solutions omitted.
@@ -82,7 +86,7 @@ Source: PDF chapter 5; companion `05-unions-literals-and-narrowing.md`.
 Mechanisms: unions, literals, width, control-flow narrowing, `unknown`, `never`, discriminated unions, and exhaustive state.
 Conditions and traps: truthiness loses valid falsy values; a bag of optionals permits impossible states; custom narrowing may lie.
 KRN standard: validate external `unknown`, use stable discriminants, and make new states break exhaustive consumers.
-Consumers: implement, diagnosing-bugs, domain and API design.
+Consumers: implement, diagnosing-bugs, codebase-design.
 Reference: `objects-indexing-and-state.md` and `runtime-boundaries-and-escape-hatches.md`.
 Original example: `exhaustive-job-state`.
 Falsifier: add a union member and observe that a required consumer still compiles unchanged.
@@ -108,7 +112,7 @@ Source: PDF chapter 7; companion `07-mutability.md`.
 Mechanisms: literal widening, mutable properties, readonly arrays and objects, `as const`, and runtime freeze distinction.
 Conditions and traps: readonly is shallow in many contracts and never a runtime freeze; const binding does not freeze properties.
 KRN standard: encode immutability only when callers depend on it; use runtime enforcement when mutation must actually fail.
-Consumers: implementation and public API review.
+Consumers: implement, code-review, codebase-design.
 Reference: `inference-and-annotations.md`.
 Original example: `literal-source-of-truth`.
 Falsifier: compile-time mutation succeeds, or runtime mutation succeeds where runtime immutability was claimed.
@@ -121,8 +125,9 @@ Source: PDF chapter 8; companion `08-classes.md`.
 Mechanisms: class type/value duality, properties, methods, access, construction, inheritance, override, implements, and abstraction.
 Conditions and traps: `implements` checks the instance surface only; access modifiers and declarations do not establish runtime invariants by themselves.
 KRN standard: use a class for real construction, identity, encapsulation, or runtime prototype behavior—not as mandatory organization.
-Consumers: codebase-design, implement, public API review.
+Consumers: codebase-design, implement, code-review.
 Reference: `public-apis-modules-and-declarations.md`.
+Original example: `implements-instance-surface`.
 Falsifier: a real consumer violates the promised construction or override contract.
 Does not prove: object-oriented structure is the deeper architecture.
 Disposition: mechanisms adopted; class-first design rejected.
@@ -133,7 +138,7 @@ Source: PDF chapter 9; companion `09-typescript-only-features.md`.
 Mechanisms: parameter properties, enums, namespaces, emitted TypeScript-only syntax, erasable alternatives, and host type-stripping boundaries.
 Conditions and traps: a type-stripping host cannot execute syntax that requires transformation; emitted behavior, reverse mappings, merging, isolated transpilation, and compiler support vary by the pinned toolchain.
 KRN standard: prefer unions, `as const` objects, modules, and explicit properties; permit non-erasable syntax only when a named transform owns it, and use the pinned compiler's erasable-syntax guard when the real host only strips types.
-Consumers: implement, code-review, module and library design.
+Consumers: implement, code-review, codebase-design.
 Reference: `public-apis-modules-and-declarations.md` and `compiler-resolution-and-proof.md` — emitted syntax and host boundary.
 Original example: `erasable-host-boundary`.
 Falsifier: a non-erasable fixture passes the configured guard or reaches a stripping-only host without a named transform; transformed syntax must execute through its actual build path.
@@ -172,7 +177,7 @@ Source: PDF chapter 12; companion `12-the-weird-parts.md`.
 Mechanisms: evolving `any`, excess-property limits, loose object keys, `{}`, type/value namespaces, function `this`, arrow receiver capture, and union-of-function parameter intersections.
 Conditions and traps: contextual inference changes with mutation; call form controls runtime `this`; callback unions can demand an impossible shared input; runtime key sets remain wider.
 KRN standard: keep these unsound edges explicit in boundary and review decisions instead of pretending TypeScript is sound.
-Consumers: code-review, diagnosing-bugs, TypeScript API design.
+Consumers: code-review, diagnosing-bugs, codebase-design.
 Reference: `objects-indexing-and-state.md`, `functions-generics-and-callbacks.md` — receiver and dispatch relationships, and `runtime-boundaries-and-escape-hatches.md`.
 Original example: `receiver-and-dispatch-boundary`.
 Falsifier: a minimal compiler or runtime counterexample contradicts the assumed relationship.
@@ -185,7 +190,7 @@ Source: PDF chapter 13; companion `13-modules-scripts-declaration-files.md` plus
 Mechanisms: module versus script scope, declaration files, `declare`, global and module augmentation, uncontrolled declarations, and declaration authoring.
 Conditions and traps: identical syntax can mean ambient declaration or augmentation depending on file scope; declarations emit no runtime value.
 KRN standard: keep application behavior in modules, declarations at genuine external boundaries, and augmentation narrow and runtime-backed.
-Consumers: implement, code-review, target package and library design.
+Consumers: implement, code-review, codebase-design, target-repo-work.
 Reference: `public-apis-modules-and-declarations.md`.
 Original example: `narrow-module-augmentation`.
 Falsifier: compile a real consumer and execute the matching import or augmented value.
@@ -200,6 +205,7 @@ Conditions and traps: options and compatibility are compiler-, host-, bundler-, 
 KRN standard: inspect the pinned toolchain, match module resolution to the real host, preserve strictness, and prove each changed build stage separately.
 Consumers: implement, diagnosing-bugs, target-repo-work, codebase-design.
 Reference: `compiler-resolution-and-proof.md`.
+Original example: `erasable-host-boundary`.
 Falsifier: focused compiler trace or consumer build/run disagrees with the claimed configuration.
 Does not prove: one tsconfig is portable to another runtime or framework.
 Disposition: adopted only with current official verification; workshop plan alone is insufficient.
@@ -210,7 +216,7 @@ Source: PDF chapter 15; companion `15-designing-your-types.md`.
 Mechanisms: generic types, multiple parameters, defaults, constraints, template literals, conditional types, mapped types, key remapping, and union behavior.
 Conditions and traps: naked conditional parameters distribute; helpers can obscure callers; type precision has no runtime effect.
 KRN standard: preserve one live relationship under a complexity budget and prefer explicit public types when transformation becomes harder to read.
-Consumers: implementation, review, public API and codebase design.
+Consumers: implement, code-review, codebase-design.
 Reference: `functions-generics-and-callbacks.md` and `type-transformations.md`.
 Original examples: `distributed-payload` and `handler-key-remap`.
 Falsifier: one accepted and one rejected type case at the public helper boundary.
