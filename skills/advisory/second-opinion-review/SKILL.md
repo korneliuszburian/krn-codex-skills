@@ -62,6 +62,11 @@ adversarial challenge.
 4. **Launch the right pass.** For research or a candidate rewrite, start from
    a clean disposable worktree and hand it to Claude in the background:
 
+   Both runners select the current `opus` alias by default so a locally
+   configured non-Claude backend cannot silently replace the requested second
+   opinion. Set `SECOND_OPINION_MODEL` only to choose another explicit Claude
+   model or pinned identifier.
+
    ```bash
    rtk bash ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
      "TypeScript skill research" \

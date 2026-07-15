@@ -101,5 +101,8 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 127
 fi
 
+second_opinion_model=${SECOND_OPINION_MODEL:-opus}
+model_args=(--model "$second_opinion_model")
+
 handoff=$(<"$handoff_file")
-rtk claude --bg --name "$job_name" "$handoff"
+rtk claude --bg --name "$job_name" "${model_args[@]}" "$handoff"

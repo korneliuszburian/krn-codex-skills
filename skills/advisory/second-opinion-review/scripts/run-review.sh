@@ -38,10 +38,8 @@ budget_args=()
 if [[ "$max_budget" != "unlimited" ]]; then
   budget_args=(--max-budget-usd "$max_budget")
 fi
-model_args=()
-if [[ -n "${SECOND_OPINION_MODEL:-}" ]]; then
-  model_args=(--model "$SECOND_OPINION_MODEL")
-fi
+second_opinion_model=${SECOND_OPINION_MODEL:-opus}
+model_args=(--model "$second_opinion_model")
 
 output_dir=${output_file%/*}
 if [[ "$output_dir" == "$output_file" ]]; then
