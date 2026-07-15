@@ -1,0 +1,6 @@
+interface:
+  display_name: "Source To Decision"
+  short_description: "Turn source mechanisms into owned decisions"
+  default_prompt: "Use $source-to-decision to evaluate this source for our codebase."
+policy:
+  allow_implicit_invocation: true

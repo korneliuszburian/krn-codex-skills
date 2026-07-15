@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "implement-clear-runtime-change",
+      "prompt": "Add validation to the public import command and ship the smallest working change.",
+      "expected_skills": [
+        "implement"
+      ],
+      "forbidden_skills": [
+        "diagnosing-bugs",
+        "code-review",
+        "second-opinion-review"
+      ]
+    },
+    {
+      "id": "implement-typescript-boundary",
+      "prompt": "Change this TypeScript JSON boundary so external data stays unknown until parsed.",
+      "expected_skills": [
+        "implement"
+      ],
+      "forbidden_skills": [
+        "source-to-decision",
+        "domain-modeling"
+      ]
+    },
+    {
+      "id": "diagnose-unknown-flake",
+      "prompt": "This database smoke flakes about one run in twenty. Find the cause and fix it.",
+      "expected_skills": [
+        "diagnosing-bugs"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "code-review",
+        "second-opinion-review"
+      ]
+    },
+    {
+      "id": "review-working-tree",
+      "prompt": "Review all staged, unstaged, and untracked work in this branch against the request.",
+      "expected_skills": [
+        "code-review"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "diagnosing-bugs",
+        "second-opinion-review"
+      ]
+    },
+    {
+      "id": "design-public-interface",
+      "prompt": "Compare two interfaces for this module and choose the deeper public seam.",
+      "expected_skills": [
+        "codebase-design"
+      ],
+      "forbidden_skills": [
+        "domain-modeling",
+        "code-review"
+      ]
+    },
+    {
+      "id": "resolve-domain-name",
+      "prompt": "We use account for both the paying customer and login identity. Resolve the public language.",
+      "expected_skills": [
+        "domain-modeling"
+      ],
+      "forbidden_skills": [
+        "codebase-design",
+        "implement"
+      ]
+    },
+    {
+      "id": "apply-external-source",
+      "prompt": "Read this framework design paper and decide which mechanism we should adopt or reject.",
+      "expected_skills": [
+        "source-to-decision"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "writing-great-skills"
+      ]
+    },
+    {
+      "id": "operate-on-other-checkout",
+      "prompt": "Inspect the dirty repository in ../customer-app and run its init trial without overwriting their changes.",
+      "expected_skills": [
+        "target-repo-work"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "code-review"
+      ]
+    },
+    {
+      "id": "author-skill",
+      "prompt": "Rewrite this SKILL.md so its implicit trigger stops colliding with code review.",
+      "expected_skills": [
+        "writing-great-skills"
+      ],
+      "forbidden_skills": [
+        "code-review",
+        "source-to-decision"
+      ]
+    },
+    {
+      "id": "explicit-second-opinion",
+      "prompt": "Use $second-opinion-review to have Claude challenge this completed architecture claim.",
+      "expected_skills": [
+        "second-opinion-review"
+      ],
+      "forbidden_skills": [
+        "diagnosing-bugs"
+      ]
+    },
+    {
+      "id": "second-opinion-stays-explicit",
+      "prompt": "Implement this small parser change and run its focused proof.",
+      "expected_skills": [
+        "implement"
+      ],
+      "forbidden_skills": [
+        "second-opinion-review"
+      ]
+    },
+    {
+      "id": "passive-domain-reading",
+      "prompt": "Read CONTEXT.md so your variable names match the existing vocabulary.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "domain-modeling",
+        "source-to-decision"
+      ]
+    },
+    {
+      "id": "ordinary-fact-lookup",
+      "prompt": "Look up the current documented flag name and tell me what it is.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "source-to-decision",
+        "writing-great-skills"
+      ]
+    },
+    {
+      "id": "same-repo-work",
+      "prompt": "Rename this private helper in the repository we already have open.",
+      "expected_skills": [
+        "implement"
+      ],
+      "forbidden_skills": [
+        "target-repo-work",
+        "codebase-design"
+      ]
+    },
+    {
+      "id": "long-goal-next-slice",
+      "prompt": "Continue the active goal by implementing the next already-scoped vertical slice.",
+      "expected_skills": [
+        "implement"
+      ],
+      "forbidden_skills": [
+        "domain-modeling",
+        "source-to-decision",
+        "second-opinion-review"
+      ]
+    },
+    {
+      "id": "goal-recovery-is-not-global-workflow",
+      "prompt": "The conversation was compacted. Recover the active goal and tracker state before selecting work.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "implement",
+        "diagnosing-bugs",
+        "code-review",
+        "codebase-design",
+        "domain-modeling",
+        "source-to-decision",
+        "target-repo-work",
+        "second-opinion-review",
+        "writing-great-skills"
+      ]
+    }
+  ]
+}

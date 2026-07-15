@@ -1,34 +1,50 @@
-# AGENTS.md
+# KRN Agent Skills
 
-## Repository Contract
+This private source repository owns KRN's universal Codex engineering skills
+and reusable process. Product repositories own their domain language,
+commands, and constraints.
 
-This repo defines a Codex-native agentic coding setup. Keep the system small, composable, and verified in practice.
+## Before Editing
 
-## Working Agreements
+1. Run `rtk git status --short --branch` and preserve unrelated work.
+2. Read `config/AGENTS.md`; it owns the universal shell, safety, and
+   production-first defaults that this repository installs.
+3. Read `CONTEXT.md`.
+4. Read only the skill and source ledger relevant to the change.
+5. State the workflow owner, trigger change, and cheapest credible proof.
 
-- Use repo-local Codex surfaces: `.codex/skills`, `.codex/agents`, `.codex/config.toml`, and `AGENTS.md`.
-- Do not copy Claude-specific paths or assumptions directly; translate them to Codex.
-- Prefer concise skills with progressive disclosure over large always-loaded instructions.
-- Treat `inspirations/` as source material, not as runtime configuration.
-- Before editing, state the current bead, expected files, and proof.
-- Verify changes with exact commands. If verification is blocked, say what blocked it.
-- Keep names short and practical. Avoid branding prefixes unless they clarify triggering.
+## Skill Contract
 
-## Skill Map
+- One workflow has one owner and one public name.
+- Put every installable skill under `skills/<group>/<name>/SKILL.md`.
+- Keep frontmatter to `name` and `description`.
+- Put Codex invocation policy in `agents/openai.yaml`.
+- Front-load descriptions with the distinct task and its boundary.
+- Keep common steps in `SKILL.md`; disclose branch-only detail through a
+  direct pointer into `references/`.
+- Add scripts only for fragile or repeated deterministic work.
+- Prefer positive instructions. Keep prohibitions for hard safety boundaries.
+- Delete aliases, duplicated procedures, stale references, and unused agents.
 
-- `$coding-system`: top-level workflow for turning intent into verified delivery.
-- `$grill`: stress-test plans against project language, code reality, `CONTEXT.md`, and ADRs.
-- `$debug`: bugs, broken runtime, stack traces, regressions, and reproduction-first fixes.
-- `$implementation`: surgical feature/refactor/config implementation.
-- `$review`: defect-oriented review before shipping or after subagent work.
-- `$handoff`: compact continuation context for reset, compaction, or delegation.
+## Repository Boundaries
 
-## Proof Levels
+- Do not vendor source repositories, private course text, transcripts, or raw
+  research corpora. Record mechanisms and provenance in `docs/SOURCES.md`.
+- Do not mutate another repository or the installed skill index while merely
+  reviewing this repository.
+- The installer may touch only paths named in `skills/manifest.json`; it must
+  preserve displaced state in a backup.
 
-Use the proof level that matches the claim: static, unit, integration, runtime, rendered, or remote. Never present lower-level proof as higher-level proof.
+## Verification
 
-## Safety
+Run:
 
-- Do not run destructive git commands unless the user explicitly asks.
-- Do not overwrite unrelated user changes.
-- Do not add production dependencies without checking existing repo patterns and explaining the reason.
+```bash
+rtk npm run validate
+rtk bash scripts/install.sh check
+rtk git diff --check
+```
+
+Forward-test changed trigger descriptions with positive and negative prompts.
+Use the smallest representative script smoke for changed deterministic tooling.
+Use Conventional Commits on an owned branch.

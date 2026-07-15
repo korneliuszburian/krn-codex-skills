@@ -1,0 +1,130 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "review_version",
+    "scope_summary",
+    "findings",
+    "evidence_gaps",
+    "human_decisions",
+    "does_not_prove"
+  ],
+  "properties": {
+    "review_version": {
+      "type": "string",
+      "enum": [
+        "1"
+      ]
+    },
+    "scope_summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "severity",
+          "path",
+          "line_start",
+          "line_end",
+          "claim",
+          "impact",
+          "minimal_fix"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "line_start": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "line_end": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "claim": {
+            "type": "string",
+            "minLength": 1
+          },
+          "impact": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minimal_fix": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "evidence_gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "what",
+          "requested_proof"
+        ],
+        "properties": {
+          "what": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requested_proof": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "human_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "choice",
+          "why_human"
+        ],
+        "properties": {
+          "choice": {
+            "type": "string",
+            "minLength": 1
+          },
+          "why_human": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "does_not_prove": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

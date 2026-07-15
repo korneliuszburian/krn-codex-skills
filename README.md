@@ -1,117 +1,106 @@
-# krn-codex-skills
+# KRN Skills
 
-Codex-native skill pack for fast, disciplined coding and shipping.
+Production-first engineering skills for Codex.
 
-This repo is a small operating system for Codex work: repo instructions, reusable skills, narrow subagent roles, and source inspirations. The goal is not to add a giant prompt. The goal is to make the right workflow load at the right time and force real verification before shipping claims.
+The system is intentionally small: one workflow owner, one name, one global
+installation, and domain knowledge left with the product that owns it.
 
-## What Is Inside
+The manifest enforces name and installation uniqueness. Workflow ownership is
+semantic: trigger cases, fresh-session smokes, and review must show that two
+skills do not claim the same repeated sequence. Discovery never implies
+ownership.
 
-- `.codex/skills/` - project-local Codex skills.
-- `.codex/agents/` - narrow Codex subagent roles.
-- `.codex/config.toml` - project-scoped skill registration.
-- `AGENTS.md` - always-active repo contract.
-- `docs/agents/` - operating model and onboarding notes.
-- `inspirations/` - vendored source material used to evolve this pack.
+## The Shape
+
+```text
+clear change  -> implement          -> focused proof -> code-review
+unknown fault -> diagnosing-bugs    -> cause-level fix or bounded diagnosis
+source claim  -> source-to-decision -> decision      -> implement
+another repo  -> target-repo-work   -> scoped result -> handoff
+```
+
+`config/AGENTS.md` carries universal hard defaults; the repository `AGENTS.md`
+adds only this source repo's contract. Skill descriptions route work. A
+selected `SKILL.md` carries the repeated process. References load only for the
+branch that needs them.
 
 ## Skills
 
-- `$coding-system` - top-level loop from intent to verified delivery.
-- `$grill` - stress-test plans against code reality, `CONTEXT.md`, and ADRs.
-- `$debug` - reproduce-first debugging and regression locking.
-- `$implementation` - surgical implementation in vertical slices.
-- `$review` - defect-focused review before shipping.
-- `$handoff` - compact continuation context for another session or agent.
+| Skill | Invocation | Owns |
+|---|---|---|
+| `implement` | model or user | one scoped production slice and proportional proof |
+| `diagnosing-bugs` | model or user | unknown failures, flakes, regressions, and slowness |
+| `code-review` | model or user | read-only Standards and Spec review |
+| `codebase-design` | model or user | deep modules, public seams, and interface shape |
+| `domain-modeling` | model or user | active terminology and rare durable decisions |
+| `source-to-decision` | model or user | external evidence turned into an owned decision |
+| `target-repo-work` | model or user | authority and state when operating on another repo |
+| `writing-great-skills` | model or user | predictable skill authoring and trigger design |
+| `second-opinion-review` | explicit only | advisory Claude challenge with validated citations |
 
-## After Cloning
+No top-level “coding system” orchestrates everything. Native Codex goal mode
+owns long-running outcome state; repositories choose their durable tracker;
+the focused skills compose through their boundaries.
 
-1. Clone the private repo:
+## Install
 
-   ```bash
-   git clone https://github.com/korneliuszburian/krn-codex-skills.git
-   cd krn-codex-skills
-   ```
-
-2. Start Codex from the repo root and trust the project when prompted:
-
-   ```bash
-   codex
-   ```
-
-3. Verify Codex loaded the repo contract:
-
-   ```text
-   Summarize the current instructions and list available project skills.
-   ```
-
-4. Use the top-level skill for non-trivial work:
-
-   ```text
-   Use $coding-system to plan and execute this change.
-   ```
-
-5. Use `$grill` before coding when the plan, terminology, ownership, or acceptance criteria are still fuzzy:
-
-   ```text
-   Use $grill to challenge this plan against the repo docs and code.
-   ```
-
-## Installing Into Another Repo
-
-For project-local use, copy these files into the target repo:
+This source repository owns the versioned skills. The installed skill index
+contains symlinks into it, so a pull updates installed KRN skills without
+copying or forking them again.
 
 ```bash
-cp -R .codex AGENTS.md docs/agents /path/to/target-repo/
+rtk npm run validate
+rtk bash scripts/install.sh check
+rtk bash scripts/install.sh install
 ```
 
-Then start Codex from the target repo root. Keep the skill names unchanged unless you also update `.codex/config.toml` and `AGENTS.md`.
+On the one-time legacy migration, inspect every reported legacy/global path,
+then authorize only those two archival classes explicitly:
 
-## Evolving The Pack
+```bash
+rtk env KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
+  bash scripts/install.sh install
+```
 
-Use semantic commits only:
+The installer:
+
+- links only manifest-owned skills into `~/.agents/skills`;
+- leaves vendor and unrelated skills untouched;
+- archives named legacy paths only with explicit migration authority;
+- installs the versioned global `AGENTS.md`;
+- refuses unowned skill/global-instruction collisions and masking
+  `AGENTS.override.md` files.
+
+`CODEX_HOME` selects legacy paths, backups, and the global instruction target;
+`KRN_SKILLS_DEST` independently selects the user skill index. Set both for an
+isolated temp-root trial. Overriding either one never silently redirects the
+other.
+
+Run `check` again after installation. Restart Codex if the current session
+does not refresh its installed skill index.
+
+## Proof Budget
+
+| Budget | Use |
+|---|---|
+| `0` | type-only, mechanical, documentation, topology, or already-covered refactor |
+| `1` | one changed runtime contract, parser, validator, bug, migration, or authority rule |
+| `N` | distinct acceptance requirements with distinct failure modes |
+
+Tests are retained only when they can disagree with production code through a
+stable public seam. Broad suites are completion evidence, not the inner loop.
+
+## Repository Map
 
 ```text
-feat: add new skill
-fix: tighten debug workflow
-docs: update onboarding
-refactor: simplify skill references
-chore: refresh vendored inspirations
+config/       installed global guidance
+skills/       promoted skills grouped by responsibility
+evals/        positive and negative trigger cases
+scripts/      installer and deterministic validation
+docs/         provenance and migration ownership
+CONTEXT.md    the shared vocabulary
 ```
 
-When adding or changing a skill:
-
-1. Keep `SKILL.md` concise.
-2. Put detailed formats and examples under `references/`.
-3. Register the skill in `.codex/config.toml`.
-4. Add it to the skill map in `AGENTS.md`.
-5. Validate it:
-
-   ```bash
-   python3 /home/krn/.codex/skills/.system/skill-creator/scripts/quick_validate.py .codex/skills/<skill-name>
-   ```
-
-## Verification
-
-Validate all local skills:
-
-```bash
-for d in .codex/skills/*; do
-  python3 /home/krn/.codex/skills/.system/skill-creator/scripts/quick_validate.py "$d"
-done
-```
-
-Validate TOML files:
-
-```bash
-python3 - <<'PY'
-import tomllib
-from pathlib import Path
-
-for p in [Path(".codex/config.toml"), *Path(".codex/agents").glob("*.toml")]:
-    tomllib.loads(p.read_text())
-    print(f"OK {p}")
-PY
-```
-
-## Inspirations
-
-The files under `inspirations/` are source material, not runtime configuration. Translate ideas into Codex-native surfaces instead of copying Claude-specific assumptions directly.
+See `docs/SOURCES.md` for the mechanisms distilled from Matt Pocock, *Total
+TypeScript*, official Codex documentation, and Andrej Karpathy. The source
+material itself is not vendored.

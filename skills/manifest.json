@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "global_agents": "config/AGENTS.md",
+  "skills": [
+    {
+      "name": "code-review",
+      "path": "skills/engineering/code-review",
+      "implicit": true
+    },
+    {
+      "name": "codebase-design",
+      "path": "skills/engineering/codebase-design",
+      "implicit": true
+    },
+    {
+      "name": "diagnosing-bugs",
+      "path": "skills/engineering/diagnosing-bugs",
+      "implicit": true
+    },
+    {
+      "name": "domain-modeling",
+      "path": "skills/engineering/domain-modeling",
+      "implicit": true
+    },
+    {
+      "name": "implement",
+      "path": "skills/engineering/implement",
+      "implicit": true
+    },
+    {
+      "name": "source-to-decision",
+      "path": "skills/engineering/source-to-decision",
+      "implicit": true
+    },
+    {
+      "name": "target-repo-work",
+      "path": "skills/engineering/target-repo-work",
+      "implicit": true
+    },
+    {
+      "name": "second-opinion-review",
+      "path": "skills/advisory/second-opinion-review",
+      "implicit": false
+    },
+    {
+      "name": "writing-great-skills",
+      "path": "skills/meta/writing-great-skills",
+      "implicit": true
+    }
+  ],
+  "legacy_user_paths": [
+    {
+      "path": ".codex/skills/code-review",
+      "replacement": "code-review"
+    },
+    {
+      "path": ".codex/skills/codebase-design",
+      "replacement": "codebase-design"
+    },
+    {
+      "path": ".codex/skills/diagnosing-bugs",
+      "replacement": "diagnosing-bugs"
+    },
+    {
+      "path": ".codex/skills/writing-great-skills",
+      "replacement": "writing-great-skills"
+    },
+    {
+      "path": ".codex/skills/claude-second-opinion-review",
+      "replacement": "second-opinion-review"
+    }
+  ]
+}

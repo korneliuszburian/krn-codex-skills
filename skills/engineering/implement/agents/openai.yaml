@@ -1,0 +1,6 @@
+interface:
+  display_name: "Implement"
+  short_description: "Ship one production-first vertical slice"
+  default_prompt: "Use $implement to build this scoped change with proportional proof."
+policy:
+  allow_implicit_invocation: true

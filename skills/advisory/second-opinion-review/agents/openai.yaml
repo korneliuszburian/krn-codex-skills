@@ -1,0 +1,6 @@
+interface:
+  display_name: "Second Opinion Review"
+  short_description: "Challenge a claim with validated Claude evidence"
+  default_prompt: "Use $second-opinion-review to challenge this scoped done-claim."
+policy:
+  allow_implicit_invocation: false
