@@ -8,6 +8,15 @@ function familyMatches(record, families = []) {
   return families.includes(record.family);
 }
 
+function pluginFamilyFromId(id) {
+  const separator = id.lastIndexOf("@");
+  if (separator <= 0 || separator === id.length - 1) return undefined;
+  const family = id.slice(0, separator);
+  const marketplace = id.slice(separator + 1);
+  const token = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+  return token.test(family) && token.test(marketplace) ? family : undefined;
+}
+
 function assignDesired(target, key, enabled, reason) {
   if (Object.hasOwn(target, key) && target[key] !== enabled) {
     throw new Error(
@@ -17,7 +26,12 @@ function assignDesired(target, key, enabled, reason) {
   target[key] = enabled;
 }
 
-export function resolveProfile(profile, inventory, hardQuarantine = {}) {
+export function resolveProfile(
+  profile,
+  inventory,
+  hardQuarantine = {},
+  pluginSkillAliases = {},
+) {
   const desired = {
     plugins: {},
     pluginFamilies: {},
@@ -119,6 +133,75 @@ export function resolveProfile(profile, inventory, hardQuarantine = {}) {
   }
   for (const pluginId of hardQuarantine.pluginIds || []) {
     desired.plugins[pluginId] = false;
+  }
+
+  const enabledPluginOwners = new Set(
+    Object.entries(desired.plugins)
+      .filter(([, enabled]) => enabled)
+      .map(([pluginId]) => pluginId),
+  );
+  const pluginOwners = new Map();
+  for (const owner of enabledPluginOwners) {
+    const family = pluginFamilyFromId(owner);
+    if (family === undefined) {
+      throw new Error(`invalid enabled plugin ID: ${owner}`);
+    }
+    const existingOwner = pluginOwners.get(family);
+    if (existingOwner !== undefined && existingOwner !== owner) {
+      throw new Error(
+        `profile conflict for plugin family ${family}: multiple enabled owners (${existingOwner}, ${owner})`,
+      );
+    }
+    pluginOwners.set(family, owner);
+  }
+  const enabledPluginFamilies = new Set(pluginOwners.keys());
+  const trustedSkillPluginIds = new Set(enabledPluginOwners);
+  for (const owner of enabledPluginOwners) {
+    for (const alias of pluginSkillAliases[owner] || []) {
+      trustedSkillPluginIds.add(alias);
+    }
+  }
+
+  for (const plugin of inventory.plugins) {
+    const familyOwned = enabledPluginFamilies.has(plugin.family);
+    const ownerEnabled = enabledPluginOwners.has(plugin.id);
+    const trustedSkillSource = trustedSkillPluginIds.has(plugin.id);
+    if (familyOwned && !ownerEnabled) {
+      assignDesired(
+        desired.plugins,
+        plugin.id,
+        false,
+        `unowned plugin sibling of ${plugin.family}`,
+      );
+    }
+    const familyDisabled =
+      desired.plugins[plugin.id] === false ||
+      desired.pluginFamilies[plugin.family] === false ||
+      (familyOwned && !trustedSkillSource);
+    const skillState = trustedSkillSource
+      ? true
+      : familyDisabled
+        ? false
+        : undefined;
+    if (skillState === undefined) continue;
+
+    // Codex may back a canonical plugin with skill files under a legacy cache
+    // marketplace or a pinned non-latest version. Reconcile every discovered
+    // alias/version; the cache's highest version is not installation proof.
+    const skillPaths = plugin.allSkillPaths?.length
+      ? plugin.allSkillPaths
+      : plugin.skillPaths || [];
+    for (const skillPath of skillPaths) {
+      // Exact skill policy and hard quarantine remain stronger than plugin
+      // family enablement.
+      if (skillState && desired.skills[skillPath] === false) continue;
+      assignDesired(
+        desired.skills,
+        skillPath,
+        skillState,
+        `${trustedSkillSource ? "trusted" : "disabled"} plugin ${plugin.id}`,
+      );
+    }
   }
 
   return {

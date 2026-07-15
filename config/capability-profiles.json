@@ -9,6 +9,17 @@
     ],
     "reason": "This family is never inspected, enabled, or invoked. A profile cannot override the quarantine."
   },
+  "pluginSkillAliases": {
+    "asana@openai-curated": [
+      "asana@openai-curated-remote"
+    ],
+    "figma@openai-curated": [
+      "figma@openai-curated-remote"
+    ],
+    "github@openai-curated": [
+      "github@openai-curated-remote"
+    ]
+  },
   "profiles": {
     "minimal": {
       "description": "Keep the global engineering core and built-in operational skills; turn every optional integration off.",

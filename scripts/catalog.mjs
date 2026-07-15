@@ -233,11 +233,16 @@ function cachedPluginFamily(skillPath) {
 
 function printPlan(name, resolved, plan) {
   console.log(`${name}: ${plan.changed ? `${plan.actions.length} config change(s)` : "already converged"}`);
-  const staleOverrides = plan.actions.filter(
-    (action) => action.reason === "disabled-parent-plugin",
+  const pluginSkillDisables = plan.actions.filter(
+    (action) =>
+      action.resource === "skill" &&
+      action.enabled === false &&
+      ["desired-state", "disabled-parent-plugin"].includes(action.reason) &&
+      cachedPluginFamily(action.target) !== "unknown-plugin",
   );
+  const pluginSkillDisableSet = new Set(pluginSkillDisables);
   for (const action of plan.actions.filter(
-    (candidate) => candidate.reason !== "disabled-parent-plugin",
+    (candidate) => !pluginSkillDisableSet.has(candidate),
   )) {
     const state = typeof action.enabled === "boolean" ? ` -> ${action.enabled ? "on" : "off"}` : "";
     console.log(
@@ -245,13 +250,13 @@ function printPlan(name, resolved, plan) {
         `${action.resource.padEnd(11)} ${displayTarget(action)}${state}`,
     );
   }
-  if (staleOverrides.length > 0) {
+  if (pluginSkillDisables.length > 0) {
     const grouped = countBy(
-      staleOverrides.map((action) => ({ family: cachedPluginFamily(action.target) })),
+      pluginSkillDisables.map((action) => ({ family: cachedPluginFamily(action.target) })),
       "family",
     );
     console.log(
-      `  REMOVE ${String(staleOverrides.length).padStart(2)} stale plugin-skill overrides: ` +
+      `  APPLY  ${String(pluginSkillDisables.length).padStart(2)} plugin-cache skill disables: ` +
         Object.entries(grouped)
           .map(([family, count]) => `${family} (${count})`)
           .join(", "),
@@ -351,10 +356,12 @@ async function main() {
     profile,
     inventory,
     profileDocument.hardQuarantine,
+    profileDocument.pluginSkillAliases,
   );
   const plan = await loadCatalogConfigPlan({
     configPath,
     desired: resolved.desired,
+    pluginSkillAliases: profileDocument.pluginSkillAliases,
     quarantineFamilies: HARD_QUARANTINE_FAMILIES,
   });
 

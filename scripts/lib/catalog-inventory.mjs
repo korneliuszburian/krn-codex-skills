@@ -639,7 +639,7 @@ function validateProfilesDocument(document) {
   }
   assertExactKeys(
     document,
-    ["schemaVersion", "hardQuarantine", "profiles"],
+    ["schemaVersion", "hardQuarantine", "pluginSkillAliases", "profiles"],
     "capability profile document",
   );
   if (!Array.isArray(document.hardQuarantine?.families)) {
@@ -678,6 +678,7 @@ function validateProfilesDocument(document) {
   ) {
     throw new Error("Capability profiles contain duplicate hard-quarantine plugin IDs");
   }
+  validatePluginSkillAliases(document.pluginSkillAliases);
   if (!document.profiles || typeof document.profiles !== "object") {
     throw new Error("Capability profiles require a profiles object");
   }
@@ -699,6 +700,55 @@ function validateProfilesDocument(document) {
     }
     validateProfile(name, profile);
   }
+}
+
+function validatePluginSkillAliases(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Capability profiles require pluginSkillAliases");
+  }
+
+  const owners = new Set(Object.keys(value));
+  const claimedAliases = new Set();
+  for (const [owner, aliases] of Object.entries(value)) {
+    const family = pluginIdFamily(owner);
+    if (family === undefined || isHardQuarantined(owner)) {
+      throw new Error(`Invalid plugin skill alias owner: ${owner}`);
+    }
+    if (
+      !Array.isArray(aliases) ||
+      aliases.length === 0 ||
+      aliases.some((alias) => typeof alias !== "string")
+    ) {
+      throw new Error(`Plugin skill alias owner '${owner}' requires aliases`);
+    }
+    if (new Set(aliases).size !== aliases.length) {
+      throw new Error(`Plugin skill alias owner '${owner}' contains duplicates`);
+    }
+    for (const alias of aliases) {
+      if (
+        alias === owner ||
+        owners.has(alias) ||
+        pluginIdFamily(alias) !== family ||
+        isHardQuarantined(alias)
+      ) {
+        throw new Error(`Invalid plugin skill alias '${alias}' for '${owner}'`);
+      }
+      if (claimedAliases.has(alias)) {
+        throw new Error(`Plugin skill alias '${alias}' has multiple owners`);
+      }
+      claimedAliases.add(alias);
+    }
+  }
+}
+
+function pluginIdFamily(id) {
+  if (typeof id !== "string") return undefined;
+  const separator = id.lastIndexOf("@");
+  if (separator <= 0 || separator === id.length - 1) return undefined;
+  const family = id.slice(0, separator);
+  const marketplace = id.slice(separator + 1);
+  const token = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+  return token.test(family) && token.test(marketplace) ? family : undefined;
 }
 
 function validateProfile(name, profile) {

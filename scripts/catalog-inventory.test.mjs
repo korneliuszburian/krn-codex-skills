@@ -218,6 +218,9 @@ test("profiles and inventory expose only current, global, sanitized capabilities
   assert.deepEqual(profiles.hardQuarantine.pluginIds, [
     "superpowers@openai-curated",
   ]);
+  assert.deepEqual(profiles.pluginSkillAliases["github@openai-curated"], [
+    "github@openai-curated-remote",
+  ]);
   assert.deepEqual(lean.plugins.enable, ["github@openai-curated"]);
   assert.deepEqual(lean.skills.disable, ["agent-browser"]);
   assert.deepEqual(lean.skills.disableFamilies, ["gsap"]);
@@ -256,6 +259,14 @@ test("profiles and inventory expose only current, global, sanitized capabilities
   assert.throws(
     () => getCapabilityProfile(unknownKeyProfiles, "lean"),
     /skills has unknown keys: futurePolicy/,
+  );
+  const invalidAliasProfiles = structuredClone(profiles);
+  invalidAliasProfiles.pluginSkillAliases["github@openai-curated"].push(
+    "figma@private",
+  );
+  assert.throws(
+    () => getCapabilityProfile(invalidAliasProfiles, "lean"),
+    /Invalid plugin skill alias 'figma@private'/,
   );
   const conflictingFamilyProfiles = structuredClone(profiles);
   conflictingFamilyProfiles.profiles.lean.skills.enableFamilies.push("gsap");

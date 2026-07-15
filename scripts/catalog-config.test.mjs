@@ -332,7 +332,11 @@ test("disables config-only plugin families without relying on cache inventory", 
     plan.nextSource,
     /\[plugins\."figma@custom-marketplace"\]\nenabled = false/,
   );
-  assert.equal(plan.nextSource.includes("/figma/9.9.9/"), false);
+  assert.equal(plan.nextSource.includes("/figma/9.9.9/"), true);
+  assert.match(
+    plan.nextSource,
+    /\/figma\/9\.9\.9\/skills\/figma-use\/SKILL\.md"\nenabled = false/,
+  );
   assert.match(
     plan.nextSource,
     /\[plugins\."figma-pro@custom-marketplace"\]\nenabled = true/,
@@ -357,6 +361,62 @@ test("disables config-only plugin families without relying on cache inventory", 
   });
   assert.equal(absent.changed, false);
   assert.deepEqual(absent.actions, []);
+});
+
+test("disables a cache skill from family policy without a plugin block", () => {
+  const source = [
+    "[[skills.config]]",
+    'path = "/home/example/.codex/plugins/cache/vendor/figma/1.0.0/skills/figma-use/SKILL.md"',
+    "enabled = true",
+    "",
+  ].join("\n");
+
+  const plan = planCatalogConfig({
+    source,
+    desired: { pluginFamilies: { figma: false } },
+  });
+
+  assert.match(plan.nextSource, /enabled = false/);
+  assert.equal(plan.actions.length, 1);
+  assert.equal(plan.actions[0].reason, "disabled-parent-plugin");
+
+  const converged = planCatalogConfig({
+    source: plan.nextSource,
+    desired: { pluginFamilies: { figma: false } },
+  });
+  assert.equal(converged.changed, false);
+});
+
+test("rejects a sibling cache skill enable without trusted alias policy", () => {
+  const privateSkillPath =
+    "/home/example/.codex/plugins/cache/private/github/1.0.0/skills/github/SKILL.md";
+  const source = [
+    '[plugins."github@private"]',
+    "enabled = false",
+    "",
+    "[[skills.config]]",
+    `path = "${privateSkillPath}"`,
+    "enabled = false",
+    "",
+  ].join("\n");
+
+  assert.throws(
+    () =>
+      planCatalogConfig({
+        source,
+        desired: {
+          plugins: {
+            "github@curated": true,
+            "github@private": false,
+          },
+          skills: { [privateSkillPath]: true },
+        },
+      }),
+    (error) =>
+      error instanceof ConfigReconcileError &&
+      error.code === "CONFIG_UNTRUSTED_PLUGIN_SKILL_ENABLE" &&
+      error.target === privateSkillPath,
+  );
 });
 
 test("fails closed for invalid, enabled, or conflicting plugin-family selectors", () => {
@@ -396,14 +456,16 @@ test("fails closed for invalid, enabled, or conflicting plugin-family selectors"
   );
 });
 
-test("removes version-pinned skill overrides for a disabled managed plugin", () => {
+test("keeps version-pinned skill tombstones for a disabled managed plugin", () => {
+  const currentSkill =
+    "/home/example/.codex/plugins/cache/openai-curated-remote/figma/2.0.14/skills/figma-use/SKILL.md";
   const source = [
     '[plugins."figma@openai-curated-remote"]',
     "enabled = false",
     "",
     "[[skills.config]]",
     'path = "/home/example/.codex/plugins/cache/openai-curated-remote/figma/2.0.13/skills/figma-use/SKILL.md"',
-    "enabled = false",
+    "enabled = true",
     "",
     "[[skills.config]]",
     'path = "/home/example/.codex/plugins/cache/openai-curated-remote/figma/2.0.14/skills/figma-use/SKILL.md"',
@@ -417,21 +479,35 @@ test("removes version-pinned skill overrides for a disabled managed plugin", () 
 
   const plan = planCatalogConfig({
     source,
-    desired: { plugins: { "figma@openai-curated-remote": false } },
+    desired: {
+      plugins: { "figma@openai-curated-remote": false },
+      skills: { [currentSkill]: false },
+    },
   });
 
-  assert.equal(plan.nextSource.includes("/figma/2.0.13/"), false);
-  assert.equal(plan.nextSource.includes("/figma/2.0.14/"), false);
+  assert.equal(plan.nextSource.includes("/figma/2.0.13/"), true);
+  assert.equal(plan.nextSource.includes("/figma/2.0.14/"), true);
+  assert.match(
+    plan.nextSource,
+    /\/figma\/2\.0\.13\/skills\/figma-use\/SKILL\.md"\nenabled = false/,
+  );
+  assert.match(
+    plan.nextSource,
+    /\/figma\/2\.0\.14\/skills\/figma-use\/SKILL\.md"\nenabled = false/,
+  );
   assert.equal(plan.nextSource.includes("/code-review/SKILL.md"), true);
   assert.equal(
     plan.actions.filter((action) => action.reason === "disabled-parent-plugin")
       .length,
-    2,
+    1,
   );
 
   const second = planCatalogConfig({
     source: plan.nextSource,
-    desired: { plugins: { "figma@openai-curated-remote": false } },
+    desired: {
+      plugins: { "figma@openai-curated-remote": false },
+      skills: { [currentSkill]: false },
+    },
   });
   assert.equal(second.changed, false);
 });

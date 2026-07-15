@@ -86,6 +86,11 @@ records. It preserves unrelated bytes and recognized MCP transport fields. If
 the surrounding TOML is ambiguous or a managed block contains syntax it cannot
 preserve safely, it stops instead of guessing.
 
-Version-pinned plugin skill overrides are derived state. When their parent
-plugin is managed off, stale overrides are removed so a cache update cannot
-silently reactivate an old path-specific policy.
+Plugin cache entries are candidates, not proof of the active version. When a
+plugin family is managed off, the catalog therefore keeps explicit `false`
+tombstones for every discovered version and forces unknown overrides under the
+disabled parent off. An enabled plugin may clear tombstones only for its exact
+ID and the curated cache IDs declared in `pluginSkillAliases`; every other
+discovered or config-only sibling in that family is forced off. Unknown
+tombstones remain harmlessly disabled until an authoritative cleanup source can
+prove that their paths are inactive.

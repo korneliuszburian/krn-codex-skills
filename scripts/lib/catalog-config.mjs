@@ -112,7 +112,10 @@ function normalizeStateRecord(value, label) {
 function pluginFamilyFromId(id) {
   const separator = id.lastIndexOf("@");
   if (separator <= 0 || separator === id.length - 1) return undefined;
-  return id.slice(0, separator);
+  const family = id.slice(0, separator);
+  const marketplace = id.slice(separator + 1);
+  const token = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+  return token.test(family) && token.test(marketplace) ? family : undefined;
 }
 
 function normalizePluginFamilies(value) {
@@ -139,13 +142,101 @@ function normalizePluginFamilies(value) {
   return families;
 }
 
-function normalizeDesired(desired, families) {
+function derivePluginOwners(plugins) {
+  const owners = new Map();
+  for (const [owner, enabled] of plugins) {
+    if (!enabled) continue;
+    const family = pluginFamilyFromId(owner);
+    if (family === undefined) {
+      throw new ConfigReconcileError(`Invalid enabled plugin ID: ${owner}`, {
+        code: "CONFIG_INVALID_PLUGIN_OWNER",
+        target: owner,
+      });
+    }
+    const existingOwner = owners.get(family);
+    if (existingOwner !== undefined && existingOwner !== owner) {
+      throw new ConfigReconcileError(
+        `Plugin family ${family} has multiple enabled owners: ${existingOwner}, ${owner}`,
+        { code: "CONFIG_PLUGIN_OWNER_CONFLICT", target: family },
+      );
+    }
+    owners.set(family, owner);
+  }
+  return owners;
+}
+
+function normalizePluginSkillAliases(value, families) {
+  if (value === undefined) return new Map();
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new ConfigReconcileError(
+      "pluginSkillAliases must be an object of owner-to-alias mappings",
+      { code: "CONFIG_INVALID_PLUGIN_SKILL_ALIASES" },
+    );
+  }
+
+  const ownerIds = new Set(Object.keys(value));
+  const claimedAliases = new Set();
+  const aliasesByOwner = new Map();
+  for (const [owner, aliases] of Object.entries(value)) {
+    const family = pluginFamilyFromId(owner);
+    if (
+      family === undefined ||
+      isQuarantined(owner, families) ||
+      !Array.isArray(aliases) ||
+      aliases.length === 0
+    ) {
+      throw new ConfigReconcileError(
+        `Invalid plugin skill alias owner: ${owner}`,
+        { code: "CONFIG_INVALID_PLUGIN_SKILL_ALIASES", target: owner },
+      );
+    }
+
+    const normalizedAliases = new Set();
+    for (const alias of aliases) {
+      if (
+        typeof alias !== "string" ||
+        alias === owner ||
+        ownerIds.has(alias) ||
+        pluginFamilyFromId(alias) !== family ||
+        isQuarantined(alias, families) ||
+        normalizedAliases.has(alias) ||
+        claimedAliases.has(alias)
+      ) {
+        throw new ConfigReconcileError(
+          `Invalid plugin skill alias '${String(alias)}' for '${owner}'`,
+          { code: "CONFIG_INVALID_PLUGIN_SKILL_ALIASES", target: alias },
+        );
+      }
+      normalizedAliases.add(alias);
+      claimedAliases.add(alias);
+    }
+    aliasesByOwner.set(owner, normalizedAliases);
+  }
+  return aliasesByOwner;
+}
+
+function isTrustedPluginSkill(pluginId, pluginOwners, aliasesByOwner) {
+  const family = pluginFamilyFromId(pluginId);
+  if (family === undefined) return false;
+  const owner = pluginOwners.get(family);
+  return (
+    owner === pluginId ||
+    (owner !== undefined && aliasesByOwner.get(owner)?.has(pluginId) === true)
+  );
+}
+
+function normalizeDesired(desired, families, pluginSkillAliases) {
   if (desired === null || typeof desired !== "object" || Array.isArray(desired)) {
     throw new ConfigReconcileError("desired must be an object");
   }
 
   const plugins = normalizeStateRecord(desired.plugins, "desired.plugins");
   const pluginFamilies = normalizePluginFamilies(desired.pluginFamilies);
+  const pluginOwners = derivePluginOwners(plugins);
+  const aliasesByOwner = normalizePluginSkillAliases(
+    pluginSkillAliases,
+    families,
+  );
   const mcpServers = normalizeStateRecord(
     desired.mcpServers,
     "desired.mcpServers",
@@ -201,7 +292,28 @@ function normalizeDesired(desired, families) {
     skills.set(stablePath, enabled);
   }
 
-  return { plugins, pluginFamilies, mcpServers, skills };
+  for (const [skillPath, enabled] of skills) {
+    if (!enabled) continue;
+    const cachedPluginId = pluginIdFromCachedSkillPath(skillPath);
+    if (
+      cachedPluginId !== undefined &&
+      !isTrustedPluginSkill(cachedPluginId, pluginOwners, aliasesByOwner)
+    ) {
+      throw new ConfigReconcileError(
+        `Cannot enable an untrusted plugin cache skill: ${skillPath}`,
+        { code: "CONFIG_UNTRUSTED_PLUGIN_SKILL_ENABLE", target: skillPath },
+      );
+    }
+  }
+
+  return {
+    plugins,
+    pluginOwners,
+    pluginFamilies,
+    pluginSkillAliases: aliasesByOwner,
+    mcpServers,
+    skills,
+  };
 }
 
 function splitLines(source) {
@@ -778,6 +890,7 @@ function assertSingleBlock(blocks, target) {
 export function planCatalogConfig({
   source,
   desired = {},
+  pluginSkillAliases,
   quarantineFamilies,
 }) {
   if (typeof source !== "string") {
@@ -785,7 +898,11 @@ export function planCatalogConfig({
   }
 
   const families = normalizeFamilies(quarantineFamilies);
-  const normalizedDesired = normalizeDesired(desired, families);
+  const normalizedDesired = normalizeDesired(
+    desired,
+    families,
+    pluginSkillAliases,
+  );
   const document = parseDocument(source);
   const operations = [];
   const actions = [];
@@ -797,6 +914,12 @@ export function planCatalogConfig({
   for (const [id] of pluginBlocks) {
     const family = pluginFamilyFromId(id);
     if (family !== undefined && normalizedDesired.pluginFamilies.has(family)) {
+      managedPluginStates.set(id, false);
+    }
+    const owner = family
+      ? normalizedDesired.pluginOwners.get(family)
+      : undefined;
+    if (owner !== undefined && id !== owner) {
       managedPluginStates.set(id, false);
     }
   }
@@ -827,6 +950,8 @@ export function planCatalogConfig({
           ? "hard-quarantine"
           : normalizedDesired.plugins.has(id)
             ? "desired-state"
+            : normalizedDesired.pluginOwners.has(pluginFamilyFromId(id))
+              ? "plugin-owner"
             : "plugin-family",
         operations,
         actions,
@@ -894,8 +1019,17 @@ export function planCatalogConfig({
     const cachedPluginId = skillPath
       ? pluginIdFromCachedSkillPath(skillPath)
       : undefined;
+    const cachedPluginFamily = cachedPluginId
+      ? pluginFamilyFromId(cachedPluginId)
+      : undefined;
     const parentDisabled =
-      cachedPluginId !== undefined && managedPluginStates.get(cachedPluginId) === false;
+      (cachedPluginId !== undefined &&
+        managedPluginStates.get(cachedPluginId) === false) ||
+      (cachedPluginFamily !== undefined &&
+        (normalizedDesired.pluginFamilies.get(cachedPluginFamily) === false ||
+          (normalizedDesired.pluginOwners.has(cachedPluginFamily) &&
+            normalizedDesired.pluginOwners.get(cachedPluginFamily) !==
+              cachedPluginId)));
 
     if (skillPath && normalizedDesired.skills.has(skillPath)) {
       const matches = desiredSkillBlocks.get(skillPath) ?? [];
@@ -924,10 +1058,11 @@ export function planCatalogConfig({
       continue;
     }
 
-    if (parentDisabled) {
-      removeBlock({
+    if (parentDisabled && desiredState === undefined) {
+      setEnabled({
         document,
         block,
+        enabled: false,
         allowedKeys: SKILL_KEYS,
         target: skillPath,
         resource: "skill",
@@ -975,13 +1110,6 @@ export function planCatalogConfig({
     ([left], [right]) => left.localeCompare(right),
   )) {
     if (desiredSkillBlocks.has(skillPath) || enabled) continue;
-    const cachedPluginId = pluginIdFromCachedSkillPath(skillPath);
-    if (
-      cachedPluginId !== undefined &&
-      managedPluginStates.get(cachedPluginId) === false
-    ) {
-      continue;
-    }
 
     appendSections.push(
       `[[skills.config]]${document.eol}path = ${quoteToml(skillPath)}${document.eol}enabled = false`,
@@ -1013,13 +1141,19 @@ export function planCatalogConfig({
 export async function loadCatalogConfigPlan({
   configPath,
   desired = {},
+  pluginSkillAliases,
   quarantineFamilies,
 }) {
   if (typeof configPath !== "string" || configPath === "") {
     throw new ConfigReconcileError("configPath must be a non-empty string");
   }
   const { source } = await readRegularConfig(configPath);
-  return planCatalogConfig({ source, desired, quarantineFamilies });
+  return planCatalogConfig({
+    source,
+    desired,
+    pluginSkillAliases,
+    quarantineFamilies,
+  });
 }
 
 function configPathError(message, code) {
