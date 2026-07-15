@@ -4,6 +4,31 @@ Challenge one fixed claim using only the supplied evidence. Do not praise,
 approve, block, redesign unrelated code, or invent requirements. Return only
 output matching the supplied JSON schema.
 
+## Launch
+
+Fill the contract below, then run the tool-free structured reviewer. The runner
+binds output to [review.schema.json](review.schema.json); change that transport
+contract deliberately, never ad hoc in a prompt. It uses the current `opus`
+alias unless `SECOND_OPINION_MODEL` names another explicit alias or pinned
+identifier. Record the backend reported by the session rather than inferring it
+from the alias.
+
+```bash
+rtk env SECOND_OPINION_MAX_BUDGET_USD=unlimited \
+  ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
+  /absolute/persistent/topic.md \
+  /absolute/persistent/topic.review.json
+```
+
+Use an uncapped checker only with explicit operator authority; otherwise keep
+the runner's bounded default. Validate the result before using any finding:
+
+```bash
+rtk python3 ~/.agents/skills/second-opinion-review/scripts/validate-review.py \
+  check /absolute/persistent/topic.review.json \
+  /absolute/persistent/topic.md
+```
+
 <checker-contract>
 
 ## Claim

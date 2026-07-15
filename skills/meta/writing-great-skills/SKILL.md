@@ -81,6 +81,12 @@ skill misfires through collision, premature completion, sediment, or sprawl.
    ledgers, or output shapes the agent must fill—not as ornamental headings.
    Put an inline example beside the choice it disambiguates.
 
+   XML blocks are internal working records by default: fill them while doing
+   the work, then render only the useful fields in commentary or the final
+   answer. A skill must explicitly name a destination path or require the
+   literal block when persistence or exact delivery format is part of its job.
+   Never create an artifact merely because an example block exists.
+
    Prefer one strong leading word such as _vertical slice_, _red repro_, or
    _proof budget_ over repeated weak explanation. State the desired behavior
    positively; reserve prohibitions for hard safety boundaries and pair them

@@ -59,12 +59,14 @@ survive current-code verification. This skill never edits the reviewed work.
    quality, and concrete design costs. On **Spec**, inspect missing or partial
    behavior, wrong outcomes, scope creep, and claims unsupported by the diff.
 
-   For a substantial surface, use two bounded read-only passes when separate
-   context materially improves independence; otherwise run the same passes
-   sequentially without carrying one axis's verdict into the other.
+   For a substantial surface, run the two bounded read-only passes in separate
+   contexts. If the surface is small or isolation is unavailable, label
+   sequential execution as a degraded fallback, reset the authority and path
+   ledger between axes, and do not carry candidate findings across.
 
    <axis-result>
    Axis: Standards | Spec
+   Context: isolated | sequential-degraded
    Paths inspected:
    Claims checked:
    Candidate findings:

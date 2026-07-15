@@ -42,91 +42,36 @@ adversarial challenge.
    prepare the handoff and continue local work until noon; do not invoke
    Claude.
 
-3. **Write the smallest complete handoff.** Start from
-   [handoff-template.md](references/handoff-template.md) in a durable
-   directory you control — parallel background jobs and restarts clobber shared
-   `/tmp` — then point
-   to existing issues, plans, commits, diffs, and source paths instead of
-   restating them. Include hashes or refs for mutable sources. Redact secrets,
-   private data, credentials, environment files, and raw copyrighted corpus.
+3. **Prepare one branch.** For `researcher` or `rewrite-maker`, read
+   [handoff-template.md](references/handoff-template.md); it owns the durable
+   handoff, isolated-worktree, source-ledger, and background-launch mechanics.
+   For `checker`, read [prompt-template.md](references/prompt-template.md); it
+   owns the fixed-evidence contract, structured runner, schema validation, and
+   budget boundary. Its transport is fixed by
+   [review.schema.json](references/review.schema.json).
 
-   For a source pass, require a ledger entry shaped like this:
+   Point to existing issues, commits, diffs, and source paths instead of
+   restating them. Pin mutable sources. Redact secrets, credentials, private
+   data, environment files, and raw copyrighted corpus in either branch.
 
-   <source-decision>
-   Source and version -> mechanism -> conditions and traps -> local standard
-   -> workflow consumer -> example -> falsifier -> does-not-prove ->
-   adopted | rejected | omitted-with-reason
-   </source-decision>
+   **Done when:** exactly one role-specific reference has produced a brief that
+   a fresh pass can execute without reconstructing this conversation.
 
-   **Done when:** a fresh agent can resume from paths and artifacts without
-   reconstructing the conversation or receiving material it should not see.
-
-4. **Launch the right pass.** For research or a candidate rewrite, start from
-   a clean disposable worktree and hand it to Claude in the background:
-
-   Both runners pass the current `opus` alias by default. The local Claude Code
-   provider configuration still decides which backend serves that alias, so
-   record the backend reported by the session and never claim model-provider
-   independence from the alias alone. Set `SECOND_OPINION_MODEL` only to choose
-   another explicit alias or pinned identifier.
-
-   ```bash
-   rtk bash ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
-     "TypeScript skill research" \
-     /absolute/persistent/typescript-handoff.md
-   ```
-
-   For an authorized rewrite, grant edit acceptance explicitly. Add only the
-   smallest source root the pass must read; `--add-dir` grants tool access and
-   does not technically enforce a read-only source contract.
-
-   ```bash
-   rtk env SECOND_OPINION_EFFORT=max \
-     ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
-     --accept-edits \
-     --add-dir /absolute/bounded/research-root \
-     "TypeScript skill rewrite" \
-     /absolute/persistent/handoff.md
-   ```
-
-   The command returns immediately. Manage or resume the named job with
-   `claude agents`; inspect its work only after that background pass finishes.
-   The linked worktree separates Git ownership, but it is not a filesystem or
-   network sandbox. Claude does not mutate the canonical branch, publish,
-   merge, close work, or decide product trade-offs.
-
-   For a fixed-point checker, fill
-   [prompt-template.md](references/prompt-template.md), then run the tool-free
-   structured reviewer. The runner binds output to
-   [review.schema.json](references/review.schema.json); change that transport
-   contract deliberately, never ad hoc in a prompt.
-
-   ```bash
-   rtk env SECOND_OPINION_MAX_BUDGET_USD=unlimited \
-     ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
-     /absolute/persistent/topic.md \
-     /absolute/persistent/topic.review.json
-   ```
-
-   Use an uncapped checker only when the operator explicitly authorizes it;
-   otherwise keep the runner's bounded default.
+4. **Launch exactly that pass.** Follow the chosen reference's **Launch**
+   section. Record the backend reported by the session; a model alias alone is
+   not provider evidence. A linked worktree separates Git ownership but is not
+   a filesystem or network sandbox. Claude never gains authority to mutate the
+   canonical branch, publish, merge, close work, or decide product trade-offs.
 
    **Done when:** the background job is named and resumable and this execution
    thread has yielded, or the synchronous checker emitted schema-compatible
-   JSON.
+   JSON at the declared path.
 
 5. **Verify before retaining anything.** Resume here only after the background
    pass finishes, or continue directly after a synchronous checker. Treat all
-   Claude output as a hypothesis. For a checker, bind every citation to the
-   current repository state:
-
-   ```bash
-   rtk python3 ~/.agents/skills/second-opinion-review/scripts/validate-review.py \
-     check /absolute/persistent/topic.review.json \
-     /absolute/persistent/topic.md
-   ```
-
-   Inspect cited lines and source coverage locally. Classify each item as
+   Claude output as a hypothesis. Run the checker validation named in its
+   reference when applicable, then inspect cited lines and source coverage
+   locally. Classify each item as
    `accept_and_fix`, `evidence_gap`, `reject_with_evidence`, `follow_up`, or
    `human_decision`.
 

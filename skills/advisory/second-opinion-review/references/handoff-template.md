@@ -1,7 +1,49 @@
 # Claude Handoff
 
-Use this for one fresh background pass. Keep the handoff outside the repository
-and reference durable artifacts instead of duplicating them.
+Use this only for a `researcher` or `rewrite-maker` background pass. Keep the
+handoff in a durable operator-controlled directory outside the candidate
+repository; shared `/tmp` paths are not resumable across parallel jobs or
+restarts. Start from a clean disposable worktree.
+
+For a source pass, require this complete disposition chain:
+
+<source-decision>
+Source and version -> mechanism -> conditions and traps -> local standard ->
+workflow consumer -> example -> falsifier -> does-not-prove ->
+adopted | rejected | omitted-with-reason
+</source-decision>
+
+## Launch
+
+The runner uses the current `opus` alias unless `SECOND_OPINION_MODEL` names
+another explicit alias or pinned identifier. Local provider configuration owns
+the actual backend, so record what the session reports and never infer the
+provider from the alias.
+
+Research is read-only by default:
+
+```bash
+rtk bash ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
+  "TypeScript skill research" \
+  /absolute/persistent/typescript-handoff.md
+```
+
+For an authorized rewrite, accept edits explicitly and expose only the smallest
+additional source root. `--add-dir` grants tool access; it does not enforce a
+read-only source boundary.
+
+```bash
+rtk env SECOND_OPINION_EFFORT=max \
+  ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
+  --accept-edits \
+  --add-dir /absolute/bounded/research-root \
+  "TypeScript skill rewrite" \
+  /absolute/persistent/handoff.md
+```
+
+The command returns immediately. Manage or resume the named job with
+`claude agents`, and inspect its work only after the pass finishes. The linked
+worktree is an ownership boundary, not a filesystem or network sandbox.
 
 <claude-handoff>
 
