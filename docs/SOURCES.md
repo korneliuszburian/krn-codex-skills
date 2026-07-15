@@ -9,13 +9,41 @@ This repository stores distilled mechanisms, not source corpora.
 - Adopted: concise entrypoints, explicit invocation policy, progressive
   disclosure, resumable background handoffs that point to durable artifacts,
   pre-agreed public seams, vertical slices, independent Standards and Spec
-  review, deep modules, and deletion as a design test.
+  review, deep modules, deletion as a design test, composition over
+  restatement, and leading imperative steps with a local `Done when`.
 - Rejected: copying the full upstream skill collection, generic destructive
   link scripts, mandatory test-first work for changes with no runtime risk,
   and Claude-specific invocation frontmatter as Codex policy.
 - KRN adaptation: Claude handoffs use a clean linked worktree, keep private
   corpora out of the handoff, and are mechanically denied from 08:00 inclusive
   until 12:00 exclusive in `Europe/Warsaw`.
+
+## Matt Pocock — `/wayfinder` demo
+
+- Source: [LIVE: The /wayfinder Demo](https://youtu.be/251hsWgoTPM), streamed
+  2026-07-13 and inspected 2026-07-15.
+- Private evidence: operator-supplied transcript retained outside this
+  repository, SHA-256
+  `080b1ceb74177cac27af6e59ae90aa5d42036661db882a71adf3a80c2c7e2bf0`
+  (verified locally).
+- Mechanisms observed: decision tickets on a shared map; the map as an index
+  into richer artifacts; frontier and fog-of-war vocabulary; claim-before-work
+  with one ticket resolved per session; research subagents reporting into the
+  ticket; model, harness, and environment treated as separate leverage layers;
+  a tight orchestrating thread; and parallel dispatch limited to independent,
+  ready work.
+- KRN implication: these mechanisms could coordinate long-running work, but
+  this global catalog currently leaves durable task state to the repository
+  owner and long-running outcome state to the native Codex goal surface.
+- Decision: defer the wayfinder map, ticket protocol, global planning/spec
+  workflow, research-subagent convention, and orchestration policy. No current
+  global owner, production consumer, or falsifier earns another workflow skill.
+- Does not prove: any deferred mechanism should become a universal KRN skill,
+  that one tracker fits every repository, or that a demo outperforms the
+  current system on production work. Current routing also does not reject a
+  future bounded owner backed by a repeated consumer and behavioral evidence.
+- Copyright boundary: no transcript passage, cue, or scene is committed here;
+  only original mechanism-level decisions and provenance are retained.
 
 ## Total TypeScript
 
