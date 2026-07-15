@@ -100,7 +100,7 @@
     },
     {
       "id": "typescript-tsconfig-erasable-host",
-      "prompt": "This tsconfig emits syntax the runtime only strips; align the erasable-syntax guard with the real host without changing unrelated options.",
+      "prompt": "This project executes TypeScript in a stripping-only host; configure the pinned compiler's erasable-syntax guard to reject non-erasable syntax without changing unrelated options.",
       "expected_skills": [
         "implement",
         "typescript-engineering"
@@ -112,7 +112,7 @@
     },
     {
       "id": "typescript-package-consumer-contract",
-      "prompt": "Compile a small consumer against the package's published entry point to prove the declaration emit and exports changed safely, without editing the package.",
+      "prompt": "Review the fixed diff that changes this package's declarations and exports. Compile a small consumer against the published entry point, but do not edit the package.",
       "expected_skills": [
         "code-review",
         "typescript-engineering"

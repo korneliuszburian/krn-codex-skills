@@ -23,14 +23,24 @@ interface Counter {
   bump(): void;
 }
 
+interface CounterConstructor {
+  new (initial: number): Counter;
+}
+
 // `implements` checks the instance surface only. It proves nothing about
 // construction, runtime invariants, or that bump() behaves as named.
 class Tally implements Counter {
-  count = 0;
+  count: number;
+  constructor(seed: string) {
+    this.count = seed.length;
+  }
   bump() {
     this.count += 1;
   }
 }
+
+// @ts-expect-error The instance contract never checked the constructor side.
+const CounterClass: CounterConstructor = Tally;
 
 // A plain object with impossible state satisfies the same interface.
 const fake: Counter = { count: -99, bump() {} };
