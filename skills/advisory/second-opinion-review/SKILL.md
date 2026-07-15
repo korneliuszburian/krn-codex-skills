@@ -62,15 +62,29 @@ adversarial challenge.
 4. **Launch the right pass.** For research or a candidate rewrite, start from
    a clean disposable worktree and hand it to Claude in the background:
 
-   Both runners select the current `opus` alias by default so a locally
-   configured non-Claude backend cannot silently replace the requested second
-   opinion. Set `SECOND_OPINION_MODEL` only to choose another explicit Claude
-   model or pinned identifier.
+   Both runners pass the current `opus` alias by default. The local Claude Code
+   provider configuration still decides which backend serves that alias, so
+   record the backend reported by the session and never claim model-provider
+   independence from the alias alone. Set `SECOND_OPINION_MODEL` only to choose
+   another explicit alias or pinned identifier.
 
    ```bash
    rtk bash ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
      "TypeScript skill research" \
      /tmp/second-opinion/typescript-handoff.md
+   ```
+
+   For an authorized rewrite, grant edit acceptance explicitly. Add only the
+   smallest source root the pass must read; `--add-dir` grants tool access and
+   does not technically enforce a read-only source contract.
+
+   ```bash
+   rtk env SECOND_OPINION_EFFORT=max \
+     ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
+     --accept-edits \
+     --add-dir /absolute/bounded/research-root \
+     "TypeScript skill rewrite" \
+     /absolute/persistent/handoff.md
    ```
 
    The command returns immediately. Manage or resume the named job with

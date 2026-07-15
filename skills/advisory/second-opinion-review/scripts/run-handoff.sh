@@ -1,20 +1,94 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+usage() {
+  echo "usage: run-handoff.sh [--add-dir DIR]... [--accept-edits] <descriptive-name> <handoff.md>" >&2
+}
+
+additional_dirs=()
+accept_edits=false
+while (( $# > 2 )); do
+  case "$1" in
+    --add-dir)
+      if (( $# < 4 )); then
+        usage
+        exit 64
+      fi
+      additional_dirs+=("$2")
+      shift 2
+      ;;
+    --accept-edits)
+      accept_edits=true
+      shift
+      ;;
+    *)
+      usage
+      exit 64
+      ;;
+  esac
+done
+
 if [[ $# -ne 2 ]]; then
-  echo "usage: run-handoff.sh <descriptive-name> <handoff.md>" >&2
+  usage
   exit 64
 fi
 
 job_name=$1
 handoff_file=$2
-script_dir=$(cd "${BASH_SOURCE[0]%/*}" && pwd)
+if [[ "$job_name" == --* ]]; then
+  usage
+  exit 64
+fi
+script_path=$(rtk readlink -f "${BASH_SOURCE[0]}")
+script_dir=${script_path%/*}
 
 if [[ ! -f "$handoff_file" ]]; then
   echo "handoff file not found: $handoff_file" >&2
   exit 66
 fi
 handoff_file=$(rtk readlink -f "$handoff_file")
+
+resolved_additional_dirs=()
+home_directory=$(rtk readlink -f "$HOME")
+for requested_dir in "${additional_dirs[@]}"; do
+  if [[
+    "$requested_dir" != /* ||
+    "$requested_dir" == *$'\n'* ||
+    "$requested_dir" == *$'\r'*
+  ]]; then
+    echo "--add-dir requires an absolute one-line path: $requested_dir" >&2
+    exit 65
+  fi
+  case "${requested_dir,,}" in
+    *superpowers*)
+      echo "refusing hard-quarantined --add-dir path" >&2
+      exit 65
+      ;;
+  esac
+  if [[ ! -d "$requested_dir" ]]; then
+    echo "--add-dir path is not a directory: $requested_dir" >&2
+    exit 66
+  fi
+  resolved_dir=$(rtk readlink -f "$requested_dir")
+  if [[ "$home_directory" == "$resolved_dir"/* ]]; then
+    echo "refusing --add-dir ancestor of the home directory: $resolved_dir" >&2
+    exit 65
+  fi
+  case "$resolved_dir" in
+    / | "$home_directory" | "$home_directory/.codex" | "$home_directory/.agents" | \
+      "$home_directory/.codex"/* | "$home_directory/.agents"/*)
+      echo "refusing broad or agent-configuration --add-dir path: $resolved_dir" >&2
+      exit 65
+      ;;
+  esac
+  case "${resolved_dir,,}" in
+    *superpowers*)
+      echo "refusing hard-quarantined --add-dir path" >&2
+      exit 65
+      ;;
+  esac
+  resolved_additional_dirs+=("$resolved_dir")
+done
 
 if [[ "$job_name" == *$'\n'* || ${#job_name} -lt 3 || ${#job_name} -gt 80 ]]; then
   echo "descriptive name must contain 3-80 characters on one line" >&2
@@ -87,7 +161,7 @@ if [[ "$git_dir" == "$common_dir" ]]; then
   echo "background handoff refuses the primary checkout; use a disposable linked worktree" >&2
   exit 65
 fi
-if [[ "$(pwd -P)" != "$repo_root" ]]; then
+if [[ "$(rtk pwd -P)" != "$repo_root" ]]; then
   echo "run the background handoff from the disposable worktree root: $repo_root" >&2
   exit 65
 fi
@@ -96,13 +170,35 @@ if [[ -n "$(rtk proxy git status --porcelain)" ]]; then
   exit 65
 fi
 
-if ! command -v claude >/dev/null 2>&1; then
+if ! rtk which claude >/dev/null 2>&1; then
   echo "claude CLI not found on PATH" >&2
   exit 127
 fi
 
 second_opinion_model=${SECOND_OPINION_MODEL:-opus}
 model_args=(--model "$second_opinion_model")
+if [[ -n "${SECOND_OPINION_EFFORT:-}" ]]; then
+  case "$SECOND_OPINION_EFFORT" in
+    low | medium | high | xhigh | max)
+      model_args+=(--effort "$SECOND_OPINION_EFFORT")
+      ;;
+    *)
+      echo "SECOND_OPINION_EFFORT must be low, medium, high, xhigh, or max" >&2
+      exit 65
+      ;;
+  esac
+fi
+
+permission_args=()
+if [[ "$accept_edits" == true ]]; then
+  permission_args=(--permission-mode acceptEdits)
+fi
+
+directory_args=()
+for additional_dir in "${resolved_additional_dirs[@]}"; do
+  directory_args+=(--add-dir "$additional_dir")
+done
 
 handoff=$(<"$handoff_file")
-rtk claude --bg --name "$job_name" "${model_args[@]}" "$handoff"
+rtk claude --bg --name "$job_name" "${model_args[@]}" \
+  "${permission_args[@]}" "${directory_args[@]}" "$handoff"
