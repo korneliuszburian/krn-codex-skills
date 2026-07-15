@@ -91,7 +91,7 @@ if [[ "$(pwd -P)" != "$repo_root" ]]; then
   echo "run the background handoff from the disposable worktree root: $repo_root" >&2
   exit 65
 fi
-if [[ -n "$(rtk git status --porcelain)" ]]; then
+if [[ -n "$(rtk proxy git status --porcelain)" ]]; then
   echo "disposable worktree must be clean before Claude takes ownership" >&2
   exit 65
 fi
