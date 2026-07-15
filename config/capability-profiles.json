@@ -1,0 +1,378 @@
+{
+  "schemaVersion": 1,
+  "hardQuarantine": {
+    "families": [
+      "superpowers"
+    ],
+    "pluginIds": [
+      "superpowers@openai-curated"
+    ],
+    "reason": "This family is never inspected, enabled, or invoked. A profile cannot override the quarantine."
+  },
+  "profiles": {
+    "minimal": {
+      "description": "Keep the global engineering core and built-in operational skills; turn every optional integration off.",
+      "plugins": {
+        "enable": [],
+        "disable": [],
+        "disableFamilies": [
+          "asana",
+          "canva",
+          "figma",
+          "github",
+          "gmail",
+          "google-calendar",
+          "hugging-face",
+          "openai-templates"
+        ]
+      },
+      "skills": {
+        "enable": [
+          "omarchy",
+          "openai-docs"
+        ],
+        "enableFamilies": [],
+        "disable": [
+          "agent-browser"
+        ],
+        "disableFamilies": [
+          "gsap"
+        ],
+        "preserveScopes": [
+          "krn-global",
+          "project-local",
+          "system"
+        ]
+      },
+      "mcps": {
+        "enable": [],
+        "disable": [
+          "agent_browser",
+          "context7",
+          "figma",
+          "github"
+        ]
+      },
+      "apps": {
+        "enable": [],
+        "disable": [
+          "asana",
+          "canva",
+          "figma",
+          "github",
+          "gmail",
+          "google-calendar",
+          "hugging-face"
+        ],
+        "mode": "report-only"
+      }
+    },
+    "lean": {
+      "description": "Production engineering with KRN, OpenAI docs, Omarchy, and one GitHub plugin/app owner.",
+      "plugins": {
+        "enable": [
+          "github@openai-curated"
+        ],
+        "disable": [
+          "github@openai-curated-remote"
+        ],
+        "disableFamilies": [
+          "asana",
+          "canva",
+          "figma",
+          "gmail",
+          "google-calendar",
+          "hugging-face",
+          "openai-templates"
+        ]
+      },
+      "skills": {
+        "enable": [
+          "omarchy",
+          "openai-docs"
+        ],
+        "enableFamilies": [],
+        "disable": [
+          "agent-browser"
+        ],
+        "disableFamilies": [
+          "gsap"
+        ],
+        "preserveScopes": [
+          "krn-global",
+          "project-local",
+          "system"
+        ]
+      },
+      "mcps": {
+        "enable": [],
+        "disable": [
+          "agent_browser",
+          "context7",
+          "figma",
+          "github"
+        ]
+      },
+      "apps": {
+        "enable": [
+          "github"
+        ],
+        "disable": [
+          "asana",
+          "canva",
+          "figma",
+          "gmail",
+          "google-calendar",
+          "hugging-face"
+        ],
+        "mode": "report-only"
+      }
+    },
+    "design": {
+      "description": "Lean engineering plus Figma, Canva, and the GSAP skill family for a focused design session.",
+      "plugins": {
+        "enable": [
+          "canva@openai-curated-remote",
+          "figma@openai-curated",
+          "github@openai-curated"
+        ],
+        "disable": [
+          "figma@openai-curated-remote",
+          "github@openai-curated-remote"
+        ],
+        "disableFamilies": [
+          "asana",
+          "gmail",
+          "google-calendar",
+          "hugging-face",
+          "openai-templates"
+        ]
+      },
+      "skills": {
+        "enable": [
+          "omarchy",
+          "openai-docs"
+        ],
+        "enableFamilies": [
+          "gsap"
+        ],
+        "disable": [
+          "agent-browser"
+        ],
+        "disableFamilies": [],
+        "preserveScopes": [
+          "krn-global",
+          "project-local",
+          "system"
+        ]
+      },
+      "mcps": {
+        "enable": [],
+        "disable": [
+          "agent_browser",
+          "context7",
+          "figma",
+          "github"
+        ]
+      },
+      "apps": {
+        "enable": [
+          "canva",
+          "figma",
+          "github"
+        ],
+        "disable": [
+          "asana",
+          "gmail",
+          "google-calendar",
+          "hugging-face"
+        ],
+        "mode": "report-only"
+      }
+    },
+    "web-qa": {
+      "description": "Lean engineering plus browser automation and documentation lookup for web QA sessions.",
+      "plugins": {
+        "enable": [
+          "github@openai-curated"
+        ],
+        "disable": [
+          "github@openai-curated-remote"
+        ],
+        "disableFamilies": [
+          "asana",
+          "canva",
+          "figma",
+          "gmail",
+          "google-calendar",
+          "hugging-face",
+          "openai-templates"
+        ]
+      },
+      "skills": {
+        "enable": [
+          "agent-browser",
+          "omarchy",
+          "openai-docs"
+        ],
+        "enableFamilies": [],
+        "disable": [],
+        "disableFamilies": [
+          "gsap"
+        ],
+        "preserveScopes": [
+          "krn-global",
+          "project-local",
+          "system"
+        ]
+      },
+      "mcps": {
+        "enable": [
+          "agent_browser",
+          "context7"
+        ],
+        "disable": [
+          "figma",
+          "github"
+        ]
+      },
+      "apps": {
+        "enable": [
+          "github"
+        ],
+        "disable": [
+          "asana",
+          "canva",
+          "figma",
+          "gmail",
+          "google-calendar",
+          "hugging-face"
+        ],
+        "mode": "report-only"
+      }
+    },
+    "comms": {
+      "description": "Lean engineering plus the task, mail, and calendar integrations needed for a communication session.",
+      "plugins": {
+        "enable": [
+          "asana@openai-curated",
+          "github@openai-curated",
+          "gmail@openai-curated-remote",
+          "google-calendar@openai-curated-remote"
+        ],
+        "disable": [
+          "asana@openai-curated-remote",
+          "github@openai-curated-remote"
+        ],
+        "disableFamilies": [
+          "canva",
+          "figma",
+          "hugging-face",
+          "openai-templates"
+        ]
+      },
+      "skills": {
+        "enable": [
+          "omarchy",
+          "openai-docs"
+        ],
+        "enableFamilies": [],
+        "disable": [
+          "agent-browser"
+        ],
+        "disableFamilies": [
+          "gsap"
+        ],
+        "preserveScopes": [
+          "krn-global",
+          "project-local",
+          "system"
+        ]
+      },
+      "mcps": {
+        "enable": [],
+        "disable": [
+          "agent_browser",
+          "context7",
+          "figma",
+          "github"
+        ]
+      },
+      "apps": {
+        "enable": [
+          "asana",
+          "github",
+          "gmail",
+          "google-calendar"
+        ],
+        "disable": [
+          "canva",
+          "figma",
+          "hugging-face"
+        ],
+        "mode": "report-only"
+      }
+    },
+    "full": {
+      "description": "Enable every allowed capability while keeping duplicate plugin and MCP owners collapsed.",
+      "plugins": {
+        "enable": [
+          "asana@openai-curated",
+          "canva@openai-curated-remote",
+          "figma@openai-curated",
+          "github@openai-curated",
+          "gmail@openai-curated-remote",
+          "google-calendar@openai-curated-remote",
+          "hugging-face@openai-curated-remote",
+          "openai-templates@openai-curated-remote"
+        ],
+        "disable": [
+          "asana@openai-curated-remote",
+          "figma@openai-curated-remote",
+          "github@openai-curated-remote"
+        ],
+        "disableFamilies": []
+      },
+      "skills": {
+        "enable": [
+          "agent-browser",
+          "omarchy",
+          "openai-docs"
+        ],
+        "enableFamilies": [
+          "gsap"
+        ],
+        "disable": [],
+        "disableFamilies": [],
+        "preserveScopes": [
+          "krn-global",
+          "project-local",
+          "system"
+        ]
+      },
+      "mcps": {
+        "enable": [
+          "agent_browser",
+          "context7"
+        ],
+        "disable": [
+          "figma",
+          "github"
+        ]
+      },
+      "apps": {
+        "enable": [
+          "asana",
+          "canva",
+          "figma",
+          "github",
+          "gmail",
+          "google-calendar",
+          "hugging-face"
+        ],
+        "disable": [],
+        "mode": "report-only"
+      }
+    }
+  }
+}

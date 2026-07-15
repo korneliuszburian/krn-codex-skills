@@ -1,0 +1,6 @@
+interface:
+  display_name: "Managing Codex Capabilities"
+  short_description: "Keep global skills and integrations intentional"
+  default_prompt: "Use $managing-codex-capabilities to audit or change my global Codex capability surface."
+policy:
+  allow_implicit_invocation: true

@@ -3,7 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "krn-codex-catalog": "scripts/catalog.mjs"
+  },
   "scripts": {
+    "catalog": "node scripts/catalog.mjs",
+    "test:catalog": "node --test scripts/catalog*.test.mjs",
     "validate": "node scripts/validate.mjs",
     "install:check": "bash scripts/install.sh check"
   }

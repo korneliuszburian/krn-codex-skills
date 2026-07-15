@@ -18,6 +18,7 @@ unknown fault -> diagnosing-bugs    -> cause-level fix or bounded diagnosis
 source claim  -> source-to-decision -> decision      -> implement
 another repo  -> target-repo-work   -> scoped result -> handoff
 TypeScript    -> workflow owner + typescript-engineering companion
+global tools  -> managing-codex-capabilities -> reviewed profile -> fresh session
 ```
 
 `config/AGENTS.md` carries one universal production-first core. Codex loads it
@@ -38,6 +39,7 @@ branch that needs them.
 | `source-to-decision` | model or user | external evidence turned into an owned decision |
 | `target-repo-work` | model or user | authority and state when operating on another repo |
 | `typescript-engineering` | model or user | TypeScript boundaries, APIs, compiler mechanics, and proof |
+| `managing-codex-capabilities` | model or user | global skill, plugin, MCP, usage, and profile control |
 | `writing-great-skills` | model or user | predictable skill authoring and trigger design |
 | `second-opinion-review` | explicit only | isolated Claude research/rewrite handoff or validated checker |
 
@@ -69,6 +71,8 @@ rtk env KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
 The installer:
 
 - links only manifest-owned skills into `~/.agents/skills`;
+- links the manifest-owned `krn-codex-catalog` executable into
+  `~/.local/bin`;
 - leaves vendor and unrelated skills untouched;
 - archives named legacy paths only with explicit migration authority;
 - installs the versioned global `AGENTS.md`;
@@ -79,11 +83,30 @@ The installer:
 
 `CODEX_HOME` selects Codex legacy paths, backups, and its global instruction
 target. `CLAUDE_CONFIG_DIR` selects Claude's instruction targets.
-`KRN_SKILLS_DEST` independently selects the user skill index. Set all three for
-an isolated temp-root trial. Overriding one never silently redirects another.
+`KRN_SKILLS_DEST` independently selects the user skill index, and
+`KRN_BIN_DEST` selects the executable directory. Set all four for an isolated
+temp-root trial. Overriding one never silently redirects another.
 
 Run `check` again after installation. Restart Codex if the current session
 does not refresh its installed skill index.
+
+## Capability Catalog
+
+Global integrations are managed through named, reviewable profiles instead of
+accumulating version-pinned skill overrides by hand:
+
+```bash
+rtk krn-codex-catalog inventory
+rtk krn-codex-catalog usage --days 30
+rtk krn-codex-catalog plan lean
+rtk krn-codex-catalog apply lean
+```
+
+`lean` keeps the daily engineering surface small; `design`, `web-qa`, and
+`comms` opt specialized integrations back in. Usage reports aggregate only
+structured evidence and never disable anything automatically. See
+[`docs/CAPABILITY_CATALOG.md`](docs/CAPABILITY_CATALOG.md) for profiles,
+evidence limits, quarantine, and atomic-write guarantees.
 
 ## Proof Budget
 

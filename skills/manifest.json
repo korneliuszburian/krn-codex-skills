@@ -2,6 +2,12 @@
   "schema_version": 1,
   "global_agents": "config/AGENTS.md",
   "global_claude": "config/CLAUDE.md",
+  "bins": [
+    {
+      "name": "krn-codex-catalog",
+      "path": "scripts/catalog.mjs"
+    }
+  ],
   "skills": [
     {
       "name": "code-review",
@@ -47,6 +53,11 @@
       "name": "second-opinion-review",
       "path": "skills/advisory/second-opinion-review",
       "implicit": false
+    },
+    {
+      "name": "managing-codex-capabilities",
+      "path": "skills/meta/managing-codex-capabilities",
+      "implicit": true
     },
     {
       "name": "writing-great-skills",

@@ -235,6 +235,27 @@
       ]
     },
     {
+      "id": "manage-global-capabilities",
+      "prompt": "Show me which global Codex integrations were actually used, then disable Figma, Gmail, GSAP, and the other token-heavy extras with the lean profile.",
+      "expected_skills": [
+        "managing-codex-capabilities"
+      ],
+      "forbidden_skills": [
+        "writing-great-skills",
+        "implement",
+        "target-repo-work"
+      ]
+    },
+    {
+      "id": "project-local-skill-is-not-global-capability",
+      "prompt": "Disable the repo-local beads skill only for this project.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "managing-codex-capabilities",
+        "writing-great-skills"
+      ]
+    },
+    {
       "id": "explicit-second-opinion",
       "prompt": "Use $second-opinion-review to have Claude challenge this completed architecture claim.",
       "expected_skills": [

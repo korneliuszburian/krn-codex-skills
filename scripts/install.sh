@@ -14,6 +14,7 @@ script_dir=${BASH_SOURCE[0]%/*}
 repo_root=$(cd "$script_dir/.." && pwd)
 manifest="$repo_root/skills/manifest.json"
 skill_dest=${KRN_SKILLS_DEST:-"$HOME/.agents/skills"}
+bin_dest=${KRN_BIN_DEST:-"$HOME/.local/bin"}
 codex_home=${CODEX_HOME:-"$HOME/.codex"}
 claude_home=${CLAUDE_CONFIG_DIR:-"$HOME/.claude"}
 global_agents_source="$repo_root/$(rtk jq -r '.global_agents' "$manifest")"
@@ -43,6 +44,9 @@ rtk node "$repo_root/scripts/validate.mjs"
 mapfile -t skill_rows < <(
   rtk jq -r '.skills[] | [.name, .path] | @tsv' "$manifest"
 )
+mapfile -t bin_rows < <(
+  rtk jq -r '.bins[] | [.name, .path] | @tsv' "$manifest"
+)
 mapfile -t legacy_rows < <(
   rtk jq -r '.legacy_user_paths[] | [.path, .replacement] | @tsv' "$manifest"
 )
@@ -57,6 +61,21 @@ link_matches() {
 check_install() {
   local failures=0
   local name relative source target legacy legacy_relative replacement
+
+  for row in "${bin_rows[@]}"; do
+    IFS=$'\t' read -r name relative <<< "$row"
+    source="$repo_root/$relative"
+    target="$bin_dest/$name"
+    if link_matches "$target" "$source"; then
+      printf 'ok      %s -> %s\n' "$target" "$source"
+    elif [[ -e "$target" || -L "$target" ]]; then
+      printf 'foreign %s (installer will not replace it)\n' "$target"
+      failures=1
+    else
+      printf 'missing %s\n' "$target"
+      failures=1
+    fi
+  done
 
   for row in "${skill_rows[@]}"; do
     IFS=$'\t' read -r name relative <<< "$row"
@@ -116,6 +135,16 @@ if [[ "$mode" == "check" ]]; then
   exit $?
 fi
 
+for row in "${bin_rows[@]}"; do
+  IFS=$'\t' read -r name relative <<< "$row"
+  source="$repo_root/$relative"
+  target="$bin_dest/$name"
+  if [[ -e "$target" || -L "$target" ]] && ! link_matches "$target" "$source"; then
+    echo "refusing unowned executable collision: $target" >&2
+    exit 78
+  fi
+done
+
 for row in "${skill_rows[@]}"; do
   IFS=$'\t' read -r name relative <<< "$row"
   source="$repo_root/$relative"
@@ -158,7 +187,7 @@ for row in "${legacy_rows[@]}"; do
   fi
 done
 
-rtk mkdir -p "$skill_dest" "$codex_home" "$claude_home"
+rtk mkdir -p "$skill_dest" "$bin_dest" "$codex_home" "$claude_home"
 timestamp=$(rtk date -u +%Y%m%dT%H%M%SZ)
 backup_dir="$codex_home/skill-migration-backups/$timestamp-$$"
 backup_created=false
@@ -176,6 +205,17 @@ archive_path() {
   rtk mv -- "$source" "$backup_dir/$label"
   printf 'archived %s -> %s\n' "$source" "$backup_dir/$label"
 }
+
+for row in "${bin_rows[@]}"; do
+  IFS=$'\t' read -r name relative <<< "$row"
+  source="$repo_root/$relative"
+  target="$bin_dest/$name"
+  if link_matches "$target" "$source"; then
+    continue
+  fi
+  rtk ln -s "$source" "$target"
+  printf 'linked   %s -> %s\n' "$target" "$source"
+done
 
 for row in "${legacy_rows[@]}"; do
   IFS=$'\t' read -r legacy replacement <<< "$row"

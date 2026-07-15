@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
 const evalPath = path.join(root, "evals", "trigger-cases.json");
@@ -218,6 +220,9 @@ function validateTransportSchema(value, location = "review schema") {
 }
 
 const manifest = json(manifestPath);
+const capabilityProfiles = await loadCapabilityProfiles(
+  path.join(root, "config", "capability-profiles.json"),
+);
 if (manifest.schema_version !== 1) {
   fail("skills/manifest.json: schema_version must be 1");
 }
@@ -228,6 +233,31 @@ if (!globalAgentsPathSafe) {
 const globalClaudePathSafe = safeRelativePath(manifest.global_claude);
 if (!globalClaudePathSafe) {
   fail("manifest: unsafe global_claude path");
+}
+
+const binNames = new Set();
+for (const bin of manifest.bins ?? []) {
+  if (!/^[a-z0-9-]{1,63}$/.test(bin.name ?? "")) {
+    fail(`manifest: invalid bin name ${bin.name}`);
+  }
+  if (binNames.has(bin.name)) {
+    fail(`manifest: duplicate bin name ${bin.name}`);
+  }
+  binNames.add(bin.name);
+  if (!safeRelativePath(bin.path)) {
+    fail(`manifest: unsafe bin path for ${bin.name}`);
+    continue;
+  }
+  const binPath = path.join(root, bin.path);
+  if (!fs.existsSync(binPath) || !fs.statSync(binPath).isFile()) {
+    fail(`manifest: missing bin target for ${bin.name}`);
+    continue;
+  }
+  try {
+    fs.accessSync(binPath, fs.constants.X_OK);
+  } catch {
+    fail(`manifest: bin target is not executable for ${bin.name}`);
+  }
 }
 
 const manifestNames = new Set();
@@ -503,5 +533,6 @@ if (errors.length) {
 }
 
 console.log(
-  `validated ${manifest.skills.length} skills, ${triggerCases.cases.length} trigger cases, and installation metadata`,
+  `validated ${manifest.skills.length} skills, ${triggerCases.cases.length} trigger cases, ` +
+    `${Object.keys(capabilityProfiles.profiles).length} capability profiles, and installation metadata`,
 );
