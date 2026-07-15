@@ -8,6 +8,9 @@ Model known states precisely and dynamic keys honestly.
 - A value may contain more properties than its target type. Excess-property
   checks are strongest on fresh literals and are an authoring aid, not runtime
   exactness.
+- `readonly` object properties restrict writes through that view, not ownership.
+  Structural assignability can pass the object to a mutable parameter that
+  changes it; copy or freeze at the boundary when runtime immutability matters.
 - `{}` means any non-nullish value. Use `unknown` for an untrusted value,
   `object` for a non-primitive, and a named property shape for a real object
   contract.
