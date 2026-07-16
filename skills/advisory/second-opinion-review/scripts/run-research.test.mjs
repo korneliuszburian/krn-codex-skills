@@ -430,3 +430,44 @@ test("rejects symlinked result directories before invoking Claude", () => {
     fs.rmSync(fixture.sandbox, { recursive: true, force: true });
   }
 });
+
+test("refuses to invoke Claude when the execution window is denied", () => {
+  const fixture = makeFixture();
+  let invoked = false;
+  try {
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "source-analysis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          windowCheck: () => {
+            throw new Error("Claude execution window denied");
+          },
+          claudeInvoker: () => {
+            invoked = true;
+            return envelope(structuredResult(fixture.campaign, "source-analysis"));
+          },
+        }),
+      /Claude execution window denied/,
+    );
+    assert.equal(
+      invoked,
+      false,
+      "Claude must not be invoked when the execution window is denied",
+    );
+    assert.equal(
+      fs.existsSync(jobPathFor(fixture.campaignFile, "source-analysis")),
+      false,
+      "no running job is recorded when the window denies execution before launch",
+    );
+    assert.equal(
+      fs.existsSync(resultPathFor(fixture.campaignFile, "source-analysis")),
+      false,
+      "no result is published when the window denies execution",
+    );
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
