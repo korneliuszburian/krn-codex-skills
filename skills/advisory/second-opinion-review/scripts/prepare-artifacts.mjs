@@ -34,12 +34,15 @@ function detectProjectNamespace(cwd) {
   return namespace || fallbackNamespace;
 }
 
-function assertPrivateRealDirectory(target, label) {
+function privateDirectory(target, label) {
+  fs.mkdirSync(target, { recursive: true, mode: 0o700 });
   const stat = fs.lstatSync(target);
   if (!stat.isDirectory() || stat.isSymbolicLink()) {
     throw new Error(`${label} must be a real directory, not a symlink`);
   }
 }
+
+const isRealDir = (entry) => entry.isDirectory() && !entry.isSymbolicLink();
 
 export function prepareArtifactDirectory({
   slug,
@@ -56,20 +59,17 @@ export function prepareArtifactDirectory({
     throw new Error("category must use lowercase letters, digits, and single hyphens");
   }
 
-  fs.mkdirSync(root, { recursive: true, mode: 0o700 });
-  assertPrivateRealDirectory(root, "artifact root");
+  privateDirectory(root, "artifact root");
 
   const namespace = project ? sanitizeNamespace(project) : detectProjectNamespace(cwd);
   if (!slugPattern.test(namespace)) {
     throw new Error("project must sanitize to lowercase letters, digits, and single hyphens");
   }
   const namespaceDirectory = path.join(root, namespace);
-  fs.mkdirSync(namespaceDirectory, { recursive: true, mode: 0o700 });
-  assertPrivateRealDirectory(namespaceDirectory, "project namespace directory");
+  privateDirectory(namespaceDirectory, "project namespace directory");
 
   const categoryDirectory = path.join(namespaceDirectory, category);
-  fs.mkdirSync(categoryDirectory, { recursive: true, mode: 0o700 });
-  assertPrivateRealDirectory(categoryDirectory, "category directory");
+  privateDirectory(categoryDirectory, "category directory");
 
   const date = now.toISOString().slice(0, 10);
   const passDirectory = fs.mkdtempSync(path.join(categoryDirectory, `${date}-${slug}-`));
@@ -80,9 +80,14 @@ export function prepareArtifactDirectory({
 function readJobState(passDirectory) {
   const jobsDirectory = path.join(passDirectory, "jobs");
   if (!fs.existsSync(jobsDirectory)) return null;
+  // readdirSync order is filesystem-dependent; sort by name so the fold is
+  // deterministic. A pass normally has one job file, so last-sorted wins.
+  const entries = fs
+    .readdirSync(jobsDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".job.json"))
+    .sort((a, b) => a.name.localeCompare(b.name));
   let state = null;
-  for (const entry of fs.readdirSync(jobsDirectory, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.endsWith(".job.json")) continue;
+  for (const entry of entries) {
     try {
       const job = JSON.parse(
         fs.readFileSync(path.join(jobsDirectory, entry.name), "utf8"),
@@ -99,13 +104,13 @@ export function listPasses({ root = defaultRoot } = {}) {
   if (!fs.existsSync(root)) return [];
   const passes = [];
   for (const namespace of fs.readdirSync(root, { withFileTypes: true })) {
-    if (!namespace.isDirectory() || namespace.isSymbolicLink()) continue;
+    if (!isRealDir(namespace)) continue;
     const namespacePath = path.join(root, namespace.name);
     for (const category of fs.readdirSync(namespacePath, { withFileTypes: true })) {
-      if (!category.isDirectory() || category.isSymbolicLink()) continue;
+      if (!isRealDir(category)) continue;
       const categoryPath = path.join(namespacePath, category.name);
       for (const pass of fs.readdirSync(categoryPath, { withFileTypes: true })) {
-        if (!pass.isDirectory() || pass.isSymbolicLink()) continue;
+        if (!isRealDir(pass)) continue;
         const passDirectory = path.join(categoryPath, pass.name);
         passes.push({
           namespace: namespace.name,
@@ -118,11 +123,9 @@ export function listPasses({ root = defaultRoot } = {}) {
     }
   }
   passes.sort((a, b) =>
-    a.namespace === b.namespace
-      ? a.category === b.category
-        ? a.pass.localeCompare(b.pass)
-        : a.category.localeCompare(b.category)
-      : a.namespace.localeCompare(b.namespace),
+    `${a.namespace}\0${a.category}\0${a.pass}`.localeCompare(
+      `${b.namespace}\0${b.category}\0${b.pass}`,
+    ),
   );
   return passes;
 }

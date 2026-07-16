@@ -107,12 +107,12 @@ New or changed non-managed hooks must also be reviewed and trusted through
 `/hooks`; Codex binds trust to the exact hook definition.
 
 `$second-opinion-review` creates one private pass directory below
-`$XDG_STATE_HOME/krn/second-opinion-review` when set, otherwise below
-`~/.local/state/krn/second-opinion-review`. Set the absolute
-`SECOND_OPINION_ARTIFACT_ROOT` when the operator has a different durable
-research owner. Do not place ad hoc review folders beside active repositories;
-the skill defines what is retained and when the initiating issue or goal can
-archive or remove it.
+`~/coding/krn/second-opinion-review`, namespaced as `<project>/<category>/<pass>`
+where `project` is the cwd git repository and `category` is the role
+(`research`, `rewrite`, or `check`). Run `prepare-artifacts.mjs list` to
+enumerate passes with their project, category, and job state. Do not place ad
+hoc review folders beside active repositories; the skill defines what is
+retained and when the initiating issue or goal can archive or remove it.
 
 Large research uses a versioned `campaign.json`: independent read-only shards
 publish validated mechanism ledgers, then one synthesis shard consumes only
