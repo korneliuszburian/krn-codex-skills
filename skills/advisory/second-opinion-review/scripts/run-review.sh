@@ -81,8 +81,8 @@ if [[ "$output_file" == "$prompt_file" ]] ||
   echo "review output must not replace or alias the checker prompt" >&2
   exit 65
 fi
-if [[ -e "$output_file" && ! -f "$output_file" ]]; then
-  echo "review output must be a regular file destination" >&2
+if [[ -e "$output_file" || -L "$output_file" ]]; then
+  echo "review output must not already exist" >&2
   exit 65
 fi
 case "$output_file" in

@@ -10,6 +10,7 @@
     "catalog": "node scripts/catalog.mjs",
     "test:catalog": "node --test scripts/catalog*.test.mjs",
     "test:hooks": "python3 -B -m unittest scripts/hooks/test_destructive_guard.py",
+    "test:second-opinion": "node --test skills/advisory/second-opinion-review/scripts/*.test.mjs && node skills/advisory/second-opinion-review/scripts/check-claude-window.mjs self-test",
     "validate": "node scripts/validate.mjs",
     "install:check": "bash scripts/install.sh check"
   }

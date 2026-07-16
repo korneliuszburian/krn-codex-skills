@@ -95,9 +95,25 @@ target, hook configuration, and hook scripts. `CLAUDE_CONFIG_DIR` selects Claude
 temp-root trial. Overriding one never silently redirects another.
 
 Run `check` again after installation. Restart Codex if the current session
-does not refresh its installed skill index. New or changed non-managed hooks
-must also be reviewed and trusted through `/hooks`; Codex binds trust to the
-exact hook definition.
+does not refresh its installed skill index: discovery is session-scoped, so an
+already-open picker is not evidence that the installed symlink is missing.
+`second-opinion-review` is explicit-only: Codex cannot select it implicitly,
+while an explicit `$skill` invocation remains available. Some API sessions may
+omit it from the injected model-visible list; that observation is not the
+activation contract. In a fresh interactive session, type
+`$second-opinion-review` and select **Second Opinion Review [Skill]** from the
+picker; plain prompt text that resembles the name is not the same attachment.
+
+New or changed non-managed hooks must also be reviewed and trusted through
+`/hooks`; Codex binds trust to the exact hook definition.
+
+`$second-opinion-review` creates one private pass directory below
+`$XDG_STATE_HOME/krn/second-opinion-review` when set, otherwise below
+`~/.local/state/krn/second-opinion-review`. Set the absolute
+`SECOND_OPINION_ARTIFACT_ROOT` when the operator has a different durable
+research owner. Do not place ad hoc review folders beside active repositories;
+the skill defines what is retained and when the initiating issue or goal can
+archive or remove it.
 
 ## Capability Catalog
 

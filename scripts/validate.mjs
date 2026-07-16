@@ -472,6 +472,15 @@ const secondOpinion = manifest.skills.find(
 );
 if (secondOpinion) {
   const skillRoot = path.join(root, secondOpinion.path);
+  const skillEntrypoint = read(path.join(skillRoot, "SKILL.md"));
+  const artifactHelper = "prepare-artifacts.mjs";
+  const artifactHelperPath = path.join(skillRoot, "scripts", artifactHelper);
+  if (!fs.existsSync(artifactHelperPath)) {
+    fail(`${secondOpinion.path}: missing ${artifactHelper}`);
+  }
+  if (!skillEntrypoint.includes(`scripts/${artifactHelper}`)) {
+    fail(`${secondOpinion.path}: SKILL.md must route through ${artifactHelper}`);
+  }
   const reviewSchemaPath = path.join(
     skillRoot,
     "references",

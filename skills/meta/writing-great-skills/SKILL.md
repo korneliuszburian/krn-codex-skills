@@ -45,6 +45,12 @@ skill misfires through collision, premature completion, sediment, or sprawl.
    `policy.allow_implicit_invocation: false`. Do not add harness-specific
    frontmatter rejected by the repository validator.
 
+   Add an explicit router only when a measured family of user-invoked names is
+   harder to recall than one front door. The router maps the choice and may
+   compose only owners reachable under the harness invocation policy; the user
+   still selects another explicit-only skill. It must not restate or acquire
+   the workflows it points to.
+
    <trigger-case expected="invoke | compose | skip">
    Raw prompt:
    Expected owner:
@@ -64,6 +70,11 @@ skill misfires through collision, premature completion, sediment, or sprawl.
    not force numbering onto material with no sequence. Co-locate each concept's
    rule, caveat, and smallest useful example.
 
+   If the skill persists artifacts, the entrypoint must name the root owner,
+   creation mechanism, retained contents, consumer, cleanup trigger, and who
+   decides deletion. An arbitrary “persistent directory” is not an artifact
+   contract.
+
    <context-pointer>
    Read or run this when:
    Resource:
@@ -75,11 +86,13 @@ skill misfires through collision, premature completion, sediment, or sprawl.
    it, with no deep reference chain or duplicated procedure.
 
 4. **Write the behavioral grammar.** Lead with the mental model the agent should
-   think through. Use imperative numbered steps for real sequence, bold the
-   decision each step owns, place conditions beside the action, and finish
-   locally with **Done when**. Use semantic XML blocks for contracts, handoffs,
-   ledgers, or output shapes the agent must fill—not as ornamental headings.
-   Put an inline example beside the choice it disambiguates.
+   think through. Match shape to behavior: a thin composer can be a few direct
+   actions, a workflow needs imperative sequence and local **Done when**, and a
+   durable reference can use flat peer rules. Bold only the decision a real
+   step owns; do not make every skill resemble the same template. Use semantic
+   XML blocks for contracts, handoffs, ledgers, or output shapes the agent must
+   fill—not as ornamental headings. Put an inline example beside the choice it
+   disambiguates.
 
    XML blocks are internal working records by default: fill them while doing
    the work, then render only the useful fields in commentary or the final

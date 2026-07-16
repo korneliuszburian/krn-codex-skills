@@ -11,6 +11,7 @@
 | private `krn-skills` | WordPress/domain owner | keep domain-only; do not install as global engineering canon |
 | `mini-metalab-skills` and `krn-skills-lab` | evaluation owners | keep as labs, never runtime sources |
 | generic review, diagnosis, implementation, TypeScript, and advisory workflow formerly in `mise` | this repository | removed from `mise` main; discover only from the installed global catalog |
+| ad hoc `review-artifacts/` beside active repositories | initiating task or research owner | do not move a live pass; after its owner closes, archive the minimal retained set or delete it explicitly; create every new pass through `prepare-artifacts.mjs` |
 | KRN product language, `krn-memory-core`, and Beads | `mise` | retain as domain guidance only |
 | global Claude instructions | this repository | install `CLAUDE.md` as a symlink resolving to the same managed `AGENTS.md` core |
 | hand-maintained user `PreToolUse` hook | this repository | archive the reviewed legacy RTK hook and install one versioned RTK plus destructive-command guard |

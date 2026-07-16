@@ -5,7 +5,9 @@ This repository stores distilled mechanisms, not source corpora.
 ## Matt Pocock
 
 - Source: [mattpocock/skills](https://github.com/mattpocock/skills)
-- Inspected commit: `e9fcdf95b402d360f90f1db8d776d5dd450f9234`
+- Inspected commit: `9603c1cc8118d08bc1b3bf34cf714f62178dea3b`
+- Complete corpus and video ledger:
+  [matt-skills-coverage.md](matt-skills-coverage.md).
 - Adopted: concise entrypoints, explicit invocation policy, progressive
   disclosure, resumable background handoffs that point to durable artifacts,
   pre-agreed public seams, vertical slices, independent Standards and Spec
@@ -15,17 +17,32 @@ This repository stores distilled mechanisms, not source corpora.
   link scripts, mandatory test-first work for changes with no runtime risk,
   and Claude-specific invocation frontmatter as Codex policy.
 - KRN adaptation: Claude handoffs use a clean linked worktree, keep private
-  corpora out of the handoff, and are mechanically denied from 08:00 inclusive
-  until 12:00 exclusive in `Europe/Warsaw`.
+  corpora out of the handoff, resolve one operator-owned artifact directory,
+  and are mechanically denied from 08:00 inclusive until 12:00 exclusive in
+  `Europe/Warsaw`.
+
+## Matt Pocock — coding-agent skills flow
+
+- Source: [My New Coding Agent Skills Setup](https://www.youtube.com/watch?v=M6mYodf0dJM),
+  published and inspected 2026-07-16.
+- Evidence: full English auto-captions retained outside this repository,
+  SHA-256
+  `3b852d7e36a44d5855c1955b89053dbbc0a80b56f24f6bcd685df06f7a1e5bdd`.
+- Adopted mechanisms: explicit scope and harness selection, user-invoked skills
+  as a context/cognitive-load trade, thin global pointers, shared-understanding
+  work before implementation, durable spec/ticket compression, fresh-context
+  vertical slices, and independent Standards plus Spec review.
+- Boundary: the video's reported 38 installed skills and approximate context
+  threshold are observations of that recorded setup, not invariants of the
+  later 41-entrypoint repository or of Codex.
 
 ## Matt Pocock — `/wayfinder` demo
 
 - Source: [LIVE: The /wayfinder Demo](https://youtu.be/251hsWgoTPM), streamed
-  2026-07-13 and inspected 2026-07-15.
-- Private evidence: operator-supplied transcript retained outside this
-  repository, SHA-256
-  `080b1ceb74177cac27af6e59ae90aa5d42036661db882a71adf3a80c2c7e2bf0`
-  (verified locally).
+  2026-07-13 and inspected end to end 2026-07-16.
+- Evidence: full English auto-captions retained outside this repository,
+  SHA-256
+  `59670e24ade68f96fd838f90feb9956a56f01e326ad82533b9517ce20cdaf02a`.
 - Mechanisms observed: decision tickets on a shared map; the map as an index
   into richer artifacts; frontier and fog-of-war vocabulary; claim-before-work
   with one ticket resolved per session; research subagents reporting into the
@@ -35,6 +52,9 @@ This repository stores distilled mechanisms, not source corpora.
 - KRN implication: these mechanisms could coordinate long-running work, but
   this global catalog currently leaves durable task state to the repository
   owner and long-running outcome state to the native Codex goal surface.
+- Observed friction: disposable worktrees required dependency and environment
+  setup, sessions needed manual coordination, approval boundaries interrupted
+  some actions, and the map did not finish during the livestream.
 - Decision: defer the wayfinder map, ticket protocol, global planning/spec
   workflow, research-subagent convention, and orchestration policy. No current
   global owner, production consumer, or falsifier earns another workflow skill.

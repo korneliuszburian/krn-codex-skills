@@ -17,6 +17,12 @@ process/reference relationship.
 
 **Cognitive load** — skill names and routing choices the human must remember.
 
+**Router** — one explicit front door that maps a family of user-invoked skills
+or composes reachable model-invoked owners. It is justified by observed recall
+friction, not by the mere existence of several skills. It cannot bypass the
+harness rule that keeps another explicit-only skill under direct human
+invocation.
+
 **Granularity** — how finely workflows are split. More model-invoked skills
 spend context load; more explicit skills spend cognitive load.
 
@@ -32,6 +38,9 @@ pointer so the entrypoint remains legible.
 
 **Co-location** — keeping one concept's rules and caveats together once they
 are on the same hierarchy level.
+
+**Artifact contract** — the owner, root, creation path, retained set, consumer,
+cleanup trigger, and deletion authority for durable output produced by a skill.
 
 ## Steering
 

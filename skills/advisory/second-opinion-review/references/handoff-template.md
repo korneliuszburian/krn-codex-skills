@@ -1,9 +1,9 @@
 # Claude Handoff
 
-Use this only for a `researcher` or `rewrite-maker` background pass. Keep the
-handoff in a durable operator-controlled directory outside the candidate
-repository; shared `/tmp` paths are not resumable across parallel jobs or
-restarts. Start from a clean disposable worktree.
+Use this only for a `researcher` or `rewrite-maker` background pass. Complete
+the entrypoint's artifact-directory step first and write this brief to
+`/absolute/printed/pass-dir/handoff.md`. Shared `/tmp` paths are not resumable
+across parallel jobs or restarts. Start from a clean disposable worktree.
 
 For a source pass, require this complete disposition chain:
 
@@ -29,7 +29,7 @@ local path under `## Sources` must fall beneath one of those roots.
 bash ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
   --add-dir /absolute/bounded/research-root \
   "TypeScript skill research" \
-  /absolute/persistent/typescript-handoff.md
+  /absolute/printed/pass-dir/handoff.md
 ```
 
 Omit `--add-dir` when every source is already in the worktree. It grants tool
@@ -45,7 +45,7 @@ env SECOND_OPINION_EFFORT=max \
   --accept-edits \
   --add-dir /absolute/bounded/research-root \
   "TypeScript skill rewrite" \
-  /absolute/persistent/handoff.md
+  /absolute/printed/pass-dir/handoff.md
 ```
 
 The command returns immediately. Manage or resume the named job with
@@ -90,11 +90,11 @@ do not paste the corpus into this file.
 
 ## Deliverables
 
-- Artifact and exact path:
-- Coverage or decision ledger:
+- Candidate artifact and exact worktree path:
+- Coverage or decision ledger in the printed pass directory:
 - Candidate patch or findings:
 - Verification evidence:
-- Handoff for the independent checker:
+- Handoff for the independent checker, if earned:
 
 ## Proof boundaries
 

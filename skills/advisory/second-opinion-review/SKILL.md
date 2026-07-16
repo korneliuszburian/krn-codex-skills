@@ -38,11 +38,29 @@ adversarial challenge.
    node ~/.agents/skills/second-opinion-review/scripts/check-claude-window.mjs check
    ```
 
-   **Done when:** the preflight reports an open window. A denied window means
-   prepare the handoff and continue local work until noon; do not invoke
-   Claude.
+   **Done when:** the window state is recorded. An open result permits the later
+   launch; a denied result permits only preparation in steps 3–4, then local
+   work until noon. The runner checks again and cannot invoke Claude early.
 
-3. **Prepare one branch.** For `researcher` or `rewrite-maker`, read
+3. **Open one owned pass directory.** Never invent an artifact folder beside
+   the active repositories. Create one private, unique directory for this pass:
+
+   ```bash
+   node ~/.agents/skills/second-opinion-review/scripts/prepare-artifacts.mjs topic-slug
+   ```
+
+   The helper uses `SECOND_OPINION_ARTIFACT_ROOT` when it names an absolute
+   operator-owned root. Otherwise it uses
+   `$XDG_STATE_HOME/krn/second-opinion-review` when set, or
+   `~/.local/state/krn/second-opinion-review`. Record the printed path as
+   `pass_dir`. The initiating operator owns its contents, classification,
+   retention, and cleanup.
+
+   **Done when:** this pass has exactly one `0700` directory outside the
+   candidate repository, and every durable brief, prompt, review result, or
+   disposition below names a file inside it.
+
+4. **Prepare one branch.** For `researcher` or `rewrite-maker`, read
    [handoff-template.md](references/handoff-template.md); it owns the durable
    handoff, isolated-worktree, source-ledger, and background-launch mechanics.
    For `checker`, read [prompt-template.md](references/prompt-template.md); it
@@ -57,7 +75,7 @@ adversarial challenge.
    **Done when:** exactly one role-specific reference has produced a brief that
    a fresh pass can execute without reconstructing this conversation.
 
-4. **Launch exactly that pass.** Follow the chosen reference's **Launch**
+5. **Launch exactly that pass.** Follow the chosen reference's **Launch**
    section. Record the backend reported by the session; a model alias alone is
    not provider evidence. A linked worktree separates Git ownership but is not
    a filesystem or network sandbox. Claude never gains authority to mutate the
@@ -67,13 +85,16 @@ adversarial challenge.
    thread has yielded, or the synchronous checker emitted schema-compatible
    JSON at the declared path.
 
-5. **Verify before retaining anything.** Resume here only after the background
+6. **Verify before retaining anything.** Resume here only after the background
    pass finishes, or continue directly after a synchronous checker. Treat all
    Claude output as a hypothesis. Run the checker validation named in its
    reference when applicable, then inspect cited lines and source coverage
    locally. Classify each item as
    `accept_and_fix`, `evidence_gap`, `reject_with_evidence`, `follow_up`, or
-   `human_decision`.
+   `human_decision`. Keep only the role brief or checker prompt, validated
+   structured output when one exists, an original source/coverage ledger, and
+   the local disposition. Do not copy source corpora, caches, model transport,
+   or disposable worktree state into `pass_dir`.
 
    <review-output>
    Retained findings:
@@ -86,13 +107,20 @@ adversarial challenge.
    </review-output>
 
    **Done when:** every retained factual claim survives current local evidence,
-   every accepted change has proportionate proof, and no reviewer prose is
-   presented as approval or readiness.
+   every accepted change has proportionate proof, `disposition.md` records the
+   local classification, and no reviewer prose is presented as approval or
+   readiness.
 
-6. **Stop the loop.** Run at most one maker pass and one independent checker
-   pass for the same fixed point. Continue only for a newly evidenced finding;
-   open-ended reviewer debate is not production progress.
+7. **Stop the loop and close its storage.** Run at most one maker pass and one
+   independent checker pass for the same fixed point. Continue only for a newly
+   evidenced finding; open-ended reviewer debate is not production progress.
+   Remove the disposable worktree after its candidate changes are accepted or
+   rejected. Keep `pass_dir` while its issue, goal, or follow-up depends on the
+   evidence; once that owner closes, either archive the minimal retained set in
+   the owner's durable research system or delete the pass directory explicitly.
+   The runners delete their private temporary transport automatically; they do
+   not decide retention of operator evidence.
 
    **Done when:** the owned artifact is locally verified, remaining work has a
-   named owner, and the canonical branch contains only decisions supported by
-   local evidence.
+   named owner, the canonical branch contains only decisions supported by local
+   evidence, and both the worktree and `pass_dir` have an explicit final state.

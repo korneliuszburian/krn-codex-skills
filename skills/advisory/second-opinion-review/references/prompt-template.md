@@ -1,8 +1,11 @@
 # Second Opinion Checker
 
-Challenge one fixed claim using only the supplied evidence. Do not praise,
-approve, block, redesign unrelated code, or invent requirements. Return only
-output matching the supplied JSON schema.
+Challenge one fixed claim using only the supplied evidence. Complete the
+entrypoint's artifact-directory step first; store the filled contract as
+`/absolute/printed/pass-dir/checker.md` and validated output as
+`/absolute/printed/pass-dir/checker.review.json`. Do not praise, approve,
+block, redesign unrelated code, or invent requirements. Return only output
+matching the supplied JSON schema.
 
 ## Launch
 
@@ -30,8 +33,8 @@ than trusting the ambient directory:
 bash ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
   git /absolute/evidence-repository FULL_COMMIT_OID FULL_TREE_OID clean \
   WORKTREE_SHA256 \
-  /absolute/persistent/topic.md \
-  /absolute/persistent/topic.review.json
+  /absolute/printed/pass-dir/checker.md \
+  /absolute/printed/pass-dir/checker.review.json
 ```
 
 For one standalone artifact, bind its current content hash. The runner also
@@ -40,8 +43,8 @@ captures its mode and size, then enters the artifact parent before validation:
 ```bash
 bash ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
   artifact /absolute/evidence/artifact.md ARTIFACT_SHA256 \
-  /absolute/persistent/topic.md \
-  /absolute/persistent/topic.review.json
+  /absolute/printed/pass-dir/checker.md \
+  /absolute/printed/pass-dir/checker.review.json
 ```
 
 Keep the output outside the evidence root. The runner checks identity before
@@ -54,6 +57,9 @@ partially. Temporary transport state and Claude's tool-free working directory
 are placed under a private system temp root proven outside the evidence root.
 It rechecks the prompt, manifest, and fixed point before accepting output. A
 later validation also fails if the prompt, repository, or artifact has changed.
+The output path must not exist before launch. Give every pass its own artifact
+directory so a rejected attempt cannot be confused with an earlier valid
+result; never rerun into the same output path.
 
 Use an uncapped checker only with explicit operator authority by setting
 `SECOND_OPINION_MAX_BUDGET_USD=unlimited`; otherwise keep the runner's bounded
@@ -62,8 +68,8 @@ finding:
 
 ```bash
 python3 ~/.agents/skills/second-opinion-review/scripts/validate-review.py \
-  check /absolute/persistent/topic.review.json \
-  /absolute/persistent/topic.md
+  check /absolute/printed/pass-dir/checker.review.json \
+  /absolute/printed/pass-dir/checker.md
 ```
 
 <checker-contract>
