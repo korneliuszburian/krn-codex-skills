@@ -82,6 +82,8 @@ The installer:
   rewriting, denies the forbidden capability family, and blocks destructive
   removal of repository roots, agent configuration, secrets, Beads state, and
   database files;
+- keeps RTK as an optional optimization: missing, timed-out, or non-rewriting
+  RTK calls pass through unchanged after the destructive guard has run;
 - refuses unowned skill/global-instruction collisions and masking
   `AGENTS.override.md` files, and refuses foreign hook replacement without
   `KRN_REPLACE_GLOBAL_HOOKS=1`.

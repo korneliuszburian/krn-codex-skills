@@ -118,7 +118,7 @@ class DestructiveGuardTests(unittest.TestCase):
         output = json.loads(result.stdout)
         self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
 
-    def test_public_hook_fails_closed_when_rtk_is_unavailable(self) -> None:
+    def test_public_hook_keeps_rtk_optional_when_it_is_unavailable(self) -> None:
         payload = {
             "hook_event_name": "PreToolUse",
             "tool_name": "Bash",
@@ -134,8 +134,40 @@ class DestructiveGuardTests(unittest.TestCase):
             env={**os.environ, "PATH": ""},
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        output = json.loads(result.stdout)
-        self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+        self.assertEqual(result.stdout, "")
+
+    def test_public_hook_accepts_normal_rtk_nonzero_outcomes(self) -> None:
+        for command, expect_rewrite in (
+            ("rtk pwd", False),
+            ("git status --short", True),
+        ):
+            with self.subTest(command=command):
+                payload = {
+                    "hook_event_name": "PreToolUse",
+                    "tool_name": "Bash",
+                    "cwd": str(self.repo),
+                    "tool_input": {"command": command},
+                }
+                result = subprocess.run(
+                    [sys.executable, str(HOOK)],
+                    input=json.dumps(payload),
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                if expect_rewrite:
+                    output = json.loads(result.stdout)
+                    self.assertEqual(
+                        output["hookSpecificOutput"]["permissionDecision"],
+                        "allow",
+                    )
+                    self.assertEqual(
+                        output["hookSpecificOutput"]["updatedInput"]["command"],
+                        "rtk git status --short",
+                    )
+                else:
+                    self.assertEqual(result.stdout, "")
 
 
 if __name__ == "__main__":

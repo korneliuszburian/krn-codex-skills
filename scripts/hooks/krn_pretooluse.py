@@ -10,6 +10,8 @@ import subprocess
 import sys
 from typing import Any
 
+sys.dont_write_bytecode = True
+
 from destructive_guard import (
     destructive_denial_reason,
     protected_path_reason,
@@ -70,10 +72,8 @@ def rewrite_through_rtk(command: str) -> str | None:
             check=False,
             timeout=5,
         )
-    except (OSError, subprocess.TimeoutExpired) as error:
-        raise RuntimeError("RTK command policy is unavailable") from error
-    if result.returncode != 0:
-        raise RuntimeError("RTK command policy rejected the rewrite request")
+    except (OSError, subprocess.TimeoutExpired):
+        return None
     rewritten = result.stdout.strip()
     if not rewritten or rewritten == command:
         return None
@@ -138,10 +138,7 @@ def main() -> int:
             "reviewed destructive action manually outside Codex."
         )
 
-    try:
-        rewritten = rewrite_through_rtk(command)
-    except RuntimeError as error:
-        return emit_denial(str(error))
+    rewritten = rewrite_through_rtk(command)
     if rewritten is None:
         return 0
 
