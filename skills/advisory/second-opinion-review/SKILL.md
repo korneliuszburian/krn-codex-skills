@@ -47,15 +47,23 @@ checker when a fixed artifact only needs an adversarial challenge.
    the active repositories. Create one private, unique directory for this pass:
 
    ```bash
-   node ~/.agents/skills/second-opinion-review/scripts/prepare-artifacts.mjs topic-slug
+   node ~/.agents/skills/second-opinion-review/scripts/prepare-artifacts.mjs topic-slug research
    ```
 
-   The helper uses `SECOND_OPINION_ARTIFACT_ROOT` when it names an absolute
-   operator-owned root. Otherwise it uses
+   The optional second argument is the role category — `research`, `rewrite`, or
+   `check` — matching the role chosen in step 1; it defaults to `passes`. The
+   helper resolves the artifact root from `SECOND_OPINION_ARTIFACT_ROOT` when it
+   names an absolute operator-owned root, otherwise
    `$XDG_STATE_HOME/krn/second-opinion-review` when set, or
-   `~/.local/state/krn/second-opinion-review`. Record the printed path as
-   `pass_dir`. The initiating operator owns its contents, classification,
-   retention, and cleanup.
+   `~/.local/state/krn/second-opinion-review`. Under that root it places the pass
+   at `<root>/<project>/<category>/<pass>`: project is the `SECOND_OPINION_PROJECT`
+   override when set, else the basename of the cwd git repository (sanitized to
+   kebab), else `adhoc`. Set `SECOND_OPINION_ARTIFACT_ROOT` once in your shell
+   profile to keep passes with your project tree; the pass always stays outside
+   the candidate repository. Record the printed path as `pass_dir`. The
+   initiating operator owns its contents, classification, retention, and cleanup;
+   `prepare-artifacts.mjs list` enumerates every pass under the configured root
+   with its project, category, and job state.
 
    **Done when:** this pass has exactly one `0700` directory outside the
    candidate repository, and every durable brief, prompt, review result, or
