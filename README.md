@@ -19,6 +19,7 @@ source claim  -> source-to-decision -> decision      -> implement
 another repo  -> target-repo-work   -> scoped result -> handoff
 TypeScript    -> workflow owner + typescript-engineering companion
 global tools  -> managing-codex-capabilities -> reviewed profile -> fresh session
+foggy choices -> batch-grill-me     -> confirmed decision ledger -> chosen owner
 ```
 
 `config/AGENTS.md` carries one universal production-first core. Codex loads it
@@ -41,7 +42,8 @@ branch that needs them.
 | `typescript-engineering` | model or user | TypeScript boundaries, APIs, compiler mechanics, and proof |
 | `managing-codex-capabilities` | model or user | global skill, plugin, MCP, usage, and profile control |
 | `writing-great-skills` | model or user | predictable skill authoring and trigger design |
-| `second-opinion-review` | explicit only | isolated Claude research/rewrite handoff or validated checker |
+| `second-opinion-review` | explicit only | validated Claude research campaigns, isolated rewrite handoffs, or fixed-point checker |
+| `batch-grill-me` | explicit only | frontier-round interview before any artifact or implementation |
 
 No top-level “coding system” orchestrates everything. Native Codex goal mode
 owns long-running outcome state; repositories choose their durable tracker;
@@ -97,11 +99,11 @@ temp-root trial. Overriding one never silently redirects another.
 Run `check` again after installation. Restart Codex if the current session
 does not refresh its installed skill index: discovery is session-scoped, so an
 already-open picker is not evidence that the installed symlink is missing.
-`second-opinion-review` is explicit-only: Codex cannot select it implicitly,
-while an explicit `$skill` invocation remains available. Some API sessions may
-omit it from the injected model-visible list; that observation is not the
-activation contract. In a fresh interactive session, type
-`$second-opinion-review` and select **Second Opinion Review [Skill]** from the
+`second-opinion-review` and `batch-grill-me` are explicit-only: Codex cannot
+select them implicitly, while an explicit `$skill` invocation remains
+available. Some API sessions may omit them from the injected model-visible
+list; that observation is not the activation contract. In a fresh interactive
+session, type the full `$skill-name` and select its **[Skill]** entry from the
 picker; plain prompt text that resembles the name is not the same attachment.
 
 New or changed non-managed hooks must also be reviewed and trusted through
@@ -114,6 +116,15 @@ New or changed non-managed hooks must also be reviewed and trusted through
 research owner. Do not place ad hoc review folders beside active repositories;
 the skill defines what is retained and when the initiating issue or goal can
 archive or remove it.
+
+Large research uses a versioned `campaign.json`: independent read-only shards
+publish validated mechanism ledgers, then one synthesis shard consumes only
+those current results. Every shard has a bounded Claude budget and timeout,
+durable job state, exact source coverage, and a freshness check across the
+campaign, clean repository, mechanically pinned local artifacts, declared URL
+provenance, and dependency results.
+This is source investigation, not a second code-review lane; all recommendations
+remain advisory until the local owner verifies and disposes them.
 
 ## Capability Catalog
 

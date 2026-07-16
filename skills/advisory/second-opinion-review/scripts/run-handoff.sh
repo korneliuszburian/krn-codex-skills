@@ -144,29 +144,22 @@ while IFS= read -r line; do
     "- Role:"*)
       ((role_lines += 1))
       case "$line" in
-        "- Role: researcher" | '- Role: `researcher`')
-          handoff_role=researcher
-          ;;
         "- Role: rewrite-maker" | '- Role: `rewrite-maker`')
           handoff_role=rewrite-maker
           ;;
         *)
-          echo "background handoff role must be researcher or rewrite-maker; use run-review.sh for checker" >&2
+          echo "background handoff role must be rewrite-maker; use run-research.mjs for researcher or run-review.sh for checker" >&2
           exit 65
           ;;
       esac
       ;;
   esac
 done < "$handoff_file"
-if (( role_lines != 1 )) || [[ -z "$handoff_role" ]]; then
-  echo "handoff must contain exactly one background Role: researcher or rewrite-maker" >&2
+if (( role_lines != 1 )) || [[ "$handoff_role" != "rewrite-maker" ]]; then
+  echo "handoff must contain exactly one background Role: rewrite-maker" >&2
   exit 65
 fi
-if [[ "$handoff_role" == "researcher" && "$accept_edits" == true ]]; then
-  echo "researcher handoffs cannot use --accept-edits" >&2
-  exit 65
-fi
-if [[ "$handoff_role" == "rewrite-maker" && "$accept_edits" == false ]]; then
+if [[ "$accept_edits" == false ]]; then
   echo "rewrite-maker handoffs require explicit --accept-edits authority" >&2
   exit 65
 fi

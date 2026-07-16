@@ -212,7 +212,7 @@ The demo is valuable because it exposes friction as well as the intended model.
 | low-resolution map plus child decision tickets | the map is an index; tickets and linked artifacts own detail | copying all detail into the map causes context growth and drift | Bead/goal points to bounded evidence; detail stays with its owner |
 | frontier and fog | ready, unblocked, unclaimed work differs from future decisions that are not yet precise | pretending fog is an actionable ticket produces false granularity | only claim a locally executable slice; record unresolved decisions explicitly |
 | claim before work | one agent takes ownership before investigating a ticket | parallel work without claims duplicates or conflicts | Beads claim remains the durable KRN ownership seam |
-| research ticket | sources can be investigated in parallel and returned as a thick artifact behind a thin pointer | source text is not itself a decision; private corpus must not enter active context | use source-to-decision and retain an original mechanism ledger |
+| research ticket | sources can be investigated in parallel and returned as a thick artifact behind a thin pointer | source text is not itself a decision; private corpus must not enter active context | use a validated `second-opinion-review` research campaign for delegated reading, then let `source-to-decision` own adoption |
 | decision ticket versus implementation ticket | planning resolves choices; later tickets build the settled result | mixing them lets implementation pressure prematurely decide product questions | retain separate decision and implementation ownership |
 | prototype for fidelity | disposable code can answer UI or state questions that prose cannot | worktree dependencies, environment setup, symlinks, and cleanup add real cost | prototype only when the question cannot be resolved more cheaply; keep it disposable |
 | grilling with a human | the agent finds facts and asks; the human makes product decisions | unattended questioning cannot supply human preferences | preserve human-only decisions in contracts and handoffs |
@@ -226,6 +226,29 @@ tickets → fresh implementation passes → full code review → human review. T
 video explicitly distinguishes decision tickets from implementation tickets;
 KRN should not flatten those owners into one generic task type.
 
+## `batch-grill-me`: useful experiment, deliberately narrow adoption
+
+At the pinned commit, `batch-grill-me` is an explicit-only, 15-line draft in
+the `in-progress` bucket. It is absent from the promoted plugin, top-level
+supported surface, human docs, and `ask-matt` flow. That status is evidence
+about Matt's release confidence: the mechanism is inspectable, but upstream
+does not yet promise it as a supported workflow.
+
+Its distinct mechanism is **frontier-round interviewing**. Ordinary `grilling`
+walks one dependency branch and asks one question at a time. `batch-grill-me`
+asks every currently independent decision together, then recomputes the tree
+after the answers. Wayfinder goes further by persisting a multi-session map,
+claims, dependencies, fog, and ticket resolutions. Treating those three shapes
+as synonyms would erase their different invocation and artifact contracts.
+
+KRN adopts only the middle shape as the explicit-only `batch-grill-me` skill:
+one interactive session, no implicit routing, no durable artifact by default,
+facts investigated by the agent, decisions left to the user, and a confirmation
+gate before any spec, ticket, or implementation. We do not copy the draft's
+unconditional subagent instruction because delegation remains harness- and
+authority-dependent. The adoption is earned by an operator-requested workflow
+and an observable completion condition, not by upstream promotion status.
+
 ## Source-to-decision matrix
 
 | Source mechanism | KRN consumer | Decision | Falsifier | Does not prove |
@@ -233,13 +256,15 @@ KRN should not flatten those owners into one generic task type.
 | promoted versus experimental buckets | manifest and installer | adopt one explicit supported surface; add labs only for a named experiment | an unmanifested skill appears in the installed KRN index | that every promoted skill routes correctly |
 | user/model invocation split | descriptions, `openai.yaml`, trigger cases | adopt; keep second opinion explicit | a fresh implicit prompt invokes second opinion, or explicit mention cannot discover it | low total context cost in every harness |
 | `ask-matt` router | skill catalog UX | defer for KRN | users repeatedly fail to recall or choose among a measured family of explicit KRN skills | that routers are bad generally |
+| frontier-round interview | explicit `batch-grill-me` | adopt as a stateless pre-action decision workflow | it asks downstream questions in the same round, asks the user for discoverable facts, or acts before confirmation | that batch questions outperform serial grilling for every user |
 | semantic variation in skill shape | `writing-great-skills` | adopt | reviewers force sequence onto flat rules or inflate a thin composer | that short skills are automatically clear |
 | direct companion references | validator and information ladder | adopt with stricter KRN pointer checks | a branch requires deep chasing or an orphaned reference escapes validation | reference content is behaviorally correct |
 | symlink installation | installer | adopt collision-safe variant | a fresh isolated install cannot discover the canonical target | an already-open session refreshes its picker |
 | destructive collision replacement | installer | reject | explicit migration authority and a recoverable archive make replacement safe | that silent `rm -rf` is acceptable |
 | thin global instructions plus domain pointers | global and repository `AGENTS.md` | adopt | a repository cannot recover its current language or gates from direct pointers | that every repository instruction is current |
 | smart-zone compaction | native goal plus tracker | adopt mechanism, not numeric threshold | a long session loses settled decisions before durable compression | that 140k is optimal for Codex |
-| map/frontier/fog | Beads and goal planning | adopt vocabulary through existing owners, not a copied global skill | the tracker cannot represent blocked, unclaimed, or unresolved work | that Wayfinder's orchestration fits KRN unchanged |
+| map/frontier/fog | repo-local Beads and native goal planning | adopt behavior through existing owners; reject a duplicate global Wayfinder | the tracker cannot represent blocked, unclaimed, or unresolved work | that Wayfinder's orchestration fits KRN unchanged |
+| AFK research tickets | `second-opinion-review` researcher plus `source-to-decision` | adopt bounded campaigns and keep adoption local | a shard can publish unvalidated or stale evidence, or its recommendation becomes a decision without local verification | that Claude output is correct or that every investigation needs delegation |
 | independent Standards and Spec review | `code-review` | adopt | one pass conflates both lenses or edits the reviewed fixed point | release readiness or runtime correctness |
 | isolated advisory reviewer | `second-opinion-review` | adopt with explicit authority and artifact lifecycle | output mutates canonical work, lacks identity, or lands in an ownerless folder | approval, correctness, or provider identity from a model alias |
 
@@ -248,11 +273,14 @@ KRN should not flatten those owners into one generic task type.
 KRN should become easier to route and inspect, not more Matt-shaped. The
 supported set remains small; model-facing descriptions remain boundary-rich;
 all companion references stay directly reachable; the installer stays
-collision-safe; native goal and Beads remain the long-running owners; and
-`second-opinion-review` gains a deterministic artifact root and lifecycle.
+collision-safe; native goal and Beads remain the long-running owners;
+`second-opinion-review` owns a deterministic research/review artifact
+lifecycle; and `batch-grill-me` owns only the explicit frontier-round interview.
 
-A future router or Wayfinder-like orchestrator requires evidence that operators
-cannot reliably select the current explicit skills or that native goal plus the
-repository tracker loses a real decision frontier. The videos demonstrate
-useful mechanisms and real costs, but they do not supply that KRN-specific
-failure evidence.
+A future router requires evidence that operators cannot reliably select the
+current explicit skills. A global Wayfinder-like orchestrator requires evidence
+that native goal plus the repository tracker loses a real decision frontier.
+The videos demonstrate useful mechanisms and real costs, but they do not supply
+either KRN-specific failure. A project that already installs Beads has the
+Wayfinder map/frontier/fog behavior without giving the global catalog ownership
+of every repository's tracker.

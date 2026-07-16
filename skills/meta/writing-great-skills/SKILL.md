@@ -49,7 +49,9 @@ skill misfires through collision, premature completion, sediment, or sprawl.
    harder to recall than one front door. The router maps the choice and may
    compose only owners reachable under the harness invocation policy; the user
    still selects another explicit-only skill. It must not restate or acquire
-   the workflows it points to.
+   the workflows it points to. When a router exists, adding, removing,
+   renaming, or repositioning a user-reachable skill must update the router in
+   the same change; otherwise its map is a false contract.
 
    <trigger-case expected="invoke | compose | skip">
    Raw prompt:

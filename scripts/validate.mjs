@@ -491,6 +491,38 @@ if (secondOpinion) {
   } else {
     validateTransportSchema(json(reviewSchemaPath));
   }
+  const researchSchemaPath = path.join(
+    skillRoot,
+    "references",
+    "research.schema.json",
+  );
+  if (!fs.existsSync(researchSchemaPath)) {
+    fail(`${secondOpinion.path}: missing research.schema.json`);
+  } else {
+    validateTransportSchema(json(researchSchemaPath));
+  }
+
+  for (const requiredFile of [
+    "references/research-template.md",
+    "scripts/research-campaign.mjs",
+    "scripts/run-research.mjs",
+  ]) {
+    if (!fs.existsSync(path.join(skillRoot, requiredFile))) {
+      fail(`${secondOpinion.path}: missing ${requiredFile}`);
+    }
+  }
+  const researchRunner = read(path.join(skillRoot, "scripts", "run-research.mjs"));
+  const researchWindow = researchRunner.indexOf("check-claude-window.mjs");
+  const researchInvocation = researchRunner.indexOf("claudeInvoker({");
+  if (
+    researchWindow === -1 ||
+    researchInvocation === -1 ||
+    researchWindow >= researchInvocation
+  ) {
+    fail(
+      `${secondOpinion.path}: run-research.mjs must bind the Claude window before invocation`,
+    );
+  }
 
   const windowGuard = "check-claude-window.mjs";
   for (const runner of ["run-review.sh", "run-handoff.sh"]) {

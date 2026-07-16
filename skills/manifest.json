@@ -79,6 +79,11 @@
       "name": "writing-great-skills",
       "path": "skills/meta/writing-great-skills",
       "implicit": true
+    },
+    {
+      "name": "batch-grill-me",
+      "path": "skills/productivity/batch-grill-me",
+      "implicit": false
     }
   ],
   "legacy_user_paths": [

@@ -314,13 +314,26 @@
       ]
     },
     {
+      "id": "explicit-batch-grill",
+      "prompt": "Use $batch-grill-me to ask every currently answerable design question in rounds before we create a spec or change anything.",
+      "expected_skills": [
+        "batch-grill-me"
+      ],
+      "forbidden_skills": [
+        "domain-modeling",
+        "implement",
+        "second-opinion-review"
+      ]
+    },
+    {
       "id": "second-opinion-stays-explicit",
       "prompt": "Implement this small parser change and run its focused proof.",
       "expected_skills": [
         "implement"
       ],
       "forbidden_skills": [
-        "second-opinion-review"
+        "second-opinion-review",
+        "batch-grill-me"
       ]
     },
     {
