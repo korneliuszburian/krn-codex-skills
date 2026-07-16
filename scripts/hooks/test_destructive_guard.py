@@ -118,7 +118,7 @@ class DestructiveGuardTests(unittest.TestCase):
         output = json.loads(result.stdout)
         self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
 
-    def test_public_hook_keeps_rtk_optional_when_it_is_unavailable(self) -> None:
+    def test_public_hook_needs_no_external_proxy(self) -> None:
         payload = {
             "hook_event_name": "PreToolUse",
             "tool_name": "Bash",
@@ -136,11 +136,8 @@ class DestructiveGuardTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "")
 
-    def test_public_hook_accepts_normal_rtk_nonzero_outcomes(self) -> None:
-        for command, expect_rewrite in (
-            ("rtk pwd", False),
-            ("git status --short", True),
-        ):
+    def test_public_hook_allows_benign_command_unmodified(self) -> None:
+        for command in ("rtk pwd", "git status --short", "echo safe"):
             with self.subTest(command=command):
                 payload = {
                     "hook_event_name": "PreToolUse",
@@ -156,18 +153,11 @@ class DestructiveGuardTests(unittest.TestCase):
                     check=False,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
-                if expect_rewrite:
-                    output = json.loads(result.stdout)
-                    self.assertEqual(
-                        output["hookSpecificOutput"]["permissionDecision"],
-                        "allow",
-                    )
-                    self.assertEqual(
-                        output["hookSpecificOutput"]["updatedInput"]["command"],
-                        "rtk git status --short",
-                    )
-                else:
-                    self.assertEqual(result.stdout, "")
+                self.assertEqual(
+                    result.stdout,
+                    "",
+                    "a benign command is allowed without modification or emitted decision",
+                )
 
 
 if __name__ == "__main__":

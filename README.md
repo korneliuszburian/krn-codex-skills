@@ -80,12 +80,9 @@ The installer:
 - installs the versioned global `AGENTS.md`;
 - installs a collision-safe Claude `CLAUDE.md` symlink to that same semantic
   core;
-- installs one versioned user-level `PreToolUse` hook that preserves RTK
-  rewriting, denies the forbidden capability family, and blocks destructive
-  removal of repository roots, agent configuration, secrets, Beads state, and
-  database files;
-- keeps RTK as an optional optimization: missing, timed-out, or non-rewriting
-  RTK calls pass through unchanged after the destructive guard has run;
+- installs one versioned user-level `PreToolUse` hook that denies the forbidden
+  capability family and blocks destructive removal of repository roots, agent
+  configuration, secrets, Beads state, and database files;
 - refuses unowned skill/global-instruction collisions and masking
   `AGENTS.override.md` files, and refuses foreign hook replacement without
   `KRN_REPLACE_GLOBAL_HOOKS=1`.

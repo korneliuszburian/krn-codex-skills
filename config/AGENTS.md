@@ -2,7 +2,7 @@
 
 ## Shell and safety
 
-- At the agent tool-call boundary, prefix every shell command and pipeline segment with `rtk`; keep reusable skills and scripts wrapper-agnostic.
+- Run shell commands directly at the agent boundary; do not route them through an output-transforming proxy such as `rtk`, which breaks pipelines and output fidelity for marginal token savings. Keep reusable skills and scripts wrapper-agnostic; the destructive guard still parses known command prefixes defensively.
 - Never install, enable, invoke, read, or inspect any `superpowers` plugin or
   skill. Ignore it if surfaced by a tool index.
 - Preserve unrelated dirty work. Mutate only paths owned by the active task.

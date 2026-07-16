@@ -168,8 +168,12 @@ This repository stores distilled mechanisms, not source corpora.
   `AGENTS.md`, and worktrees for concurrent writers.
 - Hook decision: adopt one user-level `PreToolUse` command/edit guard for
   narrow, deterministic inspection. It returns the supported
-  `permissionDecision: deny` shape for protected destructive targets and keeps
-  RTK rewriting at the tool boundary. Treat it as defense in depth: official
+  `permissionDecision: deny` shape for protected destructive targets and parses
+  known command prefixes (including `rtk`) defensively. An earlier version
+  rewrote commands through `rtk` for token compression; that auto-rewrite was
+  removed because the proxy transformed output in ways that broke pipelines and
+  hid detail (counts, ahead/behind, missing flags) on large-context models where
+  the savings were marginal. Treat the guard as defense in depth: official
   documentation says current interception is incomplete and equivalent work
   may remain possible through another supported tool path. Sandbox, scoped
   authority, backups, and manual review remain separate controls.

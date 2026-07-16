@@ -14,7 +14,7 @@
 | ad hoc `review-artifacts/` beside active repositories | initiating task or research owner | do not move a live pass; after its owner closes, archive the minimal retained set or delete it explicitly; create every new pass through `prepare-artifacts.mjs` |
 | KRN product language, `krn-memory-core`, and Beads | `mise` | retain as domain guidance only |
 | global Claude instructions | this repository | install `CLAUDE.md` as a symlink resolving to the same managed `AGENTS.md` core |
-| hand-maintained user `PreToolUse` hook | this repository | archive the reviewed legacy RTK hook and install one versioned RTK plus destructive-command guard |
+| hand-maintained user `PreToolUse` hook | this repository | archive the reviewed legacy hook and install one versioned destructive-command guard (the earlier RTK auto-rewrite was later removed; see SOURCES) |
 
 ## Installation Invariants
 

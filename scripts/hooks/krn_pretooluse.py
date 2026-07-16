@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import re
-import subprocess
 import sys
 from typing import Any
 
@@ -60,24 +59,6 @@ def emit_denial(reason: str) -> int:
         )
     )
     return 0
-
-
-def rewrite_through_rtk(command: str) -> str | None:
-    try:
-        result = subprocess.run(
-            ["rtk", "rewrite", command],
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            check=False,
-            timeout=5,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    rewritten = result.stdout.strip()
-    if not rewritten or rewritten == command:
-        return None
-    return rewritten
 
 
 def parse_payload(raw: str) -> dict[str, Any]:
@@ -138,21 +119,6 @@ def main() -> int:
             "reviewed destructive action manually outside Codex."
         )
 
-    rewritten = rewrite_through_rtk(command)
-    if rewritten is None:
-        return 0
-
-    print(
-        json.dumps(
-            {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "allow",
-                    "updatedInput": {"command": rewritten},
-                }
-            }
-        )
-    )
     return 0
 
 
