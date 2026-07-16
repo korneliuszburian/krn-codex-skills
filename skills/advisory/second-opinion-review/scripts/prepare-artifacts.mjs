@@ -5,10 +5,17 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const fallbackNamespace = "adhoc";
 const defaultCategory = "passes";
+export const defaultRoot = path.join(
+  os.homedir(),
+  "coding",
+  "krn",
+  "second-opinion-review",
+);
 
 function sanitizeNamespace(value) {
   return String(value)
@@ -27,35 +34,6 @@ function detectProjectNamespace(cwd) {
   return namespace || fallbackNamespace;
 }
 
-function resolveProjectNamespace({ project, cwd }) {
-  if (project !== undefined && project !== "") {
-    const namespace = sanitizeNamespace(project);
-    if (!slugPattern.test(namespace)) {
-      throw new Error(
-        "SECOND_OPINION_PROJECT must sanitize to lowercase letters, digits, and single hyphens",
-      );
-    }
-    return namespace;
-  }
-  return detectProjectNamespace(cwd);
-}
-
-function resolveArtifactRoot({ root, stateHome }) {
-  if (root && !path.isAbsolute(root)) {
-    throw new Error("SECOND_OPINION_ARTIFACT_ROOT must be absolute");
-  }
-  if (stateHome && !path.isAbsolute(stateHome)) {
-    throw new Error("XDG_STATE_HOME must be absolute");
-  }
-  return root
-    ? path.resolve(root)
-    : path.join(
-        stateHome ? path.resolve(stateHome) : path.join(os.homedir(), ".local", "state"),
-        "krn",
-        "second-opinion-review",
-      );
-}
-
 function assertPrivateRealDirectory(target, label) {
   const stat = fs.lstatSync(target);
   if (!stat.isDirectory() || stat.isSymbolicLink()) {
@@ -63,13 +41,12 @@ function assertPrivateRealDirectory(target, label) {
   }
 }
 
-function prepareArtifactDirectory({
+export function prepareArtifactDirectory({
   slug,
   category = defaultCategory,
-  root = process.env.SECOND_OPINION_ARTIFACT_ROOT,
-  stateHome = process.env.XDG_STATE_HOME,
-  project = process.env.SECOND_OPINION_PROJECT,
+  project,
   cwd = process.cwd(),
+  root = defaultRoot,
   now = new Date(),
 } = {}) {
   if (!slugPattern.test(slug ?? "")) {
@@ -79,12 +56,14 @@ function prepareArtifactDirectory({
     throw new Error("category must use lowercase letters, digits, and single hyphens");
   }
 
-  const selectedRoot = resolveArtifactRoot({ root, stateHome });
-  fs.mkdirSync(selectedRoot, { recursive: true, mode: 0o700 });
-  assertPrivateRealDirectory(selectedRoot, "artifact root");
+  fs.mkdirSync(root, { recursive: true, mode: 0o700 });
+  assertPrivateRealDirectory(root, "artifact root");
 
-  const namespace = resolveProjectNamespace({ project, cwd });
-  const namespaceDirectory = path.join(selectedRoot, namespace);
+  const namespace = project ? sanitizeNamespace(project) : detectProjectNamespace(cwd);
+  if (!slugPattern.test(namespace)) {
+    throw new Error("project must sanitize to lowercase letters, digits, and single hyphens");
+  }
+  const namespaceDirectory = path.join(root, namespace);
   fs.mkdirSync(namespaceDirectory, { recursive: true, mode: 0o700 });
   assertPrivateRealDirectory(namespaceDirectory, "project namespace directory");
 
@@ -116,16 +95,12 @@ function readJobState(passDirectory) {
   return state;
 }
 
-function listPasses({
-  root = process.env.SECOND_OPINION_ARTIFACT_ROOT,
-  stateHome = process.env.XDG_STATE_HOME,
-} = {}) {
-  const selectedRoot = resolveArtifactRoot({ root, stateHome });
-  if (!fs.existsSync(selectedRoot)) return [];
+export function listPasses({ root = defaultRoot } = {}) {
+  if (!fs.existsSync(root)) return [];
   const passes = [];
-  for (const namespace of fs.readdirSync(selectedRoot, { withFileTypes: true })) {
+  for (const namespace of fs.readdirSync(root, { withFileTypes: true })) {
     if (!namespace.isDirectory() || namespace.isSymbolicLink()) continue;
-    const namespacePath = path.join(selectedRoot, namespace.name);
+    const namespacePath = path.join(root, namespace.name);
     for (const category of fs.readdirSync(namespacePath, { withFileTypes: true })) {
       if (!category.isDirectory() || category.isSymbolicLink()) continue;
       const categoryPath = path.join(namespacePath, category.name);
@@ -159,7 +134,7 @@ function main(argv) {
     }
     const passes = listPasses();
     if (!passes.length) {
-      process.stdout.write("(no passes found under the configured artifact root)\n");
+      process.stdout.write("(no passes found under the artifact root)\n");
       return;
     }
     process.stdout.write("project\tcategory\tpass\tstate\n");
@@ -179,9 +154,22 @@ function main(argv) {
   );
 }
 
-try {
-  main(process.argv.slice(2));
-} catch (error) {
-  process.stderr.write(`${error.message}\n`);
-  process.exitCode = 64;
+function invokedAsMain() {
+  if (!process.argv[1]) return false;
+  try {
+    return (
+      fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsMain()) {
+  try {
+    main(process.argv.slice(2));
+  } catch (error) {
+    process.stderr.write(`${error.message}\n`);
+    process.exitCode = 64;
+  }
 }

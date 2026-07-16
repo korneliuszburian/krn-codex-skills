@@ -52,15 +52,12 @@ checker when a fixed artifact only needs an adversarial challenge.
 
    The optional second argument is the role category — `research`, `rewrite`, or
    `check` — matching the role chosen in step 1; it defaults to `passes`. The
-   helper resolves the artifact root from `SECOND_OPINION_ARTIFACT_ROOT` when it
-   names an absolute operator-owned root, otherwise
-   `$XDG_STATE_HOME/krn/second-opinion-review` when set, or
-   `~/.local/state/krn/second-opinion-review`. Under that root it places the pass
-   at `<root>/<project>/<category>/<pass>`: project is the `SECOND_OPINION_PROJECT`
-   override when set, else the basename of the cwd git repository (sanitized to
-   kebab), else `adhoc`. Set `SECOND_OPINION_ARTIFACT_ROOT` once in your shell
-   profile to keep passes with your project tree; the pass always stays outside
-   the candidate repository. Record the printed path as `pass_dir`. The
+   artifact root is fixed in the skill at `~/coding/krn/second-opinion-review`, so
+   every pass lands with the project tree with no environment setup and no
+   per-session restart. Each pass lives at `<root>/<project>/<category>/<pass>`:
+   `project` is the basename of the cwd git repository (sanitized to kebab), else
+   `adhoc`. The pass always stays outside the candidate repository.
+   Record the printed path as `pass_dir`. The
    initiating operator owns its contents, classification, retention, and cleanup;
    `prepare-artifacts.mjs list` enumerates every pass under the configured root
    with its project, category, and job state.
