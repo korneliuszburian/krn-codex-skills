@@ -1,0 +1,6 @@
+interface:
+  display_name: "Batch Grill Me"
+  short_description: "Frontier-round interview for shared understanding"
+  default_prompt: "Use $batch-grill-me to surface and resolve every ready design decision with me before taking action."
+policy:
+  allow_implicit_invocation: false

@@ -1,17 +1,10 @@
 # Claude Handoff
 
-Use this only for a `researcher` or `rewrite-maker` background pass. Complete
-the entrypoint's artifact-directory step first and write this brief to
+Use this only for a `rewrite-maker` background pass. A source investigation
+uses [research-template.md](research-template.md) instead. Complete the
+entrypoint's artifact-directory step first and write this brief to
 `/absolute/printed/pass-dir/handoff.md`. Shared `/tmp` paths are not resumable
 across parallel jobs or restarts. Start from a clean disposable worktree.
-
-For a source pass, require this complete disposition chain:
-
-<source-decision>
-Source and version -> mechanism -> conditions and traps -> local standard ->
-workflow consumer -> example -> falsifier -> does-not-prove ->
-adopted | rejected | omitted-with-reason
-</source-decision>
 
 ## Launch
 
@@ -20,24 +13,9 @@ another explicit alias or pinned identifier. Local provider configuration owns
 the actual backend, so record what the session reports and never infer the
 provider from the alias.
 
-Bounded source access and edit authority are separate grants. Research is
-read-only by default. When a named local source is outside the disposable
-worktree, repeat `--add-dir` for each smallest containing root; every external
-local path under `## Sources` must fall beneath one of those roots.
-
-```bash
-bash ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
-  --add-dir /absolute/bounded/research-root \
-  "TypeScript skill research" \
-  /absolute/printed/pass-dir/handoff.md
-```
-
-Omit `--add-dir` when every source is already in the worktree. It grants tool
-access to a root; it does not grant edit acceptance or enforce a read-only
-source boundary. The runner rejects `--accept-edits` for a `researcher` role.
-
-For an authorized `rewrite-maker`, add the required `--accept-edits` flag and
-retain only the smallest required source roots:
+Add the required `--accept-edits` flag and retain only the smallest required
+source roots. Every `--add-dir` joins Claude's editable workspace in this mode;
+point it only at a disposable input copy, never an authoritative source corpus:
 
 ```bash
 env SECOND_OPINION_EFFORT=max \
@@ -60,7 +38,7 @@ worktree is an ownership boundary, not a filesystem or network sandbox.
 
 ## Role and completion
 
-- Role: `researcher` | `rewrite-maker`
+- Role: `rewrite-maker`
 - Done when:
 - Do not decide:
 
@@ -91,7 +69,6 @@ do not paste the corpus into this file.
 ## Deliverables
 
 - Candidate artifact and exact worktree path:
-- Coverage or decision ledger in the printed pass directory:
 - Candidate patch or findings:
 - Verification evidence:
 - Handoff for the independent checker, if earned:

@@ -49,21 +49,44 @@ This repository stores distilled mechanisms, not source corpora.
   ticket; model, harness, and environment treated as separate leverage layers;
   a tight orchestrating thread; and parallel dispatch limited to independent,
   ready work.
-- KRN implication: these mechanisms could coordinate long-running work, but
-  this global catalog currently leaves durable task state to the repository
-  owner and long-running outcome state to the native Codex goal surface.
+- KRN implication: repositories that install Beads already have a concrete
+  wayfinding owner for destination, fog, decision tickets, native dependencies,
+  claims, and the ready frontier. The global catalog still leaves durable task
+  state to each repository and long-running outcome state to native Codex goals.
 - Observed friction: disposable worktrees required dependency and environment
   setup, sessions needed manual coordination, approval boundaries interrupted
   some actions, and the map did not finish during the livestream.
-- Decision: defer the wayfinder map, ticket protocol, global planning/spec
-  workflow, research-subagent convention, and orchestration policy. No current
-  global owner, production consumer, or falsifier earns another workflow skill.
+- Decision: adopt map/frontier/fog behavior through repo-local Beads, and adopt
+  bounded AFK source campaigns through the `second-opinion-review` researcher
+  with `source-to-decision` retaining adoption authority. Reject a duplicate
+  global Wayfinder, universal tracker protocol, and always-on orchestrator:
+  they still lack one cross-repository owner and falsifier.
 - Does not prove: any deferred mechanism should become a universal KRN skill,
   that one tracker fits every repository, or that a demo outperforms the
   current system on production work. Current routing also does not reject a
   future bounded owner backed by a repeated consumer and behavioral evidence.
 - Copyright boundary: no transcript passage, cue, or scene is committed here;
   only original mechanism-level decisions and provenance are retained.
+
+## Matt Pocock — `batch-grill-me`
+
+- Source: [`skills/in-progress/batch-grill-me`](https://github.com/mattpocock/skills/tree/9603c1cc8118d08bc1b3bf34cf714f62178dea3b/skills/in-progress/batch-grill-me),
+  inspected 2026-07-16 at the repository commit above.
+- Upstream status: explicit-only draft in `in-progress`; it is not in Matt's
+  promoted plugin, supported README surface, human docs, or `ask-matt` router.
+- Mechanism: ask the whole currently ready decision frontier in one numbered
+  round, recommend an answer for each, investigate facts instead of asking the
+  user, then recompute dependent questions from the user's decisions.
+- KRN decision: adopt the distinct interaction as explicit-only
+  `batch-grill-me`, with no persistence or action by default and with delegation
+  conditional on actual authority. Keep serial domain conflict resolution with
+  `domain-modeling` and durable multi-session maps with the repository tracker.
+- Falsifier: the skill asks a downstream question before its prerequisite is
+  settled, delegates a user-owned decision, asks for a discoverable fact, or
+  mutates artifacts before the user confirms shared understanding.
+- Does not prove: batch questioning is universally better than one-at-a-time
+  grilling, the upstream draft is release-ready, or a design interview should
+  create specs, tickets, or implementation automatically.
 
 ## Total TypeScript
 
