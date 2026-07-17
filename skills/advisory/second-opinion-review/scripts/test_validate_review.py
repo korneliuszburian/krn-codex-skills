@@ -70,10 +70,11 @@ class ValidateReviewTests(unittest.TestCase):
 
     def _manifest(self, name: str) -> dict:
         path = self.root / name
+        stat = path.stat()
         return {
             "kind": "file",
-            "mode": path.stat().st_mode,
-            "size": path.stat().st_size,
+            "mode": stat.st_mode,
+            "size": stat.st_size,
             "content_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         }
 

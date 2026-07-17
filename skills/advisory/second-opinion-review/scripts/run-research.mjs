@@ -489,6 +489,8 @@ export function runResearch({
         timeoutMs: timeoutSeconds * 1000,
       }),
     );
+    // Defense in depth: the harness --max-budget-usd flag is the primary
+    // authority; reject a pass that reports over-budget despite the flag.
     if (
       budget !== "unlimited" &&
       typeof envelope.total_cost_usd === "number" &&

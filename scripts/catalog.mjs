@@ -290,8 +290,7 @@ async function main() {
 
   const homeDirectory = os.homedir();
   const codexHome = process.env.CODEX_HOME || path.join(homeDirectory, ".codex");
-  const agentsHome =
-    process.env.AGENTS_HOME || process.env.KRN_AGENTS_HOME || path.join(homeDirectory, ".agents");
+  const agentsHome = process.env.AGENTS_HOME || path.join(homeDirectory, ".agents");
   const configPath = path.resolve(options.configPath || path.join(codexHome, "config.toml"));
   const sessionsRoot = path.resolve(options.sessionsRoot || path.join(codexHome, "sessions"));
   const profileDocument = await loadCapabilityProfiles(options.profilesPath);

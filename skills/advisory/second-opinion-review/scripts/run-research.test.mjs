@@ -216,7 +216,7 @@ function structuredResult(
   };
 }
 
-function envelope(result) {
+function envelope(result, overrides = {}) {
   return {
     status: 0,
     stdout: JSON.stringify({
@@ -225,6 +225,7 @@ function envelope(result) {
       total_cost_usd: 1.25,
       duration_ms: 5000,
       num_turns: 3,
+      ...overrides,
     }),
     stderr: "",
   };
@@ -483,17 +484,10 @@ test("fails when the reported cost exceeds the budget", () => {
           cwd: fixture.repository,
           env: testEnvironment,
           windowCheck: () => {},
-          claudeInvoker: () => ({
-            status: 0,
-            stdout: JSON.stringify({
-              structured_output: structuredResult(fixture.campaign, "source-analysis"),
-              session_id: "over-budget",
+          claudeInvoker: () =>
+            envelope(structuredResult(fixture.campaign, "source-analysis"), {
               total_cost_usd: 999,
-              duration_ms: 1000,
-              num_turns: 1,
             }),
-            stderr: "",
-          }),
         }),
       /exceeded budget/,
     );
