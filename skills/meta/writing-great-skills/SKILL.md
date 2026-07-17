@@ -43,7 +43,11 @@ skill misfires through collision, premature completion, sediment, or sprawl.
    An explicit-only skill trades context load for human recall. Keep its
    description useful to the picker and set
    `policy.allow_implicit_invocation: false`. Do not add harness-specific
-   frontmatter rejected by the repository validator.
+   frontmatter rejected by the repository validator. The same file must also
+   carry the transport fields the validator enforces: a quoted `display_name`, a
+   `short_description` of 25–64 characters, and a `default_prompt` that names
+   `$<skill>`; author them explicitly instead of discovering the bounds at
+   validate time.
 
    Add an explicit router only when a measured family of user-invoked names is
    harder to recall than one front door. The router maps the choice and may

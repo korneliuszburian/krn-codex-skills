@@ -489,6 +489,13 @@ export function runResearch({
         timeoutMs: timeoutSeconds * 1000,
       }),
     );
+    if (
+      budget !== "unlimited" &&
+      typeof envelope.total_cost_usd === "number" &&
+      envelope.total_cost_usd > Number(budget)
+    ) {
+      fail(`research cost ${envelope.total_cost_usd.toFixed(2)} exceeded budget ${budget}`);
+    }
     const result = validateResearchResult(envelope.structured_output, campaign, shard.id);
     validateSynthesisCoverage(result, dependencies, shard);
 

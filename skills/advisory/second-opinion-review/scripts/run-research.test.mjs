@@ -471,3 +471,41 @@ test("refuses to invoke Claude when the execution window is denied", () => {
     fs.rmSync(fixture.sandbox, { recursive: true, force: true });
   }
 });
+
+test("fails when the reported cost exceeds the budget", () => {
+  const fixture = makeFixture();
+  try {
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "source-analysis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          windowCheck: () => {},
+          claudeInvoker: () => ({
+            status: 0,
+            stdout: JSON.stringify({
+              structured_output: structuredResult(fixture.campaign, "source-analysis"),
+              session_id: "over-budget",
+              total_cost_usd: 999,
+              duration_ms: 1000,
+              num_turns: 1,
+            }),
+            stderr: "",
+          }),
+        }),
+      /exceeded budget/,
+    );
+    const job = JSON.parse(fs.readFileSync(jobPathFor(fixture.campaignFile, "source-analysis")));
+    assert.equal(job.state, "failed");
+    assert.match(job.error, /exceeded budget/);
+    assert.equal(
+      fs.existsSync(resultPathFor(fixture.campaignFile, "source-analysis")),
+      false,
+      "no result is published when the reported cost exceeds the budget",
+    );
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
