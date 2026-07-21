@@ -18,6 +18,13 @@ Codex configuration change.
    Keep project-local skills with their repository. Treat app and connector
    state as report-only: local TOML does not own account connections.
 
+   Preserve the catalog's evidence vocabulary: a profile is `declared`, an
+   inventory entry is a `discovered_candidate`, local reconciliation observes
+   `configured_enabled`, and bounded positive evidence is `observed_used`.
+   Report absence as `no_evidence`, current-session loading as `unknown`, and
+   app connection or scopes as `report-only` unless their actual owner supplies
+   evidence.
+
    **Done when:** the global capability, its owner (skill, plugin, or MCP), and
    any separately connected app are distinguished.
 

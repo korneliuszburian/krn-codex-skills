@@ -30,3 +30,15 @@ to be accounted for while the reviewed source remains unchanged.
 Usually follows `$implement`. Accepted findings return as a separately scoped
 implementation task. A parent workflow may retain a consumer-owned report
 under `docs/agents/reports/code-review/`.
+
+## Review precedence
+
+| Lane | Trigger | Owner and result | Boundary |
+|---|---|---|---|
+| Local fixed-diff review | routine completed change | `code-review`; verified findings and residual risk | native review may run this contract, not add a second mandatory lane |
+| GitHub review | an existing PR needs host feedback | GitHub lane; PR comments | optional; neither local Spec review nor approval |
+| External second opinion | a high-risk challenger or bounded evidence campaign is explicitly requested | `second-opinion-review`; advisory evidence from exactly one backend per pass | never a gate, publisher, or product decision owner |
+| Disposition | after any review | the initiating local workflow or human; accept, reject, evidence gap, or follow-up | the only lane that decides the next action |
+
+One fixed point gets one routine local review lane. Additional host or external
+lanes must have a distinct trigger and may not present their output as approval.

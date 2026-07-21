@@ -25,6 +25,11 @@ A dry-run plan or atomically applied profile with backup, immediate check, and
 fresh-session verification. Account-connected apps remain outside local TOML
 authority.
 
+Reports keep `declared`, `discovered_candidate`, `configured_enabled`, and
+`observed_used` separate. Missing usage is `no_evidence`; current-session
+loading is `unknown`; app connection and scopes are `report-only` until their
+actual owner supplies evidence.
+
 ## Composition
 
 Uses the `krn-codex-catalog` executable. Skill design changes belong to

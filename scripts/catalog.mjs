@@ -34,6 +34,11 @@ const OPTIONAL_CAPABILITY_PATTERNS = Object.freeze({
   context7: /(?:^|[_@.:-])context7(?:[_@.:-]|$)/i,
   "openai-templates": /(?:openai[_-]?templates)/i,
 });
+const EVIDENCE_CONFIDENCE = Object.freeze({
+  confirmed: { label: "high", rank: 3 },
+  confirmed_input: { label: "medium", rank: 2 },
+  syntactic_only: { label: "lower", rank: 1 },
+});
 
 const usage = `KRN Codex capability catalog
 
@@ -126,8 +131,76 @@ function publicPlan(plan) {
   };
 }
 
+function externalStateBoundary() {
+  return {
+    loaded_in_current_session: "unknown",
+    account_connected_and_authorized: "report-only",
+  };
+}
+
+function configurationStateContract() {
+  return {
+    profile: "declared",
+    inventory: "discovered_candidate",
+    local_configuration: "configured_enabled",
+    ...externalStateBoundary(),
+  };
+}
+
+function usageStateContract(result) {
+  const rows = [...result.aggregates].sort((left, right) =>
+    `${left.kind}:${left.id}`.localeCompare(`${right.kind}:${right.id}`),
+  );
+  const droppedCandidates =
+    result.malformed_lines +
+    (result.coverage.oversized_candidate_lines || 0) +
+    (result.coverage.records_without_usable_date || 0);
+
+  return {
+    evidence_window: {
+      since_day: result.coverage.since_day,
+      through_day: result.coverage.through_day,
+    },
+    evidence_incomplete: droppedCandidates > 0,
+    ...externalStateBoundary(),
+    optional_capabilities: Object.entries(OPTIONAL_CAPABILITY_PATTERNS).map(
+      ([capability, pattern]) => {
+        const matching = rows.filter((row) => pattern.test(row.id));
+        const events = matching.reduce(
+          (total, row) =>
+            total + row.confirmed_calls + row.observed_calls + row.observed_reads,
+          0,
+        );
+        const lastSeen = matching
+          .map((row) => row.last_seen_day)
+          .filter(Boolean)
+          .sort()
+          .at(-1);
+        const confidence = matching.reduce((best, row) => {
+          const candidate = EVIDENCE_CONFIDENCE[row.confidence];
+          if (candidate === undefined || candidate.rank <= (best?.rank || 0)) {
+            return best;
+          }
+          return candidate;
+        }, undefined);
+
+        return {
+          capability,
+          evidence_state: events > 0 ? "observed_used" : "no_evidence",
+          evidence_confidence: confidence?.label || null,
+          events,
+          last_seen_day: lastSeen || null,
+        };
+      },
+    ),
+  };
+}
+
 function printInventory(inventory) {
-  console.log(`Skills:  ${inventory.skills.length}`);
+  console.log("Capability state: discovered_candidate");
+  console.log("Discovery does not prove session loading, account authorization, or use.");
+  console.log("");
+  console.log(`Discovered skill candidates: ${inventory.skills.length}`);
   console.log(`Cached plugin candidates: ${inventory.plugins.length}`);
   console.log(`Quarantine evidence: ${inventory.hardQuarantine.length}`);
   console.log("");
@@ -147,26 +220,29 @@ function printInventory(inventory) {
 }
 
 function printUsage(result, inventory) {
+  const state = usageStateContract(result);
   const rows = [...result.aggregates].sort((left, right) =>
     `${left.kind}:${left.id}`.localeCompare(`${right.kind}:${right.id}`),
   );
-  console.log("Optional capability evidence:");
-  console.log("CAPABILITY          EVENTS LAST");
-  for (const [capability, pattern] of Object.entries(OPTIONAL_CAPABILITY_PATTERNS)) {
-    const matching = rows.filter((row) => pattern.test(row.id));
-    const events = matching.reduce(
-      (total, row) =>
-        total + row.confirmed_calls + row.observed_calls + row.observed_reads,
-      0,
-    );
-    const lastSeen = matching
-      .map((row) => row.last_seen_day)
-      .filter(Boolean)
-      .sort()
-      .at(-1);
+  console.log(
+    `Evidence window: ${state.evidence_window.since_day} through ` +
+      state.evidence_window.through_day,
+  );
+  console.log(`Evidence incomplete: ${state.evidence_incomplete}`);
+  console.log(`loaded_in_current_session: ${state.loaded_in_current_session}`);
+  console.log(
+    `account_connected_and_authorized: ${state.account_connected_and_authorized}`,
+  );
+  console.log("");
+  console.log("Optional capability observed-use evidence:");
+  console.log("CAPABILITY          STATE            EVENTS LAST       CONFIDENCE");
+  for (const capability of state.optional_capabilities) {
     console.log(
-      `${capability.padEnd(19)} ${String(events).padStart(6)} ` +
-        `${lastSeen || "-"}`,
+      `${capability.capability.padEnd(19)} ` +
+        `${capability.evidence_state.padEnd(16)} ` +
+        `${String(capability.events).padStart(6)} ` +
+        `${(capability.last_seen_day || "-").padEnd(10)} ` +
+        `${capability.evidence_confidence || "-"}`,
     );
   }
 
@@ -208,6 +284,7 @@ function printUsage(result, inventory) {
 }
 
 function printProfile(name, profile) {
+  console.log("Capability state: declared");
   console.log(`${name}: ${profile.description}`);
   for (const [surface, policy] of Object.entries(profile)) {
     if (surface === "description") continue;
@@ -217,6 +294,9 @@ function printProfile(name, profile) {
       console.log(`  ${key}: ${Array.isArray(values) ? values.join(", ") || "-" : values}`);
     }
   }
+  console.log("");
+  console.log("loaded_in_current_session: unknown");
+  console.log("account_connected_and_authorized: report-only");
 }
 
 function displayTarget(action) {
@@ -232,6 +312,10 @@ function cachedPluginFamily(skillPath) {
 }
 
 function printPlan(name, resolved, plan) {
+  console.log("Capability states: declared + discovered_candidate + configured_enabled");
+  console.log("loaded_in_current_session: unknown");
+  console.log("account_connected_and_authorized: report-only");
+  console.log("");
   console.log(`${name}: ${plan.changed ? `${plan.actions.length} config change(s)` : "already converged"}`);
   const pluginSkillDisables = plan.actions.filter(
     (action) =>
@@ -310,7 +394,16 @@ async function main() {
     if (operation === "show" && positional.length === 3) {
       const name = positional[2];
       const profile = getCapabilityProfile(profileDocument, name);
-      if (options.json) printJson({ name, ...profile });
+      if (options.json) {
+        printJson({
+          name,
+          capability_states: {
+            profile: "declared",
+            ...externalStateBoundary(),
+          },
+          ...profile,
+        });
+      }
       else printProfile(name, profile);
       return;
     }
@@ -319,7 +412,15 @@ async function main() {
 
   const inventory = await inventoryCapabilities({ homeDirectory, codexHome, agentsHome });
   if (command === "inventory" && positional.length === 1) {
-    if (options.json) printJson(inventory);
+    if (options.json) {
+      printJson({
+        capability_states: {
+          inventory: "discovered_candidate",
+          ...externalStateBoundary(),
+        },
+        ...inventory,
+      });
+    }
     else printInventory(inventory);
     return;
   }
@@ -341,7 +442,9 @@ async function main() {
         ),
       ],
     });
-    if (options.json) printJson(result);
+    if (options.json) {
+      printJson({ ...result, capability_states: usageStateContract(result) });
+    }
     else printUsage(result, inventory);
     return;
   }
@@ -367,7 +470,13 @@ async function main() {
 
   if (command === "plan") {
     if (options.json) {
-      printJson({ profile: profileName, configPath, resolved, plan: publicPlan(plan) });
+      printJson({
+        profile: profileName,
+        configPath,
+        capability_states: configurationStateContract(),
+        resolved,
+        plan: publicPlan(plan),
+      });
     }
     else printPlan(profileName, resolved, plan);
     return;
@@ -378,6 +487,7 @@ async function main() {
       printJson({
         profile: profileName,
         converged: !plan.changed,
+        capability_states: configurationStateContract(),
         resolved,
         plan: publicPlan(plan),
       });
@@ -389,7 +499,13 @@ async function main() {
 
   const result = await applyCatalogConfigPlan({ configPath, plan });
   if (options.json) {
-    printJson({ profile: profileName, resolved, plan: publicPlan(plan), result });
+    printJson({
+      profile: profileName,
+      capability_states: configurationStateContract(),
+      resolved,
+      plan: publicPlan(plan),
+      result,
+    });
   } else {
     printPlan(profileName, resolved, plan);
     if (result.changed) {

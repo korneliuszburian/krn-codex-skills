@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, rm, symlink } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -159,6 +159,82 @@ test("resolves lexical quarantine evidence without executing the CLI", async (co
   });
   assert.equal(invoked.status, 0, invoked.stderr);
   assert.match(invoked.stdout, /KRN Codex capability catalog/);
+
+  const profileOutput = spawnSync(
+    process.execPath,
+    [linkedPath, "profile", "show", "lean"],
+    { encoding: "utf8" },
+  );
+  assert.equal(profileOutput.status, 0, profileOutput.stderr);
+  assert.match(profileOutput.stdout, /Capability state: declared/);
+  assert.match(profileOutput.stdout, /loaded_in_current_session: unknown/);
+  assert.match(
+    profileOutput.stdout,
+    /account_connected_and_authorized: report-only/,
+  );
+
+  const sessionsRoot = join(fixture, "sessions");
+  const codexHome = join(fixture, "codex-home");
+  const agentsHome = join(fixture, "agents-home");
+  const catalogEnvironment = {
+    ...process.env,
+    CODEX_HOME: codexHome,
+    AGENTS_HOME: agentsHome,
+  };
+  await mkdir(sessionsRoot);
+  const usageTextOutput = spawnSync(
+    process.execPath,
+    [linkedPath, "usage", "--sessions-root", sessionsRoot],
+    { encoding: "utf8", env: catalogEnvironment },
+  );
+  assert.equal(usageTextOutput.status, 0, usageTextOutput.stderr);
+  assert.match(usageTextOutput.stdout, /Evidence incomplete: false/);
+  assert.match(usageTextOutput.stdout, /agent-browser\s+no_evidence/);
+
+  const usageOutput = spawnSync(
+    process.execPath,
+    [linkedPath, "usage", "--sessions-root", sessionsRoot, "--json"],
+    {
+      encoding: "utf8",
+      env: catalogEnvironment,
+    },
+  );
+  assert.equal(usageOutput.status, 0, usageOutput.stderr);
+  const usageReport = JSON.parse(usageOutput.stdout);
+  assert.equal(usageReport.capability_states.evidence_incomplete, false);
+  assert.equal(
+    usageReport.capability_states.loaded_in_current_session,
+    "unknown",
+  );
+  assert.equal(
+    usageReport.capability_states.account_connected_and_authorized,
+    "report-only",
+  );
+  assert.deepEqual(
+    usageReport.capability_states.optional_capabilities.find(
+      ({ capability }) => capability === "agent-browser",
+    ),
+    {
+      capability: "agent-browser",
+      evidence_state: "no_evidence",
+      evidence_confidence: null,
+      events: 0,
+      last_seen_day: null,
+    },
+  );
+
+  const configPath = join(fixture, "config.toml");
+  await writeFile(configPath, "");
+  const planOutput = spawnSync(
+    process.execPath,
+    [linkedPath, "plan", "lean", "--config", configPath],
+    { encoding: "utf8", env: catalogEnvironment },
+  );
+  assert.equal(planOutput.status, 0, planOutput.stderr);
+  assert.match(
+    planOutput.stdout,
+    /Capability states: declared \+ discovered_candidate \+ configured_enabled/,
+  );
 });
 
 test("clears plugin skill overrides when a capability family is re-enabled", () => {

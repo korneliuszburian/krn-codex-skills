@@ -39,6 +39,35 @@ reads its files.
 Profiles are complete policy documents rather than inheritance chains. A
 reader can see every intended state without mentally expanding a parent.
 
+## Capability state vocabulary
+
+Catalog output uses four evidence-bounded states. They are separate dimensions,
+not a progression that the local catalog can always observe end to end.
+
+| State | Meaning |
+|---|---|
+| `declared` | intent required by the selected profile |
+| `discovered_candidate` | an entry found in inventory, configuration, or cache; not installation, loading, or usability proof |
+| `configured_enabled` | the local `enabled` value owned by catalog reconciliation; the value may be on or off |
+| `observed_used` | positive evidence in the reported window, with confidence and completeness metadata |
+
+Usage output represents absence as `no_evidence`, never as proof that a
+capability is unused. It reports `evidence_confidence` as `high`, `medium`, or
+`lower`, the evidence window, and whether dropped candidate records make the
+scan incomplete. The underlying evidence classes remain the authority for what
+those confidence levels mean.
+
+Two states remain outside local catalog authority:
+
+```text
+loaded_in_current_session: unknown
+account_connected_and_authorized: report-only
+```
+
+A fresh-session check can supply session evidence; the relevant account owner
+supplies connection and scope evidence. Neither is inferred from profile intent,
+cache discovery, local TOML, or a positive usage record.
+
 ## Commands
 
 After `scripts/install.sh install`, run the manifest-owned executable from any
