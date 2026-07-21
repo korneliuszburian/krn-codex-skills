@@ -173,6 +173,20 @@ function validateSemanticXml(file) {
   }
 }
 
+function validateSkillMarkdown(file, skill, manifestNames) {
+  const content = read(file);
+  if (/\b(?:node|bash|python3?)\s+(?:\.\/)?scripts\//.test(content)) {
+    fail(
+      `${relative(file)}: runnable global skill scripts must use the installed ~/.agents/skills/${skill.name}/scripts path`,
+    );
+  }
+  for (const match of content.matchAll(/\$([a-z][a-z0-9-]+)/g)) {
+    if (!manifestNames.has(match[1])) {
+      fail(`${relative(file)}: unknown composed skill $${match[1]}`);
+    }
+  }
+}
+
 function parseFrontmatter(file) {
   const content = read(file);
   const match = content.match(/^---\n([\s\S]*?)\n---\n/);
@@ -452,6 +466,7 @@ for (const skill of manifest.skills) {
   }
 
   for (const markdown of filesUnder(skillDir, (file) => file.endsWith(".md"))) {
+    validateSkillMarkdown(markdown, skill, manifestNames);
     validateMarkdownLinks(markdown);
     validateSemanticXml(markdown);
   }
@@ -643,6 +658,30 @@ for (const testCase of triggerCases.cases ?? []) {
 for (const name of manifestNames) {
   if (!positivelyCovered.has(name)) fail(`trigger matrix: no positive case for ${name}`);
   if (!negativelyCovered.has(name)) fail(`trigger matrix: no negative case for ${name}`);
+}
+
+const goalRecovery = triggerCases.cases.find(
+  (testCase) => testCase.id === "goal-recovery-is-not-global-workflow",
+);
+if (!goalRecovery) {
+  fail("trigger matrix: missing goal-recovery-is-not-global-workflow case");
+} else {
+  if (
+    !Array.isArray(goalRecovery.expected_skills) ||
+    goalRecovery.expected_skills.length !== 0
+  ) {
+    fail("goal-recovery-is-not-global-workflow: expected_skills must stay empty");
+  }
+  const forbidden = new Set(
+    Array.isArray(goalRecovery.forbidden_skills)
+      ? goalRecovery.forbidden_skills
+      : [],
+  );
+  for (const name of manifestNames) {
+    if (!forbidden.has(name)) {
+      fail(`goal-recovery-is-not-global-workflow: must forbid ${name}`);
+    }
+  }
 }
 
 if (lineCount(path.join(root, "AGENTS.md")) > 90) {

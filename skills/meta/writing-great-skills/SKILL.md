@@ -72,6 +72,12 @@ skill misfires through collision, premature completion, sediment, or sprawl.
    schemas, examples, and catalogs behind a direct context pointer. Add a script
    only for deterministic work that prose performs unreliably.
 
+   In this global catalog, invoke a skill-owned script through
+   `~/.agents/skills/<name>/scripts/<script>`. A project-local skill uses its
+   repository-owned discovery path instead. Never resolve either through the
+   caller product's bare `scripts/` directory: the skill owns its executable,
+   while the working directory owns the product under work.
+
    A workflow may be all steps; a durable reference may be all peer rules. Do
    not force numbering onto material with no sequence. Co-locate each concept's
    rule, caveat, and smallest useful example.

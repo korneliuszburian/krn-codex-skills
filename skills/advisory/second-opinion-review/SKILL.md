@@ -51,8 +51,8 @@ checker when a fixed artifact only needs an adversarial challenge.
    ```
 
    The optional second argument is the role category — `research`, `rewrite`, or
-   `check` — matching the role chosen in step 1; it defaults to `passes`. The
-   Inside a repository configured by `$setup-repository-workflow`, the command
+   `check` — matching the role chosen in step 1; it defaults to `passes`. Inside
+   a repository configured by `$setup-repository-workflow`, the command
    resolves `working_runs` from `docs/agents/artifact-paths.json` and uses its
    ignored `second-opinion-review/` child. Otherwise it falls back to the private
    `~/coding/krn/second-opinion-review` root for ad-hoc or legacy work. Each pass

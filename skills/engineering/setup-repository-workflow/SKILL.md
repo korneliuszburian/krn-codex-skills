@@ -32,10 +32,11 @@ policy that can affect the requested workflow. Classify each durable rule into
 prompt/thread, global instruction, repository instruction, project config,
 skill, deterministic guard, CI, or host administration.
 
-   Run `node scripts/init-repository-workflow.mjs inspect --root <repo>` for the
-   repeatable topology pass. As in Matt Pocock's setup, do not assume the issue
-   tracker, instruction owner, domain layout, or monorepo shape from a generic
-   template.
+   Run
+   `node ~/.agents/skills/setup-repository-workflow/scripts/init-repository-workflow.mjs inspect --root <repo>`
+   for the repeatable topology pass. As in Matt Pocock's setup, do not assume
+   the issue tracker, instruction owner, domain layout, or monorepo shape from
+   a generic template.
 
    When rules currently span competing surfaces or their owner is unclear, read
    [repository-contract.md](references/repository-contract.md) to resolve that
@@ -68,7 +69,7 @@ plans remain ephemeral.
    Apply the resolved contract with:
 
    ```text
-   node scripts/init-repository-workflow.mjs apply --root <repo> \
+   node ~/.agents/skills/setup-repository-workflow/scripts/init-repository-workflow.mjs apply --root <repo> \
      --tracker <beads|github|gitlab|local> \
      --domain <single|multi> --delivery <local|strict>
    ```

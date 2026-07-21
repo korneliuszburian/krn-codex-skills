@@ -126,6 +126,22 @@ This repository stores distilled mechanisms, not source corpora.
   grilling, the upstream draft is release-ready, or a design interview should
   create specs, tickets, or implementation automatically.
 
+## Matt Pocock — `grill-with-docs` changelog
+
+- Source: [Skills Changelog: Ubiquitous Language -> `/grill-with-docs`](https://www.aihero.dev/skills-changelog-ubiquitous-language-grill-with-docs),
+  updated 2026-04-30 and inspected 2026-07-21.
+- Mechanism: codebase grilling updates bounded domain context and records an
+  ADR only for a hard-to-reverse, surprising decision produced by a real
+  trade-off; general-purpose grilling remains a separate interaction.
+- KRN decision: keep frontier-round interviewing in explicit-only
+  `batch-grill-me`; keep active vocabulary and earned ADR decisions in
+  `domain-modeling`; let `setup-repository-workflow` install the single- or
+  multi-context document layout. Reject a duplicate `grill-with-docs` alias.
+- Falsifier: a domain-context prompt routes to `batch-grill-me`, routine work
+  generates an ADR, or repository setup becomes the recurring domain owner.
+- Does not prove: every codebase needs domain documents or that an ADR should
+  be created for routine, reversible implementation choices.
+
 ## Total TypeScript
 
 - Private source: *Total TypeScript — The Essentials*, final 2026 PDF supplied

@@ -250,6 +250,18 @@
       ]
     },
     {
+      "id": "domain-grill-with-docs",
+      "prompt": "Grill the competing meanings of order in this codebase, update the active domain context, and create an ADR only if the decision is hard to reverse, surprising without context, and a real trade-off.",
+      "expected_skills": [
+        "domain-modeling"
+      ],
+      "forbidden_skills": [
+        "batch-grill-me",
+        "setup-repository-workflow",
+        "implement"
+      ]
+    },
+    {
       "id": "apply-external-source",
       "prompt": "Read this framework design paper and decide which mechanism we should adopt or reject.",
       "expected_skills": [
@@ -408,10 +420,12 @@
       "forbidden_skills": [
         "implement",
         "diagnosing-bugs",
+        "delivery-loop",
         "code-review",
         "codebase-design",
         "domain-modeling",
         "source-to-decision",
+        "setup-repository-workflow",
         "target-repo-work",
         "typescript-engineering",
         "second-opinion-review",

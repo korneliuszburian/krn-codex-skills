@@ -100,12 +100,13 @@ temp-root trial. Overriding one never silently redirects another.
 Run `check` again after installation. Restart Codex if the current session
 does not refresh its installed skill index: discovery is session-scoped, so an
 already-open picker is not evidence that the installed symlink is missing.
-`second-opinion-review` and `batch-grill-me` are explicit-only: Codex cannot
-select them implicitly, while an explicit `$skill` invocation remains
-available. Some API sessions may omit them from the injected model-visible
-list; that observation is not the activation contract. In a fresh interactive
-session, type the full `$skill-name` and select its **[Skill]** entry from the
-picker; plain prompt text that resembles the name is not the same attachment.
+`setup-repository-workflow`, `second-opinion-review`, and `batch-grill-me` are
+explicit-only: Codex cannot select them implicitly, while an explicit `$skill`
+invocation remains available. Some API sessions may omit them from the injected
+model-visible list; that observation is not the activation contract. In a fresh
+interactive session, type the full `$skill-name` and select its **[Skill]**
+entry from the picker; plain prompt text that resembles the name is not the same
+attachment.
 
 New or changed non-managed hooks must also be reviewed and trusted through
 `/hooks`; Codex binds trust to the exact hook definition.
