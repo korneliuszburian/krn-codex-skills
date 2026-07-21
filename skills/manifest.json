@@ -41,6 +41,11 @@
       "implicit": true
     },
     {
+      "name": "delivery-loop",
+      "path": "skills/engineering/delivery-loop",
+      "implicit": true
+    },
+    {
       "name": "domain-modeling",
       "path": "skills/engineering/domain-modeling",
       "implicit": true
@@ -54,6 +59,11 @@
       "name": "source-to-decision",
       "path": "skills/engineering/source-to-decision",
       "implicit": true
+    },
+    {
+      "name": "setup-repository-workflow",
+      "path": "skills/engineering/setup-repository-workflow",
+      "implicit": false
     },
     {
       "name": "target-repo-work",

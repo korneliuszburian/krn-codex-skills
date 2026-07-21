@@ -44,15 +44,23 @@ survive current-code verification. This skill never edits the reviewed work.
    closer rule.
 
    <review-authority>
+   Requested result:
    Spec source:
    Standards sources:
+   Relevant durable context loaded:
+   Context deliberately excluded and why:
    Changed public boundary:
    Acceptance claims:
-   Known proof and gaps:
+   Exact proof commands and results:
+   Known proof gaps and non-proofs:
+   Authority and publication state:
+   Explicit non-goals:
    </review-authority>
 
    **Done when:** each requirement and standard has a named authority, and no
-   test result or reviewer preference is standing in for one.
+   test result or reviewer preference is standing in for one. The packet is
+   complete for the decision while excluding unrelated history, backlog, and
+   repository-wide prose that would bury the relevant evidence.
 
 3. **Run the axes independently.** On **Standards**, inspect documented rules,
    public seams, external and type boundaries, migrations, naming, proof
@@ -117,7 +125,10 @@ survive current-code verification. This skill never edits the reviewed work.
    </review-summary>
 
    A finding authorizes no edit. Hand any accepted repair to a separate scoped
-   implementation task.
+   implementation task. If a named consumer requires a persisted report, the
+   parent workflow stores it after review under the repository's configured
+   retained-report role (normally `docs/agents/reports/code-review/`); this
+   read-only reviewer never changes its own fixed point.
 
    **Done when:** every in-scope path is accounted for, both axes remain
    visible, uncertainty is explicit, and the reviewed source is unchanged.

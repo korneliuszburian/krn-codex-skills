@@ -337,6 +337,7 @@ for (const bin of manifest.bins ?? []) {
 
 const manifestNames = new Set();
 const manifestPaths = new Set();
+const skillDocPaths = new Set();
 for (const skill of manifest.skills ?? []) {
   if (!/^[a-z0-9-]{1,63}$/.test(skill.name)) {
     fail(`manifest: invalid skill name ${skill.name}`);
@@ -358,6 +359,18 @@ for (const skill of manifest.skills ?? []) {
   manifestPaths.add(skill.path);
   if (typeof skill.implicit !== "boolean") {
     fail(`manifest: implicit must be boolean for ${skill.name}`);
+  }
+
+  const pathParts = skill.path.split("/");
+  if (
+    pathParts.length !== 3 ||
+    pathParts[0] !== "skills" ||
+    !["engineering", "advisory", "meta", "productivity"].includes(pathParts[1]) ||
+    pathParts[2] !== skill.name
+  ) {
+    fail(`manifest: skill path must be skills/<group>/${skill.name}`);
+  } else {
+    skillDocPaths.add(`docs/${pathParts[1]}/${skill.name}.md`);
   }
 }
 
@@ -452,6 +465,21 @@ for (const discovered of discoveredPaths) {
 for (const promoted of manifestPaths) {
   if (!discoveredPaths.has(promoted)) {
     fail(`${promoted}: manifest path has no SKILL.md`);
+  }
+}
+
+for (const skillDoc of skillDocPaths) {
+  if (!fs.existsSync(path.join(root, skillDoc))) {
+    fail(`${skillDoc}: missing human-facing page for promoted skill`);
+  }
+}
+for (const group of ["engineering", "advisory", "meta", "productivity"]) {
+  const groupRoot = path.join(root, "docs", group);
+  for (const file of filesUnder(groupRoot, (candidate) => candidate.endsWith(".md"))) {
+    const skillDoc = relative(file);
+    if (!skillDocPaths.has(skillDoc)) {
+      fail(`${skillDoc}: no matching promoted skill in manifest`);
+    }
   }
 }
 

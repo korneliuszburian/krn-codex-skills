@@ -34,6 +34,63 @@ function detectProjectNamespace(cwd) {
   return namespace || fallbackNamespace;
 }
 
+function detectRepositoryRoot(cwd) {
+  const result = spawnSync("git", ["rev-parse", "--show-toplevel"], {
+    cwd,
+    encoding: "utf8",
+  });
+  if (result.status !== 0 || !result.stdout.trim()) return null;
+  return fs.realpathSync(result.stdout.trim());
+}
+
+function assertInsideRepository(repositoryRoot, candidate) {
+  const relative = path.relative(repositoryRoot, candidate);
+  if (relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative))) {
+    return;
+  }
+  throw new Error("working_runs must resolve inside the repository");
+}
+
+function assertExistingAncestorsInside(repositoryRoot, candidate) {
+  let cursor = candidate;
+  while (!fs.existsSync(cursor)) cursor = path.dirname(cursor);
+  assertInsideRepository(repositoryRoot, fs.realpathSync(cursor));
+}
+
+function resolveArtifactLayout({ cwd = process.cwd() } = {}) {
+  const repositoryRoot = detectRepositoryRoot(cwd);
+  if (!repositoryRoot) return { root: defaultRoot, repositoryRoot: null };
+
+  const configPath = path.join(repositoryRoot, "docs", "agents", "artifact-paths.json");
+  if (!fs.existsSync(configPath)) return { root: defaultRoot, repositoryRoot: null };
+  const configStat = fs.lstatSync(configPath);
+  if (!configStat.isFile() || configStat.isSymbolicLink()) {
+    throw new Error("artifact-paths.json must be a real file");
+  }
+
+  let config;
+  try {
+    config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  } catch {
+    throw new Error("artifact-paths.json must contain valid JSON");
+  }
+  if (config.schema_version !== 1 || typeof config.working_runs !== "string") {
+    throw new Error("artifact-paths.json must define schema_version 1 and working_runs");
+  }
+  if (path.isAbsolute(config.working_runs) || config.working_runs.trim() === "") {
+    throw new Error("working_runs must be a non-empty repository-relative path");
+  }
+
+  const configuredRoot = path.resolve(repositoryRoot, config.working_runs, "second-opinion-review");
+  assertInsideRepository(repositoryRoot, configuredRoot);
+  assertExistingAncestorsInside(repositoryRoot, configuredRoot);
+  return { root: configuredRoot, repositoryRoot };
+}
+
+export function resolveArtifactRoot(options = {}) {
+  return resolveArtifactLayout(options).root;
+}
+
 function privateDirectory(target, label) {
   fs.mkdirSync(target, { recursive: true, mode: 0o700 });
   const stat = fs.lstatSync(target);
@@ -49,7 +106,7 @@ export function prepareArtifactDirectory({
   category = defaultCategory,
   project,
   cwd = process.cwd(),
-  root = defaultRoot,
+  root,
   now = new Date(),
 } = {}) {
   if (!slugPattern.test(slug ?? "")) {
@@ -59,13 +116,24 @@ export function prepareArtifactDirectory({
     throw new Error("category must use lowercase letters, digits, and single hyphens");
   }
 
-  privateDirectory(root, "artifact root");
+  const layout = root ? { root, repositoryRoot: null } : resolveArtifactLayout({ cwd });
+  const artifactRoot = layout.root;
+  privateDirectory(artifactRoot, "artifact root");
 
   const namespace = project ? sanitizeNamespace(project) : detectProjectNamespace(cwd);
   if (!slugPattern.test(namespace)) {
     throw new Error("project must sanitize to lowercase letters, digits, and single hyphens");
   }
-  const namespaceDirectory = path.join(root, namespace);
+  if (layout.repositoryRoot) {
+    const date = now.toISOString().slice(0, 10);
+    const passDirectory = fs.mkdtempSync(
+      path.join(artifactRoot, `${date}-${category}-${slug}-`),
+    );
+    fs.chmodSync(passDirectory, 0o700);
+    return passDirectory;
+  }
+
+  const namespaceDirectory = path.join(artifactRoot, namespace);
   privateDirectory(namespaceDirectory, "project namespace directory");
 
   const categoryDirectory = path.join(namespaceDirectory, category);
@@ -100,9 +168,28 @@ function readJobState(passDirectory) {
   return state;
 }
 
-export function listPasses({ root = defaultRoot } = {}) {
+export function listPasses({ root, cwd = process.cwd() } = {}) {
+  const layout = root ? { root, repositoryRoot: null } : resolveArtifactLayout({ cwd });
+  root = layout.root;
   if (!fs.existsSync(root)) return [];
   const passes = [];
+  if (layout.repositoryRoot) {
+    const namespace = sanitizeNamespace(path.basename(layout.repositoryRoot));
+    for (const pass of fs.readdirSync(root, { withFileTypes: true })) {
+      if (!isRealDir(pass)) continue;
+      const match = pass.name.match(/^\d{4}-\d{2}-\d{2}-(research|rewrite|check|passes)-/);
+      const passPath = path.join(root, pass.name);
+      passes.push({
+        namespace,
+        category: match?.[1] ?? "unknown",
+        pass: pass.name,
+        path: passPath,
+        state: readJobState(passPath) ?? "unknown",
+      });
+    }
+    passes.sort((a, b) => a.pass.localeCompare(b.pass));
+    return passes;
+  }
   for (const namespace of fs.readdirSync(root, { withFileTypes: true })) {
     if (!isRealDir(namespace)) continue;
     const namespacePath = path.join(root, namespace.name);

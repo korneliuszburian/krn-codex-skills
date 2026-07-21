@@ -10,6 +10,7 @@ import {
   defaultRoot,
   listPasses,
   prepareArtifactDirectory,
+  resolveArtifactRoot,
 } from "./prepare-artifacts.mjs";
 
 const scriptPath = fileURLToPath(new URL("./prepare-artifacts.mjs", import.meta.url));
@@ -21,11 +22,65 @@ function run(command, args, cwd) {
   return result.stdout.trim();
 }
 
-test("the artifact root is fixed in the skill, not derived from env", () => {
+test("the fallback artifact root is fixed in the skill, not derived from env", () => {
   assert.equal(
     defaultRoot,
     path.join(os.homedir(), "coding", "krn", "second-opinion-review"),
   );
+});
+
+test("resolves configured working runs inside the current repository", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-resolver-test-"));
+  try {
+    run("git", ["init", "-q"], sandbox);
+    fs.mkdirSync(path.join(sandbox, "docs", "agents"), { recursive: true });
+    fs.writeFileSync(
+      path.join(sandbox, "docs", "agents", "artifact-paths.json"),
+      `${JSON.stringify({ schema_version: 1, working_runs: "docs/agents/runs" })}\n`,
+    );
+
+    const expected = path.join(sandbox, "docs", "agents", "runs", "second-opinion-review");
+    assert.equal(resolveArtifactRoot({ cwd: sandbox }), expected);
+    const pass = prepareArtifactDirectory({ slug: "configured", cwd: sandbox });
+    assert.equal(path.dirname(pass), expected);
+    assert.match(path.basename(pass), /^\d{4}-\d{2}-\d{2}-passes-configured-/);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("falls back outside repositories and rejects unsafe configured roots", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-resolver-reject-test-"));
+  try {
+    assert.equal(resolveArtifactRoot({ cwd: sandbox }), defaultRoot);
+    run("git", ["init", "-q"], sandbox);
+    fs.mkdirSync(path.join(sandbox, "docs", "agents"), { recursive: true });
+    const configPath = path.join(sandbox, "docs", "agents", "artifact-paths.json");
+    fs.writeFileSync(configPath, `${JSON.stringify({ schema_version: 1, working_runs: "../escape" })}\n`);
+    assert.throws(() => resolveArtifactRoot({ cwd: sandbox }), /inside the repository/);
+    fs.writeFileSync(configPath, `${JSON.stringify({ schema_version: 1, working_runs: "/tmp/escape" })}\n`);
+    assert.throws(() => resolveArtifactRoot({ cwd: sandbox }), /repository-relative/);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("rejects a configured working root that crosses a repository symlink", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-resolver-symlink-test-"));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-resolver-outside-"));
+  try {
+    run("git", ["init", "-q"], sandbox);
+    fs.mkdirSync(path.join(sandbox, "docs", "agents"), { recursive: true });
+    fs.symlinkSync(outside, path.join(sandbox, "escaped"));
+    fs.writeFileSync(
+      path.join(sandbox, "docs", "agents", "artifact-paths.json"),
+      `${JSON.stringify({ schema_version: 1, working_runs: "escaped/runs" })}\n`,
+    );
+    assert.throws(() => resolveArtifactRoot({ cwd: sandbox }), /inside the repository/);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  }
 });
 
 test("creates one unique private pass directory below the given root", () => {

@@ -14,7 +14,8 @@ commands, and constraints.
 - `skills/manifest.json` — canonical names, paths, invocation, and migration scope.
 - `evals/` — positive and negative routing cases.
 - `scripts/` — deterministic validation and collision-safe installation.
-- `docs/` — source provenance and migration ownership, never runtime memory.
+- `docs/` — source provenance, migration ownership, and concise human operator
+  pages; never agent runtime memory.
 - `README.md` and `CONTEXT.md` — operator overview and shared vocabulary.
 
 ## Before Editing
@@ -38,6 +39,10 @@ commands, and constraints.
 - Add scripts only for fragile or repeated deterministic work.
 - Keep reusable skill prose and script internals independent of the active
   shell-command wrapper; `config/AGENTS.md` owns that injected policy.
+- Give every promoted skill one concise `docs/<group>/<name>.md` operator page
+  linked from the manifest-driven README. `SKILL.md` remains the sole workflow
+  procedure; the human page summarizes use, boundary, inputs, output, and
+  composition without copying its steps.
 - Prefer positive instructions. Keep prohibitions for hard safety boundaries.
 - Delete aliases, duplicated procedures, stale references, and unused agents.
 

@@ -52,18 +52,22 @@ checker when a fixed artifact only needs an adversarial challenge.
 
    The optional second argument is the role category — `research`, `rewrite`, or
    `check` — matching the role chosen in step 1; it defaults to `passes`. The
-   artifact root is fixed in the skill at `~/coding/krn/second-opinion-review`, so
-   every pass lands with the project tree with no environment setup and no
-   per-session restart. Each pass lives at `<root>/<project>/<category>/<pass>`:
-   `project` is the basename of the cwd git repository (sanitized to kebab), else
-   `adhoc`. The pass always stays outside the candidate repository.
+   Inside a repository configured by `$setup-repository-workflow`, the command
+   resolves `working_runs` from `docs/agents/artifact-paths.json` and uses its
+   ignored `second-opinion-review/` child. Otherwise it falls back to the private
+   `~/coding/krn/second-opinion-review` root for ad-hoc or legacy work. Each pass
+   uses `<working_runs>/second-opinion-review/<run-id>`; its run id includes the
+   date, role category, slug, and a uniqueness suffix. The global fallback keeps
+   `<root>/<project>/<category>/<pass>`, where `project` is the sanitized cwd
+   repository basename or `adhoc`. A configured repo-local pass remains
+   untracked working material and does not change the fixed reviewed diff.
    Record the printed path as `pass_dir`. The
    initiating operator owns its contents, classification, retention, and cleanup;
    `prepare-artifacts.mjs list` enumerates every pass under the configured root
    with its project, category, and job state.
 
-   **Done when:** this pass has exactly one `0700` directory outside the
-   candidate repository, and every durable brief, prompt, review result, or
+   **Done when:** this pass has exactly one `0700` directory under the resolved
+   working root, and every brief, prompt, review result, or
    disposition below names a file inside it.
 
 4. **Prepare one branch.** For `researcher`, read

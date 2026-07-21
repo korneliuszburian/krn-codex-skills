@@ -1,0 +1,6 @@
+interface:
+  display_name: "Setup Repository Workflow"
+  short_description: "Install a minimal repo-local agent contract"
+  default_prompt: "Use $setup-repository-workflow to set up this repository's durable agent workflow."
+policy:
+  allow_implicit_invocation: false

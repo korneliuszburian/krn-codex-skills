@@ -13,9 +13,11 @@ Fill the contract below, choose one mechanical evidence identity, then run the
 tool-free structured reviewer. The runner binds output to
 [review.schema.json](review.schema.json); change that transport contract
 deliberately, never ad hoc in a prompt. It uses the current `opus` alias unless
-`SECOND_OPINION_MODEL` names another explicit alias or pinned identifier.
-Record the backend reported by the session rather than inferring it from the
-alias.
+`SECOND_OPINION_MODEL` names another explicit alias or pinned identifier. It
+pins `medium` effort so interactive Claude settings cannot make a bounded
+checker silently overrun; set `SECOND_OPINION_EFFORT` explicitly only when the
+operator accepts the runtime tradeoff. Record the backend reported by the
+session rather than inferring it from the alias.
 
 For a repository review, fingerprint the exact checkout from its root. Preserve
 the emitted full commit, tree, `clean` or `dirty` state, and `state_sha256` in

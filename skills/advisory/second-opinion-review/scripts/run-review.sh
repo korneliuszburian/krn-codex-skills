@@ -163,15 +163,25 @@ if [[ "$max_budget" != "unlimited" ]]; then
 fi
 second_opinion_model=${SECOND_OPINION_MODEL:-opus}
 model_args=(--model "$second_opinion_model")
+second_opinion_effort=${SECOND_OPINION_EFFORT:-medium}
+case "$second_opinion_effort" in
+  low | medium | high | xhigh | max) ;;
+  *)
+    echo "SECOND_OPINION_EFFORT must be one of: low, medium, high, xhigh, max" >&2
+    exit 64
+    ;;
+esac
+effort_args=(--effort "$second_opinion_effort")
 
 # Keep transport constraints structural; the local validator owns semantic
 # limits, evidence safety, and freshness across provider backends.
 schema=$(<"$schema_file")
 review_system_prompt="You are a tool-free, read-only advisory reviewer. Use only the evidence supplied through standard input. Do not infer repository, environment, credentials, or external state. Return only schema-compatible review output; never approve, block, merge, or declare readiness."
 
+set +e
 (
   cd "$review_cwd"
-  timeout "$timeout_seconds" claude \
+  timeout --preserve-status --kill-after=10 "$timeout_seconds" claude \
     --safe-mode \
     --disable-slash-commands \
     --system-prompt "$review_system_prompt" \
@@ -180,11 +190,23 @@ review_system_prompt="You are a tool-free, read-only advisory reviewer. Use only
     --output-format json \
     --json-schema "$schema" \
     "${budget_args[@]}" \
+    "${effort_args[@]}" \
     --no-session-persistence \
     "${model_args[@]}" \
     < "$prompt_snapshot" \
     > "$envelope_file"
 )
+review_status=$?
+set -e
+
+if (( review_status == 137 || review_status == 143 )); then
+  echo "second-opinion reviewer timed out after ${timeout_seconds}s (model=${second_opinion_model}, effort=${second_opinion_effort}, exit_status=${review_status}); no review was finalized" >&2
+  exit "$review_status"
+fi
+if (( review_status != 0 )); then
+  echo "second-opinion reviewer failed with exit status ${review_status} (model=${second_opinion_model}, effort=${second_opinion_effort}); no review was finalized" >&2
+  exit "$review_status"
+fi
 
 if ! cmp -s "$prompt_file" "$prompt_snapshot"; then
   echo "checker prompt changed while Claude was running" >&2

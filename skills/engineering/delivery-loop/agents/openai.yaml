@@ -1,0 +1,6 @@
+interface:
+  display_name: "Delivery Loop"
+  short_description: "Drive one outcome through proof and review"
+  default_prompt: "Use $delivery-loop to carry this accepted outcome through its authorized lifecycle."
+policy:
+  allow_implicit_invocation: true

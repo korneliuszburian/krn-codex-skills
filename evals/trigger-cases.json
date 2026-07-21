@@ -15,6 +15,30 @@
       ]
     },
     {
+      "id": "autonomous-end-to-end-delivery",
+      "prompt": "Take this accepted repository outcome and autonomously carry it through the active tracker item, implementation, focused proof, independent review, commit, PR checks, and every authorized step until done or an exact external blocker.",
+      "expected_skills": [
+        "delivery-loop"
+      ],
+      "forbidden_skills": [
+        "setup-repository-workflow",
+        "codebase-design",
+        "second-opinion-review"
+      ]
+    },
+    {
+      "id": "single-slice-does-not-need-delivery-loop",
+      "prompt": "Implement this already-scoped parser validation locally and show its focused proof; do not commit or publish it.",
+      "expected_skills": [
+        "implement"
+      ],
+      "forbidden_skills": [
+        "delivery-loop",
+        "diagnosing-bugs",
+        "code-review"
+      ]
+    },
+    {
       "id": "implement-typescript-boundary",
       "prompt": "Change this TypeScript JSON boundary so external data stays unknown until parsed.",
       "expected_skills": [
@@ -394,6 +418,54 @@
         "writing-great-skills",
         "managing-codex-capabilities",
         "batch-grill-me"
+      ]
+    },
+    {
+      "id": "explicit-repository-workflow-setup",
+      "prompt": "Use $setup-repository-workflow to condense this repository's AGENTS.md, tracker boundary, Codex config, and CI contract without duplicating global skills.",
+      "expected_skills": [
+        "setup-repository-workflow"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "code-review",
+        "managing-codex-capabilities"
+      ]
+    },
+    {
+      "id": "cross-repository-workflow-setup",
+      "prompt": "Use $setup-repository-workflow to repair the agent contract in the other checkout at /work/product while preserving its dirty state.",
+      "expected_skills": [
+        "setup-repository-workflow",
+        "target-repo-work"
+      ],
+      "forbidden_skills": [
+        "managing-codex-capabilities",
+        "writing-great-skills"
+      ]
+    },
+    {
+      "id": "normal-delivery-is-not-repository-setup",
+      "prompt": "Implement the already-scoped checkout validation and run its focused proof.",
+      "expected_skills": [
+        "implement"
+      ],
+      "forbidden_skills": [
+        "setup-repository-workflow",
+        "diagnosing-bugs",
+        "code-review"
+      ]
+    },
+    {
+      "id": "global-capability-setup-is-not-repository-workflow",
+      "prompt": "Install and configure our global Codex skills, plugins, MCP servers, and app surfaces for use across every repository.",
+      "expected_skills": [
+        "managing-codex-capabilities"
+      ],
+      "forbidden_skills": [
+        "setup-repository-workflow",
+        "implement",
+        "target-repo-work"
       ]
     }
   ]

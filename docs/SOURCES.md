@@ -35,6 +35,8 @@ This repository stores distilled mechanisms, not source corpora.
 - Boundary: the video's reported 38 installed skills and approximate context
   threshold are observations of that recorded setup, not invariants of the
   later 41-entrypoint repository or of Codex.
+- Selected workflow-video coverage and per-video dispositions:
+  [matt-youtube-coverage.md](matt-youtube-coverage.md).
 
 ## Matt Pocock — `/wayfinder` demo
 
@@ -67,6 +69,42 @@ This repository stores distilled mechanisms, not source corpora.
   future bounded owner backed by a repeated consumer and behavioral evidence.
 - Copyright boundary: no transcript passage, cue, or scene is committed here;
   only original mechanism-level decisions and provenance are retained.
+
+## Matt Pocock — repository setup
+
+- Source: [`setup-matt-pocock-skills`](https://github.com/mattpocock/skills/tree/9603c1cc8118d08bc1b3bf34cf714f62178dea3b/skills/engineering/setup-matt-pocock-skills),
+  inspected 2026-07-20 at the pinned commit.
+- Adopted: one bounded setup pass, idempotent updates to an existing root
+  instruction file, a thin skills pointer, repo-owned tracker/domain adapters,
+  and one setup owner that stops before normal delivery.
+- KRN adaptation: `setup-repository-workflow` classifies the local surfaces and
+  composes global owners without copying them. Its deterministic initializer
+  adopts Matt's thin instruction block and repo-owned adapters, while adding
+  explicit inputs, collision refusal, in-repository path containment, and an
+  idempotence falsifier. Broader language-specific CI templates remain deferred
+  until repeated repository pilots establish one stable schema.
+
+## KRN `mise-en-palace` delivery pipeline
+
+- Source: [`korneliuszburian/mise-en-palace`](https://github.com/korneliuszburian/mise-en-palace/tree/8352ba740055aaa47e2c786a1ec9eb5fb190d6f3),
+  including PRs [#23](https://github.com/korneliuszburian/mise-en-palace/pull/23)
+  and [#25](https://github.com/korneliuszburian/mise-en-palace/pull/25), the
+  active `main` ruleset, CODEOWNERS, and KRN CI; inspected 2026-07-20.
+- Proven mechanism: one outcome branch contains cohesive Conventional Commits
+  and explicit Beads state commits; a PR is squash-merged so the durable main
+  commit carries `(#PR)`; a follow-up Beads merge record may land separately.
+  The active host ruleset requires a PR, linear history, squash merge, a fresh
+  branch, and four green checks: fast/type/eval, DB, security, and macOS.
+- Review boundary: Codex GitHub review is configured outside the workflow and
+  appeared on PR #23 as advisory review pinned to a commit. It is not a required
+  status or approval: PR #25 merged with no submitted review, the ruleset
+  requires zero approvals, and review threads are not required to resolve.
+- KRN decision: adopt the branch -> cohesive commits -> fixed PR -> required CI
+  -> squash merge shape as an optional strict repository profile. Keep
+  CODEOWNERS and automated Codex review advisory until the host ruleset
+  explicitly requires human approval or a mechanically named review status.
+  Do not force a ticket number into every inner commit; PR linkage belongs to
+  the squash commit, while tracker linkage belongs in Beads state and PR body.
 
 ## Matt Pocock — `batch-grill-me`
 
@@ -179,6 +217,45 @@ This repository stores distilled mechanisms, not source corpora.
   authority, backups, and manual review remain separate controls.
 - Constraint: same-name skills are not merged; both may appear. Unique active
   ownership is therefore an installation invariant, not a naming preference.
+- Repository setup decision: use an explicit, bounded
+  `setup-repository-workflow` owner for adopting or condensing local
+  instructions, project configuration, tracker boundaries, and deterministic
+  gates. Keep normal delivery with native goals and the existing engineering
+  skills. Do not generate universal project templates, blanket lifecycle hooks,
+  or executioner/reviewer agents. A project hook is earned only by a narrow,
+  deterministic local invariant and explicit trust. The official surface model assigns durable
+  repository conventions to a short local `AGENTS.md`, trusted settings to
+  `.codex/config.toml`, repeated workflows to skills, and host merge policy to
+  GitHub.
+
+## Agent workflow research
+
+- Context selection: [Lost in the Middle](https://arxiv.org/abs/2307.03172)
+  and [RULER](https://arxiv.org/abs/2404.06654) show that nominal context size
+  does not guarantee reliable use of relevant evidence. KRN therefore adopts a
+  complete bounded review packet—spec, fixed diff, applicable authority,
+  proof, gaps, non-proofs, and review questions—instead of a repository-wide
+  dump. Falsifier: seeded Standards/Spec review recall and cost do not improve
+  over the unstructured dump.
+- Minimal orchestration: [Agentless](https://arxiv.org/abs/2407.01489) supports
+  a simple localize -> repair -> validate baseline; it does not prove that all
+  agent specialization is harmful. KRN adopts one controller composing existing
+  workflow owners and rejects an `executioner` persona that merely restates
+  `implement`.
+- Proof independence: [SWE-bench](https://arxiv.org/abs/2310.06770) and the
+  [self-generated tests study](https://arxiv.org/abs/2501.12793) support
+  executable behavior evidence while warning that an agent's own tests may
+  encode the same misunderstanding. KRN prefers an existing public observer or
+  independent fixture and keeps reviewer prose advisory.
+- Reviewer independence: [Self-Preference Bias in LLM-as-a-Judge](https://arxiv.org/abs/2410.21819)
+  and [rubric-based self-preference bias](https://arxiv.org/abs/2604.06996)
+  motivate fixed-point Standards/Spec review without inheriting the maker's
+  rationale as fact. These evaluation studies do not establish LLM review as a
+  required CI gate.
+- Delegation boundary: [Towards a Science of Scaling Agent Systems](https://arxiv.org/abs/2512.08296)
+  is retained as a lab-test, not a universal rule. KRN keeps production WIP at
+  one and delegates only independent read-heavy branches with central
+  synthesis until local trials show a reliable benefit.
 
 ## Claude Code
 

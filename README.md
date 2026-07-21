@@ -14,9 +14,11 @@ ownership.
 
 ```text
 clear change  -> implement          -> focused proof -> code-review
+full outcome  -> delivery-loop      -> owned stages  -> truthful lifecycle state
 unknown fault -> diagnosing-bugs    -> cause-level fix or bounded diagnosis
 source claim  -> source-to-decision -> decision      -> implement
 another repo  -> target-repo-work   -> scoped result -> handoff
+repo setup    -> setup-repository-workflow -> thin local contract -> normal owner
 TypeScript    -> workflow owner + typescript-engineering companion
 global tools  -> managing-codex-capabilities -> reviewed profile -> fresh session
 foggy choices -> batch-grill-me     -> confirmed decision ledger -> chosen owner
@@ -32,18 +34,20 @@ branch that needs them.
 
 | Skill | Invocation | Owns |
 |---|---|---|
-| `implement` | model or user | one scoped production slice and proportional proof |
-| `diagnosing-bugs` | model or user | unknown failures, flakes, regressions, and slowness |
-| `code-review` | model or user | read-only Standards and Spec review |
-| `codebase-design` | model or user | deep modules, public seams, and interface shape |
-| `domain-modeling` | model or user | active terminology and rare durable decisions |
-| `source-to-decision` | model or user | external evidence turned into an owned decision |
-| `target-repo-work` | model or user | authority and state when operating on another repo |
-| `typescript-engineering` | model or user | TypeScript boundaries, APIs, compiler mechanics, and proof |
-| `managing-codex-capabilities` | model or user | global skill, plugin, MCP, usage, and profile control |
-| `writing-great-skills` | model or user | predictable skill authoring and trigger design |
-| `second-opinion-review` | explicit only | validated Claude research campaigns, isolated rewrite handoffs, or fixed-point checker |
-| `batch-grill-me` | explicit only | frontier-round interview before any artifact or implementation |
+| [`implement`](docs/engineering/implement.md) | model or user | one scoped production slice and proportional proof |
+| [`diagnosing-bugs`](docs/engineering/diagnosing-bugs.md) | model or user | unknown failures, flakes, regressions, and slowness |
+| [`delivery-loop`](docs/engineering/delivery-loop.md) | model or user | one outcome carried through claim, proof, review, and authorized publication state |
+| [`code-review`](docs/engineering/code-review.md) | model or user | read-only Standards and Spec review |
+| [`codebase-design`](docs/engineering/codebase-design.md) | model or user | deep modules, public seams, and interface shape |
+| [`domain-modeling`](docs/engineering/domain-modeling.md) | model or user | active terminology and rare durable decisions |
+| [`source-to-decision`](docs/engineering/source-to-decision.md) | model or user | external evidence turned into an owned decision |
+| [`target-repo-work`](docs/engineering/target-repo-work.md) | model or user | authority and state when operating on another repo |
+| [`setup-repository-workflow`](docs/engineering/setup-repository-workflow.md) | explicit only | one-time adoption or repair of a thin repo-local agent contract |
+| [`typescript-engineering`](docs/engineering/typescript-engineering.md) | model or user | TypeScript boundaries, APIs, compiler mechanics, and proof |
+| [`managing-codex-capabilities`](docs/meta/managing-codex-capabilities.md) | model or user | global skill, plugin, MCP, usage, and profile control |
+| [`writing-great-skills`](docs/meta/writing-great-skills.md) | model or user | predictable skill authoring and trigger design |
+| [`second-opinion-review`](docs/advisory/second-opinion-review.md) | explicit only | validated Claude research campaigns, isolated rewrite handoffs, or fixed-point checker |
+| [`batch-grill-me`](docs/productivity/batch-grill-me.md) | explicit only | frontier-round interview before any artifact or implementation |
 
 No top-level “coding system” orchestrates everything. Native Codex goal mode
 owns long-running outcome state; repositories choose their durable tracker;
@@ -106,8 +110,10 @@ picker; plain prompt text that resembles the name is not the same attachment.
 New or changed non-managed hooks must also be reviewed and trusted through
 `/hooks`; Codex binds trust to the exact hook definition.
 
-`$second-opinion-review` creates one private pass directory below
-`~/coding/krn/second-opinion-review`, namespaced as `<project>/<category>/<pass>`
+`$second-opinion-review` resolves configured repository work under
+`docs/agents/runs/second-opinion-review/<run-id>` and falls
+back to `~/coding/krn/second-opinion-review/<project>/<category>/<pass>` for
+unconfigured or ad-hoc work,
 where `project` is the cwd git repository and `category` is the role
 (`research`, `rewrite`, or `check`). Run `prepare-artifacts.mjs list` to
 enumerate passes with their project, category, and job state. Do not place ad
