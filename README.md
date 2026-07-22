@@ -25,6 +25,8 @@ global tools  -> managing-codex-capabilities -> reviewed profile -> fresh sessio
 foggy choices -> batch-grill-me     -> confirmed decision ledger -> chosen owner
 ```
 
+Visual routing of these paths: [`docs/work-pipeline.md`](docs/work-pipeline.md).
+
 `config/AGENTS.md` carries one universal production-first core. Codex loads it
 directly; Claude's `CLAUDE.md` resolves to the same file. The repository `AGENTS.md`
 adds only this source repo's contract. Skill descriptions route work. A
