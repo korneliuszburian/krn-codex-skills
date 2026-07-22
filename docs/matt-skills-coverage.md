@@ -284,3 +284,20 @@ The videos demonstrate useful mechanisms and real costs, but they do not supply
 either KRN-specific failure. A project that already installs Beads has the
 Wayfinder map/frontier/fog behavior without giving the global catalog ownership
 of every repository's tracker.
+
+### Front-half scope boundary (decision)
+
+KRN owns the *runtime core* of the coding pipeline — setup, grilling,
+implementation, proof, review, diagnosis, codebase design, handoff, research, and
+the `delivery-loop` lifecycle — and deliberately does **not** own the *front
+half* that turns a foggy conversation into agent-ready vertical slices:
+spec/PRD compression (`to-spec`), tracer-bullet ticket production
+(`to-tickets`), and backlog triage (`triage`). Those belong to the repo-local
+tracker and native goal state, not to a global KRN skill. `implement` owns one
+slice; nothing in the catalog owns *producing* the slice list, by design.
+
+This is a recorded scope boundary, not an accidental gap. A front-half owner
+would be earned only by a repeated cross-repository consumer and a falsifier —
+the same bar as a router or a global Wayfinder — and it must not duplicate
+`delivery-loop` (lifecycle) or `domain-modeling` (vocabulary). A candidate
+producer of slices would compose those owners, not restate them.

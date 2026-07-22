@@ -142,6 +142,41 @@ This repository stores distilled mechanisms, not source corpora.
 - Does not prove: every codebase needs domain documents or that an ADR should
   be created for routine, reversible implementation choices.
 
+## Matt Pocock — Building Great Agent Skills: The Missing Manual
+
+- Source: [Building Great Agent Skills: The Missing Manual](https://www.youtube.com/watch?v=UNzCG3lw6O0),
+  AI Engineer talk, ~20:43, inspected 2026-07-22.
+- Mechanism: a skill-authoring rubric with four checks — Trigger (the
+  user-invoked vs model-invoked boundary), Structure (ordered steps plus a single
+  reference, a minimal SKILL.md), Steering (leading imperative words and real
+  legwork per step), and Pruning (remove sediment and no-op steps).
+- KRN decision: adopt as confirmation of `writing-great-skills`, which already
+  enforces the same four checks with stricter direct-reference pointer
+  discipline. No new policy; the alignment is now auditable.
+- Falsifier: a promoted skill's description cannot be read for routing without
+  opening its body, or a branch reference requires multi-hop chasing.
+- Does not prove: that a short skill is automatically clear, or that KRN's
+  stricter pointer rules reduce authoring friction.
+
+## Matt Pocock — AGENTS.md and plan-mode rules
+
+- Sources: [A Complete Guide To AGENTS.md](https://www.aihero.dev/a-complete-guide-to-agents-md)
+  and [My AGENTS.md file for building plans you actually read](https://www.aihero.dev/my-agents-md-file-for-building-plans-you-actually-read),
+  inspected 2026-07-22.
+- Mechanism: keep AGENTS.md minimal (one-sentence project description, package
+  manager, non-standard build commands); describe capabilities, not file paths;
+  enforce deterministic CLI rules through a `PreToolUse` hook rather than prose;
+  and make plan-mode plans extremely concise, ending with unresolved questions.
+- KRN decision: adopt as confirmation. `config/AGENTS.md` already carries the
+  minimal production-first core, the capability-not-path framing, and a
+  user-level `PreToolUse` hook for the shell rule. The concision rule is
+  consistent with the production loop's "read closest instructions, build the
+  smallest slice."
+- Falsifier: a repository cannot recover its current language or gates from the
+  installed global core, or a deterministic CLI rule is expressed only as prose.
+- Does not prove: that every repository instruction is current, or that one
+  global core fits every product domain.
+
 ## Total TypeScript
 
 - Private source: *Total TypeScript — The Essentials*, final 2026 PDF supplied
