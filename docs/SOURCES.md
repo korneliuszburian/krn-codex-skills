@@ -197,6 +197,43 @@ This repository stores distilled mechanisms, not source corpora.
 - Does not prove: that every surge needs an audit, or that deepening is always
   right over a direct deletion.
 
+## Matt Pocock — Tracer Bullets
+
+- Source: [Tracer Bullets: Keeping AI Slop Under Control](https://www.aihero.dev/tracer-bullets),
+  updated 2026-01-22 and inspected 2026-07-22.
+- Mechanism: an agent's sycophancy builds entire horizontal layers in isolation
+  ("outrunning its headlights"), producing slop and review burden; the discipline
+  is to force tiny end-to-end vertical slices that touch every layer, test each
+  immediately, and continue in a fresh context per slice.
+- KRN decision: adopt — realized through `slice-work` (decomposes a settled spec
+  into one-fresh-session vertical slices, tracer bullet first) and `implement`'s
+  caller -> seam -> result contract. The proof budget keeps each slice's
+  falsifier proportional. No new mechanism beyond those owners.
+- Falsifier: a slice is a horizontal layer (all tests, all CLI, a skeleton) or
+  exceeds one fresh-context session.
+- Does not prove: that every change needs a formal slice list, or that vertical
+  slicing removes the need for review.
+
+## Matt Pocock — Context diet and the smart zone
+
+- Sources: [How To Kill The Bloat In Claude Code's System Prompt](https://www.aihero.dev/how-to-kill-the-bloat-in-claude-codes-system-prompt)
+  and [Most devs don't understand how context windows work](https://www.youtube.com/watch?v=-uW5-TaVXu4),
+  inspected 2026-07-22.
+- Mechanism: model quality degrades as the context window fills ("lost in the
+  middle"; a smart zone followed by a dumb zone); the lever is a lean context —
+  trim bundled tools, disable unused feature clusters, prefer progressive
+  disclosure over bloat, and reset between phases.
+- KRN decision: adopt as provenance. The thin global `AGENTS.md` core, progressive
+  disclosure through direct `references/` pointers, and `managing-codex-capabilities`
+  (lean profiles that disable unused integrations) are the KRN realization of the
+  smart-zone discipline. A separate `context-hygiene` skill is deferred: the
+  mechanism is real but already owned across those surfaces, and a new workflow
+  would collide with them.
+- Falsifier: a promoted skill or the global core carries bloat a fresh session
+  cannot shed, or a disabled integration re-enters the prompt unnoticed.
+- Does not prove: that one lean core fits every product domain, or that context
+  size is the only quality variable.
+
 ## Total TypeScript
 
 - Private source: *Total TypeScript — The Essentials*, final 2026 PDF supplied

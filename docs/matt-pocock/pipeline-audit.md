@@ -106,22 +106,16 @@ repeated cross-repository consumer and a falsifier; see [`rozkminy.md`](rozkminy
 
 ## Descriptive gaps (not yet in the ledgers)
 
-The committed ledgers cover the pinned repo + the videos known at pin time.
-This pass recorded the skill-authoring rubric (Missing Manual) and the AGENTS.md
-rules. The following high-signal sources from [`sources.md`](sources.md) remain
-**not yet** reflected and should be fed through `source-to-decision`:
+The committed ledgers cover the pinned repo + the videos known at pin time. This
+pass recorded the skill-authoring rubric (Missing Manual), the AGENTS.md rules,
+the De-Slop deepen-shallow-modules signals, the Tracer Bullets slicing doctrine,
+and the context-diet / smart-zone provenance. Software Fundamentals was reviewed
+and skipped as a synthesis whose components are already individually ledgered.
+The remaining high-signal sources from [`sources.md`](sources.md) not yet
+reflected:
 
-- **Software Fundamentals Matter More Than Ever** — the flagship talk unifying
-  grill-me + ubiquitous language + TDD + deep modules.
-- **How To De-Slop A Codebase** — `improve-codebase-architecture` in action; KRN
-  folds this into `codebase-design` but has no equivalent "run weekly to deepen
-  shallow modules" trigger.
-- **Tracer Bullets** + **My 7 Phases Of AI Development** — the canonical
-  statement of the slicing doctrine and the full phase model that the missing
-  KRN stages (5–7) are drawn from.
-- **How To Kill The Bloat…** + **Most devs don't understand context windows** —
-  the context-diet and smart/dumb-zone mechanisms. KRN adopts thin-context
-  implicitly but has no explicit context-management owner or ledger entry.
+- **My 7 Phases Of AI Development** — the full phase model; deferred because
+  KRN's `delivery-loop` already owns lifecycle at a different granularity.
 - **dictionary-of-ai-coding** repo — Matt's vocabulary layer; relevant to how
   `domain-modeling` and any future spec/triage skills describe themselves.
 

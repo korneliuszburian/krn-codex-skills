@@ -65,8 +65,9 @@ bez ledger-entry.
 - **defer** — Osobny skill `context-hygiene`. Ryzyko kolizji z managing-codex
   capabilities + z `writing-great-skills`. Mechanizm jest realny, ale na tym
   etapie lepiej jako sekcja w `managing-codex-capabilities` niż nowa workflow.
-- **adopt** — Ledger-entry notujący, że thin-context + pointer-disclosure to
-  nasza *realizacja* smart-zone'u, nie coincidentalia. Tani dowód zgodności.
+- **✅ slice 4** — Ledger-entry „Context diet and the smart zone" w `SOURCES.md`:
+  thin `AGENTS.md` + progressive disclosure + `managing-codex-capabilities` to
+  realizacja smart-zone'u. Osobny skill `context-hygiene` nadal *defer*.
 
 ## 4. divergencje filozoficzne — przemyśleć na nowo czy utrzymać
 
