@@ -61,6 +61,11 @@
       "implicit": true
     },
     {
+      "name": "slice-work",
+      "path": "skills/engineering/slice-work",
+      "implicit": false
+    },
+    {
       "name": "setup-repository-workflow",
       "path": "skills/engineering/setup-repository-workflow",
       "implicit": false

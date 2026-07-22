@@ -35,7 +35,8 @@
       "forbidden_skills": [
         "delivery-loop",
         "diagnosing-bugs",
-        "code-review"
+        "code-review",
+        "slice-work"
       ]
     },
     {
@@ -362,6 +363,18 @@
       ]
     },
     {
+      "id": "explicit-slice-work",
+      "prompt": "Use $slice-work to turn this settled spec into implementation-ready vertical slices with blocking dependencies before we implement anything.",
+      "expected_skills": [
+        "slice-work"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "delivery-loop",
+        "batch-grill-me"
+      ]
+    },
+    {
       "id": "second-opinion-stays-explicit",
       "prompt": "Implement this small parser change and run its focused proof.",
       "expected_skills": [
@@ -431,7 +444,8 @@
         "second-opinion-review",
         "writing-great-skills",
         "managing-codex-capabilities",
-        "batch-grill-me"
+        "batch-grill-me",
+        "slice-work"
       ]
     },
     {

@@ -289,15 +289,18 @@ of every repository's tracker.
 
 KRN owns the *runtime core* of the coding pipeline — setup, grilling,
 implementation, proof, review, diagnosis, codebase design, handoff, research, and
-the `delivery-loop` lifecycle — and deliberately does **not** own the *front
-half* that turns a foggy conversation into agent-ready vertical slices:
-spec/PRD compression (`to-spec`), tracer-bullet ticket production
-(`to-tickets`), and backlog triage (`triage`). Those belong to the repo-local
-tracker and native goal state, not to a global KRN skill. `implement` owns one
-slice; nothing in the catalog owns *producing* the slice list, by design.
+the `delivery-loop` lifecycle — plus, since the slicing lab, the one front-half
+stage that earned a consumer: **tracer-bullet slice production**, owned by
+explicit-only `slice-work` (a settled spec decomposed into implementation-ready
+vertical slices for `implement`). The remaining front half — spec/PRD compression
+(`to-spec`) and backlog triage (`triage`) — is deliberately **not** owned by a
+global KRN skill; it belongs to the repo-local tracker and native goal state.
 
-This is a recorded scope boundary, not an accidental gap. A front-half owner
-would be earned only by a repeated cross-repository consumer and a falsifier —
-the same bar as a router or a global Wayfinder — and it must not duplicate
-`delivery-loop` (lifecycle) or `domain-modeling` (vocabulary). A candidate
-producer of slices would compose those owners, not restate them.
+`slice-work` earned promotion through a lab: a blind judge scored its
+decomposition 15 vs 4 for the current-setup output, and it passed a clean
+`npm run validate`. It does not duplicate an owner — it produces the slice list;
+`implement` executes one slice; `delivery-loop` owns lifecycle. The still-unowned
+stages (spec compression, triage) remain a recorded scope boundary, not an
+accidental gap: an owner would be earned only by a repeated cross-repository
+consumer and a falsifier, and it must not duplicate `delivery-loop` (lifecycle) or
+`domain-modeling` (vocabulary).

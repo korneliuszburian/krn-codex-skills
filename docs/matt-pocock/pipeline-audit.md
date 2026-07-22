@@ -29,10 +29,11 @@ production risk lives*. KRN deliberately diverges on two philosophical axes
 The **real gaps are upstream of implementation**: the planning/compression stages
 that turn a foggy conversation into agent-ready vertical slices. Matt has four
 owner-skills here (`to-spec`, `to-tickets`, `triage`, and a stateful
-`grill-with-docs`) plus `wayfinder`; KRN has **none of these as first-class
-skills** — it delegates them to native goals and a repo-local tracker (Beads).
-That is a defensible "not our layer" stance, but it means the KRN catalog does
-not *itself* carry the front half of Matt's pipeline.
+`grill-with-docs`) plus `wayfinder`. KRN now owns one of them — `slice-work`
+(the `to-tickets` equivalent, earned via lab) — and delegates spec compression,
+triage, and the durable decision map to native goals and a repo-local tracker
+(Beads). That is a defensible "not our layer" stance for the rest, but it means
+the KRN catalog still does not *itself* carry spec compression or triage.
 
 **Descriptive coverage is good but stale**: the three existing ledgers document
 most decisions, but ~25 sources found in [`sources.md`](sources.md) (the Missing
@@ -49,7 +50,7 @@ in them.
 | 3 | Decision map / Wayfinder | wayfinder | native goals + repo tracker (Beads) | ⏸️ | ✅ | Deliberately deferred: no global Wayfinder; map/frontier/fog behavior adopted *through* Beads + native goal. Documented with the friction observed on the livestream (manual orchestration, approval interruptions, map not finished on air). |
 | 4 | Prototype | prototype | — (disposable worktree when needed) | 🔴/⏸️ | ✅ | No dedicated prototype skill; KRN uses a disposable rewrite worktree via `second-opinion-review` only when fidelity is unresolved. Decision is recorded; the gap is intentional. |
 | 5 | Spec / PRD compression | to-spec | — | 🔴/⏸️ | ✅ | **No owner, by design.** No skill compresses a settled conversation into a destination-first spec; it belongs to the repo tracker + native goal. Recorded as a scope boundary in [`../matt-skills-coverage.md`](../matt-skills-coverage.md). |
-| 6 | Tickets / tracer-bullet slicing | to-tickets | repo tracker (Beads) | 🟡/⏸️ | ✅ | Slicing is the tracker's job, not a KRN skill. `implement` owns one slice; producing the blocking slice list belongs to the tracker + native goal. Recorded as a scope boundary. |
+| 6 | Tickets / tracer-bullet slicing | to-tickets | `slice-work` (explicit) + repo tracker | ✅ | ✅ | Owned by `slice-work` since the slicing lab (blind-judge 15:4 vs ad-hoc decomposition; clean validate). It produces the blocking vertical-slice list for `implement`; the tracker holds the durable items. Spec compression and triage remain unowned (rows 5, 7). |
 | 7 | Triage / backlog | triage | — | 🔴/⏸️ | ✅ | **No owner, by design.** Backlog triage belongs to the repo tracker, not a global KRN skill. Recorded as a scope boundary. |
 | 8 | Implementation (fresh context) | implement | `implement` | ✅ | ✅ | Strongest 1:1 match. KRN adds a production-first vertical-slice contract and the `0/1/N` proof budget. |
 | 9 | TDD / proof | tdd | proof budget (0/1/N) inside `implement` | ⏸️ (divergence) | ✅ | Deliberate philosophical divergence: KRN rejects mandatory test-first and uses a falsifier budget instead. The divergence is documented as a decision, not a gap. |

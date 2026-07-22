@@ -17,6 +17,7 @@ clear change  -> implement          -> focused proof -> code-review
 full outcome  -> delivery-loop      -> owned stages  -> truthful lifecycle state
 unknown fault -> diagnosing-bugs    -> cause-level fix or bounded diagnosis
 source claim  -> source-to-decision -> decision      -> implement
+settled spec  -> slice-work          -> vertical slices -> implement
 another repo  -> target-repo-work   -> scoped result -> handoff
 repo setup    -> setup-repository-workflow -> thin local contract -> normal owner
 TypeScript    -> workflow owner + typescript-engineering companion
@@ -41,6 +42,7 @@ branch that needs them.
 | [`codebase-design`](docs/engineering/codebase-design.md) | model or user | deep modules, public seams, and interface shape |
 | [`domain-modeling`](docs/engineering/domain-modeling.md) | model or user | active terminology and rare durable decisions |
 | [`source-to-decision`](docs/engineering/source-to-decision.md) | model or user | external evidence turned into an owned decision |
+| [`slice-work`](docs/engineering/slice-work.md) | explicit only | a settled spec decomposed into implementation-ready vertical slices |
 | [`target-repo-work`](docs/engineering/target-repo-work.md) | model or user | authority and state when operating on another repo |
 | [`setup-repository-workflow`](docs/engineering/setup-repository-workflow.md) | explicit only | one-time adoption or repair of a thin repo-local agent contract |
 | [`typescript-engineering`](docs/engineering/typescript-engineering.md) | model or user | TypeScript boundaries, APIs, compiler mechanics, and proof |

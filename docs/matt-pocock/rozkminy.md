@@ -16,25 +16,24 @@ kompletny i lepiej zintegrowany niż u Matta, ale przednia połowa pipeline'u
 To największa luka. Trzy brakujące etapy (`to-spec`, `to-tickets`, `triage`)
 czytają się teraz jako niedopowiedziana granica zakresu, a nie decyzja.
 
-- **adopt** — Dodać do `pipeline-audit.md` / `SOURCES.md` *jawną* decyzję
-  "KRN nie posiada właściciela spec/slice/triage z wyboru: to warstwa trackera +
-  natywnego goala". Zmiana z 🔴/❌ na ⏸️/✅ w macierzy. Zero nowego kodu, sama
-  jasność kontraktu.
-- **lab-test** — Jeden cienki skill `slice-work` (explicit-only), który z
-  osadzonej rozmowy + tracker-a produkuje listę pionowych, blokujących się
-  plastrów rozmiaru "jedna świeża sesja". Jeden konsument (np. `delivery-loop`
-  przed `implement`), jeden falsyfikator (prompt foggowy nie route'uje się do
-  `slice-work`, albo `slice-work` produkuje plaster krzyżujący warstwy). Jeśli
-  się sprawdzi — promować; jeśli nie — usunąć. To bezpośrednia odpowiedź na
-  brak `to-tickets`/`to-spec`.
+- **✅ slice 1** — Jawna decyzja o granicy zapisana w `matt-skills-coverage.md`
+  ("Front-half scope boundary"); macierz `pipeline-audit.md` odwrócona do ⏸️/✅.
+  Uwaga: po promocji `slice-work` (poniżej) etap slicing ma już właściciela —
+  granica zawęziła się do spec + triage.
+- **✅ lab-earned → promowany** — `slice-work` (explicit-only): lab ze ślepym
+  judge'em (slice-work 15 : 4 vs obecny setup) + czyste `npm run validate`
+  (15 skill'i, 42 case'y). Produkuje listę pionowych, blokujących się plastrów
+  rozmiaru "jedna świeża sesja" dla `implement`; nie wykonuje ich (brak kolizji
+  z `implement`/`delivery-loop`). Ciągły falsyfikator: codzienne użycie — jeśli
+  zacznie produkować plastry poziome lub dublować `delivery-loop`, cofamy.
+  `to-spec` i `triage` nadal świadomie bez właściciela.
 - **defer** — `triage` jako osobny skill. Backlog-maintenance jest rzadszy i
   mocno tracker-zależny; nie zasługuje na globalnego właściciela, dopóki nie
   pokaże się powtarzalny konsument. Zostaje domeną repo-lokalnego kontraktu.
 
-**Ryzyko:** dodanie skill'i przednich psuje zasady "jedna workflow, jeden
-właściciel" jeśli nałożą się na `delivery-loop`/`domain-modeling`. `slice-work`
-musi *produkować* plaster dla `implement`, nie *wykonywać* go — inaczej
-kolizja własności z `implement`.
+**Ryzyko (rozstrzygnięte):** `slice-work` ograniczony do *produkcji* listy dla
+`implement` — nie wykonuje plasterków, nie owns lifecycle (`delivery-loop`) ani
+vocab (`domain-modeling`). Kolizja własności uniknięta; lab to potwierdził.
 
 ## 2. Dodać brakujące źródła do ledgerów
 
