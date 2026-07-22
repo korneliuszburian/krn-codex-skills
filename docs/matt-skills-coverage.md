@@ -6,8 +6,11 @@ each useful pattern, and the KRN decision that follows.
 
 ## Fixed evidence
 
-- Repository: [mattpocock/skills](https://github.com/mattpocock/skills), commit
-  `9603c1cc8118d08bc1b3bf34cf714f62178dea3b`, inspected 2026-07-16.
+- Repository: [mattpocock/skills](https://github.com/mattpocock/skills), pinned
+  commit `9603c1cc8118d08bc1b3bf34cf714f62178dea3b`, inspected 2026-07-16.
+  Current HEAD `ed37663` (2026-07-21) is substantively unchanged: one commit, a
+  two-line prose cleanup in `to-tickets`; no skill added, removed, renamed, or
+  re-bucketed. The pin's accounting below therefore remains current.
 - Main flow: [My New Coding Agent Skills Setup](https://www.youtube.com/watch?v=M6mYodf0dJM),
   17:17, published and inspected 2026-07-16. English auto-caption JSON3 SHA-256:
   `3b852d7e36a44d5855c1955b89053dbbc0a80b56f24f6bcd685df06f7a1e5bdd`.

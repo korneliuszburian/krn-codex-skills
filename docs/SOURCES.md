@@ -8,6 +8,8 @@ This repository stores distilled mechanisms, not source corpora.
 - Inspected commit: `9603c1cc8118d08bc1b3bf34cf714f62178dea3b`
 - Complete corpus and video ledger:
   [matt-skills-coverage.md](matt-skills-coverage.md).
+- Broader source index, pipeline audit, and working notes:
+  [matt-pocock/README.md](matt-pocock/README.md).
 - Adopted: concise entrypoints, explicit invocation policy, progressive
   disclosure, resumable background handoffs that point to durable artifacts,
   pre-agreed public seams, vertical slices, independent Standards and Spec
