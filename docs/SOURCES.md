@@ -177,6 +177,26 @@ This repository stores distilled mechanisms, not source corpora.
 - Does not prove: that every repository instruction is current, or that one
   global core fits every product domain.
 
+## Matt Pocock — How To De-Slop A Codebase
+
+- Source: [How To De-Slop A Codebase Ruined By AI (with one skill)](https://www.youtube.com/watch?v=3MP8D-mdheA),
+  ~11:19, inspected 2026-07-22.
+- Mechanism: a periodic architecture sweep finds shallow modules to deepen —
+  where understanding bounces between many small files, where pure functions
+  were extracted only for testability while bugs hide in the call-site glue, and
+  where modules are tightly coupled — then emits one deepening issue, typically
+  run after a feature surge.
+- KRN decision: adopt the signals and the surge trigger into `codebase-design`
+  (its `architecture-audit` reference). The audit stays evidence-gated: a feature
+  surge is a valid evidence window because it generates the repeated-change
+  evidence the audit requires, but a calendar "run weekly" cadence is rejected as
+  ceremony without friction. The testability-extraction smell is added to the
+  friction-trace list.
+- Falsifier: the audit flags formatting, a rename, file-splitting, or an
+  abstraction for a hypothetical consumer, or runs without demonstrated friction.
+- Does not prove: that every surge needs an audit, or that deepening is always
+  right over a direct deletion.
+
 ## Total TypeScript
 
 - Private source: *Total TypeScript — The Essentials*, final 2026 PDF supplied

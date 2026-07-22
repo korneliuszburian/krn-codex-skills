@@ -40,17 +40,17 @@ vocab (`domain-modeling`). Kolizja własności uniknięta; lab to potwierdził.
 `sources.md` ma ~7 wysoko-sygnałowych źródeł nieujętych w decyzjach. To czysty
 `source-to-decision`, tani i zwracający audytowalność.
 
-- **adopt** — Ledger-entry dla **Building Great Agent Skills: The Missing
-  Manual** (rubryka Trigger/Structure/Steering/Pruning). Porównać 1:1 z naszym
-  `writing-great-skills`; prawdopodobnie "adopt + wzmocnić" (KRN jest już
-  ostrzejszy na direct-reference).
-- **adopt** — Ledger-entry dla **AGENTS.md guide** + **plan-mode rules** (concise
-  plans, unresolved-questions list, capabilities-not-paths, CLI→hooks). Pokazać,
-  że `config/AGENTS.md` już to spełnia — to robi zgodność audytowalną, nie
-  nową politykę.
-- **lab-test** — Mechanizm **deepen-shallow-modules** z De-Slop jako
-  *trigger* w `codebase-design` ("uruchom po surgu lub co tydzień"), bez
-  nowego skill'a.
+- **✅ slice 1** — Ledger-entry dla **Building Great Agent Skills: The Missing
+  Manual** w `SOURCES.md`. Wniosek: adopt — `writing-great-skills` już spełnia
+  rubrykę Trigger/Structure/Steering/Pruning (KRN ostrzejszy na direct-reference).
+- **✅ slice 1** — Ledger-entry dla **AGENTS.md guide** + **plan-mode rules** w
+  `SOURCES.md`. `config/AGENTS.md` już to spełnia — zgodność audytowalna.
+- **✅ slice 3 (narrow adopt)** — **deepen-shallow-modules** z De-Slop: audit
+  `codebase-design` już pokrywał większość mechanizmów. Dodane dwa realne luki do
+  `architecture-audit.md`: smell „pure-fns wyekstrahowane tylko pod
+  testowalność, bugi w kleju" + kadencja „surg = okno z dowodem" (kalendarz
+  „co tydzień" odrzucony jako ceremonia bez dowodu tarcia). Ledger-entry De-Slop
+  w `SOURCES.md`.
 - **defer** — Całkowite przyjęcie modelu **7 Phases**. KRN ma już
   `delivery-loop` jako lifecycle-owner; 7 faz to inna granularyzacja i
   dublowałaby stan. Trzymamy `delivery-loop`.

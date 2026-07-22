@@ -6,15 +6,17 @@ verdict by itself.
 
 1. **Pin the audit.** Name the package, subsystem, or changed surface and
    whether evidence comes from current code, a fixed-point diff, or bounded
-   recent history. Keep discovery read-only.
+   recent history — a feature surge is a natural window, since it generates the
+   repeated-change evidence this audit requires. Keep discovery read-only.
 
    **Done when:** the search boundary and evidence window are explicit.
 
 2. **Trace concrete friction.** Look for one behavior requiring unrelated
    caller edits, repeated policy or recovery, callers sequencing internals, a
    public contract exposing storage or transport, one module changing for
-   unrelated reasons, or missing production seams behind recurring bug and
-   proof friction.
+   unrelated reasons, behavior split into tiny pure functions extracted only for
+   testability while the real bugs hide in the glue between them, or missing
+   production seams behind recurring bug and proof friction.
 
    Use current code first and only the cheapest history needed to confirm a
    repeated cost. Do not run broad tests or CI to manufacture architecture
