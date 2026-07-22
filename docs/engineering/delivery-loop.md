@@ -30,7 +30,8 @@ truth, proof, Standards/Spec disposition, host state, and artifact cleanup.
 
 ## Composition
 
-Routes clear changes to `implement`, unknown failures to `diagnosing-bugs`, and
-fixed results to `code-review`. Publication and failing-CI work stay with their
+Routes clear changes to `implement`, multi-slice outcomes to `slice-work` (then
+claims one slice at a time), unknown failures to `diagnosing-bugs`, and fixed
+results to `code-review`. Publication and failing-CI work stay with their
 installed GitHub owners. It never becomes an executioner, reviewer, tracker, or
 publisher itself.

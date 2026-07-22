@@ -60,7 +60,7 @@ in them.
 | 13 | Diagnosing bugs | diagnosing-bugs | `diagnosing-bugs` | ✅ | ✅ | Evidence-first; reproduce before repair. |
 | 14 | Codebase design / deep modules | codebase-design, improve-codebase-architecture | `codebase-design` + `domain-modeling` | ✅ | ✅ | Deep modules, public seams, grey-box. (No separate "improve-codebase-architecture" skill — folded into codebase-design.) |
 | 15 | Skill authoring | writing-great-skills | `writing-great-skills` | ✅ | ✅ | KRN's is stricter on direct-reference pointers and trigger routing. |
-| 16 | Delivery lifecycle (orchestration) | *(no single owner — assembled per run)* | `delivery-loop` | ✅ (KRN-only) | ✅ | **KRN advantage.** Matt has no single state-transition orchestrator; he composes skills ad hoc or via `ask-matt` + wayfinder. KRN has an explicit lifecycle owner with WIP=1 and honest publication states. |
+| 16 | Delivery lifecycle (orchestration) | *(no single owner — assembled per run)* | `delivery-loop` | ✅ (KRN-only) | ✅ | **KRN advantage.** Matt has no single state-transition orchestrator; he composes skills ad hoc or via `ask-matt` + wayfinder. KRN has an explicit lifecycle owner with WIP=1, honest publication states, and (since `slice-work`) routes multi-slice outcomes through decomposition before claiming one slice. |
 | 17 | Router / recall | ask-matt | — | ⏸️ | ✅ | Deliberately no router: KRN's skill family is small enough that explicit selection suffices. Recorded as a defer-until-evidence decision. |
 
 ## Where the pipeline is fulfilled (✅)

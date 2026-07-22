@@ -375,6 +375,19 @@
       ]
     },
     {
+      "id": "multi-slice-outcome-decomposes-via-slice-work",
+      "prompt": "Autonomously deliver this multi-part outcome: decompose it into vertical slices first, then implement one slice at a time through to review and publication.",
+      "expected_skills": [
+        "delivery-loop",
+        "slice-work"
+      ],
+      "forbidden_skills": [
+        "diagnosing-bugs",
+        "domain-modeling",
+        "setup-repository-workflow"
+      ]
+    },
+    {
       "id": "second-opinion-stays-explicit",
       "prompt": "Implement this small parser change and run its focused proof.",
       "expected_skills": [

@@ -43,10 +43,13 @@ not a queue or durable status artifact.
    and its tracker/goal state agrees with the repository state.
 
 3. **Route the current uncertainty.** A clear behavior change goes to
-`$implement`. An unknown failure first goes to `$diagnosing-bugs`; only a proven
-cause returns to `$implement`. Architecture, terminology, and external-source
-decisions stay with their existing owners before implementation. Do not create
-an executioner persona or copy another skill's procedure into the handoff.
+`$implement`. An outcome that exceeds one fresh-context slice first goes through
+`$slice-work` for the blocking vertical-slice list, then this loop claims one
+slice at a time under the work-in-progress limit. An unknown failure first goes
+to `$diagnosing-bugs`; only a proven cause returns to `$implement`. Architecture,
+terminology, and external-source decisions stay with their existing owners
+before implementation. Do not create an executioner persona or copy another
+skill's procedure into the handoff.
 
    **Done when:** the selected owner receives a bounded input and returns its
    own completion evidence or exact blocker.
