@@ -65,8 +65,9 @@ in them.
 
 ## Where the pipeline is fulfilled (✅)
 
-Stages 1, 8, 10, 12, 13, 14, 15, 16, 17 — the runtime core plus a delivery
-orchestrator KRN has and Matt does not. This is the high-risk surface and it is
+Stages 1, 6, 8, 10, 12, 13, 14, 15, 16, 17 — the runtime core plus a delivery
+orchestrator KRN has and Matt does not, plus stage 6 (slicing), the one front-half
+stage earned via the `slice-work` lab. This is the high-risk surface and it is
 well-owned and well-described.
 
 ## Where the pipeline is deliberately divergent (⏸️)
@@ -84,25 +85,21 @@ These are *decisions*, recorded as such. They are not failures to fulfill.
 
 ## Where the pipeline is genuinely gapped (🔴)
 
-The front half — turning fog into agent-ready vertical slices:
+The front half — turning fog into agent-ready work — minus the one stage now owned:
 
 1. **No spec/PRD compression owner** (to-spec equivalent). Nothing owns
    "compress this settled conversation into a destination-first spec with
    explicit unknowns."
-2. **No tracer-bullet slicing owner** (to-tickets equivalent). The tracker holds
-   tickets, but no KRN skill owns the *procedure* of producing blocking,
-   one-fresh-context-sized slices from a spec.
-3. **No triage owner.** Nothing converts a messy backlog into agent-ready work.
-4. **No prototype skill** (intentional, but worth revisiting).
+2. **No triage owner.** Nothing converts a messy backlog into agent-ready work.
+3. **No prototype skill** (intentional, but worth revisiting).
 
-These four are where "is Matt's pipeline *described* here?" previously flipped to
-**no**. As of this pass the front-half boundary (spec, slicing, triage) is
-recorded as a deliberate scope decision in
-[`../matt-skills-coverage.md`](../matt-skills-coverage.md) ("Front-half scope
-boundary"), and the prototype deferral already stood in the original ledger. The
-four remain unowned *by design* — they belong to the repo tracker and native goal
-state — not as an under-specified frontier. Filling any of them requires a
-repeated cross-repository consumer and a falsifier; see [`rozkminy.md`](rozkminy.md).
+Tracer-bullet slicing left this list when the `slice-work` lab earned it a
+promotion (blind-judge 15:4 over ad-hoc decomposition; clean validate; now wired
+into `delivery-loop`). The remaining three are recorded as a deliberate scope
+boundary in [`../matt-skills-coverage.md`](../matt-skills-coverage.md)
+("Front-half scope boundary"): they belong to the repo tracker and native goal
+state, not an under-specified frontier. Filling any of them requires a repeated
+cross-repository consumer and a falsifier; see [`rozkminy.md`](rozkminy.md).
 
 ## Descriptive gaps (not yet in the ledgers)
 
@@ -122,12 +119,14 @@ reflected:
 ## What this means for the repo
 
 - The **fulfilled** answer is: *the runtime core is fully there and better
-  integrated than Matt's; the upstream planning-to-slices stages are not owned
-  by any KRN skill and are mostly delegated to platform + tracker.*
-- The **described** answer is: *most adopted/rejected mechanisms are recorded;
-  the genuine gaps (spec, slicing, triage) are under-described; ~7 high-signal
-  sources are unledgered.*
-- None of this is a defect by KRN's own contract (one workflow, one owner;
-  domain state stays with the repo). It is a scope boundary that is currently
-  implicit. [`rozkminy.md`](rozkminy.md) weighs whether to make it explicit or
-  to fill the gaps.
+  integrated than Matt's, and tracer-bullet slicing is now owned by `slice-work`
+  (wired into `delivery-loop`). Spec/PRD compression, triage, and prototyping
+  remain delegated to the repo tracker and native goal state — a recorded scope
+  boundary, not a gap.*
+- The **described** answer is: *adopted and rejected mechanisms are recorded
+  across the ledgers; this pass ledgered five high-signal sources (Missing
+  Manual, AGENTS.md rules, De-Slop, Tracer Bullets, context-diet) and made the
+  front-half scope boundary explicit.*
+- The catalog is internally consistent with Matt's pipeline: every runtime stage
+  has an owner, the one earned front-half stage (slicing) is owned, and the rest
+  of the front half is a deliberate, falsifiable deferral — not an accident.
