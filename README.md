@@ -46,7 +46,7 @@ branch that needs them.
 | [`delivery-loop`](docs/engineering/delivery-loop.md) | model or user | one outcome carried through claim, proof, review, and authorized publication state |
 | [`code-review`](docs/engineering/code-review.md) | model or user | read-only Standards and Spec review |
 | [`codebase-design`](docs/engineering/codebase-design.md) | model or user | deep modules, public seams, and interface shape |
-| [`domain-modeling`](docs/engineering/domain-modeling.md) | model or user | active terminology and rare durable decisions |
+| [`domain-modeling`](docs/engineering/domain-modeling.md) | model or user | frontier-round decisions, contested concepts, and earned ADRs |
 | [`source-to-decision`](docs/engineering/source-to-decision.md) | model or user | external evidence turned into an owned decision |
 | [`to-spec`](docs/engineering/to-spec.md) | model or user | a settled conversation compressed into one destination-first published spec |
 | [`slice-work`](docs/engineering/slice-work.md) | explicit only | a settled spec decomposed into implementation-ready vertical slices |
