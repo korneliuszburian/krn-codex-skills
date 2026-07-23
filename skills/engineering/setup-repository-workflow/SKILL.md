@@ -75,8 +75,14 @@ plans remain ephemeral.
    ```
 
    Pass `--instruction AGENTS.md` or `--instruction CLAUDE.md` only to resolve
-   two independent existing files. The initializer never creates a root
-   instruction owner and never writes project Codex config speculatively.
+   two independent existing files. When no instruction owner exists, `apply`
+   seeds a **thin** `AGENTS.md` (specifics and placeholders only) and symlinks
+   `CLAUDE.md` to it — this skill owns the repository brief so a tracker's init
+   never fills the void. See [agents-composition.md](references/agents-composition.md)
+   for why the brief stays thin and how the harness composes it with the global
+   core. For a beads tracker, initialize it with
+   `bd init --agents-profile minimal --non-interactive` so bd injects only a
+   one-line pointer, not its full always-loaded reference.
 
    Normalize working artifacts under `docs/agents/runs/<workflow>/<run-id>/`
    and retain only consumer-owned final reports under

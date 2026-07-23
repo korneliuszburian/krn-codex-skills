@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 const START = "<!-- krn-agent-workflow:start -->";
@@ -361,6 +361,43 @@ function writeOwned(path, contents) {
   writeFileSync(path, contents.endsWith("\n") ? contents : `${contents}\n`);
 }
 
+function thinAgentsTemplate(root) {
+  const name = root.split(sep).filter(Boolean).pop() ?? "this repository";
+  return `# ${name}
+
+<One line: what this repository is.>
+
+## Layout
+
+<Where the code lives.>
+
+## Commands
+
+<Build, test, run — or "none yet".>
+
+## Standing rules
+
+- <This repository's hard constraints.>
+- Methodology — production loop, proof budget, review, lifecycle — is owned by
+  the installed global skills and the global \`AGENTS.md\`, auto-composed by the
+  harness. It is not repeated here.
+`;
+}
+
+// The skill owns the repo brief: when no instruction owner exists, seed a thin
+// AGENTS.md (specifics only) and symlink CLAUDE.md to it, so a tracker's init
+// (e.g. bd) never fills the void with its own always-loaded reference bloat.
+function bootstrapInstructionIfAbsent(root) {
+  const state = instructionState(root);
+  if (state.hasAgents || state.hasClaude) return;
+  writeFileSync(state.agents, thinAgentsTemplate(root));
+  try {
+    symlinkSync("AGENTS.md", state.claude);
+  } catch {
+    // CLAUDE.md is optional; ignore if it cannot be created.
+  }
+}
+
 const { command, options } = parseArgs(process.argv.slice(2));
 const root = resolve(options.root ?? process.cwd());
 if (!existsSync(root)) fail(`root does not exist: ${root}`);
@@ -378,6 +415,7 @@ if (!TRACKERS.has(tracker)) fail("--tracker must be beads, github, gitlab, or lo
 if (!DOMAINS.has(domain)) fail("--domain must be single or multi");
 if (!DELIVERY.has(delivery)) fail("--delivery must be local or strict");
 
+bootstrapInstructionIfAbsent(root);
 const instructionPath = chooseInstruction(root, options.instruction);
 assertInstructionSafe(root, instructionPath);
 const current = readFileSync(instructionPath, "utf8");

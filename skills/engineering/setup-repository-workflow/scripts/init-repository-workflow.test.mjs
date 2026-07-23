@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -17,6 +17,18 @@ function fixture() {
 function apply(root, extra = []) {
   return execFileSync(process.execPath, [script, "apply", "--root", root, "--tracker", "beads", "--domain", "single", "--delivery", "strict", ...extra], { encoding: "utf8" });
 }
+
+test("apply bootstraps a thin AGENTS.md and CLAUDE.md symlink when none exists", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-repo-setup-empty-"));
+  execFileSync("git", ["init", "-q", root]);
+  apply(root);
+  const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
+  assert.match(agents, /Methodology/);
+  assert.match(agents, /global skills/);
+  assert.match(agents, /krn-agent-workflow:start/);
+  assert.equal(realpathSync(join(root, "CLAUDE.md")), realpathSync(join(root, "AGENTS.md")));
+  assert.doesNotMatch(agents, /bd prime|BEADS INTEGRATION|Never stop before pushing/i);
+});
 
 test("apply preserves user prose and is byte-idempotent", () => {
   const root = fixture();
