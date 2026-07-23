@@ -25,9 +25,13 @@ artifact a planning step produces.
 A slice list where each slice is one-fresh-session-sized, runs caller to public
 seam to result, states real blocking dependencies, and carries its own decision
 evidence. A tracer-bullet slice makes the outcome demonstrable first; later
-slices each add one independent capability. No slice is a horizontal layer.
+slices each add one independent capability. No slice is a horizontal layer; the
+one exception is a wide refactor, sequenced as expand–contract. When a tracker is
+configured, each slice is also published as one ticket with its blocking edges for
+`delivery-loop` to claim.
 
 ## Composition
 
-Hand each slice to `implement` in a fresh context; `delivery-loop` sequences the
-list under its work-in-progress limit.
+Hand each slice to `implement` in a fresh context; `delivery-loop` claims the
+frontier and sequences the list under its work-in-progress limit. `slice-work`
+creates the tickets; it never claims or sequences them.
