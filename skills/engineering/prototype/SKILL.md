@@ -1,0 +1,86 @@
+---
+name: prototype
+description: Build a throwaway prototype to answer one design question. Use to sanity-check whether a state model or logic feels right (tiny terminal app) or what a UI should look like (several variants on a route); skip production builds and diagnosis.
+---
+
+# Prototype
+
+A prototype is **throwaway code that answers one question**. The question decides
+the shape, and getting the branch wrong wastes the whole prototype. It is not a
+production build (`$implement`), not a diagnosis (`$diagnosing-bugs`), and not
+real review — it is the cheapest runnable artifact that settles a design question
+that resists paper.
+
+1. **Pick the branch from the question.** Identify the one question, from the
+   prompt, the surrounding code, or by asking.
+
+   - **"Does this logic or state model feel right?"** → terminal app. Read
+     [LOGIC.md](references/LOGIC.md): a tiny interactive TUI over a pure module,
+     driven by hand through the cases that look fine on paper but feel wrong run.
+   - **"What should this look like?"** → UI variants. Read
+     [UI.md](references/UI.md): several radically different variants on one route,
+     switched from a floating bar.
+
+   If the question is genuinely ambiguous and the user is unreachable, default to
+   whichever branch matches the surrounding code (a backend module → logic; a page
+   or component → UI) and state the assumption at the top of the prototype.
+
+   **Done when:** one branch is chosen and the single question it must answer is
+   written down (in the prototype's README or a top-of-file comment).
+
+2. **Build it throwaway from day one, and marked as such.** Locate the prototype
+   close to where it will be used so the context is obvious, but name it so a casual
+   reader sees it is a prototype. Obey the project's existing routing and task-runner
+   conventions; do not invent a new top-level structure or pull in a new runtime.
+
+   **Done when:** the prototype is discoverable next to its target and clearly
+   labelled throwaway.
+
+3. **One command to run.** Wire it through the project's existing task runner
+   (`package.json` scripts, `Makefile`, `justfile`, `pyproject.toml`) so the user
+   runs `pnpm run <name>` or equivalent without remembering a path. If there is no
+   task runner, put the command at the top of the prototype's README.
+
+   **Done when:** a single documented command starts the prototype.
+
+4. **Skip the polish.** No tests, no error handling beyond what makes it runnable,
+   no abstractions, no generalisation ("what if we wanted X later"). The point is to
+   learn fast. Keep the logic branch pure (no I/O, no terminal code in the module
+   being tested) so it can lift into real code later; the TUI or switcher around it
+   is the throwaway shell.
+
+   **Done when:** the prototype does only what the one question needs and nothing
+   speculative.
+
+5. **Surface the state.** After every action (logic) or on every variant switch
+   (UI), print or render the full relevant state so the user sees what changed. One
+   stable view, not an ever-growing scrollback.
+
+   **Done when:** the user can observe the effect of each input immediately.
+
+6. **Hand it over and let it evolve.** Give the user the run command or URL. The
+   interesting moments are "wait, that shouldn't be possible" or "I assumed X would
+   be different" — those are bugs in the *idea*, which is the whole point. Add
+   actions or variants as the user asks; prototypes evolve.
+
+   **Done when:** the user has driven the prototype and the question is answered or
+   sharpened.
+
+7. **Capture the answer, then capture the prototype.** Fold the validated decision
+   into the real code (the winner variant, or the lifted pure module) and rewrite it
+   properly under `$implement` — prototype code was written under throwaway
+   constraints. Record the **verdict** — the answer and the question it settled — on
+   the issue, spec, or commit. Commit the **whole prototype** to a throwaway branch
+   out of main and leave a context pointer to that branch: it is a **primary source**
+   of runnable evidence, not the bin. Drop losing variants and the shell from main.
+
+   <prototype-result>
+   Question answered:
+   Verdict:
+   Folded into real code via: $implement
+   Primary source (throwaway branch):
+   </prototype-result>
+
+   **Done when:** the decision is in real code, the verdict is recorded, the full
+   prototype survives on a throwaway branch with a pointer, and main keeps only the
+   validated decision.

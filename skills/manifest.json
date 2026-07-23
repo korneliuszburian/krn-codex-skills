@@ -61,6 +61,11 @@
       "implicit": true
     },
     {
+      "name": "prototype",
+      "path": "skills/engineering/prototype",
+      "implicit": true
+    },
+    {
       "name": "source-to-decision",
       "path": "skills/engineering/source-to-decision",
       "implicit": true

@@ -14,6 +14,7 @@ ownership.
 
 ```text
 clear change  -> implement          -> focused proof -> code-review
+design question -> prototype        -> validated decision -> implement
 full outcome  -> delivery-loop      -> owned stages  -> truthful lifecycle state
 unknown fault -> diagnosing-bugs    -> cause-level fix or bounded diagnosis
 source claim  -> source-to-decision -> decision      -> implement
@@ -40,6 +41,7 @@ branch that needs them.
 | Skill | Invocation | Owns |
 |---|---|---|
 | [`implement`](docs/engineering/implement.md) | model or user | one scoped production slice and proportional proof |
+| [`prototype`](docs/engineering/prototype.md) | model or user | a throwaway prototype answering one design question, captured as a primary source |
 | [`diagnosing-bugs`](docs/engineering/diagnosing-bugs.md) | model or user | unknown failures, flakes, regressions, and slowness |
 | [`delivery-loop`](docs/engineering/delivery-loop.md) | model or user | one outcome carried through claim, proof, review, and authorized publication state |
 | [`code-review`](docs/engineering/code-review.md) | model or user | read-only Standards and Spec review |

@@ -49,7 +49,7 @@ in them.
 | 1 | Setup / AGENTS.md / install | setup-matt-pocock-skills | `setup-repository-workflow` (explicit) | ✅ | ✅ | KRN adapted: bounded init, collision refusal, in-repo path containment, idempotence. KRN keeps AGENTS.md/CLAUDE.md as one semantic core via symlinks. |
 | 2 | Grilling / shared understanding | grill-me (stateless), grilling (primitive), grill-with-docs (stateful: ADR + glossary) | `batch-grill-me` (explicit) + `domain-modeling` | 🟡 | 🟡 | KRN split the concept: frontier-round *interview* → batch-grill-me; *vocabulary + earned ADR* → domain-modeling. No single stateful grill-with-docs; the ADR-is-earned rule is adopted. Matt's "one question at a time" vs KRN's "whole frontier in one round" is a genuine shape difference (documented). |
 | 3 | Decision map / Wayfinder | wayfinder | `wayfinder` | ✅ | ✅ | Owned by explicit-only `wayfinder`: charts a foggy multi-session effort as one `wayfinder:map` index plus child decision tickets on the configured tracker, worked frontier-first one ticket per session until the route clears. Plan-don't-do; hands off to `to-spec`/`slice-work`/`implement`. Map/frontier/fog now have a global owner instead of living only in Beads + native goal. Comparative falsifier pending one real-consumer run. |
-| 4 | Prototype | prototype | — (disposable worktree when needed) | 🔴/⏸️ | ✅ | No dedicated prototype skill; KRN uses a disposable rewrite worktree via `second-opinion-review` only when fidelity is unresolved. Decision is recorded; the gap is intentional. |
+| 4 | Prototype | prototype | `prototype` | ✅ | ✅ | Owned by `prototype`: throwaway code answering one design question — a tiny terminal app over a pure module for logic/state, or several radically different UI variants on one route. Captures the verdict and commits the prototype to a throwaway branch as a primary source; the validated decision folds into real code via `implement`. Replaces the earlier ad-hoc disposable worktree. |
 | 5 | Spec / PRD compression | to-spec | `to-spec` | ✅ | ✅ | Owned by `to-spec`: compresses a settled conversation into one destination-first spec with explicit unknowns and publishes it to the configured tracker. Synthesizes without interviewing; does not duplicate `slice-work` (slicing) or `domain-modeling` (vocabulary). Comparative falsifier pending one real-consumer run. |
 | 6 | Tickets / tracer-bullet slicing | to-tickets | `slice-work` (explicit) + repo tracker | ✅ | ✅ | Owned by `slice-work` since the slicing lab (blind-judge 15:4 vs ad-hoc decomposition; clean validate). It produces the blocking vertical-slice list for `implement` and now also publishes each slice as a tracker ticket with native blocking edges when a tracker is configured (the to-tickets publish step), with the wide-refactor expand–contract exception adopted. `slice-work` creates tickets; `delivery-loop` claims and sequences. Triage remains unowned (row 7). |
 | 7 | Triage / backlog | triage | — | 🔴/⏸️ | ✅ | **No owner, by design.** Backlog triage belongs to the repo tracker, not a global KRN skill. Recorded as a scope boundary. |
@@ -66,11 +66,11 @@ in them.
 
 ## Where the pipeline is fulfilled (✅)
 
-Stages 1, 3, 5, 6, 8, 10, 12, 13, 14, 15, 16, 17 — the runtime core plus a delivery
+Stages 1, 3, 4, 5, 6, 8, 10, 12, 13, 14, 15, 16, 17 — the runtime core plus a delivery
 orchestrator KRN has and Matt does not, plus the front-half stages earned so far:
-stage 3 (decision map) via `wayfinder`, stage 5 (spec compression) via `to-spec`,
-and stage 6 (slicing) via the `slice-work` lab. This is the high-risk surface and
-it is well-owned and well-described.
+stage 3 (decision map) via `wayfinder`, stage 4 (prototype) via `prototype`, stage 5
+(spec compression) via `to-spec`, and stage 6 (slicing) via the `slice-work` lab. This
+is the high-risk surface and it is well-owned and well-described.
 
 ## Where the pipeline is deliberately divergent (⏸️)
 
@@ -87,16 +87,16 @@ These are *decisions*, recorded as such. They are not failures to fulfill.
 The front half — turning fog into agent-ready work — minus the stages now owned:
 
 1. **No triage owner.** Nothing converts a messy backlog into agent-ready work.
-2. **No prototype skill** (intentional, but worth revisiting).
 
-Spec/PRD compression and the decision map left this list when `to-spec` and
-`wayfinder` were promoted to close the front-half gaps surfaced by reading Matt's
-`ask-matt` flow; tracer-bullet slicing left it earlier when the `slice-work` lab
-earned a promotion (blind-judge 15:4 over ad-hoc decomposition; clean validate;
-now wired into `delivery-loop`). The remaining two are recorded as a deliberate
-scope boundary in [`../matt-skills-coverage.md`](../matt-skills-coverage.md)
-("Front-half scope boundary"): they belong to the repo tracker and native goal
-state, not an under-specified frontier. Filling either requires a repeated
+Prototyping, spec/PRD compression, and the decision map left this list when
+`prototype`, `to-spec`, and `wayfinder` were promoted to close the front-half gaps
+surfaced by reading Matt's `ask-matt` flow; tracer-bullet slicing left it earlier
+when the `slice-work` lab earned a promotion (blind-judge 15:4 over ad-hoc
+decomposition; clean validate; now wired into `delivery-loop`). The remaining one
+is recorded as a deliberate scope boundary in
+[`../matt-skills-coverage.md`](../matt-skills-coverage.md)
+("Front-half scope boundary"): it belongs to the repo tracker and native goal
+state, not an under-specified frontier. Filling it requires a repeated
 cross-repository consumer and a falsifier; see [`rozkminy.md`](rozkminy.md).
 
 ## Descriptive gaps (not yet in the ledgers)
@@ -117,9 +117,10 @@ reflected:
 ## What this means for the repo
 
 - The **fulfilled** answer is: *the runtime core is fully there and better
-  integrated than Matt's, and tracer-bullet slicing is now owned by `slice-work`
-  (wired into `delivery-loop`). Spec/PRD compression, triage, and prototyping
-  remain delegated to the repo tracker and native goal state — a recorded scope
+  integrated than Matt's; tracer-bullet slicing is owned by `slice-work` (wired into
+  `delivery-loop`, now publishing tickets); prototyping, spec compression, and the
+  decision map are owned by `prototype`, `to-spec`, and `wayfinder`. Only triage
+  remains delegated to the repo tracker and native goal state — a recorded scope
   boundary, not a gap.*
 - The **described** answer is: *adopted and rejected mechanisms are recorded
   across the ledgers; this pass ledgered five high-signal sources (Missing

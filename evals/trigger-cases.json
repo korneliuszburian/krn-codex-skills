@@ -11,7 +11,8 @@
         "diagnosing-bugs",
         "code-review",
         "second-opinion-review",
-        "typescript-engineering"
+        "typescript-engineering",
+        "prototype"
       ]
     },
     {
@@ -478,6 +479,7 @@
         "source-to-decision",
         "to-spec",
         "wayfinder",
+        "prototype",
         "setup-repository-workflow",
         "target-repo-work",
         "typescript-engineering",
@@ -587,6 +589,20 @@
         "to-spec",
         "slice-work",
         "implement"
+      ]
+    },
+    {
+      "id": "design-question-gets-a-throwaway-prototype",
+      "prompt": "I'm not sure this state machine handles the edge case where a paused order is refunded then resumed. Build something tiny I can poke at to feel out whether the model is right.",
+      "expected_skills": [
+        "prototype"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "diagnosing-bugs",
+        "code-review",
+        "slice-work",
+        "to-spec"
       ]
     }
   ]
