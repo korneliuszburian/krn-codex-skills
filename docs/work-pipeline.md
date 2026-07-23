@@ -15,7 +15,7 @@ flowchart TD
   SOURCE["External source claim"] --> S2D
   OTHER["Another repo"] --> TRW
   SETUP["New or repair repo setup"] --> SRW
-  FOG["Foggy choices"] --> GRILL
+  FOG["Foggy choices"] --> DM
   EFFORT["Foggy multi-session effort"] --> WAY
   SPEC["Settled spec"] --> SLICE
   THREAD["Settled thread (no spec)"] --> TOSPEC
@@ -27,7 +27,6 @@ flowchart TD
   S2D["$source-to-decision"]
   TRW["$target-repo-work"]
   SRW["$setup-repository-workflow"]
-  GRILL["$batch-grill-me"]
   WAY["$wayfinder"]
   TOSPEC["$to-spec"]
   SLICE["$slice-work"]
@@ -47,7 +46,7 @@ flowchart TD
   REVIEW -->|"finding"| IMPL
   REVIEW -->|"accepted"| DONE["Result + honest lifecycle state"]
 
-  GRILL --> DECIDE["confirmed decision"] --> IMPL
+  DM --> DECIDE["confirmed decision"] --> IMPL
   WAY -->|"cleared route"| TOSPEC
   WAY -->|"cleared route"| SLICE
   WAY -->|"cleared route"| IMPL
@@ -57,7 +56,7 @@ flowchart TD
   subgraph META["Composing and meta owners"]
     direction LR
     CD["$codebase-design - deep modules, seams"]
-    DM["$domain-modeling - ubiquitous language"]
+    DM["$domain-modeling - decisions, language, frontier interview"]
     TE["$typescript-engineering - compiler + proof"]
     WGS["$writing-great-skills"]
     SOR["$second-opinion-review (advisory)"]
@@ -73,7 +72,7 @@ flowchart TD
   `diagnosing-bugs`, a source claim to `source-to-decision`, another repo to
   `target-repo-work`, a settled thread without a spec to `to-spec`, a settled
   spec to `slice-work`, a foggy multi-session effort to `wayfinder`, foggy choices to
-  `batch-grill-me`, and global tooling to `managing-codex-capabilities`.
+  `domain-modeling`, and global tooling to `managing-codex-capabilities`.
 - **Delivery routing.** `delivery-loop` does not implement; it routes the current
   uncertainty — a multi-slice outcome through `slice-work`, a clear change to
   `implement`, an unknown fault to `diagnosing-bugs` — then claims one item at a
@@ -91,6 +90,5 @@ flowchart TD
 ## Non-goals
 
 This graph routes; it does not execute, approve, or publish. Explicit-only skills
-(`setup-repository-workflow`, `second-opinion-review`, `batch-grill-me`,
-`slice-work`, `wayfinder`) require an explicit `$skill` selection and never route
-implicitly.
+(`setup-repository-workflow`, `second-opinion-review`, `slice-work`, `wayfinder`)
+require an explicit `$skill` selection and never route implicitly.

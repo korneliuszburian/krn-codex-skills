@@ -25,7 +25,7 @@ another repo  -> target-repo-work   -> scoped result -> handoff
 repo setup    -> setup-repository-workflow -> thin local contract -> normal owner
 TypeScript    -> workflow owner + typescript-engineering companion
 global tools  -> managing-codex-capabilities -> reviewed profile -> fresh session
-foggy choices -> batch-grill-me     -> confirmed decision ledger -> chosen owner
+foggy choices -> domain-modeling    -> confirmed decision -> chosen owner
 ```
 
 Visual routing of these paths: [`docs/work-pipeline.md`](docs/work-pipeline.md).
@@ -57,7 +57,6 @@ branch that needs them.
 | [`managing-codex-capabilities`](docs/meta/managing-codex-capabilities.md) | model or user | global skill, plugin, MCP, usage, and profile control |
 | [`writing-great-skills`](docs/meta/writing-great-skills.md) | model or user | predictable skill authoring and trigger design |
 | [`second-opinion-review`](docs/advisory/second-opinion-review.md) | explicit only | validated Claude research campaigns, isolated rewrite handoffs, or fixed-point checker |
-| [`batch-grill-me`](docs/productivity/batch-grill-me.md) | explicit only | frontier-round interview before any artifact or implementation |
 
 No top-level “coding system” orchestrates everything. Native Codex goal mode
 owns long-running outcome state; repositories choose their durable tracker;
@@ -110,9 +109,9 @@ temp-root trial. Overriding one never silently redirects another.
 Run `check` again after installation. Restart Codex if the current session
 does not refresh its installed skill index: discovery is session-scoped, so an
 already-open picker is not evidence that the installed symlink is missing.
-`setup-repository-workflow`, `second-opinion-review`, and `batch-grill-me` are
-explicit-only: Codex cannot select them implicitly, while an explicit `$skill`
-invocation remains available. Some API sessions may omit them from the injected
+`setup-repository-workflow`, `second-opinion-review`, `slice-work`, and
+`wayfinder` are explicit-only: Codex cannot select them implicitly, while an
+explicit `$skill` invocation remains available. Some API sessions may omit them from the injected
 model-visible list; that observation is not the activation contract. In a fresh
 interactive session, type the full `$skill-name` and select its **[Skill]**
 entry from the picker; plain prompt text that resembles the name is not the same

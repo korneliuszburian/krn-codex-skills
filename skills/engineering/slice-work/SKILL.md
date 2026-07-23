@@ -13,8 +13,8 @@ with blocking edges for `delivery-loop` to claim.
 
 1. **Pin the settled outcome and its decisions.** Read the spec, the resolved
    decisions, and the explicit non-goals. If any decision that gates
-   implementation is still fog, stop and route to `$batch-grill-me` or
-   `$domain-modeling` — slicing unresolved fog produces false granularity.
+   implementation is still fog, stop and route to `$domain-modeling` —
+   slicing unresolved fog produces false granularity.
 
    <slice-input>
    Outcome and acceptance:

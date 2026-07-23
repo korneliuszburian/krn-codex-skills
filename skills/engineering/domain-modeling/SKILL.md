@@ -1,49 +1,47 @@
 ---
 name: domain-modeling
-description: Resolve an actively changing public name, product concept, ubiquitous-language conflict, or rare durable architecture decision. Use when one live meaning or owner must replace competing meanings; skip passive reading, ordinary implementation naming, and routine design choices.
+description: Interview every ready decision in frontier rounds, or resolve one contested name or architecture decision, to reach shared understanding; record an ADR or glossary only when earned. Skip implementation, specs, tickets, and passive reading.
 ---
 
 # Domain Modeling
 
-**One active concept, one meaning.** Resolve it everywhere it matters. The work
-ends at a real boundary used by people or code, not at a better paragraph.
+Reach shared understanding before any artifact or implementation. This skill owns
+**two modes**: a frontier-round **interview** when many user-owned decisions are
+open, and a focused **concept resolution** when one name, product concept, or
+architecture decision is actively contested. Both end at a real boundary used by
+people or code, not at a better paragraph. `$implement` owns production writes,
+`$to-spec` owns synthesis, `$slice-work` owns decomposition — this skill only
+sharpens and, rarely, records a durable decision.
 
-1. **Pin the live conflict.** Name the decision before reading broadly.
+1. **Choose the mode from the shape of the fog.**
 
-   <domain-question>
-   Change: public naming | product concept | durable architecture decision
-   Current term or decision:
-   Competing meanings:
-   Public seam:
-   Owner:
-   Consumers:
-   Observed contradiction:
-   Reversibility and trade-off:
-   Change authority: decision-only | domain-artifact | production-handoff
-   </domain-question>
+   - **Many open decisions** whose prerequisites are partly settled → the
+     **frontier-round interview** (step 2). Facts belong to the agent; choices
+     belong to the user.
+   - **One actively contested meaning** (a public name, product concept, or durable
+     architecture decision) → **concept resolution** (step 3).
+   - If an external source must justify the choice, compose `$source-to-decision`
+     after the conflict is pinned; do not duplicate that workflow here.
 
-   **Done when:** two plausible meanings can be distinguished at a named
-   public seam and the decision has an owner.
+   **Done when:** one mode is chosen and the live question is named.
 
-2. **Load only the live authority.** For naming, inspect the exported symbol,
-   API, CLI, or UI wording plus its closest glossary entry. For a product
-   concept, inspect the context map, owning behavior, and current consumers.
-   For a durable decision, inspect the architecture boundary and the
-   repository's decision-record policy. Read history only when it still
-   explains active authority; preserve records that no longer participate in
-   that authority.
+2. **Frontier-round interview.** Work the decision tree by frontier rounds: a
+   frontier is every open decision whose prerequisites are already settled. Number
+   each frontier question, give a recommended answer with its reason and trade-off,
+   ask no downstream question in the same round, and wait for the user — a
+   recommendation is advice, never their decision. Recompute the frontier from the
+   answers rather than extending the old list, until no in-scope branch is silently
+   assumed. Read [frontier-rounds.md](references/frontier-rounds.md) for the full
+   round mechanics and the confirmed decision ledger.
 
-   If an external source must justify the choice, compose
-   `$source-to-decision` after the conflict is pinned; do not duplicate that
-   workflow here.
+   **Done when:** the frontier is empty, every deferred item has a named owner, and
+   the user confirms the shared understanding.
 
-   **Done when:** every loaded artifact can confirm or contradict one competing
-   meaning; unrelated domain history remains unloaded.
-
-3. **Grill the meanings.** Invent the smallest realistic scenario that forces
-   the alternatives to produce different language, ownership, or behavior.
-   Compare that scenario with current code and runtime behavior; prose is not
-   automatically authoritative.
+3. **Resolve one contested concept.** Pin the live conflict, load only the authority
+   that can confirm or contradict a competing meaning, then grill the meanings with
+   the smallest realistic scenario that forces them to produce different behavior;
+   compare that with current code and runtime, since prose is not automatically
+   authoritative.
 
    <domain-grill>
    Scenario:
@@ -54,13 +52,10 @@ ends at a real boundary used by people or code, not at a better paragraph.
    Falsifier:
    </domain-grill>
 
-   **Done when:** the alternatives disagree observably and the preferred model
-   can still be proven wrong.
-
-4. **Choose one model and its migration.** Select one canonical term,
-   definition, owner, and set of invariants. Name the smallest authoritative
-   surfaces that must change and the stale vocabulary that must disappear.
-   Do not preserve a wrong exported name behind an active compatibility alias.
+   Choose one canonical term, meaning, owner, and set of invariants; name the
+   smallest authoritative surfaces that must change and the stale vocabulary that
+   must disappear. Do not preserve a wrong exported name behind an active
+   compatibility alias.
 
    <domain-model>
    Canonical term:
@@ -74,22 +69,32 @@ ends at a real boundary used by people or code, not at a better paragraph.
    Falsifier:
    </domain-model>
 
-   Record a durable decision only when it is hard to reverse, surprising
-   without context, and chosen through a real trade-off. Routine implementation
-   belongs in code and current documentation. A glossary stores the current
-   meaning, never implementation history or a future plan.
+   **Done when:** one model explains the public boundary, assigns its owner, rejects
+   the competing meanings, and yields a bounded migration without claiming that
+   production already changed.
 
-   **Done when:** one model explains the public boundary, assigns its owner,
-   rejects the competing meanings, and yields a bounded migration without
-   claiming that production already changed.
+4. **Record a durable decision only when earned.** Write an ADR or glossary entry
+   only when the decision is hard to reverse, surprising without context, and chosen
+   through a real trade-off. Routine implementation belongs in code and current
+   documentation; a glossary stores the current meaning, never implementation
+   history or a future plan. A confirmed interview produces a decision ledger, not
+   necessarily an artifact.
 
-5. **Hand the model to its consumer.** If the request includes production
-   writes, invoke `$implement` with the `<domain-model>` as acceptance, the
-   first migration slice as scope, and the named public-seam falsifier. That
-   workflow owns edits and proof. If authority is `decision-only`, return the
-   model and stop; if an explicit domain artifact was requested, write only
-   that artifact and do not imply production adoption.
+   **Done when:** a durable artifact exists only for a decision that earned one, and
+   nothing routine is frozen as architecture.
 
-   **Done when:** the consumer has an executable decision or bounded handoff,
-   every unresolved trade-off has an owner, and this workflow makes no
-   unverified implementation claim.
+5. **Hand the understanding to its consumer.** Return the confirmed ledger or the
+   `<domain-model>`. If the request includes production writes, invoke `$implement`
+   with the model as acceptance and the first migration slice as scope; that
+   workflow owns edits and proof. If authority is decision-only, return and stop.
+
+   <modeling-result>
+   Mode: frontier interview | concept resolution
+   Shared understanding / canonical model:
+   Durable artifact recorded (if earned):
+   Consumer: $implement | $to-spec | $slice-work | $wayfinder | user
+   </modeling-result>
+
+   **Done when:** the consumer has an executable decision or bounded handoff, every
+   unresolved trade-off has an owner, and this workflow makes no unverified
+   implementation claim.

@@ -117,10 +117,12 @@ This repository stores distilled mechanisms, not source corpora.
 - Mechanism: ask the whole currently ready decision frontier in one numbered
   round, recommend an answer for each, investigate facts instead of asking the
   user, then recompute dependent questions from the user's decisions.
-- KRN decision: adopt the distinct interaction as explicit-only
-  `batch-grill-me`, with no persistence or action by default and with delegation
-  conditional on actual authority. Keep serial domain conflict resolution with
-  `domain-modeling` and durable multi-session maps with the repository tracker.
+- KRN decision: adopt the distinct interaction, **consolidated into
+  `domain-modeling`** as its frontier-round interview mode (alongside
+  single-concept resolution), with no persistence or action by default and with
+  delegation conditional on actual authority. The earlier separate explicit-only
+  `batch-grill-me` skill was folded in to reduce catalog friction; the mechanism
+  is unchanged. Keep durable multi-session maps with the repository tracker.
 - Falsifier: the skill asks a downstream question before its prerequisite is
   settled, delegates a user-owned decision, asks for a discoverable fact, or
   mutates artifacts before the user confirms shared understanding.
@@ -135,11 +137,12 @@ This repository stores distilled mechanisms, not source corpora.
 - Mechanism: codebase grilling updates bounded domain context and records an
   ADR only for a hard-to-reverse, surprising decision produced by a real
   trade-off; general-purpose grilling remains a separate interaction.
-- KRN decision: keep frontier-round interviewing in explicit-only
-  `batch-grill-me`; keep active vocabulary and earned ADR decisions in
-  `domain-modeling`; let `setup-repository-workflow` install the single- or
-  multi-context document layout. Reject a duplicate `grill-with-docs` alias.
-- Falsifier: a domain-context prompt routes to `batch-grill-me`, routine work
+- KRN decision: keep frontier-round interviewing and active vocabulary and earned
+  ADR decisions together in `domain-modeling` (consolidated from the former
+  explicit-only `batch-grill-me`); let `setup-repository-workflow` install the
+  single- or multi-context document layout. Reject a duplicate `grill-with-docs`
+  alias.
+- Falsifier: a domain-context prompt fails to reach `domain-modeling`, routine work
   generates an ADR, or repository setup becomes the recurring domain owner.
 - Does not prove: every codebase needs domain documents or that an ADR should
   be created for routine, reversible implementation choices.

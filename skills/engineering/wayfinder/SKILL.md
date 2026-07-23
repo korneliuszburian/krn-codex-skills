@@ -19,9 +19,9 @@ settled spec, `$to-spec` owns spec compression, `$implement` owns the build, and
 `$delivery-loop` owns lifecycle — wayfinder only clears fog upstream of them.
 
 1. **Name the destination.** The destination fixes scope, so settle it first. Run
-   `$batch-grill-me` with `$domain-modeling` to pin what this map is finding its
-   way to — a spec, a decision, or an in-place change. One or two lines; every
-   later session orients to it before choosing a ticket.
+   `$domain-modeling` to pin what this map is finding its way to — a spec, a
+   decision, or an in-place change. One or two lines; every later session orients
+   to it before choosing a ticket.
 
    **Done when:** the destination is a single named outcome and the scope it fixes
    is stated, or the idea is small enough that no map is needed (stop and tell the
@@ -66,9 +66,8 @@ settled spec, `$to-spec` owns spec compression, `$implement` owns the build, and
    resolution, choose a frontier ticket (the user may name one), and **claim it
    through the tracker before any work** so concurrent sessions skip it. Resolve it
    by invoking the skill its type names — `$second-opinion-review` for research,
-   `$batch-grill-me` with `$domain-modeling` for grilling (the default), a throwaway
-   prototype for prototype, or the manual work for task. Zoom related or closed
-   tickets on demand.
+   `$domain-modeling` for grilling (the default), a throwaway prototype for
+   prototype, or the manual work for task. Zoom related or closed tickets on demand.
 
    **Done when:** one ticket is claimed, resolved with the named skill, and its
    answer recorded as a resolution on the ticket.

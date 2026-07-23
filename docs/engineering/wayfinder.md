@@ -12,7 +12,7 @@ session until nothing remains to decide. It plans; it does not build.
 
 ## Boundary
 
-It clears fog upstream of execution. `$batch-grill-me` with `$domain-modeling` sharpen
+It clears fog upstream of execution. `$domain-modeling` sharpens
 the destination and tickets; `$second-opinion-review` resolves research tickets;
 `$to-spec`, `$slice-work`, and `$implement` take over once the way is clear; and
 `$delivery-loop` owns lifecycle. If charting surfaces no fog, it makes no map and asks

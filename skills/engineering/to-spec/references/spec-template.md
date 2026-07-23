@@ -1,8 +1,8 @@
 # Spec template
 
 A spec is destination-first synthesis of a settled conversation. Fill it from
-what is already decided; route anything still open to `$batch-grill-me` or
-`$domain-modeling` instead of guessing. Use the repository's domain glossary
+what is already decided; route anything still open to `$domain-modeling`
+instead of guessing. Use the repository's domain glossary
 vocabulary and respect ADRs in the touched area.
 
 <spec-template>
@@ -40,7 +40,7 @@ came from a prototype.
 ## Explicit Unknowns
 
 Every question still open that gates implementation. Each one is a handoff, not
-a guess — name it and the owner (`$batch-grill-me`, `$domain-modeling`, a human
+a guess — name it and the owner (`$domain-modeling`, a human
 decision) so `$slice-work` does not slice uncertainty.
 
 ## Out of Scope

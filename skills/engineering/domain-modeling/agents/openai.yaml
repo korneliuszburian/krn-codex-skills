@@ -1,6 +1,6 @@
 interface:
   display_name: "Domain Modeling"
-  short_description: "Sharpen product language and concept ownership"
-  default_prompt: "Use $domain-modeling to resolve this ambiguous public concept."
+  short_description: "Interview or resolve decisions to shared understanding"
+  default_prompt: "Use $domain-modeling to sharpen these open decisions and contested concepts."
 policy:
   allow_implicit_invocation: true

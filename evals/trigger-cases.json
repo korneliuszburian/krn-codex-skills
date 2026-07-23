@@ -283,9 +283,9 @@
         "domain-modeling"
       ],
       "forbidden_skills": [
-        "batch-grill-me",
         "setup-repository-workflow",
-        "implement"
+        "implement",
+        "to-spec"
       ]
     },
     {
@@ -377,15 +377,16 @@
       ]
     },
     {
-      "id": "explicit-batch-grill",
-      "prompt": "Use $batch-grill-me to ask every currently answerable design question in rounds before we create a spec or change anything.",
+      "id": "explicit-domain-modeling",
+      "prompt": "Use $domain-modeling to interview every currently answerable design question in rounds before we create a spec or change anything.",
       "expected_skills": [
-        "batch-grill-me"
+        "domain-modeling"
       ],
       "forbidden_skills": [
-        "domain-modeling",
         "implement",
-        "second-opinion-review"
+        "second-opinion-review",
+        "to-spec",
+        "slice-work"
       ]
     },
     {
@@ -397,7 +398,7 @@
       "forbidden_skills": [
         "implement",
         "delivery-loop",
-        "batch-grill-me"
+        "domain-modeling"
       ]
     },
     {
@@ -421,7 +422,7 @@
       ],
       "forbidden_skills": [
         "second-opinion-review",
-        "batch-grill-me"
+        "domain-modeling"
       ]
     },
     {
@@ -487,7 +488,6 @@
         "writing-great-skills",
         "managing-codex-capabilities",
         "reviewer-handoff",
-        "batch-grill-me",
         "slice-work"
       ]
     },
@@ -548,7 +548,6 @@
       "forbidden_skills": [
         "slice-work",
         "implement",
-        "batch-grill-me",
         "domain-modeling"
       ]
     },
@@ -582,7 +581,7 @@
       "id": "small-foggy-choice-is-not-a-map",
       "prompt": "Help me decide between these two approaches for this one function before I build it.",
       "expected_skills": [
-        "batch-grill-me"
+        "domain-modeling"
       ],
       "forbidden_skills": [
         "wayfinder",

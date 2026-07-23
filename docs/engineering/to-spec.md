@@ -12,8 +12,8 @@ configured tracker.
 
 ## Boundary
 
-It synthesizes; it never interviews and never decomposes. `$batch-grill-me` and
-`$domain-modeling` own sharpening and vocabulary, `$slice-work` owns slicing, and
+It synthesizes; it never interviews and never decomposes. `$domain-modeling`
+owns sharpening and vocabulary, `$slice-work` owns slicing, and
 `$implement` owns the build. If a gating decision is still fog, it stops and
 routes there instead of freezing the wrong destination.
 

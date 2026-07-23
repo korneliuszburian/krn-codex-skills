@@ -13,7 +13,7 @@ fresh-context session.
 It produces the slice list; it never executes a slice. `implement` owns one
 slice, `delivery-loop` owns the lifecycle and claim state, and `domain-modeling`
 owns vocabulary. If decisions are still fog, it stops and routes to
-`batch-grill-me` rather than slicing uncertainty.
+`domain-modeling` rather than slicing uncertainty.
 
 ## Inputs
 

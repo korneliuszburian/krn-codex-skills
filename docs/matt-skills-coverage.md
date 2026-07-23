@@ -244,13 +244,14 @@ after the answers. Wayfinder goes further by persisting a multi-session map,
 claims, dependencies, fog, and ticket resolutions. Treating those three shapes
 as synonyms would erase their different invocation and artifact contracts.
 
-KRN adopts only the middle shape as the explicit-only `batch-grill-me` skill:
-one interactive session, no implicit routing, no durable artifact by default,
-facts investigated by the agent, decisions left to the user, and a confirmation
-gate before any spec, ticket, or implementation. We do not copy the draft's
-unconditional subagent instruction because delegation remains harness- and
-authority-dependent. The adoption is earned by an operator-requested workflow
-and an observable completion condition, not by upstream promotion status.
+KRN adopted the middle shape and has since **consolidated** it: the frontier-round
+interview is now a mode of `domain-modeling`, alongside single-concept resolution,
+rather than a separate explicit-only `batch-grill-me` skill. The interview keeps its
+contract — one interactive session, facts investigated by the agent, decisions left
+to the user, and a confirmation gate before any spec, ticket, or implementation. We
+do not copy the draft's unconditional subagent instruction because delegation
+remains harness- and authority-dependent. The consolidation reverses the earlier
+documented split to reduce catalog friction; the mechanism is unchanged.
 
 ## Source-to-decision matrix
 
@@ -259,7 +260,7 @@ and an observable completion condition, not by upstream promotion status.
 | promoted versus experimental buckets | manifest and installer | adopt one explicit supported surface; add labs only for a named experiment | an unmanifested skill appears in the installed KRN index | that every promoted skill routes correctly |
 | user/model invocation split | descriptions, `openai.yaml`, trigger cases | adopt; keep second opinion explicit | a fresh implicit prompt invokes second opinion, or explicit mention cannot discover it | low total context cost in every harness |
 | `ask-matt` router | skill catalog UX | defer for KRN | users repeatedly fail to recall or choose among a measured family of explicit KRN skills | that routers are bad generally |
-| frontier-round interview | explicit `batch-grill-me` | adopt as a stateless pre-action decision workflow | it asks downstream questions in the same round, asks the user for discoverable facts, or acts before confirmation | that batch questions outperform serial grilling for every user |
+| frontier-round interview | consolidated into `domain-modeling` | adopt as a mode of the grilling owner (frontier interview + concept resolution) | it asks downstream questions in the same round, asks the user for discoverable facts, or acts before confirmation | that batch questions outperform serial grilling for every user |
 | semantic variation in skill shape | `writing-great-skills` | adopt | reviewers force sequence onto flat rules or inflate a thin composer | that short skills are automatically clear |
 | direct companion references | validator and information ladder | adopt with stricter KRN pointer checks | a branch requires deep chasing or an orphaned reference escapes validation | reference content is behaviorally correct |
 | symlink installation | installer | adopt collision-safe variant | a fresh isolated install cannot discover the canonical target | an already-open session refreshes its picker |
@@ -278,7 +279,8 @@ supported set remains small; model-facing descriptions remain boundary-rich;
 all companion references stay directly reachable; the installer stays
 collision-safe; native goal and Beads remain the long-running owners;
 `second-opinion-review` owns a deterministic research/review artifact
-lifecycle; and `batch-grill-me` owns only the explicit frontier-round interview.
+lifecycle; and `domain-modeling` owns grilling — the frontier-round interview and
+single-concept resolution — recording an ADR or glossary entry only when earned.
 
 A future router requires evidence that operators cannot reliably select the
 current explicit skills. A global Wayfinder-like orchestrator requires evidence

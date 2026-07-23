@@ -75,8 +75,8 @@ never stands in for the human's side of it.
 - **prototype** (HITL) — raise fidelity with a cheap, rough artifact to react to — an
   outline, a stub, or logic/UI code from a throwaway prototype. Use when "how should it
   look" or "how should it behave" is the key question.
-- **grilling** (HITL) — one question at a time via `$batch-grill-me` with
-  `$domain-modeling`. The default type.
+- **grilling** (HITL) — one question at a time via `$domain-modeling`. The default
+  type.
 - **task** (HITL or AFK) — manual work that must happen before a *decision* can be
   made (sign up for a service, provision access, move data to reveal its shape).
   Nothing to decide, prototype, or research, but the discussion is blocked until it

@@ -47,7 +47,7 @@ in them.
 | # | Matt stage | Matt owner(s) | KRN owner | Fulfilled | Described | Notes |
 |---|---|---|---|---|---|---|
 | 1 | Setup / AGENTS.md / install | setup-matt-pocock-skills | `setup-repository-workflow` (explicit) | ✅ | ✅ | KRN adapted: bounded init, collision refusal, in-repo path containment, idempotence. KRN keeps AGENTS.md/CLAUDE.md as one semantic core via symlinks. |
-| 2 | Grilling / shared understanding | grill-me (stateless), grilling (primitive), grill-with-docs (stateful: ADR + glossary) | `batch-grill-me` (explicit) + `domain-modeling` | 🟡 | 🟡 | KRN split the concept: frontier-round *interview* → batch-grill-me; *vocabulary + earned ADR* → domain-modeling. No single stateful grill-with-docs; the ADR-is-earned rule is adopted. Matt's "one question at a time" vs KRN's "whole frontier in one round" is a genuine shape difference (documented). |
+| 2 | Grilling / shared understanding | grill-me (stateless), grilling (primitive), grill-with-docs (stateful: ADR + glossary) | `domain-modeling` | ✅ | ✅ | Owned by `domain-modeling`, now consolidated: it runs the frontier-round **interview** (many open decisions) and the single-concept **resolution** (one contested name/concept/architecture decision), recording an ADR or glossary entry only when earned. This reverses the earlier documented split (`batch-grill-me` + `domain-modeling`) to reduce catalog friction; Matt's "one question at a time" vs the frontier round survives as two modes of one owner. |
 | 3 | Decision map / Wayfinder | wayfinder | `wayfinder` | ✅ | ✅ | Owned by explicit-only `wayfinder`: charts a foggy multi-session effort as one `wayfinder:map` index plus child decision tickets on the configured tracker, worked frontier-first one ticket per session until the route clears. Plan-don't-do; hands off to `to-spec`/`slice-work`/`implement`. Map/frontier/fog now have a global owner instead of living only in Beads + native goal. Comparative falsifier pending one real-consumer run. |
 | 4 | Prototype | prototype | `prototype` | ✅ | ✅ | Owned by `prototype`: throwaway code answering one design question — a tiny terminal app over a pure module for logic/state, or several radically different UI variants on one route. Captures the verdict and commits the prototype to a throwaway branch as a primary source; the validated decision folds into real code via `implement`. Replaces the earlier ad-hoc disposable worktree. |
 | 5 | Spec / PRD compression | to-spec | `to-spec` | ✅ | ✅ | Owned by `to-spec`: compresses a settled conversation into one destination-first spec with explicit unknowns and publishes it to the configured tracker. Synthesizes without interviewing; does not duplicate `slice-work` (slicing) or `domain-modeling` (vocabulary). Comparative falsifier pending one real-consumer run. |
@@ -66,11 +66,12 @@ in them.
 
 ## Where the pipeline is fulfilled (✅)
 
-Stages 1, 3, 4, 5, 6, 8, 10, 12, 13, 14, 15, 16, 17 — the runtime core plus a delivery
+Stages 1, 2, 3, 4, 5, 6, 8, 10, 12, 13, 14, 15, 16, 17 — the runtime core plus a delivery
 orchestrator KRN has and Matt does not, plus the front-half stages earned so far:
-stage 3 (decision map) via `wayfinder`, stage 4 (prototype) via `prototype`, stage 5
-(spec compression) via `to-spec`, and stage 6 (slicing) via the `slice-work` lab. This
-is the high-risk surface and it is well-owned and well-described.
+stage 2 (grilling) via a consolidated `domain-modeling`, stage 3 (decision map) via
+`wayfinder`, stage 4 (prototype) via `prototype`, stage 5 (spec compression) via
+`to-spec`, and stage 6 (slicing) via the `slice-work` lab. This is the high-risk
+surface and it is well-owned and well-described.
 
 ## Where the pipeline is deliberately divergent (⏸️)
 

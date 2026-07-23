@@ -7,14 +7,14 @@ description: Compress a settled conversation into one destination-first spec wit
 
 Synthesize, never interview. This skill turns one already-settled conversation
 plus codebase understanding into a single **destination-first** spec and
-publishes it once. `$batch-grill-me` and `$domain-modeling` own sharpening and
-vocabulary; `$slice-work` owns decomposition; `$implement` owns the build. This
+publishes it once. `$domain-modeling` owns sharpening and vocabulary;
+`$slice-work` owns decomposition; `$implement` owns the build. This
 skill only **compresses** what is already settled.
 
 1. **Confirm the outcome is settled.** Re-read the thread and the resolved
    decisions. If any decision that gates the spec is still fog, stop and route
-   to `$batch-grill-me` (interview) or `$domain-modeling` (terminology / ADR) —
-   compressing fog into a spec freezes the wrong destination.
+   to `$domain-modeling` — compressing fog into a spec freezes the wrong
+   destination.
 
    <spec-input>
    Outcome and what reaching it looks like:
