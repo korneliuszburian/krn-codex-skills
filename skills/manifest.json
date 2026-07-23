@@ -31,6 +31,11 @@
       "implicit": true
     },
     {
+      "name": "reviewer-handoff",
+      "path": "skills/engineering/reviewer-handoff",
+      "implicit": true
+    },
+    {
       "name": "codebase-design",
       "path": "skills/engineering/codebase-design",
       "implicit": true

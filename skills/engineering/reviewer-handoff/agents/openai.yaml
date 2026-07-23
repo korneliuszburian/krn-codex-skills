@@ -1,0 +1,6 @@
+interface:
+  display_name: "Reviewer Handoff"
+  short_description: "Compile a bounded reviewer packet"
+  default_prompt: "Use $reviewer-handoff to compile a fixed-point packet for review."
+policy:
+  allow_implicit_invocation: true
