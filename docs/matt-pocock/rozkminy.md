@@ -26,7 +26,14 @@ czytają się teraz jako niedopowiedziana granica zakresu, a nie decyzja.
   rozmiaru "jedna świeża sesja" dla `implement`; nie wykonuje ich (brak kolizji
   z `implement`/`delivery-loop`). Ciągły falsyfikator: codzienne użycie — jeśli
   zacznie produkować plastry poziome lub dublować `delivery-loop`, cofamy.
-  `to-spec` i `triage` nadal świadomie bez właściciela.
+  `triage` nadal świadomie bez właściciela.
+- **✅ slice 1 (front-half adopt)** — `to-spec` promowany po lekturze faktycznego
+  `ask-matt` Matta: kompresuje ustalony wątek w destination-first spec bez
+  interviewu, publikuje do skonfigurowanego trackera, nie dubluje `slice-work`
+  (krojenie) ani `domain-modeling` (słownik). Czyste `npm run validate` (17
+  skill'i, 47 case'ów). Falsyfikator porównawczy (czy spec z `to-spec` daje
+  czystszy pierwszy plaster niż implement prosto z wątku?) — pending jeden
+  real-konsument run. Pierwszy slice programu adoptowania kształtu loopa Matta.
 - **defer** — `triage` jako osobny skill. Backlog-maintenance jest rzadszy i
   mocno tracker-zależny; nie zasługuje na globalnego właściciela, dopóki nie
   pokaże się powtarzalny konsument. Zostaje domeną repo-lokalnego kontraktu.

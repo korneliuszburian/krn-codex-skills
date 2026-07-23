@@ -17,6 +17,7 @@ flowchart TD
   SETUP["New or repair repo setup"] --> SRW
   FOG["Foggy choices"] --> GRILL
   SPEC["Settled spec"] --> SLICE
+  THREAD["Settled thread (no spec)"] --> TOSPEC
   TOOLS["Global tools / MCP / profile"] --> MCC
 
   IMPL["$implement"]
@@ -26,6 +27,7 @@ flowchart TD
   TRW["$target-repo-work"]
   SRW["$setup-repository-workflow"]
   GRILL["$batch-grill-me"]
+  TOSPEC["$to-spec"]
   SLICE["$slice-work"]
   MCC["$managing-codex-capabilities"]
 
@@ -35,6 +37,7 @@ flowchart TD
   ROUTE -->|"unknown fault"| DIAG
 
   SLICE --> IMPL
+  TOSPEC --> SLICE
   S2D --> IMPL
   DIAG -->|"proven cause"| IMPL
   IMPL --> PROOF["Focused proof (0 / 1 / N budget)"]
@@ -63,14 +66,16 @@ flowchart TD
 - **Entry routing.** A prompt's shape selects one owner: a clear change to
   `implement`, a full autonomous outcome to `delivery-loop`, an unknown fault to
   `diagnosing-bugs`, a source claim to `source-to-decision`, another repo to
-  `target-repo-work`, a settled spec to `slice-work`, foggy choices to
+  `target-repo-work`, a settled thread without a spec to `to-spec`, a settled
+  spec to `slice-work`, foggy choices to
   `batch-grill-me`, and global tooling to `managing-codex-capabilities`.
 - **Delivery routing.** `delivery-loop` does not implement; it routes the current
   uncertainty — a multi-slice outcome through `slice-work`, a clear change to
   `implement`, an unknown fault to `diagnosing-bugs` — then claims one item at a
   time under a work-in-progress limit of one.
-- **The implement spine.** `slice-work` and `source-to-decision` hand bounded
-  input to `implement`; `implement` builds one vertical slice with a proportional
+- **The implement spine.** `to-spec` compresses a settled thread into a published
+  spec, then `slice-work` and `source-to-decision` hand bounded input to
+  `implement`; `implement` builds one vertical slice with a proportional
   `0/1/N` proof budget, then `code-review` checks Standards and Spec on the fixed
   point. Findings return as a bounded `implement` repair; acceptance reaches an
   honest lifecycle state.

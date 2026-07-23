@@ -476,6 +476,7 @@
         "codebase-design",
         "domain-modeling",
         "source-to-decision",
+        "to-spec",
         "setup-repository-workflow",
         "target-repo-work",
         "typescript-engineering",
@@ -533,6 +534,31 @@
         "setup-repository-workflow",
         "implement",
         "target-repo-work"
+      ]
+    },
+    {
+      "id": "settled-thread-becomes-published-spec",
+      "prompt": "We've agreed on this feature in the thread. Synthesize it into a destination-first spec with explicit unknowns and publish it to our tracker.",
+      "expected_skills": [
+        "to-spec"
+      ],
+      "forbidden_skills": [
+        "slice-work",
+        "implement",
+        "batch-grill-me",
+        "domain-modeling"
+      ]
+    },
+    {
+      "id": "decomposing-a-spec-is-not-writing-one",
+      "prompt": "Break this already-written settled spec into implementable vertical slices with blocking dependencies.",
+      "expected_skills": [
+        "slice-work"
+      ],
+      "forbidden_skills": [
+        "to-spec",
+        "implement",
+        "domain-modeling"
       ]
     }
   ]

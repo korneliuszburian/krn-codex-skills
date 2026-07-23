@@ -29,11 +29,12 @@ production risk lives*. KRN deliberately diverges on two philosophical axes
 The **real gaps are upstream of implementation**: the planning/compression stages
 that turn a foggy conversation into agent-ready vertical slices. Matt has four
 owner-skills here (`to-spec`, `to-tickets`, `triage`, and a stateful
-`grill-with-docs`) plus `wayfinder`. KRN now owns one of them — `slice-work`
-(the `to-tickets` equivalent, earned via lab) — and delegates spec compression,
-triage, and the durable decision map to native goals and a repo-local tracker
-(Beads). That is a defensible "not our layer" stance for the rest, but it means
-the KRN catalog still does not *itself* carry spec compression or triage.
+`grill-with-docs`) plus `wayfinder`. KRN now owns two of them — `slice-work`
+(the `to-tickets` equivalent, earned via lab) and `to-spec` (spec compression,
+promoted after reading Matt's `ask-matt` flow) — and delegates triage and the
+durable decision map to native goals and a repo-local tracker (Beads). That is a
+defensible "not our layer" stance for the rest, but it means the KRN catalog
+still does not *itself* carry triage.
 
 **Descriptive coverage is good but stale**: the three existing ledgers document
 most decisions, but ~25 sources found in [`sources.md`](sources.md) (the Missing
@@ -49,7 +50,7 @@ in them.
 | 2 | Grilling / shared understanding | grill-me (stateless), grilling (primitive), grill-with-docs (stateful: ADR + glossary) | `batch-grill-me` (explicit) + `domain-modeling` | 🟡 | 🟡 | KRN split the concept: frontier-round *interview* → batch-grill-me; *vocabulary + earned ADR* → domain-modeling. No single stateful grill-with-docs; the ADR-is-earned rule is adopted. Matt's "one question at a time" vs KRN's "whole frontier in one round" is a genuine shape difference (documented). |
 | 3 | Decision map / Wayfinder | wayfinder | native goals + repo tracker (Beads) | ⏸️ | ✅ | Deliberately deferred: no global Wayfinder; map/frontier/fog behavior adopted *through* Beads + native goal. Documented with the friction observed on the livestream (manual orchestration, approval interruptions, map not finished on air). |
 | 4 | Prototype | prototype | — (disposable worktree when needed) | 🔴/⏸️ | ✅ | No dedicated prototype skill; KRN uses a disposable rewrite worktree via `second-opinion-review` only when fidelity is unresolved. Decision is recorded; the gap is intentional. |
-| 5 | Spec / PRD compression | to-spec | — | 🔴/⏸️ | ✅ | **No owner, by design.** No skill compresses a settled conversation into a destination-first spec; it belongs to the repo tracker + native goal. Recorded as a scope boundary in [`../matt-skills-coverage.md`](../matt-skills-coverage.md). |
+| 5 | Spec / PRD compression | to-spec | `to-spec` | ✅ | ✅ | Owned by `to-spec`: compresses a settled conversation into one destination-first spec with explicit unknowns and publishes it to the configured tracker. Synthesizes without interviewing; does not duplicate `slice-work` (slicing) or `domain-modeling` (vocabulary). Comparative falsifier pending one real-consumer run. |
 | 6 | Tickets / tracer-bullet slicing | to-tickets | `slice-work` (explicit) + repo tracker | ✅ | ✅ | Owned by `slice-work` since the slicing lab (blind-judge 15:4 vs ad-hoc decomposition; clean validate). It produces the blocking vertical-slice list for `implement`; the tracker holds the durable items. Spec compression and triage remain unowned (rows 5, 7). |
 | 7 | Triage / backlog | triage | — | 🔴/⏸️ | ✅ | **No owner, by design.** Backlog triage belongs to the repo tracker, not a global KRN skill. Recorded as a scope boundary. |
 | 8 | Implementation (fresh context) | implement | `implement` | ✅ | ✅ | Strongest 1:1 match. KRN adds a production-first vertical-slice contract and the `0/1/N` proof budget. |
@@ -65,10 +66,11 @@ in them.
 
 ## Where the pipeline is fulfilled (✅)
 
-Stages 1, 6, 8, 10, 12, 13, 14, 15, 16, 17 — the runtime core plus a delivery
-orchestrator KRN has and Matt does not, plus stage 6 (slicing), the one front-half
-stage earned via the `slice-work` lab. This is the high-risk surface and it is
-well-owned and well-described.
+Stages 1, 5, 6, 8, 10, 12, 13, 14, 15, 16, 17 — the runtime core plus a delivery
+orchestrator KRN has and Matt does not, plus the front-half stages earned so far:
+stage 5 (spec compression) via `to-spec` and stage 6 (slicing) via the
+`slice-work` lab. This is the high-risk surface and it is well-owned and
+well-described.
 
 ## Where the pipeline is deliberately divergent (⏸️)
 
@@ -85,20 +87,19 @@ These are *decisions*, recorded as such. They are not failures to fulfill.
 
 ## Where the pipeline is genuinely gapped (🔴)
 
-The front half — turning fog into agent-ready work — minus the one stage now owned:
+The front half — turning fog into agent-ready work — minus the stages now owned:
 
-1. **No spec/PRD compression owner** (to-spec equivalent). Nothing owns
-   "compress this settled conversation into a destination-first spec with
-   explicit unknowns."
-2. **No triage owner.** Nothing converts a messy backlog into agent-ready work.
-3. **No prototype skill** (intentional, but worth revisiting).
+1. **No triage owner.** Nothing converts a messy backlog into agent-ready work.
+2. **No prototype skill** (intentional, but worth revisiting).
 
-Tracer-bullet slicing left this list when the `slice-work` lab earned it a
-promotion (blind-judge 15:4 over ad-hoc decomposition; clean validate; now wired
-into `delivery-loop`). The remaining three are recorded as a deliberate scope
-boundary in [`../matt-skills-coverage.md`](../matt-skills-coverage.md)
+Spec/PRD compression left this list when `to-spec` was promoted to close the
+front-half gap surfaced by reading Matt's `ask-matt` flow; tracer-bullet slicing
+left it earlier when the `slice-work` lab earned a promotion (blind-judge 15:4
+over ad-hoc decomposition; clean validate; now wired into `delivery-loop`). The
+remaining two are recorded as a deliberate scope boundary in
+[`../matt-skills-coverage.md`](../matt-skills-coverage.md)
 ("Front-half scope boundary"): they belong to the repo tracker and native goal
-state, not an under-specified frontier. Filling any of them requires a repeated
+state, not an under-specified frontier. Filling either requires a repeated
 cross-repository consumer and a falsifier; see [`rozkminy.md`](rozkminy.md).
 
 ## Descriptive gaps (not yet in the ledgers)

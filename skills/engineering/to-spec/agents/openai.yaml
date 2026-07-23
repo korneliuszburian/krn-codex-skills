@@ -1,0 +1,6 @@
+interface:
+  display_name: "To Spec"
+  short_description: "Compress a settled thread into a published spec"
+  default_prompt: "Use $to-spec to turn this settled conversation into a destination-first spec and publish it."
+policy:
+  allow_implicit_invocation: true

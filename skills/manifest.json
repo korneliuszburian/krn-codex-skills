@@ -66,6 +66,11 @@
       "implicit": true
     },
     {
+      "name": "to-spec",
+      "path": "skills/engineering/to-spec",
+      "implicit": true
+    },
+    {
       "name": "slice-work",
       "path": "skills/engineering/slice-work",
       "implicit": false
