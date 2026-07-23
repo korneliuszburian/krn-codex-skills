@@ -82,9 +82,16 @@ bez ledger-entry.
   TDD). Ale: rozważyć (**lab-test**) czy przy *nowej* public-seam logice nie
   warto wymagać najtańszego falsifiera bardziej naciskiem niż dziś — to
   subtelna kalibracja, nie zmiana paradygmatu.
-- **native goals + tracker vs Wayfinder.** Utrzymać. Ale jeśli (z pkt. 1)
-  powstanie `slice-work`, to map/frontier/fog zaczyna mieć lokalny
-  reprezentant — wtedy decyzja o Wayfinderze może się zaktualizować.
+- **native goals + tracker vs Wayfinder.** **✅ slice 2 (front-half adopt)** —
+  rozstrzygnięte: `wayfinder` promowany (explicit-only) po lekturze `ask-matt`
+  Matta. `slice-work` już istniał (warunek z poprzedniej wersji tej notki), a
+  powtarzalny, wyraźny popyt operatora był consumer-evidence. Chartuje mglisty
+  multi-session effort jako `wayfinder:map` + decision tickets na skonfigurowanym
+  trackerze, plan-don't-do, nie dubluje `slice-work`/`to-spec`/`delivery-loop`.
+  Czyste `npm run validate` (18 skill'i, 49 case'ów). Falsyfikator porównawczy
+  (czy mapa zmniejsza mid-build przerwania "co dalej"?) — pending real-konsument.
+  Warunek "rodzina mała → brak routera" poniżej nadal spełniony (ask-matt nadal
+  `defer`).
 - **brak routera (ask-matt).** Utrzymać dopóki rodzina skill'i jest mała. Jeśli
   pkt. 1 dołoży 1–2 skill'e explicit-only, nadal poniżej progu routera.
 

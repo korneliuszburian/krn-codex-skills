@@ -16,6 +16,7 @@ flowchart TD
   OTHER["Another repo"] --> TRW
   SETUP["New or repair repo setup"] --> SRW
   FOG["Foggy choices"] --> GRILL
+  EFFORT["Foggy multi-session effort"] --> WAY
   SPEC["Settled spec"] --> SLICE
   THREAD["Settled thread (no spec)"] --> TOSPEC
   TOOLS["Global tools / MCP / profile"] --> MCC
@@ -27,6 +28,7 @@ flowchart TD
   TRW["$target-repo-work"]
   SRW["$setup-repository-workflow"]
   GRILL["$batch-grill-me"]
+  WAY["$wayfinder"]
   TOSPEC["$to-spec"]
   SLICE["$slice-work"]
   MCC["$managing-codex-capabilities"]
@@ -46,6 +48,9 @@ flowchart TD
   REVIEW -->|"accepted"| DONE["Result + honest lifecycle state"]
 
   GRILL --> DECIDE["confirmed decision"] --> IMPL
+  WAY -->|"cleared route"| TOSPEC
+  WAY -->|"cleared route"| SLICE
+  WAY -->|"cleared route"| IMPL
   SRW --> NORMAL["normal owner"]
   MCC --> PROFILE["reviewed profile, fresh session"]
 
@@ -67,7 +72,7 @@ flowchart TD
   `implement`, a full autonomous outcome to `delivery-loop`, an unknown fault to
   `diagnosing-bugs`, a source claim to `source-to-decision`, another repo to
   `target-repo-work`, a settled thread without a spec to `to-spec`, a settled
-  spec to `slice-work`, foggy choices to
+  spec to `slice-work`, a foggy multi-session effort to `wayfinder`, foggy choices to
   `batch-grill-me`, and global tooling to `managing-codex-capabilities`.
 - **Delivery routing.** `delivery-loop` does not implement; it routes the current
   uncertainty — a multi-slice outcome through `slice-work`, a clear change to
@@ -87,4 +92,5 @@ flowchart TD
 
 This graph routes; it does not execute, approve, or publish. Explicit-only skills
 (`setup-repository-workflow`, `second-opinion-review`, `batch-grill-me`,
-`slice-work`) require an explicit `$skill` selection and never route implicitly.
+`slice-work`, `wayfinder`) require an explicit `$skill` selection and never route
+implicitly.

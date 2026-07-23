@@ -293,21 +293,25 @@ of every repository's tracker.
 KRN owns the *runtime core* of the coding pipeline — setup, grilling,
 implementation, proof, review, diagnosis, codebase design, handoff, research, and
 the `delivery-loop` lifecycle — plus the front-half stages that have earned a
-consumer: **tracer-bullet slice production**, owned by explicit-only `slice-work`,
-and **spec/PRD compression**, owned by `to-spec` (a settled conversation
-compressed into one destination-first spec with explicit unknowns, published to
-the configured tracker). The remaining front half — backlog triage (`triage`) —
-is deliberately **not** owned by a global KRN skill; it belongs to the repo-local
-tracker and native goal state.
+consumer: **tracer-bullet slice production**, owned by explicit-only `slice-work`;
+**spec/PRD compression**, owned by `to-spec` (a settled conversation compressed
+into one destination-first spec with explicit unknowns, published to the configured
+tracker); and **the decision map**, owned by explicit-only `wayfinder` (a foggy
+multi-session effort charted as one `wayfinder:map` index plus child decision
+tickets, worked frontier-first until the route clears). The remaining front half —
+backlog triage (`triage`) — is deliberately **not** owned by a global KRN skill; it
+belongs to the repo-local tracker and native goal state.
 
 `slice-work` earned promotion through a lab: a blind judge scored its
 decomposition 15 vs 4 for the current-setup output, and it passed a clean
-`npm run validate`. `to-spec` was promoted to close the front-half gap called out
-by reading Matt's actual `ask-matt` flow: it synthesizes without interviewing, does
-not duplicate `slice-work` (slicing) or `domain-modeling` (vocabulary), and consumes
-the repo's configured tracker adapter. Its comparative falsifier — does a
-`to-spec` spec fed to `implement` land a cleaner first slice than implementing
-straight from the thread? — is pending one real-consumer run. The still-unowned
-stage (triage) remains a recorded scope boundary, not an accidental gap: an owner
-would be earned only by a repeated cross-repository consumer and a falsifier, and
-it must not duplicate `delivery-loop` (lifecycle) or `domain-modeling` (vocabulary).
+`npm run validate`. `to-spec` and `wayfinder` were promoted to close the front-half
+gaps called out by reading Matt's actual `ask-matt` flow: `to-spec` synthesizes
+without interviewing, and `wayfinder` plans without building — neither duplicates
+`slice-work` (slicing), `domain-modeling` (vocabulary), or `delivery-loop`
+(lifecycle), and both consume the repo's configured tracker adapter. Their
+comparative falsifiers — does a `to-spec` spec fed to `implement` land a cleaner
+first slice, and does a `wayfinder` map reduce mid-build "what next" interruptions?
+— are pending one real-consumer run each. The still-unowned stage (triage) remains
+a recorded scope boundary, not an accidental gap: an owner would be earned only by
+a repeated cross-repository consumer and a falsifier, and it must not duplicate
+`delivery-loop` (lifecycle) or `domain-modeling` (vocabulary).

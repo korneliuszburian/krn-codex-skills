@@ -1,0 +1,6 @@
+interface:
+  display_name: "Wayfinder"
+  short_description: "Chart a foggy multi-session effort as decision tickets"
+  default_prompt: "Use $wayfinder to chart this effort as a decision-ticket map and clear the fog."
+policy:
+  allow_implicit_invocation: false

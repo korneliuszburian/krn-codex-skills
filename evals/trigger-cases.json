@@ -477,6 +477,7 @@
         "domain-modeling",
         "source-to-decision",
         "to-spec",
+        "wayfinder",
         "setup-repository-workflow",
         "target-repo-work",
         "typescript-engineering",
@@ -558,7 +559,34 @@
       "forbidden_skills": [
         "to-spec",
         "implement",
-        "domain-modeling"
+        "domain-modeling",
+        "wayfinder"
+      ]
+    },
+    {
+      "id": "foggy-effort-becomes-decision-map",
+      "prompt": "This initiative is far too big and unclear for one session. Chart it as a shared map of decision tickets on our tracker and work the frontier one decision at a time.",
+      "expected_skills": [
+        "wayfinder"
+      ],
+      "forbidden_skills": [
+        "to-spec",
+        "slice-work",
+        "implement",
+        "delivery-loop"
+      ]
+    },
+    {
+      "id": "small-foggy-choice-is-not-a-map",
+      "prompt": "Help me decide between these two approaches for this one function before I build it.",
+      "expected_skills": [
+        "batch-grill-me"
+      ],
+      "forbidden_skills": [
+        "wayfinder",
+        "to-spec",
+        "slice-work",
+        "implement"
       ]
     }
   ]

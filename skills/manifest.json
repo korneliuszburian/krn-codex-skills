@@ -76,6 +76,11 @@
       "implicit": false
     },
     {
+      "name": "wayfinder",
+      "path": "skills/engineering/wayfinder",
+      "implicit": false
+    },
+    {
       "name": "setup-repository-workflow",
       "path": "skills/engineering/setup-repository-workflow",
       "implicit": false
