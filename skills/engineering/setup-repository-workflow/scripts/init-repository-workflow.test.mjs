@@ -44,6 +44,28 @@ test("apply preserves user prose and is byte-idempotent", () => {
   assert.doesNotMatch(second["docs/agents/issue-tracker.md"], /different WIP|unless this repository/);
 });
 
+test("apply preserves repository artifact path extensions and remains idempotent", () => {
+  const root = fixture();
+  apply(root);
+  const pathsFile = join(root, "docs", "agents", "artifact-paths.json");
+  const paths = JSON.parse(readFileSync(pathsFile, "utf8"));
+  assert.equal(paths.discovery, "docs/discovery");
+  assert.equal(paths.capabilities, "docs/capabilities");
+  paths.discovery = "docs/custom-discovery";
+  paths.capabilities = "docs/custom-capabilities";
+  writeFileSync(pathsFile, `${JSON.stringify(paths, null, 2)}\n`);
+
+  apply(root);
+  const first = readFileSync(pathsFile, "utf8");
+  const firstPaths = JSON.parse(first);
+  assert.equal(firstPaths.discovery, "docs/custom-discovery");
+  assert.equal(firstPaths.capabilities, "docs/custom-capabilities");
+  assert.equal(firstPaths.working_runs, "docs/agents/runs");
+
+  apply(root);
+  assert.equal(readFileSync(pathsFile, "utf8"), first);
+});
+
 test("shared CLAUDE symlink keeps AGENTS as one semantic owner", () => {
   const root = fixture();
   symlinkSync("AGENTS.md", join(root, "CLAUDE.md"));
