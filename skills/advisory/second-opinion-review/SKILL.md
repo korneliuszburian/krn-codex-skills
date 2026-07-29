@@ -47,28 +47,37 @@ checker when a fixed artifact only needs an adversarial challenge.
    the active repositories. Create one private, unique directory for this pass:
 
    ```bash
-   node ~/.agents/skills/second-opinion-review/scripts/prepare-artifacts.mjs topic-slug research
+   env SECOND_OPINION_CONTEXT_ROOT=/absolute/owner-repository \
+     node ~/.agents/skills/second-opinion-review/scripts/prepare-artifacts.mjs \
+     topic-slug research
    ```
 
-   The optional second argument is the role category — `research`, `rewrite`, or
-   `check` — matching the role chosen in step 1; it defaults to `passes`. Inside
-   a repository configured by `$setup-repository-workflow`, the command
-   resolves `working_runs` from `docs/agents/artifact-paths.json` and uses its
-   ignored `second-opinion-review/` child. Otherwise it falls back to the private
-   `~/coding/krn/second-opinion-review` root for ad-hoc or legacy work. Each pass
-   uses `<working_runs>/second-opinion-review/<run-id>`; its run id includes the
-   date, role category, slug, and a uniqueness suffix. The global fallback keeps
-   `<root>/<project>/<category>/<pass>`, where `project` is the sanitized cwd
-   repository basename or `adhoc`. A configured repo-local pass remains
-   untracked working material and does not change the fixed reviewed diff.
-   Record the printed path as `pass_dir`. The
-   initiating operator owns its contents, classification, retention, and cleanup;
-   `prepare-artifacts.mjs list` enumerates every pass under the configured root
-   with its project, category, and job state.
+   The required second argument is `research`, `rewrite`, or `check`, matching
+   step 1. `SECOND_OPINION_CONTEXT_ROOT` names the repository that owns the
+   artifacts even when the ambient shell or reviewed checkout differs. The
+   command resolves `working_runs` from that repository's
+   `docs/agents/artifact-paths.json`, verifies that it is repository-contained
+   and ignored, and creates
+   `<working_runs>/second-opinion-review/<date>-<role>-<slug>-<suffix>` with a
+   durable `pass-context.json`. When no configured repository owns genuinely
+   ad-hoc work, explicitly set `SECOND_OPINION_WORKING_RUNS` to an absolute
+   private working-runs root; it uses the same layout. There is no implicit home
+   fallback or alternate namespace/category tree. Record the printed path as
+   `pass_dir`. The initiating operator owns its contents, classification,
+   retention, and cleanup; use the same context variable with
+   `prepare-artifacts.mjs list` to enumerate its job state.
 
-   **Done when:** this pass has exactly one `0700` directory under the resolved
-   working root, and every brief, prompt, review result, or
-   disposition below names a file inside it.
+   **`OUTPUT_ROOT` contract.** `OUTPUT_ROOT` is the resolved absolute
+   `<working_runs>/second-opinion-review` directory recorded in
+   `pass-context.json`; it is a contract value, not another environment
+   override. A pass always lives at
+   `<OUTPUT_ROOT>/<ISO-date>-<role>-<slug>-<suffix>/`. Resolve the repository by
+   realpath, then its repository-relative `working_runs` role, so moving the
+   checkout between `/home`, `/run/media`, and `/mnt` cannot change ownership.
+
+   **Done when:** this pass has exactly one verified `0700` directory under the
+   resolved working root, and every brief, prompt, job record, review result,
+   or disposition below names a file inside it.
 
 4. **Prepare one branch.** For `researcher`, read
    [research-template.md](references/research-template.md); it owns campaign
@@ -82,12 +91,20 @@ checker when a fixed artifact only needs an adversarial challenge.
    [research.schema.json](references/research.schema.json) and
    [review.schema.json](references/review.schema.json).
 
+   A checker finding cites at most 20 inclusive lines
+   (`line_end - line_start <= 19`). When one claim genuinely needs disjoint or
+   longer evidence, split it into separately identified findings with one
+   narrow range and claim apiece. The validator rejects an oversized range and
+   the bounded retry requests a complete corrected result; neither layer clips
+   or silently discards cited evidence.
+
    Point to existing issues, commits, diffs, and source paths instead of
    restating them. Pin mutable sources. Redact secrets, credentials, private
    data, environment files, and raw copyrighted corpus in either branch.
 
    **Done when:** exactly one role-specific reference has produced a brief that
-   a fresh pass can execute without reconstructing this conversation.
+   a fresh pass can execute without reconstructing this conversation, and every
+   checker range is already split to 20 lines or fewer.
 
 5. **Launch exactly that pass.** Follow the chosen reference's **Launch**
    section. A research shard is a bounded, budgeted foreground process that may
@@ -100,19 +117,23 @@ checker when a fixed artifact only needs an adversarial challenge.
 
    **Done when:** the researcher emitted a validated shard result and terminal
    job state, the rewrite job is named and resumable and this execution thread
-   has yielded, or the synchronous checker emitted schema-compatible JSON at
-   the declared path.
+   has yielded, or the synchronous checker emitted schema-compatible JSON and
+   a terminal `jobs/checker.job.json` inside the verified pass.
 
 6. **Verify before retaining anything.** Continue after a research shard or
    synchronous checker finishes, or resume after the background rewrite pass.
    Treat all Claude output as a hypothesis. Run the researcher or checker
    validation named in its reference when applicable, then inspect cited lines
-   and source coverage locally. Classify each item as
-   `accept_and_fix`, `evidence_gap`, `reject_with_evidence`, `follow_up`, or
-   `human_decision`. Keep only the role brief or checker prompt, validated
-   structured output when one exists, an original source/coverage ledger, and
-   the local disposition. Do not copy source corpora, caches, model transport,
-   or disposable worktree state into `pass_dir`.
+   and source coverage locally. For checker or rewrite findings, classify each
+   item as `accept_and_fix`, `evidence_gap`, `reject_with_evidence`,
+   `follow_up`, or `human_decision`. For researcher output, classification is
+   evidence triage only: retain the validated ledger, then hand it to
+   `$source-to-decision`; only that owner may record `adopt`, `reject`,
+   `lab-test`, or `defer` and authorize any later implementation. Keep only
+   `pass-context.json`, the role brief or checker prompt, terminal job records,
+   validated structured output when one exists, an original source/coverage
+   ledger, and the local disposition. Do not copy source corpora, caches, model
+   transport, or disposable worktree state into `pass_dir`.
 
    <review-output>
    Retained findings:
@@ -125,8 +146,10 @@ checker when a fixed artifact only needs an adversarial challenge.
    </review-output>
 
    **Done when:** every retained factual claim survives current local evidence,
-   every accepted change has proportionate proof, `disposition.md` records the
-   local classification, and no reviewer prose is presented as approval or
+   every accepted checker or rewrite change has proportionate proof, every
+   research recommendation has a named `$source-to-decision` consumer,
+   `disposition.md` records the local classification, every checker range
+   remains at most 20 lines, and no reviewer prose is presented as approval or
    readiness.
 
 7. **Stop the loop and close its storage.** Run each research shard once and
@@ -134,7 +157,11 @@ checker when a fixed artifact only needs an adversarial challenge.
    new pass directory and fixed campaign rather than an in-place retry. Run at
    most one maker pass and one independent checker pass for the same fixed
    point. Continue only for a newly evidenced finding; open-ended reviewer
-   debate is not production progress. Remove the disposable worktree after its
+   debate is not production progress. Bounded checker transport retries remain
+   one pass; terminal schema diagnostics end that pass instead of inviting an
+   external retry loop. Before stopping after a terminal checker failure, write
+   `disposition.md` inside the same pass with `status: blocked`, the exact
+   diagnostic, and the next owner. Remove the disposable worktree after its
    candidate changes are accepted or rejected. Keep `pass_dir` while its issue,
    goal, or follow-up depends on the evidence; once that owner closes, either
    archive the minimal retained set in the owner's durable research system or

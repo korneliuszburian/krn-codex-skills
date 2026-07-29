@@ -5,7 +5,12 @@ This repository stores distilled mechanisms, not source corpora.
 ## Matt Pocock
 
 - Source: [mattpocock/skills](https://github.com/mattpocock/skills)
-- Inspected commit: `9603c1cc8118d08bc1b3bf34cf714f62178dea3b`
+- Current refresh: [`2ab958093e83e0ec752e6c1c5932da465bf23e0c`](https://github.com/mattpocock/skills/commit/2ab958093e83e0ec752e6c1c5932da465bf23e0c),
+  inspected 2026-07-29. Relative to the corpus baseline
+  `9603c1cc8118d08bc1b3bf34cf714f62178dea3b`, the three-commit delta changes
+  only installation prose and removes execution ownership from `to-tickets`.
+  It reinforces KRN's `slice-work` → `delivery-loop` boundary and does not earn
+  a new skill.
 - Complete corpus and video ledger:
   [matt-skills-coverage.md](matt-skills-coverage.md).
 - Broader source index, pipeline audit, and working notes:
@@ -14,14 +19,17 @@ This repository stores distilled mechanisms, not source corpora.
   disclosure, resumable background handoffs that point to durable artifacts,
   pre-agreed public seams, vertical slices, independent Standards and Spec
   review, deep modules, deletion as a design test, composition over
-  restatement, and leading imperative steps with a local `Done when`.
+  restatement, leading imperative steps with a local `Done when`, and explicit
+  hard-versus-soft repository dependencies.
 - Rejected: copying the full upstream skill collection, generic destructive
   link scripts, mandatory test-first work for changes with no runtime risk,
   and Claude-specific invocation frontmatter as Codex policy.
 - KRN adaptation: Claude handoffs use a clean linked worktree, keep private
   corpora out of the handoff, resolve one operator-owned artifact directory,
   and are mechanically denied from 08:00 inclusive until 12:00 exclusive in
-  `Europe/Warsaw`.
+  `Europe/Warsaw`. A shared execution envelope remains a bounded local
+  experiment; loose upstream `cwd`, temp, and “sensible path” defaults are not
+  adopted.
 
 ## Matt Pocock — coding-agent skills flow
 
@@ -53,18 +61,20 @@ This repository stores distilled mechanisms, not source corpora.
   ticket; model, harness, and environment treated as separate leverage layers;
   a tight orchestrating thread; and parallel dispatch limited to independent,
   ready work.
-- KRN implication: repositories that install Beads already have a concrete
-  wayfinding owner for destination, fog, decision tickets, native dependencies,
-  claims, and the ready frontier. The global catalog still leaves durable task
-  state to each repository and long-running outcome state to native Codex goals.
+- KRN implication: the explicit-only `wayfinder` owns the bounded destination,
+  fog, decision-map, and frontier procedure. A repository tracker such as Beads
+  supplies durable tickets, dependencies, and claims; native Codex goals retain
+  long-running outcome state.
 - Observed friction: disposable worktrees required dependency and environment
   setup, sessions needed manual coordination, approval boundaries interrupted
   some actions, and the map did not finish during the livestream.
-- Decision: adopt map/frontier/fog behavior through repo-local Beads, and adopt
-  bounded AFK source campaigns through the `second-opinion-review` researcher
-  with `source-to-decision` retaining adoption authority. Reject a duplicate
-  global Wayfinder, universal tracker protocol, and always-on orchestrator:
-  they still lack one cross-repository owner and falsifier.
+- Decision: adopt the bounded explicit-only `wayfinder` as the decision-map
+  owner for destination, fog, tickets, and frontier; keep claims, dependencies,
+  and durable state in the repository tracker and long-running outcome state in
+  native Codex goals. Adopt bounded AFK source campaigns through the
+  `second-opinion-review` researcher with `source-to-decision` retaining
+  adoption authority. Reject a universal tracker protocol and always-on
+  orchestrator; `wayfinder` plans but does not execute.
 - Does not prove: any deferred mechanism should become a universal KRN skill,
   that one tracker fits every repository, or that a demo outperforms the
   current system on production work. Current routing also does not reject a

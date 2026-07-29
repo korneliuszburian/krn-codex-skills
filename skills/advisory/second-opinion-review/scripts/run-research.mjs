@@ -17,6 +17,7 @@ import {
   resultPathFor,
   validateResearchResult,
 } from "./research-campaign.mjs";
+import { verifyPassDirectory } from "./prepare-artifacts.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const skillDirectory = path.dirname(scriptDirectory);
@@ -291,9 +292,19 @@ function readResearchWrapper(file) {
   return wrapper;
 }
 
-export function checkResearch({ campaignPath, shardId, cwd = process.cwd() } = {}) {
+export function checkResearch({
+  campaignPath,
+  shardId,
+  cwd = process.cwd(),
+  env = process.env,
+} = {}) {
   const { campaign, file: campaignFile, sha256: campaignSha256 } = loadCampaign(campaignPath);
   const shard = campaignShard(campaign, shardId);
+  verifyPassDirectory({
+    passDirectory: path.dirname(campaignFile),
+    expectedRole: "research",
+    env,
+  });
   const repository = repositoryIdentity(cwd);
   const outputFile = resultPathFor(campaignFile, shardId);
   const wrapper = readResearchWrapper(outputFile);
@@ -324,7 +335,12 @@ export function checkResearch({ campaignPath, shardId, cwd = process.cwd() } = {
     fail("research source evidence changed since publication");
   }
   const dependencies = shard.depends_on.map((dependencyId) => {
-    checkResearch({ campaignPath: campaignFile, shardId: dependencyId, cwd: repository.root });
+    checkResearch({
+      campaignPath: campaignFile,
+      shardId: dependencyId,
+      cwd: repository.root,
+      env,
+    });
     const dependency = loadDependency({
       campaignFile,
       campaign,
@@ -357,13 +373,7 @@ export function runResearch({
   const { campaign, file: campaignFile, sha256: campaignSha256 } = loadCampaign(campaignPath);
   const shard = campaignShard(campaign, shardId);
   const passDirectory = path.dirname(campaignFile);
-  const passMetadata = fs.lstatSync(passDirectory);
-  if (!passMetadata.isDirectory() || passMetadata.isSymbolicLink()) {
-    fail("campaign parent must be a real pass directory, not a symlink");
-  }
-  if ((passMetadata.mode & 0o077) !== 0) {
-    fail("campaign pass directory must not grant group or other permissions");
-  }
+  verifyPassDirectory({ passDirectory, expectedRole: "research", env });
   ensurePrivateDirectory(path.join(passDirectory, "results"));
   ensurePrivateDirectory(path.join(passDirectory, "jobs"));
   const outputFile = resultPathFor(campaignFile, shardId);
@@ -380,7 +390,12 @@ export function runResearch({
     if (!fs.existsSync(resultPathFor(campaignFile, dependencyId))) {
       fail(`missing validated dependency result: ${dependencyId}`);
     }
-    checkResearch({ campaignPath: campaignFile, shardId: dependencyId, cwd: repository.root });
+    checkResearch({
+      campaignPath: campaignFile,
+      shardId: dependencyId,
+      cwd: repository.root,
+      env,
+    });
     return loadDependency({
       campaignFile,
       campaign,

@@ -4,7 +4,10 @@ Use this only for a `rewrite-maker` background pass. A source investigation
 uses [research-template.md](research-template.md) instead. Complete the
 entrypoint's artifact-directory step first and write this brief to
 `/absolute/printed/pass-dir/handoff.md`. Shared `/tmp` paths are not resumable
-across parallel jobs or restarts. Start from a clean disposable worktree.
+across parallel jobs or restarts. The runner verifies the brief's parent against
+`pass-context.json`. Start from a clean disposable worktree; when that worktree
+differs from the artifact-owning checkout, keep
+`SECOND_OPINION_CONTEXT_ROOT` pointed at the owner used during preparation.
 
 ## Launch
 

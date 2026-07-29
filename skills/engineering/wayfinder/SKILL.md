@@ -65,9 +65,13 @@ settled spec, `$to-spec` owns spec compression, `$implement` owns the build, and
 5. **Work one ticket per session** (research excepted). Load the map at low
    resolution, choose a frontier ticket (the user may name one), and **claim it
    through the tracker before any work** so concurrent sessions skip it. Resolve it
-   by invoking the skill its type names — `$second-opinion-review` for research,
+   by invoking the skill its type names — `$source-to-decision` for research,
    `$domain-modeling` for grilling (the default), a throwaway prototype for
-   prototype, or the manual work for task. Zoom related or closed tickets on demand.
+   prototype, or the manual work for task. When a research ticket explicitly
+   needs a delegated corpus pass, `$second-opinion-review` may supply a validated
+   advisory ledger to `$source-to-decision`; the ticket is not resolved until
+   the latter records `adopt`, `reject`, `lab-test`, or `defer` against local
+   evidence. Zoom related or closed tickets on demand.
 
    **Done when:** one ticket is claimed, resolved with the named skill, and its
    answer recorded as a resolution on the ticket.

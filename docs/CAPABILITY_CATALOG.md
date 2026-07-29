@@ -32,7 +32,7 @@ reads its files.
 | `minimal` | KRN engineering only, with optional surfaces off |
 | `lean` | daily KRN engineering with GitHub and official OpenAI docs |
 | `design` | lean engineering plus Figma, Canva, and GSAP |
-| `web-qa` | lean engineering plus browser automation |
+| `web-qa` | lean engineering plus browser automation, documentation lookup, and Figma MCP |
 | `comms` | lean engineering plus mail, calendar, and task coordination |
 | `full` | broadest managed integration surface; duplicate and displaced workflow owners stay off |
 

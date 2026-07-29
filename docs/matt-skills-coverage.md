@@ -8,9 +8,12 @@ each useful pattern, and the KRN decision that follows.
 
 - Repository: [mattpocock/skills](https://github.com/mattpocock/skills), pinned
   commit `9603c1cc8118d08bc1b3bf34cf714f62178dea3b`, inspected 2026-07-16.
-  Current HEAD `ed37663` (2026-07-21) is substantively unchanged: one commit, a
-  two-line prose cleanup in `to-tickets`; no skill added, removed, renamed, or
-  re-bucketed. The pin's accounting below therefore remains current.
+  Current HEAD [`2ab9580`](https://github.com/mattpocock/skills/commit/2ab958093e83e0ec752e6c1c5932da465bf23e0c)
+  (2026-07-28; inspected 2026-07-29) remains structurally unchanged. The
+  [three-commit delta](https://github.com/mattpocock/skills/compare/9603c1cc8118d08bc1b3bf34cf714f62178dea3b...2ab958093e83e0ec752e6c1c5932da465bf23e0c)
+  changes installation prose and removes redundant execution ownership from
+  `to-tickets`; no skill was added, removed, renamed, or re-bucketed. The pin's
+  accounting below therefore remains current.
 - Main flow: [My New Coding Agent Skills Setup](https://www.youtube.com/watch?v=M6mYodf0dJM),
   17:17, published and inspected 2026-07-16. English auto-caption JSON3 SHA-256:
   `3b852d7e36a44d5855c1955b89053dbbc0a80b56f24f6bcd685df06f7a1e5bdd`.
@@ -267,7 +270,7 @@ documented split to reduce catalog friction; the mechanism is unchanged.
 | destructive collision replacement | installer | reject | explicit migration authority and a recoverable archive make replacement safe | that silent `rm -rf` is acceptable |
 | thin global instructions plus domain pointers | global and repository `AGENTS.md` | adopt | a repository cannot recover its current language or gates from direct pointers | that every repository instruction is current |
 | smart-zone compaction | native goal plus tracker | adopt mechanism, not numeric threshold | a long session loses settled decisions before durable compression | that 140k is optimal for Codex |
-| map/frontier/fog | repo-local Beads and native goal planning | adopt behavior through existing owners; reject a duplicate global Wayfinder | the tracker cannot represent blocked, unclaimed, or unresolved work | that Wayfinder's orchestration fits KRN unchanged |
+| map/frontier/fog | explicit-only `wayfinder`, repo tracker, and native goal | adopt a bounded decision-map owner; keep durable tracker state and lifecycle outside it | the map executes work, owns tracker state, or cannot represent blocked, unclaimed, or unresolved decisions | that a universal tracker protocol or always-on orchestrator fits KRN |
 | AFK research tickets | `second-opinion-review` researcher plus `source-to-decision` | adopt bounded campaigns and keep adoption local | a shard can publish unvalidated or stale evidence, or its recommendation becomes a decision without local verification | that Claude output is correct or that every investigation needs delegation |
 | independent Standards and Spec review | `code-review` | adopt | one pass conflates both lenses or edits the reviewed fixed point | release readiness or runtime correctness |
 | isolated advisory reviewer | `second-opinion-review` | adopt with explicit authority and artifact lifecycle | output mutates canonical work, lacks identity, or lands in an ownerless folder | approval, correctness, or provider identity from a model alias |
@@ -277,18 +280,18 @@ documented split to reduce catalog friction; the mechanism is unchanged.
 KRN should become easier to route and inspect, not more Matt-shaped. The
 supported set remains small; model-facing descriptions remain boundary-rich;
 all companion references stay directly reachable; the installer stays
-collision-safe; native goal and Beads remain the long-running owners;
+collision-safe; `wayfinder` owns the bounded decision map while native goal and
+the repository tracker retain long-running state and lifecycle;
 `second-opinion-review` owns a deterministic research/review artifact
 lifecycle; and `domain-modeling` owns grilling — the frontier-round interview and
 single-concept resolution — recording an ADR or glossary entry only when earned.
 
 A future router requires evidence that operators cannot reliably select the
-current explicit skills. A global Wayfinder-like orchestrator requires evidence
-that native goal plus the repository tracker loses a real decision frontier.
-The videos demonstrate useful mechanisms and real costs, but they do not supply
-either KRN-specific failure. A project that already installs Beads has the
-Wayfinder map/frontier/fog behavior without giving the global catalog ownership
-of every repository's tracker.
+current explicit skills. The bounded explicit-only `wayfinder` has earned the
+decision-map seam; a broader always-on orchestrator or universal tracker
+protocol would still require evidence that this seam plus native goal and the
+repository tracker loses real work. The videos demonstrate useful mechanisms
+and real costs, but do not grant `wayfinder` execution or tracker ownership.
 
 ### Front-half scope boundary (decision)
 

@@ -164,6 +164,7 @@ if [[ "$accept_edits" == false ]]; then
   exit 65
 fi
 
+node "$script_dir/prepare-artifacts.mjs" verify-pass "${handoff_file%/*}" rewrite
 node "$script_dir/check-claude-window.mjs" check
 
 if ! repo_root=$(git rev-parse --show-toplevel 2>/dev/null); then

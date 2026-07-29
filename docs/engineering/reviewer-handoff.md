@@ -21,6 +21,10 @@ execution, pass directories, fingerprints, and its result schema.
 
 ## Output
 
-A Markdown packet written outside the repository, plus a concise handoff
+A Markdown packet written outside fixed evidence inputs or inside the
+initiating workflow's configured, ignored working pass, plus a concise handoff
 prompt. The packet is complete only when the fixed point, exact path allowlist,
 diff check, proof results, proof gaps, and requested decision are explicit.
+Repository-local output requires an absolute `--working-pass`; the compiler
+checks containment beneath the configured `working_runs` role, privacy,
+symlink safety, and Git-ignore status before it writes the packet.

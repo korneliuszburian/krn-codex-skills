@@ -13,7 +13,8 @@ session until nothing remains to decide. It plans; it does not build.
 ## Boundary
 
 It clears fog upstream of execution. `$domain-modeling` sharpens
-the destination and tickets; `$second-opinion-review` resolves research tickets;
+the destination and tickets; `$source-to-decision` resolves research tickets,
+optionally consuming a validated `$second-opinion-review` research ledger;
 `$to-spec`, `$slice-work`, and `$implement` take over once the way is clear; and
 `$delivery-loop` owns lifecycle. If charting surfaces no fog, it makes no map and asks
 how to proceed.
@@ -32,5 +33,7 @@ native blocking edges, worked frontier-first. When the route is clear it hands o
 ## Composition
 
 Grilling and domain-modeling name the destination and each grilling ticket;
-second-opinion-review resolves research tickets. Cleared routes hand off to the
-spec/slice/implement spine sequenced by delivery-loop.
+source-to-decision resolves research tickets and retains adoption authority,
+while second-opinion-review may provide only an explicitly requested advisory
+source campaign. Cleared routes hand off to the spec/slice/implement spine
+sequenced by delivery-loop.

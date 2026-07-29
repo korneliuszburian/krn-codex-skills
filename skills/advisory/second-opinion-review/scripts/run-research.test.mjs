@@ -12,6 +12,7 @@ import {
   jobPathFor,
   resultPathFor,
 } from "./research-campaign.mjs";
+import { prepareArtifactDirectory } from "./prepare-artifacts.mjs";
 import { checkResearch, runResearch } from "./run-research.mjs";
 
 const skillRoot = fileURLToPath(new URL("..", import.meta.url));
@@ -93,18 +94,30 @@ function run(command, args, cwd) {
 function makeFixture() {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-research-test-"));
   const repository = path.join(sandbox, "repository");
-  const passDirectory = path.join(sandbox, "pass");
   const sourceDirectory = path.join(sandbox, "sources");
   fs.mkdirSync(repository);
-  fs.mkdirSync(passDirectory, { mode: 0o700 });
   fs.mkdirSync(sourceDirectory);
   fs.writeFileSync(path.join(repository, "README.md"), "fixed repository evidence\n");
   run("git", ["init", "-q"], repository);
   run("git", ["config", "user.name", "Research Test"], repository);
   run("git", ["config", "user.email", "research@example.invalid"], repository);
-  run("git", ["add", "README.md"], repository);
+  fs.mkdirSync(path.join(repository, "docs", "agents", "runs"), { recursive: true });
+  fs.writeFileSync(
+    path.join(repository, "docs", "agents", "artifact-paths.json"),
+    `${JSON.stringify({ schema_version: 1, working_runs: "docs/agents/runs" })}\n`,
+  );
+  fs.writeFileSync(
+    path.join(repository, "docs", "agents", "runs", ".gitignore"),
+    "*\n!.gitignore\n",
+  );
+  run("git", ["add", "README.md", "docs/agents/artifact-paths.json", "docs/agents/runs/.gitignore"], repository);
   run("git", ["commit", "-qm", "test fixture"], repository);
   const commit = run("git", ["rev-parse", "HEAD"], repository);
+  const passDirectory = prepareArtifactDirectory({
+    slug: "research-test",
+    role: "research",
+    cwd: repository,
+  });
 
   const transcript = path.join(sourceDirectory, "transcript.txt");
   fs.writeFileSync(transcript, "fixed transcript evidence\n");
@@ -237,6 +250,8 @@ const testEnvironment = {
   SECOND_OPINION_RESEARCH_TIMEOUT_SECONDS: "60",
   SECOND_OPINION_RESEARCH_EFFORT: "high",
 };
+delete testEnvironment.SECOND_OPINION_CONTEXT_ROOT;
+delete testEnvironment.SECOND_OPINION_WORKING_RUNS;
 
 test("runs read-only research and synthesis shards with durable validated results", () => {
   const fixture = makeFixture();
@@ -264,6 +279,7 @@ test("runs read-only research and synthesis shards with durable validated result
           campaignPath: fixture.campaignFile,
           shardId,
           cwd: fixture.repository,
+          env: testEnvironment,
         }).result.shard_id,
         shardId,
       );
@@ -297,6 +313,7 @@ test("runs read-only research and synthesis shards with durable validated result
           campaignPath: fixture.campaignFile,
           shardId: "synthesis",
           cwd: fixture.repository,
+          env: testEnvironment,
         }),
       /research dependency evidence changed since publication/,
     );

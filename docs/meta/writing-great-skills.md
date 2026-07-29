@@ -22,8 +22,9 @@ the proposed owner, inputs, output, completion criterion, and invocation mode.
 ## Output and completion
 
 A minimal validated skill whose descriptions route correctly, resources load
-only on their live branch, and fresh forward trials show no systematic early
-stop or ownership collision.
+only on their live branch, hard and soft repository dependencies behave
+explicitly, delegated work is bound to the state it can observe, and fresh
+forward trials show no systematic early stop or ownership collision.
 
 ## Composition
 

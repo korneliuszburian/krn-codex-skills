@@ -204,7 +204,7 @@ setup -> grill/align -> decision map (Wayfinder) -> [prototype] -> spec/PRD
 
 | Repo | URL | Role in the pipeline |
 |---|---|---|
-| mattpocock/skills | https://github.com/mattpocock/skills | The skills repo itself. At current HEAD (`ed37663`, 2026-07-21) it is 41 SKILL.md files, 17 engineering + 5 productivity promoted — substantively unchanged since the KRN-pinned commit `9603c1cc` (one 2-line prose cleanup in `to-tickets`). |
+| mattpocock/skills | https://github.com/mattpocock/skills | The skills repo itself. At current HEAD (`2ab9580`, 2026-07-28; inspected 2026-07-29) it remains 41 SKILL.md files, 17 engineering + 5 productivity promoted. The three-commit delta from KRN's corpus baseline `9603c1cc` touches only installation prose and `to-tickets`, where it removes the slicer's redundant execution instruction. |
 | mattpocock/dictionary-of-ai-coding | https://github.com/mattpocock/dictionary-of-ai-coding | AI-coding vocabulary ("smart-zone", "grilling", etc.); `ask-matt` links into it. |
 | mattpocock/sandcastle | https://github.com/mattpocock/sandcastle | Orchestrate sandboxed coding agents in TypeScript (`sandcastle.run()`); the AFK runtime. |
 | mattpocock/agent-rules-books | https://github.com/mattpocock/agent-rules-books | AGENTS.md rules / skills book; source philosophy behind the skills repo. |

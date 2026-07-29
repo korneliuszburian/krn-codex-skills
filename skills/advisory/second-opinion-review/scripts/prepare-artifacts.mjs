@@ -2,70 +2,138 @@
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+const workflow = "second-opinion-review";
+const contextFileName = "pass-context.json";
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const fallbackNamespace = "adhoc";
-const defaultCategory = "passes";
-export const defaultRoot = path.join(
-  os.homedir(),
-  "coding",
-  "krn",
-  "second-opinion-review",
-);
+const roles = new Set(["research", "rewrite", "check"]);
+const passNamePattern = /^(\d{4}-\d{2}-\d{2})-(research|rewrite|check)-([a-z0-9]+(?:-[a-z0-9]+)*)-([A-Za-z0-9]{6})$/;
+const passContextKeys = new Set([
+  "schema_version",
+  "workflow",
+  "role",
+  "slug",
+  "pass_id",
+  "pass_directory",
+  "working_runs_root",
+  "artifact_root",
+  "resolution",
+]);
+const resolutionKeys = new Set([
+  "kind",
+  "context_root",
+  "repository_root",
+  "artifact_repository_root",
+  "config_path",
+  "configured_working_runs",
+]);
 
-function sanitizeNamespace(value) {
-  return String(value)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+function git(cwd, args) {
+  return spawnSync("git", args, { cwd, encoding: "utf8" });
 }
 
-function detectProjectNamespace(cwd) {
-  const result = spawnSync("git", ["rev-parse", "--show-toplevel"], {
-    cwd,
-    encoding: "utf8",
-  });
-  if (result.status !== 0 || !result.stdout.trim()) return fallbackNamespace;
-  const namespace = sanitizeNamespace(path.basename(result.stdout.trim()));
-  return namespace || fallbackNamespace;
+function exactKeys(value, expected, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  const observed = new Set(Object.keys(value));
+  const missing = [...expected].filter((key) => !observed.has(key));
+  const extra = [...observed].filter((key) => !expected.has(key));
+  if (missing.length || extra.length) {
+    const details = [
+      missing.length ? `missing ${missing.join(", ")}` : "",
+      extra.length ? `unsupported ${extra.join(", ")}` : "",
+    ].filter(Boolean).join("; ");
+    throw new Error(`${label} has invalid keys: ${details}`);
+  }
+  return value;
 }
 
-function detectRepositoryRoot(cwd) {
-  const result = spawnSync("git", ["rev-parse", "--show-toplevel"], {
-    cwd,
-    encoding: "utf8",
-  });
+function existingDirectory(candidate, label) {
+  let metadata;
+  try {
+    metadata = fs.statSync(candidate);
+  } catch {
+    throw new Error(`${label} must be an existing directory: ${candidate}`);
+  }
+  if (!metadata.isDirectory()) {
+    throw new Error(`${label} must be an existing directory: ${candidate}`);
+  }
+  return fs.realpathSync(candidate);
+}
+
+function declaredContextRoot({ cwd, env }) {
+  const declared = env.SECOND_OPINION_CONTEXT_ROOT;
+  if (declared !== undefined) {
+    if (typeof declared !== "string" || !path.isAbsolute(declared)) {
+      throw new Error("SECOND_OPINION_CONTEXT_ROOT must be an absolute existing directory");
+    }
+    return existingDirectory(declared, "SECOND_OPINION_CONTEXT_ROOT");
+  }
+  return existingDirectory(path.resolve(cwd), "current working directory");
+}
+
+function detectRepositoryRoot(contextRoot) {
+  const result = git(contextRoot, ["rev-parse", "--show-toplevel"]);
   if (result.status !== 0 || !result.stdout.trim()) return null;
   return fs.realpathSync(result.stdout.trim());
 }
 
-function assertInsideRepository(repositoryRoot, candidate) {
-  const relative = path.relative(repositoryRoot, candidate);
-  if (relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative))) {
-    return;
+function detectContainingRepository(candidate) {
+  let existing = candidate;
+  while (!fs.existsSync(existing)) {
+    const parent = path.dirname(existing);
+    if (parent === existing) return null;
+    existing = parent;
   }
-  throw new Error("working_runs must resolve inside the repository");
+  if (!fs.statSync(existing).isDirectory()) existing = path.dirname(existing);
+  const repositoryRoot = detectRepositoryRoot(fs.realpathSync(existing));
+  return repositoryRoot && isInside(repositoryRoot, candidate) ? repositoryRoot : null;
 }
 
-function assertExistingAncestorsInside(repositoryRoot, candidate) {
-  let cursor = candidate;
-  while (!fs.existsSync(cursor)) cursor = path.dirname(cursor);
-  assertInsideRepository(repositoryRoot, fs.realpathSync(cursor));
+function isInside(parent, candidate) {
+  const relative = path.relative(parent, candidate);
+  return relative === "" || (
+    !relative.startsWith(`..${path.sep}`) &&
+    relative !== ".." &&
+    !path.isAbsolute(relative)
+  );
 }
 
-function resolveArtifactLayout({ cwd = process.cwd() } = {}) {
-  const repositoryRoot = detectRepositoryRoot(cwd);
-  if (!repositoryRoot) return { root: defaultRoot, repositoryRoot: null };
+function resolveProspectivePath(candidate) {
+  let existing = candidate;
+  const suffix = [];
+  while (!fs.existsSync(existing)) {
+    const parent = path.dirname(existing);
+    if (parent === existing) break;
+    suffix.unshift(path.basename(existing));
+    existing = parent;
+  }
+  return path.join(fs.realpathSync(existing), ...suffix);
+}
 
+function assertInsideRepository(repositoryRoot, candidate) {
+  if (!isInside(repositoryRoot, candidate)) {
+    throw new Error("working_runs must resolve inside the repository");
+  }
+}
+
+function readConfiguredLayout(repositoryRoot) {
+  if (!repositoryRoot) return null;
   const configPath = path.join(repositoryRoot, "docs", "agents", "artifact-paths.json");
-  if (!fs.existsSync(configPath)) return { root: defaultRoot, repositoryRoot: null };
+  if (!fs.existsSync(configPath)) return null;
   const configStat = fs.lstatSync(configPath);
   if (!configStat.isFile() || configStat.isSymbolicLink()) {
     throw new Error("artifact-paths.json must be a real file");
+  }
+  const resolvedConfigPath = fs.realpathSync(configPath);
+  if (resolvedConfigPath !== configPath || !isInside(repositoryRoot, resolvedConfigPath)) {
+    throw new Error(
+      "artifact-paths.json must use its canonical repository path without symlinks",
+    );
   }
 
   let config;
@@ -81,68 +149,329 @@ function resolveArtifactLayout({ cwd = process.cwd() } = {}) {
     throw new Error("working_runs must be a non-empty repository-relative path");
   }
 
-  const configuredRoot = path.resolve(repositoryRoot, config.working_runs, "second-opinion-review");
-  assertInsideRepository(repositoryRoot, configuredRoot);
-  assertExistingAncestorsInside(repositoryRoot, configuredRoot);
-  return { root: configuredRoot, repositoryRoot };
+  const workingRunsRoot = resolveProspectivePath(
+    path.resolve(repositoryRoot, config.working_runs),
+  );
+  assertInsideRepository(repositoryRoot, workingRunsRoot);
+  return {
+    configPath,
+    configuredWorkingRuns: config.working_runs,
+    workingRunsRoot,
+  };
+}
+
+function explicitWorkingRuns(env) {
+  const declared = env.SECOND_OPINION_WORKING_RUNS;
+  if (typeof declared !== "string" || !path.isAbsolute(declared)) {
+    throw new Error(
+      "repository artifact config is unavailable; SECOND_OPINION_WORKING_RUNS must be an absolute path",
+    );
+  }
+  return resolveProspectivePath(path.resolve(declared));
+}
+
+function assertGitIgnored(repositoryRoot, candidate) {
+  if (!repositoryRoot || !isInside(repositoryRoot, candidate)) return;
+  const relative = path.relative(repositoryRoot, candidate);
+  const result = git(repositoryRoot, ["check-ignore", "-q", "--no-index", "--", relative]);
+  if (result.status !== 0) {
+    throw new Error(`second-opinion working artifacts must be ignored by Git: ${candidate}`);
+  }
+}
+
+export function resolveArtifactLayout({
+  cwd = process.cwd(),
+  env = process.env,
+} = {}) {
+  const contextRoot = declaredContextRoot({ cwd, env });
+  const repositoryRoot = detectRepositoryRoot(contextRoot);
+  const configured = readConfiguredLayout(repositoryRoot);
+  const resolutionKind = configured ? "repository-config" : "explicit-working-runs";
+  const workingRunsRoot = configured?.workingRunsRoot ?? explicitWorkingRuns(env);
+  const artifactRoot = path.join(workingRunsRoot, workflow);
+  const artifactRepositoryRoot = detectContainingRepository(artifactRoot);
+
+  assertGitIgnored(artifactRepositoryRoot, artifactRoot);
+  return {
+    resolutionKind,
+    contextRoot,
+    repositoryRoot,
+    artifactRepositoryRoot,
+    configPath: configured?.configPath ?? null,
+    configuredWorkingRuns: configured?.configuredWorkingRuns ?? null,
+    workingRunsRoot,
+    artifactRoot,
+  };
 }
 
 export function resolveArtifactRoot(options = {}) {
-  return resolveArtifactLayout(options).root;
+  return resolveArtifactLayout(options).artifactRoot;
 }
 
-function privateDirectory(target, label) {
-  fs.mkdirSync(target, { recursive: true, mode: 0o700 });
+function ensureRealDirectory(target, label, { privateMode = false } = {}) {
+  fs.mkdirSync(target, { recursive: true, mode: privateMode ? 0o700 : 0o755 });
   const stat = fs.lstatSync(target);
   if (!stat.isDirectory() || stat.isSymbolicLink()) {
     throw new Error(`${label} must be a real directory, not a symlink`);
   }
+  if (privateMode) fs.chmodSync(target, 0o700);
+  return fs.realpathSync(target);
 }
 
-const isRealDir = (entry) => entry.isDirectory() && !entry.isSymbolicLink();
+function requireRole(role, label = "role") {
+  if (!roles.has(role)) {
+    throw new Error(`${label} must be research, rewrite, or check`);
+  }
+  return role;
+}
+
+function writePassContext(passDirectory, layout, { slug, role }) {
+  const value = {
+    schema_version: 1,
+    workflow,
+    role,
+    slug,
+    pass_id: path.basename(passDirectory),
+    pass_directory: passDirectory,
+    working_runs_root: layout.workingRunsRoot,
+    artifact_root: layout.artifactRoot,
+    resolution: {
+      kind: layout.resolutionKind,
+      context_root: layout.contextRoot,
+      repository_root: layout.repositoryRoot,
+      artifact_repository_root: layout.artifactRepositoryRoot,
+      config_path: layout.configPath,
+      configured_working_runs: layout.configuredWorkingRuns,
+    },
+  };
+  fs.writeFileSync(
+    path.join(passDirectory, contextFileName),
+    `${JSON.stringify(value, null, 2)}\n`,
+    { encoding: "utf8", mode: 0o600, flag: "wx" },
+  );
+}
 
 export function prepareArtifactDirectory({
   slug,
-  category = defaultCategory,
-  project,
+  role,
   cwd = process.cwd(),
-  root,
+  env = process.env,
   now = new Date(),
 } = {}) {
   if (!slugPattern.test(slug ?? "")) {
     throw new Error("slug must use lowercase letters, digits, and single hyphens");
   }
-  if (!slugPattern.test(category ?? "")) {
-    throw new Error("category must use lowercase letters, digits, and single hyphens");
+  requireRole(role);
+
+  const layout = resolveArtifactLayout({ cwd, env });
+  ensureRealDirectory(layout.workingRunsRoot, "working runs root");
+  const artifactRoot = ensureRealDirectory(
+    layout.artifactRoot,
+    "artifact root",
+    { privateMode: true },
+  );
+  if (artifactRoot !== layout.artifactRoot) {
+    throw new Error("artifact root changed while it was being prepared");
   }
-
-  const layout = root ? { root, repositoryRoot: null } : resolveArtifactLayout({ cwd });
-  const artifactRoot = layout.root;
-  privateDirectory(artifactRoot, "artifact root");
-
-  const namespace = project ? sanitizeNamespace(project) : detectProjectNamespace(cwd);
-  if (!slugPattern.test(namespace)) {
-    throw new Error("project must sanitize to lowercase letters, digits, and single hyphens");
-  }
-  if (layout.repositoryRoot) {
-    const date = now.toISOString().slice(0, 10);
-    const passDirectory = fs.mkdtempSync(
-      path.join(artifactRoot, `${date}-${category}-${slug}-`),
-    );
-    fs.chmodSync(passDirectory, 0o700);
-    return passDirectory;
-  }
-
-  const namespaceDirectory = path.join(artifactRoot, namespace);
-  privateDirectory(namespaceDirectory, "project namespace directory");
-
-  const categoryDirectory = path.join(namespaceDirectory, category);
-  privateDirectory(categoryDirectory, "category directory");
+  assertGitIgnored(layout.artifactRepositoryRoot, artifactRoot);
 
   const date = now.toISOString().slice(0, 10);
-  const passDirectory = fs.mkdtempSync(path.join(categoryDirectory, `${date}-${slug}-`));
+  const passDirectory = fs.mkdtempSync(
+    path.join(artifactRoot, `${date}-${role}-${slug}-`),
+  );
   fs.chmodSync(passDirectory, 0o700);
-  return passDirectory;
+  try {
+    writePassContext(passDirectory, layout, { slug, role });
+    verifyPassDirectory({ passDirectory, expectedRole: role, env });
+    return passDirectory;
+  } catch (error) {
+    fs.rmSync(passDirectory, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+function readPassContext(passDirectory) {
+  const contextPath = path.join(passDirectory, contextFileName);
+  let metadata;
+  try {
+    metadata = fs.lstatSync(contextPath);
+  } catch {
+    throw new Error(`pass context is missing: ${contextPath}`);
+  }
+  if (!metadata.isFile() || metadata.isSymbolicLink()) {
+    throw new Error("pass-context.json must be a real file");
+  }
+  if ((metadata.mode & 0o777) !== 0o600) {
+    throw new Error("pass-context.json must use mode 0600");
+  }
+  let value;
+  try {
+    value = JSON.parse(fs.readFileSync(contextPath, "utf8"));
+  } catch {
+    throw new Error("pass-context.json must contain valid JSON");
+  }
+  exactKeys(value, passContextKeys, "pass context");
+  exactKeys(value.resolution, resolutionKeys, "pass context resolution");
+  return value;
+}
+
+function assertOptionalEnvironmentContext(value, env) {
+  if (env.SECOND_OPINION_CONTEXT_ROOT !== undefined) {
+    const currentContext = declaredContextRoot({
+      cwd: value.resolution.context_root,
+      env,
+    });
+    if (value.resolution.repository_root) {
+      if (detectRepositoryRoot(currentContext) !== value.resolution.repository_root) {
+        throw new Error("SECOND_OPINION_CONTEXT_ROOT resolves to a different repository");
+      }
+    } else if (currentContext !== value.resolution.context_root) {
+      throw new Error("SECOND_OPINION_CONTEXT_ROOT differs from the pass context");
+    }
+  }
+  if (
+    value.resolution.kind === "explicit-working-runs" &&
+    env.SECOND_OPINION_WORKING_RUNS !== undefined &&
+    explicitWorkingRuns(env) !== value.working_runs_root
+  ) {
+    throw new Error("SECOND_OPINION_WORKING_RUNS differs from the pass context");
+  }
+}
+
+export function verifyPassDirectory({
+  passDirectory,
+  expectedRole,
+  env = process.env,
+} = {}) {
+  if (typeof passDirectory !== "string" || !path.isAbsolute(passDirectory)) {
+    throw new Error("pass directory must be an absolute path");
+  }
+  if (expectedRole !== undefined) requireRole(expectedRole, "expected role");
+
+  let passStat;
+  try {
+    passStat = fs.lstatSync(passDirectory);
+  } catch {
+    throw new Error(`pass directory does not exist: ${passDirectory}`);
+  }
+  if (!passStat.isDirectory() || passStat.isSymbolicLink()) {
+    throw new Error("pass directory must be a real directory, not a symlink");
+  }
+  if ((passStat.mode & 0o777) !== 0o700) {
+    throw new Error("pass directory must use mode 0700");
+  }
+  const resolvedPass = fs.realpathSync(passDirectory);
+  if (path.resolve(passDirectory) !== resolvedPass) {
+    throw new Error("pass directory must use its canonical absolute path");
+  }
+
+  const match = path.basename(resolvedPass).match(passNamePattern);
+  if (!match) {
+    throw new Error("pass directory name must match date-role-slug-suffix");
+  }
+  const [, , nameRole, nameSlug] = match;
+  if (expectedRole !== undefined && nameRole !== expectedRole) {
+    throw new Error(`pass role ${nameRole} does not match expected role ${expectedRole}`);
+  }
+
+  const artifactRoot = path.dirname(resolvedPass);
+  const workingRunsRoot = path.dirname(artifactRoot);
+  if (path.basename(artifactRoot) !== workflow) {
+    throw new Error(`pass directory must be a direct child of ${workflow}`);
+  }
+  const artifactStat = fs.lstatSync(artifactRoot);
+  if (!artifactStat.isDirectory() || artifactStat.isSymbolicLink()) {
+    throw new Error("artifact root must be a real directory, not a symlink");
+  }
+  if ((artifactStat.mode & 0o777) !== 0o700) {
+    throw new Error("artifact root must use mode 0700");
+  }
+  const workingStat = fs.lstatSync(workingRunsRoot);
+  if (!workingStat.isDirectory() || workingStat.isSymbolicLink()) {
+    throw new Error("working runs root must be a real directory, not a symlink");
+  }
+
+  const value = readPassContext(resolvedPass);
+  if (value.schema_version !== 1 || value.workflow !== workflow) {
+    throw new Error("pass context schema or workflow is unsupported");
+  }
+  requireRole(value.role, "pass context role");
+  if (!slugPattern.test(value.slug ?? "")) {
+    throw new Error("pass context slug is invalid");
+  }
+  if (
+    value.role !== nameRole ||
+    value.slug !== nameSlug ||
+    value.pass_id !== path.basename(resolvedPass) ||
+    value.pass_directory !== resolvedPass ||
+    value.artifact_root !== artifactRoot ||
+    value.working_runs_root !== workingRunsRoot
+  ) {
+    throw new Error("pass context does not match its directory layout");
+  }
+  if (expectedRole !== undefined && value.role !== expectedRole) {
+    throw new Error(`pass role ${value.role} does not match expected role ${expectedRole}`);
+  }
+
+  const resolution = value.resolution;
+  if (!new Set(["repository-config", "explicit-working-runs"]).has(resolution.kind)) {
+    throw new Error("pass context resolution kind is invalid");
+  }
+  if (typeof resolution.context_root !== "string" || !path.isAbsolute(resolution.context_root)) {
+    throw new Error("pass context context_root must be absolute");
+  }
+  const currentContextRoot = existingDirectory(
+    resolution.context_root,
+    "pass context context_root",
+  );
+  if (currentContextRoot !== resolution.context_root) {
+    throw new Error("pass context context_root is not canonical");
+  }
+  const currentRepositoryRoot = detectRepositoryRoot(currentContextRoot);
+  if (currentRepositoryRoot !== resolution.repository_root) {
+    throw new Error("pass context repository identity changed");
+  }
+  const currentArtifactRepositoryRoot = detectContainingRepository(artifactRoot);
+  if (currentArtifactRepositoryRoot !== resolution.artifact_repository_root) {
+    throw new Error("pass context artifact repository identity changed");
+  }
+
+  if (resolution.kind === "repository-config") {
+    if (
+      !resolution.repository_root ||
+      typeof resolution.config_path !== "string" ||
+      typeof resolution.configured_working_runs !== "string"
+    ) {
+      throw new Error("configured pass context is incomplete");
+    }
+    const configured = readConfiguredLayout(resolution.repository_root);
+    if (
+      !configured ||
+      configured.configPath !== resolution.config_path ||
+      configured.configuredWorkingRuns !== resolution.configured_working_runs ||
+      configured.workingRunsRoot !== workingRunsRoot
+    ) {
+      throw new Error("current repository artifact config differs from the pass context");
+    }
+  } else {
+    if (resolution.config_path !== null || resolution.configured_working_runs !== null) {
+      throw new Error("explicit working-runs context must not claim repository config");
+    }
+    if (resolution.repository_root && readConfiguredLayout(resolution.repository_root)) {
+      throw new Error("repository artifact config now supersedes the explicit pass context");
+    }
+  }
+
+  assertOptionalEnvironmentContext(value, env);
+  assertGitIgnored(resolution.artifact_repository_root, artifactRoot);
+  return {
+    passDirectory: resolvedPass,
+    role: value.role,
+    slug: value.slug,
+    workingRunsRoot,
+    artifactRoot,
+    context: value,
+  };
 }
 
 function readJobState(passDirectory) {
@@ -168,79 +497,73 @@ function readJobState(passDirectory) {
   return state;
 }
 
-export function listPasses({ root, cwd = process.cwd() } = {}) {
-  const layout = root ? { root, repositoryRoot: null } : resolveArtifactLayout({ cwd });
-  root = layout.root;
-  if (!fs.existsSync(root)) return [];
+export function listPasses({
+  cwd = process.cwd(),
+  env = process.env,
+} = {}) {
+  const { artifactRoot } = resolveArtifactLayout({ cwd, env });
+  if (!fs.existsSync(artifactRoot)) return [];
   const passes = [];
-  if (layout.repositoryRoot) {
-    const namespace = sanitizeNamespace(path.basename(layout.repositoryRoot));
-    for (const pass of fs.readdirSync(root, { withFileTypes: true })) {
-      if (!isRealDir(pass)) continue;
-      const match = pass.name.match(/^\d{4}-\d{2}-\d{2}-(research|rewrite|check|passes)-/);
-      const passPath = path.join(root, pass.name);
+  for (const entry of fs.readdirSync(artifactRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
+    const passDirectory = path.join(artifactRoot, entry.name);
+    try {
+      const verified = verifyPassDirectory({ passDirectory, env });
       passes.push({
-        namespace,
-        category: match?.[1] ?? "unknown",
-        pass: pass.name,
-        path: passPath,
-        state: readJobState(passPath) ?? "unknown",
+        role: verified.role,
+        pass: entry.name,
+        path: passDirectory,
+        state: readJobState(passDirectory) ?? "unknown",
+      });
+    } catch (error) {
+      passes.push({
+        role: "invalid",
+        pass: entry.name,
+        path: passDirectory,
+        state: `invalid: ${error.message}`,
       });
     }
-    passes.sort((a, b) => a.pass.localeCompare(b.pass));
-    return passes;
   }
-  for (const namespace of fs.readdirSync(root, { withFileTypes: true })) {
-    if (!isRealDir(namespace)) continue;
-    const namespacePath = path.join(root, namespace.name);
-    for (const category of fs.readdirSync(namespacePath, { withFileTypes: true })) {
-      if (!isRealDir(category)) continue;
-      const categoryPath = path.join(namespacePath, category.name);
-      for (const pass of fs.readdirSync(categoryPath, { withFileTypes: true })) {
-        if (!isRealDir(pass)) continue;
-        const passDirectory = path.join(categoryPath, pass.name);
-        passes.push({
-          namespace: namespace.name,
-          category: category.name,
-          pass: pass.name,
-          path: passDirectory,
-          state: readJobState(passDirectory) ?? "unknown",
-        });
-      }
-    }
-  }
-  passes.sort((a, b) =>
-    `${a.namespace}\0${a.category}\0${a.pass}`.localeCompare(
-      `${b.namespace}\0${b.category}\0${b.pass}`,
-    ),
-  );
+  passes.sort((a, b) => a.pass.localeCompare(b.pass));
   return passes;
+}
+
+function usage() {
+  return [
+    "usage: prepare-artifacts.mjs <lowercase-pass-slug> <research|rewrite|check>",
+    "   or: prepare-artifacts.mjs list",
+    "   or: prepare-artifacts.mjs verify-pass <absolute-pass-dir> [role]",
+  ].join("\n");
 }
 
 function main(argv) {
   if (argv[0] === "list") {
-    if (argv.length !== 1) {
-      throw new Error("usage: prepare-artifacts.mjs list");
-    }
+    if (argv.length !== 1) throw new Error(usage());
     const passes = listPasses();
     if (!passes.length) {
       process.stdout.write("(no passes found under the artifact root)\n");
       return;
     }
-    process.stdout.write("project\tcategory\tpass\tstate\n");
+    process.stdout.write("role\tpass\tstate\n");
     for (const pass of passes) {
-      process.stdout.write(`${pass.namespace}\t${pass.category}\t${pass.pass}\t${pass.state}\n`);
+      process.stdout.write(`${pass.role}\t${pass.pass}\t${pass.state}\n`);
     }
     return;
   }
 
-  if (argv.length < 1 || argv.length > 2) {
-    throw new Error(
-      "usage: prepare-artifacts.mjs <lowercase-pass-slug> [category]\n   or: prepare-artifacts.mjs list",
-    );
+  if (argv[0] === "verify-pass") {
+    if (argv.length < 2 || argv.length > 3) throw new Error(usage());
+    const verified = verifyPassDirectory({
+      passDirectory: argv[1],
+      expectedRole: argv[2],
+    });
+    process.stdout.write(`valid second-opinion pass: ${verified.passDirectory}\n`);
+    return;
   }
+
+  if (argv.length !== 2) throw new Error(usage());
   process.stdout.write(
-    `${prepareArtifactDirectory({ slug: argv[0], category: argv[1] ?? defaultCategory })}\n`,
+    `${prepareArtifactDirectory({ slug: argv[0], role: argv[1] })}\n`,
   );
 }
 

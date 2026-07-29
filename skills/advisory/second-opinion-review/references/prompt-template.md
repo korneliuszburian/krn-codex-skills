@@ -10,7 +10,8 @@ matching the supplied JSON schema.
 ## Launch
 
 Fill the contract below, choose one mechanical evidence identity, then run the
-tool-free structured reviewer. The runner binds output to
+tool-free structured reviewer. The runner verifies both files against the
+pass's `pass-context.json` and binds output to
 [review.schema.json](review.schema.json); change that transport contract
 deliberately, never ad hoc in a prompt. It uses the current `opus` alias unless
 `SECOND_OPINION_MODEL` names another explicit alias or pinned identifier. It
@@ -49,24 +50,31 @@ bash ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
   /absolute/printed/pass-dir/checker.review.json
 ```
 
-Keep the output outside the evidence root. The runner checks identity before
-the Claude window or model invocation, fingerprints dirty Git content, and
-captures the prompt hash. Its private preflight manifest binds every cited
-regular file by mode, size, and full content hash; citations must be UTF-8 text
-no larger than 5 MiB and cannot traverse symlinks. Filesystem-root evidence and
-Git roots containing submodules are rejected rather than fingerprinted
-partially. Temporary transport state and Claude's tool-free working directory
-are placed under a private system temp root proven outside the evidence root.
-It rechecks the prompt, manifest, and fixed point before accepting output. A
-later validation also fails if the prompt, repository, or artifact has changed.
-The output path must not exist before launch. Give every pass its own artifact
-directory so a rejected attempt cannot be confused with an earlier valid
-result; never rerun into the same output path.
+The runner accepts output only in the verified pass. For a configured
+same-repository review, that is the repository's ignored `working_runs` tree;
+all other writes inside the fixed evidence root remain invalid. The runner
+checks identity before the Claude window or model invocation, fingerprints
+dirty Git content, and captures the prompt hash. Its private preflight manifest
+binds every cited regular file by mode, size, and full content hash; citations
+must be UTF-8 text no larger than 5 MiB and cannot traverse symlinks.
+Filesystem-root evidence and Git roots containing submodules are rejected
+rather than fingerprinted partially. Temporary transport state and Claude's
+tool-free working directory stay under a private system temp root outside the
+evidence root. The runner rechecks the prompt, manifest, and fixed point before
+accepting output. A later validation also fails if the prompt, repository, or
+artifact changed. The output and `jobs/checker.job.json` paths must not exist
+before launch; a failed pass is terminal and is never rerun in place.
 
 Use an uncapped checker only with explicit operator authority by setting
 `SECOND_OPINION_MAX_BUDGET_USD=unlimited`; otherwise keep the runner's bounded
-default. Validate the result from the same evidence root before using any
-finding:
+default. The runner rejects an oversized citation. Its retry diagnostic tells
+the checker to split the claim into separately identified findings whose
+individual evidence ranges each contain at most 20 inclusive lines; it never
+clips evidence. It retries only retryable output-contract failures, once by
+default and at most three times when
+`SECOND_OPINION_SCHEMA_RETRIES` is set explicitly. Exhaustion atomically marks
+the checker job failed with the exact JSON pointer and emits no review result.
+Validate the result from the same evidence root before using any finding:
 
 ```bash
 python3 ~/.agents/skills/second-opinion-review/scripts/validate-review.py \
@@ -105,5 +113,8 @@ python3 ~/.agents/skills/second-opinion-review/scripts/validate-review.py \
 </checker-contract>
 
 Every finding must cite one current repository-relative path and at most 20
-lines. Put unsupported factual claims in `evidence_gaps`; reserve
+inclusive lines (`line_end - line_start <= 19`). Select the narrowest supporting
+excerpt. Split a claim that needs more than one bounded excerpt into multiple
+findings with unique ids; never truncate the cited range. Put unsupported
+factual claims in `evidence_gaps`; reserve
 `human_decisions` for product, budget, or irreversible trade-offs.

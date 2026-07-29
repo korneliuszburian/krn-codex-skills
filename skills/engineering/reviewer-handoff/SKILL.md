@@ -17,7 +17,7 @@ lifecycle and publication.
 Job: compile one bounded reviewer packet and prompt
 Inputs: fixed base/head, explicit changed-path allowlist, filled brief, proof results
 Observable output: one portable Markdown packet containing metadata, scope ledger, spec, proof, boundaries, and diff
-Completion criterion: fixed-point identity is reproducible, actual changed paths equal the allowlist, diff check passes, and output exists outside the repository
+Completion criterion: fixed-point identity is reproducible, actual changed paths equal the allowlist, diff check passes, and output exists outside fixed evidence inputs or in the initiating workflow's verified ignored pass
 Must not own: implementation, approval, findings, merge, push, runtime execution, or secret scanning
 </handoff-contract>
 
@@ -59,12 +59,18 @@ authorized external reviewer. A request to judge the change belongs to
      --head HEAD_REF \
      --path path/to/changed-file \
      --brief /private/pass-dir/reviewer-brief.md \
+     --working-pass /private/pass-dir \
      --output /private/pass-dir/reviewer-packet.md
    ```
 
    Repeat `--path` for every allowed path. The compiler fails closed when the
    actual commit diff contains a path outside the allowlist, the diff check
    fails, a ref is invalid, the output already exists, or the diff is too large.
+   Omit `--working-pass` only when the output is outside the repository. For a
+   repository-local output, supply the absolute initiating pass: the compiler
+   resolves `docs/agents/artifact-paths.json` and requires the pass to remain
+   beneath its configured `working_runs` role. The output must stay inside that
+   non-symlinked, private, Git-ignored pass directory.
 
    **Done when:** the compiler reports the exact allowlist, fixed-point
    identity, diff check, and output path without reading outside the brief and
@@ -88,7 +94,8 @@ authorized external reviewer. A request to judge the change belongs to
    retained packet, brief, and reviewer result. Retain them while the issue or
    follow-up depends on the evidence; then archive the minimal required record
    or delete the pass directory explicitly. The reviewer-handoff compiler does
-   not decide retention and never writes into the repository.
+   not decide retention and writes inside a repository only when the initiating
+   workflow supplies its configured, ignored working pass.
 
    **Done when:** every retained artifact has an owner and cleanup trigger, and
    publication/review status is reported separately from packet generation.

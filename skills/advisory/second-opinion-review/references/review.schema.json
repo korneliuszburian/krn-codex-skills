@@ -23,6 +23,7 @@
     },
     "findings": {
       "type": "array",
+      "description": "Evidence ranges are inclusive and each finding must cite at most 20 lines.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -55,10 +56,12 @@
           },
           "line_start": {
             "type": "integer",
+            "description": "First 1-based evidence line; together with line_end the inclusive range must contain at most 20 lines.",
             "minimum": 1
           },
           "line_end": {
             "type": "integer",
+            "description": "Last 1-based evidence line; line_end - line_start + 1 must be less than or equal to 20.",
             "minimum": 1
           },
           "claim": {
