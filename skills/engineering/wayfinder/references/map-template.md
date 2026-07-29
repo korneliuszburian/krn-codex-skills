@@ -70,8 +70,10 @@ Every ticket is **HITL** (worked with a human who speaks for themselves) or **AF
 never stands in for the human's side of it.
 
 - **research** (AFK) — surface a fact a decision waits on by reading docs, third-party
-  APIs, or local resources. Resolve with a `$second-opinion-review` research campaign;
-  link its findings from the ticket, never paste them in.
+  APIs, or local resources. Resolve with `$source-to-decision`; when the ticket
+  explicitly needs delegated corpus reading, link a validated
+  `$second-opinion-review` research ledger as advisory input, never paste it in.
+  Close the ticket only after recording `adopt`, `reject`, `lab-test`, or `defer`.
 - **prototype** (HITL) — raise fidelity with a cheap, rough artifact to react to — an
   outline, a stub, or logic/UI code from a throwaway prototype. Use when "how should it
   look" or "how should it behave" is the key question.

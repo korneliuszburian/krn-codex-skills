@@ -7,59 +7,110 @@ import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
-  defaultRoot,
   listPasses,
   prepareArtifactDirectory,
   resolveArtifactRoot,
+  verifyPassDirectory,
 } from "./prepare-artifacts.mjs";
 
 const scriptPath = fileURLToPath(new URL("./prepare-artifacts.mjs", import.meta.url));
 const skillRoot = path.dirname(path.dirname(scriptPath));
 
-function run(command, args, cwd) {
-  const result = spawnSync(command, args, { cwd, encoding: "utf8" });
+function run(command, args, cwd, env = process.env) {
+  const result = spawnSync(command, args, { cwd, env, encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   return result.stdout.trim();
 }
 
-test("the fallback artifact root is fixed in the skill, not derived from env", () => {
-  assert.equal(
-    defaultRoot,
-    path.join(os.homedir(), "coding", "krn", "second-opinion-review"),
+function isolatedEnv(values = {}) {
+  const env = { ...process.env, ...values };
+  delete env.SECOND_OPINION_CONTEXT_ROOT;
+  delete env.SECOND_OPINION_WORKING_RUNS;
+  return { ...env, ...values };
+}
+
+function initializeRepository(root, { ignoredRuns = true } = {}) {
+  run("git", ["init", "-q"], root);
+  run("git", ["config", "user.name", "artifact-test"], root);
+  run("git", ["config", "user.email", "artifact@example.invalid"], root);
+  const agents = path.join(root, "docs", "agents");
+  const runs = path.join(agents, "runs");
+  fs.mkdirSync(runs, { recursive: true });
+  fs.writeFileSync(
+    path.join(agents, "artifact-paths.json"),
+    `${JSON.stringify({ schema_version: 1, working_runs: "docs/agents/runs" })}\n`,
   );
-});
+  if (ignoredRuns) fs.writeFileSync(path.join(runs, ".gitignore"), "*\n!.gitignore\n");
+  run("git", ["add", "docs/agents/artifact-paths.json"], root);
+  if (ignoredRuns) run("git", ["add", "docs/agents/runs/.gitignore"], root);
+  run("git", ["commit", "-q", "-m", "configure artifacts"], root);
+}
 
-test("resolves configured working runs inside the current repository", () => {
-  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-resolver-test-"));
+test("explicit context resolves a configured ignored pass from an unrelated cwd without changing Git status", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-context-test-"));
+  const repository = path.join(sandbox, "repository");
+  const unrelated = path.join(sandbox, "unrelated");
   try {
-    run("git", ["init", "-q"], sandbox);
-    fs.mkdirSync(path.join(sandbox, "docs", "agents"), { recursive: true });
-    fs.writeFileSync(
-      path.join(sandbox, "docs", "agents", "artifact-paths.json"),
-      `${JSON.stringify({ schema_version: 1, working_runs: "docs/agents/runs" })}\n`,
+    fs.mkdirSync(repository);
+    fs.mkdirSync(unrelated);
+    initializeRepository(repository);
+    const env = isolatedEnv({ SECOND_OPINION_CONTEXT_ROOT: repository });
+    const before = run("git", ["status", "--porcelain"], repository);
+    const result = spawnSync(
+      process.execPath,
+      [scriptPath, "configured", "check"],
+      { cwd: unrelated, env, encoding: "utf8" },
     );
+    assert.equal(result.status, 0, result.stderr);
+    const pass = result.stdout.trim();
+    assert.equal(
+      path.dirname(pass),
+      path.join(repository, "docs", "agents", "runs", "second-opinion-review"),
+    );
+    assert.match(path.basename(pass), /^\d{4}-\d{2}-\d{2}-check-configured-[A-Za-z0-9]{6}$/);
+    assert.equal(fs.statSync(pass).mode & 0o777, 0o700);
+    assert.equal(fs.statSync(path.join(pass, "pass-context.json")).mode & 0o777, 0o600);
+    assert.equal(run("git", ["status", "--porcelain"], repository), before);
 
-    const expected = path.join(sandbox, "docs", "agents", "runs", "second-opinion-review");
-    assert.equal(resolveArtifactRoot({ cwd: sandbox }), expected);
-    const pass = prepareArtifactDirectory({ slug: "configured", cwd: sandbox });
-    assert.equal(path.dirname(pass), expected);
-    assert.match(path.basename(pass), /^\d{4}-\d{2}-\d{2}-passes-configured-/);
+    const verified = verifyPassDirectory({
+      passDirectory: pass,
+      expectedRole: "check",
+      env,
+    });
+    assert.equal(verified.context.resolution.kind, "repository-config");
+    const cliVerification = spawnSync(
+      process.execPath,
+      [scriptPath, "verify-pass", pass, "check"],
+      { cwd: unrelated, env, encoding: "utf8" },
+    );
+    assert.equal(cliVerification.status, 0, cliVerification.stderr);
+    assert.equal(cliVerification.stdout, `valid second-opinion pass: ${pass}\n`);
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
   }
 });
 
-test("falls back outside repositories and rejects unsafe configured roots", () => {
-  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-resolver-reject-test-"));
+test("missing repository config requires an explicit absolute working-runs root", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-required-root-test-"));
   try {
-    assert.equal(resolveArtifactRoot({ cwd: sandbox }), defaultRoot);
-    run("git", ["init", "-q"], sandbox);
-    fs.mkdirSync(path.join(sandbox, "docs", "agents"), { recursive: true });
-    const configPath = path.join(sandbox, "docs", "agents", "artifact-paths.json");
-    fs.writeFileSync(configPath, `${JSON.stringify({ schema_version: 1, working_runs: "../escape" })}\n`);
-    assert.throws(() => resolveArtifactRoot({ cwd: sandbox }), /inside the repository/);
-    fs.writeFileSync(configPath, `${JSON.stringify({ schema_version: 1, working_runs: "/tmp/escape" })}\n`);
-    assert.throws(() => resolveArtifactRoot({ cwd: sandbox }), /repository-relative/);
+    assert.throws(
+      () => resolveArtifactRoot({ cwd: sandbox, env: isolatedEnv() }),
+      /SECOND_OPINION_WORKING_RUNS must be an absolute path/,
+    );
+    assert.throws(
+      () => resolveArtifactRoot({
+        cwd: sandbox,
+        env: isolatedEnv({ SECOND_OPINION_WORKING_RUNS: "relative/runs" }),
+      }),
+      /must be an absolute path/,
+    );
+    assert.throws(
+      () => resolveArtifactRoot({
+        cwd: sandbox,
+        env: isolatedEnv({ SECOND_OPINION_CONTEXT_ROOT: "relative/context" }),
+      }),
+      /CONTEXT_ROOT must be an absolute/,
+    );
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
   }
@@ -83,105 +134,172 @@ test("rejects a configured working root that crosses a repository symlink", () =
   }
 });
 
-test("creates one unique private pass directory below the given root", () => {
-  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-artifacts-test-"));
-  const root = path.join(sandbox, "owned-root");
+test("rejects artifact configuration reached through a symlinked parent", () => {
+  const repository = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-config-parent-test-"));
+  const outsideAgents = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-config-parent-outside-"));
   try {
-    const first = prepareArtifactDirectory({ slug: "matt-skills-audit", project: "ns", root });
-    const second = prepareArtifactDirectory({ slug: "matt-skills-audit", project: "ns", root });
-
-    assert.equal(path.dirname(first), path.join(root, "ns", "passes"));
-    assert.equal(path.dirname(path.dirname(first)), path.join(root, "ns"));
-    assert.equal(path.dirname(path.dirname(path.dirname(first))), root);
-    assert.notEqual(first, second);
-    assert.match(path.basename(first), /^\d{4}-\d{2}-\d{2}-matt-skills-audit-/);
-    assert.equal(fs.statSync(first).mode & 0o777, 0o700);
-    assert.equal(fs.statSync(path.join(root, "ns")).mode & 0o777, 0o700);
-  } finally {
-    fs.rmSync(sandbox, { recursive: true, force: true });
-  }
-});
-
-test("namespaces by cwd git repository basename and falls back to adhoc", () => {
-  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-ns-test-"));
-  const root = path.join(sandbox, "root");
-  const repo = path.join(sandbox, "My_Awesome_Project");
-  try {
-    fs.mkdirSync(repo);
-    run("git", ["init", "-q"], repo);
-    run("git", ["config", "user.name", "ns-test"], repo);
-    run("git", ["config", "user.email", "ns@example.invalid"], repo);
-    run("git", ["commit", "-q", "--allow-empty", "-m", "init"], repo);
-
-    const repoPass = prepareArtifactDirectory({ slug: "shard", cwd: repo, root });
-    assert.equal(
-      path.basename(path.dirname(path.dirname(repoPass))),
-      "my-awesome-project",
-      "uppercase and underscores are sanitized to kebab from the repo basename",
+    run("git", ["init", "-q"], repository);
+    fs.mkdirSync(path.join(repository, "docs"));
+    fs.writeFileSync(
+      path.join(outsideAgents, "artifact-paths.json"),
+      `${JSON.stringify({ schema_version: 1, working_runs: "reviews" })}\n`,
     );
+    fs.symlinkSync(outsideAgents, path.join(repository, "docs", "agents"));
 
-    const adhocPass = prepareArtifactDirectory({ slug: "shard", cwd: sandbox, root });
-    assert.equal(
-      path.basename(path.dirname(path.dirname(adhocPass))),
-      "adhoc",
-      "a cwd with no enclosing git repository falls back to the adhoc namespace",
-    );
-  } finally {
-    fs.rmSync(sandbox, { recursive: true, force: true });
-  }
-});
-
-test("routes the pass into the explicit category directory", () => {
-  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-category-test-"));
-  const root = path.join(sandbox, "root");
-  try {
-    const researchPass = prepareArtifactDirectory({
-      slug: "shard",
-      category: "research",
-      project: "proj-x",
-      root,
-    });
-    const checkPass = prepareArtifactDirectory({
-      slug: "claim",
-      category: "check",
-      project: "proj-x",
-      root,
-    });
-    assert.equal(path.basename(path.dirname(researchPass)), "research");
-    assert.equal(path.basename(path.dirname(checkPass)), "check");
-    assert.equal(path.dirname(path.dirname(researchPass)), path.join(root, "proj-x"));
-  } finally {
-    fs.rmSync(sandbox, { recursive: true, force: true });
-  }
-});
-
-test("rejects bad slug, category, and project", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-reject-test-"));
-  try {
     assert.throws(
-      () => prepareArtifactDirectory({ slug: "Bad Slug", root }),
+      () => resolveArtifactRoot({ cwd: repository, env: isolatedEnv() }),
+      /canonical repository path without symlinks/,
+    );
+  } finally {
+    fs.rmSync(repository, { recursive: true, force: true });
+    fs.rmSync(outsideAgents, { recursive: true, force: true });
+  }
+});
+
+test("an explicit external working-runs root uses the same flat role layout", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-artifacts-test-"));
+  const context = path.join(sandbox, "context");
+  const workingRuns = path.join(sandbox, "working-runs");
+  try {
+    fs.mkdirSync(context);
+    const env = isolatedEnv({ SECOND_OPINION_WORKING_RUNS: workingRuns });
+    const first = prepareArtifactDirectory({
+      slug: "matt-skills-audit",
+      role: "research",
+      cwd: context,
+      env,
+      now: new Date("2026-07-29T12:00:00Z"),
+    });
+    const second = prepareArtifactDirectory({
+      slug: "matt-skills-audit",
+      role: "research",
+      cwd: context,
+      env,
+      now: new Date("2026-07-29T12:00:00Z"),
+    });
+
+    assert.equal(path.dirname(first), path.join(workingRuns, "second-opinion-review"));
+    assert.notEqual(first, second);
+    assert.match(
+      path.basename(first),
+      /^2026-07-29-research-matt-skills-audit-[A-Za-z0-9]{6}$/,
+    );
+    assert.equal(fs.statSync(first).mode & 0o777, 0o700);
+    assert.equal(
+      fs.statSync(path.join(workingRuns, "second-opinion-review")).mode & 0o777,
+      0o700,
+    );
+    assert.equal(
+      verifyPassDirectory({ passDirectory: first, expectedRole: "research", env }).role,
+      "research",
+    );
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("an explicit working root inside another repository must be Git-ignored", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-owner-test-"));
+  const context = path.join(sandbox, "context");
+  const repository = path.join(sandbox, "repository");
+  const workingRuns = path.join(repository, ".agent-runs");
+  try {
+    fs.mkdirSync(context);
+    fs.mkdirSync(repository);
+    run("git", ["init", "-q"], repository);
+    run("git", ["config", "user.name", "owner-test"], repository);
+    run("git", ["config", "user.email", "owner@example.invalid"], repository);
+    const env = isolatedEnv({ SECOND_OPINION_WORKING_RUNS: workingRuns });
+    assert.throws(
+      () => prepareArtifactDirectory({ slug: "unsafe", role: "check", cwd: context, env }),
+      /must be ignored by Git/,
+    );
+
+    fs.writeFileSync(path.join(repository, ".gitignore"), ".agent-runs/\n");
+    const pass = prepareArtifactDirectory({
+      slug: "safe",
+      role: "check",
+      cwd: context,
+      env,
+    });
+    const verified = verifyPassDirectory({ passDirectory: pass, expectedRole: "check", env });
+    assert.equal(verified.context.resolution.artifact_repository_root, repository);
+
+    fs.writeFileSync(
+      path.join(repository, ".gitignore"),
+      `.agent-runs/second-opinion-review/${path.basename(pass)}/\n`,
+    );
+    assert.throws(
+      () => verifyPassDirectory({ passDirectory: pass, expectedRole: "check", env }),
+      /must be ignored by Git/,
+    );
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("verification rejects repository configuration drift", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-config-drift-test-"));
+  try {
+    initializeRepository(sandbox);
+    const env = isolatedEnv({ SECOND_OPINION_CONTEXT_ROOT: sandbox });
+    const pass = prepareArtifactDirectory({
+      slug: "fixed-context",
+      role: "check",
+      cwd: sandbox,
+      env,
+    });
+    fs.writeFileSync(
+      path.join(sandbox, "docs", "agents", "artifact-paths.json"),
+      `${JSON.stringify({ schema_version: 1, working_runs: "docs/changed-runs" })}\n`,
+    );
+    assert.throws(
+      () => verifyPassDirectory({ passDirectory: pass, expectedRole: "check", env }),
+      /current repository artifact config differs/,
+    );
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("creation requires a valid slug and one exact role", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-role-test-"));
+  try {
+    const env = isolatedEnv({ SECOND_OPINION_WORKING_RUNS: path.join(root, "runs") });
+    assert.throws(
+      () => prepareArtifactDirectory({ slug: "Bad Slug", role: "check", cwd: root, env }),
       /slug must use lowercase/,
     );
-    assert.throws(
-      () => prepareArtifactDirectory({ slug: "ok", category: "Bad Category", root }),
-      /category must use lowercase/,
-    );
-    assert.throws(
-      () => prepareArtifactDirectory({ slug: "ok", project: "!!!", root }),
-      /project must sanitize/,
-    );
+    for (const role of [undefined, "passes", "checker", "Research"]) {
+      assert.throws(
+        () => prepareArtifactDirectory({ slug: "ok", role, cwd: root, env }),
+        /role must be research, rewrite, or check/,
+      );
+    }
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("list enumerates passes grouped by project and category with job state", () => {
+test("list enumerates flat normalized passes by role with job state", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-list-test-"));
-  const root = path.join(sandbox, "root");
+  const workingRuns = path.join(sandbox, "runs");
   try {
-    const alpha = prepareArtifactDirectory({ slug: "alpha", category: "research", project: "proj-a", root });
-    prepareArtifactDirectory({ slug: "beta", category: "check", project: "proj-a", root });
-    prepareArtifactDirectory({ slug: "gamma", category: "research", project: "proj-b", root });
+    const env = isolatedEnv({ SECOND_OPINION_WORKING_RUNS: workingRuns });
+    const alpha = prepareArtifactDirectory({
+      slug: "alpha",
+      role: "research",
+      cwd: sandbox,
+      env,
+      now: new Date("2026-07-28T12:00:00Z"),
+    });
+    prepareArtifactDirectory({
+      slug: "beta",
+      role: "check",
+      cwd: sandbox,
+      env,
+      now: new Date("2026-07-29T12:00:00Z"),
+    });
 
     fs.mkdirSync(path.join(alpha, "jobs"));
     fs.writeFileSync(
@@ -189,12 +307,22 @@ test("list enumerates passes grouped by project and category with job state", ()
       `${JSON.stringify({ state: "complete" })}\n`,
     );
 
-    const passes = listPasses({ root });
-    assert.equal(passes.length, 3);
+    const passes = listPasses({ cwd: sandbox, env });
+    assert.equal(passes.length, 2);
     assert.deepEqual(
-      passes.map((p) => `${p.namespace}/${p.category}/${p.state}`),
-      ["proj-a/check/unknown", "proj-a/research/complete", "proj-b/research/unknown"],
+      passes.map((p) => `${p.role}/${p.state}`),
+      ["research/complete", "check/unknown"],
     );
+
+    const cli = spawnSync(process.execPath, [scriptPath, "list"], {
+      cwd: sandbox,
+      env,
+      encoding: "utf8",
+    });
+    assert.equal(cli.status, 0, cli.stderr);
+    assert.match(cli.stdout, /^role\tpass\tstate\n/);
+    assert.match(cli.stdout, /research\t2026-07-28-research-alpha-/);
+    assert.match(cli.stdout, /check\t2026-07-29-check-beta-/);
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
   }
@@ -207,13 +335,19 @@ test("runs through an installed-style symlink", async () => {
     fs.symlinkSync(skillRoot, installedSkill, "dir");
     const installedScript = path.join(installedSkill, "scripts", "prepare-artifacts.mjs");
     const mod = await import(pathToFileURL(installedScript).href);
+    const env = isolatedEnv({
+      SECOND_OPINION_WORKING_RUNS: path.join(sandbox, "working-runs"),
+    });
     const pass = mod.prepareArtifactDirectory({
       slug: "installed",
-      category: "check",
-      project: "symlink-ns",
-      root: path.join(sandbox, "root"),
+      role: "check",
+      cwd: sandbox,
+      env,
     });
-    assert.equal(path.dirname(pass), path.join(sandbox, "root", "symlink-ns", "check"));
+    assert.equal(
+      path.dirname(pass),
+      path.join(sandbox, "working-runs", "second-opinion-review"),
+    );
     assert.equal(fs.statSync(pass).mode & 0o777, 0o700);
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
@@ -221,11 +355,33 @@ test("runs through an installed-style symlink", async () => {
 });
 
 test("the CLI prints usage and exits non-zero with bad arguments", () => {
-  const noArgs = spawnSync(process.execPath, [scriptPath], { encoding: "utf8" });
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-cli-test-"));
+  const env = isolatedEnv({
+    SECOND_OPINION_WORKING_RUNS: path.join(sandbox, "working-runs"),
+  });
+  const noArgs = spawnSync(process.execPath, [scriptPath], {
+    cwd: sandbox,
+    env,
+    encoding: "utf8",
+  });
   assert.equal(noArgs.status, 64);
   assert.match(noArgs.stderr, /usage: prepare-artifacts\.mjs/);
 
-  const badSlug = spawnSync(process.execPath, [scriptPath, "Bad Slug"], { encoding: "utf8" });
+  const badSlug = spawnSync(process.execPath, [scriptPath, "Bad Slug", "check"], {
+    cwd: sandbox,
+    env,
+    encoding: "utf8",
+  });
   assert.equal(badSlug.status, 64);
   assert.match(badSlug.stderr, /slug must use lowercase/);
+
+  const badRole = spawnSync(process.execPath, [scriptPath, "valid", "passes"], {
+    cwd: sandbox,
+    env,
+    encoding: "utf8",
+  });
+  assert.equal(badRole.status, 64);
+  assert.match(badRole.stderr, /role must be research, rewrite, or check/);
+
+  fs.rmSync(sandbox, { recursive: true, force: true });
 });

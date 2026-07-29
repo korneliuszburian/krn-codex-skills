@@ -121,14 +121,18 @@ New or changed non-managed hooks must also be reviewed and trusted through
 `/hooks`; Codex binds trust to the exact hook definition.
 
 `$second-opinion-review` resolves configured repository work under
-`docs/agents/runs/second-opinion-review/<run-id>` and falls
-back to `~/coding/krn/second-opinion-review/<project>/<category>/<pass>` for
-unconfigured or ad-hoc work,
-where `project` is the cwd git repository and `category` is the role
-(`research`, `rewrite`, or `check`). Run `prepare-artifacts.mjs list` to
-enumerate passes with their project, category, and job state. Do not place ad
-hoc review folders beside active repositories; the skill defines what is
-retained and when the initiating issue or goal can archive or remove it.
+`<working_runs>/second-opinion-review/<run-id>`. Set
+`SECOND_OPINION_CONTEXT_ROOT` when the artifact-owning repository is not the
+ambient working directory. Unconfigured or ad-hoc work must declare an
+absolute `SECOND_OPINION_WORKING_RUNS` and uses the same layout; there is no
+implicit home fallback. Run `prepare-artifacts.mjs list` with the same context
+to enumerate passes and job state. Do not place ad hoc review folders beside
+active repositories; the skill defines what is retained and when the
+initiating issue or goal can archive or remove it.
+
+This repository configures `working_runs` as `reviews`, so its concrete
+`OUTPUT_ROOT` is `<repo>/reviews/second-opinion-review` regardless of whether
+the checkout is reached through `/home/krn/coding` or `/mnt/storage/coding`.
 
 Large research uses a versioned `campaign.json`: independent read-only shards
 publish validated mechanism ledgers, then one synthesis shard consumes only

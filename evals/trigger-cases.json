@@ -578,6 +578,18 @@
       ]
     },
     {
+      "id": "wayfinder-research-ticket-needs-a-decision-owner",
+      "prompt": "Continue our existing wayfinder map: claim the ready research ticket, evaluate the named external source for this consumer, and record whether we should adopt, reject, lab-test, or defer its mechanism.",
+      "expected_skills": [
+        "wayfinder",
+        "source-to-decision"
+      ],
+      "forbidden_skills": [
+        "second-opinion-review",
+        "implement"
+      ]
+    },
+    {
       "id": "small-foggy-choice-is-not-a-map",
       "prompt": "Help me decide between these two approaches for this one function before I build it.",
       "expected_skills": [

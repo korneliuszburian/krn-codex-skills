@@ -99,9 +99,10 @@ bez ledger-entry.
 
 - **adopt** — `README.md` tego huba + link z głównego `docs/SOURCES.md`, żeby
   research nie był odizolowany.
-- **adopt** — Dodać `ed37663` (HEAD mattpocock/skills) jako aktualny punkt
-  referencyjny w `matt-skills-coverage.md` z notką "substantively unchanged since
-  pin" — świeżość bez przebudowy ledgera.
+- **adopt** — Utrzymywać aktualny HEAD mattpocock/skills jako punkt
+  referencyjny w `matt-skills-coverage.md`; obecnie `2ab9580` pozostaje
+  strukturalnie zgodny z pinem `9603c1c`, więc świeżość nie wymaga przebudowy
+  ledgera.
 - **reject** — Vendoring jakiegokolwiek korpusu Matta (transkrypty, teksty
   kursu). Już w kontrakcie, tu tylko przypomnienie.
 

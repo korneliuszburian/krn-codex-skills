@@ -39,6 +39,9 @@ commands, and constraints.
 - Add scripts only for fragile or repeated deterministic work.
 - Keep reusable skill prose and script internals independent of the active
   shell-command wrapper; `config/AGENTS.md` owns that injected policy.
+- Resolve persisted workflow artifacts through the repository's
+  `docs/agents/artifact-paths.json`; a physical checkout or mount prefix is
+  never part of a reusable skill contract.
 - Give every promoted skill one concise `docs/<group>/<name>.md` operator page
   linked from the manifest-driven README. `SKILL.md` remains the sole workflow
   procedure; the human page summarizes use, boundary, inputs, output, and

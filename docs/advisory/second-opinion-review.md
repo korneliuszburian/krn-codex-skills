@@ -23,13 +23,20 @@ budget and timeout, source coverage, local artifacts, and retained consumer.
 ## Output and completion
 
 A validated result and local disposition under the repository's configured,
-ignored `working_runs` role, with a private global fallback when no resolver
-exists. Only consumer-owned final reports may be retained under
-`docs/agents/reports/second-opinion-review/`; reviewer prose alone is never
+ignored `<working_runs>/second-opinion-review/<run-id>`. The owning repository
+is explicit through `SECOND_OPINION_CONTEXT_ROOT`; genuinely ad-hoc work must
+declare an absolute `SECOND_OPINION_WORKING_RUNS` and uses the same layout.
+The resolved absolute workflow directory is the skill's `OUTPUT_ROOT`; it is
+recorded in `pass-context.json`, never inferred from a physical mount prefix.
+Checker findings contain at most 20 inclusive evidence lines and are split,
+not clipped, when a claim needs multiple excerpts.
+Only consumer-owned final reports may be retained under the configured
+`<retained_reports>/second-opinion-review/`; reviewer prose alone is never
 approval or readiness.
 
 ## Composition
 
-Research recommendations may feed `$source-to-decision`; accepted fixes use
+Validated research ledgers must feed `$source-to-decision` before any local
+adoption or implementation decision. Accepted checker or rewrite fixes use
 `$implement`; final fixed diffs use `$code-review`. The initiating workflow
 owns any repository report and cleanup decision.

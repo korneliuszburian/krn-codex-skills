@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -34,7 +35,8 @@ FINDING_KEYS = {
     "minimal_fix",
 }
 SEVERITIES = {"LOW", "MEDIUM", "HIGH", "CRITICAL"}
-VALIDATION_KEYS = {"prompt_sha256", "target", "evidence"}
+MAX_EVIDENCE_LINES = 20
+VALIDATION_KEYS = {"prompt_sha256", "target", "evidence", "normalization"}
 VALIDATION_EVIDENCE_KEYS = {
     "finding_id",
     "path",
@@ -69,17 +71,96 @@ MAX_EVIDENCE_FILE_BYTES = 5 * 1024 * 1024
 DENIED_EVIDENCE_ROOTS = {".git", ".beads", ".local-lab", "secrets"}
 DENIED_EVIDENCE_SUFFIXES = {".key", ".pem", ".p12"}
 PRIVATE_KEY_PREFIXES = ("id_rsa", "id_dsa", "id_ecdsa", "id_ed25519")
-
-
+NORMALIZATION_KEYS = {
+    "normalization_version",
+    "max_evidence_lines",
+    "source_review_sha256",
+    "normalized_review_sha256",
+    "changes",
+}
 class ReviewError(Exception):
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "configuration_invalid",
+        pointer: str = "",
+        retryable: bool = False,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.pointer = pointer
+        self.retryable = retryable
+
+    def diagnostic(self, command: str) -> dict[str, Any]:
+        return {
+            "diagnostic_version": "1",
+            "command": command,
+            "code": self.code,
+            "pointer": self.pointer,
+            "message": str(self),
+            "retryable": self.retryable,
+        }
 
 
-def read_json(path: Path) -> Any:
+def model_output_error(message: str, pointer: str) -> ReviewError:
+    return ReviewError(
+        message,
+        code="model_output_invalid",
+        pointer=pointer,
+        retryable=True,
+    )
+
+
+def normalization_error(message: str, pointer: str = "/normalization") -> ReviewError:
+    return ReviewError(
+        message,
+        code="normalization_invalid",
+        pointer=pointer,
+        retryable=False,
+    )
+
+
+def json_pointer(prefix: str, *parts: str | int) -> str:
+    encoded = [str(part).replace("~", "~0").replace("/", "~1") for part in parts]
+    suffix = "/".join(encoded)
+    if not prefix:
+        return f"/{suffix}" if suffix else ""
+    return f"{prefix}/{suffix}" if suffix else prefix
+
+
+def canonical_sha256(value: Any) -> str:
+    serialized = json.dumps(
+        value,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(serialized).hexdigest()
+
+
+def read_json(
+    path: Path,
+    *,
+    malformed_code: str = "configuration_invalid",
+    malformed_pointer: str = "",
+    malformed_retryable: bool = False,
+) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise ReviewError(f"cannot read JSON {path}: {exc}") from exc
+    except OSError as exc:
+        raise ReviewError(
+            f"cannot read JSON {path}: {exc}",
+            code="io_error",
+            retryable=False,
+        ) from exc
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ReviewError(
+            f"cannot decode JSON {path}: {exc}",
+            code=malformed_code,
+            pointer=malformed_pointer,
+            retryable=malformed_retryable,
+        ) from exc
 
 
 def write_json(
@@ -342,7 +423,12 @@ def assert_target_snapshot(
     else:
         observed, manifest = observe_artifact_snapshot(root / target["path"])
     if observed != target:
-        raise ReviewError("fixed evidence target changed since checker preflight")
+        raise ReviewError(
+            "fixed evidence target changed since checker preflight",
+            code="target_changed",
+            pointer="/validation/target",
+            retryable=False,
+        )
     return root.resolve(), manifest
 
 
@@ -378,17 +464,256 @@ def require_string(
     return raw
 
 
-def require_list(value: dict[str, Any], key: str) -> list[Any]:
-    raw = value.get(key)
-    if not isinstance(raw, list):
-        raise ReviewError(f"{key} must be an array")
-    return raw
-
-
 def reject_extra_keys(value: dict[str, Any], allowed: set[str], label: str) -> None:
     extra = sorted(set(value) - allowed)
     if extra:
         raise ReviewError(f"{label} has unknown keys: {', '.join(extra)}")
+
+
+def validate_review_contract(
+    value: Any,
+    *,
+    pointer_prefix: str = "",
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    if not isinstance(value, dict):
+        raise model_output_error("review must be an object", pointer_prefix)
+    review = copy.deepcopy(value)
+    extra = sorted(set(review) - TOP_LEVEL_KEYS)
+    if extra:
+        raise model_output_error(
+            f"review has unknown keys: {', '.join(extra)}",
+            json_pointer(pointer_prefix, extra[0]),
+        )
+
+    version_pointer = json_pointer(pointer_prefix, "review_version")
+    if review.get("review_version") != "1":
+        raise model_output_error("review_version must be '1'", version_pointer)
+
+    scope_pointer = json_pointer(pointer_prefix, "scope_summary")
+    scope_summary = review.get("scope_summary")
+    if not isinstance(scope_summary, str) or not scope_summary.strip():
+        raise model_output_error("scope_summary must be a non-empty string", scope_pointer)
+    if len(scope_summary) > 300:
+        raise model_output_error(
+            "scope_summary must be <= 300 characters",
+            scope_pointer,
+        )
+
+    findings_pointer = json_pointer(pointer_prefix, "findings")
+    findings = review.get("findings")
+    if not isinstance(findings, list):
+        raise model_output_error("findings must be an array", findings_pointer)
+
+    for key, required_keys in (
+        ("evidence_gaps", {"what", "requested_proof"}),
+        ("human_decisions", {"choice", "why_human"}),
+    ):
+        collection_pointer = json_pointer(pointer_prefix, key)
+        items = review.get(key)
+        if not isinstance(items, list):
+            raise model_output_error(f"{key} must be an array", collection_pointer)
+        for index, item in enumerate(items):
+            item_pointer = json_pointer(collection_pointer, index)
+            if not isinstance(item, dict):
+                raise model_output_error(
+                    f"{key}[{index}] must be an object",
+                    item_pointer,
+                )
+            extra = sorted(set(item) - required_keys)
+            if extra:
+                raise model_output_error(
+                    f"{key}[{index}] has unknown keys: {', '.join(extra)}",
+                    json_pointer(item_pointer, extra[0]),
+                )
+            for required_key in required_keys:
+                field = item.get(required_key)
+                field_pointer = json_pointer(item_pointer, required_key)
+                if not isinstance(field, str) or not field.strip():
+                    raise model_output_error(
+                        f"{key}[{index}].{required_key} must be a non-empty string",
+                        field_pointer,
+                    )
+
+    boundaries_pointer = json_pointer(pointer_prefix, "does_not_prove")
+    boundaries = review.get("does_not_prove")
+    if not isinstance(boundaries, list):
+        raise model_output_error(
+            "does_not_prove must be an array",
+            boundaries_pointer,
+        )
+    if not boundaries:
+        raise model_output_error(
+            "does_not_prove must contain at least one boundary",
+            boundaries_pointer,
+        )
+    for index, boundary in enumerate(boundaries):
+        boundary_pointer = json_pointer(boundaries_pointer, index)
+        if not isinstance(boundary, str) or not boundary.strip():
+            raise model_output_error(
+                f"does_not_prove[{index}] must be a non-empty string",
+                boundary_pointer,
+            )
+
+    seen_ids: set[str] = set()
+    for index, finding in enumerate(findings):
+        finding_pointer = json_pointer(findings_pointer, index)
+        if not isinstance(finding, dict):
+            raise model_output_error(
+                f"findings[{index}] must be an object",
+                finding_pointer,
+            )
+        extra = sorted(set(finding) - FINDING_KEYS)
+        if extra:
+            raise model_output_error(
+                f"findings[{index}] has unknown keys: {', '.join(extra)}",
+                json_pointer(finding_pointer, extra[0]),
+            )
+
+        finding_id = finding.get("id")
+        id_pointer = json_pointer(finding_pointer, "id")
+        if not isinstance(finding_id, str) or not finding_id.strip():
+            raise model_output_error(
+                f"findings[{index}].id must be a non-empty string",
+                id_pointer,
+            )
+        if finding_id in seen_ids:
+            raise model_output_error(f"duplicate finding id: {finding_id}", id_pointer)
+        seen_ids.add(finding_id)
+
+        severity = finding.get("severity")
+        severity_pointer = json_pointer(finding_pointer, "severity")
+        if severity not in SEVERITIES:
+            raise model_output_error(
+                f"invalid severity for {finding_id}: {severity}",
+                severity_pointer,
+            )
+        for key in ("claim", "impact", "minimal_fix"):
+            field = finding.get(key)
+            field_pointer = json_pointer(finding_pointer, key)
+            if not isinstance(field, str) or not field.strip():
+                raise model_output_error(
+                    f"{key} must be a non-empty string for {finding_id}",
+                    field_pointer,
+                )
+
+        raw_path = finding.get("path")
+        path_pointer = json_pointer(finding_pointer, "path")
+        if not isinstance(raw_path, str) or not raw_path.strip():
+            raise model_output_error(
+                f"path must be a non-empty string for {finding_id}",
+                path_pointer,
+            )
+        relative = Path(raw_path)
+        if relative.is_absolute() or not relative.parts or ".." in relative.parts:
+            raise model_output_error(
+                f"unsafe evidence path for {finding_id}: {relative}",
+                path_pointer,
+            )
+        if evidence_path_denied(relative):
+            raise model_output_error(
+                f"denied evidence path for {finding_id}: {relative}",
+                path_pointer,
+            )
+
+        start = finding.get("line_start")
+        start_pointer = json_pointer(finding_pointer, "line_start")
+        if type(start) is not int or start < 1:
+            raise model_output_error(
+                f"line_start must be a positive integer for {finding_id}",
+                start_pointer,
+            )
+        end = finding.get("line_end")
+        end_pointer = json_pointer(finding_pointer, "line_end")
+        if type(end) is not int or end < start:
+            raise model_output_error(
+                f"line_end must be an integer >= line_start for {finding_id}",
+                end_pointer,
+            )
+        span = end - start + 1
+        if span > MAX_EVIDENCE_LINES:
+            raise model_output_error(
+                (
+                    f"evidence range exceeds {MAX_EVIDENCE_LINES} lines for "
+                    f"{finding_id}; split the evidence into separately identified "
+                    f"findings with at most {MAX_EVIDENCE_LINES} lines each"
+                ),
+                end_pointer,
+            )
+
+    return review, []
+
+
+def normalization_record(
+    source_review: dict[str, Any],
+    normalized_review: dict[str, Any],
+    changes: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "normalization_version": "1",
+        "max_evidence_lines": MAX_EVIDENCE_LINES,
+        "source_review_sha256": canonical_sha256(source_review),
+        "normalized_review_sha256": canonical_sha256(normalized_review),
+        "changes": changes,
+    }
+
+
+def validate_normalization(value: Any, review: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise normalization_error("normalization must be an object")
+    extra = sorted(set(value) - NORMALIZATION_KEYS)
+    missing = sorted(NORMALIZATION_KEYS - set(value))
+    if extra:
+        raise normalization_error(
+            f"normalization has unknown keys: {', '.join(extra)}",
+            json_pointer("/normalization", extra[0]),
+        )
+    if missing:
+        raise normalization_error(
+            f"normalization is missing keys: {', '.join(missing)}",
+            json_pointer("/normalization", missing[0]),
+        )
+    if value.get("normalization_version") != "1":
+        raise normalization_error(
+            "normalization_version must be '1'",
+            "/normalization/normalization_version",
+        )
+    if value.get("max_evidence_lines") != MAX_EVIDENCE_LINES:
+        raise normalization_error(
+            f"max_evidence_lines must be {MAX_EVIDENCE_LINES}",
+            "/normalization/max_evidence_lines",
+        )
+    for key in ("source_review_sha256", "normalized_review_sha256"):
+        raw = value.get(key)
+        try:
+            require_digest(raw, f"normalization.{key}")
+        except (TypeError, ReviewError) as exc:
+            raise normalization_error(
+                f"normalization.{key} must be a lowercase SHA-256 digest",
+                json_pointer("/normalization", key),
+            ) from exc
+    if value["normalized_review_sha256"] != canonical_sha256(review):
+        raise normalization_error(
+            "normalization does not match the normalized review",
+            "/normalization/normalized_review_sha256",
+        )
+
+    changes = value.get("changes")
+    if not isinstance(changes, list):
+        raise normalization_error(
+            "normalization.changes must be an array",
+            "/normalization/changes",
+        )
+    if changes:
+        raise normalization_error(
+            "normalization must not clip or rewrite checker evidence; request a replacement",
+            "/normalization/changes",
+        )
+    if value["source_review_sha256"] != canonical_sha256(review):
+        raise normalization_error(
+            "normalization source hash does not match the checker review",
+            "/normalization/source_review_sha256",
+        )
+    return copy.deepcopy(value)
 
 
 def validate_evidence_manifest(
@@ -446,12 +771,6 @@ def validate_evidence_manifest(
     return manifest
 
 
-def validate_text_items(items: list[Any], label: str) -> None:
-    for index, item in enumerate(items):
-        if not isinstance(item, str) or not item.strip():
-            raise ReviewError(f"{label}[{index}] must be a non-empty string")
-
-
 def validate_validation_evidence(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         raise ReviewError("validation.evidence must be an array")
@@ -483,16 +802,6 @@ def validate_validation_evidence(value: Any) -> list[dict[str, Any]]:
             )
         evidence.append(dict(item))
     return evidence
-
-
-def validate_pair_items(
-    items: list[Any], label: str, keys: set[str]
-) -> None:
-    for index, raw in enumerate(items):
-        item = require_object(raw, f"{label}[{index}]")
-        reject_extra_keys(item, keys, f"{label}[{index}]")
-        for key in keys:
-            require_string(item, key)
 
 
 def evidence_path_denied(relative: Path) -> bool:
@@ -576,62 +885,23 @@ def validate_review(
     allowed_paths: set[str] | None = None,
     expected_manifest: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
-    reject_extra_keys(review, TOP_LEVEL_KEYS, "review")
-    if require_string(review, "review_version") != "1":
-        raise ReviewError("review_version must be '1'")
-    require_string(review, "scope_summary", max_length=300)
-
-    findings = require_list(review, "findings")
-    validate_pair_items(
-        require_list(review, "evidence_gaps"),
-        "evidence_gaps",
-        {"what", "requested_proof"},
-    )
-    validate_pair_items(
-        require_list(review, "human_decisions"),
-        "human_decisions",
-        {"choice", "why_human"},
-    )
-    does_not_prove = require_list(review, "does_not_prove")
-    if not does_not_prove:
-        raise ReviewError("does_not_prove must contain at least one boundary")
-    validate_text_items(does_not_prove, "does_not_prove")
-
-    seen_ids: set[str] = set()
+    review, _changes = validate_review_contract(review)
+    findings = review["findings"]
     evidence: list[dict[str, Any]] = []
-    for index, raw in enumerate(findings):
-        finding = require_object(raw, f"findings[{index}]")
-        reject_extra_keys(finding, FINDING_KEYS, f"findings[{index}]")
-        finding_id = require_string(finding, "id")
-        if finding_id in seen_ids:
-            raise ReviewError(f"duplicate finding id: {finding_id}")
-        seen_ids.add(finding_id)
-
-        severity = require_string(finding, "severity")
-        if severity not in SEVERITIES:
-            raise ReviewError(f"invalid severity for {finding_id}: {severity}")
-        for key in ("claim", "impact", "minimal_fix"):
-            require_string(finding, key)
-
-        relative = Path(require_string(finding, "path"))
-        if relative.is_absolute() or ".." in relative.parts:
-            raise ReviewError(f"unsafe evidence path for {finding_id}: {relative}")
+    for index, finding in enumerate(findings):
+        finding_id = finding["id"]
+        finding_pointer = json_pointer("/findings", index)
+        path_pointer = json_pointer(finding_pointer, "path")
+        end_pointer = json_pointer(finding_pointer, "line_end")
+        relative = Path(finding["path"])
         if allowed_paths is not None and relative.as_posix() not in allowed_paths:
-            raise ReviewError(
-                f"finding {finding_id} cites outside the fixed target: {relative}"
+            raise model_output_error(
+                f"finding {finding_id} cites outside the fixed target: {relative}",
+                path_pointer,
             )
-        if evidence_path_denied(relative):
-            raise ReviewError(f"denied evidence path for {finding_id}: {relative}")
 
-        start = finding.get("line_start")
-        end = finding.get("line_end")
-        if not isinstance(start, int) or isinstance(start, bool) or start < 1:
-            raise ReviewError(f"line_start must be a positive integer for {finding_id}")
-        if not isinstance(end, int) or isinstance(end, bool) or end < start:
-            raise ReviewError(f"invalid line_end for {finding_id}")
-        if end - start + 1 > 20:
-            raise ReviewError(f"evidence range exceeds 20 lines for {finding_id}")
-
+        start = finding["line_start"]
+        end = finding["line_end"]
         relative_text = relative.as_posix()
         expected_entry = (
             expected_manifest.get(relative_text)
@@ -641,15 +911,19 @@ def validate_review(
         if expected_manifest is not None and (
             expected_entry is None or expected_entry.get("kind") != "file"
         ):
-            raise ReviewError(
-                f"finding {finding_id} does not cite a regular file in the fixed target"
+            raise model_output_error(
+                f"finding {finding_id} does not cite a regular file in the fixed target",
+                path_pointer,
             )
 
-        raw_source, source_mode, source_text = read_bounded_evidence(
-            repo_root,
-            relative,
-            finding_id,
-        )
+        try:
+            raw_source, source_mode, source_text = read_bounded_evidence(
+                repo_root,
+                relative,
+                finding_id,
+            )
+        except ReviewError as exc:
+            raise model_output_error(str(exc), path_pointer) from exc
         source_sha256 = hashlib.sha256(raw_source).hexdigest()
         if expected_entry is not None and (
             expected_entry["mode"] != source_mode
@@ -657,13 +931,17 @@ def validate_review(
             or expected_entry["content_sha256"] != source_sha256
         ):
             raise ReviewError(
-                f"evidence bytes for {finding_id} differ from the fixed target manifest"
+                f"evidence bytes for {finding_id} differ from the fixed target manifest",
+                code="target_changed",
+                pointer="/validation/target",
+                retryable=False,
             )
 
         lines = source_text.splitlines(keepends=True)
         if end > len(lines):
-            raise ReviewError(
-                f"evidence range exceeds {relative} line count for {finding_id}"
+            raise model_output_error(
+                f"evidence range exceeds {relative} line count for {finding_id}",
+                end_pointer,
             )
         excerpt = "".join(lines[start - 1 : end]).encode("utf-8")
         evidence.append(
@@ -684,8 +962,17 @@ def validate_review(
 
 def extract_structured_output(envelope: dict[str, Any]) -> dict[str, Any]:
     if envelope.get("is_error") is True:
-        raise ReviewError("Claude envelope reports is_error=true")
-    return require_object(envelope.get("structured_output"), "structured_output")
+        raise model_output_error(
+            "Claude envelope reports is_error=true",
+            "/is_error",
+        )
+    structured_output = envelope.get("structured_output")
+    if not isinstance(structured_output, dict):
+        raise model_output_error(
+            "structured_output must be an object",
+            "/structured_output",
+        )
+    return structured_output
 
 
 def fingerprint_git(args: argparse.Namespace) -> int:
@@ -737,15 +1024,73 @@ def snapshot_artifact(args: argparse.Namespace) -> int:
     return 0
 
 
+def normalize(args: argparse.Namespace) -> int:
+    envelope_value = read_json(
+        Path(args.envelope),
+        malformed_code="model_output_invalid",
+        malformed_retryable=True,
+    )
+    if not isinstance(envelope_value, dict):
+        raise model_output_error("Claude envelope must be an object", "")
+    source_review = extract_structured_output(envelope_value)
+    normalized_review, changes = validate_review_contract(
+        source_review,
+        pointer_prefix="/structured_output",
+    )
+    normalized_envelope = copy.deepcopy(envelope_value)
+    normalized_envelope["structured_output"] = normalized_review
+    normalization = normalization_record(source_review, normalized_review, changes)
+    envelope_path = Path(args.envelope).resolve()
+    normalized_envelope_path = Path(args.normalized_envelope).resolve()
+    normalization_path = Path(args.normalization).resolve()
+    if normalized_envelope_path == normalization_path:
+        raise ReviewError(
+            "normalized envelope and normalization outputs must be distinct",
+            code="configuration_invalid",
+            retryable=False,
+        )
+    for output_path in (normalized_envelope_path, normalization_path):
+        if output_path == envelope_path or output_path.exists() or output_path.is_symlink():
+            raise ReviewError(
+                f"normalization output must be a new path distinct from the input: {output_path}",
+                code="configuration_invalid",
+                retryable=False,
+            )
+    try:
+        write_json(normalized_envelope_path, normalized_envelope)
+        write_json(normalization_path, normalization)
+    except (OSError, UnicodeError):
+        normalized_envelope_path.unlink(missing_ok=True)
+        normalization_path.unlink(missing_ok=True)
+        raise
+    return 0
+
+
 def finalize(args: argparse.Namespace) -> int:
-    envelope = require_object(read_json(Path(args.envelope)), "Claude envelope")
+    envelope_value = read_json(
+        Path(args.envelope),
+        malformed_code="model_output_invalid",
+        malformed_retryable=True,
+    )
+    if not isinstance(envelope_value, dict):
+        raise model_output_error("Claude envelope must be an object", "")
+    envelope = envelope_value
     review = extract_structured_output(envelope)
+    normalization = validate_normalization(
+        read_json(Path(args.normalization)),
+        review,
+    )
     preflight = validate_preflight(read_json(Path(args.identity)))
     target = preflight["target"]
     evidence_manifest = preflight["evidence_manifest"]
     evidence_root, observed_manifest = assert_target_snapshot(target)
     if evidence_manifest != observed_manifest:
-        raise ReviewError("fixed evidence manifest changed since checker preflight")
+        raise ReviewError(
+            "fixed evidence manifest changed since checker preflight",
+            code="target_changed",
+            pointer="/validation/target",
+            retryable=False,
+        )
     evidence = validate_review(
         review,
         evidence_root,
@@ -755,17 +1100,37 @@ def finalize(args: argparse.Namespace) -> int:
     prompt = Path(args.prompt).read_bytes()
     current_prompt_sha256 = hashlib.sha256(prompt).hexdigest()
     if current_prompt_sha256 != preflight["prompt_sha256"]:
-        raise ReviewError("checker prompt changed since preflight")
+        raise ReviewError(
+            "checker prompt changed since preflight",
+            code="prompt_changed",
+            pointer="/validation/prompt_sha256",
+            retryable=False,
+        )
     original_prompt = Path(args.original_prompt)
     if file_sha256(original_prompt) != current_prompt_sha256:
-        raise ReviewError("original checker prompt changed since preflight")
+        raise ReviewError(
+            "original checker prompt changed since preflight",
+            code="prompt_changed",
+            pointer="/validation/prompt_sha256",
+            retryable=False,
+        )
 
     def reassert_publication_inputs() -> None:
         if file_sha256(original_prompt) != current_prompt_sha256:
-            raise ReviewError("original checker prompt changed before publication")
+            raise ReviewError(
+                "original checker prompt changed before publication",
+                code="prompt_changed",
+                pointer="/validation/prompt_sha256",
+                retryable=False,
+            )
         _root, current_manifest = assert_target_snapshot(target)
         if current_manifest != evidence_manifest:
-            raise ReviewError("fixed evidence manifest changed before publication")
+            raise ReviewError(
+                "fixed evidence manifest changed before publication",
+                code="target_changed",
+                pointer="/validation/target",
+                retryable=False,
+            )
 
     output = {
         **review,
@@ -773,6 +1138,7 @@ def finalize(args: argparse.Namespace) -> int:
             "prompt_sha256": current_prompt_sha256,
             "target": target,
             "evidence": evidence,
+            "normalization": normalization,
         },
     }
     write_json(
@@ -787,6 +1153,7 @@ def check(args: argparse.Namespace) -> int:
     output = require_object(read_json(Path(args.review)), "review output")
     validation = require_object(output.pop("validation", None), "validation")
     reject_extra_keys(validation, VALIDATION_KEYS, "validation")
+    validate_normalization(validation.get("normalization"), output)
     target = validate_target(validation.get("target"))
     evidence_root, current_manifest = assert_target_snapshot(target)
     prompt_hash = require_string(validation, "prompt_sha256")
@@ -794,7 +1161,12 @@ def check(args: argparse.Namespace) -> int:
     stored_evidence = validate_validation_evidence(validation.get("evidence"))
     current_prompt_hash = hashlib.sha256(Path(args.prompt).read_bytes()).hexdigest()
     if prompt_hash != current_prompt_hash:
-        raise ReviewError("stale prompt hash")
+        raise ReviewError(
+            "stale prompt hash",
+            code="prompt_changed",
+            pointer="/validation/prompt_sha256",
+            retryable=False,
+        )
     expected = validate_review(
         output,
         evidence_root,
@@ -805,7 +1177,12 @@ def check(args: argparse.Namespace) -> int:
         raise ReviewError("stale evidence hashes")
     _root, final_manifest = assert_target_snapshot(target)
     if final_manifest != current_manifest:
-        raise ReviewError("fixed evidence manifest changed during validation")
+        raise ReviewError(
+            "fixed evidence manifest changed during validation",
+            code="target_changed",
+            pointer="/validation/target",
+            retryable=False,
+        )
     print("valid evidence-bounded review")
     return 0
 
@@ -831,12 +1208,20 @@ def build_parser() -> argparse.ArgumentParser:
     artifact_parser.add_argument("prompt")
     artifact_parser.add_argument("output")
     artifact_parser.set_defaults(handler=snapshot_artifact)
+    normalize_parser = commands.add_parser("normalize")
+    normalize_parser.add_argument("envelope")
+    normalize_parser.add_argument("normalized_envelope")
+    normalize_parser.add_argument("normalization")
+    normalize_parser.add_argument("--diagnostic-json")
+    normalize_parser.set_defaults(handler=normalize)
     finalize_parser = commands.add_parser("finalize")
     finalize_parser.add_argument("envelope")
     finalize_parser.add_argument("prompt")
     finalize_parser.add_argument("original_prompt")
     finalize_parser.add_argument("output")
     finalize_parser.add_argument("identity")
+    finalize_parser.add_argument("normalization")
+    finalize_parser.add_argument("--diagnostic-json")
     finalize_parser.set_defaults(handler=finalize)
     check_parser = commands.add_parser("check")
     check_parser.add_argument("review")
@@ -850,7 +1235,25 @@ def main() -> int:
     try:
         return int(args.handler(args))
     except (OSError, UnicodeError, ReviewError) as exc:
-        print(f"review validation failed: {exc}", file=sys.stderr)
+        error = (
+            exc
+            if isinstance(exc, ReviewError)
+            else ReviewError(
+                str(exc),
+                code="io_error",
+                retryable=False,
+            )
+        )
+        diagnostic_path = getattr(args, "diagnostic_json", None)
+        if diagnostic_path:
+            try:
+                write_json(Path(diagnostic_path), error.diagnostic(args.command))
+            except (OSError, UnicodeError) as diagnostic_error:
+                print(
+                    f"review diagnostic write failed: {diagnostic_error}",
+                    file=sys.stderr,
+                )
+        print(f"review validation failed: {error}", file=sys.stderr)
         return 1
 
 

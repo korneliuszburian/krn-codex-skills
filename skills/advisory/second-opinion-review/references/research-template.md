@@ -3,7 +3,9 @@
 Use this for source investigation that must cover more than one bounded excerpt.
 Complete the entrypoint's artifact-directory step first and store the manifest
 as `/absolute/printed/pass-dir/campaign.json`. Run every shard from the root of
-the clean repository named by its `repository` source.
+the clean repository named by its `repository` source. The runner verifies the
+campaign parent against `pass-context.json`; an arbitrary private directory is
+not a research pass.
 
 ## Campaign manifest
 
@@ -79,7 +81,7 @@ than granting a broad `--add-dir`.
         "video-transcript"
       ],
       "depends_on": ["repository-structure", "video-mechanisms"],
-      "deliverable": "Cross-source decisions, contradictions, falsifiers, and non-proof."
+      "deliverable": "Cross-source comparisons, contradictions, falsifiers, and non-proof."
     }
   ],
   "human_decisions": ["Product and irreversible trade-offs remain local."],
@@ -142,9 +144,12 @@ does not replace missing source work with inference.
 
 ## Local disposition
 
-Treat mechanisms and recommendations as hypotheses. Confirm adopted claims
+Treat mechanisms and recommendations as hypotheses. Verify evidence claims
 against current code or authoritative sources, then write `disposition.md` in
-the pass directory with accepted, rejected, missing-evidence, follow-up, and
-human-decision items. Retain the manifest, terminal job files, validated
-results, bounded provenance, and disposition. Do not retain downloaded source
-corpora, Claude transport envelopes, caches, or raw copyrighted transcripts.
+the pass directory with supported, contradicted, missing-evidence, follow-up,
+and human-decision items. Hand the validated ledger and disposition to
+`$source-to-decision`; only that workflow records `adopt`, `reject`, `lab-test`,
+or `defer` for the local consumer. Retain the manifest, terminal job files,
+validated results, bounded provenance, and disposition. Do not retain
+downloaded source corpora, Claude transport envelopes, caches, or raw
+copyrighted transcripts.

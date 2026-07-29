@@ -78,6 +78,12 @@ skill misfires through collision, premature completion, sediment, or sprawl.
    caller product's bare `scripts/` directory: the skill owns its executable,
    while the working directory owns the product under work.
 
+   Classify every repository adapter as a **hard dependency** or a **soft
+   dependency**. A missing hard dependency fails closed with the exact setup or
+   input the operator must supply; a soft dependency names its reduced but
+   correct fallback. Ambient `cwd`, a home-directory convention, and a physical
+   mount prefix are never implicit substitutes for either class.
+
    A workflow may be all steps; a durable reference may be all peer rules. Do
    not force numbering onto material with no sequence. Co-locate each concept's
    rule, caveat, and smallest useful example.
@@ -86,6 +92,12 @@ skill misfires through collision, premature completion, sediment, or sprawl.
    creation mechanism, retained contents, consumer, cleanup trigger, and who
    decides deletion. An arbitrary “persistent directory” is not an artifact
    contract.
+
+   If the skill delegates path- or state-dependent work, bind an execution
+   envelope: repository realpath and `cwd`, immutable ref or artifact identity,
+   allowed paths and mutation authority, output shape plus exact destination or
+   `response-only`, named consumer, and what the result does not prove. Omit
+   fields only when the delegated task cannot observe or depend on them.
 
    <context-pointer>
    Read or run this when:

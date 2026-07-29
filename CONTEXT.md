@@ -29,6 +29,12 @@ Two skills may compose; they may not both own the same sequence.
 clear process/reference relationship. Different names do not make a collision
 safe.
 
+**Artifact-role resolver** — the repository-owned
+`docs/agents/artifact-paths.json` mapping from semantic roles such as
+`working_runs` and `retained_reports` to repository-relative paths. A workflow
+names the role and its own child layout; the current mount point is not
+semantic state.
+
 ## Engineering
 
 **Vertical slice** — the smallest path from a real caller through a public seam

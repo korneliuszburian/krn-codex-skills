@@ -146,10 +146,10 @@
       "plugins": {
         "enable": [
           "canva@openai-curated-remote",
-          "figma@openai-curated",
           "github@openai-curated"
         ],
         "disable": [
+          "figma@openai-curated",
           "figma@openai-curated-remote",
           "github@openai-curated-remote"
         ],
@@ -181,11 +181,12 @@
         ]
       },
       "mcps": {
-        "enable": [],
+        "enable": [
+          "figma"
+        ],
         "disable": [
           "agent_browser",
           "context7",
-          "figma",
           "github"
         ]
       },
@@ -205,18 +206,19 @@
       }
     },
     "web-qa": {
-      "description": "Lean engineering plus browser automation and documentation lookup for web QA sessions.",
+      "description": "Lean engineering plus browser automation, documentation lookup, and Figma for web QA sessions.",
       "plugins": {
         "enable": [
           "github@openai-curated"
         ],
         "disable": [
+          "figma@openai-curated",
+          "figma@openai-curated-remote",
           "github@openai-curated-remote"
         ],
         "disableFamilies": [
           "asana",
           "canva",
-          "figma",
           "gmail",
           "google-calendar",
           "hugging-face",
@@ -245,21 +247,21 @@
       "mcps": {
         "enable": [
           "agent_browser",
-          "context7"
+          "context7",
+          "figma"
         ],
         "disable": [
-          "figma",
           "github"
         ]
       },
       "apps": {
         "enable": [
+          "figma",
           "github"
         ],
         "disable": [
           "asana",
           "canva",
-          "figma",
           "gmail",
           "google-calendar",
           "hugging-face"
@@ -336,7 +338,6 @@
         "enable": [
           "asana@openai-curated",
           "canva@openai-curated-remote",
-          "figma@openai-curated",
           "github@openai-curated",
           "gmail@openai-curated-remote",
           "google-calendar@openai-curated-remote",
@@ -345,6 +346,7 @@
         ],
         "disable": [
           "asana@openai-curated-remote",
+          "figma@openai-curated",
           "figma@openai-curated-remote",
           "github@openai-curated-remote"
         ],
@@ -372,10 +374,10 @@
       "mcps": {
         "enable": [
           "agent_browser",
-          "context7"
+          "context7",
+          "figma"
         ],
         "disable": [
-          "figma",
           "github"
         ]
       },

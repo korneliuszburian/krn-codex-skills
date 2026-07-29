@@ -125,6 +125,167 @@ class ValidateReviewTests(unittest.TestCase):
         with self.assertRaises(ReviewError):
             vr.validate_review(self._review(".env"), self.root, {".env"})
 
+    def test_accepts_exactly_twenty_evidence_lines(self):
+        (self.root / "a.txt").write_text(
+            "".join(f"line {number}\n" for number in range(1, 21)),
+            encoding="utf-8",
+        )
+        manifest = {"a.txt": self._manifest("a.txt")}
+        review = self._review("a.txt")
+        review["findings"][0]["line_end"] = vr.MAX_EVIDENCE_LINES
+        normalized_review, changes = vr.validate_review_contract(
+            review,
+            pointer_prefix="/structured_output",
+        )
+        self.assertEqual(normalized_review, review)
+        self.assertEqual(changes, [])
+        evidence = vr.validate_review(
+            review,
+            self.root,
+            {"a.txt"},
+            expected_manifest=manifest,
+        )
+        self.assertEqual(evidence[0]["line_end"], vr.MAX_EVIDENCE_LINES)
+
+
+class NormalizeReviewTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.sandbox = Path(tempfile.mkdtemp())
+        self.evidence_root = self.sandbox / "evidence"
+        self.pass_root = self.sandbox / "pass"
+        self.evidence_root.mkdir()
+        self.pass_root.mkdir()
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.sandbox, ignore_errors=True)
+
+    def _review(self, *, start: int = 1, end: int = 1) -> dict:
+        return {
+            "review_version": "1",
+            "scope_summary": "bounded scope",
+            "findings": [
+                {
+                    "id": "F3",
+                    "severity": "LOW",
+                    "path": "artifact.md",
+                    "line_start": start,
+                    "line_end": end,
+                    "claim": "claim",
+                    "impact": "impact",
+                    "minimal_fix": "fix",
+                }
+            ],
+            "evidence_gaps": [],
+            "human_decisions": [],
+            "does_not_prove": ["advisory only"],
+        }
+
+    def _write_json(self, path: Path, value: object) -> None:
+        path.write_text(json.dumps(value) + "\n", encoding="utf-8")
+
+    def _run(self, *arguments: str, cwd: Path | None = None) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, str(VR_SCRIPT), *map(str, arguments)],
+            cwd=cwd or self.sandbox,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    def test_rejects_twenty_one_lines_with_a_split_diagnostic(self):
+        envelope = self.pass_root / "envelope.json"
+        normalized_envelope = self.pass_root / "normalized-envelope.json"
+        normalization_path = self.pass_root / "normalization.json"
+        diagnostic = self.pass_root / "diagnostic.json"
+        self._write_json(
+            envelope,
+            {"is_error": False, "structured_output": self._review(end=21)},
+        )
+
+        result = self._run(
+            "normalize",
+            envelope,
+            normalized_envelope,
+            normalization_path,
+            "--diagnostic-json",
+            diagnostic,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(normalized_envelope.exists())
+        self.assertFalse(normalization_path.exists())
+        diagnostic_value = json.loads(diagnostic.read_text(encoding="utf-8"))
+        self.assertEqual(
+            diagnostic_value["pointer"],
+            "/structured_output/findings/0/line_end",
+        )
+        self.assertEqual(diagnostic_value["code"], "model_output_invalid")
+        self.assertTrue(diagnostic_value["retryable"])
+        self.assertIn("split the evidence", diagnostic_value["message"])
+        self.assertIn("at most 20 lines each", diagnostic_value["message"])
+
+    def test_unrepairable_model_range_writes_retryable_pointer_diagnostic(self):
+        envelope = self.pass_root / "invalid-envelope.json"
+        normalized_envelope = self.pass_root / "normalized-envelope.json"
+        normalization_path = self.pass_root / "normalization.json"
+        diagnostic = self.pass_root / "diagnostic.json"
+        self._write_json(
+            envelope,
+            {"structured_output": self._review(start=0, end=1)},
+        )
+
+        result = self._run(
+            "normalize",
+            envelope,
+            normalized_envelope,
+            normalization_path,
+            "--diagnostic-json",
+            diagnostic,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(normalized_envelope.exists())
+        self.assertFalse(normalization_path.exists())
+        self.assertEqual(
+            json.loads(diagnostic.read_text(encoding="utf-8")),
+            {
+                "diagnostic_version": "1",
+                "command": "normalize",
+                "code": "model_output_invalid",
+                "pointer": "/structured_output/findings/0/line_start",
+                "message": "line_start must be a positive integer for F3",
+                "retryable": True,
+            },
+        )
+
+    def test_contract_errors_point_to_finding_fields_and_proof_boundary(self):
+        cases = (
+            (
+                "path",
+                lambda review: review["findings"][0].__setitem__("path", "../escape"),
+                "/structured_output/findings/0/path",
+            ),
+            (
+                "line_end",
+                lambda review: review["findings"][0].__setitem__("line_end", 0),
+                "/structured_output/findings/0/line_end",
+            ),
+            (
+                "does_not_prove",
+                lambda review: review.__setitem__("does_not_prove", []),
+                "/structured_output/does_not_prove",
+            ),
+        )
+        for label, mutate, expected_pointer in cases:
+            with self.subTest(label=label):
+                review = self._review()
+                mutate(review)
+                with self.assertRaises(ReviewError) as raised:
+                    vr.validate_review_contract(
+                        review,
+                        pointer_prefix="/structured_output",
+                    )
+                self.assertEqual(raised.exception.pointer, expected_pointer)
+                self.assertTrue(raised.exception.retryable)
+
 
 class GitTamperDetectionTests(unittest.TestCase):
     def _fingerprint(self, repo: Path) -> dict:
