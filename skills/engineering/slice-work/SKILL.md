@@ -1,6 +1,6 @@
 ---
 name: slice-work
-description: Turn a settled multi-change spec into implementation-ready vertical slices or expand-contract migration stages with explicit dependencies and publication state. Use before implementation; skip unresolved fog, single changes, and execution.
+description: Turn a settled multi-change spec into implementation-ready vertical slices or expand-contract migration stages with explicit dependencies and truthful ticket-publication state. Use before implementation; skip unresolved fog, single changes, and execution.
 ---
 
 # Slice Work
@@ -99,7 +99,9 @@ unsettled decisions. This skill owns two decomposition shapes: end-to-end
    blocking edges per [tickets.md](references/tickets.md). This skill creates
    tickets but never claims or sequences them.
 
-   Use one truthful publication state:
+   Use one truthful **ticket-publication state**. This is scoped to tracker
+   artifacts and never replaces the outcome capsule's lifecycle-level
+   `Publication state`:
 
    - `NOT_REQUESTED` — the active outcome owner accepted the list without
      requesting durable publication;
@@ -114,7 +116,7 @@ unsettled decisions. This skill owns two decomposition shapes: end-to-end
    Shape: vertical slices | expand-migrate-contract
    Work-unit list and dependency graph:
    Demonstrable result or migration end state:
-   Publication state: NOT_REQUESTED | PUBLISH_PENDING (<missing condition>) | PUBLISHED (<ticket identities>)
+   Ticket publication state: NOT_REQUESTED | PUBLISH_PENDING (<missing condition>) | PUBLISHED (<ticket identities>)
    Routed to: $implement (one unit per fresh context) via $delivery-loop when lifecycle orchestration is requested
    </slice-result>
 

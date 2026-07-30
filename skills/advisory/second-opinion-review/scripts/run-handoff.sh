@@ -189,6 +189,16 @@ if (( ${#resolved_additional_dirs[@]} > 0 )); then
     echo "cannot validate --add-dir mountpoints: mountpoint is unavailable" >&2
     exit 65
   fi
+  if mountpoint -q -- "$disposable_root"; then
+    echo "SECOND_OPINION_DISPOSABLE_ROOT must not be a mountpoint" >&2
+    exit 65
+  else
+    mountpoint_status=$?
+    if [[ "$mountpoint_status" -ne 32 ]]; then
+      echo "cannot validate SECOND_OPINION_DISPOSABLE_ROOT mountpoint" >&2
+      exit 65
+    fi
+  fi
   disposable_mode=$(stat -c '%a' "$disposable_root")
   if (( (8#$disposable_mode & 077) != 0 )); then
     echo "SECOND_OPINION_DISPOSABLE_ROOT must not grant group or other permissions" >&2

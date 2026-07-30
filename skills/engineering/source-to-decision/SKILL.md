@@ -103,12 +103,21 @@ it.
    production writes are already authorized; that workflow owns the consumer
    change and proof.
 
-   When this investigation must cross a context boundary, update the active
-   workflow's ignored `.krn/runs/<workflow>/<run-id>/state.md` capsule with the
-   decision question, source identities, current mechanism or disposition,
-   owner, and next action. Keep raw corpora, copied source text, and credentials
-   out of it. The creating workflow removes the capsule when the decision is
-   accepted, superseded, or abandoned.
+   When this investigation must cross a context boundary and `$delivery-loop`
+   already owns the active outcome capsule, return the complete decision to its
+   named `Current workflow owner and sole writer`; `$source-to-decision` does not
+   mutate the capsule. Acting as `$delivery-loop`, that writer preserves `Outcome
+   and observable acceptance` and every other ABI field, then records the decision
+   question and disposition under `Open unknowns and blockers with owners`, source
+   identities and mechanism under `Evidence observed`, limitations and nonclaims
+   under `Explicit non-proofs`, and the decision owner under `Next bounded owner
+   and action`. `$source-to-decision` never creates, relocates, or removes that
+   capsule; `$delivery-loop` alone owns its content, exact path, and lifecycle.
+   Without an active delivery-loop capsule, continuation stays in the native Goal
+   or configured tracker. If file-backed restart state becomes necessary, hand
+   lifecycle ownership to `$delivery-loop` instead of inventing a partial or
+   workflow-local `state.md` contract. Keep raw corpora, copied source text, and
+   credentials out of every continuation surface.
 
    Promotion into repository knowledge is a separate, narrow branch. Create or
    update exactly `docs/research/<topic>.md` only when a named future consumer,

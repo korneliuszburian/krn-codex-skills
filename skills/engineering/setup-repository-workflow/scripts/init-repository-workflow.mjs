@@ -95,16 +95,21 @@ function assertManagedFileSafe(root, path, expected) {
   let current = root;
   for (const part of pathFromRoot.split(sep).slice(0, -1)) {
     current = join(current, part);
-    if (!existsSync(current)) break;
-    if (lstatSync(current).isSymbolicLink()) {
+    const currentStat = lstatSync(current, { throwIfNoEntry: false });
+    if (!currentStat) break;
+    if (currentStat.isSymbolicLink()) {
       fail(`managed file path crosses symlink: ${relative(root, current)}`);
+    }
+    if (!currentStat.isDirectory()) {
+      fail(`managed file path component is not a directory: ${relative(root, current)}`);
     }
     if (!isInside(rootReal, realpathSync(current))) {
       fail(`managed file path resolves outside repository: ${relative(root, current)}`);
     }
   }
-  if (!existsSync(path)) return;
-  if (lstatSync(path).isSymbolicLink() || !lstatSync(path).isFile()) {
+  const destinationStat = lstatSync(path, { throwIfNoEntry: false });
+  if (!destinationStat) return;
+  if (destinationStat.isSymbolicLink() || !destinationStat.isFile()) {
     fail(`managed file destination is not a regular file: ${pathFromRoot}`);
   }
   const existingContents = readFileSync(path, "utf8");

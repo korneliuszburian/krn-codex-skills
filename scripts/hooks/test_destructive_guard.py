@@ -288,6 +288,47 @@ class DestructiveGuardTests(unittest.TestCase):
                     output["hookSpecificOutput"]["permissionDecisionReason"],
                 )
 
+    def test_public_hook_blocks_uninspectable_pipeline_sinks(self) -> None:
+        blocked_commands = (
+            "printf 'codex plugin add super%s\\n' powers | sh",
+            "printf 'rm -rf %s\\n' . | sh",
+            "printf 'echo safe\\n' | env -i bash",
+            'SHELL=sh; printf \'codex plugin add super%s\\n\' powers | "$SHELL"',
+            'SHELL=sh; printf \'rm -rf %s\\n\' . | "$SHELL"',
+            "consumer() { sh; }; printf 'rm -rf %s\\n' . | consumer",
+            "printf 'rm -rf %s\\n' . | { sh; }",
+            "printf 'codex plugin add super%s\\n' powers | . /dev/stdin",
+            "printf 'codex plugin add super%s\\n' powers | source /dev/stdin",
+            "printf 'codex plugin add super%s\\0' powers | xargs -0 sh -c",
+            "printf '%s\\0' -c 'rm -rf /tmp/krn-pipeline-probe' | xargs -0 sh",
+            "printf 'echo safe\\n' | time -p sh",
+        )
+        for blocked_command in blocked_commands:
+            with self.subTest(command=blocked_command):
+                payload = {
+                    "hook_event_name": "PreToolUse",
+                    "tool_name": "Bash",
+                    "cwd": str(self.repo),
+                    "tool_input": {"command": blocked_command},
+                }
+                result = subprocess.run(
+                    [sys.executable, str(HOOK)],
+                    input=json.dumps(payload),
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                output = json.loads(result.stdout)
+                self.assertEqual(
+                    output["hookSpecificOutput"]["permissionDecision"],
+                    "deny",
+                )
+                self.assertIn(
+                    "pipeline sink",
+                    output["hookSpecificOutput"]["permissionDecisionReason"],
+                )
+
     def test_public_hook_resolves_claude_targets_against_payload_cwd(self) -> None:
         capability = bytes(
             (115, 117, 112, 101, 114, 112, 111, 119, 101, 114, 115)
@@ -357,7 +398,8 @@ class DestructiveGuardTests(unittest.TestCase):
             "eval 'echo safe'",
             "if true; then echo safe; fi",
             "printf '%s\\n' safe | xargs -n 1 echo",
-            "printf '%s\\n' 'echo safe' | sh",
+            "printf 'bash\\n' | grep bash",
+            "printf 'bash\\n' | time -p grep bash",
             'copilot -p "$PROMPT"',
             'claude -p "$PROMPT"',
         ):

@@ -142,6 +142,31 @@ test("apply rejects managed file symlink escape before changing instructions", (
   assert.equal(existsSync(join(outside, "runs")), false);
 });
 
+test("apply rejects a dangling managed-file symlink before changing instructions", () => {
+  const root = fixture();
+  const outside = join(mkdtempSync(join(tmpdir(), "krn-repo-setup-outside-")), "created");
+  mkdirSync(join(root, ".krn", "runs"), { recursive: true });
+  symlinkSync(outside, join(root, ".krn", "runs", ".gitignore"));
+  const before = readFileSync(join(root, "AGENTS.md"), "utf8");
+  const result = spawnSync(process.execPath, [script, "apply", "--root", root, "--tracker", "beads", "--domain", "single", "--delivery", "local"], { encoding: "utf8" });
+  assert.equal(result.status, 64);
+  assert.match(result.stderr, /managed file destination is not a regular file/);
+  assert.equal(readFileSync(join(root, "AGENTS.md"), "utf8"), before);
+  assert.equal(existsSync(outside), false);
+});
+
+test("apply rejects a dangling intermediate symlink before changing instructions", () => {
+  const root = fixture();
+  const outside = join(mkdtempSync(join(tmpdir(), "krn-repo-setup-outside-")), "missing");
+  symlinkSync(outside, join(root, ".krn"));
+  const before = readFileSync(join(root, "AGENTS.md"), "utf8");
+  const result = spawnSync(process.execPath, [script, "apply", "--root", root, "--tracker", "beads", "--domain", "single", "--delivery", "local"], { encoding: "utf8" });
+  assert.equal(result.status, 64);
+  assert.match(result.stderr, /managed file path crosses symlink/);
+  assert.equal(readFileSync(join(root, "AGENTS.md"), "utf8"), before);
+  assert.equal(existsSync(outside), false);
+});
+
 test("apply rejects an instruction symlink outside the repository", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-repo-setup-"));
   execFileSync("git", ["init", "-q", root]);

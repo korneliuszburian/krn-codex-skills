@@ -6,8 +6,8 @@ and the closest repository `AGENTS.md` or other closest instructions already nam
 the tracker destination and dependency operations. Those instructions describe how
 to publish; they do not grant authority.
 
-If publication was requested but either requirement is missing, return
-`PUBLISH_PENDING` with that exact missing condition. Do not initialize a tracker or
+If publication was requested but either requirement is missing, return ticket-
+publication state `PUBLISH_PENDING` with that exact missing condition. Do not initialize a tracker or
 invent a local path. Publishing **creates** one ticket per work unit and its blocking
 edges; it never claims, sequences, or owns lifecycle — that stays with
 `$delivery-loop`.

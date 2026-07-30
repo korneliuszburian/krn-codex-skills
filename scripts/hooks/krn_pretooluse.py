@@ -24,6 +24,27 @@ SHELL_EXECUTABLES = {"bash", "dash", "ksh", "sh", "zsh"}
 SHELL_WRAPPERS = {"builtin", "command", "exec", "nohup", "rtk"}
 SHELL_COMMAND_OPTIONS = {"--command", "--commands"}
 SHELL_VALUE_OPTIONS = {"-O", "-o", "--init-file", "--rcfile"}
+PIPELINE_WRAPPER_VALUE_OPTIONS = {
+    "doas": {"-a", "-C", "-u"},
+    "setsid": set(),
+    "stdbuf": {"-e", "-i", "-o", "--error", "--input", "--output"},
+    "sudo": {
+        "-C", "-D", "-g", "-h", "-p", "-R", "-r", "-T", "-t", "-u",
+        "--chdir", "--chroot", "--close-from", "--command-timeout", "--group",
+        "--host", "--prompt", "--role", "--type", "--user",
+    },
+    "time": {"-f", "-o", "--format", "--output"},
+}
+PIPELINE_OPAQUE_SINKS = {
+    ".", "{", "case", "coproc", "for", "function", "if", "select", "source",
+    "until", "while",
+}
+PIPELINE_WRAPPERS = {"!", "doas", "setsid", "stdbuf", "sudo", "time"}
+XARGS_VALUE_OPTIONS = {
+    "-a", "-d", "-E", "-I", "-J", "-L", "-n", "-P", "-R", "-S", "-s",
+    "--arg-file", "--delimiter", "--logical-eof", "--max-args", "--max-chars",
+    "--max-lines", "--max-procs", "--process-slot-var", "--replstr",
+}
 ENV_VALUE_OPTIONS = {"-a", "--argv0", "-C", "--chdir", "-u", "--unset"}
 ENV_SPLIT_OPTIONS = {"-S", "--split-string"}
 EXEC_VALUE_OPTIONS = {"-a"}
@@ -67,14 +88,18 @@ SUPERPOWERS_BLOCKED_MARKERS = (
 )
 
 
-def command_segments(command: str) -> tuple[tuple[str, ...], ...]:
+def command_tokens(command: str) -> tuple[str, ...]:
     lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()")
     lexer.whitespace_split = True
     lexer.commenters = ""
     try:
-        tokens = tuple(lexer)
+        return tuple(lexer)
     except ValueError:
         return ()
+
+
+def command_segments(command: str) -> tuple[tuple[str, ...], ...]:
+    tokens = command_tokens(command)
     segments: list[tuple[str, ...]] = []
     current: list[str] = []
     for token in tokens:
@@ -183,6 +208,76 @@ def strip_leading_options(
         if option_name in value_options and "=" not in option and remaining:
             remaining.pop(0)
     return tuple(remaining)
+
+
+def pipeline_command_words(segment: tuple[str, ...]) -> tuple[str, ...]:
+    words = command_words(segment)
+    while words:
+        executable = words[0].rsplit("/", 1)[-1].lower()
+        if executable in PIPELINE_WRAPPERS:
+            words = command_words(
+                strip_leading_options(
+                    words[1:],
+                    PIPELINE_WRAPPER_VALUE_OPTIONS.get(executable, set()),
+                )
+            )
+            continue
+        if executable == "xargs":
+            dispatched = strip_leading_options(words[1:], XARGS_VALUE_OPTIONS)
+            words = command_words(dispatched) if dispatched else ("echo",)
+            continue
+        break
+    return words
+
+
+def declared_shell_functions(tokens: tuple[str, ...]) -> set[str]:
+    names: set[str] = set()
+    for index, token in enumerate(tokens):
+        if (
+            ASSIGNMENT_WORD.fullmatch(f"{token}=")
+            and index + 2 < len(tokens)
+            and tokens[index + 1] == "()"
+            and tokens[index + 2] == "{"
+        ):
+            names.add(token)
+        if token == "function" and index + 2 < len(tokens):
+            candidate = tokens[index + 1]
+            brace_index = index + 2 + (tokens[index + 2] == "()")
+            if (
+                ASSIGNMENT_WORD.fullmatch(f"{candidate}=")
+                and brace_index < len(tokens)
+                and tokens[brace_index] == "{"
+            ):
+                names.add(candidate)
+    return names
+
+
+def pipeline_sink_is_uninspectable(command: str) -> bool:
+    """Reject opaque program text or executable identity at a pipeline sink."""
+
+    tokens = command_tokens(command)
+    function_names = declared_shell_functions(tokens)
+    for pipe_index, token in enumerate(tokens):
+        if token not in {"|", "|&"}:
+            continue
+        downstream: list[str] = []
+        for candidate in tokens[pipe_index + 1:]:
+            if candidate and all(character in ";&|()" for character in candidate):
+                break
+            downstream.append(candidate)
+        words = pipeline_command_words(tuple(downstream))
+        if not words:
+            return True
+        executable = words[0]
+        executable_name = executable.rsplit("/", 1)[-1].lower()
+        if (
+            DYNAMIC_SHELL_TARGET.search(executable)
+            or executable_name in SHELL_EXECUTABLES
+            or executable_name in PIPELINE_OPAQUE_SINKS
+            or executable in function_names
+        ):
+            return True
+    return False
 
 
 def option_values(
@@ -539,6 +634,10 @@ def main() -> int:
     )
     if blocks_superpowers(command, cwd, dynamic_targets=tool_name == "Bash"):
         return emit_denial("blocked by the global forbidden-capability policy")
+    if tool_name == "Bash" and pipeline_sink_is_uninspectable(command):
+        return emit_denial(
+            "pipeline sink executable or program text is not inspectable"
+        )
 
     if tool_name == "apply_patch":
         patch_reason = patch_denial_reason(command, cwd)

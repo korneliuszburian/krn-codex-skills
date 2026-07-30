@@ -1,6 +1,6 @@
 ---
 name: to-spec
-description: Compress a settled conversation into one destination-first spec with explicit unknowns and truthful publication state. Use when the outcome is agreed but no spec exists; skip unresolved fog, slicing, and implementation.
+description: Compress a settled conversation into one destination-first spec with explicit unknowns and truthful spec-publication state. Use when the outcome is agreed but no spec exists; skip unresolved fog, slicing, and implementation.
 ---
 
 # To Spec
@@ -73,7 +73,9 @@ skill only **compresses** what is already settled.
    and state the missing authority or destination; do not invent `.scratch/` or
    another durable location.
 
-   Use one truthful publication state:
+   Use one truthful **spec-publication state**. This is scoped to the spec
+   artifact and never replaces the outcome capsule's lifecycle-level
+   `Publication state`:
 
    - `NOT_REQUESTED` — the active outcome owner accepted the exact spec without
      requesting durable publication;
@@ -90,7 +92,7 @@ skill only **compresses** what is already settled.
    <spec-result>
    Destination:
    Spec state: COMPLETE
-   Publication state: NOT_REQUESTED | PUBLISH_PENDING (<missing condition>) | PUBLISHED (<identity>)
+   Spec publication state: NOT_REQUESTED | PUBLISH_PENDING (<missing condition>) | PUBLISHED (<identity>)
    Acceptance seam:
    Explicit unknowns handed off:
    Routed to: $implement (one change) | $slice-work (multiple slices or migration stages)

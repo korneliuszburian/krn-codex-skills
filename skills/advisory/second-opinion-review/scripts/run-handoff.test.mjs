@@ -375,6 +375,63 @@ test("rejects same-device directory and file bind mounts below a disposable copy
   }
 });
 
+test("rejects a disposable root that is itself a bind mount", (t) => {
+  const mountProbe = spawnSync(
+    "unshare",
+    [
+      "--user",
+      "--map-root-user",
+      "--mount",
+      "bash",
+      "-c",
+      'probe=$(mktemp -d) && mkdir "$probe/source" "$probe/target" && mount --bind "$probe/source" "$probe/target" && umount "$probe/target" && rmdir "$probe/source" "$probe/target" "$probe"',
+    ],
+    { encoding: "utf8" },
+  );
+  if (mountProbe.status !== 0) {
+    t.skip("unprivileged private mounts are unavailable on this host");
+    return;
+  }
+
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-root-mount-test-"));
+  const handoffFile = path.join(sandbox, "handoff.md");
+  const authoritative = path.join(sandbox, "authoritative");
+  const disposableRoot = path.join(sandbox, "disposable");
+  try {
+    fs.writeFileSync(handoffFile, handoff("rewrite"));
+    fs.mkdirSync(path.join(authoritative, "input"), { recursive: true });
+    fs.writeFileSync(path.join(authoritative, "input", "owned.txt"), "authoritative\n");
+    fs.mkdirSync(disposableRoot);
+    const result = spawnSync(
+      "unshare",
+      [
+        "--user",
+        "--map-root-user",
+        "--mount",
+        "bash",
+        "-c",
+        'mount --bind "$1" "$2" && exec bash "$3" --add-dir "$2/input" job-name "$4"',
+        "root-mount-test",
+        authoritative,
+        disposableRoot,
+        scriptPath,
+        handoffFile,
+      ],
+      {
+        encoding: "utf8",
+        env: { ...process.env, SECOND_OPINION_DISPOSABLE_ROOT: disposableRoot },
+      },
+    );
+    assert.equal(result.status, 65, result.stderr);
+    assert.match(
+      result.stderr,
+      /SECOND_OPINION_DISPOSABLE_ROOT must not be a mountpoint/,
+    );
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
 test("rejects nested Git metadata, quarantined names, and hard-linked files", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-handoff-test-"));
   const handoffFile = path.join(sandbox, "handoff.md");
