@@ -557,12 +557,13 @@ export function verifyPassDirectory({
 function validJobIdentity(
   job,
   role,
-  { legacy = false, campaignId, shardId } = {},
+  { legacy = false, campaignId, campaignSha256, shardId } = {},
 ) {
   if (job.job_version !== "1") return false;
   if (role === "research") {
     return (
       job.campaign_id === campaignId &&
+      job.campaign_sha256 === campaignSha256 &&
       job.shard_id === shardId
     );
   }
@@ -579,6 +580,7 @@ function readJobState(passDirectory, role, options = {}) {
   const jobsStat = fs.lstatSync(jobsDirectory, { throwIfNoEntry: false });
   let expectedResearchJobs = null;
   let campaignId;
+  let campaignSha256;
   if (role === "research") {
     const campaignFile = path.join(passDirectory, "campaign.json");
     const campaignStat = fs.lstatSync(campaignFile, { throwIfNoEntry: false });
@@ -586,6 +588,7 @@ function readJobState(passDirectory, role, options = {}) {
     try {
       const loaded = loadCampaign(campaignFile);
       campaignId = loaded.campaign.campaign_id;
+      campaignSha256 = loaded.sha256;
       expectedResearchJobs = new Map(
         loaded.campaign.shards.map((shard) => [
           `${shard.id}.job.json`,
@@ -618,6 +621,7 @@ function readJobState(passDirectory, role, options = {}) {
         !validJobIdentity(job, role, {
           ...options,
           campaignId,
+          campaignSha256,
           shardId: expectedShardId,
         }) ||
         !new Set(["running", "complete", "failed"]).has(job.state)

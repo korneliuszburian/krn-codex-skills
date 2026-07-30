@@ -26,6 +26,7 @@ or publication.
    Publication state: NOT_REQUESTED | NOT_AUTHORIZED | LOCAL_ONLY | PUBLISH_PENDING | PR_OPEN | MERGE_READY | MERGED | DEPLOYED
    Repository base, HEAD or working-tree fingerprint, and dirty-state scope:
    Native Goal identity/state and configured tracker item/state:
+   Restart state identity/path and state: ABSENT or <semantic path> [ACTIVE | TRANSFER_PENDING | CLEANUP_PENDING]
    Authority: writes=; commit=; push=; PR=; merge=; deployment/install=
    Evidence observed:
    Explicit non-proofs:
@@ -47,17 +48,20 @@ or publication.
    and every external action's separate authority state are explicit.
 
 2. **Route only the current uncertainty.** Give a clear bounded change to
-   `$implement`; a proven failure cause also returns there. Give an unknown
-   failure to `$diagnosing-bugs`, a seam or ownership question to
-   `$codebase-design`, a contested concept to `$domain-modeling`, and an
+   `$implement`; a proven failure cause returns there only when repair and
+   mutation are authorized. Otherwise retain the bounded diagnosis result and
+   its authority state. Give an unknown failure to `$diagnosing-bugs`, a seam or
+   ownership question to `$codebase-design`, a contested concept to
+   `$domain-modeling`, and an
    external-evidence decision to `$source-to-decision`. If the destination is
    settled but its executable spec is missing, use `$to-spec`. If the settled
    spec cannot fit one fresh implementation context, use `$slice-work`, then
    advance one slice at a time. Do not copy a composed skill's procedure into
    this contract.
 
-   **Done when:** the current owner receives bounded acceptance, mutation
-   authority, relevant paths, and the evidence it must return.
+   **Done when:** the current owner receives bounded acceptance, an explicit
+   mutation-authority state (including none), relevant paths, and the evidence
+   it must return.
 
 3. **Refresh the capsule at every context boundary.** Before and after a
    delegated context, fresh session, interruption, implementation, proof,
@@ -71,18 +75,21 @@ or publication.
    `.krn/runs/` is ignored by Git. This optional restart state is owned and
    consumed by `$delivery-loop`; it contains no copied diffs, raw logs,
    credentials, or source corpora. For an accepted outcome, reconcile tracker
-   closure, run removal, and native Goal completion as one terminal sequence; do
-   not claim `COMPLETE` until all three are observed. Never complete a superseded
-   or abandoned Goal: record that state and its next owner in the tracker, request
-   the available user/system cancellation or deferral transition, and keep the run
-   while that Goal remains active. If a successor Goal needs continuity, transfer
-   only the condensed capsule and pointers into that Goal's own run, then remove
-   the original. A run never outlives its owning Goal. If the path is not already
-   ignored, keep the capsule in the active native Goal/thread state instead of
-   changing ignore rules.
+   closure when configured, run removal when restart state exists, and native Goal
+   completion when present as one terminal sequence. Record an absent tracker,
+   Goal, or run explicitly in the capsule; do not claim `COMPLETE` until every
+   participant that exists is observed terminal. Never complete a superseded or
+   abandoned Goal: when one exists, record that state and its next owner in the
+   configured tracker when one exists, request the available user/system
+   cancellation or deferral transition, and keep the run while that Goal remains
+   active. If a successor Goal needs continuity, transfer only the condensed
+   capsule and pointers into that Goal's own run, then remove the original. A run
+   never outlives its owning Goal. If the path is not already ignored, keep the
+   capsule in the active native Goal/thread state instead of changing ignore rules.
 
-   **Done when:** repository, tracker, goal, and capsule describe the same
-   current state, and any restart file has one consumer and cleanup trigger.
+   **Done when:** repository, capsule, and every configured tracker, present Goal,
+   or restart file describe the same current state; absent participants are
+   explicit, and any restart file has one consumer and cleanup trigger.
 
 4. **Prove and challenge one fixed result.** Require the focused observer and
    repository gates earned by changed risk. Then give `$code-review` the
@@ -91,9 +98,11 @@ or publication.
 
    Any change to reviewed code, base, acceptance/spec, or applicable standards
    creates a new fixed point and invalidates the old review. An accepted finding
-   returns as a bounded `$implement` repair, followed by focused proof and a
-   fresh review of the new fingerprints. Reviewer prose never substitutes for
-   the initiating workflow's disposition.
+   returns as a bounded `$implement` repair only when repair and mutation are
+   authorized, followed by focused proof and a fresh review of the new
+   fingerprints. Otherwise set `NEEDS_REVIEW` and name the authority blocker in
+   the capsule. Reviewer prose never substitutes for the initiating workflow's
+   disposition.
 
    **Done when:** acceptance is observable through the public seam, required
    proof passes, both review axes are dispositioned for the current fixed point,
@@ -102,12 +111,14 @@ or publication.
 5. **Advance only authorized lifecycle transitions.** Claim, commit, push,
    open or update a PR, merge, and deploy only under their separate authorities
    and current repository or host policy. At each shared transition, update and
-   read back the configured tracker, and confirm that any native Goal still owns
-   the current outcome. At the accepted terminal outcome, close and read back the
-   tracker, remove the restart capsule, then complete the native Goal as the final
-   state action. Superseded or abandoned work follows the non-completion branch in
-   step 3. An unavailable required write or readback is a blocker, not a reason to
-   let the capsule diverge. Update both state axes from those observations. Outcome
+   read back the configured tracker when one exists, and confirm that any native
+   Goal still owns the current outcome. At the accepted terminal outcome, close
+   and read back the tracker when configured, remove restart state when present,
+   then complete the native Goal when present as the final state action. Record
+   each absent participant explicitly. Superseded or abandoned work follows the
+   non-completion branch in step 3. An unavailable required write or readback is a
+   blocker, not a reason to let the capsule diverge. Update both state axes from
+   those observations. Outcome
    state is `ACTIVE`, `BLOCKED`, `DEFERRED`, `NEEDS_REVIEW`, `COMPLETE`,
    `SUPERSEDED`, or `ABANDONED`. Publication state is `NOT_REQUESTED`,
    `NOT_AUTHORIZED`, `LOCAL_ONLY`, `PUBLISH_PENDING`, `PR_OPEN`, `MERGE_READY`,

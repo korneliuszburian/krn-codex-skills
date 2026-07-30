@@ -292,6 +292,89 @@ test("rejects symlink escapes and unsafe content inside disposable copies", () =
   }
 });
 
+test("rejects same-device directory and file bind mounts below a disposable copy", (t) => {
+  const mountProbe = spawnSync(
+    "unshare",
+    [
+      "--user",
+      "--map-root-user",
+      "--mount",
+      "bash",
+      "-c",
+      'probe=$(mktemp -d) && mkdir "$probe/source" "$probe/target" && mount --bind "$probe/source" "$probe/target" && umount "$probe/target" && rmdir "$probe/source" "$probe/target" "$probe"',
+    ],
+    { encoding: "utf8" },
+  );
+  if (mountProbe.status !== 0) {
+    t.skip("unprivileged private mounts are unavailable on this host");
+    return;
+  }
+
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-mount-test-"));
+  const handoffFile = path.join(sandbox, "handoff.md");
+  const authoritative = path.join(sandbox, "authoritative");
+  const inputCopy = path.join(sandbox, "input");
+  const nestedMount = path.join(inputCopy, "mounted");
+  try {
+    fs.writeFileSync(handoffFile, handoff("rewrite"));
+    fs.mkdirSync(authoritative);
+    fs.writeFileSync(path.join(authoritative, "owned.txt"), "authoritative\n");
+    fs.mkdirSync(nestedMount, { recursive: true });
+    const result = spawnSync(
+      "unshare",
+      [
+        "--user",
+        "--map-root-user",
+        "--mount",
+        "bash",
+        "-c",
+        'mount --bind "$1" "$2" && exec bash "$3" --add-dir "$4" job-name "$5"',
+        "mount-test",
+        authoritative,
+        nestedMount,
+        scriptPath,
+        inputCopy,
+        handoffFile,
+      ],
+      {
+        encoding: "utf8",
+        env: { ...process.env, SECOND_OPINION_DISPOSABLE_ROOT: sandbox },
+      },
+    );
+    assert.equal(result.status, 65, result.stderr);
+    assert.match(result.stderr, /must not contain nested mounts/);
+
+    const sourceFile = path.join(authoritative, "owned.txt");
+    const mountedFile = path.join(inputCopy, "mounted.txt");
+    fs.writeFileSync(mountedFile, "placeholder\n");
+    const fileResult = spawnSync(
+      "unshare",
+      [
+        "--user",
+        "--map-root-user",
+        "--mount",
+        "bash",
+        "-c",
+        'mount --bind "$1" "$2" && exec bash "$3" --add-dir "$4" job-name "$5"',
+        "file-mount-test",
+        sourceFile,
+        mountedFile,
+        scriptPath,
+        inputCopy,
+        handoffFile,
+      ],
+      {
+        encoding: "utf8",
+        env: { ...process.env, SECOND_OPINION_DISPOSABLE_ROOT: sandbox },
+      },
+    );
+    assert.equal(fileResult.status, 65, fileResult.stderr);
+    assert.match(fileResult.stderr, /must not contain nested mounts/);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
 test("rejects nested Git metadata, quarantined names, and hard-linked files", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-handoff-test-"));
   const handoffFile = path.join(sandbox, "handoff.md");
@@ -346,7 +429,7 @@ test("rejects nested Git metadata, quarantined names, and hard-linked files", ()
     assert.equal(unreadableResult.status, 65);
     assert.match(
       unreadableResult.stderr,
-      /cannot fully validate|must not contain symlinks/,
+      /cannot validate mount boundaries|cannot fully validate|must not contain symlinks/,
     );
   } finally {
     fs.chmodSync(path.join(unreadable, "hidden"), 0o700);

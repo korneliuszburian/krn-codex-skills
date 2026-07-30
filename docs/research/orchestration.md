@@ -49,6 +49,7 @@ Outcome state: ACTIVE | BLOCKED | DEFERRED | NEEDS_REVIEW | COMPLETE | SUPERSEDE
 Publication state: NOT_REQUESTED | NOT_AUTHORIZED | LOCAL_ONLY | PUBLISH_PENDING | PR_OPEN | MERGE_READY | MERGED | DEPLOYED
 Repository base, head or working-tree fingerprint, and dirty-state scope
 Native Goal identity/state and configured tracker item/state
+Restart state identity/path and state: ABSENT or <semantic path> [ACTIVE | TRANSFER_PENDING | CLEANUP_PENDING]
 Separate authority for writes, commit, push, PR, merge, and deployment/install
 Evidence observed
 Explicit non-proofs
@@ -98,13 +99,14 @@ flowchart TD
 
   CLEAR["clear change"] --> IMPL
   FAULT["unknown failure"] --> DIAG["diagnosing-bugs"]
-  DIAG -->|cause proven + repair authorized| IMPL
-  DIAG -->|cause not proven| BOUNDED["bounded diagnosis"]
+  DIAG -->|cause proven + repair + mutation authorized| IMPL
+  DIAG -->|cause unproven, diagnose-only, or either authority absent| BOUNDED["bounded diagnosis"]
   SEAM["seam / ownership question"] --> DESIGN["codebase-design"] --> CHOSEN
 
   IMPL --> PROOF["0 / 1 / N proof"] --> REVIEW["code-review"]
   FIXED["fixed diff"] --> REVIEW
-  REVIEW -->|accepted finding; head changes| IMPL
+  REVIEW -->|accepted finding + repair + mutation authorized| IMPL
+  REVIEW -->|finding unresolved or either authority absent| NEEDS["NEEDS_REVIEW"]
   REVIEW -->|both axes green on same fixed point| PUB["authorized publication state"]
 
   FULL["full accepted outcome"] --> LOOP["delivery-loop"]

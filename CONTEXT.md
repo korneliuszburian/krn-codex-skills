@@ -44,10 +44,10 @@ It excludes transcript history and copied source material.
 
 **Outcome capsule** — a living restart record containing outcome and acceptance,
 sole writer, separate outcome and publication states, repository fixed point and
-dirty scope, Goal/tracker state, separate authorities, evidence and non-proofs,
-review disposition, owned unknowns, durable references, and the next owner. It is
-updated in place at owner or context boundaries; `$delivery-loop` owns its exact
-field ABI.
+dirty scope, Goal/tracker and restart-run identity/state, separate authorities,
+evidence and non-proofs, review disposition, owned unknowns, durable references,
+and the next owner. It is updated in place at owner or context boundaries;
+`$delivery-loop` owns its exact field ABI.
 
 **Working run** — private ignored state at
 `.krn/runs/<workflow>/<run-id>/`. It may carry a resumable capsule, prompt,

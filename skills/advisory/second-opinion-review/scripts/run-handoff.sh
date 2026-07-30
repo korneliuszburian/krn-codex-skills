@@ -181,6 +181,14 @@ if (( ${#resolved_additional_dirs[@]} > 0 )); then
     echo "SECOND_OPINION_DISPOSABLE_ROOT must be below HOME, TMPDIR, /tmp, or /var/tmp" >&2
     exit 65
   fi
+  if ! disposable_device=$(stat -c '%d' -- "$disposable_root"); then
+    echo "cannot identify SECOND_OPINION_DISPOSABLE_ROOT filesystem" >&2
+    exit 65
+  fi
+  if ! command -v mountpoint >/dev/null 2>&1; then
+    echo "cannot validate --add-dir mountpoints: mountpoint is unavailable" >&2
+    exit 65
+  fi
   disposable_mode=$(stat -c '%a' "$disposable_root")
   if (( (8#$disposable_mode & 077) != 0 )); then
     echo "SECOND_OPINION_DISPOSABLE_ROOT must not grant group or other permissions" >&2
@@ -198,6 +206,36 @@ if (( ${#resolved_additional_dirs[@]} > 0 )); then
     fi
     if git -C "$resolved_dir" rev-parse --show-toplevel >/dev/null 2>&1; then
       echo "--add-dir must be a disposable copy, not a Git checkout: $resolved_dir" >&2
+      exit 65
+    fi
+    if ! resolved_device=$(stat -c '%d' -- "$resolved_dir"); then
+      echo "cannot identify --add-dir filesystem: $resolved_dir" >&2
+      exit 65
+    fi
+    if [[ "$resolved_device" != "$disposable_device" ]]; then
+      echo "--add-dir must not itself be a nested mount: $resolved_dir" >&2
+      exit 65
+    fi
+    if ! nested_device=$(
+      find -P "$resolved_dir" -xdev -printf '%D\n' |
+        awk -v expected="$resolved_device" '$0 != expected { different = 1 } END { if (different) print "different" }'
+    ); then
+      echo "cannot validate mount boundaries below --add-dir: $resolved_dir" >&2
+      exit 65
+    fi
+    if [[ -n "$nested_device" ]]; then
+      echo "--add-dir disposable copies must not contain nested mounts: $resolved_dir" >&2
+      exit 65
+    fi
+    if ! mounted_path=$(
+      find -P "$resolved_dir" -xdev \
+        -exec mountpoint -q {} \; -print -quit
+    ); then
+      echo "cannot validate mountpoints below --add-dir: $resolved_dir" >&2
+      exit 65
+    fi
+    if [[ -n "$mounted_path" ]]; then
+      echo "--add-dir disposable copies must not contain nested mounts: $resolved_dir" >&2
       exit 65
     fi
     if ! find -P "$resolved_dir" -xdev -print >/dev/null; then

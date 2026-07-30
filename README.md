@@ -26,11 +26,14 @@ flowchart LR
   SIZE -->|no| SLICE["$slice-work"] --> IMPL
   SETTLED["settled multi-part spec"] --> SLICE
   CLEAR["clear change"] --> IMPL
-  FAULT["unknown failure"] --> DIAG["$diagnosing-bugs"] -->|cause proven + repair authorized| IMPL
+  FAULT["unknown failure"] --> DIAG["$diagnosing-bugs"]
+  DIAG -->|cause proven + repair + mutation authorized| IMPL
+  DIAG -->|cause unproven, diagnose-only, or either authority absent| STOP
   SEAM["seam question"] --> DESIGN["$codebase-design"] --> DEC
   IMPL --> PROOF["proportional proof"] --> REVIEW["$code-review<br/>Standards + Spec"]
   FIXED["fixed diff"] --> REVIEW
-  REVIEW -->|accepted finding; head changes| IMPL
+  REVIEW -->|accepted finding + repair + mutation authorized| IMPL
+  REVIEW -->|finding unresolved or either authority absent| NEEDS["NEEDS_REVIEW"]
   REVIEW -->|green fixed point| STATE["truthful publication state"]
   FULL["full accepted outcome"] --> LOOP["$delivery-loop"]
   LOOP -. coordinates an accepted end-to-end outcome .-> SPEC

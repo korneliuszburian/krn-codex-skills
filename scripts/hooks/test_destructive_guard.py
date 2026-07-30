@@ -154,6 +154,175 @@ class DestructiveGuardTests(unittest.TestCase):
             output["hookSpecificOutput"]["permissionDecisionReason"],
         )
 
+    def test_public_hook_blocks_quoted_and_dynamic_capability_names(self) -> None:
+        install = bytes(
+            (99, 111, 100, 101, 120, 32, 112, 108, 117, 103, 105, 110, 32, 97, 100, 100, 32)
+        ).decode()
+        fetch = bytes((99, 117, 114, 108, 32)).decode()
+        capability = bytes(
+            (115, 117, 112, 101, 114, 112, 111, 119, 101, 114, 115)
+        ).decode()
+        quoted = capability[:5] + '\"\"' + capability[5:]
+        escaped = capability[:5] + "\\" + capability[5:]
+        ansi_quoted = capability[:5] + "$'\\x70'" + capability[6:]
+        command_substitution = capability[:5] + "$(printf p)" + capability[6:]
+        parameter_expansion = capability[:5] + "${x}" + capability[6:]
+        dynamic_mutator = "x=d; co${x}ex plugin add " + capability
+        combined_dynamic = (
+            "x=d; y=p; co${x}ex plugin add "
+            + capability[:5]
+            + "${y}"
+            + capability[6:]
+        )
+        blocked_commands = (
+            install + quoted,
+            install + escaped,
+            "bash -lc '" + install + quoted + "'",
+            install + ansi_quoted,
+            install + command_substitution,
+            "x=p; " + install + parameter_expansion,
+            "x=p; " + fetch + parameter_expansion,
+            dynamic_mutator,
+            combined_dynamic,
+            "timeout 60 " + install + capability,
+            "rtk " + install + capability,
+            "nice -n 5 " + install + capability,
+            "codex --strict-config plugin add " + capability,
+            "codex -c foo=bar plugin add " + capability,
+            "codex plugin -c foo=bar add " + capability,
+            "git -C /tmp clone https://example.invalid/" + capability,
+            "claude --safe-mode plugin install " + capability,
+            "claude plugins install " + capability,
+            "claude plugin i " + capability,
+            "claude plugin enable " + capability,
+            "claude --plugin-url https://example.invalid/" + capability + ".zip",
+            "claude --plugin-dir /tmp/" + capability,
+            "claude --plugin-url https://example.invalid/safe.zip plugin enable "
+            + capability,
+            "claude plugin marketplace add https://example.invalid/" + capability,
+            "claude plugin marketplace update " + capability,
+            "claude plugin marketplace add --scope user --sparse plugins "
+            + "https://example.invalid/"
+            + capability,
+            "claude plugin marketplace add --sparse "
+            + capability
+            + " --scope user https://example.invalid/safe",
+            "claude plugin tag /tmp/" + capability,
+            "claude plugin init " + capability,
+            "claude plugin new " + capability,
+            "copilot --no-color plugin install " + capability,
+            "copilot --plugin-dir /tmp/" + capability + " plugin list",
+            "copilot plugin update " + capability,
+            "copilot plugin marketplace update " + capability,
+            "copilot plugin marketplace browse " + capability,
+            "gemini extension install https://example.invalid/" + capability,
+            "gemini --debug extensions install https://example.invalid/" + capability,
+            "gemini extensions enable " + capability,
+            "gemini extensions link /tmp/" + capability,
+            "gemini extensions validate /tmp/" + capability,
+            "gemini -e " + capability,
+            "gemini -e safe " + capability,
+            "gemini -e" + capability,
+            "codex -c 'plugins.\"" + capability + "@openai-curated\".enabled=true'",
+            "codex -c'plugins.\"" + capability + "@openai-curated\".enabled=true'",
+            "codex plugin marketplace upgrade " + capability,
+            "cd /tmp/" + capability + " && claude --plugin-dir .",
+            "pushd /tmp/" + capability + " && claude --plugin-dir .",
+            "bash --norc -c 'copilot plugin install " + capability + "'",
+            "bash --rcfile /dev/null -c 'gemini extension install "
+            + "https://example.invalid/"
+            + capability
+            + "'",
+            "zsh -ocorrect -c 'copilot plugin install " + capability + "'",
+            "env -u UNUSED copilot plugin install " + capability,
+            "exec -a helper copilot plugin install " + capability,
+            "env -S 'copilot plugin install " + capability + "'",
+            "env -C /tmp/" + capability + " copilot plugin list",
+            "eval 'copilot plugin install " + capability + "'",
+            "bash -c \"eval 'copilot plugin install " + capability + "'\"",
+            "if true; then copilot plugin install " + capability + "; fi",
+            "time copilot plugin install " + capability,
+            "! copilot plugin install " + capability,
+            "sudo copilot plugin install " + capability,
+            "xargs copilot plugin install " + capability,
+            "sudo bash --norc -c 'copilot plugin install " + capability + "'",
+            "time eval 'copilot plugin install " + capability + "'",
+            "printf '%s\\n' 'plugin install "
+            + capability
+            + "' | xargs -n 3 copilot",
+            "printf '%s\\n' 'copilot plugin install " + capability + "' | sh",
+            "copilot plugin install "
+            + capability[:5]
+            + "\\\n"
+            + capability[5:],
+            'if true; then cd "$Q"; fi; claude --plugin-dir .',
+            'if true; then cd "$Q"; else cd /tmp; fi; claude --plugin-dir .',
+            'copilot "$FAMILY" install "$CAPABILITY"',
+            'claude "$FAMILY" validate "$CAPABILITY_PATH"',
+            'gemini "$FAMILY" install "$CAPABILITY_URL"',
+            'codex "$FAMILY" add "$CAPABILITY"',
+        )
+        for blocked_command in blocked_commands:
+            with self.subTest(command=blocked_command):
+                payload = {
+                    "hook_event_name": "PreToolUse",
+                    "tool_name": "Bash",
+                    "cwd": str(self.repo),
+                    "tool_input": {"command": blocked_command},
+                }
+                result = subprocess.run(
+                    [sys.executable, str(HOOK)],
+                    input=json.dumps(payload),
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                output = json.loads(result.stdout)
+                self.assertEqual(
+                    output["hookSpecificOutput"]["permissionDecision"],
+                    "deny",
+                )
+                self.assertIn(
+                    "forbidden-capability",
+                    output["hookSpecificOutput"]["permissionDecisionReason"],
+                )
+
+    def test_public_hook_resolves_claude_targets_against_payload_cwd(self) -> None:
+        capability = bytes(
+            (115, 117, 112, 101, 114, 112, 111, 119, 101, 114, 115)
+        ).decode()
+        quarantined_cwd = self.root / capability
+        for blocked_command in (
+            "claude --plugin-dir .",
+            "claude plugin validate .",
+            "claude plugin tag --dry-run",
+            "copilot skill add .",
+            "gemini skills install .",
+            "gemini skills link .",
+            "gemini skills enable .",
+        ):
+            with self.subTest(command=blocked_command):
+                payload = {
+                    "hook_event_name": "PreToolUse",
+                    "tool_name": "Bash",
+                    "cwd": str(quarantined_cwd),
+                    "tool_input": {"command": blocked_command},
+                }
+                result = subprocess.run(
+                    [sys.executable, str(HOOK)],
+                    input=json.dumps(payload),
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                output = json.loads(result.stdout)
+                self.assertEqual(
+                    output["hookSpecificOutput"]["permissionDecision"],
+                    "deny",
+                )
+
     def test_public_hook_needs_no_external_proxy(self) -> None:
         payload = {
             "hook_event_name": "PreToolUse",
@@ -173,7 +342,25 @@ class DestructiveGuardTests(unittest.TestCase):
         self.assertEqual(result.stdout, "")
 
     def test_public_hook_allows_benign_command_unmodified(self) -> None:
-        for command in ("rtk pwd", "git status --short", "echo safe"):
+        for command in (
+            "rtk pwd",
+            "git status --short",
+            "echo safe",
+            "printf '%s\\n' 'curl $URL'",
+            "copilot --no-color plugin list",
+            "gemini --debug extensions list",
+            "codex -c model=o3 --version",
+            "claude --plugin-dir /tmp/safe plugin list",
+            "cd /tmp && claude --plugin-dir .",
+            "env -u UNUSED copilot plugin list",
+            "exec -a helper copilot plugin list",
+            "eval 'echo safe'",
+            "if true; then echo safe; fi",
+            "printf '%s\\n' safe | xargs -n 1 echo",
+            "printf '%s\\n' 'echo safe' | sh",
+            'copilot -p "$PROMPT"',
+            'claude -p "$PROMPT"',
+        ):
             with self.subTest(command=command):
                 payload = {
                     "hook_event_name": "PreToolUse",

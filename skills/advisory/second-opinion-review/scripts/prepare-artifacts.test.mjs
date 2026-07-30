@@ -13,6 +13,7 @@ import {
   resolveArtifactRoot,
   verifyPassDirectory,
 } from "./prepare-artifacts.mjs";
+import { loadCampaign } from "./research-campaign.mjs";
 
 const scriptPath = fileURLToPath(new URL("./prepare-artifacts.mjs", import.meta.url));
 const skillRoot = path.dirname(path.dirname(scriptPath));
@@ -152,10 +153,12 @@ function writeResearchCampaign(passDirectory, shardIds) {
     human_decisions: [],
     does_not_prove: ["Job state does not prove acceptance."],
   };
+  const campaignFile = path.join(passDirectory, "campaign.json");
   fs.writeFileSync(
-    path.join(passDirectory, "campaign.json"),
+    campaignFile,
     `${JSON.stringify(campaign, null, 2)}\n`,
   );
+  return loadCampaign(campaignFile).sha256;
 }
 
 test("explicit context resolves canonical ignored repository runs from an unrelated cwd without changing Git status", () => {
@@ -541,13 +544,14 @@ test("list enumerates flat normalized passes by role with job state", () => {
       now: new Date("2026-07-30T12:00:00Z"),
     });
 
-    writeResearchCampaign(alpha, ["alpha", "z-complete"]);
+    const alphaCampaignSha256 = writeResearchCampaign(alpha, ["alpha", "z-complete"]);
     fs.mkdirSync(path.join(alpha, "jobs"));
     fs.writeFileSync(
       path.join(alpha, "jobs", "alpha.job.json"),
       `${JSON.stringify({
         job_version: "1",
         campaign_id: "alpha",
+        campaign_sha256: alphaCampaignSha256,
         shard_id: "alpha",
         state: "failed",
       })}\n`,
@@ -557,6 +561,7 @@ test("list enumerates flat normalized passes by role with job state", () => {
       `${JSON.stringify({
         job_version: "1",
         campaign_id: "alpha",
+        campaign_sha256: alphaCampaignSha256,
         shard_id: "z-complete",
         state: "complete",
       })}\n`,
@@ -567,13 +572,17 @@ test("list enumerates flat normalized passes by role with job state", () => {
       path.join(beta, "jobs", "z-complete.job.json"),
       `${JSON.stringify({ job_version: "1", role: "check", state: "complete" })}\n`,
     );
-    writeResearchCampaign(gamma, ["source-analysis", "synthesis"]);
+    const gammaCampaignSha256 = writeResearchCampaign(
+      gamma,
+      ["source-analysis", "synthesis"],
+    );
     fs.mkdirSync(path.join(gamma, "jobs"));
     fs.writeFileSync(
       path.join(gamma, "jobs", "source-analysis.job.json"),
       `${JSON.stringify({
         job_version: "1",
         campaign_id: "alpha",
+        campaign_sha256: gammaCampaignSha256,
         shard_id: "source-analysis",
         state: "complete",
       })}\n`,
@@ -591,6 +600,7 @@ test("list enumerates flat normalized passes by role with job state", () => {
       `${JSON.stringify({
         job_version: "1",
         campaign_id: "alpha",
+        campaign_sha256: gammaCampaignSha256,
         shard_id: "orphan",
         state: "complete",
       })}\n`,
@@ -609,6 +619,50 @@ test("list enumerates flat normalized passes by role with job state", () => {
     assert.match(cli.stdout, /^role\tpass\tstate\n/);
     assert.match(cli.stdout, /research\t2026-07-28-research-alpha-/);
     assert.match(cli.stdout, /check\t2026-07-29-check-beta-/);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("research aggregation rejects jobs bound to stale campaign bytes", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-stale-campaign-"));
+  const workingRuns = path.join(sandbox, "runs");
+  try {
+    const env = isolatedEnv({ SECOND_OPINION_WORKING_RUNS: workingRuns });
+    const passDirectory = prepareArtifactDirectory({
+      slug: "stale-campaign",
+      role: "research",
+      cwd: sandbox,
+      env,
+      now: new Date("2026-07-30T12:00:00Z"),
+    });
+    const campaignSha256 = writeResearchCampaign(passDirectory, ["source"]);
+    const jobsDirectory = path.join(passDirectory, "jobs");
+    const jobFile = path.join(jobsDirectory, "source.job.json");
+    fs.mkdirSync(jobsDirectory);
+    fs.writeFileSync(
+      jobFile,
+      `${JSON.stringify({
+        job_version: "1",
+        campaign_id: "alpha",
+        campaign_sha256: "0".repeat(64),
+        shard_id: "source",
+        state: "complete",
+      })}\n`,
+    );
+    assert.equal(listPasses({ cwd: sandbox, env })[0].state, "unreadable");
+
+    fs.writeFileSync(
+      jobFile,
+      `${JSON.stringify({
+        job_version: "1",
+        campaign_id: "alpha",
+        campaign_sha256: campaignSha256,
+        shard_id: "source",
+        state: "complete",
+      })}\n`,
+    );
+    assert.equal(listPasses({ cwd: sandbox, env })[0].state, "complete");
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
   }
