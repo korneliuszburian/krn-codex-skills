@@ -84,16 +84,23 @@ when the route to the destination is settled. `$to-spec`, `$slice-work`,
    fog remain, choose the smallest downstream owner: `$to-spec` when the settled
    route still needs one spec, `$implement` when it is one clear change, or
    `$slice-work` when an existing settled spec needs multiple vertical slices or
-   migration stages. `$delivery-loop` may then compose the chosen work when the
-   user requested full lifecycle delivery; Wayfinder never starts execution.
+   migration stages; use the user when the decisions themselves complete the
+   requested outcome. When the accepted outcome includes full lifecycle delivery,
+   route to `$delivery-loop` and name that smallest owner as its first composed
+   stage. Write the next owner, composed stage when applicable, and exact handoff
+   identity into the map's **Terminal route**, close the map through the configured
+   tracker, and read back both changes before handing off. If either mutation
+   fails, leave the map open with that blocker. Wayfinder never starts execution.
 
    <wayfinder-result>
    Destination:
    Durable map identity:
    Decisions recorded:
    Remaining open tickets or fog:
-   Routed to: $to-spec | $implement | $slice-work | none-yet
+   Map state: open | closed and read back
+   Routed to: $delivery-loop composing <first-stage> | $to-spec | $implement | $slice-work | user | none-yet
    </wayfinder-result>
 
-   **Done when:** a clear route has one next owner, or the durable map remains
-   open and this session stops after its single ticket.
+   **Done when:** a clear route is durably indexed on a closed map with one next
+   owner, or the map remains honestly open and this session stops after its single
+   ticket or named closure blocker.

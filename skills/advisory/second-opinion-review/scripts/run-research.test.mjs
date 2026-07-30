@@ -268,6 +268,7 @@ test("runs read-only research and synthesis shards with durable validated result
       assert.equal(outcome.outputFile, resultPathFor(fixture.campaignFile, shardId));
       const job = JSON.parse(fs.readFileSync(jobPathFor(fixture.campaignFile, shardId)));
       assert.equal(job.state, "complete");
+      assert.deepEqual(Object.keys(job.repository).sort(), ["commit", "tree"]);
       assert.equal(job.max_budget_usd, "2");
       assert.equal(job.claude.total_cost_usd, 1.25);
       assert.equal(
@@ -298,6 +299,7 @@ test("runs read-only research and synthesis shards with durable validated result
       fs.readFileSync(resultPathFor(fixture.campaignFile, "synthesis")),
     );
     assert.equal(synthesis.research_version, "1");
+    assert.deepEqual(Object.keys(synthesis.validation.repository).sort(), ["commit", "tree"]);
     assert.equal(synthesis.result.shard_id, "synthesis");
     assert.equal(run("git", ["status", "--porcelain"], fixture.repository), "");
 
@@ -312,6 +314,38 @@ test("runs read-only research and synthesis shards with durable validated result
           env: testEnvironment,
         }),
       /research dependency evidence changed since publication/,
+    );
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("keeps validated repository research readable after the owning checkout moves", () => {
+  const fixture = makeFixture();
+  try {
+    runResearch({
+      campaignPath: fixture.campaignFile,
+      shardId: "source-analysis",
+      cwd: fixture.repository,
+      env: testEnvironment,
+      windowCheck: () => {},
+      claudeInvoker: () =>
+        envelope(structuredResult(fixture.campaign, "source-analysis")),
+    });
+
+    const relativeCampaign = path.relative(fixture.repository, fixture.campaignFile);
+    const movedRepository = path.join(fixture.sandbox, "moved-repository");
+    fs.renameSync(fixture.repository, movedRepository);
+    const movedCampaign = path.join(movedRepository, relativeCampaign);
+
+    assert.equal(
+      checkResearch({
+        campaignPath: movedCampaign,
+        shardId: "source-analysis",
+        cwd: movedRepository,
+        env: testEnvironment,
+      }).result.shard_id,
+      "source-analysis",
     );
   } finally {
     fs.rmSync(fixture.sandbox, { recursive: true, force: true });

@@ -40,7 +40,8 @@ pointer so the entrypoint remains legible.
 are on the same hierarchy level.
 
 **Working run** — ignored, private, resumable state owned by one active workflow
-and deleted when its consumer closes.
+inside one Goal. Delete it when its sole in-goal consumer finishes or that Goal
+closes; cross-Goal continuation transfers condensed truth into a new run.
 
 **Promotion gate** — working state becomes durable only when a named future
 consumer, one semantic destination, and a cleanup or supersession rule exist.

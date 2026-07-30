@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 const START = "<!-- krn-agent-workflow:start -->";
@@ -42,8 +42,8 @@ function git(root, args) {
 }
 
 function regularOrSymlink(path) {
-  if (!existsSync(path)) return false;
-  const stat = lstatSync(path);
+  const stat = lstatSync(path, { throwIfNoEntry: false });
+  if (!stat) return false;
   return stat.isFile() || stat.isSymbolicLink();
 }
 
@@ -159,15 +159,15 @@ function inspect(root) {
 
 function trackerSummary(tracker) {
   if (tracker === "beads") {
-    return "Beads owns durable task state. Create maps with `bd create --type epic`, children with `bd create --parent <map>`, edges with `bd dep add <blocked> <blocker>`, claim with `bd update <id> --claim`, query a map frontier with `bd list --parent <map> --ready`, and resolve with `bd update` / `bd close`. Keep at most one implementation item in progress.";
+    return "Beads owns durable task state and supplies the complete Wayfinder adapter. Create a map with `bd create --type epic --labels wayfinder:map --body-file <map.md> --silent`, create children with `bd create --parent <map> --labels <ticket-type> --body-file <ticket.md> --silent`, add edges with `bd dep add <blocked> <blocker>`, claim with `bd update <id> --claim`, update with `bd update <id> --body-file <ticket.md>`, query the frontier with `bd list --parent <map> --ready --json`, close with `bd close <id>`, and read back with `bd show <id> --json`. Keep at most one implementation item in progress.";
   }
   if (tracker === "github") {
-    return "GitHub issues own durable task state. Use `gh issue create|edit|view|list|close` inside this clone; child bodies link their map, `Blocked by` links encode edges, assignment claims work, and the frontier is open linked children whose blockers are closed. Keep at most one implementation item active.";
+    return "GitHub issues own durable task state through `gh issue create|edit|view|list|close` inside this clone. This thin setup is not a complete Wayfinder adapter: `$wayfinder` must stop unless closer repository instructions define exact child, edge, atomic claim, frontier, close, and readback operations. Keep at most one implementation item active.";
   }
   if (tracker === "gitlab") {
-    return "GitLab issues own durable task state. Use `glab issue create|update|view|list|close` inside this clone; child descriptions link their map, `Blocked by` links encode edges, assignment claims work, and the frontier is open linked children whose blockers are closed. Keep at most one implementation item active.";
+    return "GitLab issues own durable task state through `glab issue create|update|view|list|close` inside this clone. This thin setup is not a complete Wayfinder adapter: `$wayfinder` must stop unless closer repository instructions define exact child, edge, atomic claim, frontier, close, and readback operations. Keep at most one implementation item active.";
   }
-  return "Local Markdown under `.scratch/<map>/` owns durable task state. Use `map.md` as the index and one numbered file per child; each child records status, assignee, and `Blocked by` links. The frontier is open unclaimed children with closed blockers. Keep at most one implementation item active.";
+  return "Local Markdown under `.scratch/<map>/` owns durable task state through `map.md` plus numbered child files. This thin setup is not a complete Wayfinder adapter: `$wayfinder` must stop unless closer repository instructions define exact create, edge, atomic claim, frontier, close, and readback operations. Keep at most one implementation item active.";
 }
 
 function domainSummary(domain) {
@@ -191,7 +191,7 @@ function managedBlock(tracker, domain, delivery) {
 - **Tracker:** ${trackerSummary(tracker)}
 - **Domain knowledge:** ${domainSummary(domain)}
 - **Delivery:** ${deliverySummary(delivery)}
-- **Transient runs:** Keep resumable workflow state under the ignored \`.krn/runs/<workflow>/<run-id>/\`. The creating workflow owns cleanup when its task is accepted, superseded, or abandoned.
+- **Transient runs:** Keep resumable workflow state under the ignored \`.krn/runs/<workflow>/<run-id>/\`. Delete it when its sole in-goal consumer finishes or its owning Goal closes; cross-Goal continuation transfers condensed truth into the successor's own run first.
 
 Installed global skills own implementation, diagnosis, review, and reusable engineering procedure. Do not copy or rename them in this repository.
 ${END}`;
@@ -244,13 +244,24 @@ function thinAgentsTemplate(root) {
 // (e.g. bd) never fills the void with its own always-loaded reference bloat.
 function bootstrapInstructionIfAbsent(root) {
   const state = instructionState(root);
-  if (state.hasAgents || state.hasClaude) return;
+  if (state.hasAgents || state.hasClaude) return [];
+  for (const candidate of [state.agents, state.claude]) {
+    if (lstatSync(candidate, { throwIfNoEntry: false })) {
+      fail(`instruction bootstrap destination is occupied: ${relative(root, candidate)}`);
+    }
+  }
   writeFileSync(state.agents, thinAgentsTemplate(root));
   try {
     symlinkSync("AGENTS.md", state.claude);
-  } catch {
-    // CLAUDE.md is optional; ignore if it cannot be created.
+  } catch (error) {
+    try {
+      unlinkSync(state.agents);
+    } catch {
+      // The command still fails closed and reports the partial-path risk.
+    }
+    fail(`cannot create shared CLAUDE.md instruction owner: ${error.message}`);
   }
+  return ["AGENTS.md", "CLAUDE.md"];
 }
 
 const { command, options } = parseArgs(process.argv.slice(2));
@@ -275,7 +286,7 @@ const managedFiles = new Map([
 ]);
 for (const [path, contents] of managedFiles) assertManagedFileSafe(root, path, contents);
 
-bootstrapInstructionIfAbsent(root);
+const bootstrapped = bootstrapInstructionIfAbsent(root);
 const instructionPath = chooseInstruction(root, options.instruction);
 assertInstructionSafe(root, instructionPath);
 const current = readFileSync(instructionPath, "utf8");
@@ -284,11 +295,17 @@ const next = replaceManagedBlock(current, managedBlock(tracker, domain, delivery
 writeOwned(instructionPath, next);
 for (const [path, contents] of managedFiles) writeOwned(path, contents);
 
+const written = [...new Set([
+  ...bootstrapped,
+  relative(root, instructionPath),
+  ...[...managedFiles.keys()].map((path) => relative(root, path)),
+])];
+
 process.stdout.write(`${JSON.stringify({
   root,
   instruction: relative(root, instructionPath),
   tracker,
   domain,
   delivery,
-  written: [relative(root, instructionPath), ".krn/runs/.gitignore"],
+  written,
 }, null, 2)}\n`);

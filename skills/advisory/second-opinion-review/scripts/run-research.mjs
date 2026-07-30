@@ -51,6 +51,13 @@ function repositoryIdentity(cwd) {
   };
 }
 
+function repositoryFixedPoint(repository) {
+  return {
+    commit: repository.commit,
+    tree: repository.tree,
+  };
+}
+
 function assertRepositoryUnchanged(expected) {
   const observed = repositoryIdentity(expected.root);
   if (observed.commit !== expected.commit || observed.tree !== expected.tree) {
@@ -322,7 +329,6 @@ export function checkResearch({
     fail("research result uses a stale campaign");
   }
   if (
-    validation.repository?.root !== repository.root ||
     validation.repository?.commit !== repository.commit ||
     validation.repository?.tree !== repository.tree
   ) {
@@ -451,7 +457,7 @@ export function runResearch({
     campaign_id: campaign.campaign_id,
     shard_id: shard.id,
     campaign_sha256: campaignSha256,
-    repository,
+    repository: repositoryFixedPoint(repository),
     requested_model: model,
     effort,
     max_budget_usd: budget,
@@ -528,7 +534,7 @@ export function runResearch({
       research_version: "1",
       validation: {
         campaign_sha256: campaignSha256,
-        repository,
+        repository: repositoryFixedPoint(repository),
         source_evidence: sourceEvidence,
         dependencies: dependencies.map((dependency) => ({
           shard_id: dependency.wrapper.result.shard_id,

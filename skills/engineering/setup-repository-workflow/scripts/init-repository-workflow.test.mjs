@@ -21,13 +21,38 @@ function apply(root, extra = []) {
 test("apply bootstraps a thin AGENTS.md and CLAUDE.md symlink when none exists", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-repo-setup-empty-"));
   execFileSync("git", ["init", "-q", root]);
-  apply(root);
+  const result = JSON.parse(apply(root));
   const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
   assert.match(agents, /Methodology/);
   assert.match(agents, /global skills/);
   assert.match(agents, /krn-agent-workflow:start/);
   assert.equal(realpathSync(join(root, "CLAUDE.md")), realpathSync(join(root, "AGENTS.md")));
   assert.doesNotMatch(agents, /bd prime|BEADS INTEGRATION|Never stop before pushing/i);
+  assert.deepEqual(
+    [...result.written].sort(),
+    [".krn/runs/.gitignore", "AGENTS.md", "CLAUDE.md"],
+  );
+  const changed = execFileSync(
+    "git",
+    ["-C", root, "status", "--porcelain", "--untracked-files=all"],
+    { encoding: "utf8" },
+  ).trim().split("\n").filter(Boolean).map((line) => line.slice(3)).sort();
+  assert.deepEqual(changed, [...result.written].sort());
+});
+
+test("bootstrap fails closed on an occupied CLAUDE.md destination", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-repo-setup-bootstrap-collision-"));
+  execFileSync("git", ["init", "-q", root]);
+  mkdirSync(join(root, "CLAUDE.md"));
+  const result = spawnSync(
+    process.execPath,
+    [script, "apply", "--root", root, "--tracker", "beads", "--domain", "single", "--delivery", "strict"],
+    { encoding: "utf8" },
+  );
+  assert.equal(result.status, 64);
+  assert.match(result.stderr, /instruction bootstrap destination is occupied: CLAUDE\.md/);
+  assert.equal(existsSync(join(root, "AGENTS.md")), false);
+  assert.equal(existsSync(join(root, ".krn")), false);
 });
 
 test("apply preserves user prose and is byte-idempotent", () => {
@@ -42,6 +67,8 @@ test("apply preserves user prose and is byte-idempotent", () => {
   assert.equal((second["AGENTS.md"].match(/krn-agent-workflow:start/g) ?? []).length, 1);
   assert.match(second["AGENTS.md"], /Beads owns durable task state/);
   assert.match(second["AGENTS.md"], /bd list --parent <map> --ready/);
+  assert.match(second["AGENTS.md"], /bd show <id> --json/);
+  assert.match(second["AGENTS.md"], /complete Wayfinder adapter/);
   assert.match(second["AGENTS.md"], /\.krn\/runs\/<workflow>\/<run-id>/);
 });
 
@@ -141,6 +168,7 @@ test("apply can reconfigure the compact managed block", () => {
   execFileSync(process.execPath, [script, "apply", "--root", root, "--tracker", "github", "--domain", "multi", "--delivery", "local"], { encoding: "utf8" });
   const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
   assert.match(agents, /GitHub issues own durable task state/);
+  assert.match(agents, /not a complete Wayfinder adapter/);
   assert.match(agents, /root `CONTEXT\.md` as the compact index/);
   assert.doesNotMatch(agents, /CONTEXT-MAP\.md/);
   assert.match(agents, /Branch, PR, CI, merge, and deployment follow explicit/);

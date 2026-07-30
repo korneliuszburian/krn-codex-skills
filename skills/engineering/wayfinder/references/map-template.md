@@ -43,6 +43,14 @@ on an open decision. It excludes decisions, live tickets, and out-of-scope work.
 
 Work beyond the destination. It never graduates unless the user redraws the
 destination as a new effort.
+
+## Terminal route
+
+`OPEN` while tickets or fog remain. When the way is clear, record `ROUTED`, the
+exact next owner (`$delivery-loop`, `$to-spec`, `$implement`, `$slice-work`, or
+the user), its first composed stage when `$delivery-loop` owns full lifecycle,
+and the handoff identity, then close and read back the map through the configured
+tracker. An empty frontier without this terminal record is not a closed outcome.
 </map-template>
 
 ## Ticket Body

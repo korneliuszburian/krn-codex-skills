@@ -67,11 +67,13 @@ check transport when a fixed artifact only needs an adversarial challenge.
 
    **`OUTPUT_ROOT` contract.** `OUTPUT_ROOT` is the resolved absolute
    `.krn/runs/second-opinion-review` directory, or the explicit ad-hoc root's
-   `second-opinion-review` child, recorded in `pass-context.json`. It is a
-   contract value, not another environment override. A pass always lives at
-   `<OUTPUT_ROOT>/<ISO-date>-<role>-<slug>-<suffix>/`. Resolve the repository by
-   realpath, then its fixed repository-relative runs root, so moving the checkout
-   between physical locations cannot change ownership.
+   `second-opinion-review` child. It is a derived contract value, not another
+   environment override. A repository pass records the repository-relative owner
+   and immutable anchor in `pass-context.json`, then derives `OUTPUT_ROOT` from the
+   current canonical checkout during every verification; an ad-hoc pass records
+   its explicit absolute working root. A pass always lives at
+   `<OUTPUT_ROOT>/<ISO-date>-<role>-<slug>-<suffix>/`, so moving a repository
+   checkout between physical locations cannot change ownership.
 
    **Done when:** this pass has exactly one verified `0700` directory under the
    resolved working root, and every brief, prompt, job record, review result,
@@ -160,9 +162,12 @@ check transport when a fixed artifact only needs an adversarial challenge.
    external retry loop. Before stopping after a terminal checker failure, write
    `disposition.md` inside the same pass with `status: blocked`, the exact
    diagnostic, and the next owner. Remove the disposable worktree after its
-   candidate changes are accepted or rejected. Keep `pass_dir` while its issue,
-   goal, or follow-up depends on the evidence, then delete it directly when no
-   durable consumer remains. Only a research pass with a named future consumer may
+   candidate changes are accepted or rejected. `pass_dir` belongs to the initiating
+   Goal: keep it only while that Goal's current consumer depends on the evidence,
+   then delete it before the Goal closes. A separate follow-up never retains the
+   original run; first transfer condensed truth and pointers into the successor
+   Goal's own run or an earned semantic destination. Only a research pass with a
+   named future consumer may
    first hand its validated ledger to `$source-to-decision`; that workflow may
    promote only the distilled decision through its semantic gate. Check and rewrite
    output do not route through research merely for retention. The runners delete

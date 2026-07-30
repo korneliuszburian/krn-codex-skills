@@ -52,15 +52,43 @@ resolved_additional_dirs=()
 home_directory=$(readlink -f "$HOME")
 protected_agent_config_dirs=()
 for config_dir in "$HOME/.codex" "$HOME/.agents" "$HOME/.claude" \
-  "${CLAUDE_CONFIG_DIR:-}"; do
+  "${CODEX_HOME:-}" "${CLAUDE_CONFIG_DIR:-}"; do
   if [[ -z "$config_dir" ]]; then
     continue
   fi
   if [[ "$config_dir" != /* ]]; then
     config_dir="$PWD/$config_dir"
   fi
-  protected_agent_config_dirs+=("$(readlink -m "$config_dir")")
+  lexical_config_dir=$(realpath -ms -- "$config_dir")
+  protected_agent_config_dirs+=("$lexical_config_dir")
+  if [[ -e "$config_dir" || -L "$config_dir" ]]; then
+    physical_config_dir=$(readlink -f "$config_dir")
+    if [[ "$physical_config_dir" != "$lexical_config_dir" ]]; then
+      protected_agent_config_dirs+=("$physical_config_dir")
+    fi
+  fi
 done
+
+path_overlaps() {
+  local left=$1
+  local right=$2
+  [[
+    "$left" == "$right" ||
+    "$left" == "$right"/* ||
+    "$right" == "$left"/*
+  ]]
+}
+
+assert_not_protected() {
+  local candidate=$1
+  for config_dir in "${protected_agent_config_dirs[@]}"; do
+    if path_overlaps "$candidate" "$config_dir"; then
+      echo "refusing broad or agent-configuration --add-dir path: $candidate" >&2
+      exit 65
+    fi
+  done
+}
+
 for requested_dir in "${additional_dirs[@]}"; do
   if [[
     "$requested_dir" != /* ||
@@ -76,22 +104,21 @@ for requested_dir in "${additional_dirs[@]}"; do
       exit 65
       ;;
   esac
-  lexical_dir=$(readlink -m "$requested_dir")
-  for config_dir in "${protected_agent_config_dirs[@]}"; do
-    if [[
-      "$lexical_dir" == "$config_dir" ||
-      "$lexical_dir" == "$config_dir"/* ||
-      "$config_dir" == "$lexical_dir"/*
-    ]]; then
-      echo "refusing broad or agent-configuration --add-dir path: $lexical_dir" >&2
-      exit 65
-    fi
-  done
+  lexical_dir=$(realpath -ms -- "$requested_dir")
+  if [[ "$requested_dir" != "$lexical_dir" ]]; then
+    echo "--add-dir must use its canonical absolute spelling: $requested_dir" >&2
+    exit 65
+  fi
+  assert_not_protected "$lexical_dir"
   if [[ ! -d "$requested_dir" ]]; then
     echo "--add-dir path is not a directory: $requested_dir" >&2
     exit 66
   fi
   resolved_dir=$(readlink -f "$requested_dir")
+  if [[ "$lexical_dir" != "$resolved_dir" ]]; then
+    echo "--add-dir must not cross a symlink: $requested_dir" >&2
+    exit 65
+  fi
   if [[ "$home_directory" == "$resolved_dir"/* ]]; then
     echo "refusing --add-dir ancestor of the home directory: $resolved_dir" >&2
     exit 65
@@ -102,16 +129,7 @@ for requested_dir in "${additional_dirs[@]}"; do
       exit 65
       ;;
   esac
-  for config_dir in "${protected_agent_config_dirs[@]}"; do
-    if [[
-      "$resolved_dir" == "$config_dir" ||
-      "$resolved_dir" == "$config_dir"/* ||
-      "$config_dir" == "$resolved_dir"/*
-    ]]; then
-      echo "refusing broad or agent-configuration --add-dir path: $resolved_dir" >&2
-      exit 65
-    fi
-  done
+  assert_not_protected "$resolved_dir"
   case "${resolved_dir,,}" in
     *superpowers*)
       echo "refusing hard-quarantined --add-dir path" >&2
@@ -120,6 +138,106 @@ for requested_dir in "${additional_dirs[@]}"; do
   esac
   resolved_additional_dirs+=("$resolved_dir")
 done
+
+if (( ${#resolved_additional_dirs[@]} > 0 )); then
+  disposable_root=${SECOND_OPINION_DISPOSABLE_ROOT:-}
+  if [[
+    "$disposable_root" != /* ||
+    "$disposable_root" == *$'\n'* ||
+    "$disposable_root" == *$'\r'*
+  ]]; then
+    echo "--add-dir requires an absolute SECOND_OPINION_DISPOSABLE_ROOT" >&2
+    exit 65
+  fi
+  if [[ ! -d "$disposable_root" ]]; then
+    echo "SECOND_OPINION_DISPOSABLE_ROOT is not a directory: $disposable_root" >&2
+    exit 66
+  fi
+  lexical_disposable_root=$(realpath -ms -- "$disposable_root")
+  if [[ "$disposable_root" != "$lexical_disposable_root" ]]; then
+    echo "SECOND_OPINION_DISPOSABLE_ROOT must use its canonical absolute spelling" >&2
+    exit 65
+  fi
+  disposable_root=$(readlink -f "$disposable_root")
+  if [[ "$lexical_disposable_root" != "$disposable_root" ]]; then
+    echo "SECOND_OPINION_DISPOSABLE_ROOT must not cross a symlink" >&2
+    exit 65
+  fi
+  assert_not_protected "$disposable_root"
+  disposable_root_allowed=false
+  allowed_disposable_parents=("$home_directory")
+  for candidate in "${TMPDIR:-/tmp}" /tmp /var/tmp; do
+    if [[ -d "$candidate" ]]; then
+      allowed_disposable_parents+=("$(readlink -f "$candidate")")
+    fi
+  done
+  for allowed_parent in "${allowed_disposable_parents[@]}"; do
+    if [[ "$disposable_root" == "$allowed_parent"/* ]]; then
+      disposable_root_allowed=true
+      break
+    fi
+  done
+  if [[ "$disposable_root_allowed" != true ]]; then
+    echo "SECOND_OPINION_DISPOSABLE_ROOT must be below HOME, TMPDIR, /tmp, or /var/tmp" >&2
+    exit 65
+  fi
+  disposable_mode=$(stat -c '%a' "$disposable_root")
+  if (( (8#$disposable_mode & 077) != 0 )); then
+    echo "SECOND_OPINION_DISPOSABLE_ROOT must not grant group or other permissions" >&2
+    exit 65
+  fi
+  if git -C "$disposable_root" rev-parse --show-toplevel >/dev/null 2>&1; then
+    echo "SECOND_OPINION_DISPOSABLE_ROOT must not be inside a Git checkout" >&2
+    exit 65
+  fi
+
+  for resolved_dir in "${resolved_additional_dirs[@]}"; do
+    if [[ "$resolved_dir" != "$disposable_root"/* ]]; then
+      echo "--add-dir must be a strict child of SECOND_OPINION_DISPOSABLE_ROOT: $resolved_dir" >&2
+      exit 65
+    fi
+    if git -C "$resolved_dir" rev-parse --show-toplevel >/dev/null 2>&1; then
+      echo "--add-dir must be a disposable copy, not a Git checkout: $resolved_dir" >&2
+      exit 65
+    fi
+    if ! find -P "$resolved_dir" -xdev -print >/dev/null; then
+      echo "cannot fully validate --add-dir disposable copy: $resolved_dir" >&2
+      exit 65
+    fi
+    if ! unsafe_match=$(find -P "$resolved_dir" -xdev -type l -print -quit); then
+      echo "cannot validate symlinks below --add-dir: $resolved_dir" >&2
+      exit 65
+    fi
+    if [[ -n "$unsafe_match" ]]; then
+      echo "--add-dir disposable copies must not contain symlinks: $resolved_dir" >&2
+      exit 65
+    fi
+    if ! unsafe_match=$(find -P "$resolved_dir" -xdev -name .git -print -quit); then
+      echo "cannot validate Git metadata below --add-dir: $resolved_dir" >&2
+      exit 65
+    fi
+    if [[ -n "$unsafe_match" ]]; then
+      echo "--add-dir disposable copies must not contain Git metadata: $resolved_dir" >&2
+      exit 65
+    fi
+    if ! unsafe_match=$(find -P "$resolved_dir" -xdev -iname '*superpowers*' -print -quit); then
+      echo "cannot validate quarantined content below --add-dir: $resolved_dir" >&2
+      exit 65
+    fi
+    if [[ -n "$unsafe_match" ]]; then
+      echo "refusing hard-quarantined content below --add-dir" >&2
+      exit 65
+    fi
+    if ! unsafe_match=$(find -P "$resolved_dir" -xdev -type f -links +1 -print -quit); then
+      echo "cannot validate hardlinks below --add-dir: $resolved_dir" >&2
+      exit 65
+    fi
+    if [[ -n "$unsafe_match" ]]; then
+      echo "--add-dir disposable copies must not contain hard-linked files: $resolved_dir" >&2
+      exit 65
+    fi
+  done
+fi
 
 if [[ "$job_name" == *$'\n'* || ${#job_name} -lt 3 || ${#job_name} -gt 80 ]]; then
   echo "descriptive name must contain 3-80 characters on one line" >&2

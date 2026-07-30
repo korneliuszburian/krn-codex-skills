@@ -43,14 +43,18 @@ accepted outcome, canonical language, decisions, evidence, unknowns, and links.
 It excludes transcript history and copied source material.
 
 **Outcome capsule** — a living restart record containing outcome and acceptance,
-current owner and state, repository fixed point, authority, evidence and
-non-proofs, open unknowns, durable references, and the next owner. It is updated
-in place at owner or context boundaries.
+sole writer, separate outcome and publication states, repository fixed point and
+dirty scope, Goal/tracker state, separate authorities, evidence and non-proofs,
+review disposition, owned unknowns, durable references, and the next owner. It is
+updated in place at owner or context boundaries; `$delivery-loop` owns its exact
+field ABI.
 
 **Working run** — private ignored state at
 `.krn/runs/<workflow>/<run-id>/`. It may carry a resumable capsule, prompt,
 manifest, job state, or review evidence while its goal is open. It is not a
-durable report.
+durable report. Delete it when its sole in-goal consumer finishes or its owning
+Goal closes, whichever comes first. Cross-Goal continuation first transfers only
+condensed truth and pointers into the successor's own run.
 
 **Promotion gate** — working material becomes durable only when a named future
 consumer, canonical semantic destination, and cleanup or supersession rule all

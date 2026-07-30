@@ -21,7 +21,9 @@ or publication.
 
    <outcome-capsule>
    Outcome and observable acceptance:
-   Current workflow owner, sole writer, and lifecycle state:
+   Current workflow owner and sole writer:
+   Outcome state: ACTIVE | BLOCKED | DEFERRED | NEEDS_REVIEW | COMPLETE | SUPERSEDED | ABANDONED
+   Publication state: NOT_REQUESTED | NOT_AUTHORIZED | LOCAL_ONLY | PUBLISH_PENDING | PR_OPEN | MERGE_READY | MERGED | DEPLOYED
    Repository base, HEAD or working-tree fingerprint, and dirty-state scope:
    Native Goal identity/state and configured tracker item/state:
    Authority: writes=; commit=; push=; PR=; merge=; deployment/install=
@@ -68,10 +70,16 @@ or publication.
    `.krn/runs/delivery-loop/<outcome-id>/state.md`, but only after verifying
    `.krn/runs/` is ignored by Git. This optional restart state is owned and
    consumed by `$delivery-loop`; it contains no copied diffs, raw logs,
-   credentials, or source corpora. The loop that created it removes it when the
-   outcome is accepted, superseded, or abandoned unless the user explicitly
-   requests longer retention. If the path is not already ignored, keep the
-   capsule in the active native Goal/thread state instead of changing ignore rules.
+   credentials, or source corpora. For an accepted outcome, reconcile tracker
+   closure, run removal, and native Goal completion as one terminal sequence; do
+   not claim `COMPLETE` until all three are observed. Never complete a superseded
+   or abandoned Goal: record that state and its next owner in the tracker, request
+   the available user/system cancellation or deferral transition, and keep the run
+   while that Goal remains active. If a successor Goal needs continuity, transfer
+   only the condensed capsule and pointers into that Goal's own run, then remove
+   the original. A run never outlives its owning Goal. If the path is not already
+   ignored, keep the capsule in the active native Goal/thread state instead of
+   changing ignore rules.
 
    **Done when:** repository, tracker, goal, and capsule describe the same
    current state, and any restart file has one consumer and cleanup trigger.
@@ -93,11 +101,20 @@ or publication.
 
 5. **Advance only authorized lifecycle transitions.** Claim, commit, push,
    open or update a PR, merge, and deploy only under their separate authorities
-   and current repository or host policy. Update the capsule after each observed
-   transition. Use the smallest truthful state: `LOCAL_COMPLETE`,
-   `PUBLISH_PENDING`, `PR_OPEN`, `MERGE_READY`, or `DONE`; local green checks do
-   not imply a remote state.
+   and current repository or host policy. At each shared transition, update and
+   read back the configured tracker, and confirm that any native Goal still owns
+   the current outcome. At the accepted terminal outcome, close and read back the
+   tracker, remove the restart capsule, then complete the native Goal as the final
+   state action. Superseded or abandoned work follows the non-completion branch in
+   step 3. An unavailable required write or readback is a blocker, not a reason to
+   let the capsule diverge. Update both state axes from those observations. Outcome
+   state is `ACTIVE`, `BLOCKED`, `DEFERRED`, `NEEDS_REVIEW`, `COMPLETE`,
+   `SUPERSEDED`, or `ABANDONED`. Publication state is `NOT_REQUESTED`,
+   `NOT_AUTHORIZED`, `LOCAL_ONLY`, `PUBLISH_PENDING`, `PR_OPEN`, `MERGE_READY`,
+   `MERGED`, or `DEPLOYED`; local green checks do not imply a remote state.
 
    **Done when:** the capsule exposes the achieved outcome, current evidence and
    non-proofs, review identity, actual publication state, and either no remaining
    required transition or one blocker with its owner and requested action.
+   `COMPLETE` additionally requires terminal Goal and tracker readback wherever
+   they exist; `SUPERSEDED` and `ABANDONED` never imply Goal completion.

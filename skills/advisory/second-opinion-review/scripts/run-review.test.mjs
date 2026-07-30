@@ -242,6 +242,7 @@ test("retries oversized evidence until the checker splits it without data loss",
     );
 
     const job = JSON.parse(fs.readFileSync(fixture.job, "utf8"));
+    assert.equal(job.role, "check");
     assert.equal(job.state, "complete");
     assert.equal(job.attempt, 2);
     assert.equal(job.max_attempts, 2);

@@ -24,7 +24,7 @@ or an oversized skill catalog?
 
 ## Breakthrough: compile context at boundaries
 
-The durable unit is not a chat transcript, report directory, or autonomous
+The continuity unit is not a chat transcript, report directory, or autonomous
 memory service. It is a compact **outcome capsule** that is rewritten whenever
 ownership or context changes. The next owner reconstructs the task from that
 capsule plus current repository/tracker state.
@@ -40,18 +40,22 @@ flowchart LR
   FRESH --> CAPSULE
 ```
 
-The capsule contains exactly:
+`delivery-loop` owns the exact capsule ABI:
 
 ```text
 Outcome and observable acceptance
-Current owner and lifecycle state
-Repository base/head or working-tree fingerprint
-Tracker item and native Goal identity
-Authority for writes, publication, merge, and deployment
-Evidence observed and explicit non-proofs
+Current workflow owner and sole writer
+Outcome state: ACTIVE | BLOCKED | DEFERRED | NEEDS_REVIEW | COMPLETE | SUPERSEDED | ABANDONED
+Publication state: NOT_REQUESTED | NOT_AUTHORIZED | LOCAL_ONLY | PUBLISH_PENDING | PR_OPEN | MERGE_READY | MERGED | DEPLOYED
+Repository base, head or working-tree fingerprint, and dirty-state scope
+Native Goal identity/state and configured tracker item/state
+Separate authority for writes, commit, push, PR, merge, and deployment/install
+Evidence observed
+Explicit non-proofs
+Review fixed point and Standards / Spec disposition
 Open unknowns and blockers with owners
-Durable context / ADR / research references
-One next bounded owner and action
+Durable CONTEXT / ADR / research references
+Next bounded owner and action
 ```
 
 For a multi-session outcome, the native Goal owns current thread continuation;
@@ -68,6 +72,10 @@ durable report.
 ```mermaid
 flowchart TD
   FOG["foggy multi-session effort"] --> WAY["explicit wayfinder"]
+  CONCEPT["contested concept"] --> DM
+  CHOICES["foggy choices"] --> DM
+  SOURCE["source claim / external evidence"] --> S2D
+  QUESTION["one design question"] --> PROTO
   WAY --> DM["domain-modeling"]
   WAY --> S2D["source-to-decision"]
   WAY --> PROTO["prototype"]
@@ -79,11 +87,14 @@ flowchart TD
 
   THREAD["settled conversation"] --> SPEC["to-spec"]
   CHOSEN -->|spec needed| SPEC
-  CHOSEN -->|one clear change| IMPL
+  CHOSEN -->|full lifecycle requested| LOOP
+  CHOSEN -->|one clear change + writes authorized| IMPL
   CHOSEN -->|settled multi-change spec exists| SLICE
+  CHOSEN -->|decision only / deferred| TERMINAL
   SPEC --> SIZE{"one production slice?"}
   SIZE -->|yes| IMPL["implement"]
   SIZE -->|no| SLICE["slice-work"] --> IMPL
+  SETTLED["settled multi-part spec"] --> SLICE
 
   CLEAR["clear change"] --> IMPL
   FAULT["unknown failure"] --> DIAG["diagnosing-bugs"]
@@ -92,10 +103,12 @@ flowchart TD
   SEAM["seam / ownership question"] --> DESIGN["codebase-design"] --> CHOSEN
 
   IMPL --> PROOF["0 / 1 / N proof"] --> REVIEW["code-review"]
+  FIXED["fixed diff"] --> REVIEW
   REVIEW -->|accepted finding; head changes| IMPL
   REVIEW -->|both axes green on same fixed point| PUB["authorized publication state"]
 
-  LOOP["delivery-loop"] -. owns lifecycle transitions, not stage procedure .-> SPEC
+  FULL["full accepted outcome"] --> LOOP["delivery-loop"]
+  LOOP -. owns lifecycle transitions, not stage procedure .-> SPEC
   LOOP -.-> IMPL
   LOOP -.-> REVIEW
 ```
@@ -122,7 +135,7 @@ Wrappers and companions:
 | Shared vocabulary and current system map | `CONTEXT.md` | rewritten when a term or relationship changes |
 | Consequential hard-to-reverse trade-off | `docs/adr/<id>-<slug>.md` | created rarely; superseded explicitly |
 | Source-backed engineering decision | `docs/research/<topic>.md` | created only for a named consumer, then merged in place; claim stays near provenance and falsifier |
-| Resumable prompt, job, packet, shard, or capsule | `.krn/runs/<workflow>/<run-id>/` | ignored, private, deleted when its consumer closes |
+| Resumable prompt, job, packet, shard, or capsule | `.krn/runs/<workflow>/<run-id>/` | ignored and private; delete when its in-goal consumer finishes or owning Goal closes; cross-Goal continuation transfers condensed truth to a new run |
 | Review result | initiating outcome, PR, or issue thread tied to one fixed point | condensed into the capsule when continuation needs it; invalid when base/head/Spec/Standards changes |
 
 There is no `retained_reports`, `discovery`, or generic `capabilities` artifact
@@ -195,7 +208,8 @@ evidence actually supports: no concurrent mutation of the same outcome state.
    evidence`, `fixed diff`, and `clear change`, compare canonical words,
    natural synonyms, and nearest negatives across supported models.
 3. **Artifact test:** every durable file must name its consumer and
-   supersession/cleanup rule; every run must disappear when that consumer closes.
+   supersession/cleanup rule; every run must disappear when its in-goal consumer
+   finishes or its owning Goal closes.
 4. **Path test:** create, list, and resume a second-opinion pass through a
    symlinked or moved checkout without a JSON resolver or exposed unignored data.
 5. **Review test:** changing any member of the fixed-point identity must

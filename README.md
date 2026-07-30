@@ -9,21 +9,31 @@ compiled into a few semantic artifacts instead of accumulated as reports.
 ```mermaid
 flowchart LR
   FOG["foggy multi-session effort"] --> WAY["explicit $wayfinder"]
-  WAY --> DEC["domain-modeling / source-to-decision / prototype"]
+  WAY --> DEC["settled decision"]
+  CONCEPT["contested concept"] --> DM["$domain-modeling"] --> DEC
+  CHOICES["foggy choices"] --> DM
+  SOURCE["source claim / external evidence"] --> S2D["$source-to-decision"] --> DEC
+  QUESTION["one design question"] --> PROTO["$prototype"] --> DEC
   THREAD["settled conversation"] --> SPEC["$to-spec"]
-  DEC --> NEEDSPEC{"spec needed?"}
-  NEEDSPEC -->|yes| SPEC
-  NEEDSPEC -->|one clear change| IMPL
+  DEC --> NEXT{"next owner?"}
+  NEXT -->|decision only / defer| STOP["bounded decision state"]
+  NEXT -->|full lifecycle requested| LOOP
+  NEXT -->|spec missing| SPEC
+  NEXT -->|one clear change + writes authorized| IMPL
+  NEXT -->|settled multi-change spec| SLICE
   SPEC --> SIZE{"one implementation slice?"}
   SIZE -->|yes| IMPL["$implement"]
   SIZE -->|no| SLICE["$slice-work"] --> IMPL
+  SETTLED["settled multi-part spec"] --> SLICE
   CLEAR["clear change"] --> IMPL
-  FAULT["unknown failure"] --> DIAG["$diagnosing-bugs"] -->|proven cause| IMPL
-  SEAM["seam question"] --> DESIGN["$codebase-design"] --> IMPL
+  FAULT["unknown failure"] --> DIAG["$diagnosing-bugs"] -->|cause proven + repair authorized| IMPL
+  SEAM["seam question"] --> DESIGN["$codebase-design"] --> DEC
   IMPL --> PROOF["proportional proof"] --> REVIEW["$code-review<br/>Standards + Spec"]
-  REVIEW -->|finding creates a new fixed point| IMPL
+  FIXED["fixed diff"] --> REVIEW
+  REVIEW -->|accepted finding; head changes| IMPL
   REVIEW -->|green fixed point| STATE["truthful publication state"]
-  LOOP["$delivery-loop"] -. coordinates an accepted end-to-end outcome .-> SPEC
+  FULL["full accepted outcome"] --> LOOP["$delivery-loop"]
+  LOOP -. coordinates an accepted end-to-end outcome .-> SPEC
   LOOP -.-> IMPL
   LOOP -.-> REVIEW
 ```
@@ -43,7 +53,8 @@ flowchart TD
   OWNER --> EVIDENCE["repository state + falsifying evidence"]
   EVIDENCE --> CAPSULE
   CAPSULE --> RUNS[".krn/runs/<br/>ignored restart state"]
-  EVIDENCE --> GATE{"named future consumer?"}
+  EVIDENCE --> GATE{"consumer + destination +<br/>cleanup / supersession?"}
+  GATE -->|shared outcome state| TRACKER["configured tracker"]
   GATE -->|shared language| CONTEXT["CONTEXT.md"]
   GATE -->|consequential trade-off| ADR["docs/adr/"]
   GATE -->|source-backed decision| RESEARCH["docs/research/"]
@@ -108,10 +119,12 @@ rollback guarantees.
 
 ## Repository setup and working state
 
-`$setup-repository-workflow` writes one managed block into the existing root
-instruction owner and creates only `.krn/runs/.gitignore`. It names the existing
-tracker and context layout directly; `CONTEXT.md`, ADRs, and research pages are
-created later only when a real decision earns them.
+`$setup-repository-workflow` writes one managed block into an existing root
+instruction owner plus `.krn/runs/.gitignore`. In an empty repository it first
+bootstraps thin `AGENTS.md` and a `CLAUDE.md` symlink to that same owner, and
+reports all three changed paths. It names the tracker and context layout directly;
+`CONTEXT.md`, ADRs, and research pages appear later only when a real decision earns
+them.
 
 `$second-opinion-review` stores resumable passes at
 `.krn/runs/second-opinion-review/<run-id>/`. Set

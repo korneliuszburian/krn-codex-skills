@@ -71,6 +71,7 @@ sharpens and, rarely, records a durable decision.
    First migration slice:
    CONTEXT.md change: not earned | <current vocabulary change>
    ADR: not earned | docs/adr/<id>-<slug>.md
+   ADR supersession rule, if earned:
    Falsifier:
    </domain-model>
 
@@ -88,13 +89,14 @@ sharpens and, rarely, records a durable decision.
    trade-off. Allocate `<id>` from the repository's closest ADR convention, or the
    next zero-padded four-digit id in its existing sequence (starting at `0001`) when
    no closer convention exists. Record context, decision, consequences, rejected
-   alternatives, and the falsifier. A routine
+   alternatives, the falsifier, and the condition and owner for supersession. A routine
    naming choice or confirmed interview ledger does not earn an ADR. Both writes
    require repository write authority; otherwise return the exact proposed update
    without choosing another path.
 
    **Done when:** reusable current language is in `CONTEXT.md`, an ADR exists only
-   for an earned durable trade-off, and routine detail has not become architecture.
+   for an earned durable trade-off with an explicit supersession rule, and routine
+   detail has not become architecture.
 
 5. **Hand the understanding to its consumer.** Return the confirmed ledger or the
    `<domain-model>`. If the request includes production writes, invoke `$implement`

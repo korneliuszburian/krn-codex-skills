@@ -7,16 +7,26 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXCLUDED_TOP_LEVEL = new Set([
-  ".git",
-  ".krn",
-  ".remember",
-  ".tmp",
-  "build",
-  "dist",
-  "node_modules",
-  "tmp",
-]);
+
+function gitVisiblePaths(repository) {
+  const result = spawnSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    { cwd: repository, encoding: "utf8" },
+  );
+  assert.equal(result.status, 0, diagnostics(result));
+  const visible = new Set([""]);
+  for (const file of result.stdout.split("\0").filter(Boolean)) {
+    let current = file;
+    while (current && current !== ".") {
+      visible.add(current);
+      current = path.dirname(current);
+    }
+  }
+  return visible;
+}
+
+const VISIBLE_REPOSITORY_PATHS = gitVisiblePaths(REPO);
 
 function withFixture(run) {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-validate-test-"));
@@ -27,9 +37,7 @@ function withFixture(run) {
       dereference: false,
       verbatimSymlinks: true,
       filter(source) {
-        const relative = path.relative(REPO, source);
-        if (!relative) return true;
-        return !EXCLUDED_TOP_LEVEL.has(relative.split(path.sep)[0]);
+        return VISIBLE_REPOSITORY_PATHS.has(path.relative(REPO, source));
       },
     });
     return run(fixture);
@@ -55,6 +63,36 @@ test("accepts an unmodified isolated repository fixture", () => {
     const result = validate(fixture);
     assert.equal(result.status, 0, diagnostics(result));
   });
+});
+
+test("fixture inventory excludes Git-ignored private state", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-visible-files-test-"));
+  try {
+    const initialized = spawnSync("git", ["init", "--quiet"], {
+      cwd: sandbox,
+      encoding: "utf8",
+    });
+    assert.equal(initialized.status, 0, diagnostics(initialized));
+    fs.writeFileSync(path.join(sandbox, ".gitignore"), "private/\n.env*\n");
+    fs.writeFileSync(path.join(sandbox, "tracked.md"), "tracked\n");
+    fs.writeFileSync(path.join(sandbox, "visible.md"), "visible untracked\n");
+    fs.mkdirSync(path.join(sandbox, "private"));
+    fs.writeFileSync(path.join(sandbox, "private", "review.md"), "private review\n");
+    fs.writeFileSync(path.join(sandbox, ".env.local"), "SECRET=fixture\n");
+    const staged = spawnSync("git", ["add", ".gitignore", "tracked.md"], {
+      cwd: sandbox,
+      encoding: "utf8",
+    });
+    assert.equal(staged.status, 0, diagnostics(staged));
+
+    const visible = gitVisiblePaths(sandbox);
+    assert.ok(visible.has("tracked.md"));
+    assert.ok(visible.has("visible.md"));
+    assert.ok(!visible.has("private/review.md"));
+    assert.ok(!visible.has(".env.local"));
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
 });
 
 test("rejects a malformed canonical README skill row", () => {

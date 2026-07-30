@@ -26,7 +26,9 @@ Use a four-part durable spine:
 
 Use `.krn/runs/<workflow>/<run-id>/` for private ignored restart state. At every
 owner or context boundary, condense current truth into one outcome capsule and
-rewrite it in place. Delete the run when its goal or consumer closes.
+rewrite it in place. Delete the run when its sole in-goal consumer finishes or
+its owning Goal closes, whichever comes first. Cross-Goal continuation transfers
+only condensed truth and pointers into the successor's own run before deletion.
 
 Promotion from a run requires all three:
 
