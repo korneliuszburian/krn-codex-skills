@@ -53,13 +53,13 @@ where every variant looks fine.
    usually "I want the header from B with the sidebar from C" — that composite is the
    actual design.
 
-6. **Capture the answer and clean up.** Once a variant wins, record which and why,
-   then fold the winner into real code under `$implement` (prototype code was written
-   with no tests or error handling — rewrite it). Move the **full set of variants**
-   onto the throwaway branch as the primary source: sub-shape A folds the winner into
-   the existing page and drops the losers and switcher from main; sub-shape B promotes
-   the winner to a real route and drops the throwaway route and switcher from main.
-   Variant components left in main rot fast and confuse the next reader.
+6. **Capture the answer and clean up.** Once a variant wins, promote which one and
+   why to the existing owner of the question. Remove every variant, throwaway route,
+   switcher, and runner entry after inspection. If production work is requested,
+   `$implement` rewrites the selected design with its required proof. Retain the full
+   runnable set on a separate branch only under the explicit retention, branch, and
+   commit authority in the parent skill. Variant components left in production rot
+   fast and confuse the next reader.
 
 ## Anti-patterns
 

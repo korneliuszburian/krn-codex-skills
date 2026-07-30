@@ -52,6 +52,10 @@ What this spec deliberately does not cover.
 Anything else needed to understand the destination.
 </spec-template>
 
-Publish the filled spec once to the location in `docs/agents/issue-tracker.md`,
-or to `.scratch/<feature>/spec.md` if no tracker is configured. Link it from the
-tracker item that will drive implementation. Do not duplicate it elsewhere.
+Deliver the filled template to the active outcome owner before any publication.
+Publish it once only when
+the closest repository `AGENTS.md` or other closest instructions name the
+existing destination and publication is authorized; read the destination back
+before claiming `PUBLISHED`. When publication was requested without a configured
+destination or authority, return it to the active outcome owner with
+`PUBLISH_PENDING`. Never invent a fallback path.

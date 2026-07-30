@@ -1,0 +1,41 @@
+name: validate
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  repository:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Validate contracts and routing
+        run: npm run validate
+      - name: Test catalog
+        run: npm run test:catalog
+      - name: Test installer
+        run: npm run test:install
+      - name: Test hooks
+        run: npm run test:hooks
+      - name: Test repository setup
+        run: npm run test:setup
+      - name: Test second-opinion transport
+        run: npm run test:second-opinion
+      - name: Check shell and diff hygiene
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          bash -n scripts/install.sh
+          git diff --check "$BASE_SHA...HEAD"

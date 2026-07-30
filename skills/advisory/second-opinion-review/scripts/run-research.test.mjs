@@ -101,16 +101,12 @@ function makeFixture() {
   run("git", ["init", "-q"], repository);
   run("git", ["config", "user.name", "Research Test"], repository);
   run("git", ["config", "user.email", "research@example.invalid"], repository);
-  fs.mkdirSync(path.join(repository, "docs", "agents", "runs"), { recursive: true });
+  fs.mkdirSync(path.join(repository, ".krn", "runs"), { recursive: true });
   fs.writeFileSync(
-    path.join(repository, "docs", "agents", "artifact-paths.json"),
-    `${JSON.stringify({ schema_version: 1, working_runs: "docs/agents/runs" })}\n`,
-  );
-  fs.writeFileSync(
-    path.join(repository, "docs", "agents", "runs", ".gitignore"),
+    path.join(repository, ".krn", "runs", ".gitignore"),
     "*\n!.gitignore\n",
   );
-  run("git", ["add", "README.md", "docs/agents/artifact-paths.json", "docs/agents/runs/.gitignore"], repository);
+  run("git", ["add", "README.md", ".krn/runs/.gitignore"], repository);
   run("git", ["commit", "-qm", "test fixture"], repository);
   const commit = run("git", ["rev-parse", "HEAD"], repository);
   const passDirectory = prepareArtifactDirectory({

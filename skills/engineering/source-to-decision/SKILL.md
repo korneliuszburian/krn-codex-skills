@@ -15,7 +15,8 @@ it.
 
    <decision-question>
    Question:
-   Consumer:
+   Active consumer: owning workflow | native goal | tracker item
+   Named future consumer, if durable research may be needed:
    Owner:
    Current local behavior:
    Uncertainty:
@@ -77,7 +78,10 @@ it.
    Consumer: named consumer | missing with reason
    Falsifier or bounded experiment: named signal | missing with reason
    Does not prove:
-   Durable authority surface: none | <path-or-store>
+   Decision destination: active consumer | docs/research/<topic>.md
+   Supersession rule, if durable:
+   Topic-index change: none | docs/research/README.md
+   Shared-system-map pointer: none | CONTEXT.md
    </source-decision>
 
    **Done when:** the disposition follows from the mechanism and local
@@ -93,17 +97,36 @@ it.
    **Done when:** the disposition survives evidence designed to falsify it, or
    changes to the result that evidence supports.
 
-6. **Deliver the decision to its owner.** For `adopt`, hand the
-   `<source-decision>` to `$implement` only when production writes are already
-   authorized; that workflow owns the consumer change and its proof. For
-   `reject`, `lab-test`, or `defer`, persist the disposition only when a future
-   consumer needs it and the repository names an authority surface. Keep each
-   citation beside the claim it supports.
+6. **Deliver the decision to its named consumer.** Put the complete
+   `<source-decision>` into the active owning workflow, native goal, or tracker
+   item named in step 1. For `adopt`, hand it to `$implement` only when
+   production writes are already authorized; that workflow owns the consumer
+   change and proof.
+
+   When this investigation must cross a context boundary, update the active
+   workflow's ignored `.krn/runs/<workflow>/<run-id>/state.md` capsule with the
+   decision question, source identities, current mechanism or disposition,
+   owner, and next action. Keep raw corpora, copied source text, and credentials
+   out of it. The creating workflow removes the capsule when the decision is
+   accepted, superseded, or abandoned.
+
+   Promotion into repository knowledge is a separate, narrow branch. Create or
+   update exactly `docs/research/<topic>.md` only when a named future consumer,
+   one canonical topic, an explicit rule for superseding older evidence or
+   dispositions, and repository write authority all exist. Preserve the topic's
+   structure and keep the mechanism, disposition, falsifier, supersession state,
+   and provenance together. Creating, removing, or superseding a topic updates
+   the topic entry in `docs/research/README.md` in the same authorized change.
+   Link the topic from `CONTEXT.md` only when the decision changes the shared
+   system map; ordinary topic promotion does not earn that pointer. Otherwise
+   the active consumer remains the decision owner; do not choose a generic
+   durable path.
 
    For a private course or book, retain only original mechanisms and
    provenance. Never commit copied passages, exercises, solutions, or raw
    extraction.
 
-   **Done when:** the owner receives a bounded implementation handoff or an
-   explicit non-adoption result, every retained claim has nearby provenance,
+   **Done when:** the named consumer receives a bounded adoption or non-adoption
+   result, every promoted claim has nearby provenance, any repository update is
+   confined to the canonical topic plus its earned index or context pointers,
    and this workflow makes no unverified implementation claim.

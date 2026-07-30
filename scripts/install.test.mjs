@@ -106,3 +106,54 @@ test("archives a displaced legacy path into a backup instead of deleting it", ()
     fs.rmSync(sandbox, { recursive: true, force: true });
   }
 });
+
+test("reports and explicitly archives a retired installed skill, including a stale symlink", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
+  try {
+    const env = sandboxEnv(sandbox);
+    fs.mkdirSync(env.KRN_SKILLS_DEST, { recursive: true });
+    const retired = path.join(env.KRN_SKILLS_DEST, "reviewer-handoff");
+    const oldSource = path.join(sandbox, "deleted-reviewer-handoff-source");
+    fs.symlinkSync(oldSource, retired);
+
+    const check = spawnSync("bash", [installScript, "check"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.equal(check.status, 1, check.stderr);
+    assert.match(check.stdout, /retired .*reviewer-handoff/);
+    assert.ok(fs.lstatSync(retired).isSymbolicLink());
+
+    const refused = spawnSync("bash", [installScript, "install"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.equal(refused.status, 81, refused.stderr);
+    assert.ok(fs.lstatSync(retired).isSymbolicLink());
+
+    const installed = spawnSync("bash", [installScript, "install"], {
+      encoding: "utf8",
+      env: { ...env, KRN_ARCHIVE_LEGACY: "1" },
+    });
+    assert.equal(installed.status, 0, installed.stderr);
+    assert.equal(
+      fs.lstatSync(retired, { throwIfNoEntry: false }),
+      undefined,
+      "the retired path must no longer expose a stale symlink",
+    );
+
+    const backupRoot = path.join(env.CODEX_HOME, "skill-migration-backups");
+    const backup = fs.readdirSync(backupRoot, { withFileTypes: true })
+      .find((entry) => entry.isDirectory());
+    assert.ok(backup, "retired skill archive must create a backup directory");
+    const archived = path.join(
+      backupRoot,
+      backup.name,
+      "retired-skill__reviewer-handoff",
+    );
+    assert.ok(fs.lstatSync(archived).isSymbolicLink());
+    assert.equal(fs.readlinkSync(archived), oldSource);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});

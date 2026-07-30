@@ -196,26 +196,12 @@
       ]
     },
     {
-      "id": "compile-reviewer-handoff",
-      "prompt": "Use $reviewer-handoff to compile a portable fixed-point packet with the bounded diff, spec, proof results, non-goals, and review prompt; do not review or edit the change.",
-      "expected_skills": [
-        "reviewer-handoff"
-      ],
-      "forbidden_skills": [
-        "implement",
-        "code-review",
-        "second-opinion-review",
-        "delivery-loop"
-      ]
-    },
-    {
-      "id": "reviewer-handoff-is-not-review",
+      "id": "existing-review-packet-still-needs-code-review",
       "prompt": "Review this fixed-point diff against its spec and repository standards; the packet is already available.",
       "expected_skills": [
         "code-review"
       ],
       "forbidden_skills": [
-        "reviewer-handoff",
         "implement",
         "second-opinion-review"
       ]
@@ -487,7 +473,6 @@
         "second-opinion-review",
         "writing-great-skills",
         "managing-codex-capabilities",
-        "reviewer-handoff",
         "slice-work"
       ]
     },
@@ -566,7 +551,7 @@
     },
     {
       "id": "foggy-effort-becomes-decision-map",
-      "prompt": "This initiative is far too big and unclear for one session. Chart it as a shared map of decision tickets on our tracker and work the frontier one decision at a time.",
+      "prompt": "Use $wayfinder for this initiative: it is far too big and unclear for one session, so chart it as a shared map of decision tickets on our tracker and work the frontier one decision at a time.",
       "expected_skills": [
         "wayfinder"
       ],
@@ -579,7 +564,7 @@
     },
     {
       "id": "wayfinder-research-ticket-needs-a-decision-owner",
-      "prompt": "Continue our existing wayfinder map: claim the ready research ticket, evaluate the named external source for this consumer, and record whether we should adopt, reject, lab-test, or defer its mechanism.",
+      "prompt": "Use $wayfinder to continue our existing map: claim the ready research ticket, evaluate the named external source for this consumer, and record whether we should adopt, reject, lab-test, or defer its mechanism.",
       "expected_skills": [
         "wayfinder",
         "source-to-decision"

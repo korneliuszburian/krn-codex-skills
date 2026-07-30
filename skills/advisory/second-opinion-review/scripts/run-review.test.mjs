@@ -32,18 +32,9 @@ function makeFixture(slug = "runner-proof") {
   const fakeBin = path.join(sandbox, "bin");
   fs.mkdirSync(repository);
   fs.mkdirSync(fakeBin);
-  fs.mkdirSync(path.join(repository, "docs", "agents", "runs"), { recursive: true });
+  fs.mkdirSync(path.join(repository, ".krn", "runs"), { recursive: true });
   fs.writeFileSync(
-    path.join(repository, "docs", "agents", "artifact-paths.json"),
-    `${JSON.stringify({
-      _generated_by: "setup-repository-workflow",
-      schema_version: 1,
-      working_runs: "docs/agents/runs",
-      retained_reports: "docs/agents/reports",
-    }, null, 2)}\n`,
-  );
-  fs.writeFileSync(
-    path.join(repository, "docs", "agents", "runs", ".gitignore"),
+    path.join(repository, ".krn", "runs", ".gitignore"),
     "*\n!.gitignore\n",
   );
   fs.writeFileSync(

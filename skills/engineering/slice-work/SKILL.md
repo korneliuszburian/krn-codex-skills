@@ -1,96 +1,122 @@
 ---
 name: slice-work
-description: Turn a settled spec into implementation-ready vertical slices — each one-fresh-session-sized with explicit blocking dependencies — and publish them as tracker tickets when configured. Use before implementation; skip unresolved fog, single edits, and execution.
+description: Turn a settled multi-change spec into implementation-ready vertical slices or expand-contract migration stages with explicit dependencies and publication state. Use before implementation; skip unresolved fog, single changes, and execution.
 ---
 
 # Slice Work
 
-Produce the slice list; never execute it. `implement` owns one slice,
-`delivery-loop` owns the lifecycle and claim state, `domain-modeling` owns
-vocabulary. This skill **decomposes** a settled outcome into one-fresh-session
-vertical slices and, when a tracker is configured, **publishes** them as tickets
-with blocking edges for `delivery-loop` to claim.
+Produce the work-unit list; never execute it. `$implement` owns one unit,
+`$delivery-loop` owns claim and lifecycle state, and `$domain-modeling` owns
+unsettled decisions. This skill owns two decomposition shapes: end-to-end
+**vertical slices** and explicit **expand–migrate–contract stages**.
 
-1. **Pin the settled outcome and its decisions.** Read the spec, the resolved
-   decisions, and the explicit non-goals. If any decision that gates
-   implementation is still fog, stop and route to `$domain-modeling` —
-   slicing unresolved fog produces false granularity.
+1. **Pin a settled multi-change outcome.** Read the spec, resolved decisions,
+   acceptance, and non-goals. If a gating decision is still fog, stop and route
+   it to `$domain-modeling`. If the whole destination fits one fresh
+   `$implement` context as one end-to-end change, route it there without
+   manufacturing a slice list.
 
    <slice-input>
    Outcome and acceptance:
-   Resolved decisions carried:
+   Spec identity and resolved decisions:
    Explicit non-goals:
-   Public seams the outcome touches:
+   Public seams touched:
+   Why more than one fresh implementation context is required:
    </slice-input>
 
-   **Done when:** every gating decision is settled, or an unresolved one is named
-   and handed off before any slice is emitted.
+   **Done when:** the outcome is settled and genuinely needs multiple work
+   units, or it has been returned intact to the single-change owner.
 
-2. **Cut the tracer bullet first.** Find the thinnest slice that makes the
-   outcome observable end to end — real caller through the public seam to a
-   result, touching every layer the outcome needs, including one falsifier. This
-   is slice 1; the feature is demonstrable after it.
+2. **Choose one decomposition shape.** Use vertical slices when capabilities
+   can become observable independently. Use expand–migrate–contract only when
+   an existing compatibility boundary or wide mechanical blast radius makes a
+   direct vertical change unsafe or impossible to keep green. Read
+   [tickets.md](references/tickets.md) for the migration-stage invariants and
+   ticket publication branch.
 
-   **Done when:** slice 1 alone produces a real, testable result along the full
-   vertical path, not a skeleton or a layer.
+   **Done when:** one shape is selected for a concrete reason; a vague large
+   diff is not enough to choose migration stages.
 
-3. **Add one slice per independent capability.** Each later slice extends the
-   vertical path by one independent capability — one more check, route, or output
-   shape — each carried CLI to logic to output to test.
+3. **Cut the selected work units.** For vertical work, start with the thinnest
+   tracer bullet from a real caller through the highest public seam to an
+   observable result and one falsifier. Add one later slice per independent
+   capability, each preserving that end-to-end path.
 
-   **Done when:** every remaining capability is its own vertical slice and none
-   is a layer such as "all tests", "all CLI", or "the module".
+   For a migration, emit the full ordered contract: an **expand** stage that
+   safely supports old and new forms, one or more bounded **migrate** stages
+   that move callers or data while compatibility remains, and a **contract**
+   stage that proves no old consumer remains before removing the old form.
+   Every stage states its entry invariant, exit invariant, falsifier, and
+   rollback or compatibility boundary.
 
-4. **State blocking dependencies only where real.** Mark slice N dependent on
-   slice M only when N literally cannot run without M's state. Independent
-   capabilities stay parallel; the consumer sequences them under WIP of one.
+   **Done when:** every vertical slice yields observable behavior, or every
+   migration stage leaves the system in its stated safe intermediate state.
 
-   **Done when:** the dependency graph has no invented edges and every edge is
-   load-bearing.
+4. **Add only load-bearing dependencies.** A work unit blocks another only when
+   the latter cannot run safely without the former's state. Independent vertical
+   capabilities remain independent. Migration stages preserve expand before
+   migrate and all required migrations before contract; do not add chronology
+   that has no safety or execution dependency.
 
-5. **Attach decision evidence per slice.** For each slice state the one outcome
-   it advances, the public seam it changes, the fastest signal that can disagree,
-   and the spec decision it carries — so a fresh `$implement` session needs no
-   other context.
+   **Done when:** every edge names the state it depends on and removing the edge
+   would make the downstream unit unsafe or impossible.
 
-   <slice>
-   Slice id and one-line outcome:
-   Caller -> public seam -> result:
+5. **Carry decision evidence into each fresh context.** Give each unit one
+   outcome, public seam or migration invariant, fastest disagreeing signal,
+   exact spec decision, and dependency evidence.
+
+   <work-unit>
+   Id and one-line outcome:
+   Kind: vertical-slice | migration-stage
+   Stage, if migration: expand | migrate | contract
+   Caller -> public seam -> result, or entry -> exit invariant:
    Fastest signal that can disagree:
    Decision evidence carried from the spec:
-   Blocks / blocked by:
-   </slice>
+   Blocks / blocked by and why:
+   </work-unit>
 
-   **Done when:** each slice is self-contained for a fresh session and names its
-   falsifier.
+   **Done when:** every unit is one-fresh-session-sized and executable without
+   rediscovering its decision or guessing its completion proof.
 
-6. **Reject horizontal layers.** Drop any candidate that is a layer rather than a
-   path: a skeleton, all tests, all CLI, or all docs. Each group must be a
-   vertical path. The one exception is a **wide refactor** — one mechanical change
-   whose blast radius breaks the whole codebase at once; sequence it as
-   expand–contract per [tickets.md](references/tickets.md), not a tracer bullet.
+6. **Reject the wrong shape.** A vertical list contains no horizontal unit such
+   as all tests, all CLI, all docs, or one module. A migration list contains no
+   stage lacking a compatibility reason and no contract stage that can run
+   before old consumers are disproven. Re-cut any unit whose output cannot be
+   demonstrated or whose intermediate state is undefined.
 
-   **Done when:** no slice is a layer, and deleting any single slice leaves the
-   others coherent and demonstrable.
+   **Done when:** each unit earns its selected shape and the full list covers
+   acceptance without speculative work.
 
-7. **Emit the list, publish, and hand off.** Output the slice list with the
-   dependency graph and a "demonstrable after slice K" marker. When a tracker is
-   configured, publish each slice as one ticket with its blocking edges per
-   [tickets.md](references/tickets.md) — this **creates** the items; it does not
-   claim or sequence them. Hand each slice to `$implement` in a fresh context;
-   `$delivery-loop` claims the frontier and owns lifecycle. With no tracker, the
-   slice list itself is the artifact.
+7. **Separate list completion from ticket publication.** Deliver the complete
+   list and dependency graph to the active outcome owner first. If later contexts
+   need it before publication, that owner keeps the exact transient list in its
+   ignored `.krn/runs/<workflow>/<run-id>/` and puts only its identity and pointer
+   in the compact capsule. Creating tracker tickets requires an
+   existing tracker identity and operations declared by the closest repository
+   `AGENTS.md` or other closest instructions, plus publication authority. Those
+   instructions describe how; they do not authorize the mutation. When
+   authorized, publish one ticket per unit and read back its identity and
+   blocking edges per [tickets.md](references/tickets.md). This skill creates
+   tickets but never claims or sequences them.
+
+   Use one truthful publication state:
+
+   - `NOT_REQUESTED` — the active outcome owner accepted the list without
+     requesting durable publication;
+   - `PUBLISH_PENDING` — publication was requested but the destination or
+     authority is missing;
+   - `PUBLISHED` — the tickets and blocking edges were read back.
+
+   Never invent a tracker or fallback path.
 
    <slice-result>
    Outcome pinned:
-   Slice list with ids:
-   Dependency graph:
-   Demonstrable after slice:
-   Published tickets (if a tracker is configured):
-   Routed to: $implement (one per fresh session) via $delivery-loop
+   Shape: vertical slices | expand-migrate-contract
+   Work-unit list and dependency graph:
+   Demonstrable result or migration end state:
+   Publication state: NOT_REQUESTED | PUBLISH_PENDING (<missing condition>) | PUBLISHED (<ticket identities>)
+   Routed to: $implement (one unit per fresh context) via $delivery-loop when lifecycle orchestration is requested
    </slice-result>
 
-   **Done when:** every slice is one-fresh-session-sized, end-to-end vertical,
-   has explicit dependencies, carries its own decision evidence, none is a
-   horizontal layer, and each is published as a ticket when a tracker is
-   configured without claiming or sequencing any.
+   **Done when:** the multi-unit plan is implementation-ready, publication truth
+   is explicit, and no ticket has been claimed or production work begun.

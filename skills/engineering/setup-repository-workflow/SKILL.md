@@ -48,8 +48,9 @@ workflow prose, agents, or checkers are identified before replacement.
 3. **Present the resolved contract.** Recommend the detected tracker and
    single-context domain layout by default; offer multi-context only when the
    repository actually has monorepo/domain signals. Resolve whether delivery is
-   local or strict PR-gated, and show the exact instruction block plus adapter
-   paths before writing when the user has not already approved those choices.
+   local or strict PR-gated, and show the exact managed instruction block plus
+   `.krn/runs/.gitignore` before writing when the user has not already approved
+   those choices.
 
    **Done when:** tracker, domain mode, delivery profile, and instruction owner
    are explicit inputs rather than guesses.
@@ -84,10 +85,14 @@ plans remain ephemeral.
    `bd init --agents-profile minimal --non-interactive` so bd injects only a
    one-line pointer, not its full always-loaded reference.
 
-   Normalize working artifacts under `docs/agents/runs/<workflow>/<run-id>/`
-   and retain only consumer-owned final reports under
-   `docs/agents/reports/<workflow>/`. The initializer installs the repository
-   contract and ignore boundary; each creating workflow owns cleanup.
+   Normalize resumable working state under
+   `.krn/runs/<workflow>/<run-id>/`. The initializer installs only the thin
+   managed block and this ignored boundary; each creating workflow owns cleanup.
+   A short-lived result returns to its active outcome owner; when another session
+   must resume it, the owning workflow condenses current truth into that run's
+   capsule. `CONTEXT.md`, `docs/adr/`, and `docs/research/` remain absent until
+   active vocabulary, an earned consequential decision, or a named research
+   consumer requires them.
 
    **Done when:** a new session can locate the current outcome and the right
    commands without loading history or a copied global workflow, and a second
@@ -100,8 +105,8 @@ has the required authority. Do not create local executioner or reviewer agents:
 scoped changes use `$implement`, unknown failures use `$diagnosing-bugs`, and a
 fixed diff uses `$code-review`.
 
-   **Done when:** every new artifact changes observable setup behavior, and
-normal delivery still routes to the existing workflow owners.
+   **Done when:** every managed file changes observable setup behavior, and
+   normal delivery still routes to the existing workflow owners.
 
 6. **Prove adoption, then stop setup.** Run the narrowest structural validator
 or isolated setup smoke that can reject the changed contract. Re-read the

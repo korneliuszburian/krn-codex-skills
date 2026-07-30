@@ -33,20 +33,14 @@ function initializeRepository(root, { ignoredRuns = true } = {}) {
   run("git", ["init", "-q"], root);
   run("git", ["config", "user.name", "artifact-test"], root);
   run("git", ["config", "user.email", "artifact@example.invalid"], root);
-  const agents = path.join(root, "docs", "agents");
-  const runs = path.join(agents, "runs");
+  const runs = path.join(root, ".krn", "runs");
   fs.mkdirSync(runs, { recursive: true });
-  fs.writeFileSync(
-    path.join(agents, "artifact-paths.json"),
-    `${JSON.stringify({ schema_version: 1, working_runs: "docs/agents/runs" })}\n`,
-  );
   if (ignoredRuns) fs.writeFileSync(path.join(runs, ".gitignore"), "*\n!.gitignore\n");
-  run("git", ["add", "docs/agents/artifact-paths.json"], root);
-  if (ignoredRuns) run("git", ["add", "docs/agents/runs/.gitignore"], root);
-  run("git", ["commit", "-q", "-m", "configure artifacts"], root);
+  if (ignoredRuns) run("git", ["add", ".krn/runs/.gitignore"], root);
+  run("git", ["commit", "-q", "--allow-empty", "-m", "configure runs"], root);
 }
 
-test("explicit context resolves a configured ignored pass from an unrelated cwd without changing Git status", () => {
+test("explicit context resolves canonical ignored repository runs from an unrelated cwd without changing Git status", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-context-test-"));
   const repository = path.join(sandbox, "repository");
   const unrelated = path.join(sandbox, "unrelated");
@@ -54,7 +48,10 @@ test("explicit context resolves a configured ignored pass from an unrelated cwd 
     fs.mkdirSync(repository);
     fs.mkdirSync(unrelated);
     initializeRepository(repository);
-    const env = isolatedEnv({ SECOND_OPINION_CONTEXT_ROOT: repository });
+    const env = isolatedEnv({
+      SECOND_OPINION_CONTEXT_ROOT: repository,
+      SECOND_OPINION_WORKING_RUNS: path.join(sandbox, "ad-hoc-only"),
+    });
     const before = run("git", ["status", "--porcelain"], repository);
     const result = spawnSync(
       process.execPath,
@@ -65,9 +62,10 @@ test("explicit context resolves a configured ignored pass from an unrelated cwd 
     const pass = result.stdout.trim();
     assert.equal(
       path.dirname(pass),
-      path.join(repository, "docs", "agents", "runs", "second-opinion-review"),
+      path.join(repository, ".krn", "runs", "second-opinion-review"),
     );
     assert.match(path.basename(pass), /^\d{4}-\d{2}-\d{2}-check-configured-[A-Za-z0-9]{6}$/);
+    assert.equal(fs.statSync(path.dirname(pass)).mode & 0o777, 0o700);
     assert.equal(fs.statSync(pass).mode & 0o777, 0o700);
     assert.equal(fs.statSync(path.join(pass, "pass-context.json")).mode & 0o777, 0o600);
     assert.equal(run("git", ["status", "--porcelain"], repository), before);
@@ -77,7 +75,8 @@ test("explicit context resolves a configured ignored pass from an unrelated cwd 
       expectedRole: "check",
       env,
     });
-    assert.equal(verified.context.resolution.kind, "repository-config");
+    assert.equal(verified.context.schema_version, 2);
+    assert.equal(verified.context.resolution.kind, "repository");
     const cliVerification = spawnSync(
       process.execPath,
       [scriptPath, "verify-pass", pass, "check"],
@@ -90,7 +89,7 @@ test("explicit context resolves a configured ignored pass from an unrelated cwd 
   }
 });
 
-test("missing repository config requires an explicit absolute working-runs root", () => {
+test("a context without a repository requires an explicit absolute working-runs root", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-required-root-test-"));
   try {
     assert.throws(
@@ -116,17 +115,12 @@ test("missing repository config requires an explicit absolute working-runs root"
   }
 });
 
-test("rejects a configured working root that crosses a repository symlink", () => {
-  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-resolver-symlink-test-"));
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-resolver-outside-"));
+test("rejects canonical repository runs that cross a symlink", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-runs-symlink-test-"));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-runs-outside-"));
   try {
     run("git", ["init", "-q"], sandbox);
-    fs.mkdirSync(path.join(sandbox, "docs", "agents"), { recursive: true });
-    fs.symlinkSync(outside, path.join(sandbox, "escaped"));
-    fs.writeFileSync(
-      path.join(sandbox, "docs", "agents", "artifact-paths.json"),
-      `${JSON.stringify({ schema_version: 1, working_runs: "escaped/runs" })}\n`,
-    );
+    fs.symlinkSync(outside, path.join(sandbox, ".krn"));
     assert.throws(() => resolveArtifactRoot({ cwd: sandbox }), /inside the repository/);
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
@@ -134,17 +128,12 @@ test("rejects a configured working root that crosses a repository symlink", () =
   }
 });
 
-test("rejects artifact configuration reached through a symlinked parent", () => {
-  const repository = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-config-parent-test-"));
-  const outsideAgents = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-config-parent-outside-"));
+test("rejects a symlink alias even when canonical repository runs stay inside the repository", () => {
+  const repository = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-runs-alias-test-"));
   try {
     run("git", ["init", "-q"], repository);
-    fs.mkdirSync(path.join(repository, "docs"));
-    fs.writeFileSync(
-      path.join(outsideAgents, "artifact-paths.json"),
-      `${JSON.stringify({ schema_version: 1, working_runs: "reviews" })}\n`,
-    );
-    fs.symlinkSync(outsideAgents, path.join(repository, "docs", "agents"));
+    fs.mkdirSync(path.join(repository, "private-state"));
+    fs.symlinkSync("private-state", path.join(repository, ".krn"));
 
     assert.throws(
       () => resolveArtifactRoot({ cwd: repository, env: isolatedEnv() }),
@@ -152,7 +141,24 @@ test("rejects artifact configuration reached through a symlinked parent", () => 
     );
   } finally {
     fs.rmSync(repository, { recursive: true, force: true });
-    fs.rmSync(outsideAgents, { recursive: true, force: true });
+  }
+});
+
+test("a legacy artifact registry cannot redirect canonical repository runs", () => {
+  const repository = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-no-resolver-test-"));
+  try {
+    initializeRepository(repository);
+    fs.mkdirSync(path.join(repository, "docs", "agents"), { recursive: true });
+    fs.writeFileSync(
+      path.join(repository, "docs", "agents", "artifact-paths.json"),
+      "not valid json\n",
+    );
+    assert.equal(
+      resolveArtifactRoot({ cwd: repository, env: isolatedEnv() }),
+      path.join(repository, ".krn", "runs", "second-opinion-review"),
+    );
+  } finally {
+    fs.rmSync(repository, { recursive: true, force: true });
   }
 });
 
@@ -238,8 +244,8 @@ test("an explicit working root inside another repository must be Git-ignored", (
   }
 });
 
-test("verification rejects repository configuration drift", () => {
-  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-config-drift-test-"));
+test("verification rejects a pass moved away from its fixed repository identity", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-pass-move-test-"));
   try {
     initializeRepository(sandbox);
     const env = isolatedEnv({ SECOND_OPINION_CONTEXT_ROOT: sandbox });
@@ -249,13 +255,13 @@ test("verification rejects repository configuration drift", () => {
       cwd: sandbox,
       env,
     });
-    fs.writeFileSync(
-      path.join(sandbox, "docs", "agents", "artifact-paths.json"),
-      `${JSON.stringify({ schema_version: 1, working_runs: "docs/changed-runs" })}\n`,
-    );
+    const movedRoot = path.join(sandbox, ".other-runs", "second-opinion-review");
+    fs.mkdirSync(movedRoot, { recursive: true, mode: 0o700 });
+    const moved = path.join(movedRoot, path.basename(pass));
+    fs.renameSync(pass, moved);
     assert.throws(
-      () => verifyPassDirectory({ passDirectory: pass, expectedRole: "check", env }),
-      /current repository artifact config differs/,
+      () => verifyPassDirectory({ passDirectory: moved, expectedRole: "check", env }),
+      /pass context does not match its directory layout/,
     );
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });

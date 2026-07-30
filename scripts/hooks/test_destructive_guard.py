@@ -51,6 +51,16 @@ class DestructiveGuardTests(unittest.TestCase):
         ssh_file = Path.home() / ".ssh" / "known_hosts"
         self.assertIn(".ssh", self.reason(f"rm -f {ssh_file}") or "")
 
+    def test_mount_anchor_blocks_root_but_allows_narrow_descendant(self) -> None:
+        self.assertIn("/mnt", self.reason("rm -rf /mnt") or "")
+        self.assertIsNone(
+            self.reason("rm -rf /mnt/krn-hook-test/disposable-output")
+        )
+        self.assertIn(
+            "protected instruction",
+            self.reason("rm -f /mnt/krn-hook-test/disposable-output/.env") or "",
+        )
+
     def test_blocks_directory_containing_database(self) -> None:
         state = self.repo / "runtime-state"
         state.mkdir()
@@ -69,6 +79,9 @@ class DestructiveGuardTests(unittest.TestCase):
             "shell substitution",
             self.reason("echo $(rm -rf .)") or "",
         )
+
+    def test_allows_dry_run_git_clean(self) -> None:
+        self.assertIsNone(self.reason("rtk git clean -ndx"))
 
     def test_allows_concrete_disposable_cleanup(self) -> None:
         for name in ("node_modules", "dist", ".cache", "fixture-output"):
@@ -117,6 +130,29 @@ class DestructiveGuardTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         output = json.loads(result.stdout)
         self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_public_hook_denies_forbidden_capability_shell_marker(self) -> None:
+        blocked_command = "codex plugin add " + "super" + "powers"
+        payload = {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "cwd": str(self.repo),
+            "tool_input": {"command": blocked_command},
+        }
+        result = subprocess.run(
+            [sys.executable, str(HOOK)],
+            input=json.dumps(payload),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        output = json.loads(result.stdout)
+        self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+        self.assertIn(
+            "forbidden-capability",
+            output["hookSpecificOutput"]["permissionDecisionReason"],
+        )
 
     def test_public_hook_needs_no_external_proxy(self) -> None:
         payload = {

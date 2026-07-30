@@ -31,11 +31,6 @@
       "implicit": true
     },
     {
-      "name": "reviewer-handoff",
-      "path": "skills/engineering/reviewer-handoff",
-      "implicit": true
-    },
-    {
       "name": "codebase-design",
       "path": "skills/engineering/codebase-design",
       "implicit": true
@@ -78,7 +73,7 @@
     {
       "name": "slice-work",
       "path": "skills/engineering/slice-work",
-      "implicit": false
+      "implicit": true
     },
     {
       "name": "wayfinder",
@@ -114,6 +109,12 @@
       "name": "writing-great-skills",
       "path": "skills/meta/writing-great-skills",
       "implicit": true
+    }
+  ],
+  "retired_skills": [
+    {
+      "name": "reviewer-handoff",
+      "replacement": null
     }
   ],
   "legacy_user_paths": [

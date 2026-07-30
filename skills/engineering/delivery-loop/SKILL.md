@@ -5,95 +5,95 @@ description: Carry one accepted repository outcome through claim, implementation
 
 # Delivery Loop
 
-Keep one result moving through its lifecycle while specialized skills retain
-ownership of their work. **This is a state-transition orchestrator, not a maker,
-diagnostician, reviewer, tracker, or publisher.**
+Keep one accepted outcome moving while the specialized skills retain their own
+procedures. This is a thin, goal-aware composer: it owns lifecycle truth,
+writer ownership, and handoffs, not implementation, diagnosis, review, tracking,
+or publication.
 
-1. **Resolve one outcome and authority envelope.** Read the closest repository
-instructions, configured tracker adapter, active native goal when one exists,
-and current Git state. Use a native goal only when the user explicitly requests
-persistent autonomous progress. Resolve acceptance, owned paths, the global
-WIP limit of exactly one implementation item,
-required gates, and authority for commit, push, PR, merge, and deployment.
+1. **Bind one outcome and one writer.** Read the closest repository
+   instructions, current Git state, configured tracker item when one exists,
+   and active native goal when one exists. Create a native goal only when the
+   user explicitly requested persistent autonomous progress; otherwise the
+   accepted request is the outcome authority. Reconcile a pre-existing goal
+   with repository and tracker truth before continuing.
 
-   <delivery-contract>
-   Outcome and human result:
-   Acceptance and Spec authority:
-   Repository and fixed starting state:
-   Tracker item or thread owner:
-   Owned paths and WIP limit: 1
-   Required proof and review:
-   Commit, publication, merge, and deployment authority:
-   </delivery-contract>
+   Keep exactly one compact working record and replace its fields in place:
 
-   If closer instructions request a different WIP limit, report the contract
-   conflict and do not claim work until the repository adopts a separate,
-   explicit workflow profile.
+   <outcome-capsule>
+   Outcome and acceptance authority:
+   Goal / tracker state:
+   Sole writer and active workflow owner:
+   Repository base, HEAD, and dirty-state scope:
+   Focused proof:
+   Review fixed point and Standards / Spec disposition:
+   Publication authority and observed state:
+   Blocker or next bounded action:
+   </outcome-capsule>
 
-   **Done when:** exactly one outcome is executable, every external action has
-   an authority state, and unrelated dirty work is outside the owned path set.
+   Exactly one agent or session may mutate tracked files, the outcome branch,
+   tracker state, or goal state at a time. Transfer that writer role explicitly
+   before a mutating handoff. Parallel work is read-only, pinned to an immutable
+   repository or artifact identity, and returns its evidence to the named sole
+   writer or integrator for disposition and capsule update. It may not claim
+   work, edit, publish, or declare the outcome done.
 
-2. **Resume or claim one frontier item.** If the configured tracker already has
-an active item, resume it after checking ownership and current evidence. Otherwise
-claim exactly one ready item that directly advances the accepted outcome. Never
-claim a second item to route around a blocker. Native plans are ephemeral steps,
-not a queue or durable status artifact.
+   **Done when:** one outcome, one writer, one active implementation item at
+   most, and every external action's authority state are explicit.
 
-   **Done when:** WIP is one, the active item has acceptance and a falsifier,
-   and its tracker/goal state agrees with the repository state.
+2. **Route only the current uncertainty.** Give a clear bounded change to
+   `$implement`; a proven failure cause also returns there. Give an unknown
+   failure to `$diagnosing-bugs`, a seam or ownership question to
+   `$codebase-design`, a contested concept to `$domain-modeling`, and an
+   external-evidence decision to `$source-to-decision`. If the destination is
+   settled but its executable spec is missing, use `$to-spec`. If the settled
+   spec cannot fit one fresh implementation context, use `$slice-work`, then
+   advance one slice at a time. Do not copy a composed skill's procedure into
+   this contract.
 
-3. **Route the current uncertainty.** A clear behavior change goes to
-`$implement`. An outcome that exceeds one fresh-context slice first goes through
-`$slice-work` for the blocking vertical-slice list, then this loop claims one
-slice at a time under the work-in-progress limit. An unknown failure first goes
-to `$diagnosing-bugs`; only a proven cause returns to `$implement`. Architecture,
-terminology, and external-source decisions stay with their existing owners
-before implementation. Do not create an executioner persona or copy another
-skill's procedure into the handoff.
+   **Done when:** the current owner receives bounded acceptance, mutation
+   authority, relevant paths, and the evidence it must return.
 
-   **Done when:** the selected owner receives a bounded input and returns its
-   own completion evidence or exact blocker.
+3. **Refresh the capsule at every context boundary.** Before and after a
+   delegated context, fresh session, interruption, implementation, proof,
+   review, commit, push, or CI transition, re-read HEAD, status, tracker, goal,
+   and host state. Replace the capsule rather than appending a narrative status
+   trail.
 
-4. **Prove and challenge the fixed result.** Require the focused observer and
-repository gates earned by changed risk. Then give `$code-review` the complete
-bounded context packet: outcome/spec, fixed diff and path ledger, applicable
-instructions/domain authority, exact proof and gaps, authority/publication
-state, non-goals, and non-proofs. Standards and Spec remain independent.
+   When a later session must resume the outcome, the writer may store only the
+   capsule and pointers to its authorities at
+   `.krn/runs/delivery-loop/<outcome-id>/state.md`, but only after verifying
+   `.krn/runs/` is ignored by Git. This optional restart state is owned and
+   consumed by `$delivery-loop`; it contains no copied diffs, raw logs,
+   credentials, or source corpora. The loop that created it removes it when the
+   outcome is accepted, superseded, or abandoned unless the user explicitly
+   requests longer retention. If the path is not already ignored, keep the
+   capsule in the active native Goal/thread state instead of changing ignore rules.
 
-   Accepted findings become a new bounded `$implement` repair against the new
-fixed point, followed by focused proof and re-review. Reject findings only with
-current authority and evidence; never let reviewer prose become approval.
+   **Done when:** repository, tracker, goal, and capsule describe the same
+   current state, and any restart file has one consumer and cleanup trigger.
 
-   **Done when:** acceptance is present through the public seam, required proof
-passes, both review axes are dispositioned, and the fixed point has not drifted.
+4. **Prove and challenge one fixed result.** Require the focused observer and
+   repository gates earned by changed risk. Then give `$code-review` the
+   accepted outcome or spec, bounded diff, applicable instructions, exact proof
+   and gaps, non-goals, and authority state.
 
-5. **Advance publication only within authority.** Create cohesive Conventional
-Commits when authorized. Use the repository delivery profile for branch, PR,
-required CI, and merge state. A strict profile normally uses one outcome branch,
-one PR, fresh required checks, and squash/linear history when host policy says
-so. Invoke the installed GitHub publication or CI-fix owner when applicable;
-this skill does not silently acquire remote authority.
+   Any change to reviewed code, base, acceptance/spec, or applicable standards
+   creates a new fixed point and invalidates the old review. An accepted finding
+   returns as a bounded `$implement` repair, followed by focused proof and a
+   fresh review of the new fingerprints. Reviewer prose never substitutes for
+   the initiating workflow's disposition.
 
-   **Done when:** the result is `LOCAL_COMPLETE`, `PUBLISH_PENDING`, `PR_OPEN`,
-   `MERGE_READY`, or `DONE` with evidence matching the actual authority and host
-   state—never a stronger label inferred from local green checks.
+   **Done when:** acceptance is observable through the public seam, required
+   proof passes, both review axes are dispositioned for the current fixed point,
+   and no later mutation has invalidated them.
 
-6. **Re-read state after every transition.** After claim, implementation,
-review repair, commit, push, CI, or interruption, re-read HEAD, status, tracker,
-goal, and host state instead of trusting conversation memory. Store transient
-packets and retained reports only through the repository artifact-role resolver.
+5. **Advance only authorized lifecycle transitions.** Claim, commit, push,
+   open or update a PR, merge, and deploy only under their separate authorities
+   and current repository or host policy. Update the capsule after each observed
+   transition. Use the smallest truthful state: `LOCAL_COMPLETE`,
+   `PUBLISH_PENDING`, `PR_OPEN`, `MERGE_READY`, or `DONE`; local green checks do
+   not imply a remote state.
 
-   <delivery-result>
-   Final lifecycle state:
-   Outcome through public seam:
-   Active or closed tracker item:
-   Focused proof and repository gates:
-   Standards and Spec disposition:
-   Commit, PR, CI, merge, and deployment state:
-   Remaining blocker with owner and requested action:
-   Artifact retention and cleanup:
-   </delivery-result>
-
-   **Done when:** no required transition is hidden, the tracker and goal reflect
-   current truth, working artifacts have an owner/cleanup trigger, and the next
-   action is either authorized and performed or honestly blocked/pending.
+   **Done when:** the capsule exposes the achieved outcome, current proof and
+   review identity, actual publication state, and either no remaining required
+   transition or one blocker with its owner and requested action.

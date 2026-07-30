@@ -1,6 +1,6 @@
 # Claude Handoff
 
-Use this only for a `rewrite-maker` background pass. A source investigation
+Use this only for a `rewrite` background pass. A source investigation
 uses [research-template.md](research-template.md) instead. Complete the
 entrypoint's artifact-directory step first and write this brief to
 `/absolute/printed/pass-dir/handoff.md`. Shared `/tmp` paths are not resumable
@@ -41,7 +41,7 @@ worktree is an ownership boundary, not a filesystem or network sandbox.
 
 ## Role and completion
 
-- Role: `rewrite-maker`
+- Role: `rewrite`
 - Done when:
 - Do not decide:
 

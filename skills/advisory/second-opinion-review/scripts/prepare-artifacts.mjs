@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const workflow = "second-opinion-review";
 const contextFileName = "pass-context.json";
+const passContextSchemaVersion = 2;
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const roles = new Set(["research", "rewrite", "check"]);
 const passNamePattern = /^(\d{4}-\d{2}-\d{2})-(research|rewrite|check)-([a-z0-9]+(?:-[a-z0-9]+)*)-([A-Za-z0-9]{6})$/;
@@ -27,8 +28,6 @@ const resolutionKeys = new Set([
   "context_root",
   "repository_root",
   "artifact_repository_root",
-  "config_path",
-  "configured_working_runs",
 ]);
 
 function git(cwd, args) {
@@ -117,54 +116,25 @@ function resolveProspectivePath(candidate) {
 
 function assertInsideRepository(repositoryRoot, candidate) {
   if (!isInside(repositoryRoot, candidate)) {
-    throw new Error("working_runs must resolve inside the repository");
+    throw new Error(".krn/runs must resolve inside the repository");
   }
 }
 
-function readConfiguredLayout(repositoryRoot) {
-  if (!repositoryRoot) return null;
-  const configPath = path.join(repositoryRoot, "docs", "agents", "artifact-paths.json");
-  if (!fs.existsSync(configPath)) return null;
-  const configStat = fs.lstatSync(configPath);
-  if (!configStat.isFile() || configStat.isSymbolicLink()) {
-    throw new Error("artifact-paths.json must be a real file");
+function repositoryWorkingRuns(repositoryRoot) {
+  const canonical = path.join(repositoryRoot, ".krn", "runs");
+  const resolved = resolveProspectivePath(canonical);
+  assertInsideRepository(repositoryRoot, resolved);
+  if (resolved !== canonical) {
+    throw new Error(".krn/runs must use its canonical repository path without symlinks");
   }
-  const resolvedConfigPath = fs.realpathSync(configPath);
-  if (resolvedConfigPath !== configPath || !isInside(repositoryRoot, resolvedConfigPath)) {
-    throw new Error(
-      "artifact-paths.json must use its canonical repository path without symlinks",
-    );
-  }
-
-  let config;
-  try {
-    config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-  } catch {
-    throw new Error("artifact-paths.json must contain valid JSON");
-  }
-  if (config.schema_version !== 1 || typeof config.working_runs !== "string") {
-    throw new Error("artifact-paths.json must define schema_version 1 and working_runs");
-  }
-  if (path.isAbsolute(config.working_runs) || config.working_runs.trim() === "") {
-    throw new Error("working_runs must be a non-empty repository-relative path");
-  }
-
-  const workingRunsRoot = resolveProspectivePath(
-    path.resolve(repositoryRoot, config.working_runs),
-  );
-  assertInsideRepository(repositoryRoot, workingRunsRoot);
-  return {
-    configPath,
-    configuredWorkingRuns: config.working_runs,
-    workingRunsRoot,
-  };
+  return resolved;
 }
 
 function explicitWorkingRuns(env) {
   const declared = env.SECOND_OPINION_WORKING_RUNS;
   if (typeof declared !== "string" || !path.isAbsolute(declared)) {
     throw new Error(
-      "repository artifact config is unavailable; SECOND_OPINION_WORKING_RUNS must be an absolute path",
+      "no repository owns this context; SECOND_OPINION_WORKING_RUNS must be an absolute path",
     );
   }
   return resolveProspectivePath(path.resolve(declared));
@@ -185,9 +155,10 @@ export function resolveArtifactLayout({
 } = {}) {
   const contextRoot = declaredContextRoot({ cwd, env });
   const repositoryRoot = detectRepositoryRoot(contextRoot);
-  const configured = readConfiguredLayout(repositoryRoot);
-  const resolutionKind = configured ? "repository-config" : "explicit-working-runs";
-  const workingRunsRoot = configured?.workingRunsRoot ?? explicitWorkingRuns(env);
+  const resolutionKind = repositoryRoot ? "repository" : "explicit-working-runs";
+  const workingRunsRoot = repositoryRoot
+    ? repositoryWorkingRuns(repositoryRoot)
+    : explicitWorkingRuns(env);
   const artifactRoot = path.join(workingRunsRoot, workflow);
   const artifactRepositoryRoot = detectContainingRepository(artifactRoot);
 
@@ -197,8 +168,6 @@ export function resolveArtifactLayout({
     contextRoot,
     repositoryRoot,
     artifactRepositoryRoot,
-    configPath: configured?.configPath ?? null,
-    configuredWorkingRuns: configured?.configuredWorkingRuns ?? null,
     workingRunsRoot,
     artifactRoot,
   };
@@ -227,7 +196,7 @@ function requireRole(role, label = "role") {
 
 function writePassContext(passDirectory, layout, { slug, role }) {
   const value = {
-    schema_version: 1,
+    schema_version: passContextSchemaVersion,
     workflow,
     role,
     slug,
@@ -240,8 +209,6 @@ function writePassContext(passDirectory, layout, { slug, role }) {
       context_root: layout.contextRoot,
       repository_root: layout.repositoryRoot,
       artifact_repository_root: layout.artifactRepositoryRoot,
-      config_path: layout.configPath,
-      configured_working_runs: layout.configuredWorkingRuns,
     },
   };
   fs.writeFileSync(
@@ -392,7 +359,10 @@ export function verifyPassDirectory({
   }
 
   const value = readPassContext(resolvedPass);
-  if (value.schema_version !== 1 || value.workflow !== workflow) {
+  if (
+    value.schema_version !== passContextSchemaVersion ||
+    value.workflow !== workflow
+  ) {
     throw new Error("pass context schema or workflow is unsupported");
   }
   requireRole(value.role, "pass context role");
@@ -414,7 +384,7 @@ export function verifyPassDirectory({
   }
 
   const resolution = value.resolution;
-  if (!new Set(["repository-config", "explicit-working-runs"]).has(resolution.kind)) {
+  if (!new Set(["repository", "explicit-working-runs"]).has(resolution.kind)) {
     throw new Error("pass context resolution kind is invalid");
   }
   if (typeof resolution.context_root !== "string" || !path.isAbsolute(resolution.context_root)) {
@@ -436,29 +406,19 @@ export function verifyPassDirectory({
     throw new Error("pass context artifact repository identity changed");
   }
 
-  if (resolution.kind === "repository-config") {
-    if (
-      !resolution.repository_root ||
-      typeof resolution.config_path !== "string" ||
-      typeof resolution.configured_working_runs !== "string"
-    ) {
-      throw new Error("configured pass context is incomplete");
+  if (resolution.kind === "repository") {
+    if (!resolution.repository_root) {
+      throw new Error("repository pass context is incomplete");
     }
-    const configured = readConfiguredLayout(resolution.repository_root);
     if (
-      !configured ||
-      configured.configPath !== resolution.config_path ||
-      configured.configuredWorkingRuns !== resolution.configured_working_runs ||
-      configured.workingRunsRoot !== workingRunsRoot
+      repositoryWorkingRuns(resolution.repository_root) !== workingRunsRoot ||
+      resolution.artifact_repository_root !== resolution.repository_root
     ) {
-      throw new Error("current repository artifact config differs from the pass context");
+      throw new Error("pass is outside the repository's canonical .krn/runs root");
     }
   } else {
-    if (resolution.config_path !== null || resolution.configured_working_runs !== null) {
-      throw new Error("explicit working-runs context must not claim repository config");
-    }
-    if (resolution.repository_root && readConfiguredLayout(resolution.repository_root)) {
-      throw new Error("repository artifact config now supersedes the explicit pass context");
+    if (resolution.repository_root !== null) {
+      throw new Error("explicit working-runs context must not claim a repository owner");
     }
   }
 

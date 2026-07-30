@@ -148,6 +148,8 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
     protected_anchors = {
         Path("/"),
         Path("/home"),
+        Path("/media"),
+        Path("/mnt"),
         Path("/tmp"),
         home,
         home / "coding",
@@ -167,8 +169,6 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
         Path("/boot"),
         Path("/dev"),
         Path("/etc"),
-        Path("/media"),
-        Path("/mnt"),
         Path("/opt"),
         Path("/proc"),
         Path("/root"),

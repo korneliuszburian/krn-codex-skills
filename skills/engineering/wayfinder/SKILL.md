@@ -1,102 +1,99 @@
 ---
 name: wayfinder
-description: Chart a multi-session effort as a shared map of decision tickets on the configured tracker and resolve them one at a time until the way to the destination is clear. Use when an idea is too big and foggy for one session; skip settled specs, slicing, and execution.
+description: Chart a foggy multi-session effort as a durable tracker map of decision tickets and resolve them one at a time until the route is clear. Invoke explicitly when an idea is too big and uncertain for one session; skip settled specs, slicing, and execution.
 ---
 
 # Wayfinder
 
-A loose idea has arrived — too big for one session, wrapped in fog: the way from
-here to the **destination** is not visible yet. Wayfinding finds that way; it does
-not charge at the destination. This skill charts a **map** of **decision tickets**
-on the repo's tracker, then resolves them one at a time until the route is clear.
+Wayfinding clears decision fog before execution. It creates one durable map and
+sharp decision tickets, resolves one frontier ticket per session, and stops
+when the route to the destination is settled. `$to-spec`, `$slice-work`,
+`$implement`, and `$delivery-loop` own everything downstream.
 
-**Plan, don't do.** Each ticket resolves a *decision*, not a slice of build. The
-map is done when nothing remains to decide before someone does the thing. The pull
-to just do the work is usually the signal you have reached the edge of the map and
-must hand off. An effort may carry execution into the map via its **Notes**; absent
-that, produce decisions, not deliverables. `$slice-work` owns decomposition of a
-settled spec, `$to-spec` owns spec compression, `$implement` owns the build, and
-`$delivery-loop` owns lifecycle — wayfinder only clears fog upstream of them.
+1. **Bind the durable tracker and destination.** Read the tracker identity and
+   operations declared by the closest repository `AGENTS.md` managed block or
+   other closest repository instructions. This is a hard dependency: the
+   instructions must name an existing durable tracker and exact operations for
+   creating and updating a map, child tickets, blocking edges, claims,
+   resolutions, and frontier queries. If any operation is absent, stop with that
+   setup requirement. Also resolve authority for the required tracker mutations
+   before creating anything. An ad hoc conversation plan, undeclared repository
+   document, or invented `.scratch/` convention is not a substitute.
 
-1. **Name the destination.** The destination fixes scope, so settle it first. Run
-   `$domain-modeling` to pin what this map is finding its way to — a spec, a
-   decision, or an in-place change. One or two lines; every later session orients
-   to it before choosing a ticket.
+   Name the one- or two-line destination that fixes scope. Use
+   `$domain-modeling` only when the destination itself is contested. If the
+   effort is already clear or fits one session, make no map and return it to the
+   appropriate downstream owner.
 
-   **Done when:** the destination is a single named outcome and the scope it fixes
-   is stated, or the idea is small enough that no map is needed (stop and tell the
-   user).
+   **Done when:** a capable durable tracker, required mutation authority, and one
+   scoped destination exist, or the workflow has stopped without inventing them.
 
-2. **Map the frontier breadth-first.** Grill across the whole space, not deep on
-   one thread, surfacing open decisions and the first steps takeable now. Sketch
-   what you can tell is coming but cannot yet sharpen into **Not yet specified**
-   (fog). **If this surfaces no fog, the way is already clear — do not make a map.**
-   Stop and ask the user how to proceed.
+2. **Map the frontier breadth-first.** Grill across the whole decision space.
+   Separate questions sharp enough to ticket now from **Not yet specified** fog
+   whose question depends on an earlier answer. Keep work beyond the destination
+   in **Out of scope**. Read [map-template.md](references/map-template.md) for
+   the exact map, ticket, and fog contracts.
 
-   **Done when:** the destination, the sharp tickets, and the remaining fog are
-   distinguished; see [map-template.md](references/map-template.md) for the Fog or
-   ticket test.
+   **Done when:** destination, sharp questions, dependent fog, and out-of-scope
+   work are distinct. If no fog or sharp decision remains, do not create a map.
 
-3. **Create the map.** Publish one map artifact (the tracker issue or local file
-   labelled `wayfinder:map`) from [map-template.md](references/map-template.md):
-   Destination and Notes filled, Decisions-so-far empty, fog in Not yet specified,
-   ruled-out work in Out of scope. The map is an **index, not a store** — it gists
-   each decision and links it; a decision lives in exactly one place, its ticket.
+3. **Create one map and its sharp tickets.** Create one tracker item labelled
+   `wayfinder:map`, then one child per currently sharp question. Use only these
+   ticket types and exact workflow owners:
 
-   Express map, child tickets, blocking, and claim through the operations in
-   `docs/agents/issue-tracker.md`. If that doc lacks wayfinding operations, fall
-   back to local-markdown (`.scratch/<effort>/map.md` plus one file per ticket) and
-   state the assumption; do not run `$setup-repository-workflow` unprompted.
+   - `wayfinder:research` → `$source-to-decision` for an external-evidence
+     disposition;
+   - `wayfinder:prototype` → `$prototype` for one experiential design verdict;
+   - `wayfinder:grilling` → `$domain-modeling` for a user-owned or contested
+     decision.
 
-   **Done when:** the map exists in the configured place with all five sections and
-   refers to every ticket by its name, never a bare id.
+   Create tickets first, then wire their documented blocking relationships in
+   a second pass. Production work, provisioning, publication, and other
+   mutations are blockers owned outside this map, never a fourth ticket type or
+   an execution escape hatch.
 
-4. **Create the tickets you can sharpen now** as children of the map, one Question
-   each, labelled `wayfinder:<type>` — `research`, `prototype`, `grilling`, or
-   `task` (see [map-template.md](references/map-template.md)). Wire blocking edges
-   in a **second pass** (tickets need ids before they can reference each other) using
-   the tracker's native dependency relationship. The **frontier** is the open,
-   unblocked, unclaimed children — the edge of the known. Everything still foggy
-   stays in Not yet specified; do not pre-slice it.
+   **Done when:** every sharp question has one typed child and exact owner,
+   every load-bearing dependency exists in the tracker, and fog has not been
+   forced into a ticket.
 
-   **Done when:** every sharp question is a ticket with a type and real blocking
-   edges, and no fog has been forced into a ticket.
+4. **Resolve one frontier ticket per session.** Load the map at low resolution,
+   query open unblocked unclaimed children, choose one, and claim it through the
+   configured tracker before invoking its exact owner. The invoked skill owns
+   its procedure; Wayfinder supplies the question, destination, relevant prior
+   decisions, and the ticket as the verdict destination.
 
-5. **Work one ticket per session** (research excepted). Load the map at low
-   resolution, choose a frontier ticket (the user may name one), and **claim it
-   through the tracker before any work** so concurrent sessions skip it. Resolve it
-   by invoking the skill its type names — `$source-to-decision` for research,
-   `$domain-modeling` for grilling (the default), a throwaway prototype for
-   prototype, or the manual work for task. When a research ticket explicitly
-   needs a delegated corpus pass, `$second-opinion-review` may supply a validated
-   advisory ledger to `$source-to-decision`; the ticket is not resolved until
-   the latter records `adopt`, `reject`, `lab-test`, or `defer` against local
-   evidence. Zoom related or closed tickets on demand.
+   A research ticket closes only with `$source-to-decision`'s `adopt`, `reject`,
+   `lab-test`, or `defer`; a prototype ticket closes only after `$prototype`
+   promotes its verdict to the ticket and disposes of the prototype; a grilling
+   ticket closes only after `$domain-modeling` records the confirmed decision.
 
-   **Done when:** one ticket is claimed, resolved with the named skill, and its
-   answer recorded as a resolution on the ticket.
+   **Done when:** one claimed ticket has one decision, evidence, and named
+   unresolved condition, or remains honestly open with a blocker and owner.
 
-6. **Record, graduate, and re-scope.** Post the answer on the ticket, **close** it,
-   and append a one-line gist plus link to the map's Decisions-so-far. Graduate any
-   fog the answer made specifiable into fresh tickets (create-then-wire), clearing
-   each patch from Not yet specified. If a ticket — this one or another — turns out
-   to sit past the destination, **close it and leave one line in Out of scope**
-   rather than walking it on the route. If a decision invalidates other tickets,
-   update or delete them.
+5. **Update the map as an index.** Put the full answer on its ticket, close it
+   only when resolved, and append one linked gist to **Decisions so far**.
+   Graduate newly sharp fog into fresh typed tickets, then wire dependencies.
+   Close and index as out of scope any ticket revealed to lie past the
+   destination. Update or close tickets invalidated by the new decision so the
+   frontier never contains stale work.
 
-   **Done when:** the map's index, fog, and scope reflect the new decision, and no
-   stale ticket remains on the frontier.
+   **Done when:** ticket truth, map index, remaining fog, scope, and frontier
+   agree after the decision.
 
-7. **Hand off when the way is clear.** When no tickets remain and no fog is left,
-   the route is found.
+6. **Hand off only when the way is clear.** When no open decision tickets or
+   fog remain, choose the smallest downstream owner: `$to-spec` when the settled
+   route still needs one spec, `$implement` when it is one clear change, or
+   `$slice-work` when an existing settled spec needs multiple vertical slices or
+   migration stages. `$delivery-loop` may then compose the chosen work when the
+   user requested full lifecycle delivery; Wayfinder never starts execution.
 
    <wayfinder-result>
    Destination:
-   Map (tracker location):
+   Durable map identity:
    Decisions recorded:
-   Remaining fog:
-   Routed to: $to-spec (spec needed) | $slice-work (multi-slice) | $implement (single change) via $delivery-loop
+   Remaining open tickets or fog:
+   Routed to: $to-spec | $implement | $slice-work | none-yet
    </wayfinder-result>
 
-   **Done when:** the next owner is named from the cleared route, or the map still
-   holds open tickets and the session stops after one.
+   **Done when:** a clear route has one next owner, or the durable map remains
+   open and this session stops after its single ticket.

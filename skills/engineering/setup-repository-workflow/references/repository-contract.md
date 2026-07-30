@@ -16,17 +16,23 @@ Use the narrowest durable surface that matches the scope.
 | CI | reproducible checks on a fixed revision | product completion or host policy |
 | GitHub settings | required checks, branch protection, merge and review policy | local implementation procedure |
 
-Normalize workflow artifacts inside every configured repository:
+Keep resumable workflow state under the canonical ignored
+`.krn/runs/<workflow>/<run-id>/`; the creating workflow owns cleanup when its
+task is accepted, superseded, or abandoned. Short-lived findings return to the
+active outcome owner. Put only the condensed truth needed for a later session
+inside its run; prompts, packets, logs, and raw model output are transport, not
+durable knowledge.
 
-- `docs/agents/runs/<workflow>/<run-id>/` for ignored working material owned
-  and cleaned up by the creating workflow;
-- `docs/agents/reports/<workflow>/<slug>.md` only for a final synthesis,
-  decision, or owner-facing report with a named durable consumer.
+Durable knowledge has semantic owners rather than a generic report directory:
 
-This separation keeps research and second-opinion work discoverable without
-mutating the diff it is reviewing or turning raw logs into permanent docs.
-Resolve every role through `docs/agents/artifact-paths.json`; individual skills
-must not invent a competing repository path.
+- `CONTEXT.md` holds current shared vocabulary only when a real consumer needs it;
+- `docs/adr/` holds earned consequential decisions;
+- `docs/research/` holds an explicitly retained synthesis with a named consumer;
+- the configured tracker holds active outcomes, specifications, tickets, and state.
+
+Do not create these paths during setup. The domain, decision, research, or
+tracker workflow creates its own artifact only when its retention trigger is
+present.
 
 Prefer deletion or a direct pointer when two artifacts communicate the same
 current state. A compatibility symlink may share one semantic instruction file;

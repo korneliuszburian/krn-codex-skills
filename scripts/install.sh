@@ -52,6 +52,9 @@ node "$repo_root/scripts/validate.mjs"
 mapfile -t skill_rows < <(
   jq -r '.skills[] | [.name, .path] | @tsv' "$manifest"
 )
+mapfile -t retired_skill_names < <(
+  jq -r '.retired_skills[].name' "$manifest"
+)
 mapfile -t bin_rows < <(
   jq -r '.bins[] | [.name, .path] | @tsv' "$manifest"
 )
@@ -74,7 +77,7 @@ link_matches() {
 
 check_install() {
   local failures=0
-  local name relative source target legacy legacy_relative replacement legacy_hook
+  local name relative source target legacy legacy_relative replacement legacy_hook retired_name
 
   for row in "${bin_rows[@]}"; do
     IFS=$'\t' read -r name relative <<< "$row"
@@ -102,6 +105,14 @@ check_install() {
       failures=1
     else
       printf 'missing %s\n' "$target"
+      failures=1
+    fi
+  done
+
+  for retired_name in "${retired_skill_names[@]}"; do
+    target="$skill_dest/$retired_name"
+    if [[ -e "$target" || -L "$target" ]]; then
+      printf 'retired %s (archive with KRN_ARCHIVE_LEGACY=1)\n' "$target"
       failures=1
     fi
   done
@@ -202,6 +213,15 @@ for row in "${skill_rows[@]}"; do
   fi
 done
 
+for retired_name in "${retired_skill_names[@]}"; do
+  target="$skill_dest/$retired_name"
+  if [[ -e "$target" || -L "$target" ]] && [[ "$archive_legacy" != 1 ]]; then
+    echo "refusing retired skill path: $target" >&2
+    echo "set KRN_ARCHIVE_LEGACY=1 only after reviewing that path" >&2
+    exit 81
+  fi
+done
+
 if [[ -e "$global_agents_override" || -L "$global_agents_override" ]]; then
   echo "refusing masked global instructions: $global_agents_override" >&2
   exit 75
@@ -282,6 +302,10 @@ archive_path() {
   mv -- "$source" "$backup_dir/$label"
   printf 'archived %s -> %s\n' "$source" "$backup_dir/$label"
 }
+
+for retired_name in "${retired_skill_names[@]}"; do
+  archive_path "$skill_dest/$retired_name" "retired-skill__${retired_name}"
+done
 
 for legacy_hook in "${legacy_hook_rows[@]}"; do
   target="$codex_home/$legacy_hook"

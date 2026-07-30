@@ -1,11 +1,11 @@
 ---
 name: prototype
-description: Build a throwaway prototype to answer one design question. Use to sanity-check whether a state model or logic feels right (tiny terminal app) or what a UI should look like (several variants on a route); skip production builds and diagnosis.
+description: Build an ephemeral throwaway prototype to answer one design question. Use to sanity-check whether a state model or logic feels right (tiny terminal app) or what a UI should look like (several variants on a route); skip production builds and diagnosis.
 ---
 
 # Prototype
 
-A prototype is **throwaway code that answers one question**. The question decides
+A prototype is **ephemeral throwaway code that answers one question**. The question decides
 the shape, and getting the branch wrong wastes the whole prototype. It is not a
 production build (`$implement`), not a diagnosis (`$diagnosing-bugs`), and not
 real review — it is the cheapest runnable artifact that settles a design question
@@ -66,21 +66,29 @@ that resists paper.
    **Done when:** the user has driven the prototype and the question is answered or
    sharpened.
 
-7. **Capture the answer, then capture the prototype.** Fold the validated decision
-   into the real code (the winner variant, or the lifted pure module) and rewrite it
-   properly under `$implement` — prototype code was written under throwaway
-   constraints. Record the **verdict** — the answer and the question it settled — on
-   the issue, spec, or commit. Commit the **whole prototype** to a throwaway branch
-   out of main and leave a context pointer to that branch: it is a **primary source**
-   of runnable evidence, not the bin. Drop losing variants and the shell from main.
+7. **Promote the verdict, then dispose of the prototype.** Record the question,
+   answer, and decisive observation in the existing surface that already owns the
+   decision: for example the active Wayfinder ticket, tracker item, settled spec, or
+   domain decision thread. If no durable owner exists, return the verdict to the
+   requester; do not invent another durable artifact. Production work, when requested,
+   starts as a fresh `$implement` task and rewrites the validated idea under
+   production constraints.
+
+   The prototype is ephemeral by default. After the user has inspected it and the
+   verdict is captured, remove its shell, losing variants, runner entry, and other
+   throwaway files from the production branch. Retain the runnable prototype on a
+   separate branch only when the user explicitly requests retention and separately
+   authorizes the branch and commit. Put any pointer to that branch in the existing
+   decision owner, not in a new artifact.
 
    <prototype-result>
    Question answered:
    Verdict:
-   Folded into real code via: $implement
-   Primary source (throwaway branch):
+   Existing decision owner updated:
+   Prototype disposition: removed | explicitly retained on <branch>
+   Next owner: none | $implement
    </prototype-result>
 
-   **Done when:** the decision is in real code, the verdict is recorded, the full
-   prototype survives on a throwaway branch with a pointer, and main keeps only the
-   validated decision.
+   **Done when:** the verdict is available to its existing owner, the production
+   branch contains no throwaway residue, and any retained branch has explicit user
+   request plus branch and commit authority.

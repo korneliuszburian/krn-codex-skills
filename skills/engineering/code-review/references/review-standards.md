@@ -12,6 +12,24 @@ Concrete cost:
 Counterexample that would dismiss it:
 </actionable-standard>
 
+## Review Lane Precedence
+
+One fixed point gets one routine local lane: `$code-review`. Additional lanes
+run only for their distinct trigger and never upgrade advisory output into
+approval:
+
+1. `$code-review` owns the routine fixed-diff Standards and Spec result.
+2. Host review owns comments on an existing pull or merge request; it does not
+   replace local Spec review or imply approval.
+3. `$second-opinion-review` runs only when an explicit high-risk challenge or
+   bounded external evidence pass is requested; its result remains advisory.
+4. The initiating workflow or human dispositions findings and decides the next
+   action after every lane.
+
+If two routes appear to own the same routine review, keep `$code-review` and
+drop the duplicate. A host-required check remains host policy, not a second
+local workflow owner.
+
 ## Boundary And Proof Checks
 
 - Does external data remain `unknown` until runtime validation?

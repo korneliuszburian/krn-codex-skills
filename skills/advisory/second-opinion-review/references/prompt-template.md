@@ -50,9 +50,9 @@ bash ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
   /absolute/printed/pass-dir/checker.review.json
 ```
 
-The runner accepts output only in the verified pass. For a configured
-same-repository review, that is the repository's ignored `working_runs` tree;
-all other writes inside the fixed evidence root remain invalid. The runner
+The runner accepts output only in the verified pass. For a same-repository
+review, that is the repository's ignored `.krn/runs` tree; all other writes
+inside the fixed evidence root remain invalid. The runner
 checks identity before the Claude window or model invocation, fingerprints
 dirty Git content, and captures the prompt hash. Its private preflight manifest
 binds every cited regular file by mode, size, and full content hash; citations
