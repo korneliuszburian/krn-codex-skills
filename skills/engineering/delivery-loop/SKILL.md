@@ -20,14 +20,17 @@ or publication.
    Keep exactly one compact working record and replace its fields in place:
 
    <outcome-capsule>
-   Outcome and acceptance authority:
-   Goal / tracker state:
-   Sole writer and active workflow owner:
-   Repository base, HEAD, and dirty-state scope:
-   Focused proof:
+   Outcome and observable acceptance:
+   Current workflow owner, sole writer, and lifecycle state:
+   Repository base, HEAD or working-tree fingerprint, and dirty-state scope:
+   Native Goal identity/state and configured tracker item/state:
+   Authority: writes=; commit=; push=; PR=; merge=; deployment/install=
+   Evidence observed:
+   Explicit non-proofs:
    Review fixed point and Standards / Spec disposition:
-   Publication authority and observed state:
-   Blocker or next bounded action:
+   Open unknowns and blockers with owners:
+   Durable CONTEXT / ADR / research references:
+   Next bounded owner and action:
    </outcome-capsule>
 
    Exactly one agent or session may mutate tracked files, the outcome branch,
@@ -38,7 +41,8 @@ or publication.
    work, edit, publish, or declare the outcome done.
 
    **Done when:** one outcome, one writer, one active implementation item at
-   most, and every external action's authority state are explicit.
+   most, and evidence, non-proofs, unknowns, durable pointers, fingerprints,
+   and every external action's separate authority state are explicit.
 
 2. **Route only the current uncertainty.** Give a clear bounded change to
    `$implement`; a proven failure cause also returns there. Give an unknown
@@ -94,6 +98,6 @@ or publication.
    `PUBLISH_PENDING`, `PR_OPEN`, `MERGE_READY`, or `DONE`; local green checks do
    not imply a remote state.
 
-   **Done when:** the capsule exposes the achieved outcome, current proof and
-   review identity, actual publication state, and either no remaining required
-   transition or one blocker with its owner and requested action.
+   **Done when:** the capsule exposes the achieved outcome, current evidence and
+   non-proofs, review identity, actual publication state, and either no remaining
+   required transition or one blocker with its owner and requested action.

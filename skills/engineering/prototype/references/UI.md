@@ -57,9 +57,9 @@ where every variant looks fine.
    why to the existing owner of the question. Remove every variant, throwaway route,
    switcher, and runner entry after inspection. If production work is requested,
    `$implement` rewrites the selected design with its required proof. Retain the full
-   runnable set on a separate branch only under the explicit retention, branch, and
-   commit authority in the parent skill. Variant components left in production rot
-   fast and confuse the next reader.
+   runnable set on a separate branch only after the parent skill's complete promotion
+   gate, including a named future consumer and owned cleanup or supersession trigger.
+   Variant components left in production rot fast and confuse the next reader.
 
 ## Anti-patterns
 

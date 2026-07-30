@@ -71,7 +71,7 @@ check transport when a fixed artifact only needs an adversarial challenge.
    contract value, not another environment override. A pass always lives at
    `<OUTPUT_ROOT>/<ISO-date>-<role>-<slug>-<suffix>/`. Resolve the repository by
    realpath, then its fixed repository-relative runs root, so moving the checkout
-   between `/home`, `/run/media`, and `/mnt` cannot change ownership.
+   between physical locations cannot change ownership.
 
    **Done when:** this pass has exactly one verified `0700` directory under the
    resolved working root, and every brief, prompt, job record, review result,
@@ -161,11 +161,13 @@ check transport when a fixed artifact only needs an adversarial challenge.
    `disposition.md` inside the same pass with `status: blocked`, the exact
    diagnostic, and the next owner. Remove the disposable worktree after its
    candidate changes are accepted or rejected. Keep `pass_dir` while its issue,
-   goal, or follow-up depends on the evidence; once that owner closes, either
-   promote only the distilled decision through `$source-to-decision`'s semantic
-   gate, then delete the pass directory explicitly. The runners delete their private
-   temporary transport automatically; they do not decide retention of operator
-   evidence.
+   goal, or follow-up depends on the evidence, then delete it directly when no
+   durable consumer remains. Only a research pass with a named future consumer may
+   first hand its validated ledger to `$source-to-decision`; that workflow may
+   promote only the distilled decision through its semantic gate. Check and rewrite
+   output do not route through research merely for retention. The runners delete
+   their private temporary transport automatically; they do not decide retention of
+   operator evidence.
 
    **Done when:** the owned artifact is locally verified, remaining work has a
    named owner, the canonical branch contains only decisions supported by local

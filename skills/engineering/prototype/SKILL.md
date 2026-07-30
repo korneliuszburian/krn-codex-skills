@@ -77,18 +77,23 @@ that resists paper.
    The prototype is ephemeral by default. After the user has inspected it and the
    verdict is captured, remove its shell, losing variants, runner entry, and other
    throwaway files from the production branch. Retain the runnable prototype on a
-   separate branch only when the user explicitly requests retention and separately
-   authorizes the branch and commit. Put any pointer to that branch in the existing
-   decision owner, not in a new artifact.
+   separate branch only when the user explicitly requests retention, separately
+   authorizes the branch and commit, names the future consumer, and assigns an owner
+   plus trigger for deletion or supersession. The existing decision owner must hold
+   the branch pointer, consumer, and cleanup trigger; do not create a fifth durable
+   knowledge home merely to keep prototype code.
 
    <prototype-result>
    Question answered:
    Verdict:
    Existing decision owner updated:
    Prototype disposition: removed | explicitly retained on <branch>
+   Retention consumer: none | <named future consumer>
+   Cleanup owner and trigger: none | <owner when condition>
    Next owner: none | $implement
    </prototype-result>
 
    **Done when:** the verdict is available to its existing owner, the production
-   branch contains no throwaway residue, and any retained branch has explicit user
-   request plus branch and commit authority.
+   branch contains no throwaway residue, and any retained branch passes the complete
+   promotion gate: explicit request, branch and commit authority, named consumer,
+   existing durable pointer, and owned cleanup or supersession trigger.

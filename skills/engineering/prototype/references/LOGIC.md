@@ -51,8 +51,8 @@ through real cases. If the question is "what should this look like", use
    decisive observations to the existing owner of the question. Remove the logic
    module, TUI shell, and runner entry after inspection. If production work is
    requested, `$implement` rewrites the model rather than promoting prototype code.
-   Retain a runnable branch only under the explicit retention, branch, and commit
-   authority in the parent skill.
+   Retain a runnable branch only after the parent skill's complete promotion gate,
+   including a named future consumer and owned cleanup or supersession trigger.
 
 ## Anti-patterns
 

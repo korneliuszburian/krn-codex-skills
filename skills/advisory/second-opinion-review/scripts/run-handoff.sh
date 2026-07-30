@@ -76,6 +76,17 @@ for requested_dir in "${additional_dirs[@]}"; do
       exit 65
       ;;
   esac
+  lexical_dir=$(readlink -m "$requested_dir")
+  for config_dir in "${protected_agent_config_dirs[@]}"; do
+    if [[
+      "$lexical_dir" == "$config_dir" ||
+      "$lexical_dir" == "$config_dir"/* ||
+      "$config_dir" == "$lexical_dir"/*
+    ]]; then
+      echo "refusing broad or agent-configuration --add-dir path: $lexical_dir" >&2
+      exit 65
+    fi
+  done
   if [[ ! -d "$requested_dir" ]]; then
     echo "--add-dir path is not a directory: $requested_dir" >&2
     exit 66
@@ -122,8 +133,8 @@ if (( handoff_bytes > handoff_max_bytes )); then
   exit 65
 fi
 
-if ! rg -q '^<claude-handoff>$' "$handoff_file" || \
-   ! rg -q '^</claude-handoff>$' "$handoff_file"; then
+if ! grep -q -F -x '<claude-handoff>' "$handoff_file" || \
+   ! grep -q -F -x '</claude-handoff>' "$handoff_file"; then
   echo "handoff must contain the <claude-handoff> template boundary" >&2
   exit 65
 fi
@@ -131,7 +142,7 @@ fi
 for heading in "## Objective" "## Role and completion" "## Sources" \
   "## Work" "## Deliverables" "## Proof boundaries" \
   "## Safety and ownership" "## Suggested skills"; do
-  if ! rg -q -F "$heading" "$handoff_file"; then
+  if ! grep -q -F "$heading" "$handoff_file"; then
     echo "handoff missing required heading: $heading" >&2
     exit 65
   fi
@@ -144,23 +155,23 @@ while IFS= read -r line; do
     "- Role:"*)
       ((role_lines += 1))
       case "$line" in
-        "- Role: rewrite-maker" | '- Role: `rewrite-maker`')
-          handoff_role=rewrite-maker
+        "- Role: rewrite" | '- Role: `rewrite`')
+          handoff_role=rewrite
           ;;
         *)
-          echo "background handoff role must be rewrite-maker; use run-research.mjs for researcher or run-review.sh for checker" >&2
+          echo "background handoff role must be rewrite; use run-research.mjs for research or run-review.sh for check" >&2
           exit 65
           ;;
       esac
       ;;
   esac
 done < "$handoff_file"
-if (( role_lines != 1 )) || [[ "$handoff_role" != "rewrite-maker" ]]; then
-  echo "handoff must contain exactly one background Role: rewrite-maker" >&2
+if (( role_lines != 1 )) || [[ "$handoff_role" != "rewrite" ]]; then
+  echo "handoff must contain exactly one background Role: rewrite" >&2
   exit 65
 fi
 if [[ "$accept_edits" == false ]]; then
-  echo "rewrite-maker handoffs require explicit --accept-edits authority" >&2
+  echo "rewrite handoffs require explicit --accept-edits authority" >&2
   exit 65
 fi
 

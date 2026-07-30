@@ -32,26 +32,26 @@ Implement.
 `;
 }
 
-test("routes researcher away from the edit-capable background handoff", () => {
+test("routes research away from the edit-capable background handoff", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-handoff-test-"));
   const handoffFile = path.join(sandbox, "handoff.md");
   try {
-    fs.writeFileSync(handoffFile, handoff("researcher"));
+    fs.writeFileSync(handoffFile, handoff("research"));
     const result = spawnSync("bash", [scriptPath, "research job", handoffFile], {
       encoding: "utf8",
     });
     assert.equal(result.status, 65);
-    assert.match(result.stderr, /use run-research\.mjs for researcher/);
+    assert.match(result.stderr, /use run-research\.mjs for research/);
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
   }
 });
 
-test("requires explicit edit authority for rewrite-maker", () => {
+test("requires explicit edit authority for rewrite", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-handoff-test-"));
   const handoffFile = path.join(sandbox, "handoff.md");
   try {
-    fs.writeFileSync(handoffFile, handoff("rewrite-maker"));
+    fs.writeFileSync(handoffFile, handoff("rewrite"));
     const result = spawnSync("bash", [scriptPath, "rewrite job", handoffFile], {
       encoding: "utf8",
     });
@@ -66,7 +66,7 @@ test("refuses a relative --add-dir path", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-handoff-test-"));
   const handoffFile = path.join(sandbox, "handoff.md");
   try {
-    fs.writeFileSync(handoffFile, handoff("rewrite-maker"));
+    fs.writeFileSync(handoffFile, handoff("rewrite"));
     const result = spawnSync(
       "bash",
       [scriptPath, "--add-dir", "relative/extra", "job-name", handoffFile],
@@ -79,15 +79,19 @@ test("refuses a relative --add-dir path", () => {
   }
 });
 
-test("refuses --add-dir inside a protected agent-configuration directory", () => {
+test("refuses an absent protected agent-configuration path lexically", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-handoff-test-"));
   const handoffFile = path.join(sandbox, "handoff.md");
+  const protectedConfig = path.join(sandbox, "missing-agent-config");
   try {
-    fs.writeFileSync(handoffFile, handoff("rewrite-maker"));
+    fs.writeFileSync(handoffFile, handoff("rewrite"));
     const result = spawnSync(
       "bash",
-      [scriptPath, "--add-dir", path.join(os.homedir(), ".codex"), "job-name", handoffFile],
-      { encoding: "utf8" },
+      [scriptPath, "--add-dir", protectedConfig, "job-name", handoffFile],
+      {
+        encoding: "utf8",
+        env: { ...process.env, CLAUDE_CONFIG_DIR: protectedConfig },
+      },
     );
     assert.equal(result.status, 65);
     assert.match(result.stderr, /broad or agent-configuration/);
@@ -101,7 +105,7 @@ test("refuses a hard-quarantined superpowers --add-dir path", () => {
   const handoffFile = path.join(sandbox, "handoff.md");
   const superpowersDir = path.join(sandbox, "superpowers-cache");
   try {
-    fs.writeFileSync(handoffFile, handoff("rewrite-maker"));
+    fs.writeFileSync(handoffFile, handoff("rewrite"));
     fs.mkdirSync(superpowersDir);
     const result = spawnSync(
       "bash",
@@ -120,7 +124,7 @@ test("refuses --add-dir that is not a directory", () => {
   const handoffFile = path.join(sandbox, "handoff.md");
   const notDir = path.join(sandbox, "not-a-dir");
   try {
-    fs.writeFileSync(handoffFile, handoff("rewrite-maker"));
+    fs.writeFileSync(handoffFile, handoff("rewrite"));
     fs.writeFileSync(notDir, "file, not a directory");
     const result = spawnSync(
       "bash",
@@ -138,7 +142,7 @@ test("refuses --add-dir that is the home directory itself", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-handoff-test-"));
   const handoffFile = path.join(sandbox, "handoff.md");
   try {
-    fs.writeFileSync(handoffFile, handoff("rewrite-maker"));
+    fs.writeFileSync(handoffFile, handoff("rewrite"));
     const result = spawnSync(
       "bash",
       [scriptPath, "--add-dir", os.homedir(), "job-name", handoffFile],
@@ -156,14 +160,14 @@ test("accepts a valid --add-dir and proceeds past the directory guard", () => {
   const handoffFile = path.join(sandbox, "handoff.md");
   const extraDir = path.join(sandbox, "extra-context");
   try {
-    fs.writeFileSync(handoffFile, handoff("rewrite-maker"));
+    fs.writeFileSync(handoffFile, handoff("rewrite"));
     fs.mkdirSync(extraDir);
     const result = spawnSync(
       "bash",
       [scriptPath, "--add-dir", extraDir, "job-name", handoffFile],
       { encoding: "utf8" },
     );
-    // A valid --add-dir is accepted; the run then reaches the rewrite-maker
+    // A valid --add-dir is accepted; the run then reaches the rewrite
     // authority check, proving the directory guard did not block it.
     assert.equal(result.status, 65);
     assert.match(result.stderr, /require explicit --accept-edits authority/);

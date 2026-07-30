@@ -12,7 +12,7 @@
 | `mini-metalab-skills` and `krn-skills-lab` | evaluation owners | keep as labs, never runtime sources |
 | generic review, diagnosis, implementation, TypeScript, and advisory workflow formerly in `mise` | this repository | removed from `mise` main; discover only from the installed global catalog |
 | retired installed `reviewer-handoff` entry | no replacement workflow; `code-review` reviews and `second-opinion-review` owns its checker transport | report during `check`; archive only with `KRN_ARCHIVE_LEGACY=1` |
-| old `reviews/`, `review-artifacts/`, or configured working-run roots | initiating goal or review owner | close each live pass, then remove it explicitly; create every new pass below `.krn/runs/second-opinion-review/` |
+| old `reviews/`, `review-artifacts/`, or configured working-run roots | initiating goal or review owner | keep the two repository-root namespaces ignored while v1 installs remain supported; close and remove each live pass explicitly; create every new pass below `.krn/runs/second-opinion-review/`; remove the tombstones only when the last supported v1 migration and retained pass are both gone |
 | generated `docs/agents/{domain,delivery,artifacts,review,artifact-paths}.md` adapters in product repositories | closest repository contract and semantic owner | remove only after confirming the setup ownership marker and that no live consumer remains; the new setup does not recreate them |
 | KRN product language, `krn-memory-core`, and Beads | `mise` | retain as domain guidance only |
 | global Claude instructions | this repository | install `CLAUDE.md` as a symlink resolving to the same managed `AGENTS.md` core |
