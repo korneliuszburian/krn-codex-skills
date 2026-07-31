@@ -5,10 +5,12 @@ description: Turn a settled multi-change spec into implementation-ready vertical
 
 # Slice Work
 
-Produce the work-unit list; never execute it. `$implement` owns one unit,
-`$delivery-loop` owns claim and lifecycle state, and the matching typed owner
-owns any unsettled decision. This skill owns two decomposition shapes: end-to-end
-**vertical slices** and explicit **expand–migrate–contract stages**.
+Produce the work-unit list; never execute it. `$implement` owns one unit; a
+configured tracker, when used for published units, owns their queue and claim
+state; `$delivery-loop` selects the next unit and owns lifecycle coordination
+when its envelope is active; and the matching typed owner owns any unsettled
+decision. This skill owns two decomposition shapes:
+end-to-end **vertical slices** and explicit **expand–migrate–contract stages**.
 
 1. **Pin a settled multi-change outcome.** Read the spec, resolved decisions,
    acceptance, and non-goals. If a gating decision is still fog, stop and route

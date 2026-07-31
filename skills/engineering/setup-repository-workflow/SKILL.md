@@ -45,15 +45,17 @@ skill, deterministic guard, CI, or host administration.
    **Done when:** every rule has one semantic owner and duplicated status,
 workflow prose, agents, or checkers are identified before replacement.
 
-3. **Present the resolved contract.** Recommend the detected tracker and
-   single-context domain layout by default; offer multi-context only when the
-   repository actually has monorepo/domain signals. Resolve whether delivery is
-   local or strict PR-gated, and show the exact managed instruction block plus
+3. **Present the resolved contract.** Name the detected tracker state, including
+   `none`; never invent a tracker to satisfy setup. Recommend the single-context
+   domain layout by default; offer multi-context only when the repository
+   actually has monorepo/domain signals. Resolve whether delivery is local or
+   strict PR-gated, and show the exact managed instruction block plus
    `.krn/runs/.gitignore` before writing when the user has not already approved
    those choices.
 
-   **Done when:** tracker, domain mode, delivery profile, and instruction owner
-   are explicit inputs rather than guesses.
+   **Done when:** tracker state (`none` or a named backend), domain mode,
+   delivery profile, and instruction owner are explicit inputs rather than
+   guesses.
 
 4. **Write the minimum local contract.** Keep `AGENTS.md` limited to repository
 language, layout, commands, domain and authority boundaries, required gates,
@@ -90,11 +92,13 @@ plans remain ephemeral.
    advances `HEAD` even with both skip flags. Do not run without local commit
    authority, and do not substitute `--stealth` for a shared durable tracker.
 
-   After tracker initialization, apply the resolved repository contract with:
+   After any selected tracker initialization — or immediately when no tracker
+   is configured or the existing tracker needs none — apply the resolved
+   repository contract with:
 
    ```text
    node ~/.agents/skills/setup-repository-workflow/scripts/init-repository-workflow.mjs apply --root <repo> \
-     --tracker <beads|github|gitlab|local> \
+     --tracker <none|beads|github|gitlab|local> \
      --domain <single|multi> --delivery <local|strict>
    ```
 

@@ -51,10 +51,11 @@ It excludes transcript history and copied source material.
 
 **Outcome capsule** — a living restart record containing outcome and acceptance,
 sole writer, separate outcome and publication states, repository fixed point and
-dirty scope, Goal/tracker and restart-run identity, outstanding cleanup
-obligations for specialist runs, separate authorities, evidence and non-proofs,
-review disposition, owned unknowns, durable references, and the next owner. It
-is updated in place at owner or context boundaries; `$delivery-loop` owns its
+dirty scope, Goal and optional configured-tracker identity, restart-run identity,
+outstanding cleanup obligations for specialist runs, separate authorities,
+evidence and non-proofs, review disposition, owned unknowns, durable references,
+and the next owner. It is updated in place at owner or context boundaries;
+`$delivery-loop` owns its
 exact field ABI.
 
 **Working run** — private ignored state at
@@ -72,8 +73,8 @@ alone is not consumer completion.
 **Promotion gate** — working material becomes durable only when a named future
 consumer, canonical semantic destination, and cleanup or supersession rule all
 exist. The durable destinations are `CONTEXT.md`, `docs/adr/`,
-`docs/research/`, or the configured tracker. Native Goal state remains the
-current thread's continuation authority, not shared repository knowledge.
+`docs/research/`, or a configured tracker when present. Native Goal state remains
+the current thread's continuation authority, not shared repository knowledge.
 
 ## Engineering vocabulary
 

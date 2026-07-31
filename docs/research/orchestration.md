@@ -21,6 +21,7 @@ or an oversized skill catalog?
 | OpenAI harness engineering | agents need a maintained map into structured repository knowledge, with mechanical checks and gardening | `CONTEXT.md` is the small map; research and ADRs are the system of record | a large product harness would be overbuilt here |
 | Anthropic long-running harnesses | restartable state and independent evaluation reduce drift; parallel agents cost tokens and coordination | checkpoint a compact capsule and use independent fixed-point review for substantial changes | older harness findings do not mandate initializer/evaluator fleets on newer models |
 | Local deletion probe | five of six artifact roles had no runtime consumer; 18 operator pages mirrored the skills; reviewer-handoff had no external caller | delete generic report roles, doc mirrors, and the unconsumed packet workflow | future measured consumers may justify reintroduction |
+| Local register micro-lab | the observed stale capsule sentence was repairable by fresh Goal/repository/PR readback; SQLite and Git-ref candidates could mechanically fence cooperative writers | retain the compact spine; keep both mechanisms at `lab-test` until a recurring writer-admission failure survives bounded repair | synthetic conformance is not product need, restore recovery, hostile-process exclusion, or power-loss proof |
 
 ## Breakthrough: compile context at boundaries
 
@@ -60,9 +61,10 @@ Durable CONTEXT / ADR / research references
 Next bounded owner and action
 ```
 
-For a multi-session outcome, the native Goal owns current thread continuation;
-the configured tracker owns durable shared acceptance, queue, and blocker
-state. The workflow reconciles Goal from repository and tracker truth before
+For a multi-session outcome, the accepted request or native Goal owns current
+thread continuation. A configured tracker, when present, owns durable shared
+acceptance, queue, blocker, and active-Spec state. Its absence is explicit; the
+workflow then reconciles Goal, capsule, repository, and host truth before
 continuing. When a fresh process must resume without the current chat,
 `$delivery-loop`'s named sole writer may mirror the capsule only at
 `.krn/runs/delivery-loop/<outcome-id>/state.md`. Other workflows keep
@@ -120,6 +122,11 @@ return channel, observed tracker-write authority, and a writer generation with
 matching activation readback. Fresh ticket workers treat the map and child as
 read-only and return complete results through that channel; only the recorded
 integrator writes, and a pending or mismatched generation blocks the frontier.
+Repository-dependent children also carry canonical repository and `cwd`, fixed
+point, allowed paths, separate mutation authority, result owner, consumer, and
+non-proof. Concurrent write-capable workers use isolated worktrees, disjoint
+allowed paths, and one integration owner; otherwise they run serially or
+read-only.
 
 Wrappers and companions:
 
@@ -138,8 +145,8 @@ Wrappers and companions:
 
 | Information | Canonical owner and destination | Lifecycle |
 |---|---|---|
-| Current thread objective and continuation | native Goal | reconciled at every transition; closed with outcome |
-| Durable acceptance, queue, blockers, and active Spec | configured tracker | updated at every shared transition; frontier tickets remain linked primary sources and the Spec closes with the outcome |
+| Current thread objective and continuation | accepted request or native Goal when present | reconciled at every transition; native Goal closed with the outcome when present |
+| Durable shared acceptance, queue, blockers, and active Spec | configured tracker, when present | updated at every shared transition; its absence is explicit; frontier tickets remain linked primary sources and the Spec closes with the outcome |
 | Shared vocabulary and current system map | `CONTEXT.md` | rewritten when a term or relationship changes |
 | Consequential hard-to-reverse trade-off | `docs/adr/<id>-<slug>.md` | created rarely; superseded explicitly |
 | Source-backed engineering decision | `docs/research/<topic>.md` | created only for a named consumer, then merged in place; claim stays near provenance and falsifier |
@@ -207,6 +214,26 @@ evidence actually supports: no concurrent mutation of the same outcome state.
 | `ask-krn` router | defer | only three explicit skills remain and no measured recall failure exists |
 | Mandatory full pipeline | reject | clear single changes should route directly to the smallest owner |
 | Reviewer-handoff skill | retire | no independent caller; packet generation alone is not a workflow outcome |
+
+## Local register lab disposition
+
+The disposable adapter-neutral lab exercised one bounded no-tracker control and
+two deliberately smaller mechanical candidates. Its sole consumer was ADR
+0001's supersession rule; the runners and backend state were removed after
+independent re-review.
+
+| Candidate | Result | Disposition and limit |
+|---|---|---|
+| Current Goal/capsule/repository/PR readback | 3 pass, 1 observed stale-sentence failure, 1 missing-evidence case | bounded repair and the real restart consumer passed, so the ADR supersession premise was not met |
+| SQLite A1-micro (`DELETE` + `EXTRA`) | 22 pass, 0 fail, 3 missing-evidence cases | `lab-test`; restore response loss, ambiguous generic commit I/O, and actual power loss remain unproved |
+| One-root Git B1-micro | 25 pass, 0 fail, 2 missing-evidence cases | `lab-test`; restore response loss and actual power loss remain unproved, and one root adds false contention between unrelated outcomes |
+
+No register, tracker, skill, report tree, or permanent runner is earned. Reopen
+the mechanical candidates only after an observed recurring writer-admission
+failure survives bounded repair in the accepted request or Goal, capsule,
+repository/host readback, and any configured tracker. Conformance demonstrates
+mechanism feasibility among cooperating clients; it does not establish a
+production authority boundary.
 
 ## Falsifiers and next experiments
 

@@ -21,7 +21,7 @@ Git history records the sequence.
 
 | Topic | Current authority | One-line state | Reopen when |
 |---|---|---|---|
-| Agent orchestration and compact context | [orchestration.md](orchestration.md) | accepted compiled-context spine; 17 distinct workflow owners; one ignored run namespace | routing, restart, review invalidation, or artifact-promotion falsifier fails |
+| Agent orchestration and compact context | [orchestration.md](orchestration.md) | accepted compiled-context spine; bounded register lab did not earn a new store; 17 workflow owners; one ignored run namespace | a recurring routing, restart, review, artifact, or writer-admission failure survives bounded repair |
 | TypeScript engineering | [`typescript-engineering` references](../../skills/engineering/typescript-engineering/SKILL.md) | inference, boundary, compiler, and proof mechanisms are owned directly by the companion skill | a current compiler/host change contradicts a retained mechanism |
 | Capability surface | [capabilities.md](../capabilities.md) | named profiles and evidence-bounded reconciliation | catalog schema, runtime event, or trust boundary changes |
 | Installation and retirement | [migration.md](../migration.md) | collision-safe symlinks, explicit archive authority, recoverable retirement | installer target or host layout changes |

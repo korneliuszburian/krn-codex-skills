@@ -65,6 +65,15 @@ when the route to the destination is settled. `$to-spec`, `$slice-work`,
    never grants authority or executes the owner's procedure. A task is not an
    escape hatch for speculative production work or publication.
 
+   For any child whose owner can observe repository state or mutate files, also
+   persist the execution envelope from [map-template.md](references/map-template.md):
+   canonical repository realpath and `cwd`, immutable ref or exact input
+   working-tree fingerprint, allowed paths and separate mutation authority,
+   result shape and return owner, named consumer, and non-proof. Mark it
+   `NOT_APPLICABLE` with a reason only when the delegated work cannot depend on
+   repository or filesystem state. A tracker identity never supplies this
+   authority.
+
    In the map's **Map integrator** block, persist the sole tracker-writer
    identity, exact result-return channel, non-secret tracker-authority state,
    writer generation, and matching activation readback. Copy the active
@@ -72,10 +81,11 @@ when the route to the destination is settled. `$to-spec`, `$slice-work`,
    initialized parent and children back before marking that generation verified.
    These fields describe observed authority; they never grant it.
 
-   **Done when:** every sharp decision or prerequisite has one typed child and
-   exact owner and return contract, one active integrator is durably identifiable,
-   every load-bearing dependency exists in the tracker, and fog has not been
-   forced into a ticket.
+   **Done when:** every sharp decision or prerequisite has one typed child,
+   exact owner and return contract, and a complete execution envelope when it
+   can depend on repository or filesystem state; one active integrator is
+   durably identifiable, every load-bearing dependency exists in the tracker,
+   and fog has not been forced into a ticket.
 
 4. **Resolve one frontier ticket per worker context.** Load and read back the
    map's **Map integrator** block at low resolution. Query or claim only when its
@@ -87,7 +97,9 @@ when the route to the destination is settled. `$to-spec`, `$slice-work`,
    result-return channel; it never self-designates.
    The delegated workflow or actor owns its procedure; Wayfinder supplies the
    objective, destination, relevant prior decisions, the read-only ticket
-   identity, and the integrator's exact result-return contract.
+   identity, the integrator's exact result-return contract, and the ticket's
+   read-back execution envelope without widening it. A missing, stale, or
+   mismatched envelope blocks path- or state-dependent work before delegation.
 
    An external research owner returns `$source-to-decision`'s `adopt`, `reject`,
    `lab-test`, or `defer`; a local research owner returns
@@ -97,10 +109,13 @@ when the route to the destination is settled. `$to-spec`, `$slice-work`,
    completion evidence or readback. None closes or mutates the tracker ticket.
 
    Independent frontier tickets may run concurrently only after distinct claims
-   and under the surrounding writer and authority policy. One map integrator
-   serializes every child and parent tracker mutation. Each worker context owns
-   one question, treats tracker identities as read-only context, and returns its
-   complete evidence to that integrator rather than mutating a ticket or map.
+   and under the surrounding writer and authority policy. Concurrent workers
+   with file-write authority require isolated worktrees, disjoint allowed paths,
+   and one named integration owner; otherwise serialize them or keep their
+   mutation authority `NONE`. One map integrator serializes every child and
+   parent tracker mutation. Each worker context owns one question, treats tracker
+   identities as read-only context, and returns its complete evidence to that
+   integrator rather than mutating a ticket or map.
 
    Transfer the integrator only when no child is claimed or in flight. Through
    the configured tracker operation, the current integrator or separately
@@ -116,9 +131,9 @@ when the route to the destination is settled. `$to-spec`, `$slice-work`,
    blocked rather than implicitly re-owned.
 
    **Done when:** the map integrator has received one decision or verified
-   prerequisite result, evidence, and named unresolved condition for the claimed
-   ticket, or the worker returns an honest blocker and owner without mutating
-   tracker state.
+   prerequisite result, evidence, and named unresolved condition from the
+   claimed ticket's read-back envelope, or the worker returns an honest blocker
+   and owner without mutating tracker state.
 
 5. **Update the map as an index.** Acting as the sole map integrator, put the
    full returned answer on its ticket and close it only when resolved. Append one

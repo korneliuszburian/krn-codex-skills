@@ -88,6 +88,24 @@ it unblocks.
 One owner or configured operation. For a task, state separate mutation authority
 and the observable result or readback required for closure.
 
+## Execution envelope
+
+Use `NOT_APPLICABLE (<why this work cannot observe or depend on repository or
+filesystem state>)`, or record all of:
+
+- canonical repository realpath and `cwd`;
+- immutable ref or exact input working-tree fingerprint;
+- allowed paths and separate mutation authority;
+- result shape and exact return owner;
+- named consumer;
+- what the result does not prove.
+
+Read this block back before delegation. A tracker identity, claim, or child type
+does not grant repository writes or widen the recorded paths. Concurrent
+write-capable children require isolated worktrees, disjoint allowed paths, and
+one named integration owner; otherwise their mutation authority is `NONE` or
+they run serially.
+
 ## Result return
 
 Map integrator: `<active identity copied from the parent>`

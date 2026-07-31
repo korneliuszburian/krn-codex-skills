@@ -258,6 +258,34 @@ test("apply can reconfigure the compact managed block", () => {
   }
 });
 
+test("apply records tracker absence without emulating durable operations", () => {
+  const root = fixture();
+  const result = JSON.parse(execFileSync(
+    process.execPath,
+    [script, "apply", "--root", root, "--tracker", "none", "--domain", "single", "--delivery", "local"],
+    { encoding: "utf8" },
+  ));
+  const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
+
+  assert.equal(result.tracker, "none");
+  assert.match(agents, /No durable tracker is configured/);
+  assert.match(agents, /accepted request or native Goal owns current continuation/);
+  assert.match(agents, /Shared queue, claims, and durable frontier state are absent/);
+  assert.match(agents, /Do not emulate tracker operations or create task\/status files/);
+  assert.match(agents, /\$wayfinder.*must stop/);
+  assert.doesNotMatch(agents, /Beads owns|GitHub issues own|GitLab issues own|Local Markdown under/);
+  assert.doesNotMatch(agents, /bd create|gh issue|glab issue|\.scratch\/<map>/);
+  assert.equal(existsSync(join(root, ".beads")), false);
+  assert.equal(existsSync(join(root, ".scratch")), false);
+
+  execFileSync(
+    process.execPath,
+    [script, "apply", "--root", root, "--tracker", "none", "--domain", "single", "--delivery", "local"],
+    { encoding: "utf8" },
+  );
+  assert.equal(readFileSync(join(root, "AGENTS.md"), "utf8"), agents);
+});
+
 test("installed Beads init stays outside instruction ownership and generated create operations execute", {
   skip: bdProbe.status === 0 ? false : "bd is not installed",
 }, () => {

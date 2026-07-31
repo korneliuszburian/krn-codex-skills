@@ -707,6 +707,20 @@
       ]
     },
     {
+      "id": "wayfinder-concurrent-write-capable-workers-need-isolation",
+      "prompt": "Use $wayfinder to run two independent frontier tickets concurrently: one disposable repository prototype and one local codebase-design research ticket. Give each worker a separate worktree with disjoint allowed paths and return both results to the sole map integrator without starting production implementation.",
+      "expected_skills": [
+        "wayfinder",
+        "prototype",
+        "codebase-design"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "delivery-loop",
+        "source-to-decision"
+      ]
+    },
+    {
       "id": "wayfinder-task-tracks-an-authorized-prerequisite",
       "prompt": "Use $wayfinder to continue our existing map: claim the ready task ticket for an already-authorized site survey, track the named operator's action, and verify its readback because that evidence unblocks a storage decision. Do not perform implementation or grant new authority.",
       "expected_skills": [

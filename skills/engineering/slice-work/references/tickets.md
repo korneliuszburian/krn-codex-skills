@@ -9,8 +9,10 @@ to publish; they do not grant authority.
 If publication was requested but either requirement is missing, return ticket-
 publication state `PUBLISH_PENDING` with that exact missing condition. Do not initialize a tracker or
 invent a local path. Publishing **creates** one ticket per work unit and its blocking
-edges; it never claims, sequences, or owns lifecycle — that stays with
-`$delivery-loop`.
+edges; it never claims, sequences, or owns lifecycle. The configured tracker
+stores queue and claim state; the next outcome owner performs any later claim
+through its declared operation and separate authority. `$delivery-loop` selects
+the next unit and owns lifecycle coordination only when its envelope is active.
 
 ## How blocking edges are expressed
 

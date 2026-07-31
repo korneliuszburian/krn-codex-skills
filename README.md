@@ -50,7 +50,7 @@ evidence, admission matrix, and lifecycle invariants live in
 
 ```mermaid
 flowchart TD
-  GOAL["native Goal + configured tracker"] --> LOOP["$delivery-loop<br/>sole capsule writer"]
+  GOAL["accepted request / native Goal<br/>+ tracker when configured"] --> LOOP["$delivery-loop<br/>sole capsule writer"]
   LOOP --> CAPSULE["living outcome capsule"]
   CAPSULE --> OWNER["one current workflow owner"]
   OWNER --> EVIDENCE["repository state + falsifying evidence"]
@@ -59,7 +59,7 @@ flowchart TD
   CAPSULE --> CLEANUP["owned specialist-run<br/>cleanup obligations"]
   CLEANUP -->|consumer finishes or Goal closes| DELETE
   EVIDENCE --> GATE{"consumer + destination +<br/>cleanup / supersession?"}
-  GATE -->|shared outcome state| TRACKER["configured tracker"]
+  GATE -->|shared outcome state, when configured| TRACKER["configured tracker"]
   GATE -->|shared language| CONTEXT["CONTEXT.md"]
   GATE -->|consequential trade-off| ADR["docs/adr/"]
   GATE -->|source-backed decision| RESEARCH["docs/research/"]
@@ -70,7 +70,9 @@ flowchart TD
 boundaries. Other workflows return evidence to that writer or continue through
 the native Goal/tracker; they do not create another capsule. Git history is the
 chronological log; raw transcripts, prompts, and reviewer packets do not become
-documentation by default.
+documentation by default. When no tracker is configured, the accepted request or
+native Goal plus capsule, repository, and host readback carry current truth; no
+tracker capability is emulated.
 
 ## Skills
 
@@ -135,9 +137,9 @@ rollback guarantees.
 `$setup-repository-workflow` writes one managed block into an existing root
 instruction owner plus `.krn/runs/.gitignore`. In an empty repository it first
 bootstraps thin `AGENTS.md` and a `CLAUDE.md` symlink to that same owner, and
-reports all three changed paths. It names the tracker and context layout directly;
-`CONTEXT.md`, ADRs, and research pages appear later only when a real decision earns
-them.
+reports all three changed paths. It names tracker state — including `none` — and
+the context layout directly; `CONTEXT.md`, ADRs, and research pages appear later
+only when a real decision earns them.
 
 `$second-opinion-review` stores resumable passes at
 `.krn/runs/second-opinion-review/<run-id>/`. Set

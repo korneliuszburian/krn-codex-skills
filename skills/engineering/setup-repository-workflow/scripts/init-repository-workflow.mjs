@@ -6,7 +6,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 
 const START = "<!-- krn-agent-workflow:start -->";
 const END = "<!-- krn-agent-workflow:end -->";
-const TRACKERS = new Set(["beads", "github", "gitlab", "local"]);
+const TRACKERS = new Set(["none", "beads", "github", "gitlab", "local"]);
 const DOMAINS = new Set(["single", "multi"]);
 const DELIVERY = new Set(["local", "strict"]);
 
@@ -163,6 +163,9 @@ function inspect(root) {
 }
 
 function trackerSummary(tracker) {
+  if (tracker === "none") {
+    return "No durable tracker is configured. The accepted request or native Goal owns current continuation; reconcile it with Delivery Loop's capsule, repository state, and host readback. Shared queue, claims, and durable frontier state are absent. Do not emulate tracker operations or create task/status files. `$wayfinder` and any workflow requiring shared tracker state must stop until closer repository instructions configure a real tracker and its exact operations.";
+  }
   if (tracker === "beads") {
     return "Beads owns durable task state and supplies Wayfinder's deterministic tracker operations. Create a map with `bd create --title <map-title> --type epic --labels wayfinder:map --body-file <map.md> --silent`, create children with `bd create --title <ticket-title> --parent <map> --labels <ticket-type> --no-inherit-labels --body-file <ticket.md> --silent`, add edges with `bd dep add <blocked> <blocker>`, claim with `bd update <id> --claim`, write a resolution or other body state with `bd update <id> --body-file <ticket.md>`, query the frontier with `bd list --parent <map> --ready --json`, close with `bd close <id>`, and read back with `bd show <id> --json`. Persist tracker-authority state, map-integrator identity, writer generation, `TRANSFER_PENDING` successor identity and return channel, `ACTIVE` with activation `PENDING`, and matching `VERIFIED` activation in the map body. Copy only the active map-integrator identity, writer generation, and exact worker-result return channel into every open child body. Use the same update operation for each transfer phase, then read back the parent and every open child before the next phase or frontier work. Resolve separate tracker-write authority before any mutation. Keep at most one implementation item in progress.";
   }
@@ -283,7 +286,7 @@ if (command !== "apply") fail("command must be inspect or apply");
 const tracker = options.tracker;
 const domain = options.domain;
 const delivery = options.delivery;
-if (!TRACKERS.has(tracker)) fail("--tracker must be beads, github, gitlab, or local");
+if (!TRACKERS.has(tracker)) fail("--tracker must be none, beads, github, gitlab, or local");
 if (!DOMAINS.has(domain)) fail("--domain must be single or multi");
 if (!DELIVERY.has(delivery)) fail("--delivery must be local or strict");
 

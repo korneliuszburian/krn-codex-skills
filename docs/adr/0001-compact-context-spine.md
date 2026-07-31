@@ -19,7 +19,9 @@ Long-running work still needed a reliable restart boundary.
 
 Use a four-part durable spine:
 
-1. native Goal plus the configured tracker owns current outcome and queue state;
+1. the accepted request or native Goal owns current continuation; a configured
+   tracker, when present, owns shared acceptance, queue, blocker, and active-Spec
+   state;
 2. `CONTEXT.md` owns current shared vocabulary and the compact knowledge map;
 3. `docs/adr/` owns rare consequential trade-offs;
 4. `docs/research/` owns source-backed living synthesis.
@@ -55,7 +57,8 @@ consumer.
 - Review packets, prompts, shards, and progress files stay out of tracked docs.
 - Setup creates one managed instruction block and one ignored run boundary.
 - Durable paths are fixed by meaning rather than configured generic roles.
-- A fresh session can resume from the capsule plus repository/tracker state.
+- A fresh session can resume from the capsule plus repository state and the
+  configured tracker when one exists.
 - Existing ignored review passes must be closed and explicitly removed; they
   are not promoted merely because they already exist.
 

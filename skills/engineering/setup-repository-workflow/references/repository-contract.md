@@ -10,7 +10,7 @@ Use the narrowest durable surface that matches the scope.
 | repository `AGENTS.md` | layout, commands, domain boundaries, required gates | copied global workflow prose or history |
 | nested `AGENTS.md` | subtree-specific differences | restating the root contract |
 | `.codex/config.toml` | trusted repository Codex settings | workflow instructions |
-| repository tracker | durable queue, dependencies, claims, closure | session reasoning or documentation |
+| repository tracker, when configured | durable queue, dependencies, claims, closure | session reasoning or documentation |
 | skill | one repeated task workflow | repository status or domain inventory |
 | hook | deterministic lifecycle interception | judgment, orchestration, or review |
 | CI | reproducible checks on a fixed revision | product completion or host policy |
@@ -24,18 +24,20 @@ owner. Put only the workflow-specific state needed for a later session inside
 its run; prompts, packets, logs, and raw model output are transport, not durable
 knowledge. Only `$delivery-loop` persists the outcome capsule at
 `.krn/runs/delivery-loop/<outcome-id>/state.md`; every other workflow uses the
-Goal/tracker for continuation or hands lifecycle ownership to it. Cross-Goal
-continuation transfers condensed truth into the successor-owned run before
-cleanup. For a superseded or abandoned delivery run, transfer alone is not
-consumer completion; retain the original until its Goal's non-active state is
-read back.
+accepted request, native Goal, or configured tracker for continuation, or hands
+lifecycle ownership to Delivery Loop. Cross-Goal continuation transfers
+condensed truth into the successor-owned run before cleanup. For a superseded
+or abandoned delivery run, transfer alone is not consumer completion; retain
+the original until its Goal's non-active state is read back.
 
 Durable knowledge has semantic owners rather than a generic report directory:
 
 - `CONTEXT.md` holds current shared vocabulary only when a real consumer needs it;
 - `docs/adr/` holds earned consequential decisions;
 - `docs/research/` holds an explicitly retained synthesis with a named consumer;
-- the configured tracker holds active outcomes, specifications, tickets, and state.
+- when configured, the tracker holds active outcomes, specifications, tickets,
+  and shared state; otherwise its absence is explicit and the accepted request
+  or native Goal owns current continuation without emulated queue or claims.
 
 Do not create these paths during setup. The domain, decision, research, or
 tracker workflow creates its own artifact only when its retention trigger is
