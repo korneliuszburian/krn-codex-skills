@@ -86,6 +86,7 @@ test("gives the model the exact dynamic result identity", () => {
   assert.match(prompt, /shard_kind: "research"/);
   assert.match(prompt, /lowercase kebab-case only/);
   assert.match(prompt, /stay under\s+the cited repository source's own allowed_paths/);
+  assert.match(prompt, /forward only exact \(source_id, locator\) citation pairs/);
   assert.doesNotMatch(prompt, /evidence_gaps\[\]\.id/);
 });
 
@@ -1181,6 +1182,76 @@ test("fails closed when structured output omits required source coverage", () =>
     );
     assert.equal(job.state, "failed");
     assert.match(job.error, /missing source coverage/);
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("rejects a new synthesis locator absent from validated dependencies", () => {
+  const fixture = makeFixture();
+  try {
+    runResearch({
+      campaignPath: fixture.campaignFile,
+      shardId: "source-analysis",
+      cwd: fixture.repository,
+      env: testEnvironment,
+      windowCheck: () => {},
+      claudeInvoker: () =>
+        envelope(structuredResult(fixture.campaign, "source-analysis")),
+    });
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "synthesis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          windowCheck: () => {},
+          claudeInvoker: () =>
+            envelope(
+              structuredResult(fixture.campaign, "synthesis", {
+                citationLocator: "README.md:999999",
+              }),
+            ),
+        }),
+      /synthesis citation is absent from validated dependencies: current-repository README\.md:999999/,
+    );
+    assert.equal(
+      fs.existsSync(resultPathFor(fixture.campaignFile, "synthesis")),
+      false,
+    );
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("allows synthesis to forward an exact dependency citation", () => {
+  const fixture = makeFixture();
+  try {
+    for (const shardId of ["source-analysis", "synthesis"]) {
+      runResearch({
+        campaignPath: fixture.campaignFile,
+        shardId,
+        cwd: fixture.repository,
+        env: testEnvironment,
+        windowCheck: () => {},
+        claudeInvoker: () =>
+          envelope(
+            structuredResult(fixture.campaign, shardId, {
+              citationLocator: "README.md:1",
+            }),
+          ),
+      });
+    }
+    assert.equal(
+      checkResearch({
+        campaignPath: fixture.campaignFile,
+        shardId: "synthesis",
+        cwd: fixture.repository,
+        env: testEnvironment,
+      }).result.findings[0].citations[0].locator,
+      "README.md:1",
+    );
   } finally {
     fs.rmSync(fixture.sandbox, { recursive: true, force: true });
   }

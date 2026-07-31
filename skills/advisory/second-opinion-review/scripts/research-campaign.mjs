@@ -528,6 +528,8 @@ Never put a disposable transport_locator in the result; keep the canonical
 locator, not the transport path, in citations.
 A synthesis shard must read only the validated dependency paths above; its
 declared source locators are provenance, not permission to reopen raw sources.
+It may forward only exact (source_id, locator) citation pairs already present in
+those validated dependency results; it may not derive a new raw-source locator.
 
 For every finding preserve this chain: nearby citations -> mechanism ->
 conditions and traps -> local implication -> candidate disposition -> consumer

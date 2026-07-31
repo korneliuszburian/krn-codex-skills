@@ -133,6 +133,9 @@ invocation, are rejected if returned as citations, and are deleted afterward.
 Repository citations use `<path>:<line>[-<line>]`; their normalized path must
 remain beneath the cited repository source's own `allowed_paths`, even when a
 different selected repository source staged neighboring bytes.
+A synthesis finding may forward only an exact `(source_id, locator)` citation
+pair already present in one of its validated dependency results; source coverage
+alone never authorizes a new raw-source locator.
 
 Both roles use `dontAsk`, safe mode, no session persistence, and structured
 output. This bounds the roots exposed to Claude's read tools; it is not a

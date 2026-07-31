@@ -673,11 +673,17 @@ function selectedSourceEvidence(campaign, shard, repository) {
 function validateSynthesisCoverage(result, dependencies, shard) {
   if (shard.kind !== "synthesis") return;
   const dependencyStatuses = new Map();
+  const dependencyCitations = new Set();
   for (const { wrapper } of dependencies) {
     for (const coverage of wrapper.result.source_coverage) {
       const statuses = dependencyStatuses.get(coverage.source_id) ?? new Set();
       statuses.add(coverage.status);
       dependencyStatuses.set(coverage.source_id, statuses);
+    }
+    for (const finding of wrapper.result.findings) {
+      for (const citation of finding.citations) {
+        dependencyCitations.add(JSON.stringify([citation.source_id, citation.locator]));
+      }
     }
   }
   for (const coverage of result.source_coverage) {
@@ -687,6 +693,15 @@ function validateSynthesisCoverage(result, dependencies, shard) {
     }
     if (statuses.size === 1 && statuses.has("unavailable") && coverage.status !== "unavailable") {
       fail(`synthesis must preserve unavailable source status: ${coverage.source_id}`);
+    }
+  }
+  for (const finding of result.findings) {
+    for (const citation of finding.citations) {
+      if (!dependencyCitations.has(JSON.stringify([citation.source_id, citation.locator]))) {
+        fail(
+          `synthesis citation is absent from validated dependencies: ${citation.source_id} ${citation.locator}`,
+        );
+      }
     }
   }
 }
