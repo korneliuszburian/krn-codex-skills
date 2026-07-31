@@ -90,6 +90,8 @@ class DestructiveGuardTests(unittest.TestCase):
             "cat <<EOF\n# $(rm -rf /)\nEOF",
             "sh <<EOF\nrm -rf /\nEOF",
             "printf '%s\\n' \"$(rm -rf /)\"",
+            "bash -c 'rm -rf /' -n",
+            "bash -n +n -c 'rm -rf /'",
         ):
             with self.subTest(command=command):
                 payload = {
@@ -355,6 +357,11 @@ class DestructiveGuardTests(unittest.TestCase):
             'xargs --arg-file /tmp/targets "$CMD"',
             'CMD=rm; "$CMD" -rf /',
             'cat <<EOF\n$(bash -c "$CMD")\nEOF',
+            'bash -c "$CMD" --version',
+            'bash -c "$CMD" --help',
+            'bash -c "$CMD" -n',
+            'bash -n +n -c "$CMD"',
+            'bash -o noexec +o noexec -c "$CMD"',
             "echo " + "$(" * 12 + "true" + ")" * 12,
             "printf '%s\\n' \"$(bash /tmp/payload.sh)\"",
             "printf '%s\\n' `bash /tmp/payload.sh`",
@@ -462,6 +469,10 @@ class DestructiveGuardTests(unittest.TestCase):
             "ksh -n -c 'rm -rf /'",
             'bash -n -c "$CMD"',
             'ksh -n -c "$CMD"',
+            'bash --version -c "$CMD"',
+            'bash --help -c "$CMD"',
+            'bash -o noexec -c "$CMD"',
+            'bash +n -n -c "$CMD"',
             "bash --version",
             "printf '%s\\n' \"$((1>(0)))\"",
             "cat <<EOF\n>(sh)\nEOF",

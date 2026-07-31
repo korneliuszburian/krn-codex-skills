@@ -936,23 +936,11 @@ def shell_program_source_is_uninspectable(
         if executable not in SHELL_EXECUTABLES:
             continue
         arguments = words[1:]
-        if any(argument in {"--help", "--version"} for argument in arguments):
+        does_not_execute, has_inline_command, nested = shell_invocation(arguments)
+        if does_not_execute:
             continue
-        no_execute = shell_no_execute(arguments)
-        has_inline_command = any(
-            argument in SHELL_COMMAND_OPTIONS
-            or (
-                argument.startswith("-")
-                and not argument.startswith("--")
-                and "c" in argument[1:]
-            )
-            for argument in arguments
-        )
-        if not no_execute and not has_inline_command:
+        if not has_inline_command:
             return True
-        if no_execute:
-            continue
-        nested = nested_shell_command(words)
         if nested is not None:
             if DYNAMIC_SHELL_TARGET.search(nested):
                 return True
@@ -972,16 +960,67 @@ def dynamic_executable_is_uninspectable(command: str) -> bool:
     return False
 
 
-def shell_no_execute(arguments: tuple[str, ...]) -> bool:
-    return any(
-        argument == "--noexec"
-        or (
-            argument.startswith("-")
-            and not argument.startswith("--")
-            and "n" in argument[1:]
-        )
-        for argument in arguments
-    )
+def shell_invocation(
+    arguments: tuple[str, ...],
+) -> tuple[bool, bool, str | None]:
+    """Return (does_not_execute, has_inline_command, command_text)."""
+
+    no_execute = False
+    index = 0
+    while index < len(arguments):
+        argument = arguments[index]
+        option_name, separator, inline_value = argument.partition("=")
+        if argument in {"--help", "--version"}:
+            return True, False, None
+        if argument == "--":
+            return no_execute, False, None
+        if argument.startswith("+") and argument != "+":
+            plus_options = argument[1:]
+            if plus_options.startswith("o"):
+                option_value = plus_options[1:].removeprefix("=")
+                if not option_value and index + 1 < len(arguments):
+                    option_value = arguments[index + 1]
+                    index += 1
+                if option_value == "noexec":
+                    no_execute = False
+            elif "n" in plus_options:
+                no_execute = False
+            index += 1
+            continue
+        if not argument.startswith("-") or argument == "-":
+            return no_execute, False, None
+        if option_name == "--noexec":
+            no_execute = True
+            index += 1
+            continue
+        if option_name in SHELL_COMMAND_OPTIONS:
+            nested = inline_value if separator else (
+                arguments[index + 1] if index + 1 < len(arguments) else None
+            )
+            return no_execute, True, nested
+        if option_name == "-o" or argument.startswith("-o"):
+            option_value = inline_value if separator else argument[2:]
+            if not option_value and index + 1 < len(arguments):
+                option_value = arguments[index + 1]
+                index += 1
+            if option_value.removeprefix("=") == "noexec":
+                no_execute = True
+            index += 1
+            continue
+        if option_name in SHELL_VALUE_OPTIONS:
+            index += 1 if separator else 2
+            continue
+        if argument.startswith("--"):
+            index += 1
+            continue
+        short_options = argument[1:]
+        if "n" in short_options:
+            no_execute = True
+        if "c" in short_options:
+            nested = arguments[index + 1] if index + 1 < len(arguments) else None
+            return no_execute, True, nested
+        index += 2 if short_options.endswith(("O", "o")) else 1
+    return no_execute, False, None
 
 
 def nested_destructive_denial_reason(
@@ -999,9 +1038,11 @@ def nested_destructive_denial_reason(
         if not words:
             continue
         executable = words[0].rsplit("/", 1)[-1].lower()
-        if executable in SHELL_EXECUTABLES and shell_no_execute(words[1:]):
-            continue
-        nested = nested_shell_command(words)
+        nested = None
+        if executable in SHELL_EXECUTABLES:
+            does_not_execute, _, nested = shell_invocation(words[1:])
+            if does_not_execute:
+                continue
         if executable == "eval":
             nested = " ".join(words[1:])
         if not nested or DYNAMIC_SHELL_TARGET.search(nested):
@@ -1128,30 +1169,8 @@ def nested_shell_command(words: tuple[str, ...]) -> str | None:
     executable = words[0].rsplit("/", 1)[-1].lower()
     if executable not in SHELL_EXECUTABLES:
         return None
-    index = 1
-    while index < len(words):
-        argument = words[index]
-        if argument == "--":
-            return None
-        option_name = argument.split("=", 1)[0]
-        if option_name in SHELL_VALUE_OPTIONS:
-            index += 1 if "=" in argument else 2
-            continue
-        if argument in SHELL_COMMAND_OPTIONS:
-            return words[index + 1] if index + 1 < len(words) else None
-        if argument.startswith("--"):
-            index += 1
-            continue
-        if argument.startswith(("-O", "-o")) and len(argument) > 2:
-            index += 1
-            continue
-        if argument.startswith("-") and not argument.startswith("--"):
-            if "c" in argument[1:]:
-                return words[index + 1] if index + 1 < len(words) else None
-            index += 1
-            continue
-        return None
-    return None
+    does_not_execute, _, nested = shell_invocation(words[1:])
+    return None if does_not_execute else nested
 
 
 def target_is_forbidden(target: str, cwd: Path) -> bool:
