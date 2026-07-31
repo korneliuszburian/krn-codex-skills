@@ -276,7 +276,37 @@ function pairItems(value, label, keys) {
   }
 }
 
-export function validateResearchResult(value, campaign, shardId) {
+function locatorUsesDisposableTransport(
+  locator,
+  forbiddenLocatorRoots,
+  forbiddenLocatorSegments,
+) {
+  const normalizedLocator = locator.replaceAll("\\", "/");
+  return (
+    forbiddenLocatorRoots.some((root) => {
+      const normalizedRoot = path.resolve(root).replaceAll("\\", "/");
+      return [normalizedRoot, `file://${normalizedRoot}`].some(
+        (prefix) =>
+          normalizedLocator === prefix ||
+          normalizedLocator.startsWith(`${prefix}/`) ||
+          normalizedLocator.startsWith(`${prefix}:`),
+      );
+    }) ||
+    normalizedLocator
+      .split("/")
+      .some((segment) => forbiddenLocatorSegments.includes(segment))
+  );
+}
+
+export function validateResearchResult(
+  value,
+  campaign,
+  shardId,
+  {
+    forbiddenLocatorRoots = [],
+    forbiddenLocatorSegments = [],
+  } = {},
+) {
   const result = object(value, "research result");
   exactKeys(result, resultKeys, "research result");
   if (result.result_version !== "1") fail("result_version must be '1'");
@@ -356,11 +386,20 @@ export function validateResearchResult(value, campaign, shardId) {
         citation.source_id,
         `findings[${index}].citations[${citationIndex}].source_id`,
       );
-      string(
+      const locator = string(
         citation.locator,
         `findings[${index}].citations[${citationIndex}].locator`,
         2000,
       );
+      if (
+        locatorUsesDisposableTransport(
+          locator,
+          forbiddenLocatorRoots,
+          forbiddenLocatorSegments,
+        )
+      ) {
+        fail(`finding ${findingId} cites a disposable research transport path`);
+      }
       string(
         citation.detail,
         `findings[${index}].citations[${citationIndex}].detail`,
@@ -424,6 +463,12 @@ ${JSON.stringify(selectedSources, null, 2)}
 
 Validated dependency result paths:
 ${JSON.stringify(dependencyPaths, null, 2)}
+
+Read local bytes only through each source's transport_locator when present.
+Never put a disposable transport_locator in the result; keep the canonical
+locator, not the transport path, in citations.
+A synthesis shard must read only the validated dependency paths above; its
+declared source locators are provenance, not permission to reopen raw sources.
 
 For every finding preserve this chain: nearby citations -> mechanism ->
 conditions and traps -> local implication -> candidate disposition -> consumer

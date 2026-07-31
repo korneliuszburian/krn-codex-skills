@@ -111,12 +111,29 @@ node ~/.agents/skills/second-opinion-review/scripts/run-research.mjs \
 ```
 
 Research shards allow only `Read`, `Glob`, `Grep`, and `WebFetch`. Synthesis
-runs from the private pass directory with only `Read`, consuming validated
-dependency results rather than reopening the repository, artifacts, or web.
-Both use `dontAsk`, safe mode, no session persistence, and structured output. The runner refuses
-a dirty repository, stale repository commit, changed artifact hash, missing
-synthesis dependency, repeated job path, or existing result. It defaults to
-`opus`, effort `max`, 30 minutes, and USD 8. Override bounded runs with
+runs with only `Read`, consuming validated dependency results rather than
+reopening the repository, artifacts, or web. Before either role launches, the
+runner creates one disposable `0700` input root outside the repository and
+pass directory. The runner resolves and verifies that physical root before
+staging; roots below the repository, pass, a declared artifact parent, or any
+Git worktree fail closed. A research shard receives only its declared
+repository fixed point materialized byte-for-byte from the pinned Git tree,
+with Git replacement objects disabled, plus exact copies of its declared
+artifact bytes. A synthesis shard receives only exact copies of its named,
+validated dependency results. Tracked symlink blobs are exposed as regular
+transport files so they cannot escape the input root; gitlinks fail closed
+because their content is not present in the pinned tree. No shard receives the
+campaign pass directory, an artifact's parent directory, or a sibling
+job/result directory. Canonical source locators remain provenance and citation
+identities; generated absolute transport locators exist only for that
+invocation, are rejected if returned as citations, and are deleted afterward.
+
+Both roles use `dontAsk`, safe mode, no session persistence, and structured
+output. This bounds the roots exposed to Claude's read tools; it is not a
+kernel filesystem sandbox. The runner refuses a dirty repository, stale
+repository commit, changed artifact hash, missing synthesis dependency,
+repeated job path, or existing result. It defaults to `opus`, effort `max`, 30
+minutes, and USD 8. Override bounded runs with
 `SECOND_OPINION_MODEL`, `SECOND_OPINION_RESEARCH_EFFORT`,
 `SECOND_OPINION_RESEARCH_TIMEOUT_SECONDS`, or
 `SECOND_OPINION_RESEARCH_MAX_BUDGET_USD`. Use `unlimited` budget only with
@@ -125,6 +142,7 @@ explicit operator authority.
 Each pass creates:
 
 - `jobs/<shard-id>.job.json` — running, complete, or failed transport state;
+  a complete job seals the exact published result bytes with SHA-256;
 - `results/<shard-id>.research.json` — only an atomically published, validated
   result bound to the campaign hash, clean repository commit/tree, and local
   artifact hashes.

@@ -91,13 +91,19 @@ function run(command, args, cwd) {
   return result.stdout.trim();
 }
 
-function makeFixture() {
+function makeFixture({ gitlink = false, replacementObject = false } = {}) {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-research-test-"));
   const repository = path.join(sandbox, "repository");
   const sourceDirectory = path.join(sandbox, "sources");
   fs.mkdirSync(repository);
   fs.mkdirSync(sourceDirectory);
   fs.writeFileSync(path.join(repository, "README.md"), "fixed repository evidence\n");
+  fs.writeFileSync(
+    path.join(repository, ".gitattributes"),
+    "README.md export-ignore\nSUBST.txt export-subst\n",
+  );
+  fs.writeFileSync(path.join(repository, "SUBST.txt"), "$Format:%H$\n");
+  fs.symlinkSync("../../outside-secret", path.join(repository, "escaping-link"));
   run("git", ["init", "-q"], repository);
   run("git", ["config", "user.name", "Research Test"], repository);
   run("git", ["config", "user.email", "research@example.invalid"], repository);
@@ -106,9 +112,52 @@ function makeFixture() {
     path.join(repository, ".krn", "runs", ".gitignore"),
     "*\n!.gitignore\n",
   );
-  run("git", ["add", "README.md", ".krn/runs/.gitignore"], repository);
+  run(
+    "git",
+    [
+      "add",
+      "README.md",
+      ".gitattributes",
+      "SUBST.txt",
+      "escaping-link",
+      ".krn/runs/.gitignore",
+    ],
+    repository,
+  );
   run("git", ["commit", "-qm", "test fixture"], repository);
+  if (gitlink) {
+    const dependencyCommit = run("git", ["rev-parse", "HEAD"], repository);
+    const dependencyCheckout = path.join(repository, "vendor", "dependency");
+    fs.mkdirSync(path.dirname(dependencyCheckout), { recursive: true });
+    run("git", ["clone", "-q", repository, dependencyCheckout], sandbox);
+    run(
+      "git",
+      [
+        "update-index",
+        "--add",
+        "--cacheinfo",
+        `160000,${dependencyCommit},vendor/dependency`,
+      ],
+      repository,
+    );
+    run("git", ["commit", "-qm", "add gitlink"], repository);
+  }
   const commit = run("git", ["rev-parse", "HEAD"], repository);
+  if (replacementObject) {
+    const originalBlob = run(
+      "git",
+      ["rev-parse", "HEAD:README.md"],
+      repository,
+    );
+    const replacementFile = path.join(sandbox, "replacement-readme.txt");
+    fs.writeFileSync(replacementFile, "replacement object evidence\n");
+    const replacementBlob = run(
+      "git",
+      ["hash-object", "-w", replacementFile],
+      repository,
+    );
+    run("git", ["replace", originalBlob, replacementBlob], repository);
+  }
   const passDirectory = prepareArtifactDirectory({
     slug: "research-test",
     role: "research",
@@ -117,6 +166,14 @@ function makeFixture() {
 
   const transcript = path.join(sourceDirectory, "transcript.txt");
   fs.writeFileSync(transcript, "fixed transcript evidence\n");
+  fs.writeFileSync(
+    path.join(sourceDirectory, "undeclared-sibling.txt"),
+    "must never reach a shard\n",
+  );
+  fs.writeFileSync(
+    path.join(repository, ".krn", "runs", "ignored-sibling.txt"),
+    "must not enter the fixed repository snapshot\n",
+  );
   const transcriptSha256 = createHash("sha256")
     .update(fs.readFileSync(transcript))
     .digest("hex");
@@ -176,13 +233,24 @@ function makeFixture() {
     does_not_prove: ["Coverage does not prove correctness."],
   };
   fs.writeFileSync(campaignFile, `${JSON.stringify(campaign, null, 2)}\n`);
-  return { sandbox, repository, passDirectory, campaignFile, campaign };
+  return {
+    sandbox,
+    repository,
+    passDirectory,
+    campaignFile,
+    campaign,
+    transcript,
+  };
 }
 
 function structuredResult(
   campaign,
   shardId,
-  { omitSourceId, unavailableSourceId } = {},
+  {
+    omitSourceId,
+    unavailableSourceId,
+    citationLocator = "README.md:1",
+  } = {},
 ) {
   const shard = campaign.shards.find((candidate) => candidate.id === shardId);
   return {
@@ -205,7 +273,7 @@ function structuredResult(
         citations: [
           {
             source_id: shard.source_ids[0],
-            locator: "README.md:1",
+            locator: citationLocator,
             detail: "The fixed source provides the bounded evidence for this mechanism.",
           },
         ],
@@ -240,6 +308,58 @@ function envelope(result, overrides = {}) {
   };
 }
 
+function filesBelow(root) {
+  const files = [];
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory).sort()) {
+      const candidate = path.join(directory, entry);
+      const metadata = fs.lstatSync(candidate);
+      if (metadata.isDirectory()) visit(candidate);
+      else files.push(path.relative(root, candidate));
+    }
+  };
+  visit(root);
+  return files;
+}
+
+function captureInvocation(invocation) {
+  const files = filesBelow(invocation.cwd);
+  return {
+    ...invocation,
+    mode: fs.statSync(invocation.cwd).mode & 0o777,
+    files,
+    bytes: new Map(
+      files.map((file) => [file, fs.readFileSync(path.join(invocation.cwd, file))]),
+    ),
+  };
+}
+
+function transportNameOf(invocation) {
+  const names = new Set(
+    invocation.files.map((file) => file.split(path.sep)[0]),
+  );
+  assert.equal(names.size, 1);
+  const [name] = names;
+  assert.match(name, /^\.second-opinion-transport-[a-f0-9]{16}$/);
+  return name;
+}
+
+function transportBytes(invocation, relativePath) {
+  return invocation.bytes.get(
+    path.join(transportNameOf(invocation), relativePath),
+  );
+}
+
+function isWithin(parent, candidate) {
+  const relative = path.relative(parent, candidate);
+  return (
+    relative === "" ||
+    (!relative.startsWith(`..${path.sep}`) &&
+      relative !== ".." &&
+      !path.isAbsolute(relative))
+  );
+}
+
 const testEnvironment = {
   ...process.env,
   SECOND_OPINION_RESEARCH_MAX_BUDGET_USD: "2",
@@ -261,7 +381,7 @@ test("runs read-only research and synthesis shards with durable validated result
         env: testEnvironment,
         windowCheck: () => {},
         claudeInvoker: (invocation) => {
-          invocations.push(invocation);
+          invocations.push(captureInvocation(invocation));
           return envelope(structuredResult(fixture.campaign, shardId));
         },
       });
@@ -290,10 +410,96 @@ test("runs read-only research and synthesis shards with durable validated result
     assert.ok(!firstArgs.join(" ").includes("Edit"));
     assert.ok(!firstArgs.join(" ").includes("Write"));
     assert.ok(firstArgs.includes("--max-budget-usd"));
-    assert.match(invocations[1].prompt, /source-analysis\.research\.json/);
+    assert.equal(firstArgs.includes("--add-dir"), false);
+    assert.equal(invocations[0].mode, 0o700);
+    assert.equal(isWithin(fixture.repository, invocations[0].cwd), false);
+    assert.equal(isWithin(fixture.passDirectory, invocations[0].cwd), false);
+    const researchTransport = transportNameOf(invocations[0]);
+    assert.deepEqual(
+      invocations[0].files.map((file) =>
+        file.slice(researchTransport.length + 1),
+      ),
+      [
+        "artifacts/video-transcript/transcript.txt",
+        "repository/.gitattributes",
+        "repository/.krn/runs/.gitignore",
+        "repository/README.md",
+        "repository/SUBST.txt",
+        "repository/escaping-link",
+      ],
+    );
+    assert.equal(
+      transportBytes(
+        invocations[0],
+        "artifacts/video-transcript/transcript.txt",
+      ).toString("utf8"),
+      "fixed transcript evidence\n",
+    );
+    assert.equal(
+      transportBytes(invocations[0], "repository/README.md").toString("utf8"),
+      "fixed repository evidence\n",
+    );
+    assert.equal(
+      transportBytes(invocations[0], "repository/SUBST.txt").toString("utf8"),
+      "$Format:%H$\n",
+    );
+    assert.equal(
+      transportBytes(invocations[0], "repository/escaping-link").toString("utf8"),
+      "../../outside-secret",
+    );
+    assert.ok(
+      invocations[0].prompt.includes(
+        `"transport_locator": ${JSON.stringify(
+          path.join(
+            invocations[0].cwd,
+            researchTransport,
+            "repository",
+          ),
+        )}`,
+      ),
+    );
+    assert.ok(
+      invocations[0].prompt.includes(
+        `"transport_locator": ${JSON.stringify(
+          path.join(
+            invocations[0].cwd,
+            researchTransport,
+            "artifacts",
+            "video-transcript",
+            "transcript.txt",
+          ),
+        )}`,
+      ),
+    );
+    assert.equal(invocations[0].prompt.includes(fixture.passDirectory), false);
+    assert.match(
+      invocations[1].prompt,
+      /dependencies\/source-analysis\.research\.json/,
+    );
+    assert.equal(
+      invocations[1].prompt.includes("validated dependency results listed below"),
+      false,
+    );
     assert.ok(invocations[1].args.includes("Read"));
     assert.ok(!invocations[1].args.includes("Read,Glob,Grep,WebFetch"));
-    assert.equal(invocations[1].cwd, fixture.passDirectory);
+    assert.equal(invocations[1].args.includes("--add-dir"), false);
+    assert.equal(invocations[1].mode, 0o700);
+    assert.equal(isWithin(fixture.repository, invocations[1].cwd), false);
+    assert.equal(isWithin(fixture.passDirectory, invocations[1].cwd), false);
+    const synthesisTransport = transportNameOf(invocations[1]);
+    assert.deepEqual(
+      invocations[1].files.map((file) =>
+        file.slice(synthesisTransport.length + 1),
+      ),
+      ["dependencies/source-analysis.research.json"],
+    );
+    assert.equal(invocations[1].prompt.includes(fixture.passDirectory), false);
+    assert.match(
+      invocations[1].prompt,
+      /Never put a disposable transport_locator in the result/,
+    );
+    assert.equal(fs.existsSync(invocations[0].cwd), false);
+    assert.equal(fs.existsSync(invocations[1].cwd), false);
 
     const synthesis = JSON.parse(
       fs.readFileSync(resultPathFor(fixture.campaignFile, "synthesis")),
@@ -313,8 +519,406 @@ test("runs read-only research and synthesis shards with durable validated result
           cwd: fixture.repository,
           env: testEnvironment,
         }),
-      /research dependency evidence changed since publication/,
+      /research result bytes changed since publication: source-analysis/,
     );
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("materializes pinned blobs with Git replacement objects disabled", () => {
+  const fixture = makeFixture({ replacementObject: true });
+  let captured;
+  try {
+    runResearch({
+      campaignPath: fixture.campaignFile,
+      shardId: "source-analysis",
+      cwd: fixture.repository,
+      env: testEnvironment,
+      windowCheck: () => {},
+      claudeInvoker: (invocation) => {
+        captured = captureInvocation(invocation);
+        return envelope(structuredResult(fixture.campaign, "source-analysis"));
+      },
+    });
+    assert.equal(
+      transportBytes(captured, "repository/README.md").toString("utf8"),
+      "fixed repository evidence\n",
+    );
+    assert.equal(fs.existsSync(captured.cwd), false);
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("rejects a temporary root inside the repository before invoking Claude", () => {
+  const fixture = makeFixture();
+  const temporaryDirectory = path.join(fixture.repository, ".krn", "runs");
+  const before = fs
+    .readdirSync(temporaryDirectory)
+    .filter((entry) => entry.startsWith("second-opinion-research-input-"))
+    .sort();
+  let invoked = false;
+  try {
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "source-analysis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          temporaryDirectory,
+          windowCheck: () => {},
+          claudeInvoker: () => {
+            invoked = true;
+            return envelope(structuredResult(fixture.campaign, "source-analysis"));
+          },
+        }),
+      /research input root overlaps a protected source/,
+    );
+    assert.equal(invoked, false);
+    assert.deepEqual(
+      fs
+        .readdirSync(temporaryDirectory)
+        .filter((entry) => entry.startsWith("second-opinion-research-input-"))
+        .sort(),
+      before,
+    );
+    const job = JSON.parse(
+      fs.readFileSync(jobPathFor(fixture.campaignFile, "source-analysis")),
+    );
+    assert.equal(job.state, "failed");
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("rejects a temporary root inside an unselected artifact parent", () => {
+  const fixture = makeFixture();
+  const unselectedParent = path.join(fixture.sandbox, "unselected-artifact");
+  fs.mkdirSync(unselectedParent);
+  const unselectedArtifact = path.join(unselectedParent, "source.txt");
+  fs.writeFileSync(unselectedArtifact, "other shard only\n");
+  fixture.campaign.sources.push({
+    id: "unselected-artifact",
+    kind: "artifact",
+    locator: unselectedArtifact,
+    revision: createHash("sha256")
+      .update(fs.readFileSync(unselectedArtifact))
+      .digest("hex"),
+    authority: "practitioner",
+    purpose: "Belongs to another research shard.",
+    required: false,
+  });
+  fs.writeFileSync(
+    fixture.campaignFile,
+    `${JSON.stringify(fixture.campaign, null, 2)}\n`,
+  );
+  let invoked = false;
+  try {
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "source-analysis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          temporaryDirectory: unselectedParent,
+          windowCheck: () => {},
+          claudeInvoker: () => {
+            invoked = true;
+            return envelope(structuredResult(fixture.campaign, "source-analysis"));
+          },
+        }),
+      /research input root overlaps a protected source/,
+    );
+    assert.equal(invoked, false);
+    assert.equal(
+      fs
+        .readdirSync(unselectedParent)
+        .some((entry) => entry.startsWith("second-opinion-research-input-")),
+      false,
+    );
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("rejects a temporary root below an unrelated Git worktree", () => {
+  const fixture = makeFixture();
+  const unrelatedRepository = path.join(fixture.sandbox, "unrelated-repository");
+  const temporaryDirectory = path.join(unrelatedRepository, "temporary");
+  fs.mkdirSync(temporaryDirectory, { recursive: true });
+  run("git", ["init", "-q"], unrelatedRepository);
+  let invoked = false;
+  try {
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "source-analysis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          temporaryDirectory,
+          windowCheck: () => {},
+          claudeInvoker: () => {
+            invoked = true;
+            return envelope(structuredResult(fixture.campaign, "source-analysis"));
+          },
+        }),
+      /research input root is inside a Git worktree/,
+    );
+    assert.equal(invoked, false);
+    assert.equal(
+      fs
+        .readdirSync(temporaryDirectory)
+        .some((entry) => entry.startsWith("second-opinion-research-input-")),
+      false,
+    );
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("rejects a research citation into its disposable transport root", () => {
+  const fixture = makeFixture();
+  let stagedRoot;
+  try {
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "source-analysis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          windowCheck: () => {},
+          claudeInvoker: (invocation) => {
+            stagedRoot = invocation.cwd;
+            return envelope(
+              structuredResult(fixture.campaign, "source-analysis", {
+                citationLocator: path.join(
+                  invocation.cwd,
+                  "repository",
+                  "README.md:1",
+                ),
+              }),
+            );
+          },
+        }),
+      /cites a disposable research transport path/,
+    );
+    assert.equal(fs.existsSync(stagedRoot), false);
+    assert.equal(
+      fs.existsSync(resultPathFor(fixture.campaignFile, "source-analysis")),
+      false,
+    );
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("rejects a synthesis citation into its disposable dependency copy", () => {
+  const fixture = makeFixture();
+  let stagedRoot;
+  try {
+    runResearch({
+      campaignPath: fixture.campaignFile,
+      shardId: "source-analysis",
+      cwd: fixture.repository,
+      env: testEnvironment,
+      windowCheck: () => {},
+      claudeInvoker: () =>
+        envelope(structuredResult(fixture.campaign, "source-analysis")),
+    });
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "synthesis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          windowCheck: () => {},
+          claudeInvoker: (invocation) => {
+            stagedRoot = invocation.cwd;
+            const [transportName] = fs.readdirSync(invocation.cwd);
+            return envelope(
+              structuredResult(fixture.campaign, "synthesis", {
+                citationLocator: path.join(
+                  transportName,
+                  "dependencies",
+                  "source-analysis.research.json",
+                ),
+              }),
+            );
+          },
+        }),
+      /cites a disposable research transport path/,
+    );
+    assert.equal(fs.existsSync(stagedRoot), false);
+    assert.equal(
+      fs.existsSync(resultPathFor(fixture.campaignFile, "synthesis")),
+      false,
+    );
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("rejects a result edited after publication before synthesis starts", () => {
+  const fixture = makeFixture();
+  let invoked = false;
+  try {
+    runResearch({
+      campaignPath: fixture.campaignFile,
+      shardId: "source-analysis",
+      cwd: fixture.repository,
+      env: testEnvironment,
+      windowCheck: () => {},
+      claudeInvoker: () =>
+        envelope(structuredResult(fixture.campaign, "source-analysis")),
+    });
+    const dependency = resultPathFor(fixture.campaignFile, "source-analysis");
+    const edited = JSON.parse(fs.readFileSync(dependency, "utf8"));
+    edited.result.scope_summary = "Edited after the terminal job sealed it.";
+    fs.writeFileSync(dependency, `${JSON.stringify(edited, null, 2)}\n`);
+
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "synthesis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          windowCheck: () => {},
+          claudeInvoker: () => {
+            invoked = true;
+            return envelope(structuredResult(fixture.campaign, "synthesis"));
+          },
+        }),
+      /research result bytes changed since publication: source-analysis/,
+    );
+    assert.equal(invoked, false);
+    assert.equal(
+      fs.existsSync(jobPathFor(fixture.campaignFile, "synthesis")),
+      false,
+    );
+    assert.equal(
+      fs.existsSync(resultPathFor(fixture.campaignFile, "synthesis")),
+      false,
+    );
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("fails synthesis if a validated dependency changes during invocation", () => {
+  const fixture = makeFixture();
+  let stagedRoot;
+  try {
+    runResearch({
+      campaignPath: fixture.campaignFile,
+      shardId: "source-analysis",
+      cwd: fixture.repository,
+      env: testEnvironment,
+      windowCheck: () => {},
+      claudeInvoker: () =>
+        envelope(structuredResult(fixture.campaign, "source-analysis")),
+    });
+    const dependency = resultPathFor(fixture.campaignFile, "source-analysis");
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "synthesis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          windowCheck: () => {},
+          claudeInvoker: (invocation) => {
+            stagedRoot = invocation.cwd;
+            fs.appendFileSync(dependency, " \n");
+            return envelope(structuredResult(fixture.campaign, "synthesis"));
+          },
+        }),
+      /validated dependency result changed during the pass: source-analysis/,
+    );
+    assert.equal(fs.existsSync(stagedRoot), false);
+    assert.equal(
+      fs.existsSync(resultPathFor(fixture.campaignFile, "synthesis")),
+      false,
+    );
+    const job = JSON.parse(
+      fs.readFileSync(jobPathFor(fixture.campaignFile, "synthesis")),
+    );
+    assert.equal(job.state, "failed");
+    assert.match(job.error, /validated dependency result changed during the pass/);
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("fails research if a declared artifact changes during invocation", () => {
+  const fixture = makeFixture();
+  let stagedRoot;
+  try {
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "source-analysis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          windowCheck: () => {},
+          claudeInvoker: (invocation) => {
+            stagedRoot = invocation.cwd;
+            fs.appendFileSync(fixture.transcript, "changed\n");
+            return envelope(structuredResult(fixture.campaign, "source-analysis"));
+          },
+        }),
+      /artifact source changed during the pass: video-transcript/,
+    );
+    assert.equal(fs.existsSync(stagedRoot), false);
+    assert.equal(
+      fs.existsSync(resultPathFor(fixture.campaignFile, "source-analysis")),
+      false,
+    );
+    const job = JSON.parse(
+      fs.readFileSync(jobPathFor(fixture.campaignFile, "source-analysis")),
+    );
+    assert.equal(job.state, "failed");
+    assert.match(job.error, /artifact source changed during the pass/);
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("fails closed on gitlinks before invoking Claude", () => {
+  const fixture = makeFixture({ gitlink: true });
+  let invoked = false;
+  try {
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "source-analysis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          windowCheck: () => {},
+          claudeInvoker: () => {
+            invoked = true;
+            return envelope(structuredResult(fixture.campaign, "source-analysis"));
+          },
+        }),
+      /repository snapshot contains unsupported gitlinks/,
+    );
+    assert.equal(invoked, false);
+    assert.equal(
+      fs.existsSync(resultPathFor(fixture.campaignFile, "source-analysis")),
+      false,
+    );
+    const job = JSON.parse(
+      fs.readFileSync(jobPathFor(fixture.campaignFile, "source-analysis")),
+    );
+    assert.equal(job.state, "failed");
   } finally {
     fs.rmSync(fixture.sandbox, { recursive: true, force: true });
   }
