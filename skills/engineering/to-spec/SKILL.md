@@ -63,9 +63,16 @@ skill only **compresses** what is already settled.
 5. **Separate spec completion from publication.** Finish the exact spec and deliver
    it to the active outcome owner before mutating a tracker or repository. If a
    later context must continue before publication, that owner keeps the exact
-   transient spec under its ignored `.krn/runs/<workflow>/<run-id>/` and updates
-   the compact capsule with its identity and pointer; `$to-spec` does not invent
-   another durable location. Publication requires a destination
+   transient spec under its ignored `.krn/runs/to-spec/<run-id>/`. When
+   `$delivery-loop` owns an active outcome capsule, `$to-spec` returns the spec
+   identity and pointer to its named sole writer; it never mutates or creates the
+   capsule. That writer records the identity, pointer, and scoped
+   `Spec publication state` under `Evidence observed`, any `PUBLISH_PENDING`
+   condition under `Open unknowns and blockers with owners`, and the selected
+   implementation or slicing consumer under `Next bounded owner and action`.
+   No new capsule field is created. Otherwise continuation stays in the native
+   Goal or configured tracker. `$to-spec` does not invent another durable
+   location. Publication requires a destination
    declared by the closest repository `AGENTS.md` or other closest instructions and
    authority to create or update it. Those instructions describe operations; they
    do not grant authority. When authorized, publish exactly once and link the

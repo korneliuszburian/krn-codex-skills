@@ -90,13 +90,19 @@ unsettled decisions. This skill owns two decomposition shapes: end-to-end
 7. **Separate list completion from ticket publication.** Deliver the complete
    list and dependency graph to the active outcome owner first. If later contexts
    need it before publication, that owner keeps the exact transient list in its
-   ignored `.krn/runs/<workflow>/<run-id>/` and puts only its identity and pointer
-   in the compact capsule. Creating tracker tickets requires an
-   existing tracker identity and operations declared by the closest repository
-   `AGENTS.md` or other closest instructions, plus publication authority. Those
-   instructions describe how; they do not authorize the mutation. When
-   authorized, publish one ticket per unit and read back its identity and
-   blocking edges per [tickets.md](references/tickets.md). This skill creates
+   ignored `.krn/runs/slice-work/<run-id>/`. When `$delivery-loop` owns an active
+   outcome capsule, `$slice-work` returns the list identity and pointer to its
+   named sole writer; it never mutates or creates the capsule. That writer records
+   the identity, pointer, and scoped `Ticket publication state` under `Evidence
+   observed`, any `PUBLISH_PENDING` condition under `Open unknowns and blockers
+   with owners`, and the next implementation unit and owner under `Next bounded
+   owner and action`. No new capsule field is created. Otherwise continuation
+   stays in the native Goal or configured tracker. Creating tracker tickets
+   requires an existing tracker identity and operations declared by the closest
+   repository `AGENTS.md` or other closest instructions, plus publication
+   authority. Those instructions describe how; they do not authorize the
+   mutation. When authorized, publish one ticket per unit and read back its
+   identity and blocking edges per [tickets.md](references/tickets.md). This skill creates
    tickets but never claims or sequences them.
 
    Use one truthful **ticket-publication state**. This is scoped to tracker

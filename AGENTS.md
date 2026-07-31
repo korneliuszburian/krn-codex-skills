@@ -33,8 +33,10 @@ reusable process. Product repositories own their language, commands, and gates.
   future consumer. Keep claims beside provenance, limitations, and falsifiers.
 - Record `docs/adr/<id>-<slug>.md` only for a surprising, consequential,
   hard-to-reverse trade-off. Routine implementation belongs in code.
-- Keep prompts, logs, packets, shards, and restart capsules below
-  `.krn/runs/<workflow>/<run-id>/`; remove them when their goal closes.
+- Keep workflow-owned prompts, logs, packets, and shards below
+  `.krn/runs/<workflow>/<run-id>/`. Keep the one outcome restart capsule only at
+  `.krn/runs/delivery-loop/<outcome-id>/state.md`; `$delivery-loop` owns it and
+  removes it at its lifecycle cleanup trigger.
 - Promote working material only when it has a named future consumer, one
   canonical semantic destination, and a cleanup or supersession rule.
 - Never put a physical checkout or mount prefix into a reusable contract.

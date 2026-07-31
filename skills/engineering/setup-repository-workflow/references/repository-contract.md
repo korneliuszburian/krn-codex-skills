@@ -19,9 +19,11 @@ Use the narrowest durable surface that matches the scope.
 Keep resumable workflow state under the canonical ignored
 `.krn/runs/<workflow>/<run-id>/`; the creating workflow owns cleanup when its
 task is accepted, superseded, or abandoned. Short-lived findings return to the
-active outcome owner. Put only the condensed truth needed for a later session
-inside its run; prompts, packets, logs, and raw model output are transport, not
-durable knowledge.
+active outcome owner. Put only the workflow-specific state needed for a later
+session inside its run; prompts, packets, logs, and raw model output are
+transport, not durable knowledge. Only `$delivery-loop` persists the outcome
+capsule at `.krn/runs/delivery-loop/<outcome-id>/state.md`; every other workflow
+uses the Goal/tracker for continuation or hands lifecycle ownership to it.
 
 Durable knowledge has semantic owners rather than a generic report directory:
 

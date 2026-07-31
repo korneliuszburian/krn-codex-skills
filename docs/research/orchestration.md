@@ -62,10 +62,13 @@ Next bounded owner and action
 For a multi-session outcome, the native Goal owns current thread continuation;
 the configured tracker owns durable shared acceptance, queue, and blocker
 state. The workflow reconciles Goal from repository and tracker truth before
-continuing. When a fresh process must resume without the current chat, the
-initiating workflow may mirror the capsule at
-`.krn/runs/<workflow>/<run-id>/state.md`. It rewrites that file in place and
-deletes the run when the goal closes. The capsule never becomes a generic
+continuing. When a fresh process must resume without the current chat,
+`$delivery-loop`'s named sole writer may mirror the capsule only at
+`.krn/runs/delivery-loop/<outcome-id>/state.md`. Other workflows keep
+continuation in the native Goal or configured tracker, or hand lifecycle
+ownership to `$delivery-loop`; they never create a workflow-local outcome
+capsule. The delivery-loop writer rewrites that file in place and deletes its
+run at the lifecycle cleanup trigger. The capsule never becomes a generic
 durable report.
 
 ## Full workflow graph
@@ -137,7 +140,8 @@ Wrappers and companions:
 | Shared vocabulary and current system map | `CONTEXT.md` | rewritten when a term or relationship changes |
 | Consequential hard-to-reverse trade-off | `docs/adr/<id>-<slug>.md` | created rarely; superseded explicitly |
 | Source-backed engineering decision | `docs/research/<topic>.md` | created only for a named consumer, then merged in place; claim stays near provenance and falsifier |
-| Resumable prompt, job, packet, shard, or capsule | `.krn/runs/<workflow>/<run-id>/` | ignored and private; delete when its in-goal consumer finishes or owning Goal closes; cross-Goal continuation transfers condensed truth to a new run |
+| Outcome capsule | `.krn/runs/delivery-loop/<outcome-id>/state.md` | owned and rewritten only by delivery-loop's sole writer; delete at its lifecycle cleanup trigger; transfer condensed truth before cross-Goal continuation |
+| Resumable prompt, job, packet, or shard | `.krn/runs/<workflow>/<run-id>/` | owned by the creating workflow, ignored and private; delete when its in-goal consumer finishes or owning Goal closes |
 | Review result | initiating outcome, PR, or issue thread tied to one fixed point | condensed into the capsule when continuation needs it; invalid when base/head/Spec/Standards changes |
 
 There is no `retained_reports`, `discovery`, or generic `capabilities` artifact

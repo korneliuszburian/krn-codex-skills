@@ -24,11 +24,15 @@ Use a four-part durable spine:
 3. `docs/adr/` owns rare consequential trade-offs;
 4. `docs/research/` owns source-backed living synthesis.
 
-Use `.krn/runs/<workflow>/<run-id>/` for private ignored restart state. At every
-owner or context boundary, condense current truth into one outcome capsule and
-rewrite it in place. Delete the run when its sole in-goal consumer finishes or
-its owning Goal closes, whichever comes first. Cross-Goal continuation transfers
-only condensed truth and pointers into the successor's own run before deletion.
+Use `.krn/runs/<workflow>/<run-id>/` for private ignored workflow state. At every
+owner or context boundary, condense current truth into one outcome capsule. Only
+`$delivery-loop` persists and rewrites that capsule, at
+`.krn/runs/delivery-loop/<outcome-id>/state.md`; other workflows return
+continuation through the Goal/tracker or hand lifecycle ownership to
+`$delivery-loop`. Each workflow deletes its run when the sole in-goal consumer
+finishes or its owning Goal closes, whichever comes first. Cross-Goal
+continuation transfers only condensed truth and pointers into the successor's
+own run before deletion.
 
 Promotion from a run requires all three:
 

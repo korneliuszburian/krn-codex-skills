@@ -301,6 +301,12 @@ class DestructiveGuardTests(unittest.TestCase):
             "printf 'codex plugin add super%s\\n' powers | source /dev/stdin",
             "printf 'codex plugin add super%s\\0' powers | xargs -0 sh -c",
             "printf '%s\\0' -c 'rm -rf /tmp/krn-pipeline-probe' | xargs -0 sh",
+            "printf '%s\\n' .git | xargs rm -rf",
+            "printf 'super%s\\n' powers | xargs -n 1 codex plugin add",
+            "printf 'super%s\\n' powers | xargs claude --plugin-dir",
+            "printf 'super%s\\n' powers | xargs copilot --plugin-dir",
+            "printf 'super%s\\n' powers | xargs gemini -e",
+            "printf 'plugins.super%s.enabled=true\\n' powers | xargs codex -c",
             "printf 'echo safe\\n' | time -p sh",
         )
         for blocked_command in blocked_commands:

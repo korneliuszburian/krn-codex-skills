@@ -89,10 +89,12 @@ plans remain ephemeral.
    `.krn/runs/<workflow>/<run-id>/`. The initializer installs only the thin
    managed block and this ignored boundary; each creating workflow owns cleanup.
    A short-lived result returns to its active outcome owner; when another session
-   must resume it, the owning workflow condenses current truth into that run's
-   capsule. `CONTEXT.md`, `docs/adr/`, and `docs/research/` remain absent until
-   active vocabulary, an earned consequential decision, or a named research
-   consumer requires them.
+   must resume it, the owning workflow keeps only its workflow-specific artifact
+   in that run and returns condensed continuation through the native Goal or
+   configured tracker. Only `$delivery-loop` may persist the outcome capsule, at
+   `.krn/runs/delivery-loop/<outcome-id>/state.md`. `CONTEXT.md`, `docs/adr/`, and
+   `docs/research/` remain absent until active vocabulary, an earned consequential
+   decision, or a named research consumer requires them.
 
    **Done when:** a new session can locate the current outcome and the right
    commands without loading history or a copied global workflow, and a second

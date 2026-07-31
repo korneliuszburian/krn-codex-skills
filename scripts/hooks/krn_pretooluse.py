@@ -39,6 +39,7 @@ PIPELINE_OPAQUE_SINKS = {
     ".", "{", "case", "coproc", "for", "function", "if", "select", "source",
     "until", "while",
 }
+PIPELINE_STDIN_TARGET_COMMANDS = {"rm", "rmdir", "unlink"}
 PIPELINE_WRAPPERS = {"!", "doas", "setsid", "stdbuf", "sudo", "time"}
 XARGS_VALUE_OPTIONS = {
     "-a", "-d", "-E", "-I", "-J", "-L", "-n", "-P", "-R", "-S", "-s",
@@ -210,8 +211,11 @@ def strip_leading_options(
     return tuple(remaining)
 
 
-def pipeline_command_words(segment: tuple[str, ...]) -> tuple[str, ...]:
+def pipeline_command_words(
+    segment: tuple[str, ...],
+) -> tuple[tuple[str, ...], bool]:
     words = command_words(segment)
+    arguments_from_stdin = False
     while words:
         executable = words[0].rsplit("/", 1)[-1].lower()
         if executable in PIPELINE_WRAPPERS:
@@ -223,11 +227,37 @@ def pipeline_command_words(segment: tuple[str, ...]) -> tuple[str, ...]:
             )
             continue
         if executable == "xargs":
+            arguments_from_stdin = True
             dispatched = strip_leading_options(words[1:], XARGS_VALUE_OPTIONS)
             words = command_words(dispatched) if dispatched else ("echo",)
             continue
         break
-    return words
+    return words, arguments_from_stdin
+
+
+def pipeline_stdin_targets_sensitive_command(words: tuple[str, ...]) -> bool:
+    if not words:
+        return True
+    executable = words[0].rsplit("/", 1)[-1].lower()
+    if executable in PIPELINE_STDIN_TARGET_COMMANDS:
+        return True
+    if mutator_target(words) is not None:
+        return True
+    selector_options = {
+        "claude": CLAUDE_PLUGIN_LOAD_OPTIONS,
+        "codex": CODEX_CONFIG_OPTIONS,
+        "copilot": COPILOT_PLUGIN_LOAD_OPTIONS,
+        "gemini": GEMINI_EXTENSION_OPTIONS,
+    }.get(executable, set())
+    if any(
+        argument.split("=", 1)[0] in selector_options
+        for argument in words[1:]
+    ):
+        return True
+    if executable == "git":
+        git_arguments = strip_leading_options(words[1:], GIT_VALUE_OPTIONS)
+        return starts_with(git_arguments, ("clean",))
+    return False
 
 
 def declared_shell_functions(tokens: tuple[str, ...]) -> set[str]:
@@ -265,7 +295,7 @@ def pipeline_sink_is_uninspectable(command: str) -> bool:
             if candidate and all(character in ";&|()" for character in candidate):
                 break
             downstream.append(candidate)
-        words = pipeline_command_words(tuple(downstream))
+        words, arguments_from_stdin = pipeline_command_words(tuple(downstream))
         if not words:
             return True
         executable = words[0]
@@ -275,6 +305,10 @@ def pipeline_sink_is_uninspectable(command: str) -> bool:
             or executable_name in SHELL_EXECUTABLES
             or executable_name in PIPELINE_OPAQUE_SINKS
             or executable in function_names
+            or (
+                arguments_from_stdin
+                and pipeline_stdin_targets_sensitive_command(words)
+            )
         ):
             return True
     return False

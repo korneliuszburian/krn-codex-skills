@@ -51,11 +51,12 @@ evidence and full conditional graph live in
 
 ```mermaid
 flowchart TD
-  GOAL["native Goal + configured tracker"] --> CAPSULE["living outcome capsule"]
+  GOAL["native Goal + configured tracker"] --> LOOP["$delivery-loop<br/>sole capsule writer"]
+  LOOP --> CAPSULE["living outcome capsule"]
   CAPSULE --> OWNER["one current workflow owner"]
   OWNER --> EVIDENCE["repository state + falsifying evidence"]
-  EVIDENCE --> CAPSULE
-  CAPSULE --> RUNS[".krn/runs/<br/>ignored restart state"]
+  EVIDENCE --> LOOP
+  CAPSULE --> RUNS[".krn/runs/delivery-loop/<br/>&lt;outcome-id&gt;/state.md"]
   EVIDENCE --> GATE{"consumer + destination +<br/>cleanup / supersession?"}
   GATE -->|shared outcome state| TRACKER["configured tracker"]
   GATE -->|shared language| CONTEXT["CONTEXT.md"]
@@ -64,7 +65,9 @@ flowchart TD
   GATE -->|no| DELETE["keep transient, then delete"]
 ```
 
-The capsule is rewritten at owner and context boundaries. Git history is the
+`$delivery-loop`'s named sole writer rewrites the capsule at owner and context
+boundaries. Other workflows return evidence to that writer or continue through
+the native Goal/tracker; they do not create another capsule. Git history is the
 chronological log; raw transcripts, prompts, and reviewer packets do not become
 documentation by default.
 

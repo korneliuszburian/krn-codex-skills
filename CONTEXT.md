@@ -50,10 +50,12 @@ and the next owner. It is updated in place at owner or context boundaries;
 `$delivery-loop` owns its exact field ABI.
 
 **Working run** — private ignored state at
-`.krn/runs/<workflow>/<run-id>/`. It may carry a resumable capsule, prompt,
-manifest, job state, or review evidence while its goal is open. It is not a
-durable report. Delete it when its sole in-goal consumer finishes or its owning
-Goal closes, whichever comes first. Cross-Goal continuation first transfers only
+`.krn/runs/<workflow>/<run-id>/`. It may carry that workflow's prompt, manifest,
+job state, or review evidence while its goal is open. Only `$delivery-loop` may
+persist the outcome capsule, at
+`.krn/runs/delivery-loop/<outcome-id>/state.md`. A run is not a durable report;
+its owner deletes it when the sole in-goal consumer finishes or the owning Goal
+closes, whichever comes first. Cross-Goal continuation first transfers only
 condensed truth and pointers into the successor's own run.
 
 **Promotion gate** — working material becomes durable only when a named future
