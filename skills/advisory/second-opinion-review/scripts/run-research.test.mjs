@@ -12,6 +12,7 @@ import {
   jobPathFor,
   resultPathFor,
   validateCampaign,
+  validateResearchResult,
 } from "./research-campaign.mjs";
 import { prepareArtifactDirectory } from "./prepare-artifacts.mjs";
 import { checkResearch, runResearch } from "./run-research.mjs";
@@ -84,6 +85,7 @@ test("gives the model the exact dynamic result identity", () => {
   assert.match(prompt, /shard_id: "exact-shard"/);
   assert.match(prompt, /shard_kind: "research"/);
   assert.match(prompt, /lowercase kebab-case only/);
+  assert.match(prompt, /stay under\s+the cited repository source's own allowed_paths/);
   assert.doesNotMatch(prompt, /evidence_gaps\[\]\.id/);
 });
 
@@ -265,6 +267,7 @@ function structuredResult(
     omitSourceId,
     unavailableSourceId,
     citationLocator = "README.md:1",
+    citationSourceId,
   } = {},
 ) {
   const shard = campaign.shards.find((candidate) => candidate.id === shardId);
@@ -287,7 +290,7 @@ function structuredResult(
         title: "Bounded mechanism",
         citations: [
           {
-            source_id: shard.source_ids[0],
+            source_id: citationSourceId ?? shard.source_ids[0],
             locator: citationLocator,
             detail: "The fixed source provides the bounded evidence for this mechanism.",
           },
@@ -307,6 +310,108 @@ function structuredResult(
     does_not_prove: ["Research output remains advisory."],
   };
 }
+
+function repositoryCitationCampaign() {
+  return validateCampaign({
+    campaign_version: "1",
+    campaign_id: "citation-boundary",
+    objective: "Check repository citation provenance.",
+    sources: [
+      {
+        id: "public-source",
+        kind: "repository",
+        locator: ".",
+        revision: "a".repeat(40),
+        allowed_paths: ["README.md"],
+        authority: "local",
+        purpose: "Public repository evidence.",
+        required: true,
+      },
+      {
+        id: "private-source",
+        kind: "repository",
+        locator: ".",
+        revision: "a".repeat(40),
+        allowed_paths: ["private/customer-notes.txt"],
+        authority: "local",
+        purpose: "Separately bounded repository evidence.",
+        required: true,
+      },
+    ],
+    shards: [
+      {
+        id: "source-analysis",
+        kind: "research",
+        objective: "Inspect both bounded sources.",
+        source_ids: ["public-source", "private-source"],
+        depends_on: [],
+        deliverable: "Bounded citations.",
+      },
+    ],
+    human_decisions: ["Disposition remains local."],
+    does_not_prove: ["Citation validation does not prove the claim."],
+  });
+}
+
+test("rejects a repository citation outside every allowed path", () => {
+  const campaign = repositoryCitationCampaign();
+  assert.throws(
+    () =>
+      validateResearchResult(
+        structuredResult(campaign, "source-analysis", {
+          citationLocator: "docs/unlisted.md:1",
+          citationSourceId: "public-source",
+        }),
+        campaign,
+        "source-analysis",
+      ),
+    /outside source public-source allowed_paths/,
+  );
+});
+
+test("requires canonical line-qualified repository citation locators", () => {
+  const campaign = repositoryCitationCampaign();
+  assert.throws(
+    () =>
+      validateResearchResult(
+        structuredResult(campaign, "source-analysis", {
+          citationLocator: "README.md",
+          citationSourceId: "public-source",
+        }),
+        campaign,
+        "source-analysis",
+      ),
+    /must use <path>:<line>\[-<line>\]/,
+  );
+});
+
+test("rejects cross-source repository citation attribution", () => {
+  const campaign = repositoryCitationCampaign();
+  assert.throws(
+    () =>
+      validateResearchResult(
+        structuredResult(campaign, "source-analysis", {
+          citationLocator: "private/customer-notes.txt:1",
+          citationSourceId: "public-source",
+        }),
+        campaign,
+        "source-analysis",
+      ),
+    /outside source public-source allowed_paths/,
+  );
+});
+
+test("binds a union-staged repository citation to its own source", () => {
+  const campaign = repositoryCitationCampaign();
+  const result = structuredResult(campaign, "source-analysis", {
+    citationLocator: "private/customer-notes.txt:4-8",
+    citationSourceId: "private-source",
+  });
+  assert.equal(
+    validateResearchResult(result, campaign, "source-analysis"),
+    result,
+  );
+});
 
 function envelope(result, overrides = {}) {
   return {

@@ -136,7 +136,9 @@ Wrappers and companions:
 - `typescript-engineering` sharpens TypeScript work beside implementation,
   diagnosis, design, or review.
 - `second-opinion-review` is an explicit advisory research/rewrite/check pass;
-  local owners verify and dispose its output.
+  repository research stages only allowlisted pinned blobs and binds every
+  repository citation back to the cited source's own allowed paths; local owners
+  verify and dispose its output.
 - `setup-repository-workflow` performs one explicit adoption/repair pass and
   then disappears from ordinary work.
 - `managing-codex-capabilities` and `writing-great-skills` remain separate meta

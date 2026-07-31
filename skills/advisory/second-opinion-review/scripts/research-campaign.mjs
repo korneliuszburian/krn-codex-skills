@@ -147,6 +147,26 @@ function repositoryPaths(value, label) {
   return values;
 }
 
+export function repositoryPathMatchesAllowed(repositoryPath, allowedPaths) {
+  return allowedPaths.some(
+    (allowedPath) =>
+      repositoryPath === allowedPath || repositoryPath.startsWith(`${allowedPath}/`),
+  );
+}
+
+function repositoryCitationPath(locator, label) {
+  const match = /^(.+):([1-9]\d{0,9})(?:-([1-9]\d{0,9}))?$/.exec(locator);
+  if (!match) {
+    fail(`${label} for a repository source must use <path>:<line>[-<line>]`);
+  }
+  const [, repositoryPath, firstLine, lastLine] = match;
+  repositoryPaths([repositoryPath], `${label} path`);
+  if (lastLine && Number(lastLine) < Number(firstLine)) {
+    fail(`${label} line range must not run backwards`);
+  }
+  return repositoryPath;
+}
+
 function parseJson(file, label) {
   let raw;
   try {
@@ -435,6 +455,18 @@ export function validateResearchResult(
       if (coverageById.get(sourceId)?.status !== "used") {
         fail(`finding ${findingId} cites source not marked used: ${sourceId}`);
       }
+      const citedSource = sourcesById.get(sourceId);
+      if (citedSource.kind === "repository") {
+        const repositoryPath = repositoryCitationPath(
+          locator,
+          `finding ${findingId} citation`,
+        );
+        if (!repositoryPathMatchesAllowed(repositoryPath, citedSource.allowed_paths)) {
+          fail(
+            `finding ${findingId} cites repository path outside source ${sourceId} allowed_paths`,
+          );
+        }
+      }
     }
   }
   pairItems(result.evidence_gaps, "evidence_gaps", gapKeys);
@@ -501,7 +533,9 @@ For every finding preserve this chain: nearby citations -> mechanism ->
 conditions and traps -> local implication -> candidate disposition -> consumer
 -> example -> falsifier -> does_not_prove. Citation locators must identify the
 specific repository path and line range, URL section, or transcript timestamp
-that supports the nearby claim; never paste long source passages. Cover every
+that supports the nearby claim; never paste long source passages. Repository
+citations must use <normalized-path>:<line>[-<line>] and stay under
+the cited repository source's own allowed_paths. Cover every
 shard source exactly once in source_coverage. A required source may be used or
 unavailable, never omitted. Candidate dispositions are advisory; the local
 owner makes the actual adopt/reject/lab-test/defer decision.

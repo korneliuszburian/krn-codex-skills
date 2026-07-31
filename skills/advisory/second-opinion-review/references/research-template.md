@@ -130,6 +130,9 @@ receives the campaign pass directory, an artifact's parent directory, or a
 sibling job/result directory. Canonical source locators remain provenance and
 citation identities; generated absolute transport locators exist only for that
 invocation, are rejected if returned as citations, and are deleted afterward.
+Repository citations use `<path>:<line>[-<line>]`; their normalized path must
+remain beneath the cited repository source's own `allowed_paths`, even when a
+different selected repository source staged neighboring bytes.
 
 Both roles use `dontAsk`, safe mode, no session persistence, and structured
 output. This bounds the roots exposed to Claude's read tools; it is not a

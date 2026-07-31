@@ -15,6 +15,7 @@ import {
   jobPathFor,
   loadCampaign,
   ResearchContractError,
+  repositoryPathMatchesAllowed,
   resultPathFor,
   validateResearchResult,
 } from "./research-campaign.mjs";
@@ -304,13 +305,6 @@ function writeGitBlob(repository, objectId, destination, mode) {
   }
 }
 
-function matchingAllowedPaths(repositoryPath, allowedPaths) {
-  return allowedPaths.filter(
-    (allowedPath) =>
-      repositoryPath === allowedPath || repositoryPath.startsWith(`${allowedPath}/`),
-  );
-}
-
 function materializeRepositorySnapshot(repository, destination, allowedPaths) {
   makePrivateDirectory(destination);
   const listing = commandBuffer(
@@ -355,9 +349,12 @@ function materializeRepositorySnapshot(repository, destination, allowedPaths) {
     ) {
       fail(`repository snapshot contains an unsafe path: ${repositoryPath}`);
     }
-    const allowedMatches = matchingAllowedPaths(repositoryPath, allowedPaths);
-    if (allowedMatches.length === 0) continue;
-    for (const allowedPath of allowedMatches) matchedAllowedPaths.add(allowedPath);
+    if (!repositoryPathMatchesAllowed(repositoryPath, allowedPaths)) continue;
+    for (const allowedPath of allowedPaths) {
+      if (repositoryPathMatchesAllowed(repositoryPath, [allowedPath])) {
+        matchedAllowedPaths.add(allowedPath);
+      }
+    }
     if (isSecretShapedPath(repositoryPath.split("/"))) {
       fail(`repository snapshot selects a denied secret-shaped path: ${repositoryPath}`);
     }
