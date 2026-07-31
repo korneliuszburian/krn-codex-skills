@@ -17,8 +17,8 @@ through real cases. If the question is "what should this look like", use
    runtime (a docs repo), ask.
 
 3. **Isolate the logic in a portable module.** Put the bit answering the question
-   behind a small, pure interface that could lift into the real codebase later. The
-   TUI around it is throwaway; the logic module is not. Pick the shape that fits the
+   behind a small, pure interface whose verdict can inform the production rewrite.
+   The TUI and logic module remain prototype code. Pick the shape that fits the
    question, not the shape easiest to wire to a TUI:
 
    - a **pure reducer** `(state, action) => state` for discrete events over one value;
@@ -47,10 +47,14 @@ through real cases. If the question is "what should this look like", use
    shouldn't be possible" or "I assumed X would be different" — bugs in the idea.
    Add actions as asked; prototypes evolve.
 
-7. **Capture the answer and the prototype.** The validated reducer / machine /
-   function set lifts into the real module (the decision, absorbed, rewritten under
-   `$implement`); the TUI shell rides along to the throwaway branch that keeps the
-   prototype as a primary source.
+7. **Capture the answer, then clean up.** Promote the validated state model and
+   decisive observations to the existing owner of the question. Remove the logic
+   module, TUI shell, and runner entry after inspection. Return to that owner; it
+   selects the next route under the global contract. If one clear production slice
+   is eventually routed to `$implement`, that workflow rewrites the model rather
+   than promoting prototype code. Retain a runnable branch only after the parent
+   skill's complete promotion gate, including a named future consumer and owned
+   cleanup or supersession trigger.
 
 ## Anti-patterns
 
@@ -60,5 +64,5 @@ through real cases. If the question is "what should this look like", use
 - Generalising ("what if we wanted X later") — answer one question.
 - Blurring logic and TUI — if the module references `console.log`, prompts, or escape
   codes, it is no longer portable.
-- Shipping the TUI shell — it is built for hand-driving; only the logic module is
-  worth keeping.
+- Shipping the prototype module or TUI shell — the verdict is worth promoting;
+  prototype code is not production code.

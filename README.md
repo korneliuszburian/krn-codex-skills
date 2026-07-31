@@ -1,152 +1,153 @@
 # KRN Skills
 
-Production-first engineering skills for Codex.
+Production-first Codex workflows with one owner per repeated process. Global
+policy stays small; product language stays with the product; working context is
+compiled into a few semantic artifacts instead of accumulated as reports.
 
-The system is intentionally small: one workflow owner, one name, one global
-installation, and domain knowledge left with the product that owns it.
+## Workflow
 
-The manifest enforces name and installation uniqueness. Workflow ownership is
-semantic: trigger cases, fresh-session smokes, and review must show that two
-skills do not claim the same repeated sequence. Discovery never implies
-ownership.
-
-## The Shape
-
-```text
-clear change  -> implement          -> focused proof -> code-review
-design question -> prototype        -> validated decision -> implement
-full outcome  -> delivery-loop      -> owned stages  -> truthful lifecycle state
-unknown fault -> diagnosing-bugs    -> cause-level fix or bounded diagnosis
-source claim  -> source-to-decision -> decision      -> implement
-settled thread -> to-spec           -> published spec -> slice-work
-settled spec  -> slice-work          -> vertical slices -> implement
-foggy effort  -> wayfinder          -> decision map   -> to-spec/slice-work/implement
-another repo  -> target-repo-work   -> scoped result -> handoff
-repo setup    -> setup-repository-workflow -> thin local contract -> normal owner
-TypeScript    -> workflow owner + typescript-engineering companion
-global tools  -> managing-codex-capabilities -> reviewed profile -> fresh session
-foggy choices -> domain-modeling    -> confirmed decision -> chosen owner
+```mermaid
+flowchart LR
+  INPUT["request + current repository truth"] --> GATE{"smallest unresolved uncertainty"}
+  GATE -->|explicit tracker-backed orientation| WAY["explicit $wayfinder"]
+  GATE -->|one decision| DECIDE["typed decision owner"]
+  GATE -->|spec or decomposition missing| SHAPE["$to-spec or $slice-work"]
+  GATE -->|clear production slice| IMPL["$implement"]
+  GATE -->|unknown cause| DIAG["$diagnosing-bugs"]
+  GATE -->|fixed review surface| REVIEW["$code-review"]
+  GATE -->|outcome satisfied or no authorized next action| TERMINAL["bounded terminal state"]
+  WAY --> GATE
+  DECIDE --> GATE
+  SHAPE --> GATE
+  DIAG -->|cause proven + repair + mutation authorized| IMPL
+  DIAG -->|otherwise| BOUNDED["bounded diagnosis"]
+  IMPL --> PROOF["0 / 1 / N proof"]
+  PROOF -->|non-trivial, requested, or lifecycle envelope active| REVIEW
+  PROOF -->|otherwise| STATE
+  REVIEW -->|accepted finding + repair + mutation authorized| IMPL
+  REVIEW -->|unresolved or authority absent| NEEDS["NEEDS_REVIEW"]
+  REVIEW -->|both axes green on same fixed point| STATE["initiating owner records truthful outcome + publication state"]
+  FULL["agreed end-to-end outcome"] --> LOOP["$delivery-loop<br/>lifecycle envelope"]
+  LOOP -. selects one current owner and records transitions .-> GATE
 ```
 
-Visual routing of these paths: [`docs/work-pipeline.md`](docs/work-pipeline.md).
+The diamond is a routing rule, not a router skill. Settled work skips every
+resolved phase: a clear slice enters `$implement`, and a fixed diff, PR, or
+fingerprinted working tree enters `$code-review`. The typed decision owner is
+`$domain-modeling` for a user-owned choice or contested concept,
+`$source-to-decision` when external evidence must change a named local
+decision, `$prototype` for a disposable runnable experiment, or
+`$codebase-design` for a seam or ownership decision. Each returns a bounded
+result to the current owner; none becomes a mandatory pipeline stage.
 
-`config/AGENTS.md` carries one universal production-first core. Codex loads it
-directly; Claude's `CLAUDE.md` resolves to the same file. The repository `AGENTS.md`
-adds only this source repo's contract. Skill descriptions route work. A
-selected `SKILL.md` carries the repeated process. References load only for the
-branch that needs them.
+`target-repo-work` wraps another checkout. `typescript-engineering` is a
+language companion. `second-opinion-review` is an explicit advisory side path.
+Setup, capability management, and skill authoring remain separate owners. The
+evidence, admission matrix, and lifecycle invariants live in
+[the orchestration synthesis](docs/research/orchestration.md).
+
+## Compact context spine
+
+```mermaid
+flowchart TD
+  GOAL["accepted request / native Goal<br/>+ tracker when configured"] --> LOOP["$delivery-loop<br/>sole capsule writer"]
+  LOOP --> CAPSULE["living outcome capsule"]
+  CAPSULE --> OWNER["one current workflow owner"]
+  OWNER --> EVIDENCE["repository state + falsifying evidence"]
+  EVIDENCE --> LOOP
+  CAPSULE --> RUNS[".krn/runs/delivery-loop/<br/>&lt;outcome-id&gt;/state.md"]
+  CAPSULE --> CLEANUP["owned specialist-run<br/>cleanup obligations"]
+  CLEANUP -->|consumer finishes or Goal closes| DELETE
+  EVIDENCE --> GATE{"consumer + destination +<br/>cleanup / supersession?"}
+  GATE -->|shared outcome state, when configured| TRACKER["configured tracker"]
+  GATE -->|shared language| CONTEXT["CONTEXT.md"]
+  GATE -->|consequential trade-off| ADR["docs/adr/"]
+  GATE -->|source-backed decision| RESEARCH["docs/research/"]
+  GATE -->|no| DELETE["keep transient, then delete"]
+```
+
+`$delivery-loop`'s named sole writer rewrites the capsule at owner and context
+boundaries. Other workflows return evidence to that writer or continue through
+the native Goal/tracker; they do not create another capsule. Git history is the
+chronological log; raw transcripts, prompts, and reviewer packets do not become
+documentation by default. When no tracker is configured, the accepted request or
+native Goal plus capsule, repository, and host readback carry current truth; no
+tracker capability is emulated.
 
 ## Skills
 
 | Skill | Invocation | Owns |
 |---|---|---|
-| [`implement`](docs/engineering/implement.md) | model or user | one scoped production slice and proportional proof |
-| [`prototype`](docs/engineering/prototype.md) | model or user | a throwaway prototype answering one design question, captured as a primary source |
-| [`diagnosing-bugs`](docs/engineering/diagnosing-bugs.md) | model or user | unknown failures, flakes, regressions, and slowness |
-| [`delivery-loop`](docs/engineering/delivery-loop.md) | model or user | one outcome carried through claim, proof, review, and authorized publication state |
-| [`code-review`](docs/engineering/code-review.md) | model or user | read-only Standards and Spec review |
-| [`codebase-design`](docs/engineering/codebase-design.md) | model or user | deep modules, public seams, and interface shape |
-| [`domain-modeling`](docs/engineering/domain-modeling.md) | model or user | frontier-round decisions, contested concepts, and earned ADRs |
-| [`source-to-decision`](docs/engineering/source-to-decision.md) | model or user | external evidence turned into an owned decision |
-| [`to-spec`](docs/engineering/to-spec.md) | model or user | a settled conversation compressed into one destination-first published spec |
-| [`slice-work`](docs/engineering/slice-work.md) | explicit only | a settled spec decomposed into implementation-ready vertical slices |
-| [`wayfinder`](docs/engineering/wayfinder.md) | explicit only | a foggy multi-session effort charted as decision tickets until the route clears |
-| [`target-repo-work`](docs/engineering/target-repo-work.md) | model or user | authority and state when operating on another repo |
-| [`setup-repository-workflow`](docs/engineering/setup-repository-workflow.md) | explicit only | one-time adoption or repair of a thin repo-local agent contract |
-| [`typescript-engineering`](docs/engineering/typescript-engineering.md) | model or user | TypeScript boundaries, APIs, compiler mechanics, and proof |
-| [`managing-codex-capabilities`](docs/meta/managing-codex-capabilities.md) | model or user | global skill, plugin, MCP, usage, and profile control |
-| [`writing-great-skills`](docs/meta/writing-great-skills.md) | model or user | predictable skill authoring and trigger design |
-| [`second-opinion-review`](docs/advisory/second-opinion-review.md) | explicit only | validated Claude research campaigns, isolated rewrite handoffs, or fixed-point checker |
+| [`implement`](skills/engineering/implement/SKILL.md) | model or user | one scoped production slice and proportional proof |
+| [`diagnosing-bugs`](skills/engineering/diagnosing-bugs/SKILL.md) | model or user | unknown failures, flakes, regressions, and slowness |
+| [`code-review`](skills/engineering/code-review/SKILL.md) | model or user | read-only Standards and Spec review of one fixed point |
+| [`codebase-design`](skills/engineering/codebase-design/SKILL.md) | model or user | architecture friction, ownership, and public seams |
+| [`domain-modeling`](skills/engineering/domain-modeling/SKILL.md) | model or user | user-owned choices, contested concepts, and earned ADRs |
+| [`source-to-decision`](skills/engineering/source-to-decision/SKILL.md) | model or user | one source-backed disposition for a named local consumer |
+| [`prototype`](skills/engineering/prototype/SKILL.md) | model or user | one disposable runnable answer to a design question |
+| [`to-spec`](skills/engineering/to-spec/SKILL.md) | model or user | a settled conversation compressed into one destination-first spec |
+| [`slice-work`](skills/engineering/slice-work/SKILL.md) | model or user | vertical implementation slices or expand-contract migration stages |
+| [`wayfinder`](skills/engineering/wayfinder/SKILL.md) | explicit only | a durable typed-frontier map for genuinely foggy multi-session work |
+| [`delivery-loop`](skills/engineering/delivery-loop/SKILL.md) | model or user | lifecycle truth and handoffs for one agreed end-to-end outcome |
+| [`target-repo-work`](skills/engineering/target-repo-work/SKILL.md) | model or user | identity and authority when work crosses into another checkout |
+| [`setup-repository-workflow`](skills/engineering/setup-repository-workflow/SKILL.md) | explicit only | one-time adoption or repair of a thin local contract |
+| [`typescript-engineering`](skills/engineering/typescript-engineering/SKILL.md) | model or user | TypeScript inference, public APIs, compiler mechanics, and proof |
+| [`second-opinion-review`](skills/advisory/second-opinion-review/SKILL.md) | explicit only | bounded Claude research, rewrite, or fixed-point challenge |
+| [`managing-codex-capabilities`](skills/meta/managing-codex-capabilities/SKILL.md) | model or user | global skill, plugin, MCP, and profile control |
+| [`writing-great-skills`](skills/meta/writing-great-skills/SKILL.md) | model or user | skill routing, information shape, validation, and pruning |
 
-No top-level “coding system” orchestrates everything. Native Codex goal mode
-owns long-running outcome state; repositories choose their durable tracker;
-the focused skills compose through their boundaries.
+Descriptions and `agents/openai.yaml` are the routing authority. README is the
+only human skill catalog; there are no hand-maintained per-skill mirror pages.
 
 ## Install
 
-This source repository owns the versioned skills. The installed skill index
-contains symlinks into it, so a pull updates installed KRN skills without
-copying or forking them again.
-
 ```bash
 npm run validate
-bash scripts/install.sh check
-bash scripts/install.sh install
+scripts/install.sh check
+scripts/install.sh install
 ```
 
-On the one-time migration, inspect every reported legacy or global path, then
-authorize only the replacement classes you actually reviewed:
+The installer links only manifest-owned skills into `~/.agents/skills`, the
+catalog executable into `~/.local/bin`, the global contract into Codex, the
+same semantic core into Claude, and one deterministic `PreToolUse` guard. It
+applies path-aware policy to recognized direct `rm`, denies recognized literal
+non-dry-run `git clean`, blocks exact literal quarantine references and patch
+targets, and denies unsupported shell composition only when it contains the
+same literal risk. It does not interpret shell execution; runtime-built,
+sourced, or obfuscated behavior remains governed by the global contract. Only
+bare, uncomposed `echo` and `printf` are treated as inert risk text. The
+installer refuses foreign collisions. Named legacy and retired entries are
+archived only with explicit authority:
 
 ```bash
 env KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
   KRN_REPLACE_GLOBAL_CLAUDE=1 KRN_REPLACE_GLOBAL_HOOKS=1 \
-  bash scripts/install.sh install
+  scripts/install.sh install
 ```
 
-The installer:
+Run `check` again and start a fresh Codex session after installation. Discovery
+is session-scoped. `setup-repository-workflow`, `wayfinder`, and
+`second-opinion-review` require an explicit `$skill-name` attachment.
 
-- links only manifest-owned skills into `~/.agents/skills`;
-- links the manifest-owned `krn-codex-catalog` executable into
-  `~/.local/bin`;
-- leaves vendor and unrelated skills untouched;
-- archives named legacy paths only with explicit migration authority;
-- installs the versioned global `AGENTS.md`;
-- installs a collision-safe Claude `CLAUDE.md` symlink to that same semantic
-  core;
-- installs one versioned user-level `PreToolUse` hook that denies the forbidden
-  capability family and blocks destructive removal of repository roots, agent
-  configuration, secrets, Beads state, and database files;
-- refuses unowned skill/global-instruction collisions and masking
-  `AGENTS.override.md` files, and refuses foreign hook replacement without
-  `KRN_REPLACE_GLOBAL_HOOKS=1`.
+See [migration](docs/migration.md) for ownership, retirement, backup, and
+rollback guarantees.
 
-`CODEX_HOME` selects Codex legacy paths, backups, and its global instruction
-target, hook configuration, and hook scripts. `CLAUDE_CONFIG_DIR` selects Claude's instruction targets.
-`KRN_SKILLS_DEST` independently selects the user skill index, and
-`KRN_BIN_DEST` selects the executable directory. Set all four for an isolated
-temp-root trial. Overriding one never silently redirects another.
+## Repository setup and working state
 
-Run `check` again after installation. Restart Codex if the current session
-does not refresh its installed skill index: discovery is session-scoped, so an
-already-open picker is not evidence that the installed symlink is missing.
-`setup-repository-workflow`, `second-opinion-review`, `slice-work`, and
-`wayfinder` are explicit-only: Codex cannot select them implicitly, while an
-explicit `$skill` invocation remains available. Some API sessions may omit them from the injected
-model-visible list; that observation is not the activation contract. In a fresh
-interactive session, type the full `$skill-name` and select its **[Skill]**
-entry from the picker; plain prompt text that resembles the name is not the same
-attachment.
+`$setup-repository-workflow` writes one managed block into an existing root
+instruction owner plus `.krn/runs/.gitignore`. In an empty repository it first
+bootstraps thin `AGENTS.md` and a `CLAUDE.md` symlink to that same owner, and
+reports all three changed paths. It names tracker state — including `none` — and
+the context layout directly; `CONTEXT.md`, ADRs, and research pages appear later
+only when a real decision earns them.
 
-New or changed non-managed hooks must also be reviewed and trusted through
-`/hooks`; Codex binds trust to the exact hook definition.
+`$second-opinion-review` stores resumable passes at
+`.krn/runs/second-opinion-review/<run-id>/`. Set
+`SECOND_OPINION_CONTEXT_ROOT` when the owning repository is not the current
+directory. Truly ad-hoc work must provide an absolute
+`SECOND_OPINION_WORKING_RUNS`; there is no implicit home fallback.
 
-`$second-opinion-review` resolves configured repository work under
-`<working_runs>/second-opinion-review/<run-id>`. Set
-`SECOND_OPINION_CONTEXT_ROOT` when the artifact-owning repository is not the
-ambient working directory. Unconfigured or ad-hoc work must declare an
-absolute `SECOND_OPINION_WORKING_RUNS` and uses the same layout; there is no
-implicit home fallback. Run `prepare-artifacts.mjs list` with the same context
-to enumerate passes and job state. Do not place ad hoc review folders beside
-active repositories; the skill defines what is retained and when the
-initiating issue or goal can archive or remove it.
-
-This repository configures `working_runs` as `reviews`, so its concrete
-`OUTPUT_ROOT` is `<repo>/reviews/second-opinion-review` regardless of whether
-the checkout is reached through `/home/krn/coding` or `/mnt/storage/coding`.
-
-Large research uses a versioned `campaign.json`: independent read-only shards
-publish validated mechanism ledgers, then one synthesis shard consumes only
-those current results. Every shard has a bounded Claude budget and timeout,
-durable job state, exact source coverage, and a freshness check across the
-campaign, clean repository, mechanically pinned local artifacts, declared URL
-provenance, and dependency results.
-This is source investigation, not a second code-review lane; all recommendations
-remain advisory until the local owner verifies and disposes them.
-
-## Capability Catalog
-
-Global integrations are managed through named, reviewable profiles instead of
-accumulating version-pinned skill overrides by hand:
+## Capability catalog
 
 ```bash
 krn-codex-catalog inventory
@@ -155,35 +156,30 @@ krn-codex-catalog plan lean
 krn-codex-catalog apply lean
 ```
 
-`lean` keeps the daily engineering surface small; `design`, `web-qa`, and
-`comms` opt specialized integrations back in. Usage reports aggregate only
-structured evidence and never disable anything automatically. See
-[`docs/CAPABILITY_CATALOG.md`](docs/CAPABILITY_CATALOG.md) for profiles,
-evidence limits, quarantine, and atomic-write guarantees.
+Named profiles keep optional integrations intentional. Usage evidence never
+disables a capability automatically. See [capabilities](docs/capabilities.md).
 
-## Proof Budget
+## Proof budget
 
 | Budget | Use |
 |---|---|
-| `0` | type-only, mechanical, documentation, topology, or already-covered refactor |
-| `1` | one changed runtime contract, parser, validator, bug, migration, or authority rule |
+| `0` | mechanical, documentation, topology, type-only, or already-covered work |
+| `1` | one changed runtime contract, validator, migration, authority rule, or reproduced bug |
 | `N` | distinct acceptance requirements with distinct failure modes |
 
-Tests are retained only when they can disagree with production code through a
-stable public seam. Broad suites are completion evidence, not the inner loop.
+Broad suites are completion evidence, not the inner loop.
+Every pull request runs this full repository proof once on its fixed revision.
 
-## Repository Map
+## Repository map
 
 ```text
-AGENTS.md    source-repository editing contract and map
-config/       installed global guidance
-skills/       promoted skills grouped by responsibility
-evals/        positive and negative trigger cases
-scripts/      installer and deterministic validation
-docs/         provenance and migration ownership
-CONTEXT.md    the shared vocabulary
+AGENTS.md       source-repository editing contract
+config/         installed global contract and hook configuration
+skills/         canonical workflow owners and direct resources
+evals/          routing cases
+scripts/        deterministic validation, installation, hooks, and catalog
+CONTEXT.md      compact current vocabulary and knowledge index
+docs/research/  living source-backed synthesis
+docs/adr/       earned durable decisions
+.krn/runs/      ignored resumable working state
 ```
-
-See `docs/SOURCES.md` for provenance and `docs/typescript-coverage.md` for the
-chapter-to-mechanism decision ledger distilled from *Total TypeScript*. The
-source material itself is not vendored.

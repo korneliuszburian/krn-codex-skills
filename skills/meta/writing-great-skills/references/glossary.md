@@ -39,8 +39,15 @@ pointer so the entrypoint remains legible.
 **Co-location** — keeping one concept's rules and caveats together once they
 are on the same hierarchy level.
 
-**Artifact contract** — the owner, root, creation path, retained set, consumer,
-cleanup trigger, and deletion authority for durable output produced by a skill.
+**Working run** — ignored, private, resumable state owned by one active workflow
+inside one Goal. Delete it when its sole in-goal consumer finishes or that Goal
+closes; cross-Goal continuation transfers condensed truth into a new run.
+
+**Promotion gate** — working state becomes durable only when a named future
+consumer, one semantic destination, and a cleanup or supersession rule exist.
+
+**Artifact contract** — the semantic owner, creation path, retained set,
+consumer, cleanup trigger, and deletion authority for promoted output.
 
 ## Steering
 

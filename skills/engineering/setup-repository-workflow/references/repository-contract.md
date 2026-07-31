@@ -10,23 +10,38 @@ Use the narrowest durable surface that matches the scope.
 | repository `AGENTS.md` | layout, commands, domain boundaries, required gates | copied global workflow prose or history |
 | nested `AGENTS.md` | subtree-specific differences | restating the root contract |
 | `.codex/config.toml` | trusted repository Codex settings | workflow instructions |
-| repository tracker | durable queue, dependencies, claims, closure | session reasoning or documentation |
+| repository tracker, when configured | durable queue, dependencies, claims, closure | session reasoning or documentation |
 | skill | one repeated task workflow | repository status or domain inventory |
 | hook | deterministic lifecycle interception | judgment, orchestration, or review |
 | CI | reproducible checks on a fixed revision | product completion or host policy |
 | GitHub settings | required checks, branch protection, merge and review policy | local implementation procedure |
 
-Normalize workflow artifacts inside every configured repository:
+Keep resumable workflow state under the canonical ignored
+`.krn/runs/<workflow>/<run-id>/`; the creating workflow owns cleanup when the
+named sole in-goal consumer finishes its accepted outcome or the owning Goal
+closes, whichever comes first. Short-lived findings return to the active outcome
+owner. Put only the workflow-specific state needed for a later session inside
+its run; prompts, packets, logs, and raw model output are transport, not durable
+knowledge. Only `$delivery-loop` persists the outcome capsule at
+`.krn/runs/delivery-loop/<outcome-id>/state.md`; every other workflow uses the
+accepted request, native Goal, or configured tracker for continuation, or hands
+lifecycle ownership to Delivery Loop. Cross-Goal continuation transfers
+condensed truth into the successor-owned run before cleanup. For a superseded
+or abandoned delivery run, transfer alone is not consumer completion; retain
+the original until its Goal's non-active state is read back.
 
-- `docs/agents/runs/<workflow>/<run-id>/` for ignored working material owned
-  and cleaned up by the creating workflow;
-- `docs/agents/reports/<workflow>/<slug>.md` only for a final synthesis,
-  decision, or owner-facing report with a named durable consumer.
+Durable knowledge has semantic owners rather than a generic report directory:
 
-This separation keeps research and second-opinion work discoverable without
-mutating the diff it is reviewing or turning raw logs into permanent docs.
-Resolve every role through `docs/agents/artifact-paths.json`; individual skills
-must not invent a competing repository path.
+- `CONTEXT.md` holds current shared vocabulary only when a real consumer needs it;
+- `docs/adr/` holds earned consequential decisions;
+- `docs/research/` holds an explicitly retained synthesis with a named consumer;
+- when configured, the tracker holds active outcomes, specifications, tickets,
+  and shared state; otherwise its absence is explicit and the accepted request
+  or native Goal owns current continuation without emulated queue or claims.
+
+Do not create these paths during setup. The domain, decision, research, or
+tracker workflow creates its own artifact only when its retention trigger is
+present.
 
 Prefer deletion or a direct pointer when two artifacts communicate the same
 current state. A compatibility symlink may share one semantic instruction file;

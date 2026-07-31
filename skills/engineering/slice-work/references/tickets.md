@@ -1,21 +1,25 @@
 # Publishing slices as tickets
 
-`slice-work` always emits the slice list. When the repository has a configured
-tracker (`docs/agents/issue-tracker.md`), it also publishes each slice as one
-ticket with its **blocking edges** so `$delivery-loop` can claim and work them. This
-is the to-tickets step: it **creates** ticket items; it never claims, sequences, or
-owns lifecycle — that stays with `$delivery-loop`.
+`$slice-work` always returns the complete work-unit list. Ticket publication is a
+separate mutation: perform it only when the request supplies publication authority
+and the closest repository `AGENTS.md` or other closest instructions already name
+the tracker destination and dependency operations. Those instructions describe how
+to publish; they do not grant authority.
 
-Read `docs/agents/issue-tracker.md` for how this repository expresses issues and
-dependencies. If no tracker is configured, the slice list itself is the artifact;
-do not run `$setup-repository-workflow` unprompted.
+If publication was requested but either requirement is missing, return ticket-
+publication state `PUBLISH_PENDING` with that exact missing condition. Do not initialize a tracker or
+invent a local path. Publishing **creates** one ticket per work unit and its blocking
+edges; it never claims, sequences, or owns lifecycle. The configured tracker
+stores queue and claim state; the next outcome owner performs any later claim
+through its declared operation and separate authority. `$delivery-loop` selects
+the next unit and owns lifecycle coordination only when its envelope is active.
 
 ## How blocking edges are expressed
 
 The slices are the same either way; only the shape of the blocking edges changes.
 
-- **Local-markdown tracker** → one file per ticket under
-  `.scratch/<feature>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order
+- **Configured local-markdown tracker** → use the exact root declared by the
+  closest repository instructions, one file per ticket, numbered in dependency order
   (blockers first). Each file's **Blocked by** lists the numbers/titles it depends on.
   One ticket per file, never a combined backlog file.
 - **A real tracker (Beads, GitHub, GitLab, …)** → publish one issue per ticket in
@@ -39,6 +43,8 @@ prototype.
 **What to build:** the end-to-end behaviour this ticket makes work, from the user's
 perspective — not a layer-by-layer implementation list.
 
+**Kind:** vertical-slice | migration-stage (`expand` | `migrate` | `contract`)
+
 **Blocked by:** the numbers/titles of the tickets that gate this one, or
 "None — can start immediately".
 
@@ -59,17 +65,20 @@ layer-by-layer implementation.
 - [ ] Criterion 1
 - [ ] Criterion 2
 
+## Kind
+
+`vertical-slice` or `migration-stage` (`expand`, `migrate`, or `contract`).
+
 ## Blocked by
 
 - A reference to each blocking ticket, or "None — can start immediately".
 </tracker-ticket-template>
 
-## Wide refactors are the exception to vertical slicing
+## Expand–migrate–contract stages
 
-A **wide refactor** is one mechanical change — rename a column, retype a shared
-symbol — whose **blast radius** fans across the whole codebase, so a single edit
-breaks thousands of call sites at once and no vertical slice can land green. Do not
-force it into a tracer bullet; sequence it as **expand–contract**:
+Use migration stages when an existing compatibility boundary or wide mechanical
+blast radius means no direct vertical slice can land safely. Do not use them merely
+because a diff is large. Sequence the transition as **expand–migrate–contract**:
 
 1. **Expand** — add the new form beside the old so nothing breaks.
 2. **Migrate** — move the call sites over in batches sized by blast radius (per
@@ -78,7 +87,9 @@ force it into a tracer bullet; sequence it as **expand–contract**:
 3. **Contract** — delete the old form once no caller remains, in a ticket blocked by
    every migrate batch.
 
-When even the batches cannot stay green alone, keep the sequence but let them share
-an integration branch that all block a final integrate-and-verify ticket — green is
-promised only there. This is the one case where a slice is not a vertical path, and
-it earns its place by keeping the build green, not by delivering a behaviour on its own.
+Each stage states its entry invariant, exit invariant, falsifier, and rollback or
+compatibility boundary. When even migrate batches cannot stay green alone, keep the
+sequence but let them share an explicitly authorized integration branch that all
+block a final integrate-and-verify ticket; green is promised only there. These
+stages earn their non-vertical shape by making every intermediate state explicit and
+safe, not by delivering user behavior on their own.

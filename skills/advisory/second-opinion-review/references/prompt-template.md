@@ -33,7 +33,7 @@ Pass all four values back to the runner; it enters that explicit root rather
 than trusting the ambient directory:
 
 ```bash
-bash ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
+~/.agents/skills/second-opinion-review/scripts/run-review.sh \
   git /absolute/evidence-repository FULL_COMMIT_OID FULL_TREE_OID clean \
   WORKTREE_SHA256 \
   /absolute/printed/pass-dir/checker.md \
@@ -44,15 +44,15 @@ For one standalone artifact, bind its current content hash. The runner also
 captures its mode and size, then enters the artifact parent before validation:
 
 ```bash
-bash ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
+~/.agents/skills/second-opinion-review/scripts/run-review.sh \
   artifact /absolute/evidence/artifact.md ARTIFACT_SHA256 \
   /absolute/printed/pass-dir/checker.md \
   /absolute/printed/pass-dir/checker.review.json
 ```
 
-The runner accepts output only in the verified pass. For a configured
-same-repository review, that is the repository's ignored `working_runs` tree;
-all other writes inside the fixed evidence root remain invalid. The runner
+The runner accepts output only in the verified pass. For a same-repository
+review, that is the repository's ignored `.krn/runs` tree; all other writes
+inside the fixed evidence root remain invalid. The runner
 checks identity before the Claude window or model invocation, fingerprints
 dirty Git content, and captures the prompt hash. Its private preflight manifest
 binds every cited regular file by mode, size, and full content hash; citations

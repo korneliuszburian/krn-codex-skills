@@ -4,13 +4,9 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-import re
-import shlex
 import stat
 
 
-SHELL_NAMES = {"bash", "dash", "sh", "zsh"}
-COMMAND_BOUNDARIES = {";", "&&", "||", "|", "&"}
 AMBIGUOUS_TARGET_MARKERS = ("$", "`", "*", "?", "[", "]", "{", "}")
 DISPOSABLE_DIRECTORY_NAMES = {
     ".cache",
@@ -47,16 +43,6 @@ PROTECTED_FILE_SUFFIXES = {
 }
 PROTECTED_DATABASE_SIDECARS = ("-journal", "-shm", "-wal")
 MAX_SCAN_ENTRIES = 2_000
-
-
-def tokenize(command: str) -> list[str] | None:
-    try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|")
-        lexer.whitespace_split = True
-        lexer.commenters = ""
-        return list(lexer)
-    except ValueError:
-        return None
 
 
 def find_repo_root(cwd: Path) -> Path | None:
@@ -148,6 +134,8 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
     protected_anchors = {
         Path("/"),
         Path("/home"),
+        Path("/media"),
+        Path("/mnt"),
         Path("/tmp"),
         home,
         home / "coding",
@@ -167,8 +155,6 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
         Path("/boot"),
         Path("/dev"),
         Path("/etc"),
-        Path("/media"),
-        Path("/mnt"),
         Path("/opt"),
         Path("/proc"),
         Path("/root"),
@@ -217,119 +203,91 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
     return None
 
 
-def command_segments(tokens: list[str]) -> list[list[str]]:
-    segments: list[list[str]] = []
-    current: list[str] = []
-    for token in tokens:
-        if token in COMMAND_BOUNDARIES:
-            if current:
-                segments.append(current)
-                current = []
-            continue
-        current.append(token)
-    if current:
-        segments.append(current)
-    return segments
-
-
-def nested_shell_commands(tokens: list[str]) -> list[str]:
-    nested: list[str] = []
-    for index, token in enumerate(tokens[:-2]):
-        if Path(token).name in SHELL_NAMES and tokens[index + 1] in {"-c", "-lc"}:
-            nested.append(tokens[index + 2])
-    return nested
-
-
-def rm_denial_reason(tokens: list[str], cwd: Path) -> str | None:
-    for segment in command_segments(tokens):
-        rm_index = next(
-            (
-                index
-                for index, token in enumerate(segment)
-                if Path(token).name == "rm"
-            ),
-            None,
-        )
-        if rm_index is None:
-            continue
-
-        recursive = False
-        targets: list[str] = []
-        options_done = False
-        for token in segment[rm_index + 1 :]:
-            if not options_done and token == "--":
-                options_done = True
-                continue
-            if not options_done and token.startswith("-") and token != "-":
-                recursive = (
-                    recursive
-                    or token == "--recursive"
-                    or "r" in token
-                    or "R" in token
-                )
-                continue
-            targets.append(token)
-
-        for raw_target in targets:
-            target = resolve_target(raw_target, cwd)
-            if target is None:
-                return (
-                    "rm with an expansion or glob target is blocked; "
-                    "name one concrete disposable path"
-                )
-            reason = protected_path_reason(target, cwd, recursive)
-            if reason is not None:
-                return f"destructive removal blocked: {reason}"
-    return None
-
-
-def git_clean_denial_reason(tokens: list[str]) -> str | None:
-    for segment in command_segments(tokens):
-        for index, token in enumerate(segment[:-1]):
-            if Path(token).name != "git":
-                continue
-            remainder = segment[index + 1 :]
-            if "clean" not in remainder:
-                continue
-            args = remainder[remainder.index("clean") + 1 :]
-            dry_run = any(
-                arg in {"-n", "--dry-run"} or (arg.startswith("-") and "n" in arg[1:])
-                for arg in args
-            )
-            forced = any(
-                arg in {"-f", "--force"} or (arg.startswith("-") and "f" in arg[1:])
-                for arg in args
-            )
-            if forced and not dry_run:
-                return (
-                    "forced git clean is blocked because it can erase ignored "
-                    "credentials, databases, and untracked work"
-                )
-    return None
-
-
-def destructive_denial_reason(command: str, cwd: Path, depth: int = 0) -> str | None:
-    if depth > 2:
-        return "nested shell command is too deep to inspect safely"
-
-    if ("$(" in command or "`" in command) and (
-        re.search(r"\brm\b", command) or re.search(r"\bgit\s+clean\b", command)
-    ):
-        return "destructive shell substitution cannot be inspected safely"
-
-    tokens = tokenize(command)
-    if tokens is None:
-        lowered = command.lower()
-        if "rm " in lowered or "git clean" in lowered:
-            return "destructive command could not be parsed safely"
+def rm_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
+    try:
+        rm_index = words.index("rm")
+    except ValueError:
         return None
 
-    reason = rm_denial_reason(tokens, cwd) or git_clean_denial_reason(tokens)
-    if reason is not None:
-        return reason
+    recursive = False
+    targets: list[str] = []
+    options_done = False
+    for word in words[rm_index + 1 :]:
+        if not options_done and word == "--":
+            options_done = True
+            continue
+        if not options_done and word.startswith("-") and word != "-":
+            recursive = (
+                recursive
+                or word == "--recursive"
+                or "r" in word
+                or "R" in word
+            )
+            continue
+        targets.append(word)
 
-    for nested in nested_shell_commands(tokens):
-        reason = destructive_denial_reason(nested, cwd, depth + 1)
+    for raw_target in targets:
+        target = resolve_target(raw_target, cwd)
+        if target is None:
+            return (
+                "rm with an expansion or glob target is blocked; "
+                "name one concrete disposable path"
+            )
+        reason = protected_path_reason(target, cwd, recursive)
         if reason is not None:
-            return reason
+            return f"destructive removal blocked: {reason}"
     return None
+
+
+def git_clean_denial_reason(words: tuple[str, ...]) -> str | None:
+    try:
+        git_index = words.index("git")
+        clean_index = words.index("clean", git_index + 1)
+    except ValueError:
+        return None
+
+    arguments = words[clean_index + 1 :]
+    dry_run = False
+    index = 0
+    while index < len(arguments):
+        argument = arguments[index]
+        if argument == "--":
+            break
+        if argument in {"-e", "--exclude"}:
+            index += 2
+            continue
+        if argument.startswith("--exclude="):
+            index += 1
+            continue
+        if argument.startswith("--d"):
+            dry_run = True
+            index += 1
+            continue
+        if argument.startswith("--no-d"):
+            dry_run = False
+            index += 1
+            continue
+        if not argument.startswith("-") or argument.startswith("--"):
+            index += 1
+            continue
+        consumes_next = False
+        for option_index, option in enumerate(argument[1:]):
+            if option == "e":
+                consumes_next = option_index == len(argument[1:]) - 1
+                break
+            if option == "n":
+                dry_run = True
+        index += 2 if consumes_next else 1
+    if not dry_run:
+        return (
+            "non-dry-run git clean is blocked because it can erase ignored "
+            "credentials, databases, and untracked work"
+        )
+    return None
+
+
+def direct_destructive_denial_reason(
+    words: tuple[str, ...],
+    cwd: Path,
+) -> str | None:
+    return rm_denial_reason(words, cwd) or git_clean_denial_reason(words)

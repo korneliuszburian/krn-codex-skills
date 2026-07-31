@@ -6,17 +6,20 @@ description: Review a fixed-point diff, pull request, or working tree without ed
 # Code Review
 
 Freeze the change before judging it. Review one resolvable surface on two
-independent axes — **Standards** and **Spec** — then report only findings that
+independent axes — **Standards** and **Spec** — then return only findings that
 survive current-code verification. This skill never edits the reviewed work.
 
 1. **Pin the fixed point.** Resolve a supplied commit, branch, tag, PR base, or
    merge base before reading conclusions into the diff. Inspect its three-dot
-   diff and commit list. For a working tree, include status, staged and
-   unstaged diffs, and every in-scope untracked file.
+   diff and commit list. Fingerprint the base and head with immutable commit
+   object ids. For a working tree, fingerprint HEAD plus the exact staged,
+   unstaged, and in-scope untracked contents; a branch name or `git status`
+   summary is not an identity.
 
    <review-surface>
    Target:
-   Base and comparison:
+   Base source and fingerprint:
+   Head source and fingerprint:
    Commit list:
    Staged paths:
    Unstaged paths:
@@ -27,21 +30,33 @@ survive current-code verification. This skill never edits the reviewed work.
 
    Build a path ledger and mark every entry `reviewed`, `generated`, or
    `out-of-scope-with-reason`. Stop on an invalid ref or an empty surface. If
-   the working tree changes during review, re-pin it before reporting. Derive
+   the working tree changes during review, re-pin it before returning findings. Derive
    the fixed point from current branch or PR context when possible; ask for it
    only when that context cannot resolve the comparison.
 
    **Done when:** the exact comparison is reproducible and every changed path
    has a review disposition.
 
-2. **Locate both authorities.** Find the Spec in this order: the user request,
+2. **Locate and fingerprint both authorities.** Find the Spec in this order: the user request,
    active tracker acceptance, linked issue or product/design artifact, then an
    explicit statement that no further spec exists. Load the closest repository
    instructions and only the domain material needed by the changed boundary.
 
    Read [review-standards.md](references/review-standards.md) after repository
-   rules to fill gaps on the Standards axis. Its baseline never overrides a
-   closer rule.
+   rules for the fallback baseline and review-lane precedence. Its baseline
+   never overrides a closer rule.
+
+   Fingerprint each authority by its stable source identity and immutable
+   revision; when no revision exists, hash the exact bounded content used for
+   review. Preserve source order for Standards because closer instructions have
+   precedence.
+
+   <review-fingerprint>
+   Base fingerprint:
+   Head fingerprint:
+   Spec source and fingerprint:
+   Ordered Standards sources and fingerprint:
+   </review-fingerprint>
 
    <review-authority>
    Requested result:
@@ -57,7 +72,8 @@ survive current-code verification. This skill never edits the reviewed work.
    Explicit non-goals:
    </review-authority>
 
-   **Done when:** each requirement and standard has a named authority, and no
+   **Done when:** base, head, Spec, and Standards have reproducible
+   fingerprints; each requirement and standard has a named authority; and no
    test result or reviewer preference is standing in for one. The packet is
    complete for the decision while excluding unrelated history, backlog, and
    repository-wide prose that would bury the relevant evidence.
@@ -107,15 +123,15 @@ survive current-code verification. This skill never edits the reviewed work.
    Falsifying check, if needed:
    </review-finding>
 
-   **Done when:** every retained finding is actionable from the report and
+   **Done when:** every retained finding is actionable from the returned result and
    every executed gate can disagree with a specific review claim.
 
-5. **Report without repairing.** Lead with Standards and Spec findings,
+5. **Return findings without repairing.** Lead with Standards and Spec findings,
    ordered by severity within each axis. If an axis has none, say so and name
    its residual proof gap. Never collapse the axes into a score.
 
    <review-summary>
-   Fixed point:
+   Base / head / Spec / Standards fingerprint:
    Changed paths accounted for:
    Standards result:
    Spec result:
@@ -125,10 +141,13 @@ survive current-code verification. This skill never edits the reviewed work.
    </review-summary>
 
    A finding authorizes no edit. Hand any accepted repair to a separate scoped
-   implementation task. If a named consumer requires a persisted report, the
-   parent workflow stores it after review under the repository's configured
-   retained-report role (normally `docs/agents/reports/code-review/`); this
-   read-only reviewer never changes its own fixed point.
+   implementation task. The initiating workflow owns any explicitly requested
+   persistence; this read-only reviewer neither chooses a documentation path
+   nor changes its own fixed point.
+
+   If any member of the four-part fingerprint changes before disposition, this
+   result is stale and the new fixed point requires a fresh review; findings do
+   not carry forward by assumption.
 
    **Done when:** every in-scope path is accounted for, both axes remain
    visible, uncertainty is explicit, and the reviewed source is unchanged.

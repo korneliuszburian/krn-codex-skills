@@ -1,6 +1,6 @@
 # Claude Handoff
 
-Use this only for a `rewrite-maker` background pass. A source investigation
+Use this only for a `rewrite` background pass. A source investigation
 uses [research-template.md](research-template.md) instead. Complete the
 entrypoint's artifact-directory step first and write this brief to
 `/absolute/printed/pass-dir/handoff.md`. Shared `/tmp` paths are not resumable
@@ -18,13 +18,18 @@ provider from the alias.
 
 Add the required `--accept-edits` flag and retain only the smallest required
 source roots. Every `--add-dir` joins Claude's editable workspace in this mode;
-point it only at a disposable input copy, never an authoritative source corpus:
+point it only at a curated input copy beneath one private
+`SECOND_OPINION_DISPOSABLE_ROOT`, never an authoritative source corpus. The
+declared root scopes the allowlist but is not itself granted. Copies contain no
+Git metadata, symlinks, hardlinks, dependency stores, credentials, or
+quarantined capabilities and are removed when the pass closes:
 
 ```bash
 env SECOND_OPINION_EFFORT=max \
+  SECOND_OPINION_DISPOSABLE_ROOT=/absolute/private/disposable-inputs \
   ~/.agents/skills/second-opinion-review/scripts/run-handoff.sh \
   --accept-edits \
-  --add-dir /absolute/bounded/research-root \
+  --add-dir /absolute/private/disposable-inputs/research-copy \
   "TypeScript skill rewrite" \
   /absolute/printed/pass-dir/handoff.md
 ```
@@ -41,7 +46,7 @@ worktree is an ownership boundary, not a filesystem or network sandbox.
 
 ## Role and completion
 
-- Role: `rewrite-maker`
+- Role: `rewrite`
 - Done when:
 - Do not decide:
 

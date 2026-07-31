@@ -88,15 +88,17 @@ skill misfires through collision, premature completion, sediment, or sprawl.
    not force numbering onto material with no sequence. Co-locate each concept's
    rule, caveat, and smallest useful example.
 
-   If the skill persists artifacts, the entrypoint must name the root owner,
-   creation mechanism, retained contents, consumer, cleanup trigger, and who
-   decides deletion. An arbitrary “persistent directory” is not an artifact
-   contract.
+   Working state starts in the repository's established ignored run boundary
+   (KRN setup uses `.krn/runs/<workflow>/<run-id>/`). Promote it only when a
+   named future consumer, one semantic durable destination, and a cleanup or
+   supersession rule all exist. The entrypoint names creation, retained
+   contents, consumer, and deletion owner; an arbitrary “persistent directory”
+   is not an artifact contract.
 
    If the skill delegates path- or state-dependent work, bind an execution
    envelope: repository realpath and `cwd`, immutable ref or artifact identity,
    allowed paths and mutation authority, output shape plus exact destination or
-   `response-only`, named consumer, and what the result does not prove. Omit
+   returning outcome owner, named consumer, and what the result does not prove. Omit
    fields only when the delegated task cannot observe or depend on them.
 
    <context-pointer>
@@ -142,9 +144,10 @@ skill misfires through collision, premature completion, sediment, or sprawl.
    execution, safety, or completion for a representative prompt.
 
 6. **Validate, then forward-test.** Validate frontmatter, folder/name identity,
-   invocation metadata, direct pointers, manifests, and changed deterministic
-   scripts. Then use fresh agents with raw prompts and artifacts; never leak the
-   expected answer or suspected flaw into the trial.
+   invocation metadata, direct pointers, manifest/README catalog identity,
+   retirement metadata, and changed deterministic scripts. Then use fresh
+   agents with raw prompts and artifacts; never leak the expected answer or
+   suspected flaw into the trial.
 
    <forward-trial>
    Prompt class: positive | nearest-negative | explicit-only | composition

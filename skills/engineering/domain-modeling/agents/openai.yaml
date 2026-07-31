@@ -1,6 +1,6 @@
 interface:
   display_name: "Domain Modeling"
-  short_description: "Interview or resolve decisions to shared understanding"
-  default_prompt: "Use $domain-modeling to sharpen these open decisions and contested concepts."
+  short_description: "Resolve user-owned choices and shared language"
+  default_prompt: "Use $domain-modeling to interview these user-owned choices or resolve this contested concept."
 policy:
   allow_implicit_invocation: true

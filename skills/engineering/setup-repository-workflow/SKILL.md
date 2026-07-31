@@ -45,14 +45,17 @@ skill, deterministic guard, CI, or host administration.
    **Done when:** every rule has one semantic owner and duplicated status,
 workflow prose, agents, or checkers are identified before replacement.
 
-3. **Present the resolved contract.** Recommend the detected tracker and
-   single-context domain layout by default; offer multi-context only when the
-   repository actually has monorepo/domain signals. Resolve whether delivery is
-   local or strict PR-gated, and show the exact instruction block plus adapter
-   paths before writing when the user has not already approved those choices.
+3. **Present the resolved contract.** Name the detected tracker state, including
+   `none`; never invent a tracker to satisfy setup. Recommend the single-context
+   domain layout by default; offer multi-context only when the repository
+   actually has monorepo/domain signals. Resolve whether delivery is local or
+   strict PR-gated, and show the exact managed instruction block plus
+   `.krn/runs/.gitignore` before writing when the user has not already approved
+   those choices.
 
-   **Done when:** tracker, domain mode, delivery profile, and instruction owner
-   are explicit inputs rather than guesses.
+   **Done when:** tracker state (`none` or a named backend), domain mode,
+   delivery profile, and instruction owner are explicit inputs rather than
+   guesses.
 
 4. **Write the minimum local contract.** Keep `AGENTS.md` limited to repository
 language, layout, commands, domain and authority boundaries, required gates,
@@ -66,11 +69,36 @@ conventions, custom agents, or status documents without a demonstrated local
 consumer. Native goals retain long-running session outcome state, and native
 plans remain ephemeral.
 
-   Apply the resolved contract with:
+   When a new Beads tracker is selected, initialize it as a separate,
+   commit-capable transition **before** applying this skill's managed files.
+   Require a clean worktree and index plus explicit authority for `.beads/`,
+   the root `.gitignore`, the exact repository-local Git config key
+   `beads.role`, and the local commit that `bd` may create. Run `bd --version`
+   first and require the audited `bd version 1.0.4` boundary; stop before
+   mutation on any other version. Record `HEAD` (or the unborn-branch state),
+   status, repository-local Git config, the hook path resolved by
+   `git rev-parse --path-format=absolute --git-path hooks`, and fingerprints
+   of any existing `AGENTS.md`, `CLAUDE.md`, and `.claude/`, then run:
+
+   ```text
+   bd init --skip-agents --skip-hooks --non-interactive
+   ```
+
+   Read back the resulting `HEAD`, commit paths, status, local Git config,
+   resolved Git hooks, and instruction surfaces. The only permitted config
+   delta is `beads.role=maintainer`; pre-existing instruction and hook surfaces
+   remain byte-identical, absent ones remain absent, and `.beads/hooks/` remains
+   absent. Stop on any other delta. At the audited boundary this command
+   advances `HEAD` even with both skip flags. Do not run without local commit
+   authority, and do not substitute `--stealth` for a shared durable tracker.
+
+   After any selected tracker initialization — or immediately when no tracker
+   is configured or the existing tracker needs none — apply the resolved
+   repository contract with:
 
    ```text
    node ~/.agents/skills/setup-repository-workflow/scripts/init-repository-workflow.mjs apply --root <repo> \
-     --tracker <beads|github|gitlab|local> \
+     --tracker <none|beads|github|gitlab|local> \
      --domain <single|multi> --delivery <local|strict>
    ```
 
@@ -79,15 +107,21 @@ plans remain ephemeral.
    seeds a **thin** `AGENTS.md` (specifics and placeholders only) and symlinks
    `CLAUDE.md` to it — this skill owns the repository brief so a tracker's init
    never fills the void. See [agents-composition.md](references/agents-composition.md)
-   for why the brief stays thin and how the harness composes it with the global
-   core. For a beads tracker, initialize it with
-   `bd init --agents-profile minimal --non-interactive` so bd injects only a
-   one-line pointer, not its full always-loaded reference.
+   for why the brief stays thin, how the harness composes it with the global
+   core, and why Beads initialization is isolated from instruction ownership.
 
-   Normalize working artifacts under `docs/agents/runs/<workflow>/<run-id>/`
-   and retain only consumer-owned final reports under
-   `docs/agents/reports/<workflow>/`. The initializer installs the repository
-   contract and ignore boundary; each creating workflow owns cleanup.
+   Normalize resumable working state under
+   `.krn/runs/<workflow>/<run-id>/`. The initializer installs only the thin
+   managed block and this ignored boundary; each creating workflow owns cleanup
+   when its named sole in-goal consumer finishes the accepted outcome or the
+   owning Goal closes. A short-lived result returns to its active outcome owner;
+   when another session must resume it, the owning workflow keeps only its
+   workflow-specific artifact in that run and returns condensed continuation
+   through the native Goal or configured tracker. Only `$delivery-loop` may
+   persist the outcome capsule, at
+   `.krn/runs/delivery-loop/<outcome-id>/state.md`. `CONTEXT.md`, `docs/adr/`,
+   and `docs/research/` remain absent until active vocabulary, an earned
+   consequential decision, or a named research consumer requires them.
 
    **Done when:** a new session can locate the current outcome and the right
    commands without loading history or a copied global workflow, and a second
@@ -100,8 +134,8 @@ has the required authority. Do not create local executioner or reviewer agents:
 scoped changes use `$implement`, unknown failures use `$diagnosing-bugs`, and a
 fixed diff uses `$code-review`.
 
-   **Done when:** every new artifact changes observable setup behavior, and
-normal delivery still routes to the existing workflow owners.
+   **Done when:** every managed file changes observable setup behavior, and
+   normal delivery still routes to the existing workflow owners.
 
 6. **Prove adoption, then stop setup.** Run the narrowest structural validator
 or isolated setup smoke that can reject the changed contract. Re-read the

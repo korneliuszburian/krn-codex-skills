@@ -8,17 +8,17 @@ description: Hand scoped research, rewrite, or fixed-point challenge to Claude a
 Claude is a fresh pair of eyes with a bounded brief, not a gate. Use a
 source-manifest campaign when it needs to investigate a corpus, a background
 handoff for one candidate rewrite in an isolated worktree, or the tool-free
-checker when a fixed artifact only needs an adversarial challenge.
+check transport when a fixed artifact only needs an adversarial challenge.
 
-1. **Choose one role.** Use `researcher` to turn a source-bound shard into a
-   validated mechanism ledger, `rewrite-maker` to produce a candidate patch in
-   a disposable worktree, or `checker` to falsify a fixed claim. A large corpus
+1. **Choose one role.** Use `research` to turn a source-bound shard into a
+   validated mechanism ledger, `rewrite` to produce a candidate patch in
+   a disposable worktree, or `check` to falsify a fixed claim. A large corpus
    becomes independent research shards followed by one synthesis shard. Never
    ask one pass to research, make, and approve the same result.
 
    <review-contract>
    Question or objective:
-   Role: researcher | rewrite-maker | checker
+   Role: research | rewrite | check
    Current ref or artifact:
    Allowed sources and paths:
    Expected deliverables:
@@ -54,37 +54,37 @@ checker when a fixed artifact only needs an adversarial challenge.
 
    The required second argument is `research`, `rewrite`, or `check`, matching
    step 1. `SECOND_OPINION_CONTEXT_ROOT` names the repository that owns the
-   artifacts even when the ambient shell or reviewed checkout differs. The
-   command resolves `working_runs` from that repository's
-   `docs/agents/artifact-paths.json`, verifies that it is repository-contained
-   and ignored, and creates
-   `<working_runs>/second-opinion-review/<date>-<role>-<slug>-<suffix>` with a
-   durable `pass-context.json`. When no configured repository owns genuinely
-   ad-hoc work, explicitly set `SECOND_OPINION_WORKING_RUNS` to an absolute
-   private working-runs root; it uses the same layout. There is no implicit home
-   fallback or alternate namespace/category tree. Record the printed path as
-   `pass_dir`. The initiating operator owns its contents, classification,
-   retention, and cleanup; use the same context variable with
-   `prepare-artifacts.mjs list` to enumerate its job state.
+   artifacts even when the ambient shell or reviewed checkout differs. A Git
+   repository always uses its canonical, ignored
+   `.krn/runs/second-opinion-review/<date>-<role>-<slug>-<suffix>` path. When no
+   repository owns genuinely ad-hoc work, explicitly set
+   `SECOND_OPINION_WORKING_RUNS` to an absolute private runs root; it uses the
+   same workflow and pass layout. There is no implicit home fallback or
+   configurable repository path. Record the printed path as `pass_dir`. The
+   initiating operator owns its contents, classification, retention, and
+   cleanup; use the same context variable with `prepare-artifacts.mjs list` to
+   enumerate its job state.
 
    **`OUTPUT_ROOT` contract.** `OUTPUT_ROOT` is the resolved absolute
-   `<working_runs>/second-opinion-review` directory recorded in
-   `pass-context.json`; it is a contract value, not another environment
-   override. A pass always lives at
-   `<OUTPUT_ROOT>/<ISO-date>-<role>-<slug>-<suffix>/`. Resolve the repository by
-   realpath, then its repository-relative `working_runs` role, so moving the
-   checkout between `/home`, `/run/media`, and `/mnt` cannot change ownership.
+   `.krn/runs/second-opinion-review` directory, or the explicit ad-hoc root's
+   `second-opinion-review` child. It is a derived contract value, not another
+   environment override. A repository pass records the repository-relative owner
+   and immutable anchor in `pass-context.json`, then derives `OUTPUT_ROOT` from the
+   current canonical checkout during every verification; an ad-hoc pass records
+   its explicit absolute working root. A pass always lives at
+   `<OUTPUT_ROOT>/<ISO-date>-<role>-<slug>-<suffix>/`, so moving a repository
+   checkout between physical locations cannot change ownership.
 
    **Done when:** this pass has exactly one verified `0700` directory under the
    resolved working root, and every brief, prompt, job record, review result,
    or disposition below names a file inside it.
 
-4. **Prepare one branch.** For `researcher`, read
+4. **Prepare one branch.** For `research`, read
    [research-template.md](references/research-template.md); it owns campaign
    manifests, source pins, shards, synthesis dependencies, read-only transport,
-   structured results, and budgets. For `rewrite-maker`, read
+   structured results, and budgets. For `rewrite`, read
    [handoff-template.md](references/handoff-template.md); it owns the isolated
-   worktree and background patch handoff. For `checker`, read
+   worktree and background patch handoff. For `check`, read
    [prompt-template.md](references/prompt-template.md); it owns the fixed
    evidence contract, structured runner, schema validation, and budget boundary.
    Research and checker transport are fixed by
@@ -98,9 +98,9 @@ checker when a fixed artifact only needs an adversarial challenge.
    the bounded retry requests a complete corrected result; neither layer clips
    or silently discards cited evidence.
 
-   Point to existing issues, commits, diffs, and source paths instead of
-   restating them. Pin mutable sources. Redact secrets, credentials, private
-   data, environment files, and raw copyrighted corpus in either branch.
+   Point to existing issues, commits, diffs, and source paths. Pin mutable
+   sources. Repository research exposes only blobs matching literal allowed paths.
+   Redact secrets, credentials, private data, environment files, and raw corpus.
 
    **Done when:** exactly one role-specific reference has produced a brief that
    a fresh pass can execute without reconstructing this conversation, and every
@@ -109,24 +109,24 @@ checker when a fixed artifact only needs an adversarial challenge.
 5. **Launch exactly that pass.** Follow the chosen reference's **Launch**
    section. A research shard is a bounded, budgeted foreground process that may
    be yielded as a long-running execution; its job file makes completion or
-   failure durable. A rewrite-maker remains a resumable background session.
+   failure durable. A rewrite pass remains a resumable background session.
    Record the backend reported by the session; a model alias alone is not
    provider evidence. A linked worktree separates Git ownership but is not a
    filesystem or network sandbox. Claude never gains authority to mutate the
    canonical branch, publish, merge, close work, or decide product trade-offs.
 
-   **Done when:** the researcher emitted a validated shard result and terminal
+   **Done when:** the research pass emitted a validated shard result and terminal
    job state, the rewrite job is named and resumable and this execution thread
-   has yielded, or the synchronous checker emitted schema-compatible JSON and
+   has yielded, or the synchronous check emitted schema-compatible JSON and
    a terminal `jobs/checker.job.json` inside the verified pass.
 
 6. **Verify before retaining anything.** Continue after a research shard or
-   synchronous checker finishes, or resume after the background rewrite pass.
-   Treat all Claude output as a hypothesis. Run the researcher or checker
+   synchronous check finishes, or resume after the background rewrite pass.
+   Treat all Claude output as a hypothesis. Run the research or check
    validation named in its reference when applicable, then inspect cited lines
-   and source coverage locally. For checker or rewrite findings, classify each
+   and source coverage locally. For check or rewrite findings, classify each
    item as `accept_and_fix`, `evidence_gap`, `reject_with_evidence`,
-   `follow_up`, or `human_decision`. For researcher output, classification is
+   `follow_up`, or `human_decision`. For research output, classification is
    evidence triage only: retain the validated ledger, then hand it to
    `$source-to-decision`; only that owner may record `adopt`, `reject`,
    `lab-test`, or `defer` and authorize any later implementation. Keep only
@@ -146,7 +146,7 @@ checker when a fixed artifact only needs an adversarial challenge.
    </review-output>
 
    **Done when:** every retained factual claim survives current local evidence,
-   every accepted checker or rewrite change has proportionate proof, every
+   every accepted check or rewrite change has proportionate proof, every
    research recommendation has a named `$source-to-decision` consumer,
    `disposition.md` records the local classification, every checker range
    remains at most 20 lines, and no reviewer prose is presented as approval or
@@ -155,19 +155,24 @@ checker when a fixed artifact only needs an adversarial challenge.
 7. **Stop the loop and close its storage.** Run each research shard once and
    synthesis only after its dependencies validate; a failed shard requires a
    new pass directory and fixed campaign rather than an in-place retry. Run at
-   most one maker pass and one independent checker pass for the same fixed
+   most one rewrite pass and one independent check pass for the same fixed
    point. Continue only for a newly evidenced finding; open-ended reviewer
    debate is not production progress. Bounded checker transport retries remain
    one pass; terminal schema diagnostics end that pass instead of inviting an
    external retry loop. Before stopping after a terminal checker failure, write
    `disposition.md` inside the same pass with `status: blocked`, the exact
    diagnostic, and the next owner. Remove the disposable worktree after its
-   candidate changes are accepted or rejected. Keep `pass_dir` while its issue,
-   goal, or follow-up depends on the evidence; once that owner closes, either
-   archive the minimal retained set in the owner's durable research system or
-   delete the pass directory explicitly. The runners delete their private
-   temporary transport automatically; they do not decide retention of operator
-   evidence.
+   candidate changes are accepted or rejected. `pass_dir` belongs to the initiating
+   Goal: keep it only while that Goal's current consumer depends on the evidence,
+   then delete it before the Goal closes. A separate follow-up never retains the
+   original run; first transfer condensed truth and pointers into the successor
+   Goal's own run or an earned semantic destination. Only a research pass with a
+   named future consumer may
+   first hand its validated ledger to `$source-to-decision`; that workflow may
+   promote only the distilled decision through its semantic gate. Check and rewrite
+   output do not route through research merely for retention. The runners delete
+   their private temporary transport automatically; they do not decide retention of
+   operator evidence.
 
    **Done when:** the owned artifact is locally verified, remaining work has a
    named owner, the canonical branch contains only decisions supported by local

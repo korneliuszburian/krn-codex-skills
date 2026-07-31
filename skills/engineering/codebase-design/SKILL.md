@@ -108,11 +108,14 @@ Use the vocabulary precisely:
    First vertical slice:
    Falsifier at the production seam:
    Does not prove:
+   Returned to: <initiating owner | requester>
    </design-decision>
 
-   If implementation is authorized, hand this decision to `$implement` as one
-   production-first vertical slice. Otherwise stop with the decision and
-   explicit non-proof; do not begin a speculative refactor.
+   When an existing workflow such as `$wayfinder` initiated the question, return
+   the decision there first; that owner reapplies the global routing gate. Only a
+   directly requested design-and-build outcome with one clear, authorized first
+   slice may hand the decision to `$implement`. Otherwise stop with the decision
+   and explicit non-proof; do not begin a speculative refactor.
 
    **Done when:** the decision shows how one named caller would gain a smaller
    contract, assigns real policy to one owner, bounds the first slice, and can

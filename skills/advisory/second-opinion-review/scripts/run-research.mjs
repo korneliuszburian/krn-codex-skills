@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { TextDecoder } from "node:util";
 
 import {
   buildResearchPrompt,
@@ -14,6 +15,7 @@ import {
   jobPathFor,
   loadCampaign,
   ResearchContractError,
+  repositoryPathMatchesAllowed,
   resultPathFor,
   validateResearchResult,
 } from "./research-campaign.mjs";
@@ -22,13 +24,40 @@ import { verifyPassDirectory } from "./prepare-artifacts.mjs";
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const skillDirectory = path.dirname(scriptDirectory);
 const researchSchemaPath = path.join(skillDirectory, "references", "research.schema.json");
-const deniedSegments = new Set([".agents", ".claude", ".codex", ".git", "secrets"]);
+const deniedSegments = new Set([
+  ".agents",
+  ".claude",
+  ".codex",
+  ".git",
+  "credentials",
+  "secrets",
+]);
+const deniedBasenames = new Set([
+  ".npmrc",
+  ".pypirc",
+  "credentials.json",
+  "id_ed25519",
+  "id_rsa",
+  "service-account.json",
+]);
 const deniedSuffixes = new Set([".key", ".p12", ".pem"]);
 
 class ResearchRunnerError extends Error {}
 
 function fail(message) {
   throw new ResearchRunnerError(message);
+}
+
+function isSecretShapedPath(segments) {
+  const normalized = segments.map((segment) => segment.toLowerCase());
+  const basename = normalized.at(-1) ?? "";
+  return (
+    normalized.some((segment) => deniedSegments.has(segment)) ||
+    basename === ".env" ||
+    basename.startsWith(".env.") ||
+    deniedBasenames.has(basename) ||
+    deniedSuffixes.has(path.extname(basename))
+  );
 }
 
 function command(commandName, args, cwd) {
@@ -39,15 +68,53 @@ function command(commandName, args, cwd) {
   return result.stdout.trim();
 }
 
+function commandBuffer(commandName, args, cwd) {
+  const result = spawnSync(commandName, args, {
+    cwd,
+    maxBuffer: 128 * 1024 * 1024,
+  });
+  if (result.status !== 0) {
+    fail(
+      `${commandName} ${args.join(" ")} failed: ${result.stderr.toString("utf8").trim()}`,
+    );
+  }
+  return result.stdout;
+}
+
 function repositoryIdentity(cwd) {
-  const root = fs.realpathSync(command("git", ["rev-parse", "--show-toplevel"], cwd));
+  const root = fs.realpathSync(
+    command(
+      "git",
+      ["--no-replace-objects", "rev-parse", "--show-toplevel"],
+      cwd,
+    ),
+  );
   if (fs.realpathSync(cwd) !== root) fail(`run research from the repository root: ${root}`);
-  const status = command("git", ["status", "--porcelain"], root);
+  const status = command(
+    "git",
+    ["--no-replace-objects", "status", "--porcelain"],
+    root,
+  );
   if (status) fail("research repository must be clean before launch");
   return {
     root,
-    commit: command("git", ["rev-parse", "HEAD"], root),
-    tree: command("git", ["rev-parse", "HEAD^{tree}"], root),
+    commit: command(
+      "git",
+      ["--no-replace-objects", "rev-parse", "HEAD"],
+      root,
+    ),
+    tree: command(
+      "git",
+      ["--no-replace-objects", "rev-parse", "HEAD^{tree}"],
+      root,
+    ),
+  };
+}
+
+function repositoryFixedPoint(repository) {
+  return {
+    commit: repository.commit,
+    tree: repository.tree,
   };
 }
 
@@ -69,16 +136,23 @@ function assertSafeArtifact(source) {
   }
   const resolved = fs.realpathSync(source.locator);
   const segments = resolved.split(path.sep);
-  const basename = path.basename(resolved).toLowerCase();
-  if (
-    segments.some((segment) => deniedSegments.has(segment)) ||
-    basename === ".env" ||
-    basename.startsWith(".env.") ||
-    deniedSuffixes.has(path.extname(basename))
-  ) {
+  if (isSecretShapedPath(segments)) {
     fail(`artifact source uses a denied secret-shaped path: ${source.id}`);
   }
-  const digest = sha256File(resolved);
+  const descriptor = fs.openSync(
+    resolved,
+    fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW,
+  );
+  let bytes;
+  try {
+    if (!fs.fstatSync(descriptor).isFile()) {
+      fail(`artifact source must remain a regular file: ${source.id}`);
+    }
+    bytes = fs.readFileSync(descriptor);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+  const digest = createHash("sha256").update(bytes).digest("hex");
   if (digest !== source.revision) fail(`artifact source hash mismatch: ${source.id}`);
   const parent = fs.realpathSync(path.dirname(resolved));
   const home = fs.realpathSync(os.homedir());
@@ -99,17 +173,18 @@ function assertSafeArtifact(source) {
   ) {
     fail(`artifact source parent is too broad or protected: ${source.id}`);
   }
-  return { resolved, digest, parent };
+  return { resolved, digest, parent, bytes };
 }
 
 function atomicJson(file, value) {
   ensurePrivateDirectory(path.dirname(file));
+  const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`, "utf8");
   const temporary = path.join(
     path.dirname(file),
     `.second-opinion-research-${process.pid}-${randomBytes(6).toString("hex")}.tmp`,
   );
   try {
-    fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, {
+    fs.writeFileSync(temporary, bytes, {
       encoding: "utf8",
       mode: 0o600,
       flag: "wx",
@@ -118,6 +193,7 @@ function atomicJson(file, value) {
   } finally {
     fs.rmSync(temporary, { force: true });
   }
+  return createHash("sha256").update(bytes).digest("hex");
 }
 
 function ensurePrivateDirectory(directory) {
@@ -130,6 +206,297 @@ function ensurePrivateDirectory(directory) {
     fail(`research output directory must be a real directory: ${directory}`);
   }
   fs.chmodSync(directory, 0o700);
+}
+
+function makePrivateDirectory(directory) {
+  fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+  fs.chmodSync(directory, 0o700);
+}
+
+function writePrivateFile(destination, bytes, expectedSha256) {
+  makePrivateDirectory(path.dirname(destination));
+  fs.writeFileSync(destination, bytes, { flag: "wx", mode: 0o600 });
+  if (
+    createHash("sha256").update(fs.readFileSync(destination)).digest("hex") !==
+    expectedSha256
+  ) {
+    fail(`staged research input changed while writing: ${destination}`);
+  }
+}
+
+function assertSnapshotTreeSafe(snapshotRoot) {
+  const canonicalRoot = fs.realpathSync(snapshotRoot);
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory)) {
+      const candidate = path.join(directory, entry);
+      const metadata = fs.lstatSync(candidate);
+      if (metadata.isSymbolicLink()) {
+        const target = fs.readlinkSync(candidate);
+        if (path.isAbsolute(target)) {
+          fail(`repository snapshot contains an absolute symlink: ${candidate}`);
+        }
+        let resolvedTarget;
+        try {
+          resolvedTarget = fs.realpathSync(candidate);
+        } catch {
+          fail(`repository snapshot contains a broken symlink: ${candidate}`);
+        }
+        if (
+          resolvedTarget !== canonicalRoot &&
+          !resolvedTarget.startsWith(`${canonicalRoot}${path.sep}`)
+        ) {
+          fail(`repository snapshot symlink escapes the fixed tree: ${candidate}`);
+        }
+        continue;
+      }
+      if (metadata.isDirectory()) {
+        visit(candidate);
+        continue;
+      }
+      if (!metadata.isFile()) {
+        fail(`repository snapshot contains an unsupported entry: ${candidate}`);
+      }
+    }
+  };
+  visit(canonicalRoot);
+}
+
+function assertNoGitWorktreeAncestor(inputRoot) {
+  let current = fs.realpathSync(inputRoot);
+  while (true) {
+    const marker = path.join(current, ".git");
+    let metadata;
+    try {
+      metadata = fs.lstatSync(marker, { throwIfNoEntry: false });
+    } catch (error) {
+      fail(`cannot inspect Git ancestry for research input root: ${error.message}`);
+    }
+    if (metadata) {
+      fail(`research input root is inside a Git worktree: ${current}`);
+    }
+    const parent = path.dirname(current);
+    if (parent === current) return;
+    current = parent;
+  }
+}
+
+function writeGitBlob(repository, objectId, destination, mode) {
+  makePrivateDirectory(path.dirname(destination));
+  const descriptor = fs.openSync(destination, "wx", mode);
+  let result;
+  try {
+    result = spawnSync(
+      "git",
+      ["--no-replace-objects", "cat-file", "blob", objectId],
+      {
+        cwd: repository.root,
+        encoding: "utf8",
+        stdio: ["ignore", descriptor, "pipe"],
+      },
+    );
+  } finally {
+    fs.closeSync(descriptor);
+  }
+  if (result.status !== 0) {
+    fs.rmSync(destination, { force: true });
+    fail(
+      `git cat-file blob ${objectId} failed: ${(result.stderr ?? "").trim()}`,
+    );
+  }
+}
+
+function materializeRepositorySnapshot(repository, destination, allowedPaths) {
+  makePrivateDirectory(destination);
+  const listing = commandBuffer(
+    "git",
+    [
+      "--no-replace-objects",
+      "ls-tree",
+      "-r",
+      "-z",
+      "--full-tree",
+      repository.tree,
+    ],
+    repository.root,
+  );
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  const matchedAllowedPaths = new Set();
+  for (let offset = 0; offset < listing.length; ) {
+    const end = listing.indexOf(0, offset);
+    if (end === -1) fail("repository tree listing is not NUL terminated");
+    const record = listing.subarray(offset, end);
+    offset = end + 1;
+    if (record.length === 0) continue;
+    const separator = record.indexOf(9);
+    if (separator === -1) fail("repository tree listing has no path separator");
+    const header = record.subarray(0, separator).toString("ascii");
+    const match = /^(100644|100755|120000|160000) (blob|commit) ([a-f0-9]+)$/.exec(
+      header,
+    );
+    if (!match) fail(`repository tree contains an unsupported entry: ${header}`);
+    const [, objectMode, objectType, objectId] = match;
+    let repositoryPath;
+    try {
+      repositoryPath = decoder.decode(record.subarray(separator + 1));
+    } catch {
+      fail("repository snapshot contains a non-UTF-8 path");
+    }
+    if (
+      !repositoryPath ||
+      path.posix.isAbsolute(repositoryPath) ||
+      path.posix.normalize(repositoryPath) !== repositoryPath ||
+      repositoryPath.split("/").some((segment) => segment === "." || segment === "..")
+    ) {
+      fail(`repository snapshot contains an unsafe path: ${repositoryPath}`);
+    }
+    if (!repositoryPathMatchesAllowed(repositoryPath, allowedPaths)) continue;
+    for (const allowedPath of allowedPaths) {
+      if (repositoryPathMatchesAllowed(repositoryPath, [allowedPath])) {
+        matchedAllowedPaths.add(allowedPath);
+      }
+    }
+    if (isSecretShapedPath(repositoryPath.split("/"))) {
+      fail(`repository snapshot selects a denied secret-shaped path: ${repositoryPath}`);
+    }
+    if (objectMode === "160000" || objectType === "commit") {
+      fail(`repository snapshot contains an unsupported gitlink: ${repositoryPath}`);
+    }
+    const destinationPath = path.resolve(
+      destination,
+      ...repositoryPath.split("/"),
+    );
+    if (!destinationPath.startsWith(`${path.resolve(destination)}${path.sep}`)) {
+      fail(`repository snapshot path escapes the fixed tree: ${repositoryPath}`);
+    }
+    // A Git symlink is materialized as its exact link blob, but as a regular
+    // read-only transport file. This preserves the pinned bytes without
+    // allowing a link to escape the private input root.
+    writeGitBlob(
+      repository,
+      objectId,
+      destinationPath,
+      objectMode === "100755" ? 0o700 : 0o600,
+    );
+  }
+  for (const allowedPath of allowedPaths) {
+    if (!matchedAllowedPaths.has(allowedPath)) {
+      fail(`repository allowed path matches no pinned tree entry: ${allowedPath}`);
+    }
+  }
+  assertSnapshotTreeSafe(destination);
+}
+
+function stageShardInputs({
+  campaign,
+  shard,
+  repository,
+  passDirectory,
+  sourceEvidence,
+  artifactInputs,
+  dependencies,
+  temporaryDirectory,
+}) {
+  const temporaryRoot = fs.realpathSync(temporaryDirectory);
+  const inputRoot = fs.mkdtempSync(
+    path.join(temporaryRoot, "second-opinion-research-input-"),
+  );
+  fs.chmodSync(inputRoot, 0o700);
+  try {
+    const canonicalInputRoot = fs.realpathSync(inputRoot);
+    const excludedRoots = [
+      repository.root,
+      passDirectory,
+      ...campaign.sources
+        .filter((source) => source.kind === "artifact")
+        .map((source) => path.dirname(source.locator)),
+    ].map((root) => fs.realpathSync(root));
+    for (const excludedRoot of excludedRoots) {
+      const relative = path.relative(excludedRoot, canonicalInputRoot);
+      if (
+        relative === "" ||
+        (!path.isAbsolute(relative) &&
+          relative !== ".." &&
+          !relative.startsWith(`..${path.sep}`))
+      ) {
+        fail(`research input root overlaps a protected source: ${excludedRoot}`);
+      }
+    }
+    assertNoGitWorktreeAncestor(canonicalInputRoot);
+    const transportName = `.second-opinion-transport-${randomBytes(8).toString("hex")}`;
+    const transportRoot = path.join(inputRoot, transportName);
+    makePrivateDirectory(transportRoot);
+
+    const evidenceBySource = new Map(
+      sourceEvidence.map((evidence) => [evidence.source_id, evidence]),
+    );
+    const selectedSources = campaign.sources.filter((source) =>
+      shard.source_ids.includes(source.id),
+    );
+    const repositoryAllowedPaths = [
+      ...new Set(
+        selectedSources
+          .filter((source) => source.kind === "repository")
+          .flatMap((source) => source.allowed_paths),
+      ),
+    ];
+    let repositoryStaged = false;
+    const promptSources = selectedSources.map((source) => {
+      if (shard.kind === "synthesis") return source;
+      if (source.kind === "repository") {
+        if (!repositoryStaged) {
+          materializeRepositorySnapshot(
+            repository,
+            path.join(transportRoot, "repository"),
+            repositoryAllowedPaths,
+          );
+          repositoryStaged = true;
+        }
+        return {
+          ...source,
+          transport_locator: path.join(transportRoot, "repository"),
+        };
+      }
+      if (source.kind === "artifact") {
+        const evidence = evidenceBySource.get(source.id);
+        const destination = path.join(
+          transportRoot,
+          "artifacts",
+          source.id,
+          path.basename(evidence.locator),
+        );
+        writePrivateFile(
+          destination,
+          artifactInputs.get(source.id),
+          evidence.observed,
+        );
+        return {
+          ...source,
+          transport_locator: destination,
+        };
+      }
+      return source;
+    });
+
+    const dependencyPaths = dependencies.map((dependency) => {
+      const destination = path.join(
+        transportRoot,
+        "dependencies",
+        `${dependency.wrapper.result.shard_id}.research.json`,
+      );
+      writePrivateFile(destination, dependency.bytes, dependency.sha256);
+      return destination;
+    });
+
+    return {
+      inputRoot,
+      transportName,
+      promptCampaign: { ...campaign, sources: promptSources },
+      dependencyPaths,
+    };
+  } catch (error) {
+    fs.rmSync(inputRoot, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 function numericSetting(value, label, { minimum, maximum }) {
@@ -184,12 +551,52 @@ function parseEnvelope(invocation) {
   return envelope;
 }
 
+function readRegularBytes(file, label) {
+  const metadata = fs.lstatSync(file, { throwIfNoEntry: false });
+  if (!metadata || !metadata.isFile() || metadata.isSymbolicLink()) {
+    fail(`${label} must be a regular file, not a symlink: ${file}`);
+  }
+  return fs.readFileSync(file);
+}
+
+function assertPublishedResultSeal({
+  campaignFile,
+  campaignId,
+  campaignSha256,
+  shardId,
+  resultBytes,
+}) {
+  const file = jobPathFor(campaignFile, shardId);
+  let job;
+  try {
+    job = JSON.parse(readRegularBytes(file, "research job").toString("utf8"));
+  } catch (error) {
+    fail(`cannot read research job ${shardId}: ${error.message}`);
+  }
+  if (
+    job?.job_version !== "1" ||
+    job.state !== "complete" ||
+    job.campaign_id !== campaignId ||
+    job.shard_id !== shardId ||
+    job.campaign_sha256 !== campaignSha256 ||
+    !/^[a-f0-9]{64}$/.test(job.result_sha256 ?? "")
+  ) {
+    fail(`research job has no valid published-result seal: ${shardId}`);
+  }
+  const observed = createHash("sha256").update(resultBytes).digest("hex");
+  if (observed !== job.result_sha256) {
+    fail(`research result bytes changed since publication: ${shardId}`);
+  }
+  return job.result_sha256;
+}
+
 function loadDependency({ campaignFile, campaign, campaignSha256, shardId, repository }) {
   const file = resultPathFor(campaignFile, shardId);
   if (!fs.existsSync(file)) fail(`missing validated dependency result: ${shardId}`);
+  const bytes = readRegularBytes(file, "research dependency result");
   let wrapper;
   try {
-    wrapper = JSON.parse(fs.readFileSync(file, "utf8"));
+    wrapper = JSON.parse(bytes.toString("utf8"));
   } catch (error) {
     fail(`cannot read dependency result ${shardId}: ${error.message}`);
   }
@@ -206,12 +613,24 @@ function loadDependency({ campaignFile, campaign, campaignSha256, shardId, repos
     fail(`dependency result uses a different repository fixed point: ${shardId}`);
   }
   validateResearchResult(wrapper.result, campaign, shardId);
-  return { file, wrapper, sha256: sha256File(file) };
+  assertPublishedResultSeal({
+    campaignFile,
+    campaignId: campaign.campaign_id,
+    campaignSha256,
+    shardId,
+    resultBytes: bytes,
+  });
+  return {
+    file,
+    wrapper,
+    bytes,
+    sha256: createHash("sha256").update(bytes).digest("hex"),
+  };
 }
 
-function selectedSourceEvidence(campaign, shard, repository, { grantArtifactAccess = true } = {}) {
-  const addDirectories = new Set();
+function selectedSourceEvidence(campaign, shard, repository) {
   const sourceEvidence = [];
+  const artifactInputs = new Map();
   for (const source of campaign.sources.filter((candidate) =>
     shard.source_ids.includes(candidate.id),
   )) {
@@ -230,7 +649,7 @@ function selectedSourceEvidence(campaign, shard, repository, { grantArtifactAcce
     }
     if (source.kind === "artifact") {
       const artifact = assertSafeArtifact(source);
-      if (grantArtifactAccess) addDirectories.add(artifact.parent);
+      artifactInputs.set(source.id, artifact.bytes);
       sourceEvidence.push({
         source_id: source.id,
         kind: source.kind,
@@ -248,17 +667,23 @@ function selectedSourceEvidence(campaign, shard, repository, { grantArtifactAcce
       observed: "declared",
     });
   }
-  return { addDirectories, sourceEvidence };
+  return { sourceEvidence, artifactInputs };
 }
 
 function validateSynthesisCoverage(result, dependencies, shard) {
   if (shard.kind !== "synthesis") return;
   const dependencyStatuses = new Map();
+  const dependencyCitations = new Set();
   for (const { wrapper } of dependencies) {
     for (const coverage of wrapper.result.source_coverage) {
       const statuses = dependencyStatuses.get(coverage.source_id) ?? new Set();
       statuses.add(coverage.status);
       dependencyStatuses.set(coverage.source_id, statuses);
+    }
+    for (const finding of wrapper.result.findings) {
+      for (const citation of finding.citations) {
+        dependencyCitations.add(JSON.stringify([citation.source_id, citation.locator]));
+      }
     }
   }
   for (const coverage of result.source_coverage) {
@@ -270,13 +695,23 @@ function validateSynthesisCoverage(result, dependencies, shard) {
       fail(`synthesis must preserve unavailable source status: ${coverage.source_id}`);
     }
   }
+  for (const finding of result.findings) {
+    for (const citation of finding.citations) {
+      if (!dependencyCitations.has(JSON.stringify([citation.source_id, citation.locator]))) {
+        fail(
+          `synthesis citation is absent from validated dependencies: ${citation.source_id} ${citation.locator}`,
+        );
+      }
+    }
+  }
 }
 
 function readResearchWrapper(file) {
   if (!fs.existsSync(file)) fail(`research result not found: ${file}`);
+  const bytes = readRegularBytes(file, "research result");
   let wrapper;
   try {
-    wrapper = JSON.parse(fs.readFileSync(file, "utf8"));
+    wrapper = JSON.parse(bytes.toString("utf8"));
   } catch (error) {
     fail(`cannot read research result ${file}: ${error.message}`);
   }
@@ -289,7 +724,7 @@ function readResearchWrapper(file) {
   ) {
     fail("research result has an invalid wrapper");
   }
-  return wrapper;
+  return { bytes, wrapper };
 }
 
 export function checkResearch({
@@ -307,7 +742,14 @@ export function checkResearch({
   });
   const repository = repositoryIdentity(cwd);
   const outputFile = resultPathFor(campaignFile, shardId);
-  const wrapper = readResearchWrapper(outputFile);
+  const { bytes: resultBytes, wrapper } = readResearchWrapper(outputFile);
+  assertPublishedResultSeal({
+    campaignFile,
+    campaignId: campaign.campaign_id,
+    campaignSha256,
+    shardId,
+    resultBytes,
+  });
   const validation = wrapper.validation;
   if (
     !validation ||
@@ -322,15 +764,12 @@ export function checkResearch({
     fail("research result uses a stale campaign");
   }
   if (
-    validation.repository?.root !== repository.root ||
     validation.repository?.commit !== repository.commit ||
     validation.repository?.tree !== repository.tree
   ) {
     fail("research result uses a different repository fixed point");
   }
-  const { sourceEvidence } = selectedSourceEvidence(campaign, shard, repository, {
-    grantArtifactAccess: false,
-  });
+  const { sourceEvidence } = selectedSourceEvidence(campaign, shard, repository);
   if (JSON.stringify(validation.source_evidence) !== JSON.stringify(sourceEvidence)) {
     fail("research source evidence changed since publication");
   }
@@ -367,6 +806,7 @@ export function runResearch({
   shardId,
   cwd = process.cwd(),
   env = process.env,
+  temporaryDirectory = os.tmpdir(),
   windowCheck = defaultWindowCheck,
   claudeInvoker = defaultClaudeInvoker,
 } = {}) {
@@ -417,13 +857,11 @@ export function runResearch({
     }
   }
 
-  const { addDirectories, sourceEvidence } = selectedSourceEvidence(
+  const { sourceEvidence, artifactInputs } = selectedSourceEvidence(
     campaign,
     shard,
     repository,
-    { grantArtifactAccess: shard.kind === "research" },
   );
-  addDirectories.add(passDirectory);
 
   const budget = env.SECOND_OPINION_RESEARCH_MAX_BUDGET_USD ?? "8";
   if (budget !== "unlimited") {
@@ -451,28 +889,39 @@ export function runResearch({
     campaign_id: campaign.campaign_id,
     shard_id: shard.id,
     campaign_sha256: campaignSha256,
-    repository,
+    repository: repositoryFixedPoint(repository),
     requested_model: model,
     effort,
     max_budget_usd: budget,
     timeout_seconds: timeoutSeconds,
     result_path: outputFile,
+    result_sha256: null,
     started_at: startedAt,
     finished_at: null,
     error: null,
   };
   atomicJson(jobFile, baseJob);
 
+  let stagedInputs;
   try {
-    const schema = fs.readFileSync(researchSchemaPath, "utf8");
-    const prompt = buildResearchPrompt({
+    stagedInputs = stageShardInputs({
       campaign,
       shard,
-      dependencyPaths: dependencies.map(({ file }) => file),
+      repository,
+      passDirectory,
+      sourceEvidence,
+      artifactInputs,
+      dependencies,
+      temporaryDirectory,
+    });
+    const schema = fs.readFileSync(researchSchemaPath, "utf8");
+    const prompt = buildResearchPrompt({
+      campaign: stagedInputs.promptCampaign,
+      shard,
+      dependencyPaths: stagedInputs.dependencyPaths,
     });
     const allowedTools =
       shard.kind === "synthesis" ? "Read" : "Read,Glob,Grep,WebFetch";
-    const invocationCwd = shard.kind === "synthesis" ? passDirectory : repository.root;
     const args = [
       "--safe-mode",
       "--disable-slash-commands",
@@ -494,13 +943,12 @@ export function runResearch({
       effort,
     ];
     if (budget !== "unlimited") args.push("--max-budget-usd", budget);
-    for (const directory of addDirectories) args.push("--add-dir", directory);
 
     const envelope = parseEnvelope(
       claudeInvoker({
         args,
         prompt,
-        cwd: invocationCwd,
+        cwd: stagedInputs.inputRoot,
         timeoutMs: timeoutSeconds * 1000,
       }),
     );
@@ -513,7 +961,15 @@ export function runResearch({
     ) {
       fail(`research cost ${envelope.total_cost_usd.toFixed(2)} exceeded budget ${budget}`);
     }
-    const result = validateResearchResult(envelope.structured_output, campaign, shard.id);
+    const result = validateResearchResult(
+      envelope.structured_output,
+      campaign,
+      shard.id,
+      {
+        forbiddenLocatorRoots: [stagedInputs.inputRoot],
+        forbiddenLocatorSegments: [stagedInputs.transportName],
+      },
+    );
     validateSynthesisCoverage(result, dependencies, shard);
 
     const currentCampaign = loadCampaign(campaignFile);
@@ -524,11 +980,18 @@ export function runResearch({
         fail(`artifact source changed during the pass: ${evidence.source_id}`);
       }
     }
+    for (const dependency of dependencies) {
+      if (sha256File(dependency.file) !== dependency.sha256) {
+        fail(
+          `validated dependency result changed during the pass: ${dependency.wrapper.result.shard_id}`,
+        );
+      }
+    }
     const wrapper = {
       research_version: "1",
       validation: {
         campaign_sha256: campaignSha256,
-        repository,
+        repository: repositoryFixedPoint(repository),
         source_evidence: sourceEvidence,
         dependencies: dependencies.map((dependency) => ({
           shard_id: dependency.wrapper.result.shard_id,
@@ -537,10 +1000,11 @@ export function runResearch({
       },
       result,
     };
-    atomicJson(outputFile, wrapper);
+    const resultSha256 = atomicJson(outputFile, wrapper);
     atomicJson(jobFile, {
       ...baseJob,
       state: "complete",
+      result_sha256: resultSha256,
       finished_at: new Date().toISOString(),
       claude: {
         session_id: typeof envelope.session_id === "string" ? envelope.session_id : null,
@@ -559,6 +1023,10 @@ export function runResearch({
       error: error.message,
     });
     throw error;
+  } finally {
+    if (stagedInputs) {
+      fs.rmSync(stagedInputs.inputRoot, { recursive: true, force: true });
+    }
   }
 }
 

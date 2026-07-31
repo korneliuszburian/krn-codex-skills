@@ -1,77 +1,77 @@
 # KRN Agent Skills
 
-This private source repository owns KRN's universal Codex engineering skills
-and reusable process. Product repositories own their domain language,
-commands, and constraints.
+This private repository owns KRN's universal Codex engineering skills and
+reusable process. Product repositories own their language, commands, and gates.
 
-## Repository Map
+## Repository map
 
-- `config/AGENTS.md` — one installed global shell, safety, and production core.
-- `config/CLAUDE.md` — Claude symlink resolving to that same core without a copy.
-- `skills/engineering/` — implicitly routed engineering workflow owners.
-- `skills/advisory/` — explicit-only external challenge workflows.
-- `skills/meta/` — skill authoring and pruning standards.
-- `skills/manifest.json` — canonical names, paths, invocation, and migration scope.
-- `evals/` — positive and negative routing cases.
-- `scripts/` — deterministic validation and collision-safe installation.
-- `docs/` — source provenance, migration ownership, and concise human operator
-  pages; never agent runtime memory.
-- `README.md` and `CONTEXT.md` — operator overview and shared vocabulary.
+- `config/AGENTS.md` — the installed global safety and production core.
+- `config/CLAUDE.md` — a symlink to the same semantic core.
+- `skills/<group>/<name>/` — one promoted workflow and its direct resources.
+- `skills/manifest.json` — names, install paths, invocation, and retirement.
+- `evals/` — positive, negative, explicit, and composition routing cases.
+- `scripts/` — deterministic validation, installation, hooks, and catalog tools.
+- `CONTEXT.md` — the compact current system model and knowledge index.
+- `docs/research/` — living source-backed synthesis, never raw research notes.
+- `docs/adr/` — rare accepted decisions that still constrain the system.
+- `docs/capabilities.md` and `docs/migration.md` — unique operator references.
+- `.krn/runs/` — ignored resumable working state, never durable knowledge.
 
-## Before Editing
+## Before editing
 
-1. Run `git status --short --branch` and preserve unrelated work.
-2. Read `config/AGENTS.md`; it owns the universal shell, safety, and
-   production-first defaults that this repository installs.
-3. Read `CONTEXT.md`.
-4. Read only the skill and source ledger relevant to the change.
-5. State the workflow owner, trigger change, and cheapest credible proof.
+1. Run `git status --short --branch`; preserve unrelated work.
+2. Read `config/AGENTS.md`, then `CONTEXT.md`.
+3. Read only the affected skill and relevant research topic.
+4. State the workflow owner, changed trigger or contract, and cheapest proof.
 
-## Skill Contract
+## Knowledge contract
 
-- One workflow has one owner and one public name.
-- Put every installable skill under `skills/<group>/<name>/SKILL.md`.
-- Keep frontmatter to `name` and `description`.
-- Put Codex invocation policy in `agents/openai.yaml`.
-- Front-load descriptions with the distinct task and its boundary.
-- Keep common steps in `SKILL.md`; disclose branch-only detail through a
-  direct pointer into `references/`.
-- Add scripts only for fragile or repeated deterministic work.
-- Keep reusable skill prose and script internals independent of the active
-  shell-command wrapper; `config/AGENTS.md` owns that injected policy.
-- Resolve persisted workflow artifacts through the repository's
-  `docs/agents/artifact-paths.json`; a physical checkout or mount prefix is
-  never part of a reusable skill contract.
-- Give every promoted skill one concise `docs/<group>/<name>.md` operator page
-  linked from the manifest-driven README. `SKILL.md` remains the sole workflow
-  procedure; the human page summarizes use, boundary, inputs, output, and
-  composition without copying its steps.
-- Prefer positive instructions. Keep prohibitions for hard safety boundaries.
-- Delete aliases, duplicated procedures, stale references, and unused agents.
+- Condense current shared vocabulary and system relationships into `CONTEXT.md`.
+  Rewrite it in place; Git history is the chronology.
+- Merge source-backed knowledge into the canonical `docs/research/<topic>.md`.
+  Extend an existing topic when its scope fits; create one only for a named
+  future consumer. Keep claims beside provenance, limitations, and falsifiers.
+- Record `docs/adr/<id>-<slug>.md` only for a surprising, consequential,
+  hard-to-reverse trade-off. Routine implementation belongs in code.
+- Keep workflow-owned prompts, logs, packets, and shards below
+  `.krn/runs/<workflow>/<run-id>/`. Keep the one outcome restart capsule only at
+  `.krn/runs/delivery-loop/<outcome-id>/state.md`; `$delivery-loop` owns it and
+  removes it at its lifecycle cleanup trigger.
+- Promote working material only when it has a named future consumer, one
+  canonical semantic destination, and a cleanup or supersession rule.
+- Never put a physical checkout or mount prefix into a reusable contract.
 
-## Repository Boundaries
+## Skill contract
 
-- Do not vendor source repositories, private course text, transcripts, or raw
-  research corpora. Record mechanisms and provenance in `docs/SOURCES.md`.
-- Never copy or mirror a global workflow into a product repository. A local
-  skill may add domain-only knowledge or compose a global owner without
-  restating its procedure.
-- Do not mutate another repository or the installed skill index while merely
-  reviewing this repository.
-- The installer may touch only paths named in `skills/manifest.json`; it must
-  preserve displaced state in a backup.
+- One repeated workflow has one owner and one public name.
+- Put every installable skill at `skills/<group>/<name>/SKILL.md`.
+- Keep frontmatter to `name` and `description`; put Codex invocation policy in
+  `agents/openai.yaml` and front-load the distinct task plus nearest boundary.
+- Keep common procedure in `SKILL.md`; point directly to branch-only material
+  in `references/`. Add scripts only for fragile repeated deterministic work.
+- Keep skill prose and scripts independent of the active shell wrapper;
+  `config/AGENTS.md` owns injected global policy.
+- README is the sole human skill catalog and links to canonical `SKILL.md` files. Do not
+  maintain per-skill operator mirrors.
+- Prefer positive steering. Delete aliases, duplicated procedure, stale
+  references, compatibility sediment, and unused agents.
+
+## Repository boundaries
+
+- Do not vendor repositories, private course text, transcripts, or raw corpora.
+- Never mirror a global workflow into a product repository. Local skills may
+  add domain-only knowledge or compose the global owner without restating it.
+- Do not mutate another repository or the installed index while reviewing.
+- The installer may touch only manifest-declared paths and must back up
+  displaced state.
 
 ## Verification
 
-Select proof by changed surface:
-
 | Changed surface | Required signal |
 |---|---|
-| skill, metadata, manifest, or direct pointer | `npm run validate` |
-| installer or migration behavior | isolated install/collision smoke plus `bash -n scripts/install.sh` |
-| trigger description or composition | one fresh positive and nearest negative prompt |
-| final owned diff | `git diff --check` before commit |
+| skill, metadata, manifest, reference, or routing | `npm run validate` plus the nearest fresh positive/negative prompt |
+| setup, installer, migration, or hook behavior | focused tests plus shell syntax where applicable |
+| final owned diff | relevant full suite once, then `git diff --check` |
 
-Do not run untouched rows during the inner loop. Run the full relevant set once
-before publishing a release-sized catalog change. Use Conventional Commits on
-an owned branch.
+Use Conventional Commits on an owned branch. Do not run untouched gates during
+the inner loop.

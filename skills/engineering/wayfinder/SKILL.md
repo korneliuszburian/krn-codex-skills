@@ -1,102 +1,176 @@
 ---
 name: wayfinder
-description: Chart a multi-session effort as a shared map of decision tickets on the configured tracker and resolve them one at a time until the way to the destination is clear. Use when an idea is too big and foggy for one session; skip settled specs, slicing, and execution.
+description: Chart a foggy multi-session effort as a durable tracker map of typed frontier tickets and resolve them in fresh contexts until the route is clear. Invoke explicitly when an idea is too big and uncertain for one session; skip settled specs, slicing, and execution.
 ---
 
 # Wayfinder
 
-A loose idea has arrived — too big for one session, wrapped in fog: the way from
-here to the **destination** is not visible yet. Wayfinding finds that way; it does
-not charge at the destination. This skill charts a **map** of **decision tickets**
-on the repo's tracker, then resolves them one at a time until the route is clear.
+Wayfinding clears decision fog before execution. It creates one durable map and
+sharp frontier tickets, resolves one ticket per worker context, and stops
+when the route to the destination is settled. `$to-spec`, `$slice-work`,
+`$implement`, and `$delivery-loop` own everything downstream.
 
-**Plan, don't do.** Each ticket resolves a *decision*, not a slice of build. The
-map is done when nothing remains to decide before someone does the thing. The pull
-to just do the work is usually the signal you have reached the edge of the map and
-must hand off. An effort may carry execution into the map via its **Notes**; absent
-that, produce decisions, not deliverables. `$slice-work` owns decomposition of a
-settled spec, `$to-spec` owns spec compression, `$implement` owns the build, and
-`$delivery-loop` owns lifecycle — wayfinder only clears fog upstream of them.
+1. **Bind the durable tracker and destination.** Read the tracker identity and
+   operations declared by the closest repository `AGENTS.md` managed block or
+   other closest repository instructions. This is a hard dependency: the
+   instructions must name an existing durable tracker and exact operations for
+   creating and updating a map, child tickets, blocking edges, claims,
+   resolutions, frontier queries, and map-integrator identity and transfer
+   readback. The map must also carry one exact worker-result return channel. If
+   any operation or return channel is absent, stop with that setup requirement.
+   Also resolve authority for the required tracker mutations before creating
+   anything. An ad hoc conversation plan, undeclared repository document, or
+   invented `.scratch/` convention is not a substitute.
 
-1. **Name the destination.** The destination fixes scope, so settle it first. Run
-   `$domain-modeling` to pin what this map is finding its way to — a spec, a
-   decision, or an in-place change. One or two lines; every later session orients
-   to it before choosing a ticket.
+   Name the one- or two-line destination that fixes scope. If the destination
+   itself is unresolved, use its smallest typed decision owner before creating
+   the map. If the effort is already clear or fits one session, make no map and
+   return it to the appropriate downstream owner.
 
-   **Done when:** the destination is a single named outcome and the scope it fixes
-   is stated, or the idea is small enough that no map is needed (stop and tell the
-   user).
+   **Done when:** a capable durable tracker, required mutation authority, a
+   persistable integrator identity and return channel, and one scoped destination
+   exist, or the workflow has stopped without inventing them.
 
-2. **Map the frontier breadth-first.** Grill across the whole space, not deep on
-   one thread, surfacing open decisions and the first steps takeable now. Sketch
-   what you can tell is coming but cannot yet sharpen into **Not yet specified**
-   (fog). **If this surfaces no fog, the way is already clear — do not make a map.**
-   Stop and ask the user how to proceed.
+2. **Map the frontier breadth-first.** Survey the whole decision space without
+   resolving another owner's question.
+   Separate decisions or prerequisites sharp enough to ticket now from **Not yet
+   specified** fog whose objective depends on an earlier answer. Keep work beyond
+   the destination in **Out of scope**. Read
+   [map-template.md](references/map-template.md) for the exact map, ticket, and
+   fog contracts.
 
-   **Done when:** the destination, the sharp tickets, and the remaining fog are
-   distinguished; see [map-template.md](references/map-template.md) for the Fog or
-   ticket test.
+   **Done when:** destination, sharp frontier objectives, dependent fog, and
+   out-of-scope work are distinct. If no fog or sharp objective remains, do not
+   create a map.
 
-3. **Create the map.** Publish one map artifact (the tracker issue or local file
-   labelled `wayfinder:map`) from [map-template.md](references/map-template.md):
-   Destination and Notes filled, Decisions-so-far empty, fog in Not yet specified,
-   ruled-out work in Out of scope. The map is an **index, not a store** — it gists
-   each decision and links it; a decision lives in exactly one place, its ticket.
+3. **Create one map and its sharp tickets.** Create one tracker item labelled
+   `wayfinder:map`, then one child per currently sharp objective. Use only these
+   ticket types. Every child also names one exact owner:
 
-   Express map, child tickets, blocking, and claim through the operations in
-   `docs/agents/issue-tracker.md`. If that doc lacks wayfinding operations, fall
-   back to local-markdown (`.scratch/<effort>/map.md` plus one file per ticket) and
-   state the assumption; do not run `$setup-repository-workflow` unprompted.
+   - `wayfinder:research` → `$source-to-decision` for external evidence, or
+     `$codebase-design` for local module, seam, dependency, or behavior-ownership
+     evidence;
+   - `wayfinder:prototype` → `$prototype` for one experiential design verdict;
+   - `wayfinder:grilling` → `$domain-modeling` for a user-owned choice or
+     contested shared meaning;
+   - `wayfinder:task` → the named human, configured operation, or existing
+     workflow that owns one concrete prerequisite whose observed completion is
+     needed to unblock an in-map decision.
 
-   **Done when:** the map exists in the configured place with all five sections and
-   refers to every ticket by its name, never a bare id.
+   Create tickets first, then wire their documented blocking relationships in
+   a second pass. A task belongs only when its completion produces evidence
+   needed by the decision frontier; work that can wait until the route is clear
+   stays downstream. Record the task's action, exact owner, expected evidence,
+   and separate authority. Wayfinder tracks its claim and verified result but
+   never grants authority or executes the owner's procedure. A task is not an
+   escape hatch for speculative production work or publication.
 
-4. **Create the tickets you can sharpen now** as children of the map, one Question
-   each, labelled `wayfinder:<type>` — `research`, `prototype`, `grilling`, or
-   `task` (see [map-template.md](references/map-template.md)). Wire blocking edges
-   in a **second pass** (tickets need ids before they can reference each other) using
-   the tracker's native dependency relationship. The **frontier** is the open,
-   unblocked, unclaimed children — the edge of the known. Everything still foggy
-   stays in Not yet specified; do not pre-slice it.
+   For any child whose owner can observe repository state or mutate files, also
+   persist the execution envelope from [map-template.md](references/map-template.md):
+   canonical repository realpath and `cwd`, immutable ref or exact input
+   working-tree fingerprint, allowed paths and separate mutation authority,
+   result shape plus a pointer to the child's canonical **Result return** block,
+   named consumer, and non-proof. Mark it `NOT_APPLICABLE` with a reason only
+   when the delegated work cannot depend on repository or filesystem state. A
+   tracker identity never supplies this authority.
 
-   **Done when:** every sharp question is a ticket with a type and real blocking
-   edges, and no fog has been forced into a ticket.
+   In the map's **Map integrator** block, persist the sole tracker-writer
+   identity, exact result-return channel, non-secret tracker-authority state,
+   writer generation, and matching activation readback. Copy the active
+   integrator identity, generation, and return channel into every child. Read the
+   initialized parent and children back before marking that generation verified.
+   These fields describe observed authority; they never grant it.
 
-5. **Work one ticket per session** (research excepted). Load the map at low
-   resolution, choose a frontier ticket (the user may name one), and **claim it
-   through the tracker before any work** so concurrent sessions skip it. Resolve it
-   by invoking the skill its type names — `$source-to-decision` for research,
-   `$domain-modeling` for grilling (the default), a throwaway prototype for
-   prototype, or the manual work for task. When a research ticket explicitly
-   needs a delegated corpus pass, `$second-opinion-review` may supply a validated
-   advisory ledger to `$source-to-decision`; the ticket is not resolved until
-   the latter records `adopt`, `reject`, `lab-test`, or `defer` against local
-   evidence. Zoom related or closed tickets on demand.
+   **Done when:** every sharp decision or prerequisite has one typed child,
+   exact owner and return contract, and a complete execution envelope when it
+   can depend on repository or filesystem state; one active integrator is
+   durably identifiable, every load-bearing dependency exists in the tracker,
+   and fog has not been forced into a ticket.
 
-   **Done when:** one ticket is claimed, resolved with the named skill, and its
-   answer recorded as a resolution on the ticket.
+4. **Resolve one frontier ticket per worker context.** Load and read back the
+   map's **Map integrator** block at low resolution. Query or claim only when its
+   identity matches this integrator, separate tracker-write authority is
+   currently resolved and the map reports `AUTHORIZED`, writer state is
+   `ACTIVE`, activation readback is `VERIFIED` for the same generation, and
+   every open child's copied generation and return contract agree. Any mismatch
+   blocks the frontier. A different session stops and uses the recorded
+   result-return channel; it never self-designates.
+   The delegated workflow or actor owns its procedure; Wayfinder supplies the
+   objective, destination, relevant prior decisions, the read-only ticket
+   identity, the integrator's exact result-return contract, and the ticket's
+   read-back execution envelope without widening it. A missing, stale, or
+   mismatched envelope blocks path- or state-dependent work before delegation.
 
-6. **Record, graduate, and re-scope.** Post the answer on the ticket, **close** it,
-   and append a one-line gist plus link to the map's Decisions-so-far. Graduate any
-   fog the answer made specifiable into fresh tickets (create-then-wire), clearing
-   each patch from Not yet specified. If a ticket — this one or another — turns out
-   to sit past the destination, **close it and leave one line in Out of scope**
-   rather than walking it on the route. If a decision invalidates other tickets,
-   update or delete them.
+   An external research owner returns `$source-to-decision`'s `adopt`, `reject`,
+   `lab-test`, or `defer`; a local research owner returns
+   `$codebase-design`'s chosen boundary or bounded evidence handoff. A prototype
+   owner returns its verdict after disposing of throwaway residue. A grilling
+   owner returns `$domain-modeling`'s confirmed decision. A task owner returns
+   completion evidence or readback. None closes or mutates the tracker ticket.
 
-   **Done when:** the map's index, fog, and scope reflect the new decision, and no
-   stale ticket remains on the frontier.
+   Every worker with file-write authority requires an isolated worktree and one
+   named integration owner, even when it runs serially. Independent frontier
+   tickets may run concurrently only after distinct claims and under the
+   surrounding writer and authority policy; concurrent file writers additionally
+   require disjoint allowed paths. Without those boundaries, keep mutation
+   authority `NONE`. One map integrator serializes every child and parent tracker
+   mutation. Each worker context owns one question, treats tracker identities as
+   read-only context, and returns its complete evidence to that integrator rather
+   than mutating a ticket or map.
 
-7. **Hand off when the way is clear.** When no tickets remain and no fog is left,
-   the route is found.
+   Transfer the integrator only when no child is claimed or in flight. Through
+   the configured tracker operation, the current integrator or separately
+   authorized tracker administrator creates a fresh generation and writes
+   `TRANSFER_PENDING`, the successor identity and return channel, updates every
+   open child's copied contract, and reads the pending parent and children back.
+   It then writes `ACTIVE` with `Activation readback: PENDING`, reads the active
+   parent and children back, records `VERIFIED` for that same generation and
+   observation, and reads the parent once more. The successor performs the
+   admission readback above before its first frontier operation. Until all checks
+   succeed, neither identity may claim or mutate frontier state. If the current
+   writer is unavailable and no authorized transfer operation exists, the map is
+   blocked rather than implicitly re-owned.
+
+   **Done when:** the map integrator has received one decision or verified
+   prerequisite result, evidence, and named unresolved condition from the
+   claimed ticket's read-back envelope, or the worker returns an honest blocker
+   and owner without mutating tracker state.
+
+5. **Update the map as an index.** Acting as the sole map integrator, put the
+   full returned answer on its ticket and close it only when resolved. Append one
+   linked gist to **Resolutions so far**. Closed tickets remain the primary
+   sources; the map and any later spec only index and synthesize them.
+   Graduate newly sharp fog into fresh typed tickets, then wire dependencies.
+   Close and index as out of scope any ticket revealed to lie past the
+   destination. Update or close tickets invalidated by the new resolution so the
+   frontier never contains stale work.
+
+   **Done when:** ticket truth, map index, remaining fog, scope, and frontier
+   agree after the decision.
+
+6. **Hand off only when the way is clear.** When no open frontier tickets or
+   fog remain, choose the smallest downstream owner: `$to-spec` when the settled
+   route still needs one spec, `$implement` when it is one clear change, or
+   `$slice-work` when an existing settled spec needs multiple vertical slices or
+   migration stages; use the user when the resolved frontier itself completes the
+   requested outcome. When the accepted outcome includes full lifecycle delivery,
+   attach `$delivery-loop` as the lifecycle envelope without replacing that
+   smallest procedure owner. Write the envelope, next owner, and exact handoff
+   identity into the map's **Terminal route**, close the map through the
+   configured tracker, and read back both changes before handing off. If either
+   mutation fails, leave the map open with that blocker. Wayfinder never starts
+   execution.
 
    <wayfinder-result>
    Destination:
-   Map (tracker location):
-   Decisions recorded:
-   Remaining fog:
-   Routed to: $to-spec (spec needed) | $slice-work (multi-slice) | $implement (single change) via $delivery-loop
+   Durable map identity:
+   Resolved frontier items:
+   Remaining open tickets or fog:
+   Map state: open | closed and read back
+   Lifecycle envelope: none | $delivery-loop
+   Next procedure owner: $to-spec | $implement | $slice-work | user | none-yet
    </wayfinder-result>
 
-   **Done when:** the next owner is named from the cleared route, or the map still
-   holds open tickets and the session stops after one.
+   **Done when:** a clear route is durably indexed on a closed map with one next
+   owner, or the map remains honestly open and this worker context stops after
+   its single ticket or named closure blocker.

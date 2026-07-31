@@ -1,6 +1,6 @@
 ---
 name: source-to-decision
-description: Turn external documentation, papers, practitioner material, or user-provided sources into an owned engineering decision. Use when a source must justify adoption, rejection, a bounded experiment, or deferral; skip fact lookup and local code inspection.
+description: Turn external documentation, papers, practitioner material, or user sources into an owned engineering decision. Use when evidence must change a named local decision through adopt, reject, lab-test, or defer; skip summaries, fact lookup, and code-only investigation.
 ---
 
 # Source To Decision
@@ -15,8 +15,11 @@ it.
 
    <decision-question>
    Question:
-   Consumer:
-   Owner:
+   Active consumer: <owning workflow | native Goal owner | user>
+   Consumer and sole result writer:
+   Configured tracker destination: none | <identity>
+   Tracker operation and authority: none | pending (<condition>) | authorized (<exact operation>)
+   Named future consumer, if durable research may be needed:
    Current local behavior:
    Uncertainty:
    Evidence needed:
@@ -77,7 +80,12 @@ it.
    Consumer: named consumer | missing with reason
    Falsifier or bounded experiment: named signal | missing with reason
    Does not prove:
-   Durable authority surface: none | <path-or-store>
+   Decision return: <consumer and sole result writer>
+   Tracker record: none | pending (<condition>) | written and read back (<identity>)
+   Durable research destination: none | docs/research/<topic>.md
+   Supersession rule, if durable:
+   Topic-index change: none | docs/research/README.md
+   Shared-system-map pointer: none | CONTEXT.md
    </source-decision>
 
    **Done when:** the disposition follows from the mechanism and local
@@ -93,17 +101,63 @@ it.
    **Done when:** the disposition survives evidence designed to falsify it, or
    changes to the result that evidence supports.
 
-6. **Deliver the decision to its owner.** For `adopt`, hand the
-   `<source-decision>` to `$implement` only when production writes are already
-   authorized; that workflow owns the consumer change and its proof. For
-   `reject`, `lab-test`, or `defer`, persist the disposition only when a future
-   consumer needs it and the repository names an authority surface. Keep each
-   citation beside the claim it supports.
+6. **Return the decision to its sole writer.** Return the complete
+   `<source-decision>` to the consumer and sole result writer named in step 1
+   for every disposition. That writer applies the global routing gate and
+   integrates the result into the existing Goal, workflow, or tracker surface.
+   It may select `$implement` only when adoption is already one clear production
+   change and mutation is authorized; otherwise it selects the remaining
+   uncertainty, spec, or decomposition owner. `$source-to-decision` never
+   bypasses that consumer or chooses a production owner itself.
+
+   A tracker identity is context, not write authority. When a configured tracker
+   destination exists, return the decision to its sole writer with `Tracker
+   record: pending` unless that exact `$source-to-decision` session is itself the
+   named sole writer, the configured operation is explicit, and separate tracker
+   mutation authority exists. Only that exceptional branch may perform the exact
+   operation, read it back, and report `written and read back`. Under
+   `$wayfinder`, the map integrator is always the sole tracker writer:
+   `$source-to-decision` returns the complete decision and never mutates or
+   closes the child ticket or parent map.
+
+   When this investigation must cross a context boundary and `$delivery-loop`
+   already owns the active outcome capsule, return the complete decision to its
+   named `Current workflow owner and sole writer`; `$source-to-decision` does not
+   mutate the capsule. Acting as `$delivery-loop`, that writer preserves `Outcome
+   and observable acceptance` and every other ABI field, then records the settled
+   decision question, source identities, mechanism, disposition, and rationale
+   under `Evidence observed`; limitations and nonclaims under `Explicit
+   non-proofs`; and the consumer plus exact follow-up gate under `Next bounded
+   owner and action`. It removes the resolved question from `Open unknowns and
+   blockers with owners`. Only a genuine remaining `lab-test` or `defer`
+   condition stays there, with its owner. `$source-to-decision` never creates,
+   relocates, or removes that capsule; `$delivery-loop` alone owns its content,
+   exact path, and lifecycle.
+   Without an active delivery-loop capsule, continuation stays in the native Goal
+   or configured tracker. If file-backed restart state becomes necessary, hand
+   lifecycle ownership to `$delivery-loop` instead of inventing a partial or
+   workflow-local `state.md` contract. Keep raw corpora, copied source text, and
+   credentials out of every continuation surface.
+
+   Promotion into repository knowledge is a separate, narrow branch. Create or
+   update exactly `docs/research/<topic>.md` only when a named future consumer,
+   one canonical topic, an explicit rule for superseding older evidence or
+   dispositions, and repository write authority all exist. Preserve the topic's
+   structure and keep the mechanism, disposition, falsifier, supersession state,
+   and provenance together. Creating, removing, or superseding a topic updates
+   the topic entry in `docs/research/README.md` in the same authorized change.
+   Link the topic from `CONTEXT.md` only when the decision changes the shared
+   system map; ordinary topic promotion does not earn that pointer. Otherwise
+   the active consumer remains the decision owner; do not choose a generic
+   durable path.
 
    For a private course or book, retain only original mechanisms and
    provenance. Never commit copied passages, exercises, solutions, or raw
    extraction.
 
-   **Done when:** the owner receives a bounded implementation handoff or an
-   explicit non-adoption result, every retained claim has nearby provenance,
-   and this workflow makes no unverified implementation claim.
+   **Done when:** the named consumer and sole writer receives a bounded adoption
+   or non-adoption result, tracker state is truthfully `none`, `pending`, or
+   written and read back under explicit authority, every promoted claim has
+   nearby provenance, any repository update is confined to the canonical topic
+   plus its earned index or context pointers, and this workflow makes no
+   unverified implementation claim.

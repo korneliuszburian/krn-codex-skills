@@ -78,7 +78,7 @@ function readJob(file) {
     fail(`checker job must be a real file: ${file}`);
   }
   const job = object(readJson(file, "checker job"), "checker job");
-  if (job.job_version !== "1" || job.role !== "checker") {
+  if (job.job_version !== "1" || job.role !== "check") {
     fail("checker job has an invalid identity");
   }
   return job;
@@ -135,7 +135,7 @@ function start(args) {
     file,
     {
       job_version: "1",
-      role: "checker",
+      role: "check",
       state: "running",
       mode,
       target,

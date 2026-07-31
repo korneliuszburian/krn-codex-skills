@@ -28,6 +28,7 @@ const sourceKeys = new Set([
   "purpose",
   "required",
 ]);
+const repositorySourceKeys = new Set([...sourceKeys, "allowed_paths"]);
 const shardKeys = new Set([
   "id",
   "kind",
@@ -125,6 +126,47 @@ function textList(value, label, { allowEmpty = true } = {}) {
   return values;
 }
 
+function repositoryPaths(value, label) {
+  const values = array(value, label).map((item, index) => {
+    const repositoryPath = string(item, `${label}[${index}]`, 1000);
+    const segments = repositoryPath.split("/");
+    if (
+      repositoryPath.includes("\\") ||
+      /[*?\[\]]/.test(repositoryPath) ||
+      path.posix.isAbsolute(repositoryPath) ||
+      path.posix.normalize(repositoryPath) !== repositoryPath ||
+      segments.some((segment) => !segment || segment === "." || segment === "..")
+    ) {
+      fail(`${label}[${index}] must be a literal normalized repository-relative path`);
+    }
+    return repositoryPath;
+  });
+  if (values.length === 0) fail(`${label} must not be empty`);
+  if (values.length > 200) fail(`${label} must contain at most 200 paths`);
+  if (new Set(values).size !== values.length) fail(`${label} contains duplicates`);
+  return values;
+}
+
+export function repositoryPathMatchesAllowed(repositoryPath, allowedPaths) {
+  return allowedPaths.some(
+    (allowedPath) =>
+      repositoryPath === allowedPath || repositoryPath.startsWith(`${allowedPath}/`),
+  );
+}
+
+function repositoryCitationPath(locator, label) {
+  const match = /^(.+):([1-9]\d{0,9})(?:-([1-9]\d{0,9}))?$/.exec(locator);
+  if (!match) {
+    fail(`${label} for a repository source must use <path>:<line>[-<line>]`);
+  }
+  const [, repositoryPath, firstLine, lastLine] = match;
+  repositoryPaths([repositoryPath], `${label} path`);
+  if (lastLine && Number(lastLine) < Number(firstLine)) {
+    fail(`${label} line range must not run backwards`);
+  }
+  return repositoryPath;
+}
+
 function parseJson(file, label) {
   let raw;
   try {
@@ -152,7 +194,11 @@ export function validateCampaign(value) {
   if (sources.length > 100) fail("sources must contain at most 100 entries");
   for (const [index, rawSource] of sources.entries()) {
     const source = object(rawSource, `sources[${index}]`);
-    exactKeys(source, sourceKeys, `sources[${index}]`);
+    exactKeys(
+      source,
+      source.kind === "repository" ? repositorySourceKeys : sourceKeys,
+      `sources[${index}]`,
+    );
     const sourceId = identifier(source.id, `sources[${index}].id`);
     if (sourceIds.has(sourceId)) fail(`duplicate source id: ${sourceId}`);
     sourceIds.add(sourceId);
@@ -173,6 +219,7 @@ export function validateCampaign(value) {
       if (!objectIdPattern.test(revision)) {
         fail(`repository source ${sourceId} revision must be a full Git object id`);
       }
+      repositoryPaths(source.allowed_paths, `sources[${index}].allowed_paths`);
     }
     if (source.kind === "url") {
       let parsed;
@@ -276,7 +323,37 @@ function pairItems(value, label, keys) {
   }
 }
 
-export function validateResearchResult(value, campaign, shardId) {
+function locatorUsesDisposableTransport(
+  locator,
+  forbiddenLocatorRoots,
+  forbiddenLocatorSegments,
+) {
+  const normalizedLocator = locator.replaceAll("\\", "/");
+  return (
+    forbiddenLocatorRoots.some((root) => {
+      const normalizedRoot = path.resolve(root).replaceAll("\\", "/");
+      return [normalizedRoot, `file://${normalizedRoot}`].some(
+        (prefix) =>
+          normalizedLocator === prefix ||
+          normalizedLocator.startsWith(`${prefix}/`) ||
+          normalizedLocator.startsWith(`${prefix}:`),
+      );
+    }) ||
+    normalizedLocator
+      .split("/")
+      .some((segment) => forbiddenLocatorSegments.includes(segment))
+  );
+}
+
+export function validateResearchResult(
+  value,
+  campaign,
+  shardId,
+  {
+    forbiddenLocatorRoots = [],
+    forbiddenLocatorSegments = [],
+  } = {},
+) {
   const result = object(value, "research result");
   exactKeys(result, resultKeys, "research result");
   if (result.result_version !== "1") fail("result_version must be '1'");
@@ -356,11 +433,20 @@ export function validateResearchResult(value, campaign, shardId) {
         citation.source_id,
         `findings[${index}].citations[${citationIndex}].source_id`,
       );
-      string(
+      const locator = string(
         citation.locator,
         `findings[${index}].citations[${citationIndex}].locator`,
         2000,
       );
+      if (
+        locatorUsesDisposableTransport(
+          locator,
+          forbiddenLocatorRoots,
+          forbiddenLocatorSegments,
+        )
+      ) {
+        fail(`finding ${findingId} cites a disposable research transport path`);
+      }
       string(
         citation.detail,
         `findings[${index}].citations[${citationIndex}].detail`,
@@ -368,6 +454,18 @@ export function validateResearchResult(value, campaign, shardId) {
       );
       if (coverageById.get(sourceId)?.status !== "used") {
         fail(`finding ${findingId} cites source not marked used: ${sourceId}`);
+      }
+      const citedSource = sourcesById.get(sourceId);
+      if (citedSource.kind === "repository") {
+        const repositoryPath = repositoryCitationPath(
+          locator,
+          `finding ${findingId} citation`,
+        );
+        if (!repositoryPathMatchesAllowed(repositoryPath, citedSource.allowed_paths)) {
+          fail(
+            `finding ${findingId} cites repository path outside source ${sourceId} allowed_paths`,
+          );
+        }
       }
     }
   }
@@ -425,11 +523,21 @@ ${JSON.stringify(selectedSources, null, 2)}
 Validated dependency result paths:
 ${JSON.stringify(dependencyPaths, null, 2)}
 
+Read local bytes only through each source's transport_locator when present.
+Never put a disposable transport_locator in the result; keep the canonical
+locator, not the transport path, in citations.
+A synthesis shard must read only the validated dependency paths above; its
+declared source locators are provenance, not permission to reopen raw sources.
+It may forward only exact (source_id, locator) citation pairs already present in
+those validated dependency results; it may not derive a new raw-source locator.
+
 For every finding preserve this chain: nearby citations -> mechanism ->
 conditions and traps -> local implication -> candidate disposition -> consumer
 -> example -> falsifier -> does_not_prove. Citation locators must identify the
 specific repository path and line range, URL section, or transcript timestamp
-that supports the nearby claim; never paste long source passages. Cover every
+that supports the nearby claim; never paste long source passages. Repository
+citations must use <normalized-path>:<line>[-<line>] and stay under
+the cited repository source's own allowed_paths. Cover every
 shard source exactly once in source_coverage. A required source may be used or
 unavailable, never omitted. Candidate dispositions are advisory; the local
 owner makes the actual adopt/reject/lab-test/defer decision.
