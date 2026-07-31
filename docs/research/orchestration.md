@@ -1,6 +1,6 @@
 # Orchestration and compact context
 
-Status: accepted synthesis, 2026-07-30. Rework this page in place when a
+Status: accepted synthesis, 2026-07-31. Rework this page in place when a
 falsifier fires; do not append a parallel “v2” report.
 
 ## Decision question
@@ -14,7 +14,7 @@ or an oversized skill catalog?
 
 | Evidence family | What it establishes | KRN implication | Limit |
 |---|---|---|---|
-| Matt Pocock | small owners, precise leading words, shared language, progressive disclosure, context resets at workflow boundaries | keep a sparse composable catalog; treat vocabulary as a tested routing interface | his exact catalog and harness are not KRN policy |
+| Matt Pocock | small owners, precise leading words, shared language, progressive disclosure, fresh ticket contexts, and four Wayfinder ticket types: research, prototype, grilling, task | keep a sparse composable catalog; let one indexed map link full decision sources while each ticket names its exact KRN owner | his exact catalog, tracker, and spec-retention policy are not KRN policy |
 | Karpathy compact knowledge | raw sources can feed one indexed synthesis that improves by integration, contradiction handling, and rewriting | continuously compile a few living topic pages; Git supplies chronology | a personal knowledge workflow does not prove a production agent runtime |
 | Rohit Goyal memory extension | useful memory needs provenance, recency, confidence, supersession, and forgetting | put those fields into source decisions; add search/graphs only after scale demands them | automated confidence and crystallization can become ungrounded ceremony |
 | Official Codex guidance | Goal carries one outcome in one chat; skills carry repeatable methods; subagents isolate bounded work; required team rules stay in checked-in authority | Goal/tracker is live state, not a replacement for the selected workflow or repository memory | runtime Goal state is not portable repository knowledge |
@@ -49,7 +49,8 @@ Outcome state: ACTIVE | BLOCKED | DEFERRED | NEEDS_REVIEW | COMPLETE | SUPERSEDE
 Publication state: NOT_REQUESTED | NOT_AUTHORIZED | LOCAL_ONLY | PUBLISH_PENDING | PR_OPEN | MERGE_READY | MERGED | DEPLOYED
 Repository base, head or working-tree fingerprint, and dirty-state scope
 Native Goal identity/state and configured tracker item/state
-Restart state identity/path and state: ABSENT or <semantic path> [ACTIVE | TRANSFER_PENDING | CLEANUP_PENDING]
+Restart state: ABSENT | <semantic path owned by the current Goal>
+Outstanding workflow-run cleanup: none | [<semantic pointer; workflow; sole consumer; trigger; ACTIVE | CLEANUP_PENDING | BLOCKED>, ...]
 Separate authority for writes, commit, push, PR, merge, and deployment/install
 Evidence observed
 Explicit non-proofs
@@ -68,55 +69,57 @@ continuing. When a fresh process must resume without the current chat,
 continuation in the native Goal or configured tracker, or hand lifecycle
 ownership to `$delivery-loop`; they never create a workflow-local outcome
 capsule. The delivery-loop writer rewrites that file in place and deletes its
-run at the lifecycle cleanup trigger. The capsule never becomes a generic
-durable report.
+run at the lifecycle cleanup trigger. It also carries each specialist run's
+creating owner, semantic pointer, sole consumer, trigger, and state until that
+owner's cleanup is verified. The capsule never becomes a generic durable
+report. A superseded or abandoned run remains while its original Goal is active;
+transfer into a successor does not delete it before the original Goal's
+non-active transition is read back.
 
-## Full workflow graph
+## One spine, typed entries
 
-```mermaid
-flowchart TD
-  FOG["foggy multi-session effort"] --> WAY["explicit wayfinder"]
-  CONCEPT["contested concept"] --> DM
-  CHOICES["foggy choices"] --> DM
-  SOURCE["source claim / external evidence"] --> S2D
-  QUESTION["one design question"] --> PROTO
-  WAY --> DM["domain-modeling"]
-  WAY --> S2D["source-to-decision"]
-  WAY --> PROTO["prototype"]
-  DM --> CHOSEN{"chosen consumer"}
-  S2D --> DISP{"adopt?"}
-  DISP -->|reject / defer / lab-test| TERMINAL["bounded decision state"]
-  DISP -->|adopt| CHOSEN
-  PROTO --> VERDICT["verdict in current owner"] --> CHOSEN
+The canonical operator graph is in [README.md](../../README.md#workflow). Its
+diamond is a decision rule, not a central router skill. Every resolved phase is
+skipped. Once one production slice is clear, the ordinary spine is
+`implement` → `0/1/N proof` → fixed-point `code-review` when the slice is
+non-trivial, review is requested, or a `$delivery-loop` lifecycle envelope is
+active → truthful outcome and publication state. Outside that envelope, review
+remains optional for a trivial slice. An accepted, authorized review repair
+returns to a fresh `implement` task.
 
-  THREAD["settled conversation"] --> SPEC["to-spec"]
-  CHOSEN -->|spec needed| SPEC
-  CHOSEN -->|full lifecycle requested| LOOP
-  CHOSEN -->|one clear change + writes authorized| IMPL
-  CHOSEN -->|settled multi-change spec exists| SLICE
-  CHOSEN -->|decision only / deferred| TERMINAL
-  SPEC --> SIZE{"one production slice?"}
-  SIZE -->|yes| IMPL["implement"]
-  SIZE -->|no| SLICE["slice-work"] --> IMPL
-  SETTLED["settled multi-part spec"] --> SLICE
+Everything before that spine is a typed admission or return, not a mandatory
+stage. When a specialist return satisfies the requested outcome or has no
+authorized next action, it is terminal instead of being routed merely to keep
+the graph moving:
 
-  CLEAR["clear change"] --> IMPL
-  FAULT["unknown failure"] --> DIAG["diagnosing-bugs"]
-  DIAG -->|cause proven + repair + mutation authorized| IMPL
-  DIAG -->|cause unproven, diagnose-only, or either authority absent| BOUNDED["bounded diagnosis"]
-  SEAM["seam / ownership question"] --> DESIGN["codebase-design"] --> CHOSEN
+| Observable unresolved condition | Smallest owner | Exact return boundary |
+|---|---|---|
+| The user explicitly requests a tracker-backed route map for an unclear effort spanning sessions | `wayfinder` | one open map with a named frontier/blocker, or one closed map with an exact terminal owner |
+| A user-owned choice or contested concept blocks progress | `domain-modeling` | an executable decision or bounded handoff to its named consumer |
+| External evidence must change a named local decision | `source-to-decision` | `adopt`, `reject`, `lab-test`, or `defer` for that consumer and falsifier |
+| A disposable runnable experiment can answer one design question | `prototype` | a verdict in the current owner and no unapproved production residue |
+| A seam, interface, or ownership decision is unresolved | `codebase-design` | one chosen boundary, bounded first slice, or decision-only handoff |
+| Success is agreed, every implementation gate is settled, but the first written spec does not exist | `to-spec` | one destination-first spec with source links and no gating unknowns, routed to `implement` or `slice-work` |
+| A settled written spec needs several demonstrable units or migration stages | `slice-work` | an implementation-ready list routed one unit at a time to `implement` |
+| A failure's cause is unknown | `diagnosing-bugs` | a proven cause routed to `implement` only with repair and mutation authority, otherwise a bounded diagnosis |
+| One scoped change or proven repair is clear | `implement` | production behavior plus proportional proof |
+| A diff, PR, or fingerprinted working tree needs read-only judgment | `code-review` | Standards and Spec disposition on one fixed point |
+| The user requests ownership of an already-agreed outcome through all authorized transitions | `delivery-loop` | lifecycle truth, one current owner, and the actual outcome/publication state |
 
-  IMPL --> PROOF["0 / 1 / N proof"] --> REVIEW["code-review"]
-  FIXED["fixed diff"] --> REVIEW
-  REVIEW -->|accepted finding + repair + mutation authorized| IMPL
-  REVIEW -->|finding unresolved or either authority absent| NEEDS["NEEDS_REVIEW"]
-  REVIEW -->|both axes green on same fixed point| PUB["authorized publication state"]
+This removes the graph's former generic `CHOSEN`, `DISP`, and `VERDICT` nodes.
+Those were not shared runtime states; each specialist already has a more
+precise return contract. Authority is a precondition and reported state, not a
+workflow stage. The change owner produces proof; an active lifecycle envelope
+requires and commissions fixed-point review without taking over either
+procedure. `$delivery-loop` is the optional lifecycle envelope around the
+selected owners; it never executes their procedures and is not a downstream
+decision consumer merely because a decision completed.
 
-  FULL["full accepted outcome"] --> LOOP["delivery-loop"]
-  LOOP -. owns lifecycle transitions, not stage procedure .-> SPEC
-  LOOP -.-> IMPL
-  LOOP -.-> REVIEW
-```
+A Wayfinder map persists one active integrator identity, one exact worker-result
+return channel, observed tracker-write authority, and a writer generation with
+matching activation readback. Fresh ticket workers treat the map and child as
+read-only and return complete results through that channel; only the recorded
+integrator writes, and a pending or mismatched generation blocks the frontier.
 
 Wrappers and companions:
 
@@ -136,17 +139,16 @@ Wrappers and companions:
 | Information | Canonical owner and destination | Lifecycle |
 |---|---|---|
 | Current thread objective and continuation | native Goal | reconciled at every transition; closed with outcome |
-| Durable acceptance, queue, blockers, and Spec | configured tracker | updated at every shared transition; closed with outcome |
+| Durable acceptance, queue, blockers, and active Spec | configured tracker | updated at every shared transition; frontier tickets remain linked primary sources and the Spec closes with the outcome |
 | Shared vocabulary and current system map | `CONTEXT.md` | rewritten when a term or relationship changes |
 | Consequential hard-to-reverse trade-off | `docs/adr/<id>-<slug>.md` | created rarely; superseded explicitly |
 | Source-backed engineering decision | `docs/research/<topic>.md` | created only for a named consumer, then merged in place; claim stays near provenance and falsifier |
 | Outcome capsule | `.krn/runs/delivery-loop/<outcome-id>/state.md` | owned and rewritten only by delivery-loop's sole writer; delete at its lifecycle cleanup trigger; transfer condensed truth before cross-Goal continuation |
-| Resumable prompt, job, packet, or shard | `.krn/runs/<workflow>/<run-id>/` | owned by the creating workflow, ignored and private; delete when its in-goal consumer finishes or owning Goal closes |
+| Transient spec, slice list, prompt, job, packet, or shard | `.krn/runs/<workflow>/<run-id>/` | owned by the creating workflow, ignored and private; delete when its in-goal consumer finishes or owning Goal closes |
 | Review result | initiating outcome, PR, or issue thread tied to one fixed point | condensed into the capsule when continuation needs it; invalid when base/head/Spec/Standards changes |
 
-There is no `retained_reports`, `discovery`, or generic `capabilities` artifact
-role. A semantic owner chooses the durable location. Physical mount prefixes
-are runtime details, not reusable contracts.
+Every artifact has a semantic owner and lifecycle. Physical mount prefixes are
+runtime details, not reusable contracts.
 
 ## Portfolio boundary
 

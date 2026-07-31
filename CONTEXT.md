@@ -7,7 +7,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 
 - [README.md](README.md) — operator entrypoint, main workflow, and skill catalog.
 - [docs/research/README.md](docs/research/README.md) — research index and curation contract.
-- [docs/research/orchestration.md](docs/research/orchestration.md) — current pipeline synthesis, full graphs, and falsifiers.
+- [docs/research/orchestration.md](docs/research/orchestration.md) — current lifecycle spine, admission matrix, and falsifiers.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
@@ -29,6 +29,13 @@ symlink directly; Claude reaches the same file through `CLAUDE.md`.
 **Workflow owner** — the one skill responsible for a repeated procedure. Skills
 may compose, but two skills may not own the same sequence.
 
+**Current uncertainty** — the one unresolved condition that selects the next
+workflow owner. Settled phases are skipped; there is no mandatory full pipeline.
+
+**Lifecycle envelope** — `$delivery-loop` ownership of outcome state, the sole
+writer, handoffs, and authorized transitions around specialist owners. It does
+not absorb their procedures.
+
 **Semantic ABI** — the canonical nouns that connect prompt shape, skill
 description, artifact fields, and routing evals. A synonym may be accepted, but
 the system emits the canonical term so handoffs stay stable.
@@ -44,19 +51,23 @@ It excludes transcript history and copied source material.
 
 **Outcome capsule** — a living restart record containing outcome and acceptance,
 sole writer, separate outcome and publication states, repository fixed point and
-dirty scope, Goal/tracker and restart-run identity/state, separate authorities,
-evidence and non-proofs, review disposition, owned unknowns, durable references,
-and the next owner. It is updated in place at owner or context boundaries;
-`$delivery-loop` owns its exact field ABI.
+dirty scope, Goal/tracker and restart-run identity, outstanding cleanup
+obligations for specialist runs, separate authorities, evidence and non-proofs,
+review disposition, owned unknowns, durable references, and the next owner. It
+is updated in place at owner or context boundaries; `$delivery-loop` owns its
+exact field ABI.
 
 **Working run** — private ignored state at
 `.krn/runs/<workflow>/<run-id>/`. It may carry that workflow's prompt, manifest,
-job state, or review evidence while its goal is open. Only `$delivery-loop` may
-persist the outcome capsule, at
+transient spec or slice list, job state, or review evidence while its goal is
+open. Only `$delivery-loop` may persist the outcome capsule, at
 `.krn/runs/delivery-loop/<outcome-id>/state.md`. A run is not a durable report;
 its owner deletes it when the sole in-goal consumer finishes or the owning Goal
 closes, whichever comes first. Cross-Goal continuation first transfers only
-condensed truth and pointers into the successor's own run.
+condensed truth and pointers into the successor's own run. For a superseded or
+abandoned delivery run, an active Goal remains its consumer until the available
+cancellation, deferral, or other non-active transition is read back; transfer
+alone is not consumer completion.
 
 **Promotion gate** — working material becomes durable only when a named future
 consumer, canonical semantic destination, and cleanup or supersession rule all

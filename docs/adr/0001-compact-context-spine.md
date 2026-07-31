@@ -32,7 +32,10 @@ continuation through the Goal/tracker or hand lifecycle ownership to
 `$delivery-loop`. Each workflow deletes its run when the sole in-goal consumer
 finishes or its owning Goal closes, whichever comes first. Cross-Goal
 continuation transfers only condensed truth and pointers into the successor's
-own run before deletion.
+own run before deletion. A superseded or abandoned delivery run remains while
+its Goal is active; transfer does not trigger deletion, and the run is removed
+only after cancellation, deferral, or another non-active Goal state is read
+back.
 
 Promotion from a run requires all three:
 

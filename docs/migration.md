@@ -16,7 +16,7 @@
 | generated `docs/agents/{issue-tracker.md,domain.md,delivery.md,artifacts.md,artifact-paths.json,review.md,runs/.gitignore}` adapters and their old managed-block links in product repositories | closest repository contract and semantic owner | run current setup to replace and read back the managed block first; then remove only generator-owned outputs with no live consumer, preserving any earned semantic content under its normalized owner; the new setup does not recreate these adapters |
 | KRN product language, `krn-memory-core`, and Beads | `mise` | retain as domain guidance only |
 | global Claude instructions | this repository | install `CLAUDE.md` as a symlink resolving to the same managed `AGENTS.md` core |
-| hand-maintained user `PreToolUse` hook | this repository | archive the reviewed legacy hook and install one versioned destructive-command guard; the earlier token-proxy rewrite is retired |
+| hand-maintained user `PreToolUse` hook | this repository | archive the reviewed legacy hook and install one literal-risk guard for recognized direct protected deletion, non-dry-run `git clean`, exact quarantine references, and patch targets; ambiguous literal composition denies without modeling shell execution, while runtime-built behavior remains contract-governed; the earlier token-proxy rewrite is retired |
 
 ## Installation Invariants
 

@@ -17,13 +17,18 @@ Use the narrowest durable surface that matches the scope.
 | GitHub settings | required checks, branch protection, merge and review policy | local implementation procedure |
 
 Keep resumable workflow state under the canonical ignored
-`.krn/runs/<workflow>/<run-id>/`; the creating workflow owns cleanup when its
-task is accepted, superseded, or abandoned. Short-lived findings return to the
-active outcome owner. Put only the workflow-specific state needed for a later
-session inside its run; prompts, packets, logs, and raw model output are
-transport, not durable knowledge. Only `$delivery-loop` persists the outcome
-capsule at `.krn/runs/delivery-loop/<outcome-id>/state.md`; every other workflow
-uses the Goal/tracker for continuation or hands lifecycle ownership to it.
+`.krn/runs/<workflow>/<run-id>/`; the creating workflow owns cleanup when the
+named sole in-goal consumer finishes its accepted outcome or the owning Goal
+closes, whichever comes first. Short-lived findings return to the active outcome
+owner. Put only the workflow-specific state needed for a later session inside
+its run; prompts, packets, logs, and raw model output are transport, not durable
+knowledge. Only `$delivery-loop` persists the outcome capsule at
+`.krn/runs/delivery-loop/<outcome-id>/state.md`; every other workflow uses the
+Goal/tracker for continuation or hands lifecycle ownership to it. Cross-Goal
+continuation transfers condensed truth into the successor-owned run before
+cleanup. For a superseded or abandoned delivery run, transfer alone is not
+consumer completion; retain the original until its Goal's non-active state is
+read back.
 
 Durable knowledge has semantic owners rather than a generic report directory:
 

@@ -1,6 +1,6 @@
 interface:
   display_name: "Diagnosing Bugs"
-  short_description: "Find causes through a tight red-capable loop"
-  default_prompt: "Use $diagnosing-bugs to reproduce and explain this unknown failure."
+  short_description: "Prove an unknown cause before repair"
+  default_prompt: "Use $diagnosing-bugs to reproduce this failure and prove its unknown cause before repair."
 policy:
   allow_implicit_invocation: true

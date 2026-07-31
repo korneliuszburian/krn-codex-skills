@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-description: Interview every ready decision in frontier rounds, or resolve one contested name or architecture decision, to reach shared understanding; record shared language in CONTEXT.md or an earned decision in docs/adr/. Skip implementation, specs, tickets, and passive reading.
+description: Interview ready user-owned decisions in rounds or resolve one contested name, product concept, or durable trade-off. Record shared language in CONTEXT.md or an earned decision in docs/adr/; skip interface design, implementation, specs, and tickets.
 ---
 
 # Domain Modeling
@@ -8,10 +8,12 @@ description: Interview every ready decision in frontier rounds, or resolve one c
 Reach shared understanding before any artifact or implementation. This skill owns
 **two modes**: a frontier-round **interview** when many user-owned decisions are
 open, and a focused **concept resolution** when one name, product concept, or
-architecture decision is actively contested. Both end at a real boundary used by
-people or code, not at a better paragraph. `$implement` owns production writes,
-`$to-spec` owns synthesis, `$slice-work` owns decomposition — this skill only
-sharpens and, rarely, records a durable decision.
+durable trade-off is actively contested. Concrete module, seam, dependency, and
+behavior-ownership design from observed code friction belongs to
+`$codebase-design`. Both modes here end at a real boundary used by people or
+code, not at a better paragraph. `$implement` owns production writes, `$to-spec`
+owns synthesis, and `$slice-work` owns decomposition — this skill only sharpens
+and, rarely, records a durable decision.
 
 1. **Load current language, then choose the mode.** Read root `CONTEXT.md` when
    present and only the relevant decisions under `docs/adr/`. Treat them as the
@@ -21,8 +23,8 @@ sharpens and, rarely, records a durable decision.
    - **Many open decisions** whose prerequisites are partly settled → the
      **frontier-round interview** (step 2). Facts belong to the agent; choices
      belong to the user.
-   - **One actively contested meaning** (a public name, product concept, or durable
-     architecture decision) → **concept resolution** (step 3).
+   - **One actively contested meaning** (a public name, product concept, or
+     user-owned durable trade-off) → **concept resolution** (step 3).
    - If an external source must justify the choice, compose `$source-to-decision`
      after the conflict is pinned; do not duplicate that workflow here.
 
@@ -84,7 +86,7 @@ sharpens and, rarely, records a durable decision.
    specs, or reviews must reuse. Keep only current vocabulary there and remove the
    stale competing term; never add status, implementation history, or a future plan.
 
-   Create `docs/adr/<id>-<slug>.md` only when the confirmed architecture decision is
+   Create `docs/adr/<id>-<slug>.md` only when the confirmed durable trade-off is
    hard to reverse, surprising without rationale, and selected through a material
    trade-off. Allocate `<id>` from the repository's closest ADR convention, or the
    next zero-padded four-digit id in its existing sequence (starting at `0001`) when
@@ -99,16 +101,18 @@ sharpens and, rarely, records a durable decision.
    detail has not become architecture.
 
 5. **Hand the understanding to its consumer.** Return the confirmed ledger or the
-   `<domain-model>`. If the request includes production writes, invoke `$implement`
-   with the model as acceptance and the first migration slice as scope; that
-   workflow owns edits and proof. If authority is decision-only, return and stop.
+   `<domain-model>` to the initiating consumer. That consumer reapplies the global
+   routing gate. Only when this workflow was invoked directly and the request
+   already includes one clear, authorized production slice may the consumer be
+   `$implement`, which then owns edits and proof. If authority is decision-only,
+   return and stop.
 
    <modeling-result>
    Mode: frontier interview | concept resolution
    Shared understanding / canonical model:
    CONTEXT.md update: not earned | pending authority | written
    ADR: not earned | pending authority | docs/adr/<id>-<slug>.md
-   Consumer: $implement | $to-spec | $slice-work | $wayfinder | user
+   Consumer: $implement | $codebase-design | $to-spec | $slice-work | $wayfinder | user
    </modeling-result>
 
    **Done when:** the consumer has an executable decision or bounded handoff, every

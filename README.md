@@ -8,43 +8,42 @@ compiled into a few semantic artifacts instead of accumulated as reports.
 
 ```mermaid
 flowchart LR
-  FOG["foggy multi-session effort"] --> WAY["explicit $wayfinder"]
-  WAY --> DEC["settled decision"]
-  CONCEPT["contested concept"] --> DM["$domain-modeling"] --> DEC
-  CHOICES["foggy choices"] --> DM
-  SOURCE["source claim / external evidence"] --> S2D["$source-to-decision"] --> DEC
-  QUESTION["one design question"] --> PROTO["$prototype"] --> DEC
-  THREAD["settled conversation"] --> SPEC["$to-spec"]
-  DEC --> NEXT{"next owner?"}
-  NEXT -->|decision only / defer| STOP["bounded decision state"]
-  NEXT -->|full lifecycle requested| LOOP
-  NEXT -->|spec missing| SPEC
-  NEXT -->|one clear change + writes authorized| IMPL
-  NEXT -->|settled multi-change spec| SLICE
-  SPEC --> SIZE{"one implementation slice?"}
-  SIZE -->|yes| IMPL["$implement"]
-  SIZE -->|no| SLICE["$slice-work"] --> IMPL
-  SETTLED["settled multi-part spec"] --> SLICE
-  CLEAR["clear change"] --> IMPL
-  FAULT["unknown failure"] --> DIAG["$diagnosing-bugs"]
+  INPUT["request + current repository truth"] --> GATE{"smallest unresolved uncertainty"}
+  GATE -->|explicit tracker-backed orientation| WAY["explicit $wayfinder"]
+  GATE -->|one decision| DECIDE["typed decision owner"]
+  GATE -->|spec or decomposition missing| SHAPE["$to-spec or $slice-work"]
+  GATE -->|clear production slice| IMPL["$implement"]
+  GATE -->|unknown cause| DIAG["$diagnosing-bugs"]
+  GATE -->|fixed review surface| REVIEW["$code-review"]
+  GATE -->|outcome satisfied or no authorized next action| TERMINAL["bounded terminal state"]
+  WAY --> GATE
+  DECIDE --> GATE
+  SHAPE --> GATE
   DIAG -->|cause proven + repair + mutation authorized| IMPL
-  DIAG -->|cause unproven, diagnose-only, or either authority absent| STOP
-  SEAM["seam question"] --> DESIGN["$codebase-design"] --> DEC
-  IMPL --> PROOF["proportional proof"] --> REVIEW["$code-review<br/>Standards + Spec"]
-  FIXED["fixed diff"] --> REVIEW
+  DIAG -->|otherwise| BOUNDED["bounded diagnosis"]
+  IMPL --> PROOF["0 / 1 / N proof"]
+  PROOF -->|non-trivial, requested, or lifecycle envelope active| REVIEW
+  PROOF -->|otherwise| STATE
   REVIEW -->|accepted finding + repair + mutation authorized| IMPL
-  REVIEW -->|finding unresolved or either authority absent| NEEDS["NEEDS_REVIEW"]
-  REVIEW -->|green fixed point| STATE["truthful publication state"]
-  FULL["full accepted outcome"] --> LOOP["$delivery-loop"]
-  LOOP -. coordinates an accepted end-to-end outcome .-> SPEC
-  LOOP -.-> IMPL
-  LOOP -.-> REVIEW
+  REVIEW -->|unresolved or authority absent| NEEDS["NEEDS_REVIEW"]
+  REVIEW -->|both axes green on same fixed point| STATE["initiating owner records truthful outcome + publication state"]
+  FULL["agreed end-to-end outcome"] --> LOOP["$delivery-loop<br/>lifecycle envelope"]
+  LOOP -. selects one current owner and records transitions .-> GATE
 ```
+
+The diamond is a routing rule, not a router skill. Settled work skips every
+resolved phase: a clear slice enters `$implement`, and a fixed diff, PR, or
+fingerprinted working tree enters `$code-review`. The typed decision owner is
+`$domain-modeling` for a user-owned choice or contested concept,
+`$source-to-decision` when external evidence must change a named local
+decision, `$prototype` for a disposable runnable experiment, or
+`$codebase-design` for a seam or ownership decision. Each returns a bounded
+result to the current owner; none becomes a mandatory pipeline stage.
 
 `target-repo-work` wraps another checkout. `typescript-engineering` is a
 language companion. `second-opinion-review` is an explicit advisory side path.
 Setup, capability management, and skill authoring remain separate owners. The
-evidence and full conditional graph live in
+evidence, admission matrix, and lifecycle invariants live in
 [the orchestration synthesis](docs/research/orchestration.md).
 
 ## Compact context spine
@@ -57,6 +56,8 @@ flowchart TD
   OWNER --> EVIDENCE["repository state + falsifying evidence"]
   EVIDENCE --> LOOP
   CAPSULE --> RUNS[".krn/runs/delivery-loop/<br/>&lt;outcome-id&gt;/state.md"]
+  CAPSULE --> CLEANUP["owned specialist-run<br/>cleanup obligations"]
+  CLEANUP -->|consumer finishes or Goal closes| DELETE
   EVIDENCE --> GATE{"consumer + destination +<br/>cleanup / supersession?"}
   GATE -->|shared outcome state| TRACKER["configured tracker"]
   GATE -->|shared language| CONTEXT["CONTEXT.md"]
@@ -79,13 +80,13 @@ documentation by default.
 | [`diagnosing-bugs`](skills/engineering/diagnosing-bugs/SKILL.md) | model or user | unknown failures, flakes, regressions, and slowness |
 | [`code-review`](skills/engineering/code-review/SKILL.md) | model or user | read-only Standards and Spec review of one fixed point |
 | [`codebase-design`](skills/engineering/codebase-design/SKILL.md) | model or user | architecture friction, ownership, and public seams |
-| [`domain-modeling`](skills/engineering/domain-modeling/SKILL.md) | model or user | frontier decisions, contested concepts, and earned ADRs |
-| [`source-to-decision`](skills/engineering/source-to-decision/SKILL.md) | model or user | external evidence turned into a local disposition |
-| [`prototype`](skills/engineering/prototype/SKILL.md) | model or user | one throwaway runnable answer to a design question |
+| [`domain-modeling`](skills/engineering/domain-modeling/SKILL.md) | model or user | user-owned choices, contested concepts, and earned ADRs |
+| [`source-to-decision`](skills/engineering/source-to-decision/SKILL.md) | model or user | one source-backed disposition for a named local consumer |
+| [`prototype`](skills/engineering/prototype/SKILL.md) | model or user | one disposable runnable answer to a design question |
 | [`to-spec`](skills/engineering/to-spec/SKILL.md) | model or user | a settled conversation compressed into one destination-first spec |
 | [`slice-work`](skills/engineering/slice-work/SKILL.md) | model or user | vertical implementation slices or expand-contract migration stages |
-| [`wayfinder`](skills/engineering/wayfinder/SKILL.md) | explicit only | a durable decision map for genuinely foggy multi-session work |
-| [`delivery-loop`](skills/engineering/delivery-loop/SKILL.md) | model or user | one accepted outcome through proof, review, and authorized publication |
+| [`wayfinder`](skills/engineering/wayfinder/SKILL.md) | explicit only | a durable typed-frontier map for genuinely foggy multi-session work |
+| [`delivery-loop`](skills/engineering/delivery-loop/SKILL.md) | model or user | lifecycle truth and handoffs for one agreed end-to-end outcome |
 | [`target-repo-work`](skills/engineering/target-repo-work/SKILL.md) | model or user | identity and authority when work crosses into another checkout |
 | [`setup-repository-workflow`](skills/engineering/setup-repository-workflow/SKILL.md) | explicit only | one-time adoption or repair of a thin local contract |
 | [`typescript-engineering`](skills/engineering/typescript-engineering/SKILL.md) | model or user | TypeScript inference, public APIs, compiler mechanics, and proof |
@@ -107,8 +108,14 @@ scripts/install.sh install
 The installer links only manifest-owned skills into `~/.agents/skills`, the
 catalog executable into `~/.local/bin`, the global contract into Codex, the
 same semantic core into Claude, and one deterministic `PreToolUse` guard. It
-refuses foreign collisions. Named legacy and retired entries are archived only
-with explicit authority:
+applies path-aware policy to recognized direct `rm`, denies recognized literal
+non-dry-run `git clean`, blocks exact literal quarantine references and patch
+targets, and denies unsupported shell composition only when it contains the
+same literal risk. It does not interpret shell execution; runtime-built,
+sourced, or obfuscated behavior remains governed by the global contract. Only
+bare, uncomposed `echo` and `printf` are treated as inert risk text. The
+installer refuses foreign collisions. Named legacy and retired entries are
+archived only with explicit authority:
 
 ```bash
 env KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \

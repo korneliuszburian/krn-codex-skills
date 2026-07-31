@@ -19,7 +19,8 @@
       "id": "autonomous-end-to-end-delivery",
       "prompt": "Take this accepted repository outcome and autonomously carry it through the active tracker item, implementation, focused proof, independent review, commit, PR checks, and every authorized step until done or an exact external blocker.",
       "expected_skills": [
-        "delivery-loop"
+        "delivery-loop",
+        "implement"
       ],
       "forbidden_skills": [
         "setup-repository-workflow",
@@ -192,7 +193,8 @@
       "forbidden_skills": [
         "implement",
         "diagnosing-bugs",
-        "second-opinion-review"
+        "second-opinion-review",
+        "delivery-loop"
       ]
     },
     {
@@ -203,7 +205,8 @@
       ],
       "forbidden_skills": [
         "implement",
-        "second-opinion-review"
+        "second-opinion-review",
+        "delivery-loop"
       ]
     },
     {
@@ -214,7 +217,8 @@
       ],
       "forbidden_skills": [
         "domain-modeling",
-        "code-review"
+        "code-review",
+        "prototype"
       ]
     },
     {
@@ -449,7 +453,8 @@
       "forbidden_skills": [
         "domain-modeling",
         "source-to-decision",
-        "second-opinion-review"
+        "second-opinion-review",
+        "delivery-loop"
       ]
     },
     {
@@ -526,11 +531,24 @@
     },
     {
       "id": "settled-thread-becomes-published-spec",
-      "prompt": "We've agreed on this feature in the thread. Synthesize it into a destination-first spec with explicit unknowns and publish it to our tracker.",
+      "prompt": "We've agreed on this feature in the thread. Synthesize it into a destination-first spec with any explicit non-gating unknowns and publish it to our tracker.",
       "expected_skills": [
         "to-spec"
       ],
       "forbidden_skills": [
+        "slice-work",
+        "implement",
+        "domain-modeling"
+      ]
+    },
+    {
+      "id": "implementation-gating-seam-is-not-yet-a-spec",
+      "prompt": "The outcome is agreed, but we still have to decide whether callers or the adapter owns retries before implementation can start. Resolve that seam first; do not write or slice the spec yet.",
+      "expected_skills": [
+        "codebase-design"
+      ],
+      "forbidden_skills": [
+        "to-spec",
         "slice-work",
         "implement",
         "domain-modeling"
@@ -551,7 +569,7 @@
     },
     {
       "id": "foggy-effort-becomes-decision-map",
-      "prompt": "Use $wayfinder for this initiative: it is far too big and unclear for one session, so chart it as a shared map of decision tickets on our tracker and work the frontier one decision at a time.",
+      "prompt": "Use $wayfinder for this initiative: it is far too big and unclear for one session, so chart it as a shared map of typed frontier tickets on our tracker and work one claimed ticket per fresh context.",
       "expected_skills": [
         "wayfinder"
       ],
@@ -559,7 +577,8 @@
         "to-spec",
         "slice-work",
         "implement",
-        "delivery-loop"
+        "delivery-loop",
+        "domain-modeling"
       ]
     },
     {
@@ -598,7 +617,149 @@
         "diagnosing-bugs",
         "code-review",
         "slice-work",
-        "to-spec"
+        "to-spec",
+        "codebase-design"
+      ]
+    },
+    {
+      "id": "unattached-route-fog-requests-explicit-wayfinder",
+      "prompt": "This initiative is unclear, needs a tracker-backed decision map, and will span many sessions. Tell me which explicit workflow to attach, but do not start mapping or execution yet.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "wayfinder",
+        "domain-modeling",
+        "to-spec",
+        "slice-work",
+        "implement",
+        "delivery-loop"
+      ]
+    },
+    {
+      "id": "unsettled-thread-is-not-a-spec",
+      "prompt": "We still disagree whether tenant means the billing account or the workspace. Resolve that choice with us first; do not write a spec or change code yet.",
+      "expected_skills": [
+        "domain-modeling"
+      ],
+      "forbidden_skills": [
+        "to-spec",
+        "wayfinder",
+        "implement"
+      ]
+    },
+    {
+      "id": "source-summary-is-not-a-local-decision",
+      "prompt": "Summarize this paper's claims and limitations for me; do not decide whether our codebase should adopt it.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "source-to-decision",
+        "implement",
+        "domain-modeling"
+      ]
+    },
+    {
+      "id": "proven-cause-goes-straight-to-implementation",
+      "prompt": "The cause is already proven: parseConfig accepts null before schema validation. Implement the scoped validation fix and its focused proof.",
+      "expected_skills": [
+        "implement"
+      ],
+      "forbidden_skills": [
+        "diagnosing-bugs",
+        "code-review",
+        "delivery-loop"
+      ]
+    },
+    {
+      "id": "contested-ownership-seam-is-codebase-design",
+      "prompt": "We disagree whether retry and transaction policy belongs in callers or the repository adapter. Inspect the current change friction, choose the deeper interface and ownership seam, and stop before implementation.",
+      "expected_skills": [
+        "codebase-design"
+      ],
+      "forbidden_skills": [
+        "domain-modeling",
+        "prototype",
+        "implement"
+      ]
+    },
+    {
+      "id": "delivery-loop-composes-a-prototype",
+      "prompt": "Own this already-agreed outcome through its authorized lifecycle. Before production implementation, use one disposable runnable prototype to settle the remaining interaction question, then continue through proof and review.",
+      "expected_skills": [
+        "delivery-loop",
+        "prototype"
+      ],
+      "forbidden_skills": [
+        "wayfinder",
+        "domain-modeling",
+        "codebase-design"
+      ]
+    },
+    {
+      "id": "wayfinder-local-research-ticket-needs-codebase-design",
+      "prompt": "Use $wayfinder to continue our existing map: claim the ready research ticket whose exact owner is codebase-design, inspect the named module's change friction, choose its interface and behavior owner, and record the bounded handoff.",
+      "expected_skills": [
+        "wayfinder",
+        "codebase-design"
+      ],
+      "forbidden_skills": [
+        "domain-modeling",
+        "prototype",
+        "implement"
+      ]
+    },
+    {
+      "id": "wayfinder-task-tracks-an-authorized-prerequisite",
+      "prompt": "Use $wayfinder to continue our existing map: claim the ready task ticket for an already-authorized site survey, track the named operator's action, and verify its readback because that evidence unblocks a storage decision. Do not perform implementation or grant new authority.",
+      "expected_skills": [
+        "wayfinder"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "delivery-loop",
+        "source-to-decision",
+        "domain-modeling",
+        "prototype",
+        "codebase-design"
+      ]
+    },
+    {
+      "id": "wayfinder-prototype-verdict-returns-to-the-map",
+      "prompt": "Use $wayfinder to continue our existing map and $prototype for its ready prototype ticket. The user has inspected the experiment; record the verdict in that ticket, remove throwaway residue, and return to the map without starting a spec or production change.",
+      "expected_skills": [
+        "wayfinder",
+        "prototype"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "to-spec",
+        "slice-work",
+        "delivery-loop"
+      ]
+    },
+    {
+      "id": "wayfinder-grilling-verdict-returns-to-the-map",
+      "prompt": "Use $wayfinder to continue our existing map and $domain-modeling for its ready grilling ticket. Resolve the user-owned meaning with us, record the confirmed verdict in that ticket, and return to the map without writing a spec or changing code.",
+      "expected_skills": [
+        "wayfinder",
+        "domain-modeling"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "to-spec",
+        "slice-work",
+        "codebase-design"
+      ]
+    },
+    {
+      "id": "delivery-loop-fixed-point-composes-code-review",
+      "prompt": "Continue the active end-to-end delivery outcome. The implementation is now a fixed fingerprinted working tree; commission read-only Standards and Spec review, then advance only authorized lifecycle transitions.",
+      "expected_skills": [
+        "delivery-loop",
+        "code-review"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "diagnosing-bugs",
+        "wayfinder"
       ]
     }
   ]

@@ -66,12 +66,16 @@ that resists paper.
    **Done when:** the user has driven the prototype and the question is answered or
    sharpened.
 
-7. **Promote the verdict, then dispose of the prototype.** Record the question,
-   answer, and decisive observation in the existing surface that already owns the
-   decision: for example the active Wayfinder ticket, tracker item, settled spec, or
-   domain decision thread. If no durable owner exists, return the verdict to the
-   requester; do not invent another durable artifact. Production work, when requested,
-   starts as a fresh `$implement` task and rewrites the validated idea under
+7. **Return the verdict, then dispose of the prototype.** Return the complete
+   question, answer, and decisive observation to the existing decision owner and
+   sole writer. That owner records it in the active Wayfinder ticket, tracker
+   item, settled spec, or domain decision thread when such a surface already
+   exists. `$prototype` does not mutate a tracker item, Goal, outcome capsule, or
+   spec merely because it received that identity as context. If no durable owner
+   exists, return the verdict to the requester; do not invent another durable
+   artifact. The initiating owner reapplies the global routing gate after
+   receiving the verdict; `$prototype` never selects the next owner. When
+   `$implement` is eventually selected, it rewrites the validated idea under
    production constraints.
 
    The prototype is ephemeral by default. After the user has inspected it and the
@@ -86,14 +90,14 @@ that resists paper.
    <prototype-result>
    Question answered:
    Verdict:
-   Existing decision owner updated:
+   Complete verdict returned to: <existing decision owner and sole writer | requester>
    Prototype disposition: removed | explicitly retained on <branch>
    Retention consumer: none | <named future consumer>
    Cleanup owner and trigger: none | <owner when condition>
-   Next owner: none | $implement
    </prototype-result>
 
-   **Done when:** the verdict is available to its existing owner, the production
-   branch contains no throwaway residue, and any retained branch passes the complete
-   promotion gate: explicit request, branch and commit authority, named consumer,
-   existing durable pointer, and owned cleanup or supersession trigger.
+   **Done when:** the complete verdict has returned to its existing owner and
+   sole writer, the production branch contains no throwaway residue, and any
+   retained branch passes the complete promotion gate: explicit request, branch
+   and commit authority, named consumer, existing durable pointer, and owned
+   cleanup or supersession trigger.

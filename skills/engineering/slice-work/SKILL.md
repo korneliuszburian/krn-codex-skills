@@ -6,13 +6,14 @@ description: Turn a settled multi-change spec into implementation-ready vertical
 # Slice Work
 
 Produce the work-unit list; never execute it. `$implement` owns one unit,
-`$delivery-loop` owns claim and lifecycle state, and `$domain-modeling` owns
-unsettled decisions. This skill owns two decomposition shapes: end-to-end
+`$delivery-loop` owns claim and lifecycle state, and the matching typed owner
+owns any unsettled decision. This skill owns two decomposition shapes: end-to-end
 **vertical slices** and explicit **expand–migrate–contract stages**.
 
 1. **Pin a settled multi-change outcome.** Read the spec, resolved decisions,
    acceptance, and non-goals. If a gating decision is still fog, stop and route
-   it to `$domain-modeling`. If the whole destination fits one fresh
+   it to the smallest typed owner in the global routing contract. If the whole
+   destination fits one fresh
    `$implement` context as one end-to-end change, route it there without
    manufacturing a slice list.
 
@@ -89,21 +90,31 @@ unsettled decisions. This skill owns two decomposition shapes: end-to-end
 
 7. **Separate list completion from ticket publication.** Deliver the complete
    list and dependency graph to the active outcome owner first. If later contexts
-   need it before publication, that owner keeps the exact transient list in its
-   ignored `.krn/runs/slice-work/<run-id>/`. When `$delivery-loop` owns an active
-   outcome capsule, `$slice-work` returns the list identity and pointer to its
-   named sole writer; it never mutates or creates the capsule. That writer records
-   the identity, pointer, and scoped `Ticket publication state` under `Evidence
-   observed`, any `PUBLISH_PENDING` condition under `Open unknowns and blockers
-   with owners`, and the next implementation unit and owner under `Next bounded
-   owner and action`. No new capsule field is created. Otherwise continuation
-   stays in the native Goal or configured tracker. Creating tracker tickets
-   requires an existing tracker identity and operations declared by the closest
-   repository `AGENTS.md` or other closest instructions, plus publication
+   need it before the outcome finishes, `$slice-work` owns the exact transient
+   list under `.krn/runs/slice-work/<run-id>/` only with write authority and after
+   verifying `.krn/runs/` is ignored; otherwise it stays in the active Goal or
+   thread. Name the active outcome owner as its sole in-goal consumer. `$slice-work` removes
+   its run only when that consumer finishes the accepted outcome or the owning
+   Goal closes, whichever comes first; reading the list or completing one unit is
+   not cleanup.
+
+   When `$delivery-loop` owns an active outcome capsule, `$slice-work` returns
+   the list identity and pointer to its named sole writer; it never mutates or
+   creates the capsule. That writer records the identity, pointer, and scoped
+   `Ticket publication state` under `Evidence observed`, any `PUBLISH_PENDING`
+   condition under `Open unknowns and blockers with owners`, and the next
+   implementation unit and owner under `Next bounded owner and action`. When a
+   transient run exists, it also records `$slice-work`, the semantic pointer,
+   named sole in-goal consumer, trigger, and current state under `Outstanding
+   workflow-run cleanup`, upserting the entry by pointer without replacing
+   sibling obligations; `$slice-work` remains the cleanup owner. Otherwise
+   continuation stays in the native Goal or configured tracker. Creating tracker
+   tickets requires an existing tracker identity and operations declared by the
+   closest repository `AGENTS.md` or other closest instructions, plus publication
    authority. Those instructions describe how; they do not authorize the
    mutation. When authorized, publish one ticket per unit and read back its
-   identity and blocking edges per [tickets.md](references/tickets.md). This skill creates
-   tickets but never claims or sequences them.
+   identity and blocking edges per [tickets.md](references/tickets.md). This
+   skill creates tickets but never claims or sequences them.
 
    Use one truthful **ticket-publication state**. This is scoped to tracker
    artifacts and never replaces the outcome capsule's lifecycle-level
@@ -123,6 +134,9 @@ unsettled decisions. This skill owns two decomposition shapes: end-to-end
    Work-unit list and dependency graph:
    Demonstrable result or migration end state:
    Ticket publication state: NOT_REQUESTED | PUBLISH_PENDING (<missing condition>) | PUBLISHED (<ticket identities>)
+   Transient list: absent | <semantic pointer>
+   Sole in-goal consumer: <active outcome owner>
+   Cleanup owner and trigger: none | $slice-work when <named sole consumer finishes its accepted outcome | owning Goal closes>, whichever comes first
    Routed to: $implement (one unit per fresh context) via $delivery-loop when lifecycle orchestration is requested
    </slice-result>
 

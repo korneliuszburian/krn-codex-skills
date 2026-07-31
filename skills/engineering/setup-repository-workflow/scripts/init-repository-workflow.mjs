@@ -164,15 +164,16 @@ function inspect(root) {
 
 function trackerSummary(tracker) {
   if (tracker === "beads") {
-    return "Beads owns durable task state and supplies the complete Wayfinder adapter. Create a map with `bd create --type epic --labels wayfinder:map --body-file <map.md> --silent`, create children with `bd create --parent <map> --labels <ticket-type> --body-file <ticket.md> --silent`, add edges with `bd dep add <blocked> <blocker>`, claim with `bd update <id> --claim`, update with `bd update <id> --body-file <ticket.md>`, query the frontier with `bd list --parent <map> --ready --json`, close with `bd close <id>`, and read back with `bd show <id> --json`. Keep at most one implementation item in progress.";
+    return "Beads owns durable task state and supplies Wayfinder's deterministic tracker operations. Create a map with `bd create --title <map-title> --type epic --labels wayfinder:map --body-file <map.md> --silent`, create children with `bd create --title <ticket-title> --parent <map> --labels <ticket-type> --no-inherit-labels --body-file <ticket.md> --silent`, add edges with `bd dep add <blocked> <blocker>`, claim with `bd update <id> --claim`, write a resolution or other body state with `bd update <id> --body-file <ticket.md>`, query the frontier with `bd list --parent <map> --ready --json`, close with `bd close <id>`, and read back with `bd show <id> --json`. Persist tracker-authority state, map-integrator identity, writer generation, `TRANSFER_PENDING` successor identity and return channel, `ACTIVE` with activation `PENDING`, and matching `VERIFIED` activation in the map body. Copy only the active map-integrator identity, writer generation, and exact worker-result return channel into every open child body. Use the same update operation for each transfer phase, then read back the parent and every open child before the next phase or frontier work. Resolve separate tracker-write authority before any mutation. Keep at most one implementation item in progress.";
   }
+  const requiredAdapter = "exact map create/update, child create/update, dependency-edge write, atomic claim, resolution write, frontier query, close/readback, persisted map-integrator identity and tracker-authority state, writer generation, `TRANSFER_PENDING` successor identity and return channel, `ACTIVE` with activation `PENDING`, matching `VERIFIED` activation, parent and every open-child readback after each transfer phase, and one exact runtime worker-result return channel";
   if (tracker === "github") {
-    return "GitHub issues own durable task state through `gh issue create|edit|view|list|close` inside this clone. This thin setup is not a complete Wayfinder adapter: `$wayfinder` must stop unless closer repository instructions define exact child, edge, atomic claim, frontier, close, and readback operations. Keep at most one implementation item active.";
+    return `GitHub issues own durable task state through \`gh issue create|edit|view|list|close\` inside this clone. This thin setup is not a complete Wayfinder adapter: \`$wayfinder\` must stop unless closer repository instructions define ${requiredAdapter}. Resolve separate tracker-write authority before any mutation. Keep at most one implementation item active.`;
   }
   if (tracker === "gitlab") {
-    return "GitLab issues own durable task state through `glab issue create|update|view|list|close` inside this clone. This thin setup is not a complete Wayfinder adapter: `$wayfinder` must stop unless closer repository instructions define exact child, edge, atomic claim, frontier, close, and readback operations. Keep at most one implementation item active.";
+    return `GitLab issues own durable task state through \`glab issue create|update|view|list|close\` inside this clone. This thin setup is not a complete Wayfinder adapter: \`$wayfinder\` must stop unless closer repository instructions define ${requiredAdapter}. Resolve separate tracker-write authority before any mutation. Keep at most one implementation item active.`;
   }
-  return "Local Markdown under `.scratch/<map>/` owns durable task state through `map.md` plus numbered child files. This thin setup is not a complete Wayfinder adapter: `$wayfinder` must stop unless closer repository instructions define exact create, edge, atomic claim, frontier, close, and readback operations. Keep at most one implementation item active.";
+  return `Local Markdown under \`.scratch/<map>/\` owns durable task state through \`map.md\` plus numbered child files. This thin setup is not a complete Wayfinder adapter: \`$wayfinder\` must stop unless closer repository instructions define ${requiredAdapter}. Resolve separate tracker-write authority before any mutation. Keep at most one implementation item active.`;
 }
 
 function domainSummary(domain) {
@@ -196,7 +197,7 @@ function managedBlock(tracker, domain, delivery) {
 - **Tracker:** ${trackerSummary(tracker)}
 - **Domain knowledge:** ${domainSummary(domain)}
 - **Delivery:** ${deliverySummary(delivery)}
-- **Transient runs:** Keep resumable workflow state under the ignored \`.krn/runs/<workflow>/<run-id>/\`. Delete it when its sole in-goal consumer finishes or its owning Goal closes; cross-Goal continuation transfers condensed truth into the successor's own run first.
+- **Transient runs:** Keep resumable workflow state under the ignored \`.krn/runs/<workflow>/<run-id>/\`. Delete it when its sole in-goal consumer finishes the accepted outcome or its owning Goal closes; cross-Goal continuation transfers condensed truth into the successor's own run first. For a superseded or abandoned delivery run, transfer alone is not consumer completion: retain the original until its Goal's non-active state is read back.
 
 Installed global skills own implementation, diagnosis, review, and reusable engineering procedure. Do not copy or rename them in this repository.
 ${END}`;

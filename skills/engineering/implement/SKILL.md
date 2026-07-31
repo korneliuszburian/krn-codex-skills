@@ -89,8 +89,9 @@ by this slice.**
    </implementation-result>
 
    Use `$code-review` for an independent fixed-point check when the slice is
-   non-trivial or the user asks for review. A green check is evidence for its
-   claim, not a substitute for the delivered behavior.
+   non-trivial, the user asks for review, or `$delivery-loop` owns the active
+   lifecycle envelope. A green check is evidence for its claim, not a substitute
+   for the delivered behavior.
 
    **Done when:** acceptance is satisfied through production code, proportional
    proof passes or is honestly blocked, all owned paths are accounted for, and

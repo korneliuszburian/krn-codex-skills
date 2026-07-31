@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readlinkSync, readdirSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
 const script = new URL("./init-repository-workflow.mjs", import.meta.url).pathname;
+const bdProbe = spawnSync("bd", ["--version"], { encoding: "utf8" });
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), "krn-repo-setup-"));
@@ -16,6 +17,28 @@ function fixture() {
 
 function apply(root, extra = []) {
   return execFileSync(process.execPath, [script, "apply", "--root", root, "--tracker", "beads", "--domain", "single", "--delivery", "strict", ...extra], { encoding: "utf8" });
+}
+
+function localConfigEntries(root) {
+  return execFileSync(
+    "git",
+    ["-C", root, "config", "--local", "--null", "--list"],
+    { encoding: "utf8" },
+  ).split("\0").filter(Boolean).map((entry) => {
+    const separator = entry.indexOf("\n");
+    return [entry.slice(0, separator), entry.slice(separator + 1)];
+  });
+}
+
+function directorySnapshot(root) {
+  return Object.fromEntries(readdirSync(root).sort().map((name) => {
+    const path = join(root, name);
+    const metadata = statSync(path);
+    return [name, {
+      mode: metadata.mode,
+      contents: readFileSync(path).toString("base64"),
+    }];
+  }));
 }
 
 test("apply bootstraps a thin AGENTS.md and CLAUDE.md symlink when none exists", () => {
@@ -66,9 +89,18 @@ test("apply preserves user prose and is byte-idempotent", () => {
   assert.match(second["AGENTS.md"], /Keep this user-owned text/);
   assert.equal((second["AGENTS.md"].match(/krn-agent-workflow:start/g) ?? []).length, 1);
   assert.match(second["AGENTS.md"], /Beads owns durable task state/);
+  assert.match(second["AGENTS.md"], /bd create --title <map-title> --type epic/);
+  assert.match(second["AGENTS.md"], /bd create --title <ticket-title> --parent <map>/);
+  assert.match(second["AGENTS.md"], /--no-inherit-labels/);
   assert.match(second["AGENTS.md"], /bd list --parent <map> --ready/);
   assert.match(second["AGENTS.md"], /bd show <id> --json/);
-  assert.match(second["AGENTS.md"], /complete Wayfinder adapter/);
+  assert.doesNotMatch(second["AGENTS.md"], /complete Wayfinder adapter/);
+  assert.match(second["AGENTS.md"], /map body/);
+  assert.match(second["AGENTS.md"], /every open child body/);
+  assert.match(second["AGENTS.md"], /exact worker-result return channel/);
+  assert.match(second["AGENTS.md"], /TRANSFER_PENDING/);
+  assert.match(second["AGENTS.md"], /writer generation/);
+  assert.match(second["AGENTS.md"], /transfer alone is not consumer completion/);
   assert.match(second["AGENTS.md"], /\.krn\/runs\/<workflow>\/<run-id>/);
 });
 
@@ -188,15 +220,172 @@ test("apply rejects reversed managed markers", () => {
 });
 
 test("apply can reconfigure the compact managed block", () => {
-  const root = fixture();
+  for (const [tracker, owner] of [
+    ["github", /GitHub issues own durable task state/],
+    ["gitlab", /GitLab issues own durable task state/],
+    ["local", /Local Markdown under `\.scratch\/<map>\/` owns durable task state/],
+  ]) {
+    const root = fixture();
+    apply(root);
+    execFileSync(process.execPath, [script, "apply", "--root", root, "--tracker", tracker, "--domain", "multi", "--delivery", "local"], { encoding: "utf8" });
+    const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
+    assert.match(agents, owner);
+    assert.match(agents, /not a complete Wayfinder adapter/);
+    for (const required of [
+      /exact map create\/update/,
+      /child create\/update/,
+      /dependency-edge write/,
+      /atomic claim/,
+      /resolution write/,
+      /frontier query/,
+      /close\/readback/,
+      /persisted map-integrator identity and tracker-authority state/,
+      /writer generation/,
+      /`TRANSFER_PENDING` successor identity and return channel/,
+      /`ACTIVE` with activation `PENDING`/,
+      /matching `VERIFIED` activation/,
+      /parent and every open-child readback after each transfer phase/,
+      /one exact runtime worker-result return channel/,
+    ]) {
+      assert.match(agents, required);
+    }
+    assert.match(agents, /Resolve separate tracker-write authority/);
+    assert.match(agents, /root `CONTEXT\.md` as the compact index/);
+    assert.doesNotMatch(agents, /CONTEXT-MAP\.md/);
+    assert.match(agents, /Branch, PR, CI, merge, and deployment follow explicit/);
+    assert.equal((agents.match(/krn-agent-workflow:start/g) ?? []).length, 1);
+    assert.equal(existsSync(join(root, "docs", "agents")), false);
+  }
+});
+
+test("installed Beads init stays outside instruction ownership and generated create operations execute", {
+  skip: bdProbe.status === 0 ? false : "bd is not installed",
+}, () => {
+  assert.match(bdProbe.stdout, /^bd version 1\.0\.4\b/);
+  const root = mkdtempSync(join(tmpdir(), "krn-repo-setup-beads-live-"));
+  execFileSync("git", ["init", "-q", root]);
+  execFileSync("git", ["-C", root, "config", "user.email", "setup-smoke@example.invalid"]);
+  execFileSync("git", ["-C", root, "config", "user.name", "Setup smoke"]);
+  execFileSync("git", ["-C", root, "config", "krn.probe", "preserve"]);
+  writeFileSync(join(root, "AGENTS.md"), "# Existing product contract\n");
+  symlinkSync("AGENTS.md", join(root, "CLAUDE.md"));
+  mkdirSync(join(root, ".claude"));
+  writeFileSync(join(root, ".claude", "settings.json"), "{\"existing\":true}\n");
+  execFileSync("git", ["-C", root, "add", "AGENTS.md", "CLAUDE.md", ".claude/settings.json"]);
+  execFileSync("git", ["-C", root, "commit", "-q", "-m", "baseline"]);
+  const commonGitDir = realpathSync(execFileSync(
+    "git",
+    ["-C", root, "rev-parse", "--path-format=absolute", "--git-common-dir"],
+    { encoding: "utf8" },
+  ).trim());
+  const hookPath = realpathSync(execFileSync(
+    "git",
+    ["-C", root, "rev-parse", "--path-format=absolute", "--git-path", "hooks"],
+    { encoding: "utf8" },
+  ).trim());
+  assert.equal(hookPath, join(commonGitDir, "hooks"));
+  writeFileSync(join(hookPath, "pre-commit"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  const before = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const agentsBefore = readFileSync(join(root, "AGENTS.md"), "utf8");
+  const claudeBefore = readlinkSync(join(root, "CLAUDE.md"));
+  const settingsBefore = readFileSync(join(root, ".claude", "settings.json"), "utf8");
+  const hooksBefore = directorySnapshot(hookPath);
+  const configBefore = localConfigEntries(root);
+  assert.equal(execFileSync("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8" }), "");
+
+  execFileSync("bd", ["init", "--skip-agents", "--skip-hooks", "--non-interactive"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  const initialized = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const initializedPaths = execFileSync(
+    "git",
+    ["-C", root, "diff", "--name-only", `${before}..${initialized}`],
+    { encoding: "utf8" },
+  ).trim().split("\n").filter(Boolean);
+  if (/\bbd version 1\.0\.4\b/.test(bdProbe.stdout)) {
+    assert.notEqual(initialized, before);
+  }
+  assert.ok(initializedPaths.length > 0);
+  assert.ok(initializedPaths.every((path) => path === ".gitignore" || path.startsWith(".beads/")));
+  assert.equal(readFileSync(join(root, "AGENTS.md"), "utf8"), agentsBefore);
+  assert.equal(readlinkSync(join(root, "CLAUDE.md")), claudeBefore);
+  assert.equal(readFileSync(join(root, ".claude", "settings.json"), "utf8"), settingsBefore);
+  assert.deepEqual(directorySnapshot(hookPath), hooksBefore);
+  assert.equal(existsSync(join(root, ".beads", "hooks")), false);
+  const configAfter = localConfigEntries(root);
+  assert.deepEqual(
+    configAfter.filter(([key]) => !key.startsWith("beads.")),
+    configBefore,
+  );
+  assert.deepEqual(
+    configAfter.filter(([key]) => key.startsWith("beads.")),
+    [["beads.role", "maintainer"]],
+  );
+  assert.equal(execFileSync("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8" }), "");
+
   apply(root);
-  execFileSync(process.execPath, [script, "apply", "--root", root, "--tracker", "github", "--domain", "multi", "--delivery", "local"], { encoding: "utf8" });
+  assert.equal(
+    execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
+    initialized,
+  );
   const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
-  assert.match(agents, /GitHub issues own durable task state/);
-  assert.match(agents, /not a complete Wayfinder adapter/);
-  assert.match(agents, /root `CONTEXT\.md` as the compact index/);
-  assert.doesNotMatch(agents, /CONTEXT-MAP\.md/);
-  assert.match(agents, /Branch, PR, CI, merge, and deployment follow explicit/);
-  assert.equal((agents.match(/krn-agent-workflow:start/g) ?? []).length, 1);
-  assert.equal(existsSync(join(root, "docs", "agents")), false);
+  assert.doesNotMatch(agents, /BEADS INTEGRATION|Never stop before pushing/i);
+  assert.match(agents, /bd create --title <map-title>/);
+  assert.match(agents, /bd create --title <ticket-title>/);
+
+  writeFileSync(join(root, "map.md"), "# Map\n");
+  writeFileSync(join(root, "ticket.md"), "# Ticket\n");
+  const mapId = execFileSync(
+    "bd",
+    ["create", "--title", "Wayfinder map smoke", "--type", "epic", "--labels", "wayfinder:map", "--body-file", "map.md", "--silent"],
+    { cwd: root, encoding: "utf8" },
+  ).trim();
+  const ticketId = execFileSync(
+    "bd",
+    ["create", "--title", "Wayfinder ticket smoke", "--parent", mapId, "--labels", "wayfinder:research", "--no-inherit-labels", "--body-file", "ticket.md", "--silent"],
+    { cwd: root, encoding: "utf8" },
+  ).trim();
+  const dependentId = execFileSync(
+    "bd",
+    ["create", "--title", "Wayfinder dependent smoke", "--parent", mapId, "--labels", "wayfinder:task", "--no-inherit-labels", "--body-file", "ticket.md", "--silent"],
+    { cwd: root, encoding: "utf8" },
+  ).trim();
+  execFileSync("bd", ["dep", "add", dependentId, ticketId], { cwd: root, encoding: "utf8" });
+  const initialFrontier = JSON.parse(execFileSync(
+    "bd",
+    ["list", "--parent", mapId, "--ready", "--json"],
+    { cwd: root, encoding: "utf8" },
+  ));
+  assert.deepEqual(initialFrontier.map(({ id }) => id), [ticketId]);
+
+  execFileSync("bd", ["update", ticketId, "--claim"], { cwd: root, encoding: "utf8" });
+  execFileSync("bd", ["update", ticketId, "--body-file", "ticket.md"], { cwd: root, encoding: "utf8" });
+  assert.equal(
+    JSON.parse(execFileSync("bd", ["show", ticketId, "--json"], { cwd: root, encoding: "utf8" }))[0].status,
+    "in_progress",
+  );
+  execFileSync("bd", ["close", ticketId], { cwd: root, encoding: "utf8" });
+  const unblockedFrontier = JSON.parse(execFileSync(
+    "bd",
+    ["list", "--parent", mapId, "--ready", "--json"],
+    { cwd: root, encoding: "utf8" },
+  ));
+  assert.deepEqual(unblockedFrontier.map(({ id }) => id), [dependentId]);
+  execFileSync("bd", ["update", dependentId, "--claim"], { cwd: root, encoding: "utf8" });
+  execFileSync("bd", ["close", dependentId], { cwd: root, encoding: "utf8" });
+  execFileSync("bd", ["update", mapId, "--body-file", "map.md"], { cwd: root, encoding: "utf8" });
+  execFileSync("bd", ["close", mapId], { cwd: root, encoding: "utf8" });
+
+  const map = JSON.parse(execFileSync("bd", ["show", mapId, "--json"], { cwd: root, encoding: "utf8" }))[0];
+  const ticket = JSON.parse(execFileSync("bd", ["show", ticketId, "--json"], { cwd: root, encoding: "utf8" }))[0];
+  const dependent = JSON.parse(execFileSync("bd", ["show", dependentId, "--json"], { cwd: root, encoding: "utf8" }))[0];
+  assert.equal(map.title, "Wayfinder map smoke");
+  assert.equal(map.status, "closed");
+  assert.deepEqual(map.labels, ["wayfinder:map"]);
+  assert.equal(ticket.title, "Wayfinder ticket smoke");
+  assert.equal(ticket.status, "closed");
+  assert.equal(ticket.parent, mapId);
+  assert.deepEqual(ticket.labels, ["wayfinder:research"]);
+  assert.deepEqual(dependent.labels, ["wayfinder:task"]);
 });

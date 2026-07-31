@@ -1,14 +1,15 @@
 ---
 name: delivery-loop
-description: Carry one accepted repository outcome through claim, implementation, proof, independent review, and authorized publication state. Use for autonomous end-to-end delivery; skip a single scoped edit, diagnosis-only work, or review-only work.
+description: Coordinate one accepted outcome whose success is agreed through composed owners, fixed-point review, and authorized publication state. Use for autonomous end-to-end lifecycle ownership; skip a single scoped edit, diagnosis-only work, or review-only work.
 ---
 
 # Delivery Loop
 
 Keep one accepted outcome moving while the specialized skills retain their own
 procedures. This is a thin, goal-aware composer: it owns lifecycle truth,
-writer ownership, and handoffs, not implementation, diagnosis, review, tracking,
-or publication.
+writer ownership, handoffs, and selection and readback of authorized
+transitions. Specialist skills own stage procedures; configured trackers and
+hosts own their mechanics and policy.
 
 1. **Bind one outcome and one writer.** Read the closest repository
    instructions, current Git state, configured tracker item when one exists,
@@ -26,7 +27,8 @@ or publication.
    Publication state: NOT_REQUESTED | NOT_AUTHORIZED | LOCAL_ONLY | PUBLISH_PENDING | PR_OPEN | MERGE_READY | MERGED | DEPLOYED
    Repository base, HEAD or working-tree fingerprint, and dirty-state scope:
    Native Goal identity/state and configured tracker item/state:
-   Restart state identity/path and state: ABSENT or <semantic path> [ACTIVE | TRANSFER_PENDING | CLEANUP_PENDING]
+   Restart state: ABSENT | <semantic path owned by the current Goal>
+   Outstanding workflow-run cleanup: none | [<semantic pointer; workflow; sole consumer; trigger; ACTIVE | CLEANUP_PENDING | BLOCKED>, ...]
    Authority: writes=; commit=; push=; PR=; merge=; deployment/install=
    Evidence observed:
    Explicit non-proofs:
@@ -52,12 +54,13 @@ or publication.
    mutation are authorized. Otherwise retain the bounded diagnosis result and
    its authority state. Give an unknown failure to `$diagnosing-bugs`, a seam or
    ownership question to `$codebase-design`, a contested concept to
-   `$domain-modeling`, and an
-   external-evidence decision to `$source-to-decision`. If the destination is
-   settled but its executable spec is missing, use `$to-spec`. If the settled
-   spec cannot fit one fresh implementation context, use `$slice-work`, then
-   advance one slice at a time. Do not copy a composed skill's procedure into
-   this contract.
+   `$domain-modeling`, and an external-evidence decision to
+   `$source-to-decision`. Give one runnable design question to `$prototype`; it
+   must return a verdict and dispose of throwaway residue before production
+   work. If the destination is settled but its executable spec is missing, use
+   `$to-spec`. If the settled spec cannot fit one fresh implementation context,
+   use `$slice-work`, then advance one slice at a time. Do not copy a composed
+   skill's procedure into this contract.
 
    **Done when:** the current owner receives bounded acceptance, an explicit
    mutation-authority state (including none), relevant paths, and the evidence
@@ -74,27 +77,39 @@ or publication.
    `.krn/runs/delivery-loop/<outcome-id>/state.md`, but only after verifying
    `.krn/runs/` is ignored by Git. This optional restart state is owned and
    consumed by `$delivery-loop`; it contains no copied diffs, raw logs,
-   credentials, or source corpora. For an accepted outcome, reconcile tracker
-   closure when configured, run removal when restart state exists, and native Goal
-   completion when present as one terminal sequence. Record an absent tracker,
-   Goal, or run explicitly in the capsule; do not claim `COMPLETE` until every
-   participant that exists is observed terminal. Never complete a superseded or
-   abandoned Goal: when one exists, record that state and its next owner in the
-   configured tracker when one exists, request the available user/system
-   cancellation or deferral transition, and keep the run while that Goal remains
-   active. If a successor Goal needs continuity, transfer only the condensed
-   capsule and pointers into that Goal's own run, then remove the original. A run
-   never outlives its owning Goal. If the path is not already ignored, keep the
-   capsule in the active native Goal/thread state instead of changing ignore rules.
+   credentials, or source corpora. When a composed workflow returns a run
+   pointer, upsert one `Outstanding workflow-run cleanup` entry keyed by that
+   semantic pointer. Preserve its creating workflow, sole in-goal consumer,
+   exact trigger, and state without replacing sibling entries. The creating
+   workflow retains cleanup ownership. When the trigger fires, this lifecycle
+   writer marks only that entry `CLEANUP_PENDING`, commissions its owner, and
+   removes the entry only after verifying the run absent; a failed cleanup marks
+   only that entry `BLOCKED`. `none` means the list is empty.
 
-   **Done when:** repository, capsule, and every configured tracker, present Goal,
-   or restart file describe the same current state; absent participants are
-   explicit, and any restart file has one consumer and cleanup trigger.
+   For an accepted outcome, discharge every triggered specialist cleanup,
+   reconcile tracker closure when configured, remove delivery restart state when
+   it exists, and complete the native Goal when present as one terminal sequence.
+   Record an absent tracker, Goal, run, or cleanup obligation explicitly; do not
+   claim `COMPLETE` until every participant that exists is observed terminal.
+   Never complete a superseded or abandoned Goal: record that state and its next
+   owner in the configured tracker when one exists, request the available
+   user/system cancellation, deferral, or other non-active transition, and keep
+   the original run while that Goal remains active. If a successor Goal needs
+   continuity, transfer only the condensed capsule and pointers into that Goal's
+   own run, but do not remove the original until the old Goal's non-active state
+   is read back. Transfer alone is not consumer completion. If the path is not
+   already ignored, keep the capsule in the active native Goal/thread state
+   instead of changing ignore rules.
 
-4. **Prove and challenge one fixed result.** Require the focused observer and
-   repository gates earned by changed risk. Then give `$code-review` the
-   accepted outcome or spec, bounded diff, applicable instructions, exact proof
-   and gaps, non-goals, and authority state.
+   **Done when:** repository, capsule, and every configured tracker, present
+   Goal, restart file, or specialist cleanup obligation describe the same
+   current state; absent participants are explicit, and every run has one
+   consumer and cleanup trigger.
+
+4. **Require returned proof and commission fixed-point review.** Require the
+   focused observer and repository gates earned by changed risk. Then give
+   `$code-review` the accepted outcome or spec, bounded diff, applicable
+   instructions, exact proof and gaps, non-goals, and authority state.
 
    Any change to reviewed code, base, acceptance/spec, or applicable standards
    creates a new fixed point and invalidates the old review. An accepted finding
@@ -112,13 +127,15 @@ or publication.
    open or update a PR, merge, and deploy only under their separate authorities
    and current repository or host policy. At each shared transition, update and
    read back the configured tracker when one exists, and confirm that any native
-   Goal still owns the current outcome. At the accepted terminal outcome, close
-   and read back the tracker when configured, remove restart state when present,
-   then complete the native Goal when present as the final state action. Record
+   Goal still owns the current outcome. At the accepted terminal outcome, first
+   commission each creating workflow whose cleanup trigger has fired and verify
+   its run absent; then close and read back the tracker when configured, remove
+   delivery restart state when present, and complete the native Goal as the
+   final state action. A remaining cleanup obligation blocks completion. Record
    each absent participant explicitly. Superseded or abandoned work follows the
-   non-completion branch in step 3. An unavailable required write or readback is a
-   blocker, not a reason to let the capsule diverge. Update both state axes from
-   those observations. Outcome
+   non-completion branch in step 3. An unavailable required write or readback is
+   a blocker, not a reason to let the capsule diverge. Update both state axes
+   from those observations. Outcome
    state is `ACTIVE`, `BLOCKED`, `DEFERRED`, `NEEDS_REVIEW`, `COMPLETE`,
    `SUPERSEDED`, or `ABANDONED`. Publication state is `NOT_REQUESTED`,
    `NOT_AUTHORIZED`, `LOCAL_ONLY`, `PUBLISH_PENDING`, `PR_OPEN`, `MERGE_READY`,

@@ -49,10 +49,12 @@ through real cases. If the question is "what should this look like", use
 
 7. **Capture the answer, then clean up.** Promote the validated state model and
    decisive observations to the existing owner of the question. Remove the logic
-   module, TUI shell, and runner entry after inspection. If production work is
-   requested, `$implement` rewrites the model rather than promoting prototype code.
-   Retain a runnable branch only after the parent skill's complete promotion gate,
-   including a named future consumer and owned cleanup or supersession trigger.
+   module, TUI shell, and runner entry after inspection. Return to that owner; it
+   selects the next route under the global contract. If one clear production slice
+   is eventually routed to `$implement`, that workflow rewrites the model rather
+   than promoting prototype code. Retain a runnable branch only after the parent
+   skill's complete promotion gate, including a named future consumer and owned
+   cleanup or supersession trigger.
 
 ## Anti-patterns
 

@@ -67,7 +67,30 @@ conventions, custom agents, or status documents without a demonstrated local
 consumer. Native goals retain long-running session outcome state, and native
 plans remain ephemeral.
 
-   Apply the resolved contract with:
+   When a new Beads tracker is selected, initialize it as a separate,
+   commit-capable transition **before** applying this skill's managed files.
+   Require a clean worktree and index plus explicit authority for `.beads/`,
+   the root `.gitignore`, the exact repository-local Git config key
+   `beads.role`, and the local commit that `bd` may create. Run `bd --version`
+   first and require the audited `bd version 1.0.4` boundary; stop before
+   mutation on any other version. Record `HEAD` (or the unborn-branch state),
+   status, repository-local Git config, the hook path resolved by
+   `git rev-parse --path-format=absolute --git-path hooks`, and fingerprints
+   of any existing `AGENTS.md`, `CLAUDE.md`, and `.claude/`, then run:
+
+   ```text
+   bd init --skip-agents --skip-hooks --non-interactive
+   ```
+
+   Read back the resulting `HEAD`, commit paths, status, local Git config,
+   resolved Git hooks, and instruction surfaces. The only permitted config
+   delta is `beads.role=maintainer`; pre-existing instruction and hook surfaces
+   remain byte-identical, absent ones remain absent, and `.beads/hooks/` remains
+   absent. Stop on any other delta. At the audited boundary this command
+   advances `HEAD` even with both skip flags. Do not run without local commit
+   authority, and do not substitute `--stealth` for a shared durable tracker.
+
+   After tracker initialization, apply the resolved repository contract with:
 
    ```text
    node ~/.agents/skills/setup-repository-workflow/scripts/init-repository-workflow.mjs apply --root <repo> \
@@ -80,21 +103,21 @@ plans remain ephemeral.
    seeds a **thin** `AGENTS.md` (specifics and placeholders only) and symlinks
    `CLAUDE.md` to it — this skill owns the repository brief so a tracker's init
    never fills the void. See [agents-composition.md](references/agents-composition.md)
-   for why the brief stays thin and how the harness composes it with the global
-   core. For a beads tracker, initialize it with
-   `bd init --agents-profile minimal --non-interactive` so bd injects only a
-   one-line pointer, not its full always-loaded reference.
+   for why the brief stays thin, how the harness composes it with the global
+   core, and why Beads initialization is isolated from instruction ownership.
 
    Normalize resumable working state under
    `.krn/runs/<workflow>/<run-id>/`. The initializer installs only the thin
-   managed block and this ignored boundary; each creating workflow owns cleanup.
-   A short-lived result returns to its active outcome owner; when another session
-   must resume it, the owning workflow keeps only its workflow-specific artifact
-   in that run and returns condensed continuation through the native Goal or
-   configured tracker. Only `$delivery-loop` may persist the outcome capsule, at
-   `.krn/runs/delivery-loop/<outcome-id>/state.md`. `CONTEXT.md`, `docs/adr/`, and
-   `docs/research/` remain absent until active vocabulary, an earned consequential
-   decision, or a named research consumer requires them.
+   managed block and this ignored boundary; each creating workflow owns cleanup
+   when its named sole in-goal consumer finishes the accepted outcome or the
+   owning Goal closes. A short-lived result returns to its active outcome owner;
+   when another session must resume it, the owning workflow keeps only its
+   workflow-specific artifact in that run and returns condensed continuation
+   through the native Goal or configured tracker. Only `$delivery-loop` may
+   persist the outcome capsule, at
+   `.krn/runs/delivery-loop/<outcome-id>/state.md`. `CONTEXT.md`, `docs/adr/`,
+   and `docs/research/` remain absent until active vocabulary, an earned
+   consequential decision, or a named research consumer requires them.
 
    **Done when:** a new session can locate the current outcome and the right
    commands without loading history or a copied global workflow, and a second

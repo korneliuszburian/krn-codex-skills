@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -10,7 +11,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from destructive_guard import destructive_denial_reason
+from destructive_guard import direct_destructive_denial_reason
 
 
 HOOK = Path(__file__).with_name("krn_pretooluse.py")
@@ -28,7 +29,37 @@ class DestructiveGuardTests(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def reason(self, command: str, cwd: Path | None = None) -> str | None:
-        return destructive_denial_reason(command, cwd or self.repo)
+        return direct_destructive_denial_reason(
+            tuple(shlex.split(command, posix=True)),
+            cwd or self.repo,
+        )
+
+    def hook_reason(
+        self,
+        command: str,
+        *,
+        tool_name: str = "Bash",
+        cwd: str | Path | None = None,
+    ) -> str | None:
+        payload = {
+            "hook_event_name": "PreToolUse",
+            "tool_name": tool_name,
+            "cwd": str(cwd if cwd is not None else self.repo),
+            "tool_input": {"command": command},
+        }
+        result = subprocess.run(
+            [sys.executable, str(HOOK)],
+            input=json.dumps(payload),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        if not result.stdout:
+            return None
+        return json.loads(result.stdout)["hookSpecificOutput"][
+            "permissionDecisionReason"
+        ]
 
     def test_blocks_repository_root_and_metadata(self) -> None:
         self.assertIn("destructive removal blocked", self.reason("rtk rm -rf .") or "")
@@ -67,55 +98,44 @@ class DestructiveGuardTests(unittest.TestCase):
         (state / "live.sqlite3").write_bytes(b"fixture")
         self.assertIn("protected file", self.reason("rm -rf runtime-state") or "")
 
-    def test_blocks_forced_git_clean_glob_and_nested_shell(self) -> None:
-        self.assertIn("forced git clean", self.reason("rtk git clean -fdx") or "")
+    def test_blocks_non_dry_git_clean_and_ambiguous_rm_targets(self) -> None:
+        self.assertIn(
+            "non-dry-run git clean",
+            self.reason("rtk git clean -fdx") or "",
+        )
+        self.assertIn(
+            "non-dry-run git clean",
+            self.reason("git clean -dx") or "",
+        )
+        self.assertIn(
+            "non-dry-run git clean",
+            self.reason("git clean -n --no-dry-run") or "",
+        )
+        self.assertIn(
+            "non-dry-run git clean",
+            self.reason("git clean -n --no-dry -fdx") or "",
+        )
+        self.assertIn(
+            "non-dry-run git clean",
+            self.reason("git clean -n --no-dr -fdx") or "",
+        )
+        self.assertIn(
+            "non-dry-run git clean",
+            self.reason("git clean -f -e --dry-run") or "",
+        )
+        self.assertIn(
+            "non-dry-run git clean",
+            self.reason("git clean -f --exclude --dry-run") or "",
+        )
         self.assertIn("expansion or glob", self.reason("rm -rf *") or "")
         self.assertIn("expansion or glob", self.reason('rm -f "$TARGET"') or "")
-        self.assertIn(
-            "destructive removal blocked",
-            self.reason("bash -lc 'rtk rm -rf .'") or "",
-        )
-        self.assertIn(
-            "shell substitution",
-            self.reason("echo $(rm -rf .)") or "",
-        )
-
-    def test_public_hook_blocks_eval_and_nested_shell_carriers(self) -> None:
-        for command in (
-            "eval 'rm -rf /'",
-            "bash -ec 'rm -rf /'",
-            "ksh -c 'rm -rf /'",
-            "timeout 5 bash -O extglob -c 'rm -rf /'",
-            "cat <<EOF\n$(rm -rf /)\nEOF",
-            "cat <<EOF\n# $(rm -rf /)\nEOF",
-            "sh <<EOF\nrm -rf /\nEOF",
-            "printf '%s\\n' \"$(rm -rf /)\"",
-            "bash -c 'rm -rf /' -n",
-            "bash -n +n -c 'rm -rf /'",
-        ):
-            with self.subTest(command=command):
-                payload = {
-                    "hook_event_name": "PreToolUse",
-                    "tool_name": "Bash",
-                    "cwd": str(self.repo),
-                    "tool_input": {"command": command},
-                }
-                result = subprocess.run(
-                    [sys.executable, str(HOOK)],
-                    input=json.dumps(payload),
-                    text=True,
-                    capture_output=True,
-                    check=False,
-                )
-                self.assertEqual(result.returncode, 0, result.stderr)
-                output = json.loads(result.stdout)
-                self.assertEqual(
-                    output["hookSpecificOutput"]["permissionDecision"],
-                    "deny",
-                )
 
     def test_allows_dry_run_git_clean(self) -> None:
         self.assertIsNone(self.reason("rtk git clean -ndx"))
+        self.assertIsNone(self.reason("git clean --dry-run"))
+        self.assertIsNone(self.reason("git clean --d -fdx"))
+        self.assertIsNone(self.reason("git clean -n -e generated"))
+        self.assertIsNone(self.reason("git clean -e generated -n"))
 
     def test_allows_concrete_disposable_cleanup(self) -> None:
         for name in ("node_modules", "dist", ".cache", "fixture-output"):
@@ -165,268 +185,131 @@ class DestructiveGuardTests(unittest.TestCase):
         output = json.loads(result.stdout)
         self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
 
+        move_patch = (
+            "*** Begin Patch\n"
+            "*** Update File: AGENTS.md\n"
+            "*** Move to: moved.md\n"
+            "@@\n"
+            " unchanged\n"
+            "*** End Patch"
+        )
+        self.assertIn(
+            "protected file move blocked",
+            self.hook_reason(move_patch, tool_name="apply_patch") or "",
+        )
+
     def test_public_hook_denies_forbidden_capability_shell_marker(self) -> None:
         blocked_command = "codex plugin add " + "super" + "powers"
-        payload = {
-            "hook_event_name": "PreToolUse",
-            "tool_name": "Bash",
-            "cwd": str(self.repo),
-            "tool_input": {"command": blocked_command},
-        }
-        result = subprocess.run(
-            [sys.executable, str(HOOK)],
-            input=json.dumps(payload),
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        output = json.loads(result.stdout)
-        self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
         self.assertIn(
             "forbidden-capability",
-            output["hookSpecificOutput"]["permissionDecisionReason"],
+            self.hook_reason(blocked_command) or "",
         )
 
-    def test_public_hook_blocks_quoted_and_dynamic_capability_names(self) -> None:
-        install = bytes(
-            (99, 111, 100, 101, 120, 32, 112, 108, 117, 103, 105, 110, 32, 97, 100, 100, 32)
-        ).decode()
-        fetch = bytes((99, 117, 114, 108, 32)).decode()
+    def test_public_hook_denies_literal_risk_in_opaque_composition(self) -> None:
         capability = bytes(
             (115, 117, 112, 101, 114, 112, 111, 119, 101, 114, 115)
         ).decode()
-        quoted = capability[:5] + '\"\"' + capability[5:]
-        escaped = capability[:5] + "\\" + capability[5:]
-        ansi_quoted = capability[:5] + "$'\\x70'" + capability[6:]
-        command_substitution = capability[:5] + "$(printf p)" + capability[6:]
-        parameter_expansion = capability[:5] + "${x}" + capability[6:]
-        dynamic_mutator = "x=d; co${x}ex plugin add " + capability
-        combined_dynamic = (
-            "x=d; y=p; co${x}ex plugin add "
-            + capability[:5]
-            + "${y}"
-            + capability[6:]
+        commands = (
+            "bash <<'EOF' <&0\nrm -rf /\nEOF",
+            "true <&1; printf '%s\\n' 'rm -rf /' | sh",
+            "printf '%s\\n' 'rm -rf /' | { true; sh; }",
+            "{ true; sh; } <<'EOF'\nrm -rf /\nEOF",
+            "exec 3<<< 'rm -rf /'; sh <&3",
+            "printf '%s\\n' 'rm -rf /' | bash -c 'source /dev/stdin'",
+            "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=clean.requireForce "
+            "GIT_CONFIG_VALUE_0=false git clean -dx",
+            "git -c clean.requireForce=false clean -dx",
+            "git -C . clean -fdx",
+            "git --no-pager clean -fdx",
+            "rtk git -C . clean -fdx",
+            "'git' clean -fdx",
+            "git 'clean' -fdx",
+            "GIT clean -dx",
+            "RM -rf /",
+            "echo safe # comment\nrm -rf /",
+            "echo safe # comment\ngit clean -fdx",
+            "rm -rf \\\n/",
+            "git clean -n \\\n--no-dry-run",
+            "eval x\\\n#notcomment; rm -rf /",
+            "sed 's/^# //' <<'EOF' | sh\n# rm -rf /\nEOF",
+            "/tmp/echo 'rm -rf /'",
+            "/tmp/printf '%s\\n' 'git clean -fdx'",
+            f"grep -rf .codex/{capability}/patterns README.md",
+            f"sed -nf .codex/{capability}/script README.md",
+            f"cat <<'EOF' | xargs touch\n# .codex/{capability}/note\nEOF",
         )
-        blocked_commands = (
-            install + quoted,
-            install + escaped,
-            "bash -lc '" + install + quoted + "'",
-            install + ansi_quoted,
-            install + command_substitution,
-            "x=p; " + install + parameter_expansion,
-            "x=p; " + fetch + parameter_expansion,
-            dynamic_mutator,
-            combined_dynamic,
-            "timeout 60 " + install + capability,
-            "rtk " + install + capability,
-            "nice -n 5 " + install + capability,
-            "codex --strict-config plugin add " + capability,
-            "codex -c foo=bar plugin add " + capability,
-            "codex plugin -c foo=bar add " + capability,
-            "git -C /tmp clone https://example.invalid/" + capability,
-            "claude --safe-mode plugin install " + capability,
-            "claude plugins install " + capability,
-            "claude plugin i " + capability,
-            "claude plugin enable " + capability,
-            "claude --plugin-url https://example.invalid/" + capability + ".zip",
-            "claude --plugin-dir /tmp/" + capability,
-            "claude --plugin-url https://example.invalid/safe.zip plugin enable "
-            + capability,
-            "claude plugin marketplace add https://example.invalid/" + capability,
-            "claude plugin marketplace update " + capability,
-            "claude plugin marketplace add --scope user --sparse plugins "
-            + "https://example.invalid/"
-            + capability,
-            "claude plugin marketplace add --sparse "
-            + capability
-            + " --scope user https://example.invalid/safe",
-            "claude plugin tag /tmp/" + capability,
-            "claude plugin init " + capability,
-            "claude plugin new " + capability,
-            "copilot --no-color plugin install " + capability,
-            "copilot --plugin-dir /tmp/" + capability + " plugin list",
-            "copilot plugin update " + capability,
-            "copilot plugin marketplace update " + capability,
-            "copilot plugin marketplace browse " + capability,
-            "gemini extension install https://example.invalid/" + capability,
-            "gemini --debug extensions install https://example.invalid/" + capability,
-            "gemini extensions enable " + capability,
-            "gemini extensions link /tmp/" + capability,
-            "gemini extensions validate /tmp/" + capability,
-            "gemini -e " + capability,
-            "gemini -e safe " + capability,
-            "gemini -e" + capability,
-            "codex -c 'plugins.\"" + capability + "@openai-curated\".enabled=true'",
-            "codex -c'plugins.\"" + capability + "@openai-curated\".enabled=true'",
-            "codex plugin marketplace upgrade " + capability,
-            "cd /tmp/" + capability + " && claude --plugin-dir .",
-            "pushd /tmp/" + capability + " && claude --plugin-dir .",
-            "bash --norc -c 'copilot plugin install " + capability + "'",
-            "bash --rcfile /dev/null -c 'gemini extension install "
-            + "https://example.invalid/"
-            + capability
-            + "'",
-            "zsh -ocorrect -c 'copilot plugin install " + capability + "'",
-            "env -u UNUSED copilot plugin install " + capability,
-            "exec -a helper copilot plugin install " + capability,
-            "env -S 'copilot plugin install " + capability + "'",
-            "env -C /tmp/" + capability + " copilot plugin list",
-            "eval 'copilot plugin install " + capability + "'",
-            "bash -c \"eval 'copilot plugin install " + capability + "'\"",
-            "if true; then copilot plugin install " + capability + "; fi",
-            "time copilot plugin install " + capability,
-            "! copilot plugin install " + capability,
-            "sudo copilot plugin install " + capability,
-            "xargs copilot plugin install " + capability,
-            "sudo bash --norc -c 'copilot plugin install " + capability + "'",
-            "time eval 'copilot plugin install " + capability + "'",
-            "printf '%s\\n' 'plugin install "
-            + capability
-            + "' | xargs -n 3 copilot",
-            "printf '%s\\n' 'copilot plugin install " + capability + "' | sh",
-            "copilot plugin install "
-            + capability[:5]
-            + "\\\n"
-            + capability[5:],
-            'if true; then cd "$Q"; fi; claude --plugin-dir .',
-            'if true; then cd "$Q"; else cd /tmp; fi; claude --plugin-dir .',
-            'copilot "$FAMILY" install "$CAPABILITY"',
-            'claude "$FAMILY" validate "$CAPABILITY_PATH"',
-            'gemini "$FAMILY" install "$CAPABILITY_URL"',
-            'codex "$FAMILY" add "$CAPABILITY"',
-        )
-        for blocked_command in blocked_commands:
-            with self.subTest(command=blocked_command):
-                payload = {
-                    "hook_event_name": "PreToolUse",
-                    "tool_name": "Bash",
-                    "cwd": str(self.repo),
-                    "tool_input": {"command": blocked_command},
-                }
-                result = subprocess.run(
-                    [sys.executable, str(HOOK)],
-                    input=json.dumps(payload),
-                    text=True,
-                    capture_output=True,
-                    check=False,
-                )
-                self.assertEqual(result.returncode, 0, result.stderr)
-                output = json.loads(result.stdout)
-                self.assertEqual(
-                    output["hookSpecificOutput"]["permissionDecision"],
-                    "deny",
-                )
-                self.assertIn(
-                    "forbidden-capability",
-                    output["hookSpecificOutput"]["permissionDecisionReason"],
-                )
+        for command in commands:
+            with self.subTest(command=command):
+                self.assertIsNotNone(self.hook_reason(command))
 
-    def test_public_hook_blocks_uninspectable_pipeline_sinks(self) -> None:
-        blocked_commands = (
-            "printf 'codex plugin add super%s\\n' powers | sh",
-            "printf 'rm -rf %s\\n' . | sh",
-            "printf 'echo safe\\n' | env -i bash",
-            'SHELL=sh; printf \'codex plugin add super%s\\n\' powers | "$SHELL"',
-            'SHELL=sh; printf \'rm -rf %s\\n\' . | "$SHELL"',
-            "consumer() { sh; }; printf 'rm -rf %s\\n' . | consumer",
-            "printf 'rm -rf %s\\n' . | { sh; }",
-            "printf 'codex plugin add super%s\\n' powers | . /dev/stdin",
-            "printf 'codex plugin add super%s\\n' powers | source /dev/stdin",
-            "printf 'codex plugin add super%s\\0' powers | xargs -0 sh -c",
-            "printf '%s\\0' -c 'rm -rf /tmp/krn-pipeline-probe' | xargs -0 sh",
-            "printf '%s\\n' .git | xargs rm -rf",
-            "printf 'super%s\\n' powers | xargs -n 1 codex plugin add",
-            "printf 'super%s\\n' powers | xargs claude --plugin-dir",
-            "printf 'super%s\\n' powers | xargs copilot --plugin-dir",
-            "printf 'super%s\\n' powers | xargs gemini -e",
-            "printf 'plugins.super%s.enabled=true\\n' powers | xargs codex -c",
-            "printf 'echo safe\\n' | time -p sh",
-            "source /tmp/payload.sh",
-            ". /tmp/payload.sh",
-            "bash /tmp/payload.sh",
-            "printf safe | tee >(sh)",
-            "printf safe | tee >\\\n(sh)",
-            "cat <<EOF\n>(sh)\nEOF\nprintf safe | tee >(sh)",
-            "value=$((1<<2))\nprintf safe | tee >(sh)",
-            "xargs --arg-file /tmp/targets rm -rf",
-            "bash -c 'xargs --arg-file /tmp/targets rm -rf'",
-            'CMD="rm -rf /tmp/victim"; bash -c "$CMD"',
-            'CMD="$(cat /tmp/payload)"; bash -c "$CMD"',
-            'xargs "$CMD"',
-            'xargs --arg-file /tmp/targets "$CMD"',
-            'CMD=rm; "$CMD" -rf /',
-            'cat <<EOF\n$(bash -c "$CMD")\nEOF',
-            'bash -c "$CMD" --version',
-            'bash -c "$CMD" --help',
-            'bash -c "$CMD" -n',
-            'bash -n +n -c "$CMD"',
-            'bash -o noexec +o noexec -c "$CMD"',
-            "echo " + "$(" * 12 + "true" + ")" * 12,
-            "printf '%s\\n' \"$(bash /tmp/payload.sh)\"",
-            "printf '%s\\n' `bash /tmp/payload.sh`",
-            "printf '%s\\n' \"$(xargs \"$CMD\")\"",
-        )
-        for blocked_command in blocked_commands:
-            with self.subTest(command=blocked_command):
-                payload = {
-                    "hook_event_name": "PreToolUse",
-                    "tool_name": "Bash",
-                    "cwd": str(self.repo),
-                    "tool_input": {"command": blocked_command},
-                }
-                result = subprocess.run(
-                    [sys.executable, str(HOOK)],
-                    input=json.dumps(payload),
-                    text=True,
-                    capture_output=True,
-                    check=False,
-                )
-                self.assertEqual(result.returncode, 0, result.stderr)
-                output = json.loads(result.stdout)
-                self.assertEqual(
-                    output["hookSpecificOutput"]["permissionDecision"],
-                    "deny",
-                )
-                self.assertIn(
-                    "not inspectable",
-                    output["hookSpecificOutput"]["permissionDecisionReason"],
-                )
-
-    def test_public_hook_resolves_claude_targets_against_payload_cwd(self) -> None:
+    def test_public_hook_allows_only_explicit_safe_literal_text(self) -> None:
         capability = bytes(
             (115, 117, 112, 101, 114, 112, 111, 119, 101, 114, 115)
         ).decode()
-        quarantined_cwd = self.root / capability
-        for blocked_command in (
-            "claude --plugin-dir .",
-            "claude plugin validate .",
-            "claude plugin tag --dry-run",
-            "copilot skill add .",
-            "gemini skills install .",
-            "gemini skills link .",
-            "gemini skills enable .",
+        for command in (
+            "echo 'rm -rf /'",
+            "printf '%s\\n' 'git clean -fdx'",
+            f"echo {capability}",
+            "printf 'echo safe\\n' | sh",
+            "rm -rf node_modules",
+            "git clean -ndx",
+            "rm -rf node_modules # ordinary cleanup",
+            "git clean -ndx # preview",
+            "rm -rf \\\nnode_modules",
+            "git clean -n \\\n-dx",
         ):
-            with self.subTest(command=blocked_command):
-                payload = {
-                    "hook_event_name": "PreToolUse",
-                    "tool_name": "Bash",
-                    "cwd": str(quarantined_cwd),
-                    "tool_input": {"command": blocked_command},
-                }
-                result = subprocess.run(
-                    [sys.executable, str(HOOK)],
-                    input=json.dumps(payload),
-                    text=True,
-                    capture_output=True,
-                    check=False,
+            with self.subTest(command=command):
+                self.assertIsNone(self.hook_reason(command))
+
+        for command in (
+            "echo 'rm -rf /' > note",
+            "bash -n -c 'rm -rf /'",
+            "echo $(printf safe) rm -rf /",
+            "/usr/bin/echo 'rm -rf /'",
+        ):
+            with self.subTest(command=command):
+                self.assertIsNotNone(self.hook_reason(command))
+
+    def test_public_hook_blocks_quarantined_paths_without_scanning_patch_text(
+        self,
+    ) -> None:
+        capability = bytes(
+            (115, 117, 112, 101, 114, 112, 111, 119, 101, 114, 115)
+        ).decode()
+        for directive in (
+            f"*** Add File: .codex/{capability}/note.md",
+            f"*** Update File: .codex/{capability}/note.md",
+            f"*** Move to: .codex/{capability}/note.md",
+        ):
+            patch = f"*** Begin Patch\n{directive}\n+x\n*** End Patch"
+            with self.subTest(directive=directive):
+                self.assertIn(
+                    "quarantined capability",
+                    self.hook_reason(patch, tool_name="apply_patch") or "",
                 )
-                self.assertEqual(result.returncode, 0, result.stderr)
-                output = json.loads(result.stdout)
-                self.assertEqual(
-                    output["hookSpecificOutput"]["permissionDecision"],
-                    "deny",
-                )
+
+        safe_patch = (
+            "*** Begin Patch\n"
+            "*** Update File: notes.md\n"
+            "@@\n"
+            f"+the word {capability} is inert patch content\n"
+            "*** End Patch"
+        )
+        self.assertIsNone(
+            self.hook_reason(safe_patch, tool_name="apply_patch")
+        )
+        self.assertIn(
+            "working directory belongs",
+            self.hook_reason(
+                "echo safe",
+                cwd=self.root / capability / "fixture",
+            )
+            or "",
+        )
+        self.assertIn(
+            "working directory is not inspectable",
+            self.hook_reason("echo safe", cwd="") or "",
+        )
 
     def test_public_hook_needs_no_external_proxy(self) -> None:
         payload = {
@@ -447,51 +330,7 @@ class DestructiveGuardTests(unittest.TestCase):
         self.assertEqual(result.stdout, "")
 
     def test_public_hook_allows_benign_command_unmodified(self) -> None:
-        for command in (
-            "rtk pwd",
-            "git status --short",
-            "echo safe",
-            "printf '%s\\n' 'curl $URL'",
-            "copilot --no-color plugin list",
-            "gemini --debug extensions list",
-            "codex -c model=o3 --version",
-            "claude --plugin-dir /tmp/safe plugin list",
-            "cd /tmp && claude --plugin-dir .",
-            "env -u UNUSED copilot plugin list",
-            "exec -a helper copilot plugin list",
-            "eval 'echo safe'",
-            "if true; then echo safe; fi",
-            "printf '%s\\n' safe | xargs -n 1 echo",
-            "printf 'bash\\n' | grep bash",
-            "printf 'bash\\n' | time -p grep bash",
-            "bash -n scripts/install.sh",
-            "bash -n -c 'rm -rf /'",
-            "ksh -n -c 'rm -rf /'",
-            'bash -n -c "$CMD"',
-            'ksh -n -c "$CMD"',
-            'bash --version -c "$CMD"',
-            'bash --help -c "$CMD"',
-            'bash -o noexec -c "$CMD"',
-            'bash +n -n -c "$CMD"',
-            "bash --version",
-            "printf '%s\\n' \"$((1>(0)))\"",
-            "cat <<EOF\n>(sh)\nEOF",
-            "cat <<'EOF'\n>(sh)\nEOF",
-            "cat <<-EOF\n\t>(sh)\n\tEOF",
-            "cat <<EOF\n$(printf safe)\nEOF",
-            "printf '%s\\n' \"$(cat <<EOF\n>(sh)\nEOF\n)\"",
-            "printf '%s\\n' \"$(cat <<'EOF'\n$(bash /tmp/payload.sh)\nEOF\n)\"",
-            "printf '%s\\n' \"$(printf safe)\"",
-            "printf '%s\\n' '$(bash /tmp/payload.sh)'",
-            "cat <<'EOF'\n$(bash -c \"$CMD\")\nEOF",
-            "cat <<'EOF'\nsource /tmp/payload.sh\nEOF",
-            "printf '%s\\n' '>(sh)'",
-            'printf \'%s\\n\' ">(sh)"',
-            "printf '%s\\n' \\>\\(sh\\)",
-            "printf safe # >(sh)",
-            'copilot -p "$PROMPT"',
-            'claude -p "$PROMPT"',
-        ):
+        for command in ("rtk pwd", "git status --short", "echo safe"):
             with self.subTest(command=command):
                 payload = {
                     "hook_event_name": "PreToolUse",

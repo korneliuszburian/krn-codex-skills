@@ -1,6 +1,6 @@
 ---
 name: source-to-decision
-description: Turn external documentation, papers, practitioner material, or user-provided sources into an owned engineering decision. Use when a source must justify adoption, rejection, a bounded experiment, or deferral; skip fact lookup and local code inspection.
+description: Turn external documentation, papers, practitioner material, or user sources into an owned engineering decision. Use when evidence must change a named local decision through adopt, reject, lab-test, or defer; skip summaries, fact lookup, and code-only investigation.
 ---
 
 # Source To Decision
@@ -15,9 +15,11 @@ it.
 
    <decision-question>
    Question:
-   Active consumer: owning workflow | native goal | tracker item
+   Active consumer: <owning workflow | native Goal owner | user>
+   Consumer and sole result writer:
+   Configured tracker destination: none | <identity>
+   Tracker operation and authority: none | pending (<condition>) | authorized (<exact operation>)
    Named future consumer, if durable research may be needed:
-   Owner:
    Current local behavior:
    Uncertainty:
    Evidence needed:
@@ -78,7 +80,9 @@ it.
    Consumer: named consumer | missing with reason
    Falsifier or bounded experiment: named signal | missing with reason
    Does not prove:
-   Decision destination: active consumer | docs/research/<topic>.md
+   Decision return: <consumer and sole result writer>
+   Tracker record: none | pending (<condition>) | written and read back (<identity>)
+   Durable research destination: none | docs/research/<topic>.md
    Supersession rule, if durable:
    Topic-index change: none | docs/research/README.md
    Shared-system-map pointer: none | CONTEXT.md
@@ -97,22 +101,38 @@ it.
    **Done when:** the disposition survives evidence designed to falsify it, or
    changes to the result that evidence supports.
 
-6. **Deliver the decision to its named consumer.** Put the complete
-   `<source-decision>` into the active owning workflow, native goal, or tracker
-   item named in step 1. For `adopt`, hand it to `$implement` only when
-   production writes are already authorized; that workflow owns the consumer
-   change and proof.
+6. **Return the decision to its sole writer.** Return the complete
+   `<source-decision>` to the consumer and sole result writer named in step 1
+   for every disposition. That writer applies the global routing gate and
+   integrates the result into the existing Goal, workflow, or tracker surface.
+   It may select `$implement` only when adoption is already one clear production
+   change and mutation is authorized; otherwise it selects the remaining
+   uncertainty, spec, or decomposition owner. `$source-to-decision` never
+   bypasses that consumer or chooses a production owner itself.
+
+   A tracker identity is context, not write authority. When a configured tracker
+   destination exists, return the decision to its sole writer with `Tracker
+   record: pending` unless that exact `$source-to-decision` session is itself the
+   named sole writer, the configured operation is explicit, and separate tracker
+   mutation authority exists. Only that exceptional branch may perform the exact
+   operation, read it back, and report `written and read back`. Under
+   `$wayfinder`, the map integrator is always the sole tracker writer:
+   `$source-to-decision` returns the complete decision and never mutates or
+   closes the child ticket or parent map.
 
    When this investigation must cross a context boundary and `$delivery-loop`
    already owns the active outcome capsule, return the complete decision to its
    named `Current workflow owner and sole writer`; `$source-to-decision` does not
    mutate the capsule. Acting as `$delivery-loop`, that writer preserves `Outcome
-   and observable acceptance` and every other ABI field, then records the decision
-   question and disposition under `Open unknowns and blockers with owners`, source
-   identities and mechanism under `Evidence observed`, limitations and nonclaims
-   under `Explicit non-proofs`, and the decision owner under `Next bounded owner
-   and action`. `$source-to-decision` never creates, relocates, or removes that
-   capsule; `$delivery-loop` alone owns its content, exact path, and lifecycle.
+   and observable acceptance` and every other ABI field, then records the settled
+   decision question, source identities, mechanism, disposition, and rationale
+   under `Evidence observed`; limitations and nonclaims under `Explicit
+   non-proofs`; and the consumer plus exact follow-up gate under `Next bounded
+   owner and action`. It removes the resolved question from `Open unknowns and
+   blockers with owners`. Only a genuine remaining `lab-test` or `defer`
+   condition stays there, with its owner. `$source-to-decision` never creates,
+   relocates, or removes that capsule; `$delivery-loop` alone owns its content,
+   exact path, and lifecycle.
    Without an active delivery-loop capsule, continuation stays in the native Goal
    or configured tracker. If file-backed restart state becomes necessary, hand
    lifecycle ownership to `$delivery-loop` instead of inventing a partial or
@@ -135,7 +155,9 @@ it.
    provenance. Never commit copied passages, exercises, solutions, or raw
    extraction.
 
-   **Done when:** the named consumer receives a bounded adoption or non-adoption
-   result, every promoted claim has nearby provenance, any repository update is
-   confined to the canonical topic plus its earned index or context pointers,
-   and this workflow makes no unverified implementation claim.
+   **Done when:** the named consumer and sole writer receives a bounded adoption
+   or non-adoption result, tracker state is truthfully `none`, `pending`, or
+   written and read back under explicit authority, every promoted claim has
+   nearby provenance, any repository update is confined to the canonical topic
+   plus its earned index or context pointers, and this workflow makes no
+   unverified implementation claim.
