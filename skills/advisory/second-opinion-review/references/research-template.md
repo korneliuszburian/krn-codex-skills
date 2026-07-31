@@ -10,15 +10,15 @@ not a research pass.
 ## Campaign manifest
 
 Use schema version `1`. IDs use lowercase letters, digits, and single hyphens.
-Every source has explicit provenance: a full Git commit for the current
-repository, a SHA-256 for a local artifact such as a transcript, or a declared
-source version, commit, video ID, or retrieval date for an HTTPS URL. Repository
-and artifact revisions are mechanically checked; URL provenance is recorded but
-does not freeze remote bytes. `required: true` means the result must mark the
-source `used` or `unavailable`, never silently omit it. Put a local artifact in
-its own bounded source directory; the runner rejects filesystem root, home,
-shared temp root, agent configuration, secret-shaped files, and symlinks rather
-than granting a broad `--add-dir`.
+Every source has explicit provenance: a full Git commit plus literal allowed
+path prefixes for the current repository, a SHA-256 for a local artifact such as
+a transcript, or a declared source version, commit, video ID, or retrieval date
+for an HTTPS URL. Repository and artifact revisions are mechanically checked;
+URL provenance is recorded but does not freeze remote bytes. `required: true`
+means the result must mark the source `used` or `unavailable`, never silently
+omit it. Put a local artifact in its own bounded source directory; the runner
+rejects filesystem root, home, shared temp root, agent configuration,
+secret-shaped files, and symlinks rather than granting a broad `--add-dir`.
 
 ```json
 {
@@ -31,6 +31,7 @@ than granting a broad `--add-dir`.
       "kind": "repository",
       "locator": ".",
       "revision": "FULL_COMMIT_OID",
+      "allowed_paths": ["README.md", "skills", "docs/research"],
       "authority": "local",
       "purpose": "Compare external mechanisms with the current implementation.",
       "required": true
@@ -116,16 +117,18 @@ reopening the repository, artifacts, or web. Before either role launches, the
 runner creates one disposable `0700` input root outside the repository and
 pass directory. The runner resolves and verifies that physical root before
 staging; roots below the repository, pass, a declared artifact parent, or any
-Git worktree fail closed. A research shard receives only its declared
-repository fixed point materialized byte-for-byte from the pinned Git tree,
-with Git replacement objects disabled, plus exact copies of its declared
-artifact bytes. A synthesis shard receives only exact copies of its named,
+Git worktree fail closed. A research shard receives only blobs matching its
+repository source's literal `allowed_paths`, materialized byte-for-byte from the
+pinned Git tree with Git replacement objects disabled, plus exact copies of its
+declared artifact bytes. Every allowed path must match the pinned tree; `.` and
+glob patterns are invalid, and selected secret-shaped paths fail closed before
+model invocation. A synthesis shard receives only exact copies of its named,
 validated dependency results. Tracked symlink blobs are exposed as regular
-transport files so they cannot escape the input root; gitlinks fail closed
-because their content is not present in the pinned tree. No shard receives the
-campaign pass directory, an artifact's parent directory, or a sibling
-job/result directory. Canonical source locators remain provenance and citation
-identities; generated absolute transport locators exist only for that
+transport files so they cannot escape the input root; selected gitlinks fail
+closed because their content is not present in the pinned tree. No shard
+receives the campaign pass directory, an artifact's parent directory, or a
+sibling job/result directory. Canonical source locators remain provenance and
+citation identities; generated absolute transport locators exist only for that
 invocation, are rejected if returned as citations, and are deleted afterward.
 
 Both roles use `dontAsk`, safe mode, no session persistence, and structured

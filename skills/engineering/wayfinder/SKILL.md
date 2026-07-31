@@ -69,10 +69,10 @@ when the route to the destination is settled. `$to-spec`, `$slice-work`,
    persist the execution envelope from [map-template.md](references/map-template.md):
    canonical repository realpath and `cwd`, immutable ref or exact input
    working-tree fingerprint, allowed paths and separate mutation authority,
-   result shape and return owner, named consumer, and non-proof. Mark it
-   `NOT_APPLICABLE` with a reason only when the delegated work cannot depend on
-   repository or filesystem state. A tracker identity never supplies this
-   authority.
+   result shape plus a pointer to the child's canonical **Result return** block,
+   named consumer, and non-proof. Mark it `NOT_APPLICABLE` with a reason only
+   when the delegated work cannot depend on repository or filesystem state. A
+   tracker identity never supplies this authority.
 
    In the map's **Map integrator** block, persist the sole tracker-writer
    identity, exact result-return channel, non-secret tracker-authority state,
@@ -108,14 +108,15 @@ when the route to the destination is settled. `$to-spec`, `$slice-work`,
    owner returns `$domain-modeling`'s confirmed decision. A task owner returns
    completion evidence or readback. None closes or mutates the tracker ticket.
 
-   Independent frontier tickets may run concurrently only after distinct claims
-   and under the surrounding writer and authority policy. Concurrent workers
-   with file-write authority require isolated worktrees, disjoint allowed paths,
-   and one named integration owner; otherwise serialize them or keep their
-   mutation authority `NONE`. One map integrator serializes every child and
-   parent tracker mutation. Each worker context owns one question, treats tracker
-   identities as read-only context, and returns its complete evidence to that
-   integrator rather than mutating a ticket or map.
+   Every worker with file-write authority requires an isolated worktree and one
+   named integration owner, even when it runs serially. Independent frontier
+   tickets may run concurrently only after distinct claims and under the
+   surrounding writer and authority policy; concurrent file writers additionally
+   require disjoint allowed paths. Without those boundaries, keep mutation
+   authority `NONE`. One map integrator serializes every child and parent tracker
+   mutation. Each worker context owns one question, treats tracker identities as
+   read-only context, and returns its complete evidence to that integrator rather
+   than mutating a ticket or map.
 
    Transfer the integrator only when no child is claimed or in flight. Through
    the configured tracker operation, the current integrator or separately

@@ -96,17 +96,20 @@ filesystem state>)`, or record all of:
 - canonical repository realpath and `cwd`;
 - immutable ref or exact input working-tree fingerprint;
 - allowed paths and separate mutation authority;
-- result shape and exact return owner;
+- result shape and pointer to the canonical **Result return** block below;
 - named consumer;
 - what the result does not prove.
 
 Read this block back before delegation. A tracker identity, claim, or child type
-does not grant repository writes or widen the recorded paths. Concurrent
-write-capable children require isolated worktrees, disjoint allowed paths, and
-one named integration owner; otherwise their mutation authority is `NONE` or
-they run serially.
+does not grant repository writes or widen the recorded paths. Every write-capable
+child requires an isolated worktree and one named integration owner, even when
+serial. Concurrent file writers additionally require disjoint allowed paths;
+otherwise their mutation authority is `NONE`.
 
 ## Result return
+
+This is the child's sole mutable return destination. Integrator transfer updates
+and reads back this block; the execution envelope only points here.
 
 Map integrator: `<active identity copied from the parent>`
 

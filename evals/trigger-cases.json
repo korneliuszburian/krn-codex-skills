@@ -721,6 +721,34 @@
       ]
     },
     {
+      "id": "wayfinder-serial-write-capable-worker-needs-isolation",
+      "prompt": "Use $wayfinder and $prototype for one ready repository-dependent prototype ticket. Even though it is the only active worker, give its file-write authority an isolated worktree, bind exact allowed paths, and return the verdict through the child's canonical Result return block without starting production implementation.",
+      "expected_skills": [
+        "wayfinder",
+        "prototype"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "delivery-loop",
+        "codebase-design",
+        "source-to-decision"
+      ]
+    },
+    {
+      "id": "wayfinder-transfer-updates-one-result-return-block",
+      "prompt": "Use $wayfinder to transfer the map integrator from A to B while one unclaimed repository-dependent child remains open. Update and read back that child's sole canonical Result return block for B and the new generation; do not duplicate the return owner in its execution envelope or start the child.",
+      "expected_skills": [
+        "wayfinder"
+      ],
+      "forbidden_skills": [
+        "implement",
+        "delivery-loop",
+        "prototype",
+        "codebase-design",
+        "source-to-decision"
+      ]
+    },
+    {
       "id": "wayfinder-task-tracks-an-authorized-prerequisite",
       "prompt": "Use $wayfinder to continue our existing map: claim the ready task ticket for an already-authorized site survey, track the named operator's action, and verify its readback because that evidence unblocks a storage decision. Do not perform implementation or grant new authority.",
       "expected_skills": [

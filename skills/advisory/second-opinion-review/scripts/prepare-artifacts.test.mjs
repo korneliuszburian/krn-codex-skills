@@ -137,6 +137,7 @@ function writeResearchCampaign(passDirectory, shardIds) {
         kind: "repository",
         locator: ".",
         revision: "a".repeat(40),
+        allowed_paths: ["README.md"],
         authority: "local",
         purpose: "Provide one fixed source.",
         required: true,

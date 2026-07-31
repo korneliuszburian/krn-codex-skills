@@ -98,9 +98,9 @@ check transport when a fixed artifact only needs an adversarial challenge.
    the bounded retry requests a complete corrected result; neither layer clips
    or silently discards cited evidence.
 
-   Point to existing issues, commits, diffs, and source paths instead of
-   restating them. Pin mutable sources. Redact secrets, credentials, private
-   data, environment files, and raw copyrighted corpus in either branch.
+   Point to existing issues, commits, diffs, and source paths. Pin mutable
+   sources. Repository research exposes only blobs matching literal allowed paths.
+   Redact secrets, credentials, private data, environment files, and raw corpus.
 
    **Done when:** exactly one role-specific reference has produced a brief that
    a fresh pass can execute without reconstructing this conversation, and every

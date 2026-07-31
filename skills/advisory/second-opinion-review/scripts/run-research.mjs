@@ -23,13 +23,40 @@ import { verifyPassDirectory } from "./prepare-artifacts.mjs";
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const skillDirectory = path.dirname(scriptDirectory);
 const researchSchemaPath = path.join(skillDirectory, "references", "research.schema.json");
-const deniedSegments = new Set([".agents", ".claude", ".codex", ".git", "secrets"]);
+const deniedSegments = new Set([
+  ".agents",
+  ".claude",
+  ".codex",
+  ".git",
+  "credentials",
+  "secrets",
+]);
+const deniedBasenames = new Set([
+  ".npmrc",
+  ".pypirc",
+  "credentials.json",
+  "id_ed25519",
+  "id_rsa",
+  "service-account.json",
+]);
 const deniedSuffixes = new Set([".key", ".p12", ".pem"]);
 
 class ResearchRunnerError extends Error {}
 
 function fail(message) {
   throw new ResearchRunnerError(message);
+}
+
+function isSecretShapedPath(segments) {
+  const normalized = segments.map((segment) => segment.toLowerCase());
+  const basename = normalized.at(-1) ?? "";
+  return (
+    normalized.some((segment) => deniedSegments.has(segment)) ||
+    basename === ".env" ||
+    basename.startsWith(".env.") ||
+    deniedBasenames.has(basename) ||
+    deniedSuffixes.has(path.extname(basename))
+  );
 }
 
 function command(commandName, args, cwd) {
@@ -108,13 +135,7 @@ function assertSafeArtifact(source) {
   }
   const resolved = fs.realpathSync(source.locator);
   const segments = resolved.split(path.sep);
-  const basename = path.basename(resolved).toLowerCase();
-  if (
-    segments.some((segment) => deniedSegments.has(segment)) ||
-    basename === ".env" ||
-    basename.startsWith(".env.") ||
-    deniedSuffixes.has(path.extname(basename))
-  ) {
+  if (isSecretShapedPath(segments)) {
     fail(`artifact source uses a denied secret-shaped path: ${source.id}`);
   }
   const descriptor = fs.openSync(
@@ -283,7 +304,14 @@ function writeGitBlob(repository, objectId, destination, mode) {
   }
 }
 
-function materializeRepositorySnapshot(repository, destination) {
+function matchingAllowedPaths(repositoryPath, allowedPaths) {
+  return allowedPaths.filter(
+    (allowedPath) =>
+      repositoryPath === allowedPath || repositoryPath.startsWith(`${allowedPath}/`),
+  );
+}
+
+function materializeRepositorySnapshot(repository, destination, allowedPaths) {
   makePrivateDirectory(destination);
   const listing = commandBuffer(
     "git",
@@ -298,6 +326,7 @@ function materializeRepositorySnapshot(repository, destination) {
     repository.root,
   );
   const decoder = new TextDecoder("utf-8", { fatal: true });
+  const matchedAllowedPaths = new Set();
   for (let offset = 0; offset < listing.length; ) {
     const end = listing.indexOf(0, offset);
     if (end === -1) fail("repository tree listing is not NUL terminated");
@@ -312,9 +341,6 @@ function materializeRepositorySnapshot(repository, destination) {
     );
     if (!match) fail(`repository tree contains an unsupported entry: ${header}`);
     const [, objectMode, objectType, objectId] = match;
-    if (objectMode === "160000" || objectType === "commit") {
-      fail("repository snapshot contains unsupported gitlinks");
-    }
     let repositoryPath;
     try {
       repositoryPath = decoder.decode(record.subarray(separator + 1));
@@ -328,6 +354,15 @@ function materializeRepositorySnapshot(repository, destination) {
       repositoryPath.split("/").some((segment) => segment === "." || segment === "..")
     ) {
       fail(`repository snapshot contains an unsafe path: ${repositoryPath}`);
+    }
+    const allowedMatches = matchingAllowedPaths(repositoryPath, allowedPaths);
+    if (allowedMatches.length === 0) continue;
+    for (const allowedPath of allowedMatches) matchedAllowedPaths.add(allowedPath);
+    if (isSecretShapedPath(repositoryPath.split("/"))) {
+      fail(`repository snapshot selects a denied secret-shaped path: ${repositoryPath}`);
+    }
+    if (objectMode === "160000" || objectType === "commit") {
+      fail(`repository snapshot contains an unsupported gitlink: ${repositoryPath}`);
     }
     const destinationPath = path.resolve(
       destination,
@@ -345,6 +380,11 @@ function materializeRepositorySnapshot(repository, destination) {
       destinationPath,
       objectMode === "100755" ? 0o700 : 0o600,
     );
+  }
+  for (const allowedPath of allowedPaths) {
+    if (!matchedAllowedPaths.has(allowedPath)) {
+      fail(`repository allowed path matches no pinned tree entry: ${allowedPath}`);
+    }
   }
   assertSnapshotTreeSafe(destination);
 }
@@ -395,6 +435,13 @@ function stageShardInputs({
     const selectedSources = campaign.sources.filter((source) =>
       shard.source_ids.includes(source.id),
     );
+    const repositoryAllowedPaths = [
+      ...new Set(
+        selectedSources
+          .filter((source) => source.kind === "repository")
+          .flatMap((source) => source.allowed_paths),
+      ),
+    ];
     let repositoryStaged = false;
     const promptSources = selectedSources.map((source) => {
       if (shard.kind === "synthesis") return source;
@@ -403,6 +450,7 @@ function stageShardInputs({
           materializeRepositorySnapshot(
             repository,
             path.join(transportRoot, "repository"),
+            repositoryAllowedPaths,
           );
           repositoryStaged = true;
         }

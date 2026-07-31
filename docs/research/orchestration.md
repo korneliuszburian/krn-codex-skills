@@ -123,10 +123,11 @@ matching activation readback. Fresh ticket workers treat the map and child as
 read-only and return complete results through that channel; only the recorded
 integrator writes, and a pending or mismatched generation blocks the frontier.
 Repository-dependent children also carry canonical repository and `cwd`, fixed
-point, allowed paths, separate mutation authority, result owner, consumer, and
-non-proof. Concurrent write-capable workers use isolated worktrees, disjoint
-allowed paths, and one integration owner; otherwise they run serially or
-read-only.
+point, allowed paths, separate mutation authority, result shape, consumer, and
+non-proof; their canonical **Result return** block alone holds the mutable return
+destination. Every write-capable child uses an isolated worktree and one
+integration owner. Concurrent file writers additionally use disjoint allowed
+paths; otherwise the child remains read-only.
 
 Wrappers and companions:
 

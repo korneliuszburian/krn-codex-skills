@@ -28,6 +28,7 @@ const sourceKeys = new Set([
   "purpose",
   "required",
 ]);
+const repositorySourceKeys = new Set([...sourceKeys, "allowed_paths"]);
 const shardKeys = new Set([
   "id",
   "kind",
@@ -125,6 +126,27 @@ function textList(value, label, { allowEmpty = true } = {}) {
   return values;
 }
 
+function repositoryPaths(value, label) {
+  const values = array(value, label).map((item, index) => {
+    const repositoryPath = string(item, `${label}[${index}]`, 1000);
+    const segments = repositoryPath.split("/");
+    if (
+      repositoryPath.includes("\\") ||
+      /[*?\[\]]/.test(repositoryPath) ||
+      path.posix.isAbsolute(repositoryPath) ||
+      path.posix.normalize(repositoryPath) !== repositoryPath ||
+      segments.some((segment) => !segment || segment === "." || segment === "..")
+    ) {
+      fail(`${label}[${index}] must be a literal normalized repository-relative path`);
+    }
+    return repositoryPath;
+  });
+  if (values.length === 0) fail(`${label} must not be empty`);
+  if (values.length > 200) fail(`${label} must contain at most 200 paths`);
+  if (new Set(values).size !== values.length) fail(`${label} contains duplicates`);
+  return values;
+}
+
 function parseJson(file, label) {
   let raw;
   try {
@@ -152,7 +174,11 @@ export function validateCampaign(value) {
   if (sources.length > 100) fail("sources must contain at most 100 entries");
   for (const [index, rawSource] of sources.entries()) {
     const source = object(rawSource, `sources[${index}]`);
-    exactKeys(source, sourceKeys, `sources[${index}]`);
+    exactKeys(
+      source,
+      source.kind === "repository" ? repositorySourceKeys : sourceKeys,
+      `sources[${index}]`,
+    );
     const sourceId = identifier(source.id, `sources[${index}].id`);
     if (sourceIds.has(sourceId)) fail(`duplicate source id: ${sourceId}`);
     sourceIds.add(sourceId);
@@ -173,6 +199,7 @@ export function validateCampaign(value) {
       if (!objectIdPattern.test(revision)) {
         fail(`repository source ${sourceId} revision must be a full Git object id`);
       }
+      repositoryPaths(source.allowed_paths, `sources[${index}].allowed_paths`);
     }
     if (source.kind === "url") {
       let parsed;

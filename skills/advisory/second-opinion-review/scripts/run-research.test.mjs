@@ -11,6 +11,7 @@ import {
   buildResearchPrompt,
   jobPathFor,
   resultPathFor,
+  validateCampaign,
 } from "./research-campaign.mjs";
 import { prepareArtifactDirectory } from "./prepare-artifacts.mjs";
 import { checkResearch, runResearch } from "./run-research.mjs";
@@ -57,6 +58,7 @@ test("gives the model the exact dynamic result identity", () => {
         kind: "repository",
         locator: ".",
         revision: "a".repeat(40),
+        allowed_paths: ["README.md"],
         authority: "local",
         purpose: "Evidence.",
         required: true,
@@ -91,7 +93,7 @@ function run(command, args, cwd) {
   return result.stdout.trim();
 }
 
-function makeFixture({ gitlink = false, replacementObject = false } = {}) {
+function makeFixture({ gitlink = false, replacementObject = false, secretPath = false } = {}) {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "second-opinion-research-test-"));
   const repository = path.join(sandbox, "repository");
   const sourceDirectory = path.join(sandbox, "sources");
@@ -103,6 +105,8 @@ function makeFixture({ gitlink = false, replacementObject = false } = {}) {
     "README.md export-ignore\nSUBST.txt export-subst\n",
   );
   fs.writeFileSync(path.join(repository, "SUBST.txt"), "$Format:%H$\n");
+  fs.writeFileSync(path.join(repository, "unlisted-private-notes.txt"), "not selected\n");
+  if (secretPath) fs.writeFileSync(path.join(repository, ".env"), "TOKEN=do-not-stage\n");
   fs.symlinkSync("../../outside-secret", path.join(repository, "escaping-link"));
   run("git", ["init", "-q"], repository);
   run("git", ["config", "user.name", "Research Test"], repository);
@@ -119,8 +123,10 @@ function makeFixture({ gitlink = false, replacementObject = false } = {}) {
       "README.md",
       ".gitattributes",
       "SUBST.txt",
+      "unlisted-private-notes.txt",
       "escaping-link",
       ".krn/runs/.gitignore",
+      ...(secretPath ? [".env"] : []),
     ],
     repository,
   );
@@ -188,6 +194,15 @@ function makeFixture({ gitlink = false, replacementObject = false } = {}) {
         kind: "repository",
         locator: ".",
         revision: commit,
+        allowed_paths: [
+          ".gitattributes",
+          ".krn/runs/.gitignore",
+          "README.md",
+          "SUBST.txt",
+          "escaping-link",
+          ...(gitlink ? ["vendor"] : []),
+          ...(secretPath ? [".env"] : []),
+        ],
         authority: "local",
         purpose: "Compare recommendations with the current implementation.",
         required: true,
@@ -359,6 +374,23 @@ function isWithin(parent, candidate) {
       !path.isAbsolute(relative))
   );
 }
+
+test("repository research requires literal bounded allowed paths", () => {
+  const fixture = makeFixture();
+  try {
+    for (const allowedPaths of [undefined, [], ["."], ["skills/**"], ["../outside"]]) {
+      const candidate = structuredClone(fixture.campaign);
+      const repositorySource = candidate.sources.find(
+        (source) => source.kind === "repository",
+      );
+      if (allowedPaths === undefined) delete repositorySource.allowed_paths;
+      else repositorySource.allowed_paths = allowedPaths;
+      assert.throws(() => validateCampaign(candidate), /allowed_paths/);
+    }
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
 
 const testEnvironment = {
   ...process.env,
@@ -546,6 +578,39 @@ test("materializes pinned blobs with Git replacement objects disabled", () => {
       "fixed repository evidence\n",
     );
     assert.equal(fs.existsSync(captured.cwd), false);
+  } finally {
+    fs.rmSync(fixture.sandbox, { recursive: true, force: true });
+  }
+});
+
+test("rejects an allowed secret-shaped repository path before invoking Claude", () => {
+  const fixture = makeFixture({ secretPath: true });
+  let invoked = false;
+  try {
+    assert.throws(
+      () =>
+        runResearch({
+          campaignPath: fixture.campaignFile,
+          shardId: "source-analysis",
+          cwd: fixture.repository,
+          env: testEnvironment,
+          windowCheck: () => {},
+          claudeInvoker: () => {
+            invoked = true;
+            return envelope(structuredResult(fixture.campaign, "source-analysis"));
+          },
+        }),
+      /repository snapshot selects a denied secret-shaped path: \.env/,
+    );
+    assert.equal(invoked, false);
+    assert.equal(
+      fs.existsSync(resultPathFor(fixture.campaignFile, "source-analysis")),
+      false,
+    );
+    const job = JSON.parse(
+      fs.readFileSync(jobPathFor(fixture.campaignFile, "source-analysis")),
+    );
+    assert.equal(job.state, "failed");
   } finally {
     fs.rmSync(fixture.sandbox, { recursive: true, force: true });
   }
@@ -908,7 +973,7 @@ test("fails closed on gitlinks before invoking Claude", () => {
             return envelope(structuredResult(fixture.campaign, "source-analysis"));
           },
         }),
-      /repository snapshot contains unsupported gitlinks/,
+      /repository snapshot contains an unsupported gitlink/,
     );
     assert.equal(invoked, false);
     assert.equal(
