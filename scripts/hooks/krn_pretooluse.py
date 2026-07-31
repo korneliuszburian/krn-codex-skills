@@ -99,6 +99,573 @@ def command_tokens(command: str) -> tuple[str, ...]:
         return ()
 
 
+def without_inactive_shell_comments(command: str) -> str:
+    """Remove executable-shell comments while preserving quoted hash data."""
+
+    output: list[str] = []
+    quote: str | None = None
+    word_start = True
+    index = 0
+    while index < len(command):
+        character = command[index]
+        if quote is not None:
+            output.append(character)
+            if character == "\\" and quote == '"' and index + 1 < len(command):
+                index += 1
+                output.append(command[index])
+            elif character == quote:
+                quote = None
+            index += 1
+            continue
+        if character == "\\" and index + 1 < len(command):
+            output.extend(command[index:index + 2])
+            index += 2
+            word_start = False
+            continue
+        if character in {"'", '"'}:
+            quote = character
+            output.append(character)
+            index += 1
+            word_start = False
+            continue
+        if character == "#" and word_start:
+            newline = command.find("\n", index + 1)
+            if newline < 0:
+                break
+            output.append("\n")
+            index = newline + 1
+            word_start = True
+            continue
+        output.append(character)
+        word_start = character.isspace() or character in ";&|()< >"
+        index += 1
+    return "".join(output)
+
+
+def with_unquoted_newline_boundaries(command: str) -> str:
+    """Represent executable newlines as command boundaries for shlex."""
+
+    output: list[str] = []
+    quote: str | None = None
+    index = 0
+    while index < len(command):
+        character = command[index]
+        if quote is not None:
+            output.append(character)
+            if character == "\\" and quote == '"' and index + 1 < len(command):
+                index += 1
+                output.append(command[index])
+            elif character == quote:
+                quote = None
+            index += 1
+            continue
+        if character == "\\" and index + 1 < len(command):
+            output.extend(command[index:index + 2])
+            index += 2
+            continue
+        if character in {"'", '"'}:
+            quote = character
+            output.append(character)
+            index += 1
+            continue
+        output.append(";" if character in "\r\n" else character)
+        index += 1
+    return "".join(output)
+
+
+def arithmetic_expression_end(text: str, index: int) -> int:
+    parenthesis_depth = 0
+    while index < len(text):
+        if text[index] == "\\":
+            index += 2
+            continue
+        if text[index] == "(":
+            parenthesis_depth += 1
+            index += 1
+            continue
+        if text[index] == ")":
+            if parenthesis_depth == 0 and text[index:index + 2] == "))":
+                return index + 2
+            if parenthesis_depth > 0:
+                parenthesis_depth -= 1
+        index += 1
+    return index
+
+
+def command_substitution_end(
+    text: str,
+    index: int,
+    *,
+    depth: int = 0,
+) -> int | None:
+    if depth > 8:
+        return None
+    parenthesis_depth = 0
+    quote: str | None = None
+    while index < len(text):
+        character = text[index]
+        if quote is not None:
+            if character == "\\" and quote == '"':
+                index += 2
+                continue
+            if character == quote:
+                quote = None
+            index += 1
+            continue
+        if character == "\\":
+            index += 2
+            continue
+        if character in {"'", '"'}:
+            quote = character
+            index += 1
+            continue
+        if text[index:index + 2] == "$(":
+            nested_end = command_substitution_end(
+                text,
+                index + 2,
+                depth=depth + 1,
+            )
+            if nested_end is None:
+                return None
+            index = nested_end
+            continue
+        if character == "(":
+            parenthesis_depth += 1
+        elif character == ")":
+            if parenthesis_depth == 0:
+                return index + 1
+            parenthesis_depth -= 1
+        index += 1
+    return None
+
+
+def backtick_substitution_end(text: str, index: int) -> int | None:
+    while index < len(text):
+        if text[index] == "\\":
+            index += 2
+            continue
+        if text[index] == "`":
+            return index + 1
+        index += 1
+    return None
+
+
+def heredoc_expansion_commands(
+    body: str,
+    *,
+    depth: int = 0,
+) -> tuple[str, ...] | None:
+    if depth > 8:
+        return None
+    commands: list[str] = []
+    index = 0
+    while index < len(body):
+        if body[index] == "\\" and index + 1 < len(body):
+            index += 2
+            continue
+        if body[index:index + 3] == "$((":
+            arithmetic_end = arithmetic_expression_end(body, index + 3)
+            arithmetic_body = body[index + 3:max(index + 3, arithmetic_end - 2)]
+            nested = heredoc_expansion_commands(
+                arithmetic_body,
+                depth=depth + 1,
+            )
+            if nested is None:
+                return None
+            commands.extend(nested)
+            index = arithmetic_end
+            continue
+        if body[index:index + 2] == "$(":
+            end = command_substitution_end(body, index + 2)
+            if end is None:
+                return None
+            commands.append(body[index + 2:end - 1])
+            index = end
+            continue
+        if body[index] == "`":
+            end = backtick_substitution_end(body, index + 1)
+            if end is None:
+                return None
+            commands.append(body[index + 1:end - 1])
+            index = end
+            continue
+        index += 1
+    return tuple(commands)
+
+
+def shell_expansion_commands(
+    command: str,
+    *,
+    depth: int = 0,
+) -> tuple[str, ...] | None:
+    if depth > 8:
+        return None
+    commands: list[str] = []
+    quote: str | None = None
+    index = 0
+    while index < len(command):
+        character = command[index]
+        if quote == "'":
+            if character == "'":
+                quote = None
+            index += 1
+            continue
+        if character == "\\":
+            index += 2
+            continue
+        if character in {"'", '"'}:
+            if quote is None:
+                quote = character
+            elif quote == character:
+                quote = None
+            index += 1
+            continue
+        if command[index:index + 3] == "$((":
+            arithmetic_end = arithmetic_expression_end(command, index + 3)
+            arithmetic_body = command[
+                index + 3:max(index + 3, arithmetic_end - 2)
+            ]
+            nested = shell_expansion_commands(
+                arithmetic_body,
+                depth=depth + 1,
+            )
+            if nested is None:
+                return None
+            commands.extend(nested)
+            index = arithmetic_end
+            continue
+        if command[index:index + 2] == "$(":
+            end = command_substitution_end(command, index + 2)
+            if end is None:
+                return None
+            nested_command = command[index + 2:end - 1]
+            commands.append(nested_command)
+            nested_view, nested_uninspectable = shell_view_without_heredoc_data(
+                nested_command
+            )
+            if nested_uninspectable:
+                return None
+            nested = shell_expansion_commands(
+                nested_view,
+                depth=depth + 1,
+            )
+            if nested is None:
+                return None
+            commands.extend(nested)
+            index = end
+            continue
+        if character == "`":
+            end = backtick_substitution_end(command, index + 1)
+            if end is None:
+                return None
+            nested_command = command[index + 1:end - 1]
+            commands.append(nested_command)
+            nested_view, nested_uninspectable = shell_view_without_heredoc_data(
+                nested_command
+            )
+            if nested_uninspectable:
+                return None
+            nested = shell_expansion_commands(
+                nested_view,
+                depth=depth + 1,
+            )
+            if nested is None:
+                return None
+            commands.extend(nested)
+            index = end
+            continue
+        index += 1
+    return tuple(commands)
+
+
+def shell_view_with_expansion_commands(command: str) -> tuple[str, bool]:
+    commands = shell_expansion_commands(command)
+    if commands is None:
+        return command, True
+    nested_views: list[str] = []
+    uninspectable = False
+    for nested in commands:
+        nested_view, nested_uninspectable = shell_view_without_heredoc_data(nested)
+        nested_views.append(without_inactive_shell_comments(nested_view))
+        uninspectable = uninspectable or nested_uninspectable
+    suffix = "".join(f";{nested};" for nested in nested_views)
+    return command + suffix, uninspectable
+
+
+def heredoc_declarations(line: str) -> tuple[tuple[str, bool, bool], ...]:
+    declarations: list[tuple[str, bool, bool]] = []
+    index = 0
+    quote: str | None = None
+    while index < len(line):
+        character = line[index]
+        if quote is not None:
+            if character == "\\" and quote == '"':
+                index += 2
+                continue
+            if character == quote:
+                quote = None
+            index += 1
+            continue
+        if character == "\\":
+            index += 2
+            continue
+        if character in {"'", '"'}:
+            quote = character
+            index += 1
+            continue
+        if character == "#" and (
+            index == 0 or line[index - 1].isspace() or line[index - 1] in ";&|()<>"
+        ):
+            break
+        if line[index:index + 3] == "$((":
+            index = arithmetic_expression_end(line, index + 3)
+            continue
+        if line[index:index + 2] == "((":
+            index = arithmetic_expression_end(line, index + 2)
+            continue
+        if line[index:index + 2] != "<<" or line[index:index + 3] == "<<<":
+            index += 1
+            continue
+        index += 2
+        strip_tabs = line[index:index + 1] == "-"
+        if strip_tabs:
+            index += 1
+        while index < len(line) and line[index] in " \t":
+            index += 1
+        delimiter: list[str] = []
+        delimiter_quote: str | None = None
+        quoted_delimiter = False
+        while index < len(line):
+            character = line[index]
+            if delimiter_quote is not None:
+                if character == "\\" and delimiter_quote == '"' and index + 1 < len(line):
+                    index += 1
+                    delimiter.append(line[index])
+                elif character == delimiter_quote:
+                    delimiter_quote = None
+                else:
+                    delimiter.append(character)
+                index += 1
+                continue
+            if character in {"'", '"'}:
+                quoted_delimiter = True
+                delimiter_quote = character
+                index += 1
+                continue
+            if character == "\\" and index + 1 < len(line):
+                quoted_delimiter = True
+                index += 1
+                delimiter.append(line[index])
+                index += 1
+                continue
+            if character.isspace() or character in ";&|()<>":
+                break
+            delimiter.append(character)
+            index += 1
+        if delimiter:
+            declarations.append(
+                ("".join(delimiter), strip_tabs, not quoted_delimiter)
+            )
+    return tuple(declarations)
+
+
+def shell_view_without_heredoc_data(command: str) -> tuple[str, bool]:
+    """Mask heredoc data and retain commands expanded by unquoted heredocs."""
+
+    lines = command.splitlines(keepends=True)
+    output: list[str] = []
+    uninspectable_expansion = False
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        output.append(line)
+        pending = list(heredoc_declarations(line))
+        index += 1
+        while pending and index < len(lines):
+            delimiter, strip_tabs, expands = pending.pop(0)
+            body: list[str] = []
+            while index < len(lines):
+                body_line = lines[index]
+                candidate = body_line.rstrip("\r\n")
+                if strip_tabs:
+                    candidate = candidate.lstrip("\t")
+                output.append("\n" if body_line.endswith(("\n", "\r")) else "")
+                index += 1
+                if candidate == delimiter:
+                    break
+                body.append(body_line)
+            if expands:
+                commands = heredoc_expansion_commands("".join(body))
+                if commands is None:
+                    uninspectable_expansion = True
+                else:
+                    output.extend(f"\n{nested}\n" for nested in commands)
+    return "".join(output), uninspectable_expansion
+
+
+def without_heredoc_bodies(command: str) -> str:
+    """Mask heredoc data while retaining inspectable executable expansions."""
+
+    return shell_view_without_heredoc_data(command)[0]
+
+
+def contains_active_process_substitution(
+    command: str,
+    *,
+    depth: int = 0,
+) -> bool:
+    """Find process substitution in active shell syntax, not quoted data."""
+
+    if depth > 8:
+        return True
+    command = without_heredoc_bodies(command)
+
+    def scan_command_substitution(index: int) -> tuple[bool, int]:
+        end = command_substitution_end(command, index)
+        if end is None:
+            return True, len(command)
+        nested = command[index:end - 1]
+        return contains_active_process_substitution(nested, depth=depth + 1), end
+
+    def scan_backtick_substitution(index: int) -> tuple[bool, int]:
+        end = backtick_substitution_end(command, index)
+        if end is None:
+            return True, len(command)
+        nested = command[index:end - 1]
+        return contains_active_process_substitution(nested, depth=depth + 1), end
+
+    def scan_double_quote(index: int) -> tuple[bool, int]:
+        while index < len(command):
+            character = command[index]
+            if character == "\\":
+                index += 2
+                continue
+            if character == '"':
+                return False, index + 1
+            if command[index:index + 3] == "$((":
+                found, index = scan_arithmetic(index + 3)
+                if found:
+                    return True, index
+                continue
+            if character == "$" and command[index + 1:index + 2] == "(":
+                found, index = scan_command_substitution(index + 2)
+                if found:
+                    return True, index
+                continue
+            if character == "`":
+                found, index = scan_backtick_substitution(index + 1)
+                if found:
+                    return True, index
+                continue
+            index += 1
+        return False, index
+
+    def scan_shell(index: int, terminator: str | None = None) -> tuple[bool, int]:
+        parenthesis_depth = 0
+        word_start = True
+        while index < len(command):
+            character = command[index]
+            if terminator == "`" and character == "`":
+                return False, index + 1
+            if terminator == ")" and character == ")":
+                if parenthesis_depth == 0:
+                    return False, index + 1
+                parenthesis_depth -= 1
+                index += 1
+                word_start = False
+                continue
+            if character == "\\":
+                index += 2
+                word_start = False
+                continue
+            if character == "'":
+                closing = command.find("'", index + 1)
+                index = len(command) if closing < 0 else closing + 1
+                word_start = False
+                continue
+            if character == '"':
+                found, index = scan_double_quote(index + 1)
+                if found:
+                    return True, index
+                word_start = False
+                continue
+            if character == "#" and word_start:
+                newline = command.find("\n", index + 1)
+                index = len(command) if newline < 0 else newline + 1
+                word_start = True
+                continue
+            if character in "<>" and command[index + 1:index + 2] == "(":
+                return True, index
+            if command[index:index + 3] == "$((":
+                found, index = scan_arithmetic(index + 3)
+                if found:
+                    return True, index
+                word_start = False
+                continue
+            if character == "$" and command[index + 1:index + 2] == "(":
+                found, index = scan_command_substitution(index + 2)
+                if found:
+                    return True, index
+                word_start = False
+                continue
+            if character == "`":
+                found, index = scan_backtick_substitution(index + 1)
+                if found:
+                    return True, index
+                word_start = False
+                continue
+            if character == "(":
+                parenthesis_depth += 1
+            word_start = character.isspace() or character in ";&|()< >"
+            index += 1
+        return False, index
+
+    def scan_arithmetic(
+        index: int,
+        arithmetic_depth: int = 0,
+    ) -> tuple[bool, int]:
+        if arithmetic_depth > 8:
+            return True, len(command)
+        parenthesis_depth = 0
+        while index < len(command):
+            character = command[index]
+            if character == "\\":
+                index += 2
+                continue
+            if command[index:index + 3] == "$((":
+                found, index = scan_arithmetic(
+                    index + 3,
+                    arithmetic_depth + 1,
+                )
+                if found:
+                    return True, index
+                continue
+            if character == "$" and command[index + 1:index + 2] == "(":
+                found, index = scan_command_substitution(index + 2)
+                if found:
+                    return True, index
+                continue
+            if character == "`":
+                found, index = scan_backtick_substitution(index + 1)
+                if found:
+                    return True, index
+                continue
+            if character == "(":
+                parenthesis_depth += 1
+                index += 1
+                continue
+            if character == ")":
+                if parenthesis_depth == 0 and command[index:index + 2] == "))":
+                    return False, index + 2
+                if parenthesis_depth > 0:
+                    parenthesis_depth -= 1
+            index += 1
+        return False, index
+
+    found, _ = scan_shell(0)
+    return found
+
+
 def command_segments(command: str) -> tuple[tuple[str, ...], ...]:
     tokens = command_tokens(command)
     segments: list[tuple[str, ...]] = []
@@ -238,6 +805,8 @@ def pipeline_command_words(
 def pipeline_stdin_targets_sensitive_command(words: tuple[str, ...]) -> bool:
     if not words:
         return True
+    if DYNAMIC_SHELL_TARGET.search(words[0]):
+        return True
     executable = words[0].rsplit("/", 1)[-1].lower()
     if executable in PIPELINE_STDIN_TARGET_COMMANDS:
         return True
@@ -282,11 +851,37 @@ def declared_shell_functions(tokens: tuple[str, ...]) -> set[str]:
     return names
 
 
-def pipeline_sink_is_uninspectable(command: str) -> bool:
+def pipeline_sink_is_uninspectable(
+    command: str,
+    *,
+    depth: int = 0,
+) -> bool:
     """Reject opaque program text or executable identity at a pipeline sink."""
 
+    if depth > 8:
+        return True
     tokens = command_tokens(command)
     function_names = declared_shell_functions(tokens)
+    for segment in command_segments(command):
+        words, arguments_from_stdin = pipeline_command_words(segment)
+        if (
+            arguments_from_stdin
+            and pipeline_stdin_targets_sensitive_command(words)
+        ):
+            return True
+        nested = nested_shell_command(words)
+        if nested is not None and pipeline_sink_is_uninspectable(
+            nested,
+            depth=depth + 1,
+        ):
+            return True
+        if words and words[0].rsplit("/", 1)[-1].lower() == "eval":
+            evaluated = " ".join(words[1:])
+            if evaluated and pipeline_sink_is_uninspectable(
+                evaluated,
+                depth=depth + 1,
+            ):
+                return True
     for pipe_index, token in enumerate(tokens):
         if token not in {"|", "|&"}:
             continue
@@ -312,6 +907,116 @@ def pipeline_sink_is_uninspectable(command: str) -> bool:
         ):
             return True
     return False
+
+
+def shell_program_source_is_uninspectable(
+    command: str,
+    *,
+    depth: int = 0,
+) -> bool:
+    if depth > 8:
+        return True
+    for segment in command_segments(command):
+        words, _ = pipeline_command_words(segment)
+        if not words:
+            continue
+        executable = words[0].rsplit("/", 1)[-1].lower()
+        if executable in {".", "source"}:
+            return True
+        if executable == "eval":
+            evaluated = " ".join(words[1:])
+            if DYNAMIC_SHELL_TARGET.search(evaluated):
+                return True
+            if evaluated and shell_program_source_is_uninspectable(
+                evaluated,
+                depth=depth + 1,
+            ):
+                return True
+            continue
+        if executable not in SHELL_EXECUTABLES:
+            continue
+        arguments = words[1:]
+        if any(argument in {"--help", "--version"} for argument in arguments):
+            continue
+        no_execute = shell_no_execute(arguments)
+        has_inline_command = any(
+            argument in SHELL_COMMAND_OPTIONS
+            or (
+                argument.startswith("-")
+                and not argument.startswith("--")
+                and "c" in argument[1:]
+            )
+            for argument in arguments
+        )
+        if not no_execute and not has_inline_command:
+            return True
+        if no_execute:
+            continue
+        nested = nested_shell_command(words)
+        if nested is not None:
+            if DYNAMIC_SHELL_TARGET.search(nested):
+                return True
+            if shell_program_source_is_uninspectable(
+                nested,
+                depth=depth + 1,
+            ):
+                return True
+    return False
+
+
+def dynamic_executable_is_uninspectable(command: str) -> bool:
+    for segment in command_segments(command):
+        words, _ = pipeline_command_words(segment)
+        if words and DYNAMIC_SHELL_TARGET.search(words[0]):
+            return True
+    return False
+
+
+def shell_no_execute(arguments: tuple[str, ...]) -> bool:
+    return any(
+        argument == "--noexec"
+        or (
+            argument.startswith("-")
+            and not argument.startswith("--")
+            and "n" in argument[1:]
+        )
+        for argument in arguments
+    )
+
+
+def nested_destructive_denial_reason(
+    command: str,
+    cwd: Path,
+    *,
+    depth: int = 0,
+) -> str | None:
+    """Inspect actual eval or nested-shell program text for destructive work."""
+
+    if depth > 8:
+        return "nested shell command is too deep to inspect safely"
+    for segment in command_segments(command):
+        words, _ = pipeline_command_words(segment)
+        if not words:
+            continue
+        executable = words[0].rsplit("/", 1)[-1].lower()
+        if executable in SHELL_EXECUTABLES and shell_no_execute(words[1:]):
+            continue
+        nested = nested_shell_command(words)
+        if executable == "eval":
+            nested = " ".join(words[1:])
+        if not nested or DYNAMIC_SHELL_TARGET.search(nested):
+            continue
+        reason = destructive_denial_reason(nested, cwd)
+        if reason is not None:
+            return reason
+        reason = nested_destructive_denial_reason(
+            nested,
+            cwd,
+            depth=depth + 1,
+        )
+        if reason is not None:
+            return reason
+    return None
 
 
 def option_values(
@@ -666,18 +1371,53 @@ def main() -> int:
         if isinstance(cwd_value, str) and cwd_value
         else Path.cwd().resolve()
     )
-    if blocks_superpowers(command, cwd, dynamic_targets=tool_name == "Bash"):
+    logical_command = (
+        re.sub(r"\\\r?\n", "", command)
+        if tool_name == "Bash"
+        else command
+    )
+    shell_view, heredoc_expansion_is_uninspectable = (
+        shell_view_without_heredoc_data(logical_command)
+        if tool_name == "Bash"
+        else (logical_command, False)
+    )
+    inspected_command = (
+        without_inactive_shell_comments(shell_view)
+        if tool_name == "Bash"
+        else shell_view
+    )
+    inspected_command, shell_expansion_is_uninspectable = (
+        shell_view_with_expansion_commands(inspected_command)
+        if tool_name == "Bash"
+        else (inspected_command, False)
+    )
+    if tool_name == "Bash":
+        inspected_command = with_unquoted_newline_boundaries(inspected_command)
+    if blocks_superpowers(
+        inspected_command,
+        cwd,
+        dynamic_targets=tool_name == "Bash",
+    ):
         return emit_denial("blocked by the global forbidden-capability policy")
-    if tool_name == "Bash" and pipeline_sink_is_uninspectable(command):
+    if tool_name == "Bash" and (
+        heredoc_expansion_is_uninspectable
+        or shell_expansion_is_uninspectable
+        or contains_active_process_substitution(logical_command)
+        or pipeline_sink_is_uninspectable(inspected_command)
+        or shell_program_source_is_uninspectable(inspected_command)
+        or dynamic_executable_is_uninspectable(inspected_command)
+    ):
         return emit_denial(
-            "pipeline sink executable or program text is not inspectable"
+            "shell program source or external command data is not inspectable"
         )
 
     if tool_name == "apply_patch":
         patch_reason = patch_denial_reason(command, cwd)
         return emit_denial(patch_reason) if patch_reason is not None else 0
 
-    destructive_reason = destructive_denial_reason(command, cwd)
+    destructive_reason = destructive_denial_reason(inspected_command, cwd)
+    if destructive_reason is None:
+        destructive_reason = nested_destructive_denial_reason(inspected_command, cwd)
     if destructive_reason is not None:
         return emit_denial(
             f"{destructive_reason}. Use a narrower concrete cleanup path or run the "

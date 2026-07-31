@@ -80,6 +80,38 @@ class DestructiveGuardTests(unittest.TestCase):
             self.reason("echo $(rm -rf .)") or "",
         )
 
+    def test_public_hook_blocks_eval_and_nested_shell_carriers(self) -> None:
+        for command in (
+            "eval 'rm -rf /'",
+            "bash -ec 'rm -rf /'",
+            "ksh -c 'rm -rf /'",
+            "timeout 5 bash -O extglob -c 'rm -rf /'",
+            "cat <<EOF\n$(rm -rf /)\nEOF",
+            "cat <<EOF\n# $(rm -rf /)\nEOF",
+            "sh <<EOF\nrm -rf /\nEOF",
+            "printf '%s\\n' \"$(rm -rf /)\"",
+        ):
+            with self.subTest(command=command):
+                payload = {
+                    "hook_event_name": "PreToolUse",
+                    "tool_name": "Bash",
+                    "cwd": str(self.repo),
+                    "tool_input": {"command": command},
+                }
+                result = subprocess.run(
+                    [sys.executable, str(HOOK)],
+                    input=json.dumps(payload),
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                output = json.loads(result.stdout)
+                self.assertEqual(
+                    output["hookSpecificOutput"]["permissionDecision"],
+                    "deny",
+                )
+
     def test_allows_dry_run_git_clean(self) -> None:
         self.assertIsNone(self.reason("rtk git clean -ndx"))
 
@@ -308,6 +340,25 @@ class DestructiveGuardTests(unittest.TestCase):
             "printf 'super%s\\n' powers | xargs gemini -e",
             "printf 'plugins.super%s.enabled=true\\n' powers | xargs codex -c",
             "printf 'echo safe\\n' | time -p sh",
+            "source /tmp/payload.sh",
+            ". /tmp/payload.sh",
+            "bash /tmp/payload.sh",
+            "printf safe | tee >(sh)",
+            "printf safe | tee >\\\n(sh)",
+            "cat <<EOF\n>(sh)\nEOF\nprintf safe | tee >(sh)",
+            "value=$((1<<2))\nprintf safe | tee >(sh)",
+            "xargs --arg-file /tmp/targets rm -rf",
+            "bash -c 'xargs --arg-file /tmp/targets rm -rf'",
+            'CMD="rm -rf /tmp/victim"; bash -c "$CMD"',
+            'CMD="$(cat /tmp/payload)"; bash -c "$CMD"',
+            'xargs "$CMD"',
+            'xargs --arg-file /tmp/targets "$CMD"',
+            'CMD=rm; "$CMD" -rf /',
+            'cat <<EOF\n$(bash -c "$CMD")\nEOF',
+            "echo " + "$(" * 12 + "true" + ")" * 12,
+            "printf '%s\\n' \"$(bash /tmp/payload.sh)\"",
+            "printf '%s\\n' `bash /tmp/payload.sh`",
+            "printf '%s\\n' \"$(xargs \"$CMD\")\"",
         )
         for blocked_command in blocked_commands:
             with self.subTest(command=blocked_command):
@@ -331,7 +382,7 @@ class DestructiveGuardTests(unittest.TestCase):
                     "deny",
                 )
                 self.assertIn(
-                    "pipeline sink",
+                    "not inspectable",
                     output["hookSpecificOutput"]["permissionDecisionReason"],
                 )
 
@@ -406,6 +457,27 @@ class DestructiveGuardTests(unittest.TestCase):
             "printf '%s\\n' safe | xargs -n 1 echo",
             "printf 'bash\\n' | grep bash",
             "printf 'bash\\n' | time -p grep bash",
+            "bash -n scripts/install.sh",
+            "bash -n -c 'rm -rf /'",
+            "ksh -n -c 'rm -rf /'",
+            'bash -n -c "$CMD"',
+            'ksh -n -c "$CMD"',
+            "bash --version",
+            "printf '%s\\n' \"$((1>(0)))\"",
+            "cat <<EOF\n>(sh)\nEOF",
+            "cat <<'EOF'\n>(sh)\nEOF",
+            "cat <<-EOF\n\t>(sh)\n\tEOF",
+            "cat <<EOF\n$(printf safe)\nEOF",
+            "printf '%s\\n' \"$(cat <<EOF\n>(sh)\nEOF\n)\"",
+            "printf '%s\\n' \"$(cat <<'EOF'\n$(bash /tmp/payload.sh)\nEOF\n)\"",
+            "printf '%s\\n' \"$(printf safe)\"",
+            "printf '%s\\n' '$(bash /tmp/payload.sh)'",
+            "cat <<'EOF'\n$(bash -c \"$CMD\")\nEOF",
+            "cat <<'EOF'\nsource /tmp/payload.sh\nEOF",
+            "printf '%s\\n' '>(sh)'",
+            'printf \'%s\\n\' ">(sh)"',
+            "printf '%s\\n' \\>\\(sh\\)",
+            "printf safe # >(sh)",
             'copilot -p "$PROMPT"',
             'claude -p "$PROMPT"',
         ):

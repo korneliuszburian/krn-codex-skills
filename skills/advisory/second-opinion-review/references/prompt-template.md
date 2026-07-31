@@ -33,7 +33,7 @@ Pass all four values back to the runner; it enters that explicit root rather
 than trusting the ambient directory:
 
 ```bash
-bash ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
+~/.agents/skills/second-opinion-review/scripts/run-review.sh \
   git /absolute/evidence-repository FULL_COMMIT_OID FULL_TREE_OID clean \
   WORKTREE_SHA256 \
   /absolute/printed/pass-dir/checker.md \
@@ -44,7 +44,7 @@ For one standalone artifact, bind its current content hash. The runner also
 captures its mode and size, then enters the artifact parent before validation:
 
 ```bash
-bash ~/.agents/skills/second-opinion-review/scripts/run-review.sh \
+~/.agents/skills/second-opinion-review/scripts/run-review.sh \
   artifact /absolute/evidence/artifact.md ARTIFACT_SHA256 \
   /absolute/printed/pass-dir/checker.md \
   /absolute/printed/pass-dir/checker.review.json

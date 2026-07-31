@@ -100,8 +100,8 @@ only human skill catalog; there are no hand-maintained per-skill mirror pages.
 
 ```bash
 npm run validate
-bash scripts/install.sh check
-bash scripts/install.sh install
+scripts/install.sh check
+scripts/install.sh install
 ```
 
 The installer links only manifest-owned skills into `~/.agents/skills`, the
@@ -113,7 +113,7 @@ with explicit authority:
 ```bash
 env KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
   KRN_REPLACE_GLOBAL_CLAUDE=1 KRN_REPLACE_GLOBAL_HOOKS=1 \
-  bash scripts/install.sh install
+  scripts/install.sh install
 ```
 
 Run `check` again and start a fresh Codex session after installation. Discovery
