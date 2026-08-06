@@ -571,7 +571,7 @@
     },
     {
       "id": "foggy-effort-becomes-decision-map",
-      "prompt": "Use $wayfinder for this initiative: it is far too big and unclear for one session, so chart it as a shared map of typed frontier tickets on our tracker and work one claimed ticket per fresh context.",
+      "prompt": "Use $wayfinder for this initiative: it is far too big and unclear for one session, so chart it as a shared map of decision tickets (label wayfinder:map) on the tracker and resolve one claimed ticket per session until the way is clear.",
       "expected_skills": [
         "wayfinder"
       ],
@@ -585,7 +585,7 @@
     },
     {
       "id": "wayfinder-research-ticket-needs-a-decision-owner",
-      "prompt": "Use $wayfinder to continue our existing map: claim the ready research ticket, evaluate the named external source for this consumer, and record whether we should adopt, reject, lab-test, or defer its mechanism.",
+      "prompt": "Use $wayfinder to continue our existing map: claim the ready research ticket and dispatch a research subagent to surface the facts the decision waits on; then evaluate whether we should adopt, reject, lab-test, or defer the named external source's mechanism via $source-to-decision, and record the result with a context pointer.",
       "expected_skills": [
         "wayfinder",
         "source-to-decision"
@@ -697,7 +697,7 @@
     },
     {
       "id": "wayfinder-local-research-ticket-needs-codebase-design",
-      "prompt": "Use $wayfinder to continue our existing map: claim the ready research ticket whose exact owner is codebase-design, inspect the named module's change friction, choose its interface and behavior owner, and record the bounded handoff.",
+      "prompt": "Use $wayfinder to continue our existing map: claim the ready research ticket for the local module, dispatch the research subagent, then hand the interface-and-behavior ownership choice to $codebase-design and record the bounded handoff.",
       "expected_skills": [
         "wayfinder",
         "codebase-design"
@@ -710,7 +710,7 @@
     },
     {
       "id": "wayfinder-concurrent-write-capable-workers-need-isolation",
-      "prompt": "Use $wayfinder to run two independent frontier tickets concurrently: one disposable repository prototype and one local codebase-design research ticket. Give each worker a separate worktree with disjoint allowed paths and return both results to the sole map integrator without starting production implementation.",
+      "prompt": "Use $wayfinder to run two independent unblocked frontier tickets in parallel sessions: one disposable repository prototype and one local codebase-design research ticket. Each session claims its ticket first - claim-before-work is the lock - and the map expects concurrent tracker edits; neither starts production implementation.",
       "expected_skills": [
         "wayfinder",
         "prototype",
@@ -724,7 +724,7 @@
     },
     {
       "id": "wayfinder-serial-write-capable-worker-needs-isolation",
-      "prompt": "Use $wayfinder and $prototype for one ready repository-dependent prototype ticket. Even though it is the only active worker, give its file-write authority an isolated worktree, bind exact allowed paths, and return the verdict through the child's canonical Result return block without starting production implementation.",
+      "prompt": "Use $wayfinder and $prototype for one ready repository-dependent prototype ticket: claim it first, build the disposable prototype, link it as an asset on the ticket, and record the verdict - without starting production implementation.",
       "expected_skills": [
         "wayfinder",
         "prototype"
@@ -737,22 +737,20 @@
       ]
     },
     {
-      "id": "wayfinder-transfer-updates-one-result-return-block",
-      "prompt": "Use $wayfinder to transfer the map integrator from A to B while one unclaimed repository-dependent child remains open. Update and read back that child's sole canonical Result return block for B and the new generation; do not duplicate the return owner in its execution envelope or start the child.",
+      "id": "wayfinder-invented-integrator-protocol-stays-out",
+      "prompt": "Continue our existing map with $wayfinder: another session is resolving an unblocked frontier ticket concurrently. Do not invent an integrator-transfer protocol, generation readbacks, or Result return blocks - claims are the lock, the tracker is the query, and the map is only the index.",
       "expected_skills": [
         "wayfinder"
       ],
       "forbidden_skills": [
         "implement",
         "delivery-loop",
-        "prototype",
-        "codebase-design",
         "source-to-decision"
       ]
     },
     {
       "id": "wayfinder-task-tracks-an-authorized-prerequisite",
-      "prompt": "Use $wayfinder to continue our existing map: claim the ready task ticket for an already-authorized site survey, track the named operator's action, and verify its readback because that evidence unblocks a storage decision. Do not perform implementation or grant new authority.",
+      "prompt": "Use $wayfinder to continue our existing map: claim the ready task ticket for an already-authorized site survey; its completion unblocks a storage decision, so track what was done and any resulting facts. Do not perform implementation or grant new authority.",
       "expected_skills": [
         "wayfinder"
       ],
@@ -767,7 +765,7 @@
     },
     {
       "id": "wayfinder-prototype-verdict-returns-to-the-map",
-      "prompt": "Use $wayfinder to continue our existing map and $prototype for its ready prototype ticket. The user has inspected the experiment; record the verdict in that ticket, remove throwaway residue, and return to the map without starting a spec or production change.",
+      "prompt": "Use $wayfinder to continue our existing map and $prototype for its ready prototype ticket. The user has inspected the experiment; record the verdict on the ticket, keep the prototype linked as an asset, and return to the map without starting a spec or production change.",
       "expected_skills": [
         "wayfinder",
         "prototype"
@@ -780,8 +778,8 @@
       ]
     },
     {
-      "id": "wayfinder-grilling-verdict-returns-to-the-map",
-      "prompt": "Use $wayfinder to continue our existing map and $domain-modeling for its ready grilling ticket. Resolve the user-owned meaning with us, record the confirmed verdict in that ticket, and return to the map without writing a spec or changing code.",
+      "id": "wayfinder-decision-review-verdict-returns-to-the-map",
+      "prompt": "Use $wayfinder to continue our existing map and $domain-modeling for its ready decision-review ticket. Work the user-owned question one question at a time with us - never inventing our side - record the confirmed verdict on the ticket, and return to the map without writing a spec or changing code.",
       "expected_skills": [
         "wayfinder",
         "domain-modeling"

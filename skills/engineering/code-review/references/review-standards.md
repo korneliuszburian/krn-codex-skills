@@ -21,8 +21,8 @@ approval:
 1. `$code-review` owns the routine fixed-diff Standards and Spec result.
 2. Host review owns comments on an existing pull or merge request; it does not
    replace local Spec review or imply approval.
-3. `$second-opinion-review` runs only when an explicit high-risk challenge or
-   bounded external evidence pass is requested; its result remains advisory.
+3. `$opencode-second-opinion` runs only when an explicit external path opinion
+   is requested; its result remains advisory.
 4. The initiating workflow or human dispositions findings and decides the next
    action after every lane.
 

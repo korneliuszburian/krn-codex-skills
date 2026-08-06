@@ -1,131 +1,117 @@
 ---
 name: to-spec
-description: Compress a settled conversation into one destination-first spec with no implementation-gating unknowns and truthful spec-publication state. Use when the outcome is agreed but no spec exists; skip unresolved fog, slicing, and implementation.
+description: Turn the current conversation into a spec and publish it to the project issue tracker - no interview, just synthesis of what you have already discussed.
 ---
 
-# To Spec
+This skill takes the current conversation context and codebase
+understanding and produces a spec (you may know this document as a PRD).
+Do NOT interview the user — just synthesize what you already know.
 
-Synthesize, never interview. This skill turns one already-settled conversation
-plus codebase understanding into a single **destination-first** spec. It
-publishes only when a destination and publication authority already exist.
-The matching decision owner owns any remaining uncertainty;
-`$slice-work` owns decomposition; `$implement` owns the build. This
-skill only **compresses** what is already settled.
+The default tracker is local markdown: publish the spec to
+`artifacts/<feature-slug>/spec.md`. If the repo has a real tracker
+configured (see the repo docs), publish there instead and apply the
+`ready-for-agent` triage label.
 
-1. **Confirm the outcome is settled.** Re-read the thread and the resolved
-   decisions. If any decision that gates the spec is still fog, stop and route
-   it to the smallest typed owner in the global routing contract — compressing
-   fog into a spec freezes the wrong destination.
+## Process
 
-   <spec-input>
-   Outcome and what reaching it looks like:
-   Resolved decisions carried from the thread:
-   Resolved decision source identities:
-   Explicit non-goals:
-   </spec-input>
+1. Explore the repo to understand the current state of the codebase, if
+   you haven't already. Use the project's domain glossary vocabulary
+   throughout the spec, and respect any ADRs in the area you're touching.
 
-   If this branch fires, report the destination, implementation-gating unknown,
-   and exact typed or human owner, then stop. No spec exists yet.
+2. Sketch out the seams at which you're going to test the feature. Existing
+   seams should be preferred to new ones. Use the highest seam possible. If
+   new seams are needed, propose them at the highest point you can. The
+   fewer seams across the codebase, the better - the ideal number is one.
 
-   **Done when:** every gating decision is settled, or one unresolved decision
-   is named and handed off before any spec is written.
+   Check with the user that these seams match their expectations.
 
-2. **Orient to the destination and the seams.** Explore only the boundary the
-   outcome touches. Use the repository's domain glossary vocabulary throughout
-   and surface any ADR conflict explicitly instead of overriding it silently.
-   Identify the **highest existing public seam** at which the outcome is
-   observable; prefer an existing seam over a new one, and the fewest seams
-   possible.
+3. Write the spec using the template below (standalone copy: [spec-template.md](references/spec-template.md)), then publish it.
 
-   **Done when:** the spec names one destination and the highest seam at which
-   success is observable, and no ADR in the touched area is silently contradicted.
+<spec-template>
 
-3. **Write one destination-first spec.** Copy
-   [spec-template.md](references/spec-template.md) and fill it from synthesis
-   alone — the problem and solution from the user's perspective, acceptance as
-   an observable result at the named seam, the resolved implementation decisions
-   (modules, interfaces, schema, API contracts — no file paths or code), and an
-   explicit **Out of scope**. List only non-gating unknowns that may remain while
-   implementation starts, with their owners. If an unknown gates the production
-   route, return to its exact owner instead of completing the spec.
+## Problem Statement
 
-   State testing as a **seam decision**, not a test-first mandate: where the
-   outcome is observed and what existing observer already covers it. `$implement`
-   chooses the `0/1/N` proof budget later from changed risk.
+The problem that the user is facing, from the user's perspective.
 
-   **Done when:** the spec is destination-first, uses glossary vocabulary, carries
-   the resolved decisions and their source links, declares the acceptance seam,
-   and contains no implementation-gating unknown.
+## Solution
 
-4. **Choose the one- or multi-change route.** If the whole destination fits one
-   fresh `$implement` context as one end-to-end change, route there. If it needs
-   multiple independently demonstrable capabilities or explicit migration stages,
-   route to `$slice-work`. Do not manufacture multiple slices to justify the latter.
+The solution to the problem, from the user's perspective.
 
-   **Done when:** exactly one next owner is selected from the size and dependency
-   shape of the settled work.
+## User Stories
 
-5. **Separate spec completion from publication.** Finish the exact spec and deliver
-   it to the active outcome owner before mutating a tracker or repository. A spec
-   is an active implementation destination, not permanent repository knowledge.
-   If a later context must continue before the outcome finishes, `$to-spec` owns
-   the exact transient spec under `.krn/runs/to-spec/<run-id>/` only with write
-   authority and after verifying that `.krn/runs/` is ignored; otherwise it stays
-   in the active Goal or thread. Give the active outcome owner only its semantic pointer.
-   Name that active outcome owner as the sole in-goal consumer. `$to-spec`
-   removes an existing run only when that named consumer finishes its accepted
-   outcome, or when the owning Goal closes, whichever comes first. Reading the
-   spec or handing it to `$implement` or `$slice-work` does not trigger cleanup.
+A LONG, numbered list of user stories. Each user story should be in the
+format of:
 
-   When `$delivery-loop` owns an active outcome capsule, `$to-spec` returns the
-   spec identity and pointer to its named sole writer; it never mutates or creates
-   the capsule. That writer records the identity, pointer, and scoped
-   `Spec publication state` under `Evidence observed`, any `PUBLISH_PENDING`
-   condition under `Open unknowns and blockers with owners`, and the selected
-   implementation or slicing procedure under `Next bounded owner and action`.
-   When a transient run exists, it also records `$to-spec`, the semantic
-   pointer, named sole in-goal consumer, trigger, and current state under
-   `Outstanding workflow-run cleanup`, upserting the entry by pointer without
-   replacing sibling obligations; `$to-spec` remains the cleanup owner.
-   Otherwise continuation stays in the native Goal or configured tracker.
-   `$to-spec` does not invent another durable location. Publication requires a
-   destination declared by the closest repository `AGENTS.md` or other closest
-   instructions and authority to create or update it. Those instructions
-   describe operations; they do not grant authority. When authorized, publish exactly once and link the
-   driving item. A tracker-published spec closes or is superseded with the
-   accepted outcome under tracker policy; publication does not promote it into
-   `CONTEXT.md`, an ADR, or research memory. Otherwise deliver the complete spec
-   to the active outcome owner and state the missing authority or destination;
-   do not invent `.scratch/` or another durable location.
+1. As an <actor>, I want a <feature>, so that <benefit>
 
-   Use one truthful **spec-publication state**. This is scoped to the spec
-   artifact and never replaces the outcome capsule's lifecycle-level
-   `Publication state`:
+<user-story-example>
+1. As a mobile bank customer, I want to see balance on my accounts, so that I can make better informed decisions about my spending
+</user-story-example>
 
-   - `NOT_REQUESTED` — the active outcome owner accepted the exact spec without
-     requesting durable publication;
-   - `PUBLISH_PENDING` — publication was requested but its destination or authority
-     is missing;
-   - `PUBLISHED` — the configured destination was written and read back.
+This list of user stories should be extremely extensive and cover all
+aspects of the feature.
 
-   **Done when:** the spec is complete independently of publication, any durable
-   copy has one configured owner, and the state does not overclaim a pending write.
+## Implementation Decisions
 
-6. **Hand off, do not decompose.** Point the selected owner at the exact spec
-   content or verified published identity.
+A list of implementation decisions that were made. This can include:
 
-   <spec-result>
-   Destination:
-   Spec state: COMPLETE
-   Spec publication state: NOT_REQUESTED | PUBLISH_PENDING (<missing condition>) | PUBLISHED (<identity>)
-   Transient spec: absent | <semantic pointer>
-   Sole in-goal consumer: <active outcome owner>
-   Cleanup owner and trigger: none | $to-spec when <named sole consumer finishes its accepted outcome | owning Goal closes>, whichever comes first
-   Acceptance seam:
-   Implementation-gating unknowns: none
-   Non-gating unknowns with owners:
-   Routed to: $implement (one change) | $slice-work (multiple slices or migration stages)
-   </spec-result>
+- The modules that will be built/modified
+- The interfaces of those modules that will be modified
+- Technical clarifications from the developer
+- Architectural decisions
+- Schema changes
+- API contracts
+- Specific interactions
 
-   **Done when:** the spec, publication truth, next owner, and non-gating unknowns
-   are explicit, and no slice list or implementation has been started.
+Do NOT include specific file paths or code snippets. They may end up being
+outdated very quickly.
+
+Exception: if a prototype produced a snippet that encodes a decision more
+precisely than prose can (state machine, reducer, schema, type shape),
+inline it within the relevant decision and note briefly that it came from a
+prototype. Trim to the decision-rich parts — not a working demo, just the
+important bits.
+
+## Testing Decisions
+
+A list of testing decisions that were made. Include:
+
+- A description of what makes a good test (only test external behavior,
+  not implementation details)
+- Which modules will be tested
+- Prior art for the tests (i.e. similar types of tests in the codebase)
+
+## Acceptance Criteria
+
+Every criterion below is CHECKABLE: a deterministic gate (command +
+expected output) or a measurable artifact. A criterion that cannot be
+verified against an artifact must be rephrased or dropped.
+
+- [ ] C1: <command or artifact> → <expected output>
+- [ ] C2: <command or artifact> → <expected output>
+- [ ] C3: <command or artifact> → <expected output>
+
+## Out of Scope
+
+A description of the things that are out of scope for this spec.
+
+## Further Notes
+
+Any further notes about the feature.
+
+</spec-template>
+
+## Completion criteria (all artifact-bound)
+
+- [ ] No interview was conducted; only already-discussed context was used.
+- [ ] The seam(s) to test at were written down and confirmed with the
+      user (quoted from the confirmation).
+- [ ] The spec follows the template section-for-section, no path or code
+      snippets outside the documented exception.
+- [ ] The spec names the plan/backlog/ticket it resolves (a link or id;
+      an orphan spec fails this gate).
+- [ ] The acceptance criteria are CHECKABLE: each states a deterministic
+      gate (command + expected output) or a measurable artifact — a
+      criterion that cannot be verified against an artifact fails.
+- [ ] The spec was published (markdown or tracker) and the location is
+      stated.

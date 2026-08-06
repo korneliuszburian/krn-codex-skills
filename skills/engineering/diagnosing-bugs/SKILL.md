@@ -1,119 +1,174 @@
 ---
 name: diagnosing-bugs
-description: Diagnose an unknown failure, flake, regression, or slowdown with a red-capable repro or measured baseline before causal hypotheses. Use for broken behavior whose cause is not already proven; repair only when requested.
+description: Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports something broken/throwing/failing/slow.
 ---
 
 # Diagnosing Bugs
 
-Make the symptom fail on command before explaining it. **A red-capable repro,
-or a measured performance baseline, is the entry ticket to causal reasoning.**
+A discipline for hard bugs. Skip phases only when explicitly justified.
 
-1. **Fix authority and the symptom without naming a cause.** Choose
-   `diagnose-only` for evidence without mutation or `repair-authorized` when the
-   user also asked for a scoped fix. Preserve the exact input and environment
-   that produced the report.
+When exploring the codebase, read the memory brief
+(`memory/derived/context-brief.md`) to get a clear mental model of the
+relevant modules, and check ADRs in the area you're touching.
 
-   <diagnosis-contract>
-   Mode: diagnose-only | repair-authorized
-   Expected result:
-   Actual result:
-   Affected caller or public boundary:
-   Exact input and environment:
-   Candidate observer:
-   Allowed writes:
-   </diagnosis-contract>
+## Phase 1 — Build a feedback loop
 
-   **Done when:** authority, symptom, boundary, and candidate observer are
-   explicit while no cause has yet been asserted.
+**This is the skill.** Everything else is mechanical. If you have a
+**tight** pass/fail signal for the bug — one that goes red on _this_ bug —
+you will find the cause; bisection, hypothesis-testing, and instrumentation
+all just consume it. If you don't have one, no amount of staring at code
+will save you.
 
-2. **Make the symptom observable.** Run the narrowest observer that can
-   disagree with the expected result:
+Spend disproportionate effort here. **Be aggressive. Be creative. Refuse to
+give up.**
 
-   1. one existing test or fixture;
-   2. one focused package command;
-   3. a CLI, HTTP, browser, runtime, database, or migration smoke with fixed
-      input;
-   4. a replayed trace or differential known-good versus known-bad run;
-   5. a broad suite only when no narrower observer can expose the symptom.
+Try them in roughly this order: failing test, curl/HTTP script, CLI with
+fixture, headless browser, replay a captured trace, throwaway harness,
+property/fuzz loop, bisection harness, differential loop, HITL bash script
+(last resort). Full mechanics + tightening + non-deterministic and
+no-loop handling: [loopcraft.md](references/loopcraft.md). Escalation for
+stubborn bugs: [hard-bugs.md](references/hard-bugs.md).
 
-   For a slowdown, measure the same workload in the same environment and
-   capture a baseline instead of forcing a binary assertion.
+### Completion criterion — a tight loop that goes red
 
-   <repro-record>
-   Command or observer:
-   Fixed input and environment:
-   Expected:
-   Observed:
-   Reproduction rate or baseline:
-   Why this observer can go red:
-   </repro-record>
+Phase 1 is done when the loop is **tight** and **red-capable**: you can
+name **one command** — a script path, a test invocation, a curl — that you
+have **already run at least once** (paste the invocation and its output),
+and that is:
 
-   **Done when:** an already-run command reproduces the wrong result or
-   measurable breach, or every available rung is recorded and the exact
-   missing artifact, access, or environment is named.
+- [ ] **Red-capable** — it drives the actual bug code path and asserts the
+      **user's exact symptom**, so it can go red on this bug and green
+      once fixed. Not "runs without erroring" — it must be able to _catch
+      this specific bug_.
+- [ ] **Deterministic** — same verdict every run (flaky bugs: a pinned,
+      high reproduction rate, per above).
+- [ ] **Fast** — seconds, not minutes.
+- [ ] **Agent-runnable** — you can run it unattended; a human in the loop
+      only via `scripts/hitl-loop.template.sh`.
 
-3. **Tighten the loop until the failure is minimal.** Remove one caller, input,
-   configuration value, dependency, or environment variable at a time. For a
-   flake, raise and record the reproduction rate. Keep everything that remains
-   load-bearing.
+If you catch yourself reading code to build a theory before this command
+exists, **stop — jumping straight to a hypothesis is the exact failure this
+skill prevents.** No red-capable command, no Phase 2.
 
-   Read [hard-bugs.md](references/hard-bugs.md) only when the ordinary loop
-   cannot isolate a regression range, race, input family, intermittent fault,
-   or environment-only symptom. Return to this loop as soon as one stable
-   failure becomes observable.
+## Phase 2 — Reproduce + minimise
 
-   If every available observer stays green, stop in `missing-repro` state. Do
-   not replace unavailable evidence with a confident code theory.
+Run the loop. Watch it go red — the bug appears.
 
-   **Done when:** the fastest repeatable case still exhibits the original
-   symptom, or the next evidence needed from the operator is exact and
-   actionable.
+Confirm:
 
-4. **Falsify ranked causal hypotheses one variable at a time.** Derive a short
-   list from the minimal case, and give every hypothesis a prediction before
-   changing anything.
+- [ ] The loop produces the failure mode the **user** described — not a
+      different failure that happens to be nearby. Wrong bug = wrong fix.
+- [ ] The failure is reproducible across multiple runs (or, for
+      non-deterministic bugs, reproducible at a high enough rate to debug
+      against).
+- [ ] You have captured the exact symptom (error message, wrong output,
+      slow timing) so later phases can verify the fix actually addresses
+      it.
 
-   <causal-hypothesis>
-   Proposed cause:
-   If true, observing or changing:
-   Must produce:
-   Result that would falsify it:
-   Observation:
-   Disposition: survives | rejected | unresolved
-   </causal-hypothesis>
+### Minimise
 
-   Prefer a debugger or focused inspection, then boundary logs with a unique
-   removal marker. Hold the input and environment constant. For performance,
-   compare the same workload against the captured baseline.
+Once it's red, shrink the repro to the **smallest scenario that still goes
+red**. Cut inputs, callers, config, data, and steps **one at a time**,
+re-running the loop after each cut — keep only what's load-bearing for the
+failure.
 
-   **Done when:** one cause survives an observation designed to falsify it, or
-   uncertainty is bounded to named alternatives with distinct missing proof.
+Why bother: a minimal repro shrinks the hypothesis space in Phase 3 (fewer
+moving parts left to suspect) and becomes the clean regression test in
+Phase 5.
 
-5. **Stop at evidence or repair only the proven cause.** In `diagnose-only`,
-   report the cause and smallest credible repair without mutating production.
-   A plausible reading of code without the red-capable chain is not diagnosis.
+Done when **every remaining element is load-bearing** — removing any one of
+them makes the loop go green.
 
-   In `repair-authorized`, the proven cause has turned the work into a scoped
-   change. Continue with `$implement`: carry the minimized repro as its focused
-   signal, retain at most one new regression falsifier when a stable public
-   seam exists and existing proof is insufficient, apply the smallest
-   cause-level slice, then rerun both the minimized and original repro. Remove
-   every temporary probe by its marker. A missing public seam is an architecture
-   finding, not permission to freeze private call order in a test.
+Do not proceed until you have reproduced **and** minimised.
 
-   <diagnosis-result>
-   Mode and authority:
-   Symptom and public boundary:
-   Repro or baseline before:
-   Minimal case:
-   Proven cause or bounded uncertainty:
-   Repair, if authorized:
-   Repro after:
-   Retained regression proof:
-   Temporary probes removed:
-   Does not prove:
-   </diagnosis-result>
+## Phase 3 — Hypothesise
 
-   **Done when:** the symptom and reported cause are connected by reproducible
-   evidence, or the exact missing evidence is named; any authorized repair is
-   limited to that cause and protected by proportional proof.
+Generate **3–5 ranked hypotheses** before testing any of them.
+Single-hypothesis generation anchors on the first plausible idea.
+
+Each hypothesis must be **falsifiable**: state the prediction it makes.
+
+> Format: "If <X> is the cause, then <changing Y> will make the bug
+> disappear / <changing Z> will make it worse."
+
+If you cannot state the prediction, the hypothesis is a vibe — discard or
+sharpen it.
+
+**Show the ranked list to the user before testing.** They often have domain
+knowledge that re-ranks instantly ("we just deployed a change to #3"), or
+know hypotheses they've already ruled out. Cheap checkpoint, big time
+saver. Don't block on it — proceed with your ranking if the user is AFK.
+
+## Phase 4 — Instrument
+
+Each probe must map to a specific prediction from Phase 3. **Change one
+variable at a time.**
+
+Tool preference:
+
+1. **Debugger / REPL inspection** if the env supports it. One breakpoint
+   beats ten logs.
+2. **Targeted logs** at the boundaries that distinguish hypotheses.
+3. Never "log everything and grep".
+
+**Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup
+at the end becomes a single grep. Untagged logs survive; tagged logs die.
+
+**Perf branch.** For performance regressions, logs are usually wrong.
+Instead: establish a baseline measurement (timing harness, `performance.
+now()`, profiler, query plan), then bisect. Measure first, fix second.
+
+## Phase 5 — Fix + regression test
+
+Write the regression test **before the fix** — but only if there is a
+**correct seam** for it.
+
+A correct seam is one where the test exercises the **real bug pattern** as
+it occurs at the call site. If the only available seam is too shallow
+(single-caller test when the bug needs multiple callers, unit test that
+can't replicate the chain that triggered the bug), a regression test there
+gives false confidence.
+
+**If no correct seam exists, that itself is the finding.** Note it. The
+codebase architecture is preventing the bug from being locked down. Flag
+this to the human for the next phase.
+
+If a correct seam exists:
+
+1. Turn the minimised repro into a failing test at that seam.
+2. Watch it fail.
+3. Apply the fix.
+4. Watch it pass.
+5. Re-run the Phase 1 feedback loop against the original (un-minimised)
+   scenario.
+
+## Phase 6 — Cleanup + post-mortem
+
+Required before declaring done:
+
+- [ ] Original repro no longer reproduces (re-run the Phase 1 loop)
+- [ ] Regression test passes (or absence of seam is documented)
+- [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)
+- [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug
+      location)
+- [ ] The hypothesis that turned out correct is stated in the commit / PR
+      message — so the next debugger learns
+
+**Then ask: what would have prevented this bug?** If the answer involves
+architectural change (no good test seam, tangled callers, hidden coupling)
+hand the specifics to the human with a written recommendation — make it
+**after** the fix is in, not before; you have more information now than
+when you started.
+
+## Completion criteria
+
+- [ ] Phase 1: one red-capable command exists, run at least once, output
+      quoted.
+- [ ] Phase 2: the loop reproduced the user's exact symptom, minimised to
+      load-bearing elements only.
+- [ ] Phase 3: 3-5 falsifiable hypotheses ranked and shown to the user.
+- [ ] Phase 4: probes changed one variable at a time, tagged `[DEBUG-...]`.
+- [ ] Phase 5: regression test written before the fix (or absence of seam
+      documented).
+- [ ] Phase 6: repro gone, instrumentation removed, correct hypothesis in
+      the commit message, prevention recommendation given.

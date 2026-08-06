@@ -1,98 +1,69 @@
 ---
 name: implement
-description: Build or refactor an already-scoped code change in one production-first vertical slice. Use when files should change and the desired behavior or proven cause is clear; skip unresolved faults and read-only review.
+description: Implement a piece of work based on a spec or set of tickets.
 ---
 
-# Implement
+Read [behavior-proof.md](references/behavior-proof.md) when a phase needs an observable proof of behavior.
 
-Build the smallest complete production path from a real caller to an observable
-result. **Production behavior is the work; proof protects only the risk changed
-by this slice.**
+Implement the work described by the user in the spec or tickets, as a
+procedure with checkable phases (modeled on diagnosing-bugs: every
+phase ends in an artifact; a phase gate is hard).
 
-1. **Fix one outcome and one vertical slice.** Read the closest repository
-   instructions, then trace the current caller, public seam, and result before
-   choosing files.
+## Phase 0 — Scope pin
 
-   <implementation-contract>
-   Outcome:
-   Acceptance requirement:
-   Caller -> public seam -> observable result:
-   Owned paths:
-   Changed risk:
-   Fastest signal that can disagree:
-   Required completion gates:
-   </implementation-contract>
+The spec/ticket defines the scope. Before ANY edit, produce the scope
+line: the exact file set the diff may touch.
 
-   Resolve unclear behavior before editing. If the failure is real but its
-   cause is still unknown, switch to `$diagnosing-bugs` and earn a repro before
-   returning here.
+**Done when:** you can quote the scope from the ticket/spec verbatim.
+No scope quote → do not edit.
 
-   **Done when:** every planned edit traces to one accepted outcome and the
-   chosen signal can distinguish success from a nearby failure.
+## Phase 1 — Red (test at the seam)
 
-2. **Spend the proof budget on changed risk.** Select `0`, `1`, or `N` from the
-   global contract before adding proof and reuse an existing observer first.
-   Read [behavior-proof.md](references/behavior-proof.md) only when runtime
-   behavior, validation, migration, authority, persistence, or a repaired bug
-   needs a new falsifier.
+Use /tdd where possible, at pre-agreed seams: write the failing test
+for the first behavior, run it, capture the RED.
 
-   An already-scoped change does not need test-first ceremony. Build the
-   production path first; add a red-capable falsifier only when changed risk
-   earns one. Broad suites are completion evidence, never the inner loop.
+**Done when:** you have quoted the red output of the failing test
+(`file:line` + the failure text). No red output → do not implement.
 
-   **Done when:** the budget names the changed risk, or zero names the existing
-   observer and why another test would add no information.
+## Phase 2 — Green (one behavior at a time)
 
-3. **Build through the real public seam.** Change the path from caller to
-   result in one slice. Keep the interface small. Add an abstraction only when
-   it owns policy or isolates a genuinely varying or external boundary.
+Implement the minimum that turns the red green. Run typechecking and
+the single test file regularly.
 
-   For TypeScript source, declarations, or compiler configuration, use
-   `$typescript-engineering` beside this workflow and load only its reference
-   for the boundary being changed.
+**Done when:** you have quoted the green output of the same test
+(`file:line` + the pass line).
 
-   **Example.** Reject an empty source ID at the public parser boundary.
-   Production slice: change the parser-owned validation path. Proof: one parser
-   behavior case, if no existing case already falsifies it. Not the slice: a
-   helper layer, private call-order tests, or a matrix of malformed strings that
-   all represent the same invalid state.
+## Phase 3 — Checkpoint cascade
 
-   **Done when:** the accepted behavior is reachable through the real caller,
-   no production seam exists only for a test, and the diff contains no
-   speculative branch.
+`checkpoint.sh begin <label>` BEFORE every further edit step;
+`checkpoint.sh verify <label>` after each gate.
 
-4. **Tighten in the fastest credible loop.** Run the focused signal after the
-   relevant production edit. Read the diff as a design artifact: delete
-   pass-through helpers, duplicate models, unused options, temporary probes,
-   and ceremony introduced by this slice. Preserve strict validation and type
-   boundaries; leave unrelated cleanup untouched.
+**Done when:** `checkpoint.sh status` shows no open BEGIN (or the
+literal last line is the in-progress one).
 
-   Apply the global gate policy to the actual changed surface. Record the
-   distinct risk behind any signal broader than the focused observer instead
-   of replaying evidence already collected.
+## Phase 4 — Full gate + review + commit
 
-   **Done when:** every changed line serves the outcome, the fastest relevant
-   signal passes, and every broader gate has a concrete reason to run once.
+1. Run the full suite: `cargo test --all` (or the repo's equivalent).
+2. Run the repo gate: `./scripts/verify.sh` and QUOTE the tail.
+3. Request `/code-review` (or the mini-agi `review` skill for
+   kernel-gated work), or record the explicit human waiver.
+4. Commit to the current branch and quote `git rev-parse HEAD` (the
+   commit SHA).
 
-5. **Make the narrowest honest completion claim.** Account for every changed
-   and untracked path, then report behavior separately from publication and
-   CI state.
+**Done when:** the gate's `verify: ALL GREEN` line is quoted AND the
+scoped diff artifact is quoted (`git diff --stat <base>..HEAD` — the
+changed paths must all be inside the Phase-0 scope) AND the review
+verdict is recorded WITH its location (the review output file or the
+quoted verdict line), or the human waiver is recorded with the
+waiver's timestamp.
 
-   <implementation-result>
-   Outcome present in production:
-   Caller -> public seam -> result:
-   Proof budget and evidence:
-   Repository gates actually run:
-   Changed paths:
-   Does not prove:
-   Publication state:
-   </implementation-result>
+## Completion criteria (all artifact-bound)
 
-   Use `$code-review` for an independent fixed-point check when the slice is
-   non-trivial, the user asks for review, or `$delivery-loop` owns the active
-   lifecycle envelope. A green check is evidence for its claim, not a substitute
-   for the delivered behavior.
-
-   **Done when:** acceptance is satisfied through production code, proportional
-   proof passes or is honestly blocked, all owned paths are accounted for, and
-   no remaining work is hidden behind green CI.
+- [ ] Phase 0: the scope line is quoted from the ticket/spec.
+- [ ] Phase 1: the red output is quoted (test file + failure).
+- [ ] Phase 2: the green output is quoted (test file + pass).
+- [ ] Phase 3: checkpoint journal shows no orphan BEGIN.
+- [ ] Phase 4: `verify: ALL GREEN` quoted; `git diff --stat
+      <base>..HEAD` quoted and contained in the scope; the commit SHA
+      (`git rev-parse HEAD`) quoted; the review verdict with its
+      location (or the timestamped human waiver) recorded.

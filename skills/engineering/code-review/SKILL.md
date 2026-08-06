@@ -1,153 +1,162 @@
 ---
 name: code-review
-description: Review a fixed-point diff, pull request, or working tree without editing it. Use for independent Standards and Spec checks of changed code; skip implementation, diagnosis, and unscoped codebase exploration.
+description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes - Standards and Spec - via parallel sub-agents, reported side by side. Use when the user wants a branch, PR, or work-in-progress changes reviewed.
 ---
 
-# Code Review
+SEAM: generic two-axis review (Standards + Spec, parallel sub-agents).
+Rubric detail: [review-standards.md](references/review-standards.md).
+The kernel-bound review (mini-agi rubric, memory anchors, ADR-0003) is
+the separate `review` skill — use review for mini-agi-gated work, this
+skill for generic diffs.
 
-Freeze the change before judging it. Review one resolvable surface on two
-independent axes — **Standards** and **Spec** — then return only findings that
-survive current-code verification. This skill never edits the reviewed work.
+Two-axis review of the diff between `HEAD` and a fixed point the user
+supplies:
 
-1. **Pin the fixed point.** Resolve a supplied commit, branch, tag, PR base, or
-   merge base before reading conclusions into the diff. Inspect its three-dot
-   diff and commit list. Fingerprint the base and head with immutable commit
-   object ids. For a working tree, fingerprint HEAD plus the exact staged,
-   unstaged, and in-scope untracked contents; a branch name or `git status`
-   summary is not an identity.
+- **Standards** — does the code conform to this repo's documented coding
+  standards?
+- **Spec** — does the code faithfully implement the originating issue /
+  PRD / spec?
 
-   <review-surface>
-   Target:
-   Base source and fingerprint:
-   Head source and fingerprint:
-   Commit list:
-   Staged paths:
-   Unstaged paths:
-   Untracked paths:
-   Generated paths:
-   Explicitly out of scope:
-   </review-surface>
+Both axes run as **parallel sub-agents** so they don't pollute each other's
+context, then this skill aggregates their findings.
 
-   Build a path ledger and mark every entry `reviewed`, `generated`, or
-   `out-of-scope-with-reason`. Stop on an invalid ref or an empty surface. If
-   the working tree changes during review, re-pin it before returning findings. Derive
-   the fixed point from current branch or PR context when possible; ask for it
-   only when that context cannot resolve the comparison.
+## Process
 
-   **Done when:** the exact comparison is reproducible and every changed path
-   has a review disposition.
+### 1. Pin the fixed point
 
-2. **Locate and fingerprint both authorities.** Find the Spec in this order: the user request,
-   active tracker acceptance, linked issue or product/design artifact, then an
-   explicit statement that no further spec exists. Load the closest repository
-   instructions and only the domain material needed by the changed boundary.
+Whatever the user said is the fixed point — a commit SHA, branch name, tag,
+`main`, `HEAD~5`, etc. If they didn't specify one, ask for it.
 
-   Read [review-standards.md](references/review-standards.md) after repository
-   rules for the fallback baseline and review-lane precedence. Its baseline
-   never overrides a closer rule.
+Capture the diff command once: `git diff <fixed-point>...HEAD` (three-dot,
+so the comparison is against the merge-base). Also note the list of commits
+via `git log <fixed-point>..HEAD --oneline`.
 
-   Fingerprint each authority by its stable source identity and immutable
-   revision; when no revision exists, hash the exact bounded content used for
-   review. Preserve source order for Standards because closer instructions have
-   precedence.
+Before going further, confirm the fixed point resolves (`git rev-parse
+<fixed-point>`) and the diff is non-empty. A bad ref or empty diff should
+fail here — not inside two parallel sub-agents.
 
-   <review-fingerprint>
-   Base fingerprint:
-   Head fingerprint:
-   Spec source and fingerprint:
-   Ordered Standards sources and fingerprint:
-   </review-fingerprint>
+### 2. Identify the spec source
 
-   <review-authority>
-   Requested result:
-   Spec source:
-   Standards sources:
-   Relevant durable context loaded:
-   Context deliberately excluded and why:
-   Changed public boundary:
-   Acceptance claims:
-   Exact proof commands and results:
-   Known proof gaps and non-proofs:
-   Authority and publication state:
-   Explicit non-goals:
-   </review-authority>
+Look for the originating spec, in this order:
 
-   **Done when:** base, head, Spec, and Standards have reproducible
-   fingerprints; each requirement and standard has a named authority; and no
-   test result or reviewer preference is standing in for one. The packet is
-   complete for the decision while excluding unrelated history, backlog, and
-   repository-wide prose that would bury the relevant evidence.
+1. Issue references in the commit messages (`#123`, `Closes #45`, GitLab
+   `!67`, etc.).
+2. A path the user passed as an argument.
+3. A PRD/spec file under `docs/`, `specs/`, `artifacts/`, or `.scratch/`
+   matching the branch name or feature.
+4. If nothing is found, ask the user where the spec is. If they say there
+   isn't one, the **Spec** sub-agent will skip and report "no spec
+   available".
 
-3. **Run the axes independently.** On **Standards**, inspect documented rules,
-   public seams, external and type boundaries, migrations, naming, proof
-   quality, and concrete design costs. On **Spec**, inspect missing or partial
-   behavior, wrong outcomes, scope creep, and claims unsupported by the diff.
+### 3. Identify the standards sources
 
-   For a substantial surface, run the two bounded read-only passes in separate
-   contexts. If the surface is small or isolation is unavailable, label
-   sequential execution as a degraded fallback, reset the authority and path
-   ledger between axes, and do not carry candidate findings across.
+Anything in the repo that documents how code should be written, such as
+`AGENTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md`, or `docs/adr/`.
 
-   <axis-result>
-   Axis: Standards | Spec
-   Context: isolated | sequential-degraded
-   Paths inspected:
-   Claims checked:
-   Candidate findings:
-   Verification gaps:
-   </axis-result>
+On top of whatever the repo documents, the Standards axis always carries the
+**smell baseline** below — a fixed set of Fowler code smells (_Refactoring_,
+ch.3) that applies even when a repo documents nothing. Two rules bind it:
 
-   Passing one axis cannot compensate for failure on the other.
+- **The repo overrides.** A documented repo standard always wins; where it
+  endorses something the baseline would flag, suppress the smell.
+- **Always a judgement call.** Each smell is a labelled heuristic
+  ("possible Feature Envy"), never a hard violation — and, like any
+  standard here, skip anything tooling already enforces.
 
-   **Done when:** both axes have inspected the whole in-scope ledger and
-   produced separate candidate findings or an explicit no-finding result.
+Each smell reads *what it is* → *how to fix*; match it against the diff:
 
-4. **Try to kill every finding.** Reopen the cited path and current line. Drop
-   a candidate that lacks current evidence, invents a requirement, expresses
-   preference without a documented rule or concrete cost, or duplicates a
-   deterministic tool result without a distinct behavior risk.
+- **Mysterious Name** — a function, variable, or type whose name doesn't
+  reveal what it does or holds. → rename it; if no honest name comes, the
+  design's murky.
+- **Duplicated Code** — the same logic shape appears in more than one hunk
+  or file in the change. → extract the shared shape, call it from both.
+- **Feature Envy** — a method that reaches into another object's data more
+  than its own. → move the method onto the data it envies.
+- **Data Clumps** — the same few fields or params keep travelling together
+  (a type wanting to be born). → bundle them into one type, pass that.
+- **Primitive Obsession** — a primitive or string standing in for a domain
+  concept that deserves its own type. → give the concept its own small
+  type.
+- **Repeated Switches** — the same `switch`/`if`-cascade on the same type
+  recurs across the change. → replace with polymorphism, or one map both
+  sites share.
+- **Shotgun Surgery** — one logical change forces scattered edits across
+  many files in the diff. → gather what changes together into one module.
+- **Divergent Change** — one file or module is edited for several
+  unrelated reasons. → split so each module changes for one reason.
+- **Speculative Generality** — abstraction, parameters, or hooks added for
+  needs the spec doesn't have. → delete it; inline back until a real need
+  shows.
+- **Message Chains** — long `a.b().c().d()` navigation the caller
+  shouldn't depend on. → hide the walk behind one method on the first
+  object.
+- **Middle Man** — a class or function that mostly just delegates onward.
+  → cut it, call the real target direct.
+- **Refused Bequest** — a subclass or implementer that ignores or
+  overrides most of what it inherits. → drop the inheritance, use
+  composition.
 
-   A finding that needs runtime support may reuse or run the cheapest focused
-   observer that can falsify it. Do not expand read-only review into general
-   gate execution, and do not restate a deterministic tool finding unless it
-   exposes a distinct behavior risk.
+### 4. Spawn both sub-agents in parallel
 
-   <review-finding>
-   Axis: Standards | Spec
-   Severity and affected behavior:
-   Current path and line:
-   Authority or violated contract:
-   Evidence:
-   Impact:
-   Smallest credible fix:
-   Falsifying check, if needed:
-   </review-finding>
+Send a single message with two `Agent` tool calls. Use the
+`general-purpose` subagent for both.
 
-   **Done when:** every retained finding is actionable from the returned result and
-   every executed gate can disagree with a specific review claim.
+**Standards sub-agent prompt** — include:
 
-5. **Return findings without repairing.** Lead with Standards and Spec findings,
-   ordered by severity within each axis. If an axis has none, say so and name
-   its residual proof gap. Never collapse the axes into a score.
+- The full diff command and commit list.
+- The list of standards-source files you found in step 3, **plus the smell
+  baseline from step 3 pasted in full** — the sub-agent has no other access
+  to it.
+- The brief: "Report — per file/hunk where relevant — (a) every place the
+  diff violates a documented standard: cite the standard (file + the rule);
+  and (b) any baseline smell you spot: name it and quote the hunk.
+  Distinguish hard violations from judgement calls — documented-standard
+  breaches can be hard, but baseline smells are always judgement calls, and
+  a documented repo standard overrides the baseline. Skip anything tooling
+  enforces. Under 400 words."
 
-   <review-summary>
-   Base / head / Spec / Standards fingerprint:
-   Changed paths accounted for:
-   Standards result:
-   Spec result:
-   Checks observed or run:
-   Verification gaps:
-   Residual risk:
-   </review-summary>
+**Spec sub-agent prompt** — include:
 
-   A finding authorizes no edit. Hand any accepted repair to a separate scoped
-   implementation task. The initiating workflow owns any explicitly requested
-   persistence; this read-only reviewer neither chooses a documentation path
-   nor changes its own fixed point.
+- The diff command and commit list.
+- The path or fetched contents of the spec.
+- The brief: "Report: (a) requirements the spec asked for that are missing
+  or partial; (b) behaviour in the diff that wasn't asked for (scope
+  creep); (c) requirements that look implemented but where the
+  implementation looks wrong. Quote the spec line for each finding. Under
+  400 words."
 
-   If any member of the four-part fingerprint changes before disposition, this
-   result is stale and the new fixed point requires a fresh review; findings do
-   not carry forward by assumption.
+If the spec is missing, skip the Spec sub-agent and note this in the final
+report.
 
-   **Done when:** every in-scope path is accounted for, both axes remain
-   visible, uncertainty is explicit, and the reviewed source is unchanged.
+### 5. Aggregate
+
+Present the two reports under `## Standards` and `## Spec` headings,
+verbatim or lightly cleaned. Do **not** merge or rerank findings — the two
+axes are deliberately separate (see _Why two axes_).
+
+End with a one-line summary: total findings per axis, and the worst issue
+_within each axis_ (if any). Don't pick a single winner across axes —
+that's the reranking the separation exists to prevent.
+
+## Why two axes
+
+A change can pass one axis and fail the other:
+
+- Code that follows every standard but implements the wrong thing →
+  **Standards pass, Spec fail.**
+- Code that does exactly what the issue asked but breaks the project's
+  conventions → **Spec pass, Standards fail.**
+
+Reporting them separately stops one axis from masking the other.
+
+## Completion criteria
+
+- [ ] Fixed point resolved (`git rev-parse`) and diff non-empty — checked
+      before any sub-agent runs.
+- [ ] Both sub-agents ran in parallel with the full smell baseline in the
+      Standards prompt.
+- [ ] Spec source was located or explicitly reported absent.
+- [ ] The final report has `## Standards` and `## Spec` sections, findings
+      not merged or reranked.
+- [ ] One-line summary states findings per axis and the worst issue in
+      each.
