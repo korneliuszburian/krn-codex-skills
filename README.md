@@ -86,6 +86,7 @@ tracker capability is emulated.
 | [`source-to-decision`](skills/engineering/source-to-decision/SKILL.md) | model or user | one source-backed disposition for a named local consumer |
 | [`prototype`](skills/engineering/prototype/SKILL.md) | model or user | one disposable runnable answer to a design question |
 | [`to-spec`](skills/engineering/to-spec/SKILL.md) | model or user | a settled conversation compressed into one destination-first spec |
+| [`to-questionnaire`](skills/engineering/to-questionnaire/SKILL.md) | explicit only | a user-blocked decision turned into a third-party questionnaire |
 | [`slice-work`](skills/engineering/slice-work/SKILL.md) | model or user | vertical implementation slices or expand-contract migration stages |
 | [`wayfinder`](skills/engineering/wayfinder/SKILL.md) | explicit only | a durable typed-frontier map for genuinely foggy multi-session work |
 | [`delivery-loop`](skills/engineering/delivery-loop/SKILL.md) | model or user | lifecycle truth and handoffs for one agreed end-to-end outcome |
@@ -93,6 +94,7 @@ tracker capability is emulated.
 | [`setup-repository-workflow`](skills/engineering/setup-repository-workflow/SKILL.md) | explicit only | one-time adoption or repair of a thin local contract |
 | [`typescript-engineering`](skills/engineering/typescript-engineering/SKILL.md) | model or user | TypeScript inference, public APIs, compiler mechanics, and proof |
 | [`opencode-second-opinion`](skills/advisory/opencode-second-opinion/SKILL.md) | explicit only | bounded DeepSeek opinion on one explicit path, without diffs |
+| [`wait-what`](skills/advisory/wait-what/SKILL.md) | explicit only | a re-pitch of a message that did not land, in simplified technical English |
 | [`managing-codex-capabilities`](skills/meta/managing-codex-capabilities/SKILL.md) | model or user | global skill, plugin, MCP, and profile control |
 | [`writing-for-agents`](skills/meta/writing-for-agents/SKILL.md) | model or user | agent-facing documents; skill routing, information shape, validation, and pruning |
 
