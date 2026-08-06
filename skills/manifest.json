@@ -96,8 +96,8 @@
       "implicit": true
     },
     {
-      "name": "second-opinion-review",
-      "path": "skills/advisory/second-opinion-review",
+      "name": "opencode-second-opinion",
+      "path": "skills/advisory/opencode-second-opinion",
       "implicit": false
     },
     {
@@ -106,12 +106,26 @@
       "implicit": true
     },
     {
-      "name": "writing-great-skills",
-      "path": "skills/meta/writing-great-skills",
+      "name": "writing-for-agents",
+      "path": "skills/meta/writing-for-agents",
       "implicit": true
+    },
+    {
+      "name": "to-questionnaire",
+      "path": "skills/engineering/to-questionnaire",
+      "implicit": false
+    },
+    {
+      "name": "wait-what",
+      "path": "skills/advisory/wait-what",
+      "implicit": false
     }
   ],
   "retired_skills": [
+    {
+      "name": "second-opinion-review",
+      "replacement": "opencode-second-opinion"
+    },
     {
       "name": "reviewer-handoff",
       "replacement": null
@@ -132,11 +146,11 @@
     },
     {
       "path": ".codex/skills/writing-great-skills",
-      "replacement": "writing-great-skills"
+      "replacement": "writing-for-agents"
     },
     {
       "path": ".codex/skills/claude-second-opinion-review",
-      "replacement": "second-opinion-review"
+      "replacement": "opencode-second-opinion"
     }
   ]
 }

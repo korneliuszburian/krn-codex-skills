@@ -10,7 +10,7 @@
       "forbidden_skills": [
         "diagnosing-bugs",
         "code-review",
-        "second-opinion-review",
+        "opencode-second-opinion",
         "typescript-engineering",
         "prototype"
       ]
@@ -25,7 +25,7 @@
       "forbidden_skills": [
         "setup-repository-workflow",
         "codebase-design",
-        "second-opinion-review"
+        "opencode-second-opinion"
       ]
     },
     {
@@ -62,7 +62,7 @@
       "forbidden_skills": [
         "diagnosing-bugs",
         "source-to-decision",
-        "second-opinion-review"
+        "opencode-second-opinion"
       ]
     },
     {
@@ -169,7 +169,7 @@
       "forbidden_skills": [
         "implement",
         "code-review",
-        "second-opinion-review"
+        "opencode-second-opinion"
       ]
     },
     {
@@ -181,7 +181,7 @@
       ],
       "forbidden_skills": [
         "code-review",
-        "second-opinion-review"
+        "opencode-second-opinion"
       ]
     },
     {
@@ -193,7 +193,7 @@
       "forbidden_skills": [
         "implement",
         "diagnosing-bugs",
-        "second-opinion-review",
+        "opencode-second-opinion",
         "delivery-loop"
       ]
     },
@@ -205,7 +205,7 @@
       ],
       "forbidden_skills": [
         "implement",
-        "second-opinion-review",
+        "opencode-second-opinion",
         "delivery-loop"
       ]
     },
@@ -286,7 +286,7 @@
       ],
       "forbidden_skills": [
         "implement",
-        "writing-great-skills"
+        "writing-for-agents"
       ]
     },
     {
@@ -298,7 +298,7 @@
       ],
       "forbidden_skills": [
         "domain-modeling",
-        "second-opinion-review"
+        "opencode-second-opinion"
       ]
     },
     {
@@ -328,7 +328,7 @@
       "id": "author-skill",
       "prompt": "Rewrite this SKILL.md so its implicit trigger stops colliding with code review.",
       "expected_skills": [
-        "writing-great-skills"
+        "writing-for-agents"
       ],
       "forbidden_skills": [
         "code-review",
@@ -342,7 +342,7 @@
         "managing-codex-capabilities"
       ],
       "forbidden_skills": [
-        "writing-great-skills",
+        "writing-for-agents",
         "implement",
         "target-repo-work"
       ]
@@ -353,14 +353,14 @@
       "expected_skills": [],
       "forbidden_skills": [
         "managing-codex-capabilities",
-        "writing-great-skills"
+        "writing-for-agents"
       ]
     },
     {
       "id": "explicit-second-opinion",
-      "prompt": "Use $second-opinion-review to have Claude challenge this completed architecture claim.",
+      "prompt": "Use $opencode-second-opinion to have DeepSeek inspect this architecture claim at the named path without producing a diff.",
       "expected_skills": [
-        "second-opinion-review"
+        "opencode-second-opinion"
       ],
       "forbidden_skills": [
         "diagnosing-bugs"
@@ -374,7 +374,7 @@
       ],
       "forbidden_skills": [
         "implement",
-        "second-opinion-review",
+        "opencode-second-opinion",
         "to-spec",
         "slice-work"
       ]
@@ -411,7 +411,7 @@
         "implement"
       ],
       "forbidden_skills": [
-        "second-opinion-review",
+        "opencode-second-opinion",
         "domain-modeling"
       ]
     },
@@ -430,7 +430,7 @@
       "expected_skills": [],
       "forbidden_skills": [
         "source-to-decision",
-        "writing-great-skills"
+        "writing-for-agents"
       ]
     },
     {
@@ -453,7 +453,7 @@
       "forbidden_skills": [
         "domain-modeling",
         "source-to-decision",
-        "second-opinion-review",
+        "opencode-second-opinion",
         "delivery-loop"
       ]
     },
@@ -462,23 +462,25 @@
       "prompt": "The conversation was compacted. Recover the active goal and tracker state before selecting work.",
       "expected_skills": [],
       "forbidden_skills": [
-        "implement",
-        "diagnosing-bugs",
-        "delivery-loop",
         "code-review",
         "codebase-design",
+        "delivery-loop",
+        "diagnosing-bugs",
         "domain-modeling",
-        "source-to-decision",
-        "to-spec",
-        "wayfinder",
+        "implement",
+        "managing-codex-capabilities",
+        "opencode-second-opinion",
         "prototype",
         "setup-repository-workflow",
+        "slice-work",
+        "source-to-decision",
         "target-repo-work",
+        "to-questionnaire",
+        "to-spec",
         "typescript-engineering",
-        "second-opinion-review",
-        "writing-great-skills",
-        "managing-codex-capabilities",
-        "slice-work"
+        "wait-what",
+        "wayfinder",
+        "writing-for-agents"
       ]
     },
     {
@@ -502,7 +504,7 @@
       ],
       "forbidden_skills": [
         "managing-codex-capabilities",
-        "writing-great-skills"
+        "writing-for-agents"
       ]
     },
     {
@@ -589,7 +591,7 @@
         "source-to-decision"
       ],
       "forbidden_skills": [
-        "second-opinion-review",
+        "opencode-second-opinion",
         "implement"
       ]
     },
@@ -802,6 +804,45 @@
         "implement",
         "diagnosing-bugs",
         "wayfinder"
+      ]
+    },
+    {
+      "id": "explicit-to-questionnaire",
+      "prompt": "Use $to-questionnaire \u2014 the load-capacity knowledge for this decision lives with the ops engineer, not with us; turn what we need from them into a questionnaire document.",
+      "expected_skills": [
+        "to-questionnaire"
+      ],
+      "forbidden_skills": [
+        "to-spec",
+        "slice-work",
+        "domain-modeling"
+      ]
+    },
+    {
+      "id": "to-questionnaire-stays-explicit",
+      "prompt": "The user is deciding a design trade-off they can answer themselves; just interview them in rounds.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "to-questionnaire"
+      ]
+    },
+    {
+      "id": "explicit-wait-what",
+      "prompt": "User: wait what \u2014 re-pitch the last message in simplified English using $wait-what.",
+      "expected_skills": [
+        "wait-what"
+      ],
+      "forbidden_skills": [
+        "domain-modeling",
+        "to-spec"
+      ]
+    },
+    {
+      "id": "wait-what-stays-explicit",
+      "prompt": "Continue the implementation; the user fully understands the last explanation and did not ask for a re-pitch.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "wait-what"
       ]
     }
   ]
