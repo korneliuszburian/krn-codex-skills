@@ -6,7 +6,8 @@ description: Plan a huge chunk of work - more than one agent session can hold - 
 # Wayfinder
 A loose idea has arrived — too big for one agent session, wrapped in fog:
 the way from here to the **destination** isn't visible yet. Wayfinding
-charts the way as a **shared map** on the repo's issue tracker, then works
+charts the way as a **shared map** on the repo's tracker (default:
+local markdown, see The Map), then works
 its **decision tickets** — questions whose resolution is a decision, not
 slices of a build to execute — one at a time until the route is clear.
 Naming the destination is the first act of charting: a spec to hand off
@@ -25,8 +26,7 @@ itself — but absent that, produce decisions, not deliverables.
 Every map and ticket is an issue, so it has a **name** — its title. In
 everything the human reads — narration, the map's Decisions-so-far — refer
 to it by that name, never by a bare id, number, or slug: a wall of
-`#42, #43, #44` is illegible; the id rides _inside_ the name, never in its
-place.
+`#42, #43, #44` is illegible; the id rides _inside_ the name.
 
 ## The Map
 One issue on the repo's tracker, labelled `wayfinder:map` — the canonical
@@ -37,7 +37,9 @@ only gists it and links.
 tracker-specific.** Default: local markdown — the map at
 `.scratch/wayfinder-map.md`, tickets under `.scratch/wayfinder/<name>.md`.
 With a real tracker configured, use its native issues, labels, and
-blocking. Templates: [map-template.md](references/map-template.md).
+blocking. In a mini-agi repo, tickets live in the kernel's ticket store
+(`tickets/TICKET-<n>.md`) so the kernel owns claims and locks (see Work
+through the map). Templates: [map-template.md](references/map-template.md).
 The map body is the whole map at low resolution, loaded once per session;
 open tickets are **not** listed — they are open child issues, found by
 query.
@@ -92,10 +94,9 @@ The map is _deliberately_ incomplete: beyond the live tickets lies the dim
 view of decisions you can tell are coming but can't yet pin down, because
 they hang on questions still open. The map's **Not yet specified** section
 holds that view; resolving a ticket graduates whatever's now specifiable
-into fresh tickets. **Fog or ticket?** The test is whether you can state
-the question precisely now — not whether you can answer it. Not-yet-
-specified excludes what's already decided, what's already a live ticket,
-and what's out of scope. Mechanics: [fog-and-scope.md](references/fog-and-scope.md).
+into fresh tickets. **Fog or ticket?** State the question precisely now —
+not whether you can answer it. Not-yet-specified excludes decided, live,
+and out-of-scope. Mechanics: [fog-and-scope.md](references/fog-and-scope.md).
 
 ## Out of scope
 
@@ -103,14 +104,14 @@ Fog only gathers _toward_ the destination; work beyond it is **out of
 scope** — it isn't fog and doesn't belong in Not-yet-specified (scope, not
 sharpness, lands it here). It never graduates — the frontier stops at the
 destination — so it returns only if the destination is redrawn. A ticket
-that sits past the destination is **closed**, with one line in the **Out of
-scope** section: the gist plus why, linking the closed ticket; it stays out
-of **Decisions so far**. Mechanics: [fog-and-scope.md](references/fog-and-scope.md).
+past the destination is **closed**, one line in **Out of scope**: the gist
+plus why, linking the closed ticket; it stays out of **Decisions so far**.
+Mechanics: [fog-and-scope.md](references/fog-and-scope.md).
 
 ## Invocation
 
-Two modes. Either way, **never resolve more than one ticket per session** —
-with the exception of research tickets.
+Two modes. Either way, **never resolve more than one ticket per session**
+except research tickets.
 
 ### Chart the map
 

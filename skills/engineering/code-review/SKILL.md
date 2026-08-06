@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes - Standards and Spec - via parallel sub-agents, reported side by side. Use when the user wants a branch, PR, or work-in-progress changes reviewed.
+description: Review the changes since a fixed point (commit, branch, tag, merge-base) along two axes - Standards and Spec - via parallel sub-agents, reported side by side. Use when the user wants a branch, PR, WIP, or asks to "review since X".
 ---
 
 SEAM: generic two-axis review (Standards + Spec, parallel sub-agents).
