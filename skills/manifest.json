@@ -26,38 +26,8 @@
   ],
   "skills": [
     {
-      "name": "code-review",
-      "path": "skills/engineering/code-review",
-      "implicit": true
-    },
-    {
-      "name": "codebase-design",
-      "path": "skills/engineering/codebase-design",
-      "implicit": true
-    },
-    {
-      "name": "diagnosing-bugs",
-      "path": "skills/engineering/diagnosing-bugs",
-      "implicit": true
-    },
-    {
       "name": "delivery-loop",
       "path": "skills/engineering/delivery-loop",
-      "implicit": true
-    },
-    {
-      "name": "domain-modeling",
-      "path": "skills/engineering/domain-modeling",
-      "implicit": true
-    },
-    {
-      "name": "implement",
-      "path": "skills/engineering/implement",
-      "implicit": true
-    },
-    {
-      "name": "prototype",
-      "path": "skills/engineering/prototype",
       "implicit": true
     },
     {
@@ -66,19 +36,9 @@
       "implicit": true
     },
     {
-      "name": "to-spec",
-      "path": "skills/engineering/to-spec",
-      "implicit": true
-    },
-    {
       "name": "slice-work",
       "path": "skills/engineering/slice-work",
       "implicit": true
-    },
-    {
-      "name": "wayfinder",
-      "path": "skills/engineering/wayfinder",
-      "implicit": false
     },
     {
       "name": "setup-repository-workflow",
@@ -104,50 +64,15 @@
       "name": "managing-codex-capabilities",
       "path": "skills/meta/managing-codex-capabilities",
       "implicit": true
-    },
-    {
-      "name": "writing-for-agents",
-      "path": "skills/meta/writing-for-agents",
-      "implicit": true
-    },
-    {
-      "name": "to-questionnaire",
-      "path": "skills/engineering/to-questionnaire",
-      "implicit": false
-    },
-    {
-      "name": "wait-what",
-      "path": "skills/advisory/wait-what",
-      "implicit": false
     }
   ],
   "retired_skills": [
     {
       "name": "second-opinion-review",
       "replacement": "opencode-second-opinion"
-    },
-    {
-      "name": "reviewer-handoff",
-      "replacement": null
     }
   ],
   "legacy_user_paths": [
-    {
-      "path": ".codex/skills/code-review",
-      "replacement": "code-review"
-    },
-    {
-      "path": ".codex/skills/codebase-design",
-      "replacement": "codebase-design"
-    },
-    {
-      "path": ".codex/skills/diagnosing-bugs",
-      "replacement": "diagnosing-bugs"
-    },
-    {
-      "path": ".codex/skills/writing-great-skills",
-      "replacement": "writing-for-agents"
-    },
     {
       "path": ".codex/skills/claude-second-opinion-review",
       "replacement": "opencode-second-opinion"

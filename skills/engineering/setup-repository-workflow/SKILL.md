@@ -131,8 +131,9 @@ plans remain ephemeral.
 instead of layering another index over them. Add a script, hook, or CI check
 only for a deterministic invariant that can fail and whose enforcement surface
 has the required authority. Do not create local executioner or reviewer agents:
-scoped changes use `$implement`, unknown failures use `$diagnosing-bugs`, and a
-fixed diff uses `$code-review`.
+scoped changes use the composed upstream `implement`, unknown failures use the
+composed upstream `diagnosing-bugs`, and a fixed diff uses the composed upstream
+`code-review`.
 
    **Done when:** every managed file changes observable setup behavior, and
    normal delivery still routes to the existing workflow owners.

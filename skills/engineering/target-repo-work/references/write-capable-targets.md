@@ -34,9 +34,10 @@ crossing; this branch owns mutation-grade state and handoff.
    **Done when:** every command and mutation fits the selected mode and every
    changed path remains attributable.
 
-3. **Follow the selected write branch.** In `headless-repair`, use
-   `$diagnosing-bugs` first when the cause is unknown, then hand the proven or
-   already-scoped change to `$implement` with the target root, path budget,
+3. **Follow the selected write branch.** In `headless-repair`, use the
+   composed upstream `diagnosing-bugs` first when the cause is unknown, then
+   hand the proven or already-scoped change to the composed upstream
+   `implement` with the target root, path budget,
    closest instructions, and rollback. Those skills own diagnosis, production
    edits, and proportional proof; this branch keeps target authority around
    them.

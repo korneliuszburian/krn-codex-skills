@@ -32,12 +32,12 @@ test("refuses an unowned skill destination collision without touching it", () =>
   try {
     const env = sandboxEnv(sandbox);
     fs.mkdirSync(env.KRN_SKILLS_DEST, { recursive: true });
-    const implement = path.join(env.KRN_SKILLS_DEST, "implement");
-    fs.writeFileSync(implement, "operator-owned, do not touch");
+    const collision = path.join(env.KRN_SKILLS_DEST, "delivery-loop");
+    fs.writeFileSync(collision, "operator-owned, do not touch");
     const result = spawnSync("bash", [installScript, "install"], { encoding: "utf8", env });
     assert.equal(result.status, 73, result.stderr);
     assert.equal(
-      fs.readFileSync(implement, "utf8"),
+      fs.readFileSync(collision, "utf8"),
       "operator-owned, do not touch",
       "the foreign file must be left byte-identical",
     );
@@ -89,7 +89,7 @@ test("archives a displaced legacy path into a backup instead of deleting it", ()
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
   try {
     const env = { ...sandboxEnv(sandbox), KRN_ARCHIVE_LEGACY: "1" };
-    const legacy = path.join(env.CODEX_HOME, "skills", "code-review");
+    const legacy = path.join(env.CODEX_HOME, "skills", "claude-second-opinion-review");
     fs.mkdirSync(path.dirname(legacy), { recursive: true });
     fs.writeFileSync(legacy, "legacy operator content");
     const result = spawnSync("bash", [installScript, "install"], { encoding: "utf8", env });
@@ -112,8 +112,8 @@ test("reports and explicitly archives a retired installed skill, including a sta
   try {
     const env = sandboxEnv(sandbox);
     fs.mkdirSync(env.KRN_SKILLS_DEST, { recursive: true });
-    const retired = path.join(env.KRN_SKILLS_DEST, "reviewer-handoff");
-    const oldSource = path.join(sandbox, "deleted-reviewer-handoff-source");
+    const retired = path.join(env.KRN_SKILLS_DEST, "second-opinion-review");
+    const oldSource = path.join(sandbox, "deleted-second-opinion-review-source");
     fs.symlinkSync(oldSource, retired);
 
     const check = spawnSync("bash", [installScript, "check"], {
@@ -121,7 +121,7 @@ test("reports and explicitly archives a retired installed skill, including a sta
       env,
     });
     assert.equal(check.status, 1, check.stderr);
-    assert.match(check.stdout, /retired .*reviewer-handoff/);
+    assert.match(check.stdout, /retired .*second-opinion-review/);
     assert.ok(fs.lstatSync(retired).isSymbolicLink());
 
     const refused = spawnSync("bash", [installScript, "install"], {
@@ -149,7 +149,7 @@ test("reports and explicitly archives a retired installed skill, including a sta
     const archived = path.join(
       backupRoot,
       backup.name,
-      "retired-skill__reviewer-handoff",
+      "retired-skill__second-opinion-review",
     );
     assert.ok(fs.lstatSync(archived).isSymbolicLink());
     assert.equal(fs.readlinkSync(archived), oldSource);

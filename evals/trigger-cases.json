@@ -4,40 +4,29 @@
     {
       "id": "implement-clear-runtime-change",
       "prompt": "Add validation to the public import command and ship the smallest working change.",
-      "expected_skills": [
-        "implement"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "diagnosing-bugs",
-        "code-review",
         "opencode-second-opinion",
-        "typescript-engineering",
-        "prototype"
+        "typescript-engineering"
       ]
     },
     {
       "id": "autonomous-end-to-end-delivery",
       "prompt": "Take this accepted repository outcome and autonomously carry it through the active tracker item, implementation, focused proof, independent review, commit, PR checks, and every authorized step until done or an exact external blocker.",
       "expected_skills": [
-        "delivery-loop",
-        "implement"
+        "delivery-loop"
       ],
       "forbidden_skills": [
         "setup-repository-workflow",
-        "codebase-design",
         "opencode-second-opinion"
       ]
     },
     {
       "id": "single-slice-does-not-need-delivery-loop",
       "prompt": "Implement this already-scoped parser validation locally and show its focused proof; do not commit or publish it.",
-      "expected_skills": [
-        "implement"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
         "delivery-loop",
-        "diagnosing-bugs",
-        "code-review",
         "slice-work"
       ]
     },
@@ -45,12 +34,10 @@
       "id": "implement-typescript-boundary",
       "prompt": "Change this TypeScript JSON boundary so external data stays unknown until parsed.",
       "expected_skills": [
-        "implement",
         "typescript-engineering"
       ],
       "forbidden_skills": [
-        "source-to-decision",
-        "domain-modeling"
+        "source-to-decision"
       ]
     },
     {
@@ -60,7 +47,6 @@
         "typescript-engineering"
       ],
       "forbidden_skills": [
-        "diagnosing-bugs",
         "source-to-decision",
         "opencode-second-opinion"
       ]
@@ -69,47 +55,33 @@
       "id": "typescript-review-composition",
       "prompt": "Review this fixed TypeScript public API diff against its spec and type-boundary standards without redesigning it.",
       "expected_skills": [
-        "code-review",
         "typescript-engineering"
       ],
-      "forbidden_skills": [
-        "codebase-design",
-        "implement"
-      ]
+      "forbidden_skills": []
     },
     {
       "id": "typescript-diagnosis-composition",
       "prompt": "This TypeScript module-resolution failure has an unknown cause. Reproduce and diagnose it without repairing it.",
       "expected_skills": [
-        "diagnosing-bugs",
         "typescript-engineering"
       ],
-      "forbidden_skills": [
-        "implement",
-        "code-review"
-      ]
+      "forbidden_skills": []
     },
     {
       "id": "typescript-design-composition",
       "prompt": "Design the smallest deep TypeScript interface for this exported module boundary without implementing it.",
       "expected_skills": [
-        "codebase-design",
         "typescript-engineering"
       ],
-      "forbidden_skills": [
-        "code-review",
-        "implement"
-      ]
+      "forbidden_skills": []
     },
     {
       "id": "typescript-tsx-assertion-grammar",
       "prompt": "In this .tsx file, replace the angle-bracket type assertion that collides with JSX grammar with the as form, keeping the same evidence.",
       "expected_skills": [
-        "implement",
         "typescript-engineering"
       ],
       "forbidden_skills": [
-        "diagnosing-bugs",
         "source-to-decision"
       ]
     },
@@ -117,23 +89,17 @@
       "id": "typescript-declaration-file-authoring",
       "prompt": "Author a .d.ts declaration for this untyped JavaScript module so its imports get a real type, then prove a consumer compiles against it.",
       "expected_skills": [
-        "implement",
         "typescript-engineering"
       ],
-      "forbidden_skills": [
-        "diagnosing-bugs",
-        "domain-modeling"
-      ]
+      "forbidden_skills": []
     },
     {
       "id": "typescript-tsconfig-erasable-host",
       "prompt": "This project executes TypeScript in a stripping-only host; configure the pinned compiler's erasable-syntax guard to reject non-erasable syntax without changing unrelated options.",
       "expected_skills": [
-        "implement",
         "typescript-engineering"
       ],
       "forbidden_skills": [
-        "diagnosing-bugs",
         "source-to-decision"
       ]
     },
@@ -141,58 +107,39 @@
       "id": "typescript-package-consumer-contract",
       "prompt": "Review the fixed diff that changes this package's declarations and exports. Compile a small consumer against the published entry point, but do not edit the package.",
       "expected_skills": [
-        "code-review",
         "typescript-engineering"
       ],
-      "forbidden_skills": [
-        "codebase-design",
-        "implement"
-      ]
+      "forbidden_skills": []
     },
     {
       "id": "plain-javascript-is-not-typescript",
       "prompt": "Implement the already-scoped behavior change in this plain JavaScript module.",
-      "expected_skills": [
-        "implement"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "typescript-engineering",
-        "diagnosing-bugs"
+        "typescript-engineering"
       ]
     },
     {
       "id": "diagnose-only-unknown-flake",
       "prompt": "This database smoke flakes about one run in twenty. Find the cause, but do not repair it.",
-      "expected_skills": [
-        "diagnosing-bugs"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "implement",
-        "code-review",
         "opencode-second-opinion"
       ]
     },
     {
       "id": "diagnose-and-repair-unknown-flake",
       "prompt": "This database smoke flakes about one run in twenty. Find the cause and fix it.",
-      "expected_skills": [
-        "diagnosing-bugs",
-        "implement"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "code-review",
         "opencode-second-opinion"
       ]
     },
     {
       "id": "review-working-tree",
       "prompt": "Review all staged, unstaged, and untracked work in this branch against the request.",
-      "expected_skills": [
-        "code-review"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "implement",
-        "diagnosing-bugs",
         "opencode-second-opinion",
         "delivery-loop"
       ]
@@ -200,82 +147,26 @@
     {
       "id": "existing-review-packet-still-needs-code-review",
       "prompt": "Review this fixed-point diff against its spec and repository standards; the packet is already available.",
-      "expected_skills": [
-        "code-review"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "implement",
         "opencode-second-opinion",
         "delivery-loop"
       ]
     },
     {
-      "id": "design-public-interface",
-      "prompt": "Compare two interfaces for this module and choose the deeper public seam.",
-      "expected_skills": [
-        "codebase-design"
-      ],
-      "forbidden_skills": [
-        "domain-modeling",
-        "code-review",
-        "prototype"
-      ]
-    },
-    {
-      "id": "design-audit-monoliths",
-      "prompt": "Audit this package for growing monoliths and rank the best deep-module opportunities without editing code.",
-      "expected_skills": [
-        "codebase-design"
-      ],
-      "forbidden_skills": [
-        "code-review",
-        "implement"
-      ]
-    },
-    {
-      "id": "review-is-not-architecture-audit",
-      "prompt": "Review the fixed-point diff against its issue and repository standards; do not redesign untouched modules.",
-      "expected_skills": [
-        "code-review"
-      ],
-      "forbidden_skills": [
-        "codebase-design",
-        "implement"
-      ]
-    },
-    {
-      "id": "resolve-domain-name",
-      "prompt": "We use account for both the paying customer and login identity. Resolve the public language.",
-      "expected_skills": [
-        "domain-modeling"
-      ],
-      "forbidden_skills": [
-        "codebase-design",
-        "implement"
-      ]
-    },
-    {
       "id": "resolve-and-apply-domain-name",
       "prompt": "Resolve whether account means the paying customer or login identity, then update the public API and its callers to the chosen language.",
-      "expected_skills": [
-        "domain-modeling",
-        "implement"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "code-review",
         "source-to-decision"
       ]
     },
     {
       "id": "domain-grill-with-docs",
       "prompt": "Grill the competing meanings of order in this codebase, update the active domain context, and create an ADR only if the decision is hard to reverse, surprising without context, and a real trade-off.",
-      "expected_skills": [
-        "domain-modeling"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "setup-repository-workflow",
-        "implement",
-        "to-spec"
+        "setup-repository-workflow"
       ]
     },
     {
@@ -284,20 +175,15 @@
       "expected_skills": [
         "source-to-decision"
       ],
-      "forbidden_skills": [
-        "implement",
-        "writing-for-agents"
-      ]
+      "forbidden_skills": []
     },
     {
       "id": "decide-and-implement-external-source",
       "prompt": "Evaluate this framework design paper for our named consumer, then implement the selected mechanism if the evidence supports adoption.",
       "expected_skills": [
-        "source-to-decision",
-        "implement"
+        "source-to-decision"
       ],
       "forbidden_skills": [
-        "domain-modeling",
         "opencode-second-opinion"
       ]
     },
@@ -307,31 +193,21 @@
       "expected_skills": [
         "target-repo-work"
       ],
-      "forbidden_skills": [
-        "implement",
-        "code-review"
-      ]
+      "forbidden_skills": []
     },
     {
       "id": "repair-other-checkout",
       "prompt": "In the dirty ../customer-app checkout, implement the already-scoped import validation change without overwriting existing work; local target writes are authorized but publication is not.",
       "expected_skills": [
-        "target-repo-work",
-        "implement"
+        "target-repo-work"
       ],
-      "forbidden_skills": [
-        "code-review",
-        "diagnosing-bugs"
-      ]
+      "forbidden_skills": []
     },
     {
       "id": "author-skill",
       "prompt": "Rewrite this SKILL.md so its implicit trigger stops colliding with code review.",
-      "expected_skills": [
-        "writing-for-agents"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "code-review",
         "source-to-decision"
       ]
     },
@@ -342,8 +218,6 @@
         "managing-codex-capabilities"
       ],
       "forbidden_skills": [
-        "writing-for-agents",
-        "implement",
         "target-repo-work"
       ]
     },
@@ -352,8 +226,7 @@
       "prompt": "Disable the repo-local beads skill only for this project.",
       "expected_skills": [],
       "forbidden_skills": [
-        "managing-codex-capabilities",
-        "writing-for-agents"
+        "managing-codex-capabilities"
       ]
     },
     {
@@ -362,22 +235,7 @@
       "expected_skills": [
         "opencode-second-opinion"
       ],
-      "forbidden_skills": [
-        "diagnosing-bugs"
-      ]
-    },
-    {
-      "id": "explicit-domain-modeling",
-      "prompt": "Use $domain-modeling to interview every currently answerable design question in rounds before we create a spec or change anything.",
-      "expected_skills": [
-        "domain-modeling"
-      ],
-      "forbidden_skills": [
-        "implement",
-        "opencode-second-opinion",
-        "to-spec",
-        "slice-work"
-      ]
+      "forbidden_skills": []
     },
     {
       "id": "explicit-slice-work",
@@ -386,9 +244,7 @@
         "slice-work"
       ],
       "forbidden_skills": [
-        "implement",
-        "delivery-loop",
-        "domain-modeling"
+        "delivery-loop"
       ]
     },
     {
@@ -399,20 +255,15 @@
         "slice-work"
       ],
       "forbidden_skills": [
-        "diagnosing-bugs",
-        "domain-modeling",
         "setup-repository-workflow"
       ]
     },
     {
       "id": "second-opinion-stays-explicit",
       "prompt": "Implement this small parser change and run its focused proof.",
-      "expected_skills": [
-        "implement"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "opencode-second-opinion",
-        "domain-modeling"
+        "opencode-second-opinion"
       ]
     },
     {
@@ -420,7 +271,6 @@
       "prompt": "Read CONTEXT.md so your variable names match the existing vocabulary.",
       "expected_skills": [],
       "forbidden_skills": [
-        "domain-modeling",
         "source-to-decision"
       ]
     },
@@ -429,29 +279,22 @@
       "prompt": "Look up the current documented flag name and tell me what it is.",
       "expected_skills": [],
       "forbidden_skills": [
-        "source-to-decision",
-        "writing-for-agents"
+        "source-to-decision"
       ]
     },
     {
       "id": "same-repo-work",
       "prompt": "Rename this private helper in the repository we already have open.",
-      "expected_skills": [
-        "implement"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "target-repo-work",
-        "codebase-design"
+        "target-repo-work"
       ]
     },
     {
       "id": "long-goal-next-slice",
       "prompt": "Continue the active goal by implementing the next already-scoped vertical slice.",
-      "expected_skills": [
-        "implement"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "domain-modeling",
         "source-to-decision",
         "opencode-second-opinion",
         "delivery-loop"
@@ -462,25 +305,14 @@
       "prompt": "The conversation was compacted. Recover the active goal and tracker state before selecting work.",
       "expected_skills": [],
       "forbidden_skills": [
-        "code-review",
-        "codebase-design",
         "delivery-loop",
-        "diagnosing-bugs",
-        "domain-modeling",
-        "implement",
         "managing-codex-capabilities",
         "opencode-second-opinion",
-        "prototype",
         "setup-repository-workflow",
         "slice-work",
         "source-to-decision",
         "target-repo-work",
-        "to-questionnaire",
-        "to-spec",
-        "typescript-engineering",
-        "wait-what",
-        "wayfinder",
-        "writing-for-agents"
+        "typescript-engineering"
       ]
     },
     {
@@ -490,8 +322,6 @@
         "setup-repository-workflow"
       ],
       "forbidden_skills": [
-        "implement",
-        "code-review",
         "managing-codex-capabilities"
       ]
     },
@@ -503,20 +333,15 @@
         "target-repo-work"
       ],
       "forbidden_skills": [
-        "managing-codex-capabilities",
-        "writing-for-agents"
+        "managing-codex-capabilities"
       ]
     },
     {
       "id": "normal-delivery-is-not-repository-setup",
       "prompt": "Implement the already-scoped checkout validation and run its focused proof.",
-      "expected_skills": [
-        "implement"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "setup-repository-workflow",
-        "diagnosing-bugs",
-        "code-review"
+        "setup-repository-workflow"
       ]
     },
     {
@@ -527,33 +352,23 @@
       ],
       "forbidden_skills": [
         "setup-repository-workflow",
-        "implement",
         "target-repo-work"
       ]
     },
     {
       "id": "settled-thread-becomes-published-spec",
       "prompt": "We've agreed on this feature in the thread. Synthesize it into a destination-first spec with any explicit non-gating unknowns and publish it to our tracker.",
-      "expected_skills": [
-        "to-spec"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "slice-work",
-        "implement",
-        "domain-modeling"
+        "slice-work"
       ]
     },
     {
       "id": "implementation-gating-seam-is-not-yet-a-spec",
       "prompt": "The outcome is agreed, but we still have to decide whether callers or the adapter owns retries before implementation can start. Resolve that seam first; do not write or slice the spec yet.",
-      "expected_skills": [
-        "codebase-design"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "to-spec",
-        "slice-work",
-        "implement",
-        "domain-modeling"
+        "slice-work"
       ]
     },
     {
@@ -562,65 +377,22 @@
       "expected_skills": [
         "slice-work"
       ],
-      "forbidden_skills": [
-        "to-spec",
-        "implement",
-        "domain-modeling",
-        "wayfinder"
-      ]
-    },
-    {
-      "id": "foggy-effort-becomes-decision-map",
-      "prompt": "Use $wayfinder for this initiative: it is far too big and unclear for one session, so chart it as a shared map of decision tickets (label wayfinder:map) on the tracker and resolve one claimed ticket per session until the way is clear.",
-      "expected_skills": [
-        "wayfinder"
-      ],
-      "forbidden_skills": [
-        "to-spec",
-        "slice-work",
-        "implement",
-        "delivery-loop",
-        "domain-modeling"
-      ]
-    },
-    {
-      "id": "wayfinder-research-ticket-needs-a-decision-owner",
-      "prompt": "Use $wayfinder to continue our existing map: claim the ready research ticket and dispatch a research subagent to surface the facts the decision waits on; then evaluate whether we should adopt, reject, lab-test, or defer the named external source's mechanism via $source-to-decision, and record the result with a context pointer.",
-      "expected_skills": [
-        "wayfinder",
-        "source-to-decision"
-      ],
-      "forbidden_skills": [
-        "opencode-second-opinion",
-        "implement"
-      ]
+      "forbidden_skills": []
     },
     {
       "id": "small-foggy-choice-is-not-a-map",
       "prompt": "Help me decide between these two approaches for this one function before I build it.",
-      "expected_skills": [
-        "domain-modeling"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "wayfinder",
-        "to-spec",
-        "slice-work",
-        "implement"
+        "slice-work"
       ]
     },
     {
       "id": "design-question-gets-a-throwaway-prototype",
       "prompt": "I'm not sure this state machine handles the edge case where a paused order is refunded then resumed. Build something tiny I can poke at to feel out whether the model is right.",
-      "expected_skills": [
-        "prototype"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "implement",
-        "diagnosing-bugs",
-        "code-review",
-        "slice-work",
-        "to-spec",
-        "codebase-design"
+        "slice-work"
       ]
     },
     {
@@ -628,24 +400,8 @@
       "prompt": "This initiative is unclear, needs a tracker-backed decision map, and will span many sessions. Tell me which explicit workflow to attach, but do not start mapping or execution yet.",
       "expected_skills": [],
       "forbidden_skills": [
-        "wayfinder",
-        "domain-modeling",
-        "to-spec",
         "slice-work",
-        "implement",
         "delivery-loop"
-      ]
-    },
-    {
-      "id": "unsettled-thread-is-not-a-spec",
-      "prompt": "We still disagree whether tenant means the billing account or the workspace. Resolve that choice with us first; do not write a spec or change code yet.",
-      "expected_skills": [
-        "domain-modeling"
-      ],
-      "forbidden_skills": [
-        "to-spec",
-        "wayfinder",
-        "implement"
       ]
     },
     {
@@ -653,195 +409,32 @@
       "prompt": "Summarize this paper's claims and limitations for me; do not decide whether our codebase should adopt it.",
       "expected_skills": [],
       "forbidden_skills": [
-        "source-to-decision",
-        "implement",
-        "domain-modeling"
+        "source-to-decision"
       ]
     },
     {
       "id": "proven-cause-goes-straight-to-implementation",
       "prompt": "The cause is already proven: parseConfig accepts null before schema validation. Implement the scoped validation fix and its focused proof.",
-      "expected_skills": [
-        "implement"
-      ],
+      "expected_skills": [],
       "forbidden_skills": [
-        "diagnosing-bugs",
-        "code-review",
         "delivery-loop"
-      ]
-    },
-    {
-      "id": "contested-ownership-seam-is-codebase-design",
-      "prompt": "We disagree whether retry and transaction policy belongs in callers or the repository adapter. Inspect the current change friction, choose the deeper interface and ownership seam, and stop before implementation.",
-      "expected_skills": [
-        "codebase-design"
-      ],
-      "forbidden_skills": [
-        "domain-modeling",
-        "prototype",
-        "implement"
       ]
     },
     {
       "id": "delivery-loop-composes-a-prototype",
       "prompt": "Own this already-agreed outcome through its authorized lifecycle. Before production implementation, use one disposable runnable prototype to settle the remaining interaction question, then continue through proof and review.",
       "expected_skills": [
-        "delivery-loop",
-        "prototype"
-      ],
-      "forbidden_skills": [
-        "wayfinder",
-        "domain-modeling",
-        "codebase-design"
-      ]
-    },
-    {
-      "id": "wayfinder-local-research-ticket-needs-codebase-design",
-      "prompt": "Use $wayfinder to continue our existing map: claim the ready research ticket for the local module, dispatch the research subagent, then hand the interface-and-behavior ownership choice to $codebase-design and record the bounded handoff.",
-      "expected_skills": [
-        "wayfinder",
-        "codebase-design"
-      ],
-      "forbidden_skills": [
-        "domain-modeling",
-        "prototype",
-        "implement"
-      ]
-    },
-    {
-      "id": "wayfinder-concurrent-write-capable-workers-need-isolation",
-      "prompt": "Use $wayfinder to run two independent unblocked frontier tickets in parallel sessions: one disposable repository prototype and one local codebase-design research ticket. Each session claims its ticket first - claim-before-work is the lock - and the map expects concurrent tracker edits; neither starts production implementation.",
-      "expected_skills": [
-        "wayfinder",
-        "prototype",
-        "codebase-design"
-      ],
-      "forbidden_skills": [
-        "implement",
-        "delivery-loop",
-        "source-to-decision"
-      ]
-    },
-    {
-      "id": "wayfinder-serial-write-capable-worker-needs-isolation",
-      "prompt": "Use $wayfinder and $prototype for one ready repository-dependent prototype ticket: claim it first, build the disposable prototype, link it as an asset on the ticket, and record the verdict - without starting production implementation.",
-      "expected_skills": [
-        "wayfinder",
-        "prototype"
-      ],
-      "forbidden_skills": [
-        "implement",
-        "delivery-loop",
-        "codebase-design",
-        "source-to-decision"
-      ]
-    },
-    {
-      "id": "wayfinder-invented-integrator-protocol-stays-out",
-      "prompt": "Continue our existing map with $wayfinder: another session is resolving an unblocked frontier ticket concurrently. Do not invent an integrator-transfer protocol, generation readbacks, or Result return blocks - claims are the lock, the tracker is the query, and the map is only the index.",
-      "expected_skills": [
-        "wayfinder"
-      ],
-      "forbidden_skills": [
-        "implement",
-        "delivery-loop",
-        "source-to-decision"
-      ]
-    },
-    {
-      "id": "wayfinder-task-tracks-an-authorized-prerequisite",
-      "prompt": "Use $wayfinder to continue our existing map: claim the ready task ticket for an already-authorized site survey; its completion unblocks a storage decision, so track what was done and any resulting facts. Do not perform implementation or grant new authority.",
-      "expected_skills": [
-        "wayfinder"
-      ],
-      "forbidden_skills": [
-        "implement",
-        "delivery-loop",
-        "source-to-decision",
-        "domain-modeling",
-        "prototype",
-        "codebase-design"
-      ]
-    },
-    {
-      "id": "wayfinder-prototype-verdict-returns-to-the-map",
-      "prompt": "Use $wayfinder to continue our existing map and $prototype for its ready prototype ticket. The user has inspected the experiment; record the verdict on the ticket, keep the prototype linked as an asset, and return to the map without starting a spec or production change.",
-      "expected_skills": [
-        "wayfinder",
-        "prototype"
-      ],
-      "forbidden_skills": [
-        "implement",
-        "to-spec",
-        "slice-work",
         "delivery-loop"
-      ]
-    },
-    {
-      "id": "wayfinder-decision-review-verdict-returns-to-the-map",
-      "prompt": "Use $wayfinder to continue our existing map and $domain-modeling for its ready decision-review ticket. Work the user-owned question one question at a time with us - never inventing our side - record the confirmed verdict on the ticket, and return to the map without writing a spec or changing code.",
-      "expected_skills": [
-        "wayfinder",
-        "domain-modeling"
       ],
-      "forbidden_skills": [
-        "implement",
-        "to-spec",
-        "slice-work",
-        "codebase-design"
-      ]
+      "forbidden_skills": []
     },
     {
       "id": "delivery-loop-fixed-point-composes-code-review",
       "prompt": "Continue the active end-to-end delivery outcome. The implementation is now a fixed fingerprinted working tree; commission read-only Standards and Spec review, then advance only authorized lifecycle transitions.",
       "expected_skills": [
-        "delivery-loop",
-        "code-review"
+        "delivery-loop"
       ],
-      "forbidden_skills": [
-        "implement",
-        "diagnosing-bugs",
-        "wayfinder"
-      ]
-    },
-    {
-      "id": "explicit-to-questionnaire",
-      "prompt": "Use $to-questionnaire \u2014 the load-capacity knowledge for this decision lives with the ops engineer, not with us; turn what we need from them into a questionnaire document.",
-      "expected_skills": [
-        "to-questionnaire"
-      ],
-      "forbidden_skills": [
-        "to-spec",
-        "slice-work",
-        "domain-modeling"
-      ]
-    },
-    {
-      "id": "to-questionnaire-stays-explicit",
-      "prompt": "The user is deciding a design trade-off they can answer themselves; just interview them in rounds.",
-      "expected_skills": [],
-      "forbidden_skills": [
-        "to-questionnaire"
-      ]
-    },
-    {
-      "id": "explicit-wait-what",
-      "prompt": "User: wait what \u2014 re-pitch the last message in simplified English using $wait-what.",
-      "expected_skills": [
-        "wait-what"
-      ],
-      "forbidden_skills": [
-        "domain-modeling",
-        "to-spec"
-      ]
-    },
-    {
-      "id": "wait-what-stays-explicit",
-      "prompt": "Continue the implementation; the user fully understands the last explanation and did not ask for a re-pitch.",
-      "expected_skills": [],
-      "forbidden_skills": [
-        "wait-what"
-      ]
+      "forbidden_skills": []
     }
   ]
 }

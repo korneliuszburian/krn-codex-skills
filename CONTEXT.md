@@ -8,6 +8,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [README.md](README.md) — operator entrypoint, main workflow, and skill catalog.
 - [docs/research/README.md](docs/research/README.md) — research index and curation contract.
 - [docs/research/orchestration.md](docs/research/orchestration.md) — current lifecycle spine, admission matrix, and falsifiers.
+- [docs/research/skills-3arm-lab.md](docs/research/skills-3arm-lab.md) — three-arm skills lab spec and verdict: no measured advantage of forked skills over upstream or no-skill; the shared set composes upstream.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
@@ -16,6 +17,14 @@ a progress log. Update meanings and links in place; Git retains their history.
 
 **Global system** — the universal KRN engineering workflows versioned here and
 projected into the installed skill index.
+
+**Composed upstream set** — the shared engineering flow (`wayfinder`,
+`to-spec`, `implement`, `diagnosing-bugs`, `prototype`, `codebase-design`,
+`code-review`, `domain-modeling`, `tdd`, `triage`, `wizard`, `grilling`,
+`handoff`) installed from `mattpocock/skills` (`npx skills add` or the Claude
+Code plugin). This checkout references them by name and owns none of their
+procedure; the three-arm lab found no advantage of a hand-forked copy over
+upstream or over no skill.
 
 **Source repository** — this checkout. It owns skill source, installation
 metadata, validation, research synthesis, and migration history.

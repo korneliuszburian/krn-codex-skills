@@ -1,6 +1,0 @@
-interface:
-  display_name: "Wait What"
-  short_description: "Re-pitch a message that did not land"
-  default_prompt: "Use $wait-what when the user signals the previous response was unclear."
-policy:
-  allow_implicit_invocation: false

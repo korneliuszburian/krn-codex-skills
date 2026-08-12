@@ -1,6 +1,0 @@
-interface:
-  display_name: "Code Review"
-  short_description: "Read-only review of one fixed point"
-  default_prompt: "Use $code-review to inspect this fixed point read-only on Standards and Spec."
-policy:
-  allow_implicit_invocation: true

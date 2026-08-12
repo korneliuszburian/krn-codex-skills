@@ -1,6 +1,0 @@
-interface:
-  display_name: "Domain Modeling"
-  short_description: "Resolve user-owned choices and shared language"
-  default_prompt: "Use $domain-modeling to interview these user-owned choices or resolve this contested concept."
-policy:
-  allow_implicit_invocation: true

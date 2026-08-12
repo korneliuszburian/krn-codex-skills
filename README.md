@@ -9,12 +9,12 @@ compiled into a few semantic artifacts instead of accumulated as reports.
 ```mermaid
 flowchart LR
   INPUT["request + current repository truth"] --> GATE{"smallest unresolved uncertainty"}
-  GATE -->|explicit tracker-backed orientation| WAY["explicit $wayfinder"]
+  GATE -->|explicit tracker-backed orientation| WAY["upstream wayfinder (composed)"]
   GATE -->|one decision| DECIDE["typed decision owner"]
-  GATE -->|spec or decomposition missing| SHAPE["$to-spec or $slice-work"]
-  GATE -->|clear production slice| IMPL["$implement"]
-  GATE -->|unknown cause| DIAG["$diagnosing-bugs"]
-  GATE -->|fixed review surface| REVIEW["$code-review"]
+  GATE -->|spec or decomposition missing| SHAPE["upstream to-spec or $slice-work"]
+  GATE -->|clear production slice| IMPL["upstream implement (composed)"]
+  GATE -->|unknown cause| DIAG["upstream diagnosing-bugs (composed)"]
+  GATE -->|fixed review surface| REVIEW["upstream code-review (composed)"]
   GATE -->|outcome satisfied or no authorized next action| TERMINAL["bounded terminal state"]
   WAY --> GATE
   DECIDE --> GATE
@@ -32,12 +32,13 @@ flowchart LR
 ```
 
 The diamond is a routing rule, not a router skill. Settled work skips every
-resolved phase: a clear slice enters `$implement`, and a fixed diff, PR, or
-fingerprinted working tree enters `$code-review`. The typed decision owner is
-`$domain-modeling` for a user-owned choice or contested concept,
-`$source-to-decision` when external evidence must change a named local
-decision, `$prototype` for a disposable runnable experiment, or
-`$codebase-design` for a seam or ownership decision. Each returns a bounded
+resolved phase: a clear slice enters the composed upstream `implement`, and a
+fixed diff, PR, or fingerprinted working tree enters the composed upstream
+`code-review`. The typed decision owner is `$source-to-decision` when
+external evidence must change a named local decision, and composed upstream
+for the rest: `domain-modeling` for a user-owned choice or contested concept,
+`prototype` for a disposable runnable experiment, or `codebase-design` for a
+seam or ownership decision. Each returns a bounded
 result to the current owner; none becomes a mandatory pipeline stage.
 
 `target-repo-work` wraps another checkout. `typescript-engineering` is a
@@ -78,25 +79,25 @@ tracker capability is emulated.
 
 | Skill | Invocation | Owns |
 |---|---|---|
-| [`implement`](skills/engineering/implement/SKILL.md) | model or user | one scoped production slice and proportional proof |
-| [`diagnosing-bugs`](skills/engineering/diagnosing-bugs/SKILL.md) | model or user | unknown failures, flakes, regressions, and slowness |
-| [`code-review`](skills/engineering/code-review/SKILL.md) | model or user | read-only Standards and Spec review of one fixed point |
-| [`codebase-design`](skills/engineering/codebase-design/SKILL.md) | model or user | architecture friction, ownership, and public seams |
-| [`domain-modeling`](skills/engineering/domain-modeling/SKILL.md) | model or user | user-owned choices, contested concepts, and earned ADRs |
 | [`source-to-decision`](skills/engineering/source-to-decision/SKILL.md) | model or user | one source-backed disposition for a named local consumer |
-| [`prototype`](skills/engineering/prototype/SKILL.md) | model or user | one disposable runnable answer to a design question |
-| [`to-spec`](skills/engineering/to-spec/SKILL.md) | model or user | a settled conversation compressed into one destination-first spec |
-| [`to-questionnaire`](skills/engineering/to-questionnaire/SKILL.md) | explicit only | a user-blocked decision turned into a third-party questionnaire |
 | [`slice-work`](skills/engineering/slice-work/SKILL.md) | model or user | vertical implementation slices or expand-contract migration stages |
-| [`wayfinder`](skills/engineering/wayfinder/SKILL.md) | explicit only | a durable typed-frontier map for genuinely foggy multi-session work |
 | [`delivery-loop`](skills/engineering/delivery-loop/SKILL.md) | model or user | lifecycle truth and handoffs for one agreed end-to-end outcome |
 | [`target-repo-work`](skills/engineering/target-repo-work/SKILL.md) | model or user | identity and authority when work crosses into another checkout |
 | [`setup-repository-workflow`](skills/engineering/setup-repository-workflow/SKILL.md) | explicit only | one-time adoption or repair of a thin local contract |
 | [`typescript-engineering`](skills/engineering/typescript-engineering/SKILL.md) | model or user | TypeScript inference, public APIs, compiler mechanics, and proof |
-| [`opencode-second-opinion`](skills/advisory/opencode-second-opinion/SKILL.md) | explicit only | bounded DeepSeek opinion on one explicit path, without diffs |
-| [`wait-what`](skills/advisory/wait-what/SKILL.md) | explicit only | a re-pitch of a message that did not land, in simplified technical English |
+| [`opencode-second-opinion`](skills/advisory/opencode-second-opinion/SKILL.md) | explicit only | bounded independent-model opinion on one explicit path, without diffs |
 | [`managing-codex-capabilities`](skills/meta/managing-codex-capabilities/SKILL.md) | model or user | global skill, plugin, MCP, and profile control |
-| [`writing-for-agents`](skills/meta/writing-for-agents/SKILL.md) | model or user | agent-facing documents; skill routing, information shape, validation, and pruning |
+
+The shared engineering flow (wayfinder, to-spec, implement, diagnosing-bugs,
+prototype, codebase-design, code-review, domain-modeling, tdd, triage, wizard,
+grilling, handoff) is **composed from the upstream
+[`mattpocock/skills`](https://github.com/mattpocock/skills) set, not owned
+here** — install it once with `npx skills add mattpocock/skills` or the Claude
+Code plugin, and keep it updated upstream. This repo owns only the decisions
+and lifecycle envelopes listed above; lab measurement found no advantage of a
+hand-forked copy over upstream or over no skill
+([`skills-3arm-lab`](docs/research/skills-3arm-lab.md), results in
+`krn/active/skills-lab-3arm/results/`).
 
 Descriptions and `agents/openai.yaml` are the routing authority. README is the
 only human skill catalog; there are no hand-maintained per-skill mirror pages.
@@ -128,8 +129,9 @@ env KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
 ```
 
 Run `check` again and start a fresh Codex session after installation. Discovery
-is session-scoped. `setup-repository-workflow`, `wayfinder`, and
-`opencode-second-opinion` require an explicit `$skill-name` attachment.
+is session-scoped. `setup-repository-workflow` and `opencode-second-opinion`
+require an explicit `$skill-name` attachment; the composed upstream
+`wayfinder` is explicit-only in that set.
 
 See [migration](docs/migration.md) for ownership, retirement, backup, and
 rollback guarantees.

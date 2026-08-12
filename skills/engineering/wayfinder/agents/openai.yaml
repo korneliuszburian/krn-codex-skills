@@ -1,6 +1,0 @@
-interface:
-  display_name: "Wayfinder"
-  short_description: "Chart foggy multi-session work as a typed frontier"
-  default_prompt: "Use $wayfinder to chart this effort as a typed-frontier map and clear the fog."
-policy:
-  allow_implicit_invocation: false

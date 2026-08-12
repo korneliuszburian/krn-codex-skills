@@ -1,6 +1,0 @@
-interface:
-  display_name: "To Questionnaire"
-  short_description: "Turn a user-blocked decision into a third-party questionnaire"
-  default_prompt: "Use $to-questionnaire when the knowledge that settles a decision lives with a third party."
-policy:
-  allow_implicit_invocation: false

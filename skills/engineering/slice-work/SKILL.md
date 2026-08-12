@@ -5,7 +5,8 @@ description: Turn a settled multi-change spec into implementation-ready vertical
 
 # Slice Work
 
-Produce the work-unit list; never execute it. `$implement` owns one unit; a
+Produce the work-unit list; never execute it. The composed upstream `implement`
+owns one unit; a
 configured tracker, when used for published units, owns their queue and claim
 state; `$delivery-loop` selects the next unit and owns lifecycle coordination
 when its envelope is active; and the matching typed owner owns any unsettled
@@ -16,7 +17,7 @@ end-to-end **vertical slices** and explicit **expand–migrate–contract stages
    acceptance, and non-goals. If a gating decision is still fog, stop and route
    it to the smallest typed owner in the global routing contract. If the whole
    destination fits one fresh
-   `$implement` context as one end-to-end change, route it there without
+   `implement` context as one end-to-end change, route it there without
    manufacturing a slice list.
 
    <slice-input>
@@ -139,7 +140,7 @@ end-to-end **vertical slices** and explicit **expand–migrate–contract stages
    Transient list: absent | <semantic pointer>
    Sole in-goal consumer: <active outcome owner>
    Cleanup owner and trigger: none | $slice-work when <named sole consumer finishes its accepted outcome | owning Goal closes>, whichever comes first
-   Routed to: $implement (one unit per fresh context) via $delivery-loop when lifecycle orchestration is requested
+   Routed to: composed upstream implement (one unit per fresh context) via $delivery-loop when lifecycle orchestration is requested
    </slice-result>
 
    **Done when:** the multi-unit plan is implementation-ready, publication truth

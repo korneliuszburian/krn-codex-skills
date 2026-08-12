@@ -5,18 +5,19 @@
 | Current surface | Target owner | Action |
 |---|---|---|
 | `~/.codex/skills/{code-review,codebase-design,diagnosing-bugs,writing-great-skills}` | this repository | archive legacy copies, install canonical symlinks |
-| broken `claude-second-opinion-review` symlink | `second-opinion-review` | archive the broken alias, install one explicit skill |
+| Claude second-opinion skill or legacy symlink | `opencode-second-opinion` | archive the retired entry, install one explicit OpenCode skill |
 | third-party browser, GSAP, Omarchy, system, and plugin skills | upstream/vendor | preserve untouched |
 | old public `krn-codex-skills` layout | this branch | replace project-local pack with global source |
 | private `krn-skills` | WordPress/domain owner | keep domain-only; do not install as global engineering canon |
 | `mini-metalab-skills` and `krn-skills-lab` | evaluation owners | keep as labs, never runtime sources |
 | generic review, diagnosis, implementation, TypeScript, and advisory workflow formerly in `mise` | this repository | removed from `mise` main; discover only from the installed global catalog |
-| retired installed `reviewer-handoff` entry | no replacement workflow; `code-review` reviews and `second-opinion-review` owns its checker transport | report during `check`; archive only with `KRN_ARCHIVE_LEGACY=1` |
-| old `reviews/`, `review-artifacts/`, or configured working-run roots | initiating goal or review owner | keep both repository-root tombstones while v1 closure remains supported; run `node ~/.agents/skills/second-opinion-review/scripts/prepare-artifacts.mjs inspect-legacy-pass <absolute-pass-dir>`; `relocated: true` marks historical physical paths, the job state does not prove acceptance, and v1 is never resumed; remove a pass only by its owner's explicit closure decision; create new passes only below `.krn/runs/second-opinion-review/` |
+| retired installed `reviewer-handoff` entry | culled 2026-08-12; routine review composes upstream `code-review` | report during `check`; archive only with `KRN_ARCHIVE_LEGACY=1` |
+| old Claude review roots | initiating goal or review owner | historical artifacts remain deferred and are never resumed; remove a pass only by its owner's explicit closure decision; new OpenCode opinions use `.krn/runs/opencode-second-opinion/` |
 | generated `docs/agents/{issue-tracker.md,domain.md,delivery.md,artifacts.md,artifact-paths.json,review.md,runs/.gitignore}` adapters and their old managed-block links in product repositories | closest repository contract and semantic owner | run current setup to replace and read back the managed block first; then remove only generator-owned outputs with no live consumer, preserving any earned semantic content under its normalized owner; the new setup does not recreate these adapters |
 | KRN product language, `krn-memory-core`, and Beads | `mise` | retain as domain guidance only |
 | global Claude instructions | this repository | install `CLAUDE.md` as a symlink resolving to the same managed `AGENTS.md` core |
 | hand-maintained user `PreToolUse` hook | this repository | archive the reviewed legacy hook and install one literal-risk guard for recognized direct protected deletion, non-dry-run `git clean`, exact quarantine references, and patch targets; ambiguous literal composition denies without modeling shell execution, while runtime-built behavior remains contract-governed; the earlier token-proxy rewrite is retired |
+| hand-forked ports of `mattpocock/skills` (`code-review`, `codebase-design`, `diagnosing-bugs`, `domain-modeling`, `implement`, `prototype`, `to-spec`, `wayfinder`, `to-questionnaire`, `wait-what`, `writing-for-agents`) | upstream `mattpocock/skills` | culled 2026-08-12 per three-arm lab verdict (`INCONCLUSIVE` → `RETIRE_TO_UPSTREAM`): no measured advantage over upstream or no-skill; install the shared set once via `npx skills add mattpocock/skills` or the Claude plugin; Git history retains the culled copies |
 
 ## Installation Invariants
 
