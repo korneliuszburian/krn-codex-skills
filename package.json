@@ -12,8 +12,10 @@
     "test:install": "node --test scripts/install.test.mjs",
     "test:hooks": "python3 -B -m unittest scripts/hooks/test_destructive_guard.py",
     "test:validate": "node --test scripts/validate.test.mjs",
-    "test:validate-review": "python3 -B skills/advisory/second-opinion-review/scripts/test_validate_review.py",
-    "test:second-opinion": "node --test skills/advisory/second-opinion-review/scripts/*.test.mjs && npm run test:validate-review && node skills/advisory/second-opinion-review/scripts/check-claude-window.mjs self-test",
+    "test:second-opinion": "node --test skills/advisory/opencode-second-opinion/scripts/*.test.mjs",
+    "test:benchmark": "node --test evals/reviewer-benchmark/scripts/*.test.mjs",
+    "benchmark:reviewer": "node evals/reviewer-benchmark/scripts/reviewer-benchmark.mjs",
+    "scorecard:reviewer": "node scripts/review-scorecard.mjs",
     "test:setup": "node --test skills/engineering/setup-repository-workflow/scripts/init-repository-workflow.test.mjs",
     "validate": "node scripts/validate.mjs",
     "install:check": "bash scripts/install.sh check"
