@@ -4,6 +4,11 @@ Standing, deterministic benchmark for the review lanes of this repository. It
 answers one question: does a review lane actually catch the defect classes a
 senior human reviewer would name — and is it getting better or worse over time?
 
+This is a specialized standing benchmark, not a generic experiment record.
+Its fixed subject, scorer, and committed `results/` remain authoritative for
+this lane. The generic lifecycle in [`evals/README.md`](../README.md) governs
+new bounded experiments and does not replace or duplicate this scorer.
+
 ## Provenance
 
 - `subject/` and `oracle/evaluation-rubric.md` are copied verbatim from the

@@ -40,6 +40,16 @@ function withFixture(run) {
         return VISIBLE_REPOSITORY_PATHS.has(path.relative(REPO, source));
       },
     });
+    const initialized = spawnSync("git", ["init", "--quiet"], {
+      cwd: fixture,
+      encoding: "utf8",
+    });
+    assert.equal(initialized.status, 0, diagnostics(initialized));
+    const staged = spawnSync("git", ["add", "-A"], {
+      cwd: fixture,
+      encoding: "utf8",
+    });
+    assert.equal(staged.status, 0, diagnostics(staged));
     return run(fixture);
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });

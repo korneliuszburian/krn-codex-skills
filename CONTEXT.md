@@ -12,6 +12,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
+- [evals/README.md](evals/README.md) — Git-native experiment lifecycle, reviewer fixed points, and artifact integrity.
 
 ## System vocabulary
 
@@ -115,3 +116,15 @@ Publication state is reported separately from semantic completion.
 
 **Decision** — `adopt`, `reject`, `lab-test`, or `defer` for a named consumer
 and falsifier. Sources support decisions; they do not override local evidence.
+
+**Experiment record** — one Git-tracked `evals/experiments/<id>/` directory
+whose manifest binds protocol, admissible evidence, grading, decision, review
+fixed points, hashes, omissions, and epistemic status.
+
+**Experiment seal** — the deterministic artifact inventory and content-safety
+gate. It writes hashes and byte counts; it does not decide quality or authorize
+a lifecycle transition.
+
+**Capsule-only experiment** — a terminal historical or external-evidence
+record with explicit omissions and exploratory epistemic status; never a full
+archive or confirmatory result.

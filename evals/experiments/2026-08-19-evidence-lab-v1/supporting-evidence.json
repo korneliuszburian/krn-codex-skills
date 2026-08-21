@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "external_sealed_artifact_hashes": {
+    "primary_execution_environment_manifest": "0ea1b56d7782d6606c57caedb72559d41543c06c3f72245977ce56ee71836024",
+    "grading_environment_manifest": "65ecf5e5e030a66104af7f9c52fcdae3897d2c480d91ad7c4f122b0d3da060c2",
+    "opencode_batch_completion": "1b3964e6b5392285722787569b54641a64d2153bfff2fd59b91e9c73ce2268ff",
+    "joined_private_results": "669d4ae3e8e4abaf4b73eea35d4ee0f37f55b94ae2a67ac33efd48416892b9c6",
+    "pairwise_private_results": "d858d79f466e946a8b2b5a3c8e0494fa7a9e10c01d06e0f4fb2b5c383ea52663",
+    "comparison_summary": "2713ca89db3f44aa72b4ca27a0b1d78e2adc0fa340ba8707fc432b30d454241f",
+    "final_report": "fb3b0f9ee8191f830a549d918fce29559ce0eef5b3f40f0eb89bcf59d34a6670"
+  }
+}
