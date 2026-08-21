@@ -21,6 +21,31 @@ from destructive_guard import (
 
 FORBIDDEN_CAPABILITY = "superpowers"
 SAFE_TEXT_COMMANDS = {"echo", "printf"}
+SAFE_INSPECTION_COMMANDS = {
+    "cat",
+    "cut",
+    "diff",
+    "du",
+    "file",
+    "find",
+    "grep",
+    "head",
+    "ls",
+    "pwd",
+    "rg",
+    "sed",
+    "stat",
+    "tail",
+    "wc",
+}
+SAFE_GIT_INSPECTION_SUBCOMMANDS = {
+    "diff",
+    "log",
+    "ls-files",
+    "rev-parse",
+    "show",
+    "status",
+}
 DESTRUCTIVE_LITERAL = re.compile(
     r"\brm\b|\bgit\b[^\n;|&]*\bclean\b",
     re.IGNORECASE,
@@ -134,6 +159,39 @@ def is_safe_text(words: tuple[str, ...] | None) -> bool:
     return bool(words and words[0] in SAFE_TEXT_COMMANDS)
 
 
+def is_safe_inspection(words: tuple[str, ...] | None) -> bool:
+    """Allow literal-risk words in simple read-only inspection commands.
+
+    This does not interpret shell syntax.  Commands with composition are
+    already excluded by ``static_simple_words``.  The explicit exclusions
+    keep write-capable inspection tools such as ``find -exec`` out of this
+    exception.
+    """
+
+    if not words:
+        return False
+    remaining = words[1:] if words[0] == "rtk" else words
+    if not remaining:
+        return False
+    executable = remaining[0]
+    arguments = remaining[1:]
+    if executable in SAFE_INSPECTION_COMMANDS:
+        if executable == "find" and any(
+            argument in {"-delete", "-exec", "-execdir", "-ok", "-okdir"}
+            or argument.startswith(("-exec=", "-execdir=", "-ok=", "-okdir="))
+            for argument in arguments
+        ):
+            return False
+        if executable == "sed" and any(
+            argument in {"-i", "--in-place"} for argument in arguments
+        ):
+            return False
+        return True
+    if executable == "git":
+        return len(arguments) > 0 and arguments[0] in SAFE_GIT_INSPECTION_SUBCOMMANDS
+    return False
+
+
 def direct_destructive_kind(words: tuple[str, ...]) -> str | None:
     remaining = words[1:] if words[0] == "rtk" else words
     if not remaining:
@@ -172,6 +230,8 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
         return None
     if forbidden:
         return "blocked by the global forbidden-capability policy"
+    if is_safe_inspection(words):
+        return None
 
     if words is None or direct_destructive_kind(words) is None:
         return (
