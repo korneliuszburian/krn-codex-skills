@@ -13,7 +13,6 @@ export interface BaseWebhookEvent {
   receivedAt: string;
   metadata?: Record<string, string>;
 }
-
 export interface InvoicePaidEvent extends BaseWebhookEvent {
   kind: "invoice.paid";
   invoiceId: string;
@@ -77,4 +76,3 @@ export interface Delivery {
   dedupeKey: string;
   body: string;
 }
-

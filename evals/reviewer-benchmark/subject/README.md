@@ -23,4 +23,3 @@ npm run verify
 
 The visible tests cover representative happy paths only. Review should focus on
 production correctness under malformed external input and edge-case payloads.
-

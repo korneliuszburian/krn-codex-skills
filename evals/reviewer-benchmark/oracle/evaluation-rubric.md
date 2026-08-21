@@ -121,4 +121,3 @@ Deduct:
 - -2 for style-only findings.
 - -3 for missing the external-input trust boundary entirely.
 - -3 for returning non-JSON or private reasoning.
-
