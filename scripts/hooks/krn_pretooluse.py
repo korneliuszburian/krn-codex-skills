@@ -183,7 +183,11 @@ def is_safe_inspection(words: tuple[str, ...] | None) -> bool:
         ):
             return False
         if executable == "sed" and any(
-            argument in {"-i", "--in-place"} for argument in arguments
+            argument == "-i"
+            or argument.startswith("-i")
+            or argument == "--in-place"
+            or argument.startswith("--in-place=")
+            for argument in arguments
         ):
             return False
         return True

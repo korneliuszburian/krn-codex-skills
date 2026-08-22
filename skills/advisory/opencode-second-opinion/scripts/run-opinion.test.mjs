@@ -29,7 +29,7 @@ if [ "\${OPENCODE_TEST_HANG:-}" = "1" ]; then
   sleep 60
 fi
 printf '%s\\n' '{"type":"step_finish","part":{"messageID":"msg_plan","reason":"tool"}}'
-printf '%s\\n' "{\\"type\\":\\"text\\",\\"part\\":{\\"messageID\\":\\"msg_final\\",\\"text\\":\\"\${OPENCODE_TEST_FINAL_TEXT:-COMPLETE_OPINION}\\"}}"
+node -e 'console.log(JSON.stringify({type: "text", part: {messageID: "msg_final", text: process.env.OPENCODE_TEST_FINAL_TEXT || "COMPLETE_OPINION"}}))'
 printf '%s\\n' '{"type":"step_finish","part":{"messageID":"msg_final","reason":"stop"}}'
 `,
     { mode: 0o755 },
@@ -62,6 +62,27 @@ test("runs the explicit reviewer model at max effort non-interactively and write
     assert.equal(meta.target, target);
     assert.equal(fs.existsSync(path.join(run, "raw.failed.jsonl")), false);
     assert.equal(fs.existsSync(path.join(run, "failure.txt")), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("normalizes one embedded nested JSON object only in strict JSON mode", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
+  try {
+    invoke([target, path.join(run, "prompt.md"), output], {
+      PATH: `${bin}:${process.env.PATH}`,
+      OPENCODE_SECOND_OPINION_OUTPUT: "json",
+      OPENCODE_TEST_FINAL_TEXT:
+        'review complete {"findings":[{"severity":"P2","message":"preserve nested object"}],"head":"abc"}',
+      OPENCODE_TEST_INVOCATION: invocation,
+    });
+    assert.deepEqual(JSON.parse(fs.readFileSync(output, "utf8")), {
+      findings: [{ severity: "P2", message: "preserve nested object" }],
+      head: "abc",
+    });
+    assert.match(fs.readFileSync(invocation, "utf8"), /Return exactly one JSON object only/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -122,6 +143,26 @@ test("times out a hanging run and retains the failure note", () => {
   }
 });
 
+test("rejects a zero timeout before invoking the reviewer", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
+  try {
+    assert.throws(
+      () => invoke([target, path.join(run, "prompt.md"), output], {
+        PATH: `${bin}:${process.env.PATH}`,
+        OPENCODE_SECOND_OPINION_MODEL: reviewerModel,
+        OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS: "0",
+        OPENCODE_TEST_INVOCATION: invocation,
+      }),
+      (error) => error.status === 64,
+    );
+    assert.equal(fs.existsSync(invocation), false);
+    assert.equal(fs.existsSync(output), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("rejects a partial stream and retains the partial raw evidence", () => {
   const { root, target, run, bin, invocation } = sandbox();
   const output = path.join(run, "opinion.md");
@@ -133,12 +174,15 @@ test("rejects a partial stream and retains the partial raw evidence", () => {
           OPENCODE_TEST_INCOMPLETE: "1",
           OPENCODE_TEST_INVOCATION: invocation,
         }),
-      /OpenCode did not emit a completed final answer/,
+      (error) => error.status === 78,
     );
     assert.equal(fs.existsSync(output), false);
     assert.equal(fs.existsSync(path.join(run, "raw.jsonl")), false);
     assert.match(fs.readFileSync(path.join(run, "raw.failed.jsonl"), "utf8"), /msg_plan/);
-    assert.match(fs.readFileSync(path.join(run, "failure.txt"), "utf8"), /opinion extraction rejected/);
+    assert.match(
+      fs.readFileSync(path.join(run, "failure.txt"), "utf8"),
+      /opinion extraction rejected: Error: OpenCode did not emit a completed final answer\./,
+    );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -155,11 +199,74 @@ test("rejects an opinion that cites a path outside the target scope", () => {
           OPENCODE_TEST_FINAL_TEXT: "finding cites `/etc/passwd`",
           OPENCODE_TEST_INVOCATION: invocation,
         }),
-      /cites a path outside the target scope: \/etc\/passwd/,
+      (error) => error.status === 78,
     );
     assert.equal(fs.existsSync(output), false);
     assert.equal(fs.existsSync(path.join(run, "raw.jsonl")), false);
     assert.match(fs.readFileSync(path.join(run, "raw.failed.jsonl"), "utf8"), /step_finish/);
+    assert.match(
+      fs.readFileSync(path.join(run, "failure.txt"), "utf8"),
+      /opinion extraction rejected: Error: opinion cites a path outside the target scope: \/etc\/passwd/,
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("permits a regex literal in a completed opinion", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
+  try {
+    invoke([target, path.join(run, "prompt.md"), output], {
+      PATH: `${bin}:${process.env.PATH}`,
+      OPENCODE_TEST_FINAL_TEXT: "src/cli.ts:72 - validates `/^[a-f0-9]{64}$/`",
+      OPENCODE_TEST_INVOCATION: invocation,
+    });
+    assert.equal(
+      fs.readFileSync(output, "utf8"),
+      "src/cli.ts:72 - validates `/^[a-f0-9]{64}$/`\n",
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("permits a non-existent traversal-shaped test literal", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
+  try {
+    invoke([target, path.join(run, "prompt.md"), output], {
+      PATH: `${bin}:${process.env.PATH}`,
+      OPENCODE_TEST_FINAL_TEXT: "test/decision.test.ts:1 - rejects `../outside`",
+      OPENCODE_TEST_INVOCATION: invocation,
+    });
+    assert.equal(
+      fs.readFileSync(output, "utf8"),
+      "test/decision.test.ts:1 - rejects `../outside`\n",
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects an existing relative path outside the target scope", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
+  try {
+    fs.writeFileSync(path.join(root, "outside"), "outside target\n");
+    assert.throws(
+      () =>
+        invoke([target, path.join(run, "prompt.md"), output], {
+          PATH: `${bin}:${process.env.PATH}`,
+          OPENCODE_TEST_FINAL_TEXT: "finding cites `../outside`",
+          OPENCODE_TEST_INVOCATION: invocation,
+        }),
+      (error) => error.status === 78,
+    );
+    assert.match(
+      fs.readFileSync(path.join(run, "failure.txt"), "utf8"),
+      /opinion extraction rejected: Error: opinion cites a path outside the target scope: \.\.\/outside/,
+    );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

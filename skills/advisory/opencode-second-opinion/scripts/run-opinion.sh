@@ -70,8 +70,13 @@ if [[ -z "$variant" ]]; then
   exit 64
 fi
 timeout_seconds=${OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS:-600}
-if [[ -z "$timeout_seconds" || "$timeout_seconds" == *[!0-9]* || "$timeout_seconds" == 0* && ${#timeout_seconds} -gt 1 ]]; then
+if [[ -z "$timeout_seconds" || "$timeout_seconds" == *[!0-9]* || "$timeout_seconds" == 0 ]]; then
   echo "OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS must be a positive integer" >&2
+  exit 64
+fi
+output_mode=${OPENCODE_SECOND_OPINION_OUTPUT:-prose}
+if [[ "$output_mode" != prose && "$output_mode" != json ]]; then
+  echo "OPENCODE_SECOND_OPINION_OUTPUT must be prose or json" >&2
   exit 64
 fi
 if ! command -v timeout >/dev/null 2>&1; then
@@ -85,9 +90,10 @@ fi
 
 temporary_raw=$(mktemp "$output_dir/.opencode-second-opinion-raw.XXXXXX")
 temporary_opinion=$(mktemp "$output_dir/.opencode-second-opinion-final.XXXXXX")
+temporary_extraction_error=$(mktemp "$output_dir/.opencode-second-opinion-extraction.XXXXXX")
 raw_failed="$output_dir/raw.failed.jsonl"
 failure_note="$output_dir/failure.txt"
-trap 'rm -f -- "$temporary_raw" "$temporary_opinion"' EXIT
+trap 'rm -f -- "$temporary_raw" "$temporary_opinion" "$temporary_extraction_error"' EXIT
 
 # A failed or rejected run retains the partial stream and the reason as
 # forensic evidence instead of destroying them.
@@ -101,8 +107,19 @@ preserve_failure() {
   printf 'reason=%s\nexit_code=%s\n' "$reason" "$exit_code" > "$failure_note"
 }
 
+interrupted() {
+  preserve_failure "opinion runner interrupted" 143
+  exit 143
+}
+
+trap interrupted HUP INT TERM
+
 prompt="$(<"$prompt_file")"
-prompt+=$'\n\nReturn an advisory prose opinion only. Do not edit files, propose a patch, emit a diff, or treat the result as approval.'
+if [[ "$output_mode" == json ]]; then
+  prompt+=$'\n\nReturn exactly one JSON object only. Do not use Markdown or a code fence. Do not edit files, propose a patch, emit a diff, or treat the result as approval.'
+else
+  prompt+=$'\n\nReturn an advisory prose opinion only. Do not edit files, propose a patch, emit a diff, or treat the result as approval.'
+fi
 prompt_sha=$(sha256sum "$prompt_file" | awk '{print $1}')
 
 run_exit=0
@@ -117,8 +134,15 @@ if [[ $run_exit -ne 0 ]]; then
 fi
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-if ! node "$script_dir/extract-final-opinion.mjs" "$temporary_raw" "$temporary_opinion" "$target_dir"; then
-  preserve_failure "opinion extraction rejected (malformed stream or out-of-scope citation)" 78
+extraction_exit=0
+node "$script_dir/extract-final-opinion.mjs" "$temporary_raw" "$temporary_opinion" "$target_dir" "$output_mode" 2> "$temporary_extraction_error" || extraction_exit=$?
+if [[ $extraction_exit -ne 0 ]]; then
+  extraction_reason=$(awk '
+    /^Error:/ { print; found = 1; exit }
+    NF && first == "" { first = $0 }
+    END { if (!found && first != "") print first }
+  ' "$temporary_extraction_error" | tr '\n' ' ')
+  preserve_failure "opinion extraction rejected: ${extraction_reason:-unknown extraction error}" 78
   exit 78
 fi
 
@@ -127,3 +151,4 @@ mv -- "$temporary_opinion" "$output_file"
 printf '{"promptSha256":"%s","model":"%s","variant":"%s","target":"%s","completedAt":"%s"}\n' \
   "$prompt_sha" "$model" "$variant" "$target_dir" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$output_dir/meta.json"
 trap - EXIT
+rm -f -- "$temporary_extraction_error"
