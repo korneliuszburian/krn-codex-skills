@@ -13,11 +13,11 @@ new bounded experiments and does not replace or duplicate this scorer.
 
 - `subject/` and `oracle/evaluation-rubric.md` are copied verbatim from the
   `reviewer-quality-poc` repository (one fixed subject with five planted defect
-  classes, one hidden human-weighted rubric 0–10).
+  classes and one public human-weighted rubric 0–10).
 - `review-inputs/codex-reviewer-output.json` is the retained output of the
   original Codex reviewer measurement (hand-scored 4.5/10 there).
 - The scorer in `scripts/score-review.mjs` is a deterministic keyword/evidence
-  proxy for that hidden rubric. It is not the human rubric; where the two
+  proxy for that public rubric. It is not a human review; where the two
   differ (baseline: 5.5 heuristic vs 4.5 hand) the heuristic is recorded with
   the deviation noted.
 
@@ -42,7 +42,8 @@ not regress the recorded score; regressions are review-blocking.
 ## Structure
 
 - `subject/` — fixed review target (billing alert router with planted defects).
-- `oracle/` — hidden rubric; do not ship it to a reviewed lane.
+- `oracle/` — public fixed rubric used by the deterministic regression scorer;
+  do not treat this benchmark as blind or as a secret-quality gate.
 - `review-inputs/` — retained artifacts and the machine review schema.
 - `scripts/` — scorer, runner, falsifier tests.
 - `results/` — durable per-lane records (committed evidence).

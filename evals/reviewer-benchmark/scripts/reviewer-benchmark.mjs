@@ -34,7 +34,7 @@ if (command === "score") {
     artifact: path.basename(outputPath),
     ...score,
     doesNotProve:
-      "This heuristic score is a deterministic proxy for the hidden human rubric in oracle/evaluation-rubric.md. It does not prove reviewer quality beyond the fixed benchmark subject.",
+      "This heuristic score is a deterministic proxy for the public rubric in oracle/evaluation-rubric.md. It does not prove reviewer quality beyond the fixed benchmark subject.",
   };
   fs.writeFileSync(
     path.join(resultsDir, `${recordName}-${new Date().toISOString().slice(0, 10)}.json`),

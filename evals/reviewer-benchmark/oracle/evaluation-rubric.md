@@ -1,4 +1,7 @@
-# Hidden Evaluation Rubric
+# Public Evaluation Rubric
+
+This rubric is intentionally repository-visible. The benchmark is a public,
+deterministic regression suite, not a blind evaluation and not a secret oracle.
 
 Do not provide this file to reviewers before the first review pass.
 

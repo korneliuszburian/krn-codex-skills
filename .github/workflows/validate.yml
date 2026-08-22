@@ -25,6 +25,12 @@ jobs:
         run: npm run validate
       - name: Test validator falsifiers
         run: npm run test:validate
+      - name: Test experiment seal
+        run: npm run test:seal
+      - name: Test experiment artifacts
+        run: npm run test:experiments
+      - name: Verify experiment artifacts
+        run: npm run verify:experiments
       - name: Test catalog
         run: npm run test:catalog
       - name: Test installer
