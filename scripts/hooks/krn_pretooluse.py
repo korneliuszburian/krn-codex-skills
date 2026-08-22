@@ -33,7 +33,6 @@ SAFE_INSPECTION_COMMANDS = {
     "ls",
     "pwd",
     "rg",
-    "sed",
     "stat",
     "tail",
     "wc",

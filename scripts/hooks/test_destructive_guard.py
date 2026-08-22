@@ -263,7 +263,6 @@ class DestructiveGuardTests(unittest.TestCase):
             "git clean -ndx",
             "rm -rf node_modules # ordinary cleanup",
             "git clean -ndx # preview",
-            "sed -n '1,5p' README.md",
             "rm -rf \\\nnode_modules",
             "git clean -n \\\n-dx",
         ):
@@ -280,6 +279,7 @@ class DestructiveGuardTests(unittest.TestCase):
             "sed -i 's/rm/safe/' README.md",
             "sed -i.bak 's/rm/safe/' README.md",
             "sed --in-place=backup 's/rm/safe/' README.md",
+            "sed -n '1e rm -rf /tmp/target' README.md",
         ):
             with self.subTest(command=command):
                 self.assertIsNotNone(self.hook_reason(command))
