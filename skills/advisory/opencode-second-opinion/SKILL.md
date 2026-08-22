@@ -1,6 +1,6 @@
 ---
 name: opencode-second-opinion
-description: Request one bounded, read-only advisory opinion from an explicit independent OpenCode reviewer model on an explicit path or artifact. Use only by explicit request; it neither edits nor produces a diff and never runs on the initiating agent's own model.
+description: Request one bounded read-only OpenCode advisory opinion on an explicit path or artifact. Use only by explicit request through its validated runner; it neither edits nor produces a diff.
 ---
 
 # OpenCode Second Opinion
@@ -8,6 +8,24 @@ description: Request one bounded, read-only advisory opinion from an explicit in
 Use DeepSeek as an advisory reader, not an implementation or approval lane. The
 pass has one question and one explicit target path. It returns prose findings;
 the initiating workflow verifies and dispositions them locally.
+
+When a calling workflow needs model JSON, set
+`OPENCODE_SECOND_OPINION_OUTPUT=json`. The runner then extracts and compacts
+exactly one JSON object from the terminal answer, even when prose or one code
+fence accidentally surrounds it, and fails closed for prose, malformed JSON,
+arrays, or multiple JSON candidates. This is transport normalization only: the calling workflow
+must still validate its own schema and must not synthesize missing fields.
+
+## Transport boundary
+
+Use the bundled runner for every opinion. Do not invoke raw `opencode run` and
+then infer an opinion from tool events, partial output, or an absent final
+message. After starting the runner, use `check-opinion.sh` on its run directory
+instead of inspecting processes or temporary files. A stream is evidence only
+when the checker returns `completed` and `opinion.md`, `raw.jsonl`, and
+`meta.json` exist; `failed` retains `raw.failed.jsonl` and `failure.txt`; any
+other result is pending. The opinion remains advisory and never replaces the
+owning workflow's review gate, approval, or local verification.
 
 1. **Fix the question and target.** Name the absolute repository or artifact
    directory OpenCode may inspect, the precise question, allowed paths, and
@@ -72,7 +90,21 @@ the initiating workflow verifies and dispositions them locally.
    **Done when:** `opinion.md` is a completed response for the same target and
    model invocation, with no source modification requested or accepted.
 
-4. **Verify and close.** Treat every claim as a hypothesis. Inspect each cited
+4. **Check completion mechanically.** Do not trust the host tool's command
+   lifecycle or poll an OpenCode process. The runner can still be finalizing
+   after a host yields. Call the checker against the owned run directory:
+
+   ```bash
+   ~/.agents/skills/opencode-second-opinion/scripts/check-opinion.sh \
+     /absolute/target-repository/.krn/runs/opencode-second-opinion/<run-id>
+   ```
+
+   Exit `0` means `completed`; read `opinion.md`. Exit `1` means `failed`; read
+   `failure.txt` and never infer an opinion. Exit `2` means `pending`; wait and
+   repeat the same checker. Exit `64` means malformed run state. Do not start a
+   second opinion in the same run directory.
+
+5. **Verify and close.** Treat every claim as a hypothesis. Inspect each cited
    path and line locally, classify it as `accept_and_fix`, `evidence_gap`,
    `reject_with_evidence`, `follow_up`, or `human_decision`, and record that
    in `disposition.md`. The opinion does not prove correctness, readiness,
