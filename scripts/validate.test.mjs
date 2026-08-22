@@ -134,7 +134,7 @@ test("rejects extra retired-skill metadata", () => {
     assert.notEqual(result.status, 0);
     assert.match(
       diagnostics(result),
-      /retired skill second-opinion-review must contain only name and replacement/,
+      /retired skill second-opinion-review must contain only name, owner, and replacement/,
     );
   });
 });

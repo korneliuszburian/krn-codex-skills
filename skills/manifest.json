@@ -69,7 +69,63 @@
   "retired_skills": [
     {
       "name": "second-opinion-review",
-      "replacement": "opencode-second-opinion"
+      "replacement": "opencode-second-opinion",
+      "owner": "repository"
+    },
+    {
+      "name": "code-review",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "codebase-design",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "diagnosing-bugs",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "domain-modeling",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "implement",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "prototype",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "to-spec",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "wayfinder",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "to-questionnaire",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "wait-what",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "writing-for-agents",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
     }
   ],
   "legacy_user_paths": [

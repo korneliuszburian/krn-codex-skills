@@ -528,9 +528,9 @@ for (const retired of manifest.retired_skills ?? []) {
     continue;
   }
   const keys = Object.keys(retired).sort();
-  if (keys.join(",") !== "name,replacement") {
+  if (keys.join(",") !== "name,owner,replacement") {
     fail(
-      `manifest: retired skill ${retired.name ?? "<unknown>"} must contain only name and replacement`,
+      `manifest: retired skill ${retired.name ?? "<unknown>"} must contain only name, owner, and replacement`,
     );
   }
   if (!/^[a-z0-9-]{1,63}$/.test(retired.name ?? "")) {
@@ -543,6 +543,9 @@ for (const retired of manifest.retired_skills ?? []) {
   retiredSkillNames.add(retired.name);
   if (manifestNames.has(retired.name)) {
     fail(`manifest: retired skill ${retired.name} is still active`);
+  }
+  if (typeof retired.owner !== "string" || !retired.owner.trim()) {
+    fail(`manifest: retired skill ${retired.name} must declare an owner`);
   }
   if (
     retired.replacement !== null &&

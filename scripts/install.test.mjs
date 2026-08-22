@@ -27,6 +27,13 @@ function manifestSkills() {
   return manifest.skills;
 }
 
+function upstreamRetiredSkills() {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(REPO, "skills", "manifest.json"), "utf8"),
+  );
+  return manifest.retired_skills.filter((skill) => skill.owner?.startsWith("upstream:"));
+}
+
 test("refuses an unowned skill destination collision without touching it", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
   try {
@@ -153,6 +160,49 @@ test("reports and explicitly archives a retired installed skill, including a sta
     );
     assert.ok(fs.lstatSync(archived).isSymbolicLink());
     assert.equal(fs.readlinkSync(archived), oldSource);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("archives every retired upstream skill left by an older install", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
+  try {
+    const env = sandboxEnv(sandbox);
+    fs.mkdirSync(env.KRN_SKILLS_DEST, { recursive: true });
+    const retired = upstreamRetiredSkills();
+    for (const skill of retired) {
+      fs.symlinkSync(
+        path.join(sandbox, `${skill.name}-old-source`),
+        path.join(env.KRN_SKILLS_DEST, skill.name),
+      );
+    }
+
+    const check = spawnSync("bash", [installScript, "check"], { encoding: "utf8", env });
+    assert.equal(check.status, 1, check.stderr);
+    for (const skill of retired) assert.match(check.stdout, new RegExp(`retired .*${skill.name}`));
+
+    const refused = spawnSync("bash", [installScript, "install"], { encoding: "utf8", env });
+    assert.equal(refused.status, 81, refused.stderr);
+
+    const installed = spawnSync("bash", [installScript, "install"], {
+      encoding: "utf8",
+      env: { ...env, KRN_ARCHIVE_LEGACY: "1" },
+    });
+    assert.equal(installed.status, 0, installed.stderr);
+    const backupRoot = path.join(env.CODEX_HOME, "skill-migration-backups");
+    const backup = fs.readdirSync(backupRoot, { withFileTypes: true })
+      .find((entry) => entry.isDirectory());
+    assert.ok(backup, "retired upstream paths must be archived");
+    for (const skill of retired) {
+      assert.equal(
+        fs.lstatSync(path.join(env.KRN_SKILLS_DEST, skill.name), { throwIfNoEntry: false }),
+        undefined,
+      );
+      assert.ok(
+        fs.lstatSync(path.join(backupRoot, backup.name, `retired-skill__${skill.name}`)),
+      );
+    }
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
   }
