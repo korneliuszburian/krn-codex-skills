@@ -448,6 +448,9 @@ function assertFrozen(previous, next) {
     : previousRank >= STATUS_RANK.get("approved") ? FROZEN_INPUT_ROLES : new Set();
   const before = roleHashes(previous, frozenRoles);
   const after = roleHashes(next, frozenRoles);
+  if (JSON.stringify([...before.keys()].sort()) !== JSON.stringify([...after.keys()].sort())) {
+    throw new Error("frozen artifact set changed");
+  }
   for (const [key, value] of before) {
     if (after.get(key) !== value) throw new Error(`frozen artifact changed: ${key.replace("\0", " ")}`);
   }

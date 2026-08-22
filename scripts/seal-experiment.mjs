@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   gitStagedFiles,
+  gitTrackedFiles,
   sealExperiment,
   validateExperimentTree,
 } from "./lib/experiment-artifacts.mjs";

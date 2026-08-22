@@ -280,6 +280,50 @@ test("seal rejects changes to protocol evidence frozen by an approved checkpoint
   });
 });
 
+test("seal rejects a new artifact in an already frozen protocol role", () => {
+  withExperiment(({ directory, manifest }) => {
+    const previous = structuredClone(manifest);
+    previous.status = "approved";
+    previous.phase_history = previous.phase_history.slice(0, 1);
+    const extra = path.join(directory, "protocol-extra.md");
+    fs.writeFileSync(extra, "second protocol\n");
+    manifest.artifacts.push({
+      path: "protocol-extra.md",
+      role: "protocol",
+      visibility: "reviewer",
+      bytes: fs.statSync(extra).size,
+      sha256: sha256(extra),
+    });
+    writeManifest(directory, manifest);
+    assert.throws(
+      () => sealExperiment(directory, { previousManifest: previous }),
+      /frozen artifact set changed/,
+    );
+  });
+});
+
+test("seal rejects a new primary-results artifact after execution", () => {
+  withExperiment(({ directory, manifest }) => {
+    const previous = structuredClone(manifest);
+    previous.status = "executed";
+    previous.phase_history = previous.phase_history.slice(0, 2);
+    const extra = path.join(directory, "primary-extra.json");
+    fs.writeFileSync(extra, "{}\n");
+    manifest.artifacts.push({
+      path: "primary-extra.json",
+      role: "primary-results",
+      visibility: "raw",
+      bytes: fs.statSync(extra).size,
+      sha256: sha256(extra),
+    });
+    writeManifest(directory, manifest);
+    assert.throws(
+      () => sealExperiment(directory, { previousManifest: previous }),
+      /frozen artifact set changed/,
+    );
+  });
+});
+
 test("seal rejects post-approval content scan exception changes", () => {
   withExperiment(({ directory, manifest }) => {
     const previous = structuredClone(manifest);

@@ -88,3 +88,72 @@ test("public seal refuses a terminal record with no committed predecessor", () =
     fs.rmSync(sandbox, { recursive: true, force: true });
   }
 });
+
+test("public seal writes and stages a normal planned experiment manifest", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-seal-cli-success-"));
+  try {
+    const root = path.join(sandbox, "repo");
+    const id = "2026-08-21-planned-run-v1";
+    const directory = path.join(root, "evals/experiments", id);
+    fs.mkdirSync(directory, { recursive: true });
+    const definitions = {
+      "protocol.md": "protocol\n",
+      "schedule.md": "schedule\n",
+      "model-config.json": "model\n",
+      "grader-config.json": "grader\n",
+      "rubric.md": "rubric\n",
+      "allocation-commitment.json": "commitment\n",
+      "stopping-rule.md": "stop\n",
+    };
+    const roles = {
+      "protocol.md": "protocol",
+      "schedule.md": "schedule",
+      "model-config.json": "model-config",
+      "grader-config.json": "grader-config",
+      "rubric.md": "rubric",
+      "allocation-commitment.json": "allocation-commitment",
+      "stopping-rule.md": "stopping-rule",
+    };
+    const artifacts = [];
+    for (const [name, content] of Object.entries(definitions)) {
+      const file = path.join(directory, name);
+      fs.writeFileSync(file, content);
+      artifacts.push({ path: name, role: roles[name], visibility: "reviewer", bytes: 0, sha256: "0".repeat(64) });
+    }
+    const manifest = {
+      schema_version: 2,
+      experiment_id: id,
+      status: "planned",
+      retention: "full",
+      epistemic_status: "preregistered",
+      owner: "source-to-decision",
+      reviewer: "maintainer",
+      ownership: {
+        lifecycle_owner: "delivery-loop",
+        decision_owner: "source-to-decision",
+        manifest_writer: "owner",
+        grading_owner: "grader",
+        reveal_owner: "coordinator",
+        merge_owner: "maintainer",
+      },
+      target: { base_commit: "0".repeat(40), head: "0".repeat(40) },
+      phase_history: [],
+      content_scan_exceptions: [],
+      artifacts,
+      omissions: [],
+    };
+    fs.writeFileSync(path.join(directory, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+    assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: root }).status, 0);
+    assert.equal(spawnSync("git", ["add", "-A"], { cwd: root }).status, 0);
+    const result = spawnSync(process.execPath, [SCRIPT, "--root", root, id], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    const sealed = JSON.parse(fs.readFileSync(path.join(directory, "manifest.json"), "utf8"));
+    assert.ok(sealed.artifacts.every((artifact) => artifact.sha256 !== "0".repeat(64)));
+    assert.match(spawnSync("git", ["diff", "--cached", "--name-only"], { cwd: root, encoding: "utf8" }).stdout, /manifest\.json/);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
