@@ -178,6 +178,8 @@ def is_safe_inspection(words: tuple[str, ...] | None) -> bool:
         if executable == "find" and any(
             argument in {"-delete", "-exec", "-execdir", "-ok", "-okdir"}
             or argument.startswith(("-exec=", "-execdir=", "-ok=", "-okdir="))
+            or argument == "-fls"
+            or argument.startswith(("-fls", "-fprint", "-fprintf"))
             for argument in arguments
         ):
             return False

@@ -460,12 +460,24 @@ function assertFrozen(previous, next) {
   if (new Set(["decided", "abandoned"]).has(previous.status)) {
     throw new Error(`terminal experiment ${previous.status} cannot be resealed`);
   }
+  const previousHistory = previous.phase_history ?? [];
+  const nextHistory = next.phase_history ?? [];
+  if (nextHistory.length < previousHistory.length ||
+      JSON.stringify(nextHistory.slice(0, previousHistory.length)) !== JSON.stringify(previousHistory)) {
+    throw new Error("phase_history is not append-only");
+  }
   const frozenRoles = previousRank >= STATUS_RANK.get("executed")
     ? GRADED_IMMUTABLE_ROLES
     : previousRank >= STATUS_RANK.get("approved") ? FROZEN_INPUT_ROLES : new Set();
   const before = roleHashes(previous, frozenRoles);
   const after = roleHashes(next, frozenRoles);
-  if (JSON.stringify([...before.keys()].sort()) !== JSON.stringify([...after.keys()].sort())) {
+  const beforeKeys = new Set(before.keys());
+  const afterKeys = new Set(after.keys());
+  const addedKeys = [...afterKeys].filter((key) => !beforeKeys.has(key));
+  const executedToGraded = previous.status === "executed" && next.status === "graded";
+  if ((!executedToGraded && addedKeys.length > 0) ||
+      (executedToGraded && addedKeys.some((key) => !key.startsWith("grades\0"))) ||
+      [...beforeKeys].some((key) => !afterKeys.has(key))) {
     throw new Error("frozen artifact set changed");
   }
   for (const [key, value] of before) {

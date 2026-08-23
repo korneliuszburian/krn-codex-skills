@@ -280,6 +280,10 @@ class DestructiveGuardTests(unittest.TestCase):
             "sed -i.bak 's/rm/safe/' README.md",
             "sed --in-place=backup 's/rm/safe/' README.md",
             "sed -n '1e rm -rf /tmp/target' README.md",
+            "find . -fls /tmp/rm",
+            "find . -fprint /tmp/rm",
+            "find . -fprint0 /tmp/rm",
+            "find . -fprintf /tmp/rm '%p\\n'",
         ):
             with self.subTest(command=command):
                 self.assertIsNotNone(self.hook_reason(command))

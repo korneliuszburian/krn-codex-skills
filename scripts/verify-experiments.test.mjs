@@ -154,6 +154,48 @@ test("accepts executed results with amendment but rejects grades and reveal befo
   });
 });
 
+test("permits executed-to-graded only by adding grades", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    const executedRoles = new Set([
+      "protocol", "schedule", "model-config", "grader-config", "rubric",
+      "allocation-commitment", "stopping-rule", "reviewer-approval",
+      "primary-results", "telemetry",
+    ]);
+    const executed = structuredClone(manifest);
+    executed.status = "executed";
+    executed.phase_history = executed.phase_history.slice(0, 2);
+    for (const artifact of [...executed.artifacts]) {
+      if (!executedRoles.has(artifact.role)) {
+        fs.rmSync(path.join(directory, artifact.path));
+        executed.artifacts = executed.artifacts.filter((item) => item.path !== artifact.path);
+      }
+    }
+    writeManifest(directory, executed);
+    const previous = structuredClone(executed);
+    const gradesPath = path.join(directory, "grades.json");
+    fs.writeFileSync(gradesPath, "{}\n");
+    executed.status = "graded";
+    executed.phase_history = [...executed.phase_history, {
+      phase: "grading",
+      base_commit: "f".repeat(40),
+      reviewed_commit: "1".repeat(40),
+      reviewer: "reviewer",
+      verdict: "accepted",
+      reviewed_at: "2026-08-21T10:00:00+02:00",
+    }];
+    executed.artifacts.push({
+      path: "grades.json",
+      role: "grades",
+      visibility: "reviewer",
+      bytes: fs.statSync(gradesPath).size,
+      sha256: sha256(gradesPath),
+    });
+    writeManifest(directory, executed);
+    sealExperiment(directory, { previousManifest: previous });
+    assert.deepEqual(validateExperimentTree(root).errors, []);
+  });
+});
+
 test("rejects a result changed after its manifest was frozen", () => {
   withExperiment(({ root, directory }) => {
     fs.appendFileSync(path.join(directory, "summary.json"), "tampered\n");
@@ -291,6 +333,22 @@ test("seal rejects changes to protocol evidence frozen by an approved checkpoint
     assert.throws(
       () => sealExperiment(directory, { previousManifest: previous }),
       /frozen artifact changed: protocol protocol.md/,
+    );
+  });
+});
+
+test("seal rejects mutation of earlier phase history records", () => {
+  withExperiment(({ directory, manifest }) => {
+    const previous = structuredClone(manifest);
+    previous.status = "approved";
+    previous.phase_history = previous.phase_history.slice(0, 1);
+    manifest.status = "approved";
+    manifest.phase_history = structuredClone(previous.phase_history);
+    manifest.phase_history[0].reviewer = "different-reviewer";
+    writeManifest(directory, manifest);
+    assert.throws(
+      () => sealExperiment(directory, { previousManifest: previous }),
+      /phase_history is not append-only/,
     );
   });
 });
