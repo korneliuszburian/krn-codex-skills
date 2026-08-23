@@ -96,6 +96,13 @@ test("public seal writes and stages a normal planned experiment manifest", () =>
     const id = "2026-08-21-planned-run-v1";
     const directory = path.join(root, "evals/experiments", id);
     fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(path.join(root, "README.md"), "fixture\n");
+    assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: root }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.email", "test@example.invalid"], { cwd: root }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.name", "test"], { cwd: root }).status, 0);
+    assert.equal(spawnSync("git", ["add", "README.md"], { cwd: root }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "base"], { cwd: root }).status, 0);
+    const baseCommit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
     const definitions = {
       "protocol.md": "protocol\n",
       "schedule.md": "schedule\n",
@@ -136,14 +143,13 @@ test("public seal writes and stages a normal planned experiment manifest", () =>
         reveal_owner: "coordinator",
         merge_owner: "maintainer",
       },
-      target: { base_commit: "0".repeat(40), head: "0".repeat(40) },
+      target: { base_commit: baseCommit, head: baseCommit },
       phase_history: [],
       content_scan_exceptions: [],
       artifacts,
       omissions: [],
     };
     fs.writeFileSync(path.join(directory, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-    assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: root }).status, 0);
     assert.equal(spawnSync("git", ["add", "-A"], { cwd: root }).status, 0);
     const result = spawnSync(process.execPath, [SCRIPT, "--root", root, id], {
       cwd: root,
