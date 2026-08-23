@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 import {
@@ -10,7 +11,7 @@ import {
   validateExperimentTree,
 } from "./lib/experiment-artifacts.mjs";
 
-const HEAD = "0".repeat(40);
+const HEAD = "f".repeat(40);
 const REVIEWED = "1".repeat(40);
 
 function sha256(file) {
@@ -255,6 +256,20 @@ test("requires complete monotonic phase history for full decided experiments", (
   });
 });
 
+test("rejects fixed-point SHAs that do not exist in the repository", () => {
+  withExperiment(({ root }) => {
+    const repositoryRoot = path.dirname(root);
+    assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.email", "test@example.invalid"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.name", "test"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["add", "-A"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "fixture"], { cwd: repositoryRoot }).status, 0);
+    const result = validateExperimentTree(root, { repositoryRoot });
+    assert.ok(result.errors.some((error) => error.includes("target.base_commit does not resolve")), result.errors.join("\n"));
+    assert.ok(result.errors.some((error) => error.includes("target.head does not resolve")), result.errors.join("\n"));
+  });
+});
+
 test("seal is deterministic and terminal committed manifests cannot be resealed", () => {
   withExperiment(({ directory, manifest }) => {
     const first = sealExperiment(directory);
@@ -362,5 +377,25 @@ test("preserves the achieved phase prefix for an abandoned full experiment", () 
     writeManifest(directory, manifest);
     const result = validateExperimentTree(root);
     assert.deepEqual(result.errors, []);
+  });
+});
+
+test("preserves all approved preregistration artifacts when abandoned before execution", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    manifest.status = "abandoned";
+    manifest.phase_history = manifest.phase_history.slice(0, 1);
+    const allowed = new Set([
+      "protocol", "schedule", "model-config", "grader-config", "rubric",
+      "allocation-commitment", "stopping-rule", "reviewer-approval",
+      "decision", "reviewer-verdict",
+    ]);
+    for (const artifact of [...manifest.artifacts]) {
+      if (!allowed.has(artifact.role)) {
+        fs.rmSync(path.join(directory, artifact.path));
+        manifest.artifacts = manifest.artifacts.filter((item) => item.path !== artifact.path);
+      }
+    }
+    writeManifest(directory, manifest);
+    assert.deepEqual(validateExperimentTree(root).errors, []);
   });
 });

@@ -97,7 +97,7 @@ Code plugin, and keep it updated upstream. This repo owns only the decisions
 and lifecycle envelopes listed above; lab measurement found no advantage of a
 hand-forked copy over upstream or over no skill
 ([`skills-3arm-lab`](docs/research/skills-3arm-lab.md), results in
-`krn/active/skills-lab-3arm/results/`).
+`skills-lab-3arm/results/`).
 
 Descriptions and `agents/openai.yaml` are the routing authority. README is the
 only human skill catalog; there are no hand-maintained per-skill mirror pages.

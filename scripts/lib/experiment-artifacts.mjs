@@ -72,6 +72,15 @@ function sha256Buffer(buffer) {
   return crypto.createHash("sha256").update(buffer).digest("hex");
 }
 
+function gitCommitExists(repositoryRoot, objectId) {
+  if (!repositoryRoot || !GIT_OBJECT_PATTERN.test(objectId ?? "")) return true;
+  const result = spawnSync("git", ["cat-file", "-e", `${objectId}^{commit}`], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  });
+  return result.status === 0;
+}
+
 function safeRelativePath(value) {
   return typeof value === "string" && Boolean(value) && value === value.trim() &&
     !path.isAbsolute(value) && !value.includes("\\") &&
@@ -135,7 +144,7 @@ function secretFindings(file, relative, exceptions) {
   });
 }
 
-function validatePhaseHistory(manifest, errors, label) {
+function validatePhaseHistory(manifest, errors, label, repositoryRoot) {
   const history = manifest.phase_history;
   if (!Array.isArray(history)) {
     errors.push(`${label}: phase_history must be an array`);
@@ -152,6 +161,8 @@ function validatePhaseHistory(manifest, errors, label) {
     for (const field of ["base_commit", "reviewed_commit"]) {
       if (!GIT_OBJECT_PATTERN.test(record?.[field] ?? "")) {
         errors.push(`${recordLabel} ${field} must be a full Git object id`);
+      } else if (!gitCommitExists(repositoryRoot, record[field])) {
+        errors.push(`${recordLabel} ${field} does not resolve to a Git commit`);
       }
     }
     if (typeof record?.reviewer !== "string" || !record.reviewer.trim()) {
@@ -244,12 +255,16 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
     }
   }
   validateOwnership(manifest, errors, label);
-  validatePhaseHistory(manifest, errors, label);
+  validatePhaseHistory(manifest, errors, label, repositoryRoot);
   if (!GIT_OBJECT_PATTERN.test(manifest.target?.base_commit ?? "")) {
     errors.push(`${label}: target.base_commit must be a full Git object id`);
+  } else if (!gitCommitExists(repositoryRoot, manifest.target.base_commit)) {
+    errors.push(`${label}: target.base_commit does not resolve to a Git commit`);
   }
   if (!GIT_OBJECT_PATTERN.test(manifest.target?.head ?? "")) {
     errors.push(`${label}: target.head must be a full Git object id`);
+  } else if (!gitCommitExists(repositoryRoot, manifest.target.head)) {
+    errors.push(`${label}: target.head does not resolve to a Git commit`);
   }
   if (!Array.isArray(manifest.artifacts) || manifest.artifacts.length === 0) {
     errors.push(`${label}: artifacts must be a non-empty array`);
@@ -359,7 +374,9 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
   if (manifest.retention === "full" && manifest.status === "abandoned") {
     const phases = (manifest.phase_history ?? []).map((record) => record.phase);
     allowed = new Set(["protocol", "decision", "reviewer-verdict"]);
-    if (phases.includes("preregistration")) allowed.add("schedule");
+    if (phases.includes("preregistration")) {
+      for (const role of [...FULL_BASE_ROLES, "reviewer-approval"]) allowed.add(role);
+    }
     if (phases.includes("execution")) {
       for (const role of ["model-config", "grader-config", "rubric", "allocation-commitment", "stopping-rule", "reviewer-approval", "primary-results", "telemetry"]) allowed.add(role);
     }

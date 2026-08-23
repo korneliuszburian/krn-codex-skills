@@ -48,8 +48,10 @@ if (!opinion) {
 }
 
 function normalizeJsonOpinion(text) {
-  const fenced = [...text.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi)].map((match) => match[1].trim());
-  const candidates = fenced.length > 0 ? fenced : balancedObjects(text);
+  const fencedMatches = [...text.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi)];
+  const fenced = fencedMatches.map((match) => match[1].trim());
+  const withoutFences = text.replace(/```(?:json)?\s*[\s\S]*?```/gi, (match) => " ".repeat(match.length));
+  const candidates = [...fenced, ...balancedObjects(withoutFences)];
   const objects = candidates.map((candidate) => {
     try {
       const value = JSON.parse(candidate);

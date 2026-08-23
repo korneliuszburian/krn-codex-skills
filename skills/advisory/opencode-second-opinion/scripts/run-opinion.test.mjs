@@ -88,6 +88,26 @@ test("normalizes one embedded nested JSON object only in strict JSON mode", () =
   }
 });
 
+test("rejects mixed fenced and unfenced JSON candidates", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
+  try {
+    assert.throws(
+      () => invoke([target, path.join(run, "prompt.md"), output], {
+        PATH: `${bin}:${process.env.PATH}`,
+        OPENCODE_SECOND_OPINION_OUTPUT: "json",
+        OPENCODE_TEST_FINAL_TEXT: "```json\n{\"first\":true}\n```\n{\"second\":true}",
+        OPENCODE_TEST_INVOCATION: invocation,
+      }),
+      (error) => error.status === 78,
+    );
+    assert.equal(fs.existsSync(output), false);
+    assert.ok(fs.existsSync(path.join(run, "raw.failed.jsonl")));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("passes through one explicit non-empty provider variant", () => {
   const { root, target, run, bin, invocation } = sandbox();
   const output = path.join(run, "opinion.md");
