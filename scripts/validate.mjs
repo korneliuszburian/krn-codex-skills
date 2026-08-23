@@ -768,7 +768,10 @@ for (const item of manifest.legacy_user_paths ?? []) {
     fail(`manifest: duplicate legacy path ${item.path}`);
   }
   legacyPaths.add(item.path);
-  if (!manifestNames.has(item.replacement)) {
+  if (typeof item.owner !== "string" || !item.owner.trim()) {
+    fail(`manifest: legacy path ${item.path} must declare an owner`);
+  }
+  if (item.replacement !== null && !manifestNames.has(item.replacement)) {
     fail(`manifest: unknown legacy replacement ${item.replacement}`);
   }
 }

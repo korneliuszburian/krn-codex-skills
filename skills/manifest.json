@@ -136,7 +136,28 @@
   "legacy_user_paths": [
     {
       "path": ".codex/skills/claude-second-opinion-review",
-      "replacement": "opencode-second-opinion"
+      "replacement": "opencode-second-opinion",
+      "owner": "repository"
+    },
+    {
+      "path": ".codex/skills/code-review",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "path": ".codex/skills/codebase-design",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "path": ".codex/skills/diagnosing-bugs",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "path": ".codex/skills/writing-great-skills",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
     }
   ]
 }
