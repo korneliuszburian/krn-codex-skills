@@ -126,6 +126,11 @@
       "name": "writing-for-agents",
       "replacement": null,
       "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "reviewer-handoff",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
     }
   ],
   "legacy_user_paths": [
