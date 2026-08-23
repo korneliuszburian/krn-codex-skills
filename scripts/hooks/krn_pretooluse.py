@@ -193,7 +193,13 @@ def is_safe_inspection(words: tuple[str, ...] | None) -> bool:
             return False
         return True
     if executable == "git":
-        return len(arguments) > 0 and arguments[0] in SAFE_GIT_INSPECTION_SUBCOMMANDS
+        if not arguments or arguments[0] not in SAFE_GIT_INSPECTION_SUBCOMMANDS:
+            return False
+        return not any(
+            argument in {"-o", "--output"}
+            or argument.startswith(("--output=", "-o"))
+            for argument in arguments[1:]
+        )
     return False
 
 

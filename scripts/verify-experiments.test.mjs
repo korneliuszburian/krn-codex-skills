@@ -196,6 +196,19 @@ test("permits executed-to-graded only by adding grades", () => {
   });
 });
 
+test("rejects skipping required lifecycle statuses", () => {
+  withExperiment(({ directory, manifest }) => {
+    const previous = structuredClone(manifest);
+    previous.status = "planned";
+    previous.phase_history = [];
+    manifest.status = "decided";
+    assert.throws(
+      () => sealExperiment(directory, { previousManifest: previous }),
+      /status transition is not allowed from planned to decided/,
+    );
+  });
+});
+
 test("rejects a result changed after its manifest was frozen", () => {
   withExperiment(({ root, directory }) => {
     fs.appendFileSync(path.join(directory, "summary.json"), "tampered\n");
@@ -329,6 +342,9 @@ test("seal rejects changes to protocol evidence frozen by an approved checkpoint
     const previous = structuredClone(manifest);
     previous.status = "approved";
     previous.phase_history = previous.phase_history.slice(0, 1);
+    manifest.status = "approved";
+    manifest.phase_history = structuredClone(previous.phase_history);
+    writeManifest(directory, manifest);
     fs.appendFileSync(path.join(directory, "protocol.md"), "post-approval change\n");
     assert.throws(
       () => sealExperiment(directory, { previousManifest: previous }),
@@ -358,6 +374,8 @@ test("seal rejects a new artifact in an already frozen protocol role", () => {
     const previous = structuredClone(manifest);
     previous.status = "approved";
     previous.phase_history = previous.phase_history.slice(0, 1);
+    manifest.status = "approved";
+    manifest.phase_history = structuredClone(previous.phase_history);
     const extra = path.join(directory, "protocol-extra.md");
     fs.writeFileSync(extra, "second protocol\n");
     manifest.artifacts.push({
@@ -380,6 +398,8 @@ test("seal rejects a new primary-results artifact after execution", () => {
     const previous = structuredClone(manifest);
     previous.status = "executed";
     previous.phase_history = previous.phase_history.slice(0, 2);
+    manifest.status = "executed";
+    manifest.phase_history = structuredClone(previous.phase_history);
     const extra = path.join(directory, "primary-extra.json");
     fs.writeFileSync(extra, "{}\n");
     manifest.artifacts.push({
@@ -402,6 +422,8 @@ test("seal rejects post-approval content scan exception changes", () => {
     const previous = structuredClone(manifest);
     previous.status = "approved";
     previous.phase_history = previous.phase_history.slice(0, 1);
+    manifest.status = "approved";
+    manifest.phase_history = structuredClone(previous.phase_history);
     manifest.content_scan_exceptions = [{
       path: "protocol.md",
       rule: "secret-json-value",

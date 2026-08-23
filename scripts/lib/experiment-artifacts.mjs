@@ -10,6 +10,15 @@ const STATUS_RANK = new Map([
   ["planned", 0], ["approved", 1], ["running", 2],
   ["executed", 3], ["graded", 4], ["decided", 5], ["abandoned", 5],
 ]);
+const ALLOWED_STATUS_TRANSITIONS = new Map([
+  ["planned", new Set(["planned", "approved", "abandoned"])],
+  ["approved", new Set(["approved", "running", "abandoned"])],
+  ["running", new Set(["running", "executed", "abandoned"])],
+  ["executed", new Set(["executed", "graded", "abandoned"])],
+  ["graded", new Set(["graded", "decided", "abandoned"])],
+  ["decided", new Set(["decided"])],
+  ["abandoned", new Set(["abandoned"])],
+]);
 const RETENTIONS = new Set(["full", "capsule-only"]);
 const EPISTEMIC_STATUSES = new Set([
   "preregistered", "exploratory-backfill", "external-evidence",
@@ -455,8 +464,9 @@ function roleHashes(manifest, roles) {
 
 function assertFrozen(previous, next) {
   const previousRank = STATUS_RANK.get(previous.status);
-  const nextRank = STATUS_RANK.get(next.status);
-  if (nextRank < previousRank) throw new Error(`status cannot move backward from ${previous.status} to ${next.status}`);
+  if (!ALLOWED_STATUS_TRANSITIONS.get(previous.status)?.has(next.status)) {
+    throw new Error(`status transition is not allowed from ${previous.status} to ${next.status}`);
+  }
   if (new Set(["decided", "abandoned"]).has(previous.status)) {
     throw new Error(`terminal experiment ${previous.status} cannot be resealed`);
   }

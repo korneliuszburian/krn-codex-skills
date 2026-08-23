@@ -54,6 +54,29 @@ if (!previousManifest && ["decided", "abandoned"].includes(currentManifest.statu
   process.exit(1);
 }
 
+const previousIndex = spawnSync("git", ["ls-files", "--stage", "--", relativeManifest], {
+  cwd: root,
+  encoding: "utf8",
+});
+let manifestStagedBySeal = false;
+function restoreManifestIndex() {
+  if (previousIndex.status !== 0) return previousIndex.status;
+  const line = previousIndex.stdout.trim();
+  if (!line) {
+    return spawnSync("git", ["update-index", "--remove", "--", relativeManifest], {
+      cwd: root,
+      encoding: "utf8",
+    }).status;
+  }
+  const match = line.match(/^(\d+) ([a-f0-9]+) \d\t(.+)$/);
+  if (!match) return 1;
+  return spawnSync(
+    "git",
+    ["update-index", "--cacheinfo", `${match[1]},${match[2]},${match[3]}`],
+    { cwd: root, encoding: "utf8" },
+  ).status;
+}
+
 const stagedFiles = gitStagedFiles(root, experimentsRoot);
 try {
   const seal = sealExperiment(directory, {
@@ -68,6 +91,7 @@ try {
     encoding: "utf8",
   });
   if (add.status !== 0) throw new Error(`git add manifest failed: ${add.stderr.trim()}`);
+  manifestStagedBySeal = true;
   const validation = validateExperimentTree(experimentsRoot, {
     trackedFiles: gitTrackedFiles(root, experimentsRoot),
     stagedFiles: gitStagedFiles(root, experimentsRoot),
@@ -77,6 +101,9 @@ try {
   console.log(`sealed ${id}: ${seal.artifacts} artifacts, manifest SHA-256 ${seal.manifestSha256}`);
 } catch (error) {
   fs.writeFileSync(manifestPath, original);
+  if (manifestStagedBySeal && restoreManifestIndex() !== 0) {
+    console.error("ERROR seal failed and index rollback also failed");
+  }
   console.error(`ERROR ${error.message}`);
   process.exit(1);
 }

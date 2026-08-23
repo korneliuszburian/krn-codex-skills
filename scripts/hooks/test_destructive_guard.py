@@ -284,6 +284,8 @@ class DestructiveGuardTests(unittest.TestCase):
             "find . -fprint /tmp/rm",
             "find . -fprint0 /tmp/rm",
             "find . -fprintf /tmp/rm '%p\\n'",
+            "git diff --output=AGENTS.md -- rm",
+            "git show --output=AGENTS.md HEAD -- rm",
         ):
             with self.subTest(command=command):
                 self.assertIsNotNone(self.hook_reason(command))

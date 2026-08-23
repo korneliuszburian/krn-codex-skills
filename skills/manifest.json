@@ -128,6 +128,11 @@
       "owner": "upstream:mattpocock/skills"
     },
     {
+      "name": "writing-great-skills",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
       "name": "reviewer-handoff",
       "replacement": null,
       "owner": "upstream:mattpocock/skills"
