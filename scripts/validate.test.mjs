@@ -50,6 +50,44 @@ function withFixture(run) {
       encoding: "utf8",
     });
     assert.equal(staged.status, 0, diagnostics(staged));
+    const configuredEmail = spawnSync(
+      "git",
+      ["config", "user.email", "validate-fixture@example.invalid"],
+      { cwd: fixture, encoding: "utf8" },
+    );
+    assert.equal(configuredEmail.status, 0, diagnostics(configuredEmail));
+    const configuredName = spawnSync(
+      "git",
+      ["config", "user.name", "validate fixture"],
+      { cwd: fixture, encoding: "utf8" },
+    );
+    assert.equal(configuredName.status, 0, diagnostics(configuredName));
+    const committed = spawnSync("git", ["commit", "--quiet", "-m", "fixture"], {
+      cwd: fixture,
+      encoding: "utf8",
+    });
+    assert.equal(committed.status, 0, diagnostics(committed));
+    const fixtureHead = spawnSync("git", ["rev-parse", "HEAD"], {
+      cwd: fixture,
+      encoding: "utf8",
+    });
+    assert.equal(fixtureHead.status, 0, diagnostics(fixtureHead));
+    const experimentManifest = path.join(
+      fixture,
+      "evals",
+      "experiments",
+      "2026-08-19-evidence-lab-v1",
+      "manifest.json",
+    );
+    const manifest = JSON.parse(fs.readFileSync(experimentManifest, "utf8"));
+    manifest.target.base_commit = fixtureHead.stdout.trim();
+    manifest.target.head = fixtureHead.stdout.trim();
+    fs.writeFileSync(experimentManifest, `${JSON.stringify(manifest, null, 2)}\n`);
+    const restagedManifest = spawnSync("git", ["add", "--", "evals/experiments/2026-08-19-evidence-lab-v1/manifest.json"], {
+      cwd: fixture,
+      encoding: "utf8",
+    });
+    assert.equal(restagedManifest.status, 0, diagnostics(restagedManifest));
     return run(fixture);
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
