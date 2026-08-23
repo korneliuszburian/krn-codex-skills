@@ -127,7 +127,8 @@ for (const token of backtickTokens) {
   // A bare `/` (the filesystem root, cited as prose) is not a real
   // out-of-scope citation.
   if (token === "/") continue;
-  const resolved = path.isAbsolute(token) ? path.normalize(token) : path.resolve(targetDir, token);
+  const sourcePath = token.replace(/:\d+(?::\d+)?$/, "");
+  const resolved = path.isAbsolute(sourcePath) ? path.normalize(sourcePath) : path.resolve(targetDir, sourcePath);
   // A relative token such as `../outside` can be a test literal or prose,
   // rather than an actual citation. As with absolute tokens below, reject it
   // only when it identifies an existing entry outside the target.

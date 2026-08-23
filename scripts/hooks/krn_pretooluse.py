@@ -175,6 +175,11 @@ def is_safe_inspection(words: tuple[str, ...] | None) -> bool:
     executable = remaining[0]
     arguments = remaining[1:]
     if executable in SAFE_INSPECTION_COMMANDS:
+        if executable == "rg" and any(
+            argument == "--pre" or argument.startswith("--pre=")
+            for argument in arguments
+        ):
+            return False
         if executable == "find" and any(
             argument in {"-delete", "-exec", "-execdir", "-ok", "-okdir"}
             or argument.startswith(("-exec=", "-execdir=", "-ok=", "-okdir="))
