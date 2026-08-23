@@ -108,6 +108,28 @@ test("rejects mixed fenced and unfenced JSON candidates", () => {
   }
 });
 
+test("rejects an existing unformatted relative citation outside the target", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
+  const outside = path.join(root, "outside", "secret.txt");
+  try {
+    fs.mkdirSync(path.dirname(outside), { recursive: true });
+    fs.writeFileSync(outside, "secret\n");
+    assert.throws(
+      () => invoke([target, path.join(run, "prompt.md"), output], {
+        PATH: `${bin}:${process.env.PATH}`,
+        OPENCODE_TEST_FINAL_TEXT: "Finding in ../outside/secret.txt:1",
+        OPENCODE_TEST_INVOCATION: invocation,
+      }),
+      (error) => error.status === 78,
+    );
+    assert.equal(fs.existsSync(output), false);
+    assert.ok(fs.existsSync(path.join(run, "raw.failed.jsonl")));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("passes through one explicit non-empty provider variant", () => {
   const { root, target, run, bin, invocation } = sandbox();
   const output = path.join(run, "opinion.md");

@@ -118,6 +118,9 @@ const blanked = opinion.replace(/`[^`\n]+`/g, (m) => " ".repeat(m.length));
 const absoluteTokens = [
   ...blanked.matchAll(/(^|[^A-Za-z0-9_./-])(\/[A-Za-z0-9_.~+-][^\s`"'<>()]+)/g),
 ].map((match) => match[2]);
+const relativeTokens = [
+  ...opinion.matchAll(/(?:^|[\s("'])((?:\.\.?\/)+[A-Za-z0-9_.~+/-]+(?::\d+(?::\d+)?)?)/g),
+].map((match) => match[1]);
 
 for (const token of backtickTokens) {
   if (isUri(token) || isRegexLiteral(token)) continue;
@@ -149,6 +152,13 @@ for (const token of absoluteTokens) {
   const resolved = path.normalize(token);
   if (!fs.existsSync(resolved)) continue;
   if (outsideTarget(resolved)) {
+    throw new Error(`opinion cites a path outside the target scope: ${token}`);
+  }
+}
+for (const token of relativeTokens) {
+  const sourcePath = token.replace(/:\d+(?::\d+)?$/, "");
+  const resolved = path.resolve(targetDir, sourcePath);
+  if (outsideTarget(resolved) && fs.existsSync(resolved)) {
     throw new Error(`opinion cites a path outside the target scope: ${token}`);
   }
 }
