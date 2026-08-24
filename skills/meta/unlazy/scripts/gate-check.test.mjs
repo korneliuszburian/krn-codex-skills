@@ -87,6 +87,23 @@ test("rejects an incomplete runnable gate", () => {
   }
 });
 
+test("rejects unknown and empty gate attributes", () => {
+  const cases = [
+    ["unknown", "  CDW: elsewhere", /unknown attribute CDW/],
+    ["empty", "  CHECK: ", /G1: CHECK must not be empty/],
+  ];
+  for (const [name, line, expected] of cases) {
+    const { root, ledger } = fixture(`# Gates: attributes ${name}\n\n- [ ] G1: invalid\n${line}\n  EXPECT: ok\n  EVIDENCE: pending\n`);
+    try {
+      const result = run(["--status", ledger], root);
+      assert.equal(result.status, 2, `${name}: ${result.stdout}\n${result.stderr}`);
+      assert.match(result.stderr, expected);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
 test("rejects a malformed gate-like checkbox line", () => {
   const { root, ledger, approvals } = fixture(`# Gates: malformed\n\n- [ ] G1 missing colon\n- [x] G2: valid but not enough\n  EVIDENCE: reviewed\n`);
   try {
@@ -106,6 +123,20 @@ test("rejects a checked manual gate whose evidence is still pending", () => {
     assert.match(result.stderr, /G1: checked gate cannot have pending evidence/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects malformed ABANDON directives", () => {
+  const cases = ["ABANDON G1 reason", "ABANDON: G1", "ABANDON:"];
+  for (const directive of cases) {
+    const { root, ledger } = fixture(`# Gates: abandon\n\n- [x] G1: impossible\n  EVIDENCE: accepted\n${directive}\n`);
+    try {
+      const result = run(["--status", ledger], root);
+      assert.equal(result.status, 2, `${directive}: ${result.stdout}\n${result.stderr}`);
+      assert.match(result.stderr, /malformed ABANDON directive/);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   }
 });
 
@@ -188,6 +219,28 @@ test("defaults gate CWD to the repository root", () => {
   }
 });
 
+test("rejects absolute, traversal, and symlinked CWD outside the repository", () => {
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "krn-unlazy-outside-"));
+  const cases = [
+    ["absolute", "/tmp", /CWD must be repository-relative/],
+    ["traversal", "..", /CWD escapes repository/],
+    ["symlink", "outside-link", /CWD escapes repository/],
+  ];
+  for (const [name, cwd, expected] of cases) {
+    const { root, ledger } = fixture(`# Gates: cwd ${name}\n\n- [ ] G1: command must not run\n  CWD: ${cwd}\n  CHECK: node -e "require('fs').writeFileSync('marker.txt','ran')"\n  EXPECT: ignored\n  EVIDENCE: pending\n`);
+    try {
+      if (name === "symlink") fs.symlinkSync(outside, path.join(root, "outside-link"));
+      const result = run(["--approve", ledger], root);
+      assert.equal(result.status, 1, `${name}: ${result.stdout}\n${result.stderr}`);
+      assert.match(result.stdout, expected);
+      assert.equal(fs.existsSync(path.join(root, "marker.txt")), false);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }
+  fs.rmSync(outside, { recursive: true, force: true });
+});
+
 test("rejects empty, changed, directory, and symlink approval records without executing", () => {
   const mutations = [
     ["empty", (file) => fs.writeFileSync(file, "")],
@@ -215,5 +268,27 @@ test("rejects empty, changed, directory, and symlink approval records without ex
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
+  }
+});
+
+test("clears checked success when reverify loses approval", () => {
+  const { root, ledger, approvals } = fixture(`# Gates: stale success\n\n- [ ] G1: command passes\n  CHECK: node -e "console.log('ok')"\n  EXPECT: ok\n  EVIDENCE: pending\n`);
+  try {
+    const approved = run(["--approve", "--approval-dir", approvals, ledger], root);
+    assert.equal(approved.status, 0);
+    assert.match(fs.readFileSync(ledger, "utf8"), /- \[x\] G1/);
+    const record = path.join(approvals, fs.readdirSync(approvals)[0]);
+    fs.writeFileSync(record, "{}\n");
+    const reverified = run(["--reverify", "--approval-dir", approvals, ledger], root);
+    assert.equal(reverified.status, 1);
+    assert.match(reverified.stdout, /approval invalid/);
+    const updated = fs.readFileSync(ledger, "utf8");
+    assert.match(updated, /- \[ \] G1/);
+    assert.match(updated, /EVIDENCE: approval invalid/);
+    const status = run(["--status", "--approval-dir", approvals, ledger], root);
+    assert.equal(status.status, 1);
+    assert.match(status.stdout, /UNMET: 1/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
   }
 });

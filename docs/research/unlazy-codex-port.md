@@ -44,7 +44,9 @@ claim and does not own Goal state, publication, or lifecycle transitions;
 `$delivery-loop` remains the lifecycle owner. Every execution also validates the
 approval record itself: it must be a regular, single-link JSON file with an
 exact binding; malformed, changed, directory, and symlink records fail closed
-without running the command.
+without running the command. A failed re-verification clears the gate's
+checked state and records the failure, so a stale prior success cannot survive
+as a completion signal.
 
 ## Pilot evidence
 

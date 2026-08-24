@@ -9,6 +9,8 @@ import { spawnSync } from "node:child_process";
 const HELP = `usage: gate-check.mjs [--status|--approve|--reverify] [--approval-dir DIR] [--timeout SECONDS] GATES.md`;
 const DEFAULT_TIMEOUT_SECONDS = 120;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
+const KNOWN_ATTRIBUTES = new Set(["CHECK", "EXPECT", "CWD", "EVIDENCE"]);
+const ATTRIBUTE_LIKE = /^\s{2,}([A-Za-z][A-Za-z0-9_-]*):(?:[ \t]*(.*))?$/;
 
 function fail(message, code = 2) {
   console.error(`gate-check: ${message}`);
@@ -71,15 +73,19 @@ function parseLedger(ledgerPath) {
       continue;
     }
     if (/^- \[[ xX]\]/.test(line)) throw new Error(`malformed gate line ${index + 1}`);
-    const abandonedMatch = line.match(/^ABANDON: ([A-Za-z0-9][A-Za-z0-9._-]*) (\S.*)$/);
-    if (abandonedMatch) {
+    if (/^ABANDON(?:\s|:|$)/.test(line)) {
+      const abandonedMatch = line.match(/^ABANDON: ([A-Za-z0-9][A-Za-z0-9._-]*) (\S.*)$/);
+      if (!abandonedMatch) throw new Error(`malformed ABANDON directive ${index + 1}`);
+      if (abandoned.has(abandonedMatch[1])) throw new Error(`duplicate ABANDON for ${abandonedMatch[1]}`);
       abandoned.set(abandonedMatch[1], abandonedMatch[2].trim());
       continue;
     }
-    if (!current) continue;
-    const attribute = line.match(/^\s{2,}(CHECK|EXPECT|CWD|EVIDENCE):\s*(.*)$/);
+    const attribute = line.match(ATTRIBUTE_LIKE);
     if (!attribute) continue;
-    const [, key, value] = attribute;
+    const [, key, value = ""] = attribute;
+    if (!KNOWN_ATTRIBUTES.has(key)) throw new Error(`${current?.id || "ledger"}: unknown attribute ${key}`);
+    if (!current) throw new Error(`${key} attribute appears outside a gate`);
+    if (!value.trim()) throw new Error(`${current.id}: ${key} must not be empty`);
     if (current[key.toLowerCase()] !== null) throw new Error(`${current.id}: duplicate ${key}`);
     current[key.toLowerCase()] = value;
     if (key === "EVIDENCE") current.evidenceIndex = index;
@@ -193,10 +199,27 @@ function compactOutput(output) {
   return output.replace(/[\r\n\t]+/g, " ").trim().slice(-800);
 }
 
+function resolveGateCwd(baseDirectory, gate) {
+  const requested = gate.cwd ?? ".";
+  if (path.isAbsolute(requested)) return { error: "CWD must be repository-relative" };
+  let candidate;
+  try {
+    candidate = path.resolve(baseDirectory, requested);
+    if (!isWithin(baseDirectory, candidate)) return { error: "CWD escapes repository" };
+    if (!fs.existsSync(candidate)) return { error: `cwd-missing=${candidate}` };
+    const resolved = fs.realpathSync(candidate);
+    if (!isWithin(baseDirectory, resolved)) return { error: "CWD escapes repository through symlink" };
+    return { cwd: resolved };
+  } catch {
+    return { error: "CWD is not a valid repository-relative path" };
+  }
+}
+
 function runGate(ledgerPath, gate, options, requireApproval) {
   const baseDirectory = repositoryRootFor(ledgerPath) || path.dirname(ledgerPath);
-  const cwd = path.resolve(baseDirectory, gate.cwd || ".");
-  if (!fs.existsSync(cwd)) return { ok: false, evidence: `cwd-missing=${cwd}` };
+  const cwdResult = resolveGateCwd(baseDirectory, gate);
+  if (!cwdResult.cwd) return { ok: false, evidence: cwdResult.error };
+  const { cwd } = cwdResult;
   const binding = bindingFor(ledgerPath, gate, cwd, options.timeout);
   const directory = approvalDirectory(options);
   const approval = approvalPath(directory, binding);
@@ -224,7 +247,7 @@ function writeLedger(ledgerPath, parsed, results) {
   const lines = [...parsed.lines];
   for (const gate of parsed.gates) {
     const result = results.get(gate.id);
-    if (!result || result.pending || !gate.check) continue;
+    if (!result || !gate.check) continue;
     lines[gate.headerIndex] = lines[gate.headerIndex].replace(/^- \[[ xX]\]/, `- [${result.ok ? "x" : " "}]`);
     if (gate.evidenceIndex === null) throw new Error(`${gate.id}: EVIDENCE line disappeared`);
     lines[gate.evidenceIndex] = `  EVIDENCE: ${result.evidence}`;

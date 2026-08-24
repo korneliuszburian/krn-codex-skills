@@ -42,6 +42,11 @@ Scope: <one complete outcome>
 Use unique IDs. A runnable gate has both `CHECK` and `EXPECT`; a manual gate
 has neither. Keep `EVIDENCE` on every gate. Use `ABANDON: <id> <reason>` only
 when the outcome is genuinely impossible, and report that abandonment.
+The parser rejects unknown indented attributes, empty explicit attributes, and
+malformed `ABANDON` directives rather than treating them as prose. `CWD`, when
+provided, must be a repository-relative directory that resolves inside the
+repository; absolute, traversal, missing, and escaping-symlink paths are
+invalid.
 Before writing the ledger, verify that its path is ignored by Git. The checker
 refuses to write evidence for a trackable ledger. If `CWD` is omitted, commands
 run from the repository root; set `CWD` to a repository-relative directory only
