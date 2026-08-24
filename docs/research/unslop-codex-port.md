@@ -27,13 +27,13 @@ rewrite while preserving meaning and tone, add a specific voice, and self-audit
 for remaining tells. Its examples include puffery, vague attribution, filler,
 formulaic structure, chatbot phrases, and abstract jargon. The source is a
 useful checklist, not evidence that its English blacklist transfers to Polish
-or to code and evidence artifacts. [Source](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md)
+or to code and evidence artifacts. [Pinned source](https://github.com/cursor/plugins/blob/46125561306434d8a1d7745d540d8932ab0cd2a2/pstack/skills/unslop/SKILL.md)
 
 The separate `mshumer/unslop` project uses a different mechanism: generate many
 samples for a named domain, analyze repeated defaults, and review the generated
 profile and before/after output for specificity. That supports measuring local
 patterns instead of guessing a universal blacklist, but it adds model and
-sample-quality assumptions. [Source](https://github.com/mshumer/unslop)
+sample-quality assumptions. [Pinned source](https://github.com/mshumer/unslop/blob/edcb62386d129c65e4395f0cfcc9168eb1ba2148/skills/unslop/SKILL.md)
 
 ## KRN decision
 

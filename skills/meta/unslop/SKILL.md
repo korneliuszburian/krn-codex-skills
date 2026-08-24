@@ -53,9 +53,10 @@ because its evidence is vague, flag the gap instead of decorating it.
    directness. Do not replace one stock style with another or force first
    person, jokes, messiness, or slang.
 5. Self-audit the result against the source: every claim, qualifier, named
-   entity, link, number, and requested action must survive unchanged unless the
-   user asked for that change. Check that the result still sounds like the
-   intended author, not like a generic "human" template.
+   entity, link, number, and requested action must survive unchanged. If any
+   protected element would change, stop and hand off instead of returning a
+   rewrite. Check that the result still sounds like the intended author, not
+   like a generic "human" template.
 
 ## Language and boundary rules
 
