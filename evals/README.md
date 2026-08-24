@@ -82,9 +82,12 @@ verdict, and timestamp in `review.md`/manifest phase history. A new commit after
 requested changes invalidates the earlier approval. GitHub approval is the live
 merge gate; the committed record is the durable audit trail.
 
-The reviewed commit for the execution, grading, and decision gates must be the
-completed boundary checkpoint: `executed`, `graded`, and `decided`
-respectively, with that phase's required outputs present. A lower transitional
+The reviewed commit for the execution and grading gates must be the completed
+boundary checkpoint: `executed` and `graded`, with that phase's required outputs
+present. The decision record is the one deliberate exception: because its audit
+record is written inside the resulting `decided` manifest and cannot name its
+own not-yet-known commit SHA, its `reviewed_commit` may point to the completed
+`graded` predecessor or to a later decided checkpoint. A lower transitional
 snapshot such as `running` or `executed` before grading is not a valid review
 fixed point.
 

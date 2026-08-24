@@ -70,7 +70,10 @@ const CHECKPOINT_STATUS_RANGES = new Map([
   ["preregistration", ["planned", "approved"]],
   ["execution", ["executed", "executed"]],
   ["grading", ["graded", "graded"]],
-  ["decision", ["decided", "decided"]],
+  // The decision record is committed in the decided manifest, so its
+  // reviewed_commit may point to the completed graded predecessor. Requiring
+  // decided here would create a self-referential commit-SHA requirement.
+  ["decision", ["graded", "decided"]],
 ]);
 const CAPSULE_TERMINAL_ROLES = ["protocol", "summary", "decision", "reviewer-verdict"];
 const PHASES = ["preregistration", "execution", "grading", "decision"];

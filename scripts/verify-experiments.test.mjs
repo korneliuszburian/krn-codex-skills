@@ -519,6 +519,55 @@ test("requires execution review snapshots to contain completed outputs", () => {
   });
 });
 
+test("permits a decision review to attest the graded predecessor checkpoint", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    const repositoryRoot = path.dirname(root);
+    assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.email", "test@example.invalid"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.name", "test"], { cwd: repositoryRoot }).status, 0);
+    fs.writeFileSync(path.join(repositoryRoot, ".base"), "base\n");
+    assert.equal(spawnSync("git", ["add", ".base"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "base"], { cwd: repositoryRoot }).status, 0);
+    const baseCommit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).stdout.trim();
+
+    const gradedRoles = new Set([
+      "protocol", "schedule", "model-config", "grader-config", "rubric",
+      "allocation-commitment", "stopping-rule", "reviewer-approval",
+      "primary-results", "telemetry", "grades",
+    ]);
+    const graded = structuredClone(manifest);
+    graded.status = "graded";
+    graded.phase_history = graded.phase_history.slice(0, 3).map((record) => ({
+      ...record,
+      base_commit: baseCommit,
+      reviewed_commit: baseCommit,
+    }));
+    graded.target = { base_commit: baseCommit, head: baseCommit };
+    graded.artifacts = graded.artifacts.filter((artifact) => gradedRoles.has(artifact.role));
+    writeManifest(directory, graded);
+    assert.equal(spawnSync("git", ["add", "-A"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "graded checkpoint"], { cwd: repositoryRoot }).status, 0);
+    const gradedCommit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).stdout.trim();
+
+    manifest.status = "decided";
+    manifest.phase_history = [
+      ...graded.phase_history,
+      {
+        ...manifest.phase_history[3],
+        base_commit: baseCommit,
+        reviewed_commit: gradedCommit,
+      },
+    ];
+    manifest.target = { base_commit: baseCommit, head: baseCommit };
+    writeManifest(directory, manifest);
+    const result = validateExperimentTree(root, { repositoryRoot });
+    assert.ok(
+      !result.errors.some((error) => error.includes("phase_history 4: reviewed_commit snapshot status must be between")),
+      result.errors.join("\n"),
+    );
+  });
+});
+
 test("binds amendment review commits to the amendment artifact and ancestry", () => {
   withExperiment(({ root, directory, manifest }) => {
     manifest.status = "approved";
