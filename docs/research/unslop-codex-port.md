@@ -92,3 +92,22 @@ summary remain outside the canonical repository at:
 
 The durable conclusion is still `lab-test`: a future prose-only pilot needs
 human preference and semantic-preservation review before any promotion.
+
+## Strong-overlay falsifier
+
+A second exploratory run on 2026-08-24 tested a stronger KRN/Fabien-style
+overlay with coding rules for constants, control flow, comments, test-first
+work, API boundaries, and concise reports. It used the same six-task pair design
+and 12 fresh `gpt-5.6-sol` runs.
+
+All visible code tests passed, but independent probes found behavior changes
+outside those tests. The overlay's `formatBytes` implementation truncated the
+unit list, changing `1024 ** 7` from `1 ZiB` to `1024 EiB`. Its `parseHostPort`
+implementation also collapsed distinct malformed-input errors into one error
+type. On prose, it sometimes improved scanability but also added unnecessary
+headings to a short README; another release-note result was identical.
+
+This falsifies the broad coding-style overlay as a safe global `AGENTS.md`
+change. Keep the global contract unchanged. `$unslop` remains an explicit,
+prose-scoped lab-test; any future promotion needs a human preference study with
+semantic-preservation checks.
