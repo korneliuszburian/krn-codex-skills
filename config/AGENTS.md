@@ -27,13 +27,11 @@ Skills own reusable procedures; do not copy their methods here.
 
 Choose the smallest owner for the one unresolved uncertainty:
 
-- explicit tracker-backed orientation across sessions → request `$wayfinder`; user-owned choice or contested concept → `domain-modeling`;
-- source must change a named local decision → `source-to-decision`;
-- agreed outcome lacks its first spec → `to-spec`; settled multi-change spec → `slice-work`;
-- unknown cause → `diagnosing-bugs`; clear scoped change or proven cause → `implement`;
-- runnable design experiment → `prototype`; seam or ownership decision → `codebase-design`;
-- fixed diff, PR, or fingerprinted working tree → `code-review`; agreed outcome needing an end-to-end lifecycle envelope → `delivery-loop`;
-- another checkout → `target-repo-work`; global capability change → `managing-codex-capabilities`.
+- composed upstream (`mattpocock/skills`, installed once via `npx skills add` or the Claude plugin; procedure not restated here): `wayfinder`, `domain-modeling`, `to-spec`, `implement`, `diagnosing-bugs`, `prototype`, `codebase-design`, `code-review`, `tdd`, `triage`, `wizard`, `grilling`, `handoff`;
+- owned here: `source-to-decision`, `slice-work`, `delivery-loop`, `target-repo-work`, `managing-codex-capabilities`.
+
+The three-arm lab measured no advantage of a hand-forked copy over upstream or
+over no skill (`docs/research/skills-3arm-lab.md`); updates come from upstream.
 
 One workflow owns the repeated procedure. A companion may sharpen a language
 or seam but may not duplicate ownership. A goal tracks outcome state; it does

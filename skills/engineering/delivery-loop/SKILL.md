@@ -50,15 +50,19 @@ hosts own their mechanics and policy.
    and every external action's separate authority state are explicit.
 
 2. **Route only the current uncertainty.** Give a clear bounded change to
-   `$implement`; a proven failure cause returns there only when repair and
+   composed upstream `implement`; a proven failure cause returns there only
+   when repair and
    mutation are authorized. Otherwise retain the bounded diagnosis result and
-   its authority state. Give an unknown failure to `$diagnosing-bugs`, a seam or
-   ownership question to `$codebase-design`, a contested concept to
-   `$domain-modeling`, and an external-evidence decision to
-   `$source-to-decision`. Give one runnable design question to `$prototype`; it
+   its authority state. Give an unknown failure to the composed upstream
+   `diagnosing-bugs`, a seam or ownership question to the composed upstream
+   `codebase-design`, a contested concept to the composed upstream
+   `domain-modeling`, and an external-evidence decision to
+   `$source-to-decision`. Give one runnable design question to the composed
+   upstream `prototype`; it
    must return a verdict and dispose of throwaway residue before production
    work. If the destination is settled but its executable spec is missing, use
-   `$to-spec`. If the settled spec cannot fit one fresh implementation context,
+   composed upstream `to-spec`. If the settled spec cannot fit one fresh
+   implementation context,
    use `$slice-work`, then advance one slice at a time. Do not copy a composed
    skill's procedure into this contract.
 
@@ -108,16 +112,29 @@ hosts own their mechanics and policy.
 
 4. **Require returned proof and commission fixed-point review.** Require the
    focused observer and repository gates earned by changed risk. Then give
-   `$code-review` the accepted outcome or spec, bounded diff, applicable
+   composed upstream `code-review` the accepted outcome or spec, bounded diff,
+   applicable
    instructions, exact proof and gaps, non-goals, and authority state.
 
    Any change to reviewed code, base, acceptance/spec, or applicable standards
    creates a new fixed point and invalidates the old review. An accepted finding
-   returns as a bounded `$implement` repair only when repair and mutation are
+   returns as a bounded composed-upstream `implement` repair only when repair
+   and mutation are
    authorized, followed by focused proof and a fresh review of the new
    fingerprints. Otherwise set `NEEDS_REVIEW` and name the authority blocker in
    the capsule. Reviewer prose never substitutes for the initiating workflow's
    disposition.
+
+   When a lane emits machine-readable evidence, record it against the current
+   fixed point (base, head or fingerprint, Spec, Standards) with reviewer
+   identity and model, a verdict, and per-finding path plus local evidence.
+   A disposition is admissible only when (a) the reviewer identity and model
+   differ from the implementer's, (b) every accepted finding carries a concrete
+   path and local evidence, and (c) the recorded fixed point matches the
+   reviewed fingerprints; advisory lanes never upgrade to approval. Any change
+   to reviewed code, base, acceptance/spec, or applicable standards creates a
+   new fixed point and invalidates the stored disposition, not just the review
+   step.
 
    **Done when:** acceptance is observable through the public seam, required
    proof passes, both review axes are dispositioned for the current fixed point,

@@ -5,10 +5,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
+import {
+  gitStagedFiles,
+  gitTrackedFiles,
+  validateExperimentTree,
+} from "./lib/experiment-artifacts.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
 const evalPath = path.join(root, "evals", "trigger-cases.json");
+const experimentsPath = path.join(root, "evals", "experiments");
 const readmePath = path.join(root, "README.md");
 const errors = [];
 
@@ -522,9 +528,9 @@ for (const retired of manifest.retired_skills ?? []) {
     continue;
   }
   const keys = Object.keys(retired).sort();
-  if (keys.join(",") !== "name,replacement") {
+  if (keys.join(",") !== "name,owner,replacement") {
     fail(
-      `manifest: retired skill ${retired.name ?? "<unknown>"} must contain only name and replacement`,
+      `manifest: retired skill ${retired.name ?? "<unknown>"} must contain only name, owner, and replacement`,
     );
   }
   if (!/^[a-z0-9-]{1,63}$/.test(retired.name ?? "")) {
@@ -537,6 +543,9 @@ for (const retired of manifest.retired_skills ?? []) {
   retiredSkillNames.add(retired.name);
   if (manifestNames.has(retired.name)) {
     fail(`manifest: retired skill ${retired.name} is still active`);
+  }
+  if (typeof retired.owner !== "string" || !retired.owner.trim()) {
+    fail(`manifest: retired skill ${retired.name} must declare an owner`);
   }
   if (
     retired.replacement !== null &&
@@ -759,7 +768,10 @@ for (const item of manifest.legacy_user_paths ?? []) {
     fail(`manifest: duplicate legacy path ${item.path}`);
   }
   legacyPaths.add(item.path);
-  if (!manifestNames.has(item.replacement)) {
+  if (typeof item.owner !== "string" || !item.owner.trim()) {
+    fail(`manifest: legacy path ${item.path} must declare an owner`);
+  }
+  if (item.replacement !== null && !manifestNames.has(item.replacement)) {
     fail(`manifest: unknown legacy replacement ${item.replacement}`);
   }
 }
@@ -831,6 +843,13 @@ for (const name of manifestNames) {
   if (!negativelyCovered.has(name)) fail(`trigger matrix: no negative case for ${name}`);
 }
 
+const experimentValidation = validateExperimentTree(experimentsPath, {
+  trackedFiles: gitTrackedFiles(root, experimentsPath),
+  stagedFiles: gitStagedFiles(root, experimentsPath),
+  repositoryRoot: root,
+});
+for (const error of experimentValidation.errors) fail(error);
+
 const goalRecovery = triggerCases.cases.find(
   (testCase) => testCase.id === "goal-recovery-is-not-global-workflow",
 );
@@ -888,5 +907,7 @@ if (errors.length) {
 
 console.log(
   `validated ${manifest.skills.length} skills, ${triggerCases.cases.length} trigger cases, ` +
-    `${Object.keys(capabilityProfiles.profiles).length} capability profiles, and installation metadata`,
+    `${Object.keys(capabilityProfiles.profiles).length} capability profiles, ` +
+    `${experimentValidation.experimentCount} experiment manifest${experimentValidation.experimentCount === 1 ? "" : "s"}, ` +
+    "and installation metadata",
 );

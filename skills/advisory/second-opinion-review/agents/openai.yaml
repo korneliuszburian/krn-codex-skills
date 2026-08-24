@@ -1,6 +1,0 @@
-interface:
-  display_name: "Second Opinion Review"
-  short_description: "Delegate a Claude pass, then verify it locally"
-  default_prompt: "Use $second-opinion-review to hand this scoped pass to Claude and verify what comes back."
-policy:
-  allow_implicit_invocation: false

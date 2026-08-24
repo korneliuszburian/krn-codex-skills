@@ -49,7 +49,7 @@ two maintained copies may not.
 
 Custom agents are resource and isolation profiles for delegated work. Add one
 only when its model, sandbox, tools, or narrow independent job differs from the
-parent. A new name for `$implement` or `$code-review` is not a distinct agent
+parent. A new name for the composed upstream `implement` or `code-review` is not a distinct agent
 contract.
 
 Mechanical enforcement must name the invalid state it rejects. File counts,

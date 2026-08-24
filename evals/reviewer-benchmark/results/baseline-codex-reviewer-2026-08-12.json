@@ -1,0 +1,15 @@
+{
+  "lane": "code-review (Codex baseline artifact)",
+  "scoredAt": "2026-08-12T00:00:00.000Z",
+  "artifact": "codex-reviewer-output.json",
+  "score": 5.5,
+  "matchedClasses": [
+    "externalTrust",
+    "truthiness"
+  ],
+  "deductions": 0,
+  "findingsCount": 2,
+  "humanRubricScore": 4.5,
+  "note": "First standing benchmark record. The deterministic heuristic (5.5) passes the 5/10 floor while the original human rubric score (4.5) fails it; that discrepancy is itself the signal — a lane counts as gate-capable only after a human re-score confirms at least 5/10. Missed classes: typePredicate, dedupeCollision, testGaps.",
+  "doesNotProve": "This heuristic score is a deterministic proxy for the public rubric in oracle/evaluation-rubric.md. It does not prove reviewer quality beyond the fixed benchmark subject."
+}

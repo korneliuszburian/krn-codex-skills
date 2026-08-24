@@ -1,6 +1,0 @@
-interface:
-  display_name: "Implement"
-  short_description: "Build one already-scoped or proven change"
-  default_prompt: "Use $implement to build this already-scoped or proven change with proportional proof."
-policy:
-  allow_implicit_invocation: true

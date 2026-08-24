@@ -23,6 +23,9 @@ DISPOSABLE_DIRECTORY_NAMES = {
     "target",
     "tmp",
 }
+TEMPORARY_ROOTS = {
+    Path("/tmp"),
+}
 PROTECTED_FILE_NAMES = {
     ".env",
     "AGENTS.md",
@@ -136,7 +139,6 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
         Path("/home"),
         Path("/media"),
         Path("/mnt"),
-        Path("/tmp"),
         home,
         home / "coding",
         home / "coding" / "krn",
@@ -181,6 +183,12 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
             }
         )
         protected_subtrees.update({repo_root / ".beads", repo_root / ".git"})
+
+    for temporary_root in TEMPORARY_ROOTS:
+        if target == temporary_root:
+            return f"target {target} is the temporary root"
+        if path_is_within(target, temporary_root):
+            break
 
     for protected in protected_anchors | protected_exact:
         if path_contains(target, protected):

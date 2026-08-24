@@ -27,17 +27,31 @@ function manifestSkills() {
   return manifest.skills;
 }
 
+function upstreamRetiredSkills() {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(REPO, "skills", "manifest.json"), "utf8"),
+  );
+  return manifest.retired_skills.filter((skill) => skill.owner?.startsWith("upstream:"));
+}
+
+function upstreamLegacyPaths() {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(REPO, "skills", "manifest.json"), "utf8"),
+  );
+  return manifest.legacy_user_paths.filter((entry) => entry.owner?.startsWith("upstream:"));
+}
+
 test("refuses an unowned skill destination collision without touching it", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
   try {
     const env = sandboxEnv(sandbox);
     fs.mkdirSync(env.KRN_SKILLS_DEST, { recursive: true });
-    const implement = path.join(env.KRN_SKILLS_DEST, "implement");
-    fs.writeFileSync(implement, "operator-owned, do not touch");
+    const collision = path.join(env.KRN_SKILLS_DEST, "delivery-loop");
+    fs.writeFileSync(collision, "operator-owned, do not touch");
     const result = spawnSync("bash", [installScript, "install"], { encoding: "utf8", env });
     assert.equal(result.status, 73, result.stderr);
     assert.equal(
-      fs.readFileSync(implement, "utf8"),
+      fs.readFileSync(collision, "utf8"),
       "operator-owned, do not touch",
       "the foreign file must be left byte-identical",
     );
@@ -89,7 +103,7 @@ test("archives a displaced legacy path into a backup instead of deleting it", ()
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
   try {
     const env = { ...sandboxEnv(sandbox), KRN_ARCHIVE_LEGACY: "1" };
-    const legacy = path.join(env.CODEX_HOME, "skills", "code-review");
+    const legacy = path.join(env.CODEX_HOME, "skills", "claude-second-opinion-review");
     fs.mkdirSync(path.dirname(legacy), { recursive: true });
     fs.writeFileSync(legacy, "legacy operator content");
     const result = spawnSync("bash", [installScript, "install"], { encoding: "utf8", env });
@@ -112,8 +126,8 @@ test("reports and explicitly archives a retired installed skill, including a sta
   try {
     const env = sandboxEnv(sandbox);
     fs.mkdirSync(env.KRN_SKILLS_DEST, { recursive: true });
-    const retired = path.join(env.KRN_SKILLS_DEST, "reviewer-handoff");
-    const oldSource = path.join(sandbox, "deleted-reviewer-handoff-source");
+    const retired = path.join(env.KRN_SKILLS_DEST, "second-opinion-review");
+    const oldSource = path.join(sandbox, "deleted-second-opinion-review-source");
     fs.symlinkSync(oldSource, retired);
 
     const check = spawnSync("bash", [installScript, "check"], {
@@ -121,7 +135,7 @@ test("reports and explicitly archives a retired installed skill, including a sta
       env,
     });
     assert.equal(check.status, 1, check.stderr);
-    assert.match(check.stdout, /retired .*reviewer-handoff/);
+    assert.match(check.stdout, /retired .*second-opinion-review/);
     assert.ok(fs.lstatSync(retired).isSymbolicLink());
 
     const refused = spawnSync("bash", [installScript, "install"], {
@@ -149,10 +163,123 @@ test("reports and explicitly archives a retired installed skill, including a sta
     const archived = path.join(
       backupRoot,
       backup.name,
-      "retired-skill__reviewer-handoff",
+      "retired-skill__second-opinion-review",
     );
     assert.ok(fs.lstatSync(archived).isSymbolicLink());
     assert.equal(fs.readlinkSync(archived), oldSource);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("archives every retired upstream skill left by an older install", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
+  try {
+    const env = sandboxEnv(sandbox);
+    fs.mkdirSync(env.KRN_SKILLS_DEST, { recursive: true });
+    const retired = upstreamRetiredSkills();
+    for (const skill of retired) {
+      fs.symlinkSync(
+        path.join(sandbox, `${skill.name}-old-source`),
+        path.join(env.KRN_SKILLS_DEST, skill.name),
+      );
+    }
+
+    const check = spawnSync("bash", [installScript, "check"], { encoding: "utf8", env });
+    assert.equal(check.status, 1, check.stderr);
+    for (const skill of retired) assert.match(check.stdout, new RegExp(`retired .*${skill.name}`));
+
+    const refused = spawnSync("bash", [installScript, "install"], { encoding: "utf8", env });
+    assert.equal(refused.status, 81, refused.stderr);
+
+    const installed = spawnSync("bash", [installScript, "install"], {
+      encoding: "utf8",
+      env: { ...env, KRN_ARCHIVE_LEGACY: "1" },
+    });
+    assert.equal(installed.status, 0, installed.stderr);
+    const backupRoot = path.join(env.CODEX_HOME, "skill-migration-backups");
+    const backup = fs.readdirSync(backupRoot, { withFileTypes: true })
+      .find((entry) => entry.isDirectory());
+    assert.ok(backup, "retired upstream paths must be archived");
+    for (const skill of retired) {
+      assert.equal(
+        fs.lstatSync(path.join(env.KRN_SKILLS_DEST, skill.name), { throwIfNoEntry: false }),
+        undefined,
+      );
+      assert.ok(
+        fs.lstatSync(path.join(backupRoot, backup.name, `retired-skill__${skill.name}`)),
+      );
+    }
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("preserves an active upstream symlink for a tombstoned local name", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
+  try {
+    const upstreamSourceRoot = path.join(sandbox, "upstream");
+    const env = {
+      ...sandboxEnv(sandbox),
+      KRN_ARCHIVE_LEGACY: "1",
+      KRN_UPSTREAM_SKILLS_ROOTS: upstreamSourceRoot,
+    };
+    const upstreamSource = path.join(upstreamSourceRoot, "code-review");
+    const target = path.join(env.KRN_SKILLS_DEST, "code-review");
+    fs.mkdirSync(upstreamSource, { recursive: true });
+    fs.writeFileSync(path.join(upstreamSource, "SKILL.md"), "upstream source\n");
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.symlinkSync(upstreamSource, target);
+    const result = spawnSync("bash", [installScript, "install"], { encoding: "utf8", env });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(fs.realpathSync(target), fs.realpathSync(upstreamSource));
+    const backups = path.join(env.CODEX_HOME, "skill-migration-backups");
+    const backupMatches = fs.existsSync(backups)
+      ? execFileSync("find", [backups, "-name", "retired-skill__code-review"], { encoding: "utf8" }).trim()
+      : "";
+    assert.equal(backupMatches, "", "active upstream symlink must not be archived");
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("archives every legacy upstream user path left by an older install", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
+  try {
+    const env = sandboxEnv(sandbox);
+    const legacy = upstreamLegacyPaths();
+    for (const entry of legacy) {
+      const relative = entry.path.replace(/^\.codex\//, "");
+      const target = path.join(env.CODEX_HOME, relative);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.symlinkSync(path.join(sandbox, `${path.basename(target)}-old-source`), target);
+    }
+
+    const check = spawnSync("bash", [installScript, "check"], { encoding: "utf8", env });
+    assert.equal(check.status, 1, check.stderr);
+    for (const entry of legacy) {
+      const name = path.basename(entry.path);
+      assert.match(check.stdout, new RegExp(`legacy .*${name}`));
+    }
+
+    const refused = spawnSync("bash", [installScript, "install"], { encoding: "utf8", env });
+    assert.equal(refused.status, 76, refused.stderr);
+
+    const installed = spawnSync("bash", [installScript, "install"], {
+      encoding: "utf8",
+      env: { ...env, KRN_ARCHIVE_LEGACY: "1" },
+    });
+    assert.equal(installed.status, 0, installed.stderr);
+    const backupRoot = path.join(env.CODEX_HOME, "skill-migration-backups");
+    const backup = fs.readdirSync(backupRoot, { withFileTypes: true })
+      .find((entry) => entry.isDirectory());
+    assert.ok(backup, "legacy upstream paths must be archived");
+    for (const entry of legacy) {
+      const relative = entry.path.replace(/^\.codex\//, "");
+      const target = path.join(env.CODEX_HOME, relative);
+      assert.equal(fs.lstatSync(target, { throwIfNoEntry: false }), undefined);
+      assert.ok(fs.lstatSync(path.join(backupRoot, backup.name, entry.path.replaceAll("/", "__"))));
+    }
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
   }

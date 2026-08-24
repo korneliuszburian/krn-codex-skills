@@ -105,7 +105,8 @@ it.
    `<source-decision>` to the consumer and sole result writer named in step 1
    for every disposition. That writer applies the global routing gate and
    integrates the result into the existing Goal, workflow, or tracker surface.
-   It may select `$implement` only when adoption is already one clear production
+   It may select the composed upstream `implement` only when adoption is already
+   one clear production
    change and mutation is authorized; otherwise it selects the remaining
    uncertainty, spec, or decomposition owner. `$source-to-decision` never
    bypasses that consumer or chooses a production owner itself.
@@ -116,7 +117,8 @@ it.
    named sole writer, the configured operation is explicit, and separate tracker
    mutation authority exists. Only that exceptional branch may perform the exact
    operation, read it back, and report `written and read back`. Under
-   `$wayfinder`, the map integrator is always the sole tracker writer:
+   composed upstream `wayfinder`, the map integrator is always the sole tracker
+   writer:
    `$source-to-decision` returns the complete decision and never mutates or
    closes the child ticket or parent map.
 

@@ -1,6 +1,0 @@
-interface:
-  display_name: "Codebase Design"
-  short_description: "Find hotspots and design deeper public seams"
-  default_prompt: "Use $codebase-design to find architecture hotspots or deepen this module."
-policy:
-  allow_implicit_invocation: true

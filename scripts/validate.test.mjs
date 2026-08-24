@@ -40,6 +40,54 @@ function withFixture(run) {
         return VISIBLE_REPOSITORY_PATHS.has(path.relative(REPO, source));
       },
     });
+    const initialized = spawnSync("git", ["init", "--quiet"], {
+      cwd: fixture,
+      encoding: "utf8",
+    });
+    assert.equal(initialized.status, 0, diagnostics(initialized));
+    const staged = spawnSync("git", ["add", "-A"], {
+      cwd: fixture,
+      encoding: "utf8",
+    });
+    assert.equal(staged.status, 0, diagnostics(staged));
+    const configuredEmail = spawnSync(
+      "git",
+      ["config", "user.email", "validate-fixture@example.invalid"],
+      { cwd: fixture, encoding: "utf8" },
+    );
+    assert.equal(configuredEmail.status, 0, diagnostics(configuredEmail));
+    const configuredName = spawnSync(
+      "git",
+      ["config", "user.name", "validate fixture"],
+      { cwd: fixture, encoding: "utf8" },
+    );
+    assert.equal(configuredName.status, 0, diagnostics(configuredName));
+    const committed = spawnSync("git", ["commit", "--quiet", "-m", "fixture"], {
+      cwd: fixture,
+      encoding: "utf8",
+    });
+    assert.equal(committed.status, 0, diagnostics(committed));
+    const fixtureHead = spawnSync("git", ["rev-parse", "HEAD"], {
+      cwd: fixture,
+      encoding: "utf8",
+    });
+    assert.equal(fixtureHead.status, 0, diagnostics(fixtureHead));
+    const experimentManifest = path.join(
+      fixture,
+      "evals",
+      "experiments",
+      "2026-08-19-evidence-lab-v1",
+      "manifest.json",
+    );
+    const manifest = JSON.parse(fs.readFileSync(experimentManifest, "utf8"));
+    manifest.target.base_commit = fixtureHead.stdout.trim();
+    manifest.target.head = fixtureHead.stdout.trim();
+    fs.writeFileSync(experimentManifest, `${JSON.stringify(manifest, null, 2)}\n`);
+    const restagedManifest = spawnSync("git", ["add", "--", "evals/experiments/2026-08-19-evidence-lab-v1/manifest.json"], {
+      cwd: fixture,
+      encoding: "utf8",
+    });
+    assert.equal(restagedManifest.status, 0, diagnostics(restagedManifest));
     return run(fixture);
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
@@ -99,8 +147,8 @@ test("rejects a malformed canonical README skill row", () => {
   withFixture((fixture) => {
     const readme = path.join(fixture, "README.md");
     const source = fs.readFileSync(readme, "utf8");
-    const changed = source.replace("| [`code-review`]", "BROKEN [`code-review`]");
-    assert.notEqual(changed, source, "fixture must contain the code-review row");
+    const changed = source.replace("| [`target-repo-work`]", "BROKEN [`target-repo-work`]");
+    assert.notEqual(changed, source, "fixture must contain the target-repo-work row");
     fs.writeFileSync(readme, changed);
 
     const result = validate(fixture);
@@ -113,14 +161,18 @@ test("rejects extra retired-skill metadata", () => {
   withFixture((fixture) => {
     const manifestPath = path.join(fixture, "skills", "manifest.json");
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    manifest.retired_skills[0].reason = "not part of the canonical schema";
+    const retired = manifest.retired_skills.find(
+      (skill) => skill.name === "second-opinion-review",
+    );
+    assert.ok(retired, "fixture must retain the Claude second-opinion tombstone");
+    retired.reason = "not part of the canonical schema";
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
     const result = validate(fixture);
     assert.notEqual(result.status, 0);
     assert.match(
       diagnostics(result),
-      /retired skill reviewer-handoff must contain only name and replacement/,
+      /retired skill second-opinion-review must contain only name, owner, and replacement/,
     );
   });
 });
@@ -129,14 +181,18 @@ test("rejects an unknown retired-skill replacement", () => {
   withFixture((fixture) => {
     const manifestPath = path.join(fixture, "skills", "manifest.json");
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    manifest.retired_skills[0].replacement = "missing-workflow";
+    const retired = manifest.retired_skills.find(
+      (skill) => skill.name === "second-opinion-review",
+    );
+    assert.ok(retired, "fixture must retain the Claude second-opinion tombstone");
+    retired.replacement = "missing-workflow";
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
     const result = validate(fixture);
     assert.notEqual(result.status, 0);
     assert.match(
       diagnostics(result),
-      /retired skill reviewer-handoff has unknown replacement missing-workflow/,
+      /retired skill second-opinion-review has unknown replacement missing-workflow/,
     );
   });
 });
@@ -160,20 +216,26 @@ test("requires the exact attachment token for every explicit-only positive eval"
   withFixture((fixture) => {
     const evalPath = path.join(fixture, "evals", "trigger-cases.json");
     const triggerCases = JSON.parse(fs.readFileSync(evalPath, "utf8"));
-    const wayfinder = triggerCases.cases.find(
+    const secondOpinion = triggerCases.cases.find(
       (entry) =>
-        entry.expected_skills?.includes("wayfinder") &&
-        entry.prompt.includes("$wayfinder"),
+        entry.expected_skills?.includes("opencode-second-opinion") &&
+        entry.prompt.includes("$opencode-second-opinion"),
     );
-    assert.ok(wayfinder, "fixture must contain an explicit wayfinder positive eval");
-    wayfinder.prompt = wayfinder.prompt.replace("$wayfinder", "wayfinder");
+    assert.ok(
+      secondOpinion,
+      "fixture must contain an explicit opencode-second-opinion positive eval",
+    );
+    secondOpinion.prompt = secondOpinion.prompt.replace(
+      "$opencode-second-opinion",
+      "opencode-second-opinion",
+    );
     fs.writeFileSync(evalPath, `${JSON.stringify(triggerCases, null, 2)}\n`);
 
     const result = validate(fixture);
     assert.notEqual(result.status, 0);
     assert.match(
       diagnostics(result),
-      /explicit-only expected skill wayfinder requires exact \$wayfinder attachment/,
+      /explicit-only expected skill opencode-second-opinion requires exact \$opencode-second-opinion attachment/,
     );
   });
 });

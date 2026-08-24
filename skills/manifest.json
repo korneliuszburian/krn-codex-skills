@@ -26,38 +26,8 @@
   ],
   "skills": [
     {
-      "name": "code-review",
-      "path": "skills/engineering/code-review",
-      "implicit": true
-    },
-    {
-      "name": "codebase-design",
-      "path": "skills/engineering/codebase-design",
-      "implicit": true
-    },
-    {
-      "name": "diagnosing-bugs",
-      "path": "skills/engineering/diagnosing-bugs",
-      "implicit": true
-    },
-    {
       "name": "delivery-loop",
       "path": "skills/engineering/delivery-loop",
-      "implicit": true
-    },
-    {
-      "name": "domain-modeling",
-      "path": "skills/engineering/domain-modeling",
-      "implicit": true
-    },
-    {
-      "name": "implement",
-      "path": "skills/engineering/implement",
-      "implicit": true
-    },
-    {
-      "name": "prototype",
-      "path": "skills/engineering/prototype",
       "implicit": true
     },
     {
@@ -66,19 +36,9 @@
       "implicit": true
     },
     {
-      "name": "to-spec",
-      "path": "skills/engineering/to-spec",
-      "implicit": true
-    },
-    {
       "name": "slice-work",
       "path": "skills/engineering/slice-work",
       "implicit": true
-    },
-    {
-      "name": "wayfinder",
-      "path": "skills/engineering/wayfinder",
-      "implicit": false
     },
     {
       "name": "setup-repository-workflow",
@@ -96,47 +56,113 @@
       "implicit": true
     },
     {
-      "name": "second-opinion-review",
-      "path": "skills/advisory/second-opinion-review",
+      "name": "opencode-second-opinion",
+      "path": "skills/advisory/opencode-second-opinion",
       "implicit": false
     },
     {
       "name": "managing-codex-capabilities",
       "path": "skills/meta/managing-codex-capabilities",
       "implicit": true
-    },
-    {
-      "name": "writing-great-skills",
-      "path": "skills/meta/writing-great-skills",
-      "implicit": true
     }
   ],
   "retired_skills": [
     {
+      "name": "second-opinion-review",
+      "replacement": "opencode-second-opinion",
+      "owner": "repository"
+    },
+    {
+      "name": "code-review",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "codebase-design",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "diagnosing-bugs",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "domain-modeling",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "implement",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "prototype",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "to-spec",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "wayfinder",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "to-questionnaire",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "wait-what",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "writing-for-agents",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
+      "name": "writing-great-skills",
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
+    },
+    {
       "name": "reviewer-handoff",
-      "replacement": null
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
     }
   ],
   "legacy_user_paths": [
     {
+      "path": ".codex/skills/claude-second-opinion-review",
+      "replacement": "opencode-second-opinion",
+      "owner": "repository"
+    },
+    {
       "path": ".codex/skills/code-review",
-      "replacement": "code-review"
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
     },
     {
       "path": ".codex/skills/codebase-design",
-      "replacement": "codebase-design"
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
     },
     {
       "path": ".codex/skills/diagnosing-bugs",
-      "replacement": "diagnosing-bugs"
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
     },
     {
       "path": ".codex/skills/writing-great-skills",
-      "replacement": "writing-great-skills"
-    },
-    {
-      "path": ".codex/skills/claude-second-opinion-review",
-      "replacement": "second-opinion-review"
+      "replacement": null,
+      "owner": "upstream:mattpocock/skills"
     }
   ]
 }

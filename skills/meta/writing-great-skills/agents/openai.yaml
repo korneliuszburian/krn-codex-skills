@@ -1,6 +1,0 @@
-interface:
-  display_name: "Writing Great Skills"
-  short_description: "Make skill invocation and execution predictable"
-  default_prompt: "Use $writing-great-skills to design or revise this Codex skill."
-policy:
-  allow_implicit_invocation: true

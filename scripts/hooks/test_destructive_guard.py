@@ -146,6 +146,12 @@ class DestructiveGuardTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertIsNone(self.reason(f"rtk rm -rf {name}"))
 
+    def test_allows_concrete_tmp_cleanup_but_protects_tmp_root(self) -> None:
+        self.assertIsNone(self.reason("rtk rm -f /tmp/concrete-fixture"))
+        self.assertIsNone(self.reason("rtk rm -rf /tmp/concrete-fixture-dir"))
+        self.assertIn("temporary root", self.reason("rtk rm -rf /tmp") or "")
+        self.assertIn("protected path /", self.reason("rtk rm -rf /tmp/..") or "")
+
     def test_public_hook_emits_supported_deny_shape(self) -> None:
         payload = {
             "hook_event_name": "PreToolUse",
@@ -249,6 +255,8 @@ class DestructiveGuardTests(unittest.TestCase):
         for command in (
             "echo 'rm -rf /'",
             "printf '%s\\n' 'git clean -fdx'",
+            "rg -n 'rm|git clean|tmp' README.md",
+            "git status --short -- 'rm-not-a-command'",
             f"echo {capability}",
             "printf 'echo safe\\n' | sh",
             "rm -rf node_modules",
@@ -266,6 +274,19 @@ class DestructiveGuardTests(unittest.TestCase):
             "bash -n -c 'rm -rf /'",
             "echo $(printf safe) rm -rf /",
             "/usr/bin/echo 'rm -rf /'",
+            "rg -n 'rm' README.md | sh",
+            "find . -name '*.tmp' -exec rm -f {} +",
+            "sed -i 's/rm/safe/' README.md",
+            "sed -i.bak 's/rm/safe/' README.md",
+            "sed --in-place=backup 's/rm/safe/' README.md",
+            "sed -n '1e rm -rf /tmp/target' README.md",
+            "find . -fls /tmp/rm",
+            "find . -fprint /tmp/rm",
+            "find . -fprint0 /tmp/rm",
+            "find . -fprintf /tmp/rm '%p\\n'",
+            "git diff --output=AGENTS.md -- rm",
+            "git show --output=AGENTS.md HEAD -- rm",
+            "rg --pre /bin/rm rm AGENTS.md",
         ):
             with self.subTest(command=command):
                 self.assertIsNotNone(self.hook_reason(command))
