@@ -123,10 +123,20 @@ installer refuses foreign collisions. Named legacy and retired entries are
 archived only with explicit authority:
 
 ```bash
-env KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
+# Set this only to the verified root containing active upstream skill sources.
+UPSTREAM_SKILLS_ROOTS="/absolute/path/to/verified-upstream-skills"
+test -d "$UPSTREAM_SKILLS_ROOTS"
+test -e "$UPSTREAM_SKILLS_ROOTS/code-review/SKILL.md"
+
+env KRN_UPSTREAM_SKILLS_ROOTS="$UPSTREAM_SKILLS_ROOTS" \
+  KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
   KRN_REPLACE_GLOBAL_CLAUDE=1 KRN_REPLACE_GLOBAL_HOOKS=1 \
   scripts/install.sh install
 ```
+
+Do not set `KRN_ARCHIVE_LEGACY=1` until the upstream root is verified. The
+installer preserves upstream-owned symlinks only under that explicit root; stale
+or foreign targets still require archive authority.
 
 Run `check` again and start a fresh Codex session after installation. Discovery
 is session-scoped. `setup-repository-workflow` and `opencode-second-opinion`
