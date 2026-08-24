@@ -554,7 +554,7 @@ test("requires execution review snapshots to contain completed outputs", () => {
   });
 });
 
-test("permits a decision review to attest the graded predecessor checkpoint", () => {
+test("binds a decision review to a decision-ready checkpoint", () => {
   withExperiment(({ root, directory, manifest }) => {
     const repositoryRoot = path.dirname(root);
     assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: repositoryRoot }).status, 0);
@@ -582,7 +582,14 @@ test("permits a decision review to attest the graded predecessor checkpoint", ()
     writeManifest(directory, graded);
     assert.equal(spawnSync("git", ["add", "-A"], { cwd: repositoryRoot }).status, 0);
     assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "graded checkpoint"], { cwd: repositoryRoot }).status, 0);
-    const gradedCommit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).stdout.trim();
+    const decisionReady = structuredClone(manifest);
+    decisionReady.status = "decision-ready";
+    decisionReady.phase_history = graded.phase_history;
+    decisionReady.target = { base_commit: baseCommit, head: baseCommit };
+    writeManifest(directory, decisionReady);
+    assert.equal(spawnSync("git", ["add", "-A"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "decision-ready checkpoint"], { cwd: repositoryRoot }).status, 0);
+    const decisionReadyCommit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).stdout.trim();
 
     manifest.status = "decided";
     manifest.phase_history = [
@@ -590,7 +597,7 @@ test("permits a decision review to attest the graded predecessor checkpoint", ()
       {
         ...manifest.phase_history[3],
         base_commit: baseCommit,
-        reviewed_commit: gradedCommit,
+        reviewed_commit: decisionReadyCommit,
       },
     ];
     manifest.target = { base_commit: baseCommit, head: baseCommit };
@@ -600,6 +607,29 @@ test("permits a decision review to attest the graded predecessor checkpoint", ()
       !result.errors.some((error) => error.includes("phase_history 4: reviewed_commit snapshot status must be between")),
       result.errors.join("\n"),
     );
+    assert.ok(
+      !result.errors.some((error) => error.includes("phase_history 4: frozen artifact")),
+      result.errors.join("\n"),
+    );
+  });
+});
+
+test("seal permits adding final decision artifacts at decision-ready", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    const previous = structuredClone(manifest);
+    previous.status = "graded";
+    previous.phase_history = previous.phase_history.slice(0, 3);
+    const gradedRoles = new Set([
+      "protocol", "schedule", "model-config", "grader-config", "rubric",
+      "allocation-commitment", "stopping-rule", "reviewer-approval",
+      "primary-results", "telemetry", "grades",
+    ]);
+    previous.artifacts = previous.artifacts.filter((artifact) => gradedRoles.has(artifact.role));
+    manifest.status = "decision-ready";
+    manifest.phase_history = structuredClone(previous.phase_history);
+    writeManifest(directory, manifest);
+    assert.doesNotThrow(() => sealExperiment(directory, { previousManifest: previous }));
+    assert.deepEqual(validateExperimentTree(root).errors, []);
   });
 });
 
