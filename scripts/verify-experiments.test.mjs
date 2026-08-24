@@ -633,6 +633,43 @@ test("seal permits adding final decision artifacts at decision-ready", () => {
   });
 });
 
+test("requires a machine-readable decision at decision-ready", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    manifest.status = "decision-ready";
+    manifest.phase_history = manifest.phase_history.slice(0, 3);
+    manifest.decision = {};
+    writeManifest(directory, manifest);
+    const result = validateExperimentTree(root);
+    assert.ok(result.errors.some((error) => error.includes("terminal status requires a supported decision.disposition")), result.errors.join("\n"));
+    assert.ok(result.errors.some((error) => error.includes("terminal status requires decision.scope")), result.errors.join("\n"));
+  });
+});
+
+test("preserves decision-ready artifacts when abandoned", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    manifest.status = "abandoned";
+    manifest.phase_history = manifest.phase_history.slice(0, 3);
+    writeManifest(directory, manifest);
+    assert.deepEqual(validateExperimentTree(root).errors, []);
+  });
+});
+
+test("freezes the machine-readable decision through finalization", () => {
+  withExperiment(({ directory, manifest }) => {
+    const previous = structuredClone(manifest);
+    previous.status = "decision-ready";
+    previous.phase_history = previous.phase_history.slice(0, 3);
+    manifest.status = "decided";
+    manifest.phase_history = structuredClone(previous.phase_history);
+    manifest.decision = { disposition: "adopt", scope: "changed after review" };
+    writeManifest(directory, manifest);
+    assert.throws(
+      () => sealExperiment(directory, { previousManifest: previous }),
+      /frozen decision changed/,
+    );
+  });
+});
+
 test("binds amendment review commits to the amendment artifact and ancestry", () => {
   withExperiment(({ root, directory, manifest }) => {
     manifest.status = "approved";

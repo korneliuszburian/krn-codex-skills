@@ -318,6 +318,9 @@ function validateReviewedCheckpoints(directory, manifest, errors, label, reposit
     if (JSON.stringify(snapshot.target ?? {}) !== currentTarget) {
       errors.push(`${recordLabel}: reviewed_commit target differs from the current target`);
     }
+    if (record.phase === "decision" && JSON.stringify(snapshot.decision ?? {}) !== JSON.stringify(manifest.decision ?? {})) {
+      errors.push(`${recordLabel}: reviewed_commit decision differs from the current decision`);
+    }
 
     const checkpointRoles = CHECKPOINT_ROLES[record.phase];
     for (const artifact of snapshot.artifacts ?? []) {
@@ -615,8 +618,11 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
     if (phases.includes("decision")) {
       for (const role of ["allocation-reveal", "summary"]) allowed.add(role);
     }
+    if (roles.has("allocation-reveal") || roles.has("summary") || roles.has("decision")) {
+      for (const role of ["allocation-reveal", "summary", "decision"]) allowed.add(role);
+    }
     allowed.add("amendment");
-    required = [...allowed].filter((role) => role !== "amendment");
+    required = [...allowed].filter((role) => !["amendment", "allocation-reveal", "summary"].includes(role));
   }
   if (manifest.retention === "capsule-only") allowed = new Set([...required, "supporting-evidence"]);
   if (manifest.retention === "full") allowed.add("amendment");
@@ -627,7 +633,7 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
   for (const role of required) {
     if (!roles.has(role)) errors.push(`${label}: status ${manifest.status} requires role ${role}`);
   }
-  if (new Set(["decided", "abandoned"]).has(manifest.status)) {
+  if (new Set(["decision-ready", "decided", "abandoned"]).has(manifest.status)) {
     if (!new Set(["adopt", "revise", "reject", "defer", "abandoned"]).has(manifest.decision?.disposition)) {
       errors.push(`${label}: terminal status requires a supported decision.disposition`);
     }
@@ -739,6 +745,10 @@ function assertFrozen(previous, next) {
   if (previousRank >= STATUS_RANK.get("approved") &&
       JSON.stringify(previous.target ?? {}) !== JSON.stringify(next.target ?? {})) {
     throw new Error("frozen target changed");
+  }
+  if (previousRank >= STATUS_RANK.get("decision-ready") &&
+      JSON.stringify(previous.decision ?? {}) !== JSON.stringify(next.decision ?? {})) {
+    throw new Error("frozen decision changed");
   }
 }
 
