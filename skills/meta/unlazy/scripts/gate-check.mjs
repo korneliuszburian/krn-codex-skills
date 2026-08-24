@@ -144,8 +144,38 @@ function bindingFor(ledgerPath, gate, cwd, timeout) {
 }
 
 function approvalPath(directory, binding) {
-  const digest = crypto.createHash("sha256").update(JSON.stringify(binding)).digest("hex");
+  const stableKey = {
+    ledger: binding.ledger, gate: binding.gate, check: binding.check,
+    expect: binding.expect, cwd: binding.cwd, shell: binding.shell, timeout: binding.timeout,
+  };
+  const digest = crypto.createHash("sha256").update(JSON.stringify(stableKey)).digest("hex");
   return path.join(directory, `${digest}.json`);
+}
+
+function readApproval(directory, binding) {
+  const file = approvalPath(directory, binding);
+  const stat = fs.lstatSync(file, { throwIfNoEntry: false });
+  if (!stat) return { valid: false, reason: "approval pending", exists: false };
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink > 1) {
+    return { valid: false, exists: true, reason: "approval invalid: record must be a regular single-link file" };
+  }
+  let record;
+  try {
+    record = JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return { valid: false, exists: true, reason: "approval invalid: record is not valid JSON" };
+  }
+  const storedBinding = {
+    ledger: record.ledger, gate: record.gate, check: record.check,
+    expect: record.expect, cwd: record.cwd, shell: record.shell,
+    timeout: record.timeout, pathEnv: record.pathEnv,
+    platform: record.platform, nodeVersion: record.nodeVersion,
+    environmentHash: record.environmentHash,
+  };
+  if (JSON.stringify(storedBinding) !== JSON.stringify(binding)) {
+    return { valid: false, exists: true, reason: "approval invalid: binding differs" };
+  }
+  return { valid: true, exists: true };
 }
 
 function expectedMatches(expect, output) {
@@ -167,10 +197,14 @@ function runGate(ledgerPath, gate, options, requireApproval) {
   const binding = bindingFor(ledgerPath, gate, cwd, options.timeout);
   const directory = approvalDirectory(options);
   const approval = approvalPath(directory, binding);
-  if (requireApproval && !fs.existsSync(approval)) return { ok: false, pending: true, evidence: "approval pending" };
+  const approvalState = readApproval(directory, binding);
+  if (approvalState.exists && !approvalState.valid) {
+    return { ok: false, pending: true, evidence: approvalState.reason };
+  }
+  if (requireApproval && !approvalState.valid) return { ok: false, pending: true, evidence: approvalState.reason };
   if (options.mode === "approve") {
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
-    if (!fs.existsSync(approval)) fs.writeFileSync(approval, `${JSON.stringify({ ...binding, approvedAt: new Date().toISOString() }, null, 2)}\n`, { mode: 0o600 });
+    if (!approvalState.exists) fs.writeFileSync(approval, `${JSON.stringify({ ...binding, approvedAt: new Date().toISOString() }, null, 2)}\n`, { mode: 0o600 });
   }
   const result = spawnSync("/bin/sh", ["-c", gate.check], {
     cwd, encoding: "utf8", timeout: options.timeout * 1000, maxBuffer: MAX_OUTPUT_BYTES,
@@ -228,7 +262,7 @@ function main() {
     if (!shouldRun) { if (!gate.checked) unmet += 1; continue; }
     const result = runGate(ledger, gate, options, options.mode !== "approve");
     results.set(gate.id, result);
-    if (result.pending) { console.log(`UNMET ${gate.id}: approval pending`); unmet += 1; continue; }
+    if (result.pending) { console.log(`UNMET ${gate.id}: ${result.evidence}`); unmet += 1; continue; }
     console.log(`${result.ok ? "PASS" : "FAIL"} ${gate.id}: ${result.evidence}`);
     if (!result.ok) unmet += 1;
   }

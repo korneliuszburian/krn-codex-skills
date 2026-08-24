@@ -41,7 +41,10 @@ repository. It binds approval to the command, expectation, CWD, shell, timeout,
 write a ledger that Git can track and defaults gate commands to the repository
 root. It supports `--status`, `--approve`, and `--reverify`. It makes no sandbox
 claim and does not own Goal state, publication, or lifecycle transitions;
-`$delivery-loop` remains the lifecycle owner.
+`$delivery-loop` remains the lifecycle owner. Every execution also validates the
+approval record itself: it must be a regular, single-link JSON file with an
+exact binding; malformed, changed, directory, and symlink records fail closed
+without running the command.
 
 ## Pilot evidence
 

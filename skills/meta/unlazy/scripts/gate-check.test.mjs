@@ -148,7 +148,7 @@ test("binds approval to PATH, platform, and Node version", () => {
     assert.match(approval.environmentHash, /^[a-f0-9]{64}$/);
     const changedPath = run(["--reverify", "--approval-dir", approvals, ledger], root, { PATH: "/tmp/unlazy-different-path" });
     assert.equal(changedPath.status, 1);
-    assert.match(changedPath.stdout, /approval pending/);
+    assert.match(changedPath.stdout, /approval invalid/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -185,5 +185,34 @@ test("defaults gate CWD to the repository root", () => {
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
     fs.rmSync(approvals, { recursive: true, force: true });
+  }
+});
+
+test("rejects empty, changed, directory, and symlink approval records without executing", () => {
+  const mutations = [
+    ["empty", (file) => fs.writeFileSync(file, "")],
+    ["changed", (file) => fs.writeFileSync(file, "{}\n")],
+    ["directory", (file) => { fs.rmSync(file); fs.mkdirSync(file); }],
+    ["symlink", (file, root) => { fs.rmSync(file); fs.symlinkSync(path.join(root, "missing-target"), file); }],
+  ];
+  for (const [name, mutate] of mutations) {
+    const { root, ledger, approvals } = fixture(`# Gates: invalid ${name}\n\n- [ ] G1: marker\n  CHECK: node -e \"require('fs').writeFileSync('marker.txt','ran'); console.log('ran')\"\n  EXPECT: ran\n  EVIDENCE: pending\n`);
+    try {
+      const approved = run(["--approve", "--approval-dir", approvals, ledger], root);
+      assert.equal(approved.status, 0, `${name}: ${approved.stdout}\n${approved.stderr}`);
+      fs.rmSync(path.join(root, "marker.txt"));
+      const record = path.join(approvals, fs.readdirSync(approvals)[0]);
+      mutate(record, root);
+      const reapproved = run(["--approve", "--approval-dir", approvals, ledger], root);
+      assert.equal(reapproved.status, 1, `${name}: ${reapproved.stdout}\n${reapproved.stderr}`);
+      assert.match(reapproved.stdout, /approval invalid/);
+      assert.equal(fs.existsSync(path.join(root, "marker.txt")), false);
+      const reverified = run(["--reverify", "--approval-dir", approvals, ledger], root);
+      assert.equal(reverified.status, 1, `${name}: ${reverified.stdout}\n${reverified.stderr}`);
+      assert.match(reverified.stdout, /approval invalid/);
+      assert.equal(fs.existsSync(path.join(root, "marker.txt")), false);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   }
 });

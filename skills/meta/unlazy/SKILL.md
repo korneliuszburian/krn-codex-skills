@@ -80,7 +80,12 @@ in-repository approval directory. Set `KRN_UNLAZY_APPROVAL_DIR` when a separate
 state root is required. The checker records exit status, expectation match,
 and capped output in the ledger. A checked manual gate with `EVIDENCE: pending`
 is invalid, and an unchecked manual gate remains unmet until its human evidence
-is recorded.
+is recorded. Before executing, the checker requires the approval record to be a
+regular, single-link JSON file whose binding exactly matches the current
+command, expectation, working directory, timeout, and environment. Empty,
+malformed, changed, directory, or symlinked records remain unmet and are never
+repaired or executed automatically; obtain a fresh explicit approval in a new
+approval state when the reviewed environment changes.
 
 ## 4. Re-verify before reporting
 
