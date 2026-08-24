@@ -369,6 +369,22 @@ test("seal rejects mutation of earlier phase history records", () => {
   });
 });
 
+test("seal rejects target fixed-point changes after approval", () => {
+  withExperiment(({ directory, manifest }) => {
+    const previous = structuredClone(manifest);
+    previous.status = "approved";
+    previous.phase_history = previous.phase_history.slice(0, 1);
+    manifest.status = "approved";
+    manifest.phase_history = structuredClone(previous.phase_history);
+    manifest.target.head = "2".repeat(40);
+    writeManifest(directory, manifest);
+    assert.throws(
+      () => sealExperiment(directory, { previousManifest: previous }),
+      /frozen target changed/,
+    );
+  });
+});
+
 test("seal rejects a new artifact in an already frozen protocol role", () => {
   withExperiment(({ directory, manifest }) => {
     const previous = structuredClone(manifest);

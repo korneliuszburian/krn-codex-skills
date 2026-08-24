@@ -497,6 +497,10 @@ function assertFrozen(previous, next) {
       JSON.stringify(previous.content_scan_exceptions ?? []) !== JSON.stringify(next.content_scan_exceptions ?? [])) {
     throw new Error("frozen content_scan_exceptions changed");
   }
+  if (previousRank >= STATUS_RANK.get("approved") &&
+      JSON.stringify(previous.target ?? {}) !== JSON.stringify(next.target ?? {})) {
+    throw new Error("frozen target changed");
+  }
 }
 
 export function sealExperiment(directory, { previousManifest = null, repositoryRoot = null, stagedFiles = null } = {}) {

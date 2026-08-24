@@ -150,7 +150,8 @@ for (const token of absoluteTokens) {
   // existing filesystem entry outside the target. A real out-of-scope
   // citation (`/etc/passwd`) exists and is caught; invented paths are
   // allowed as prose.
-  const resolved = path.normalize(token);
+  const sourcePath = token.replace(/:\d+(?::\d+)?$/, "");
+  const resolved = path.normalize(sourcePath);
   if (!fs.existsSync(resolved)) continue;
   if (outsideTarget(resolved)) {
     throw new Error(`opinion cites a path outside the target scope: ${token}`);

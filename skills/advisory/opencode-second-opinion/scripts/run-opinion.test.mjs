@@ -152,6 +152,25 @@ test("rejects an existing backtick citation with line and column outside the tar
   }
 });
 
+test("rejects an existing absolute citation with a line suffix", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
+  try {
+    assert.throws(
+      () => invoke([target, path.join(run, "prompt.md"), output], {
+        PATH: `${bin}:${process.env.PATH}`,
+        OPENCODE_TEST_FINAL_TEXT: "Finding in /etc/passwd:1",
+        OPENCODE_TEST_INVOCATION: invocation,
+      }),
+      (error) => error.status === 78,
+    );
+    assert.equal(fs.existsSync(output), false);
+    assert.ok(fs.existsSync(path.join(run, "raw.failed.jsonl")));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("passes through one explicit non-empty provider variant", () => {
   const { root, target, run, bin, invocation } = sandbox();
   const output = path.join(run, "opinion.md");
