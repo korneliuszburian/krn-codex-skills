@@ -1,0 +1,83 @@
+---
+name: unlazy
+description: Keep long or multi-phase work honest with a machine-checked gate ledger, explicit command approval, and re-verification before completion.
+---
+
+# Unlazy
+
+Use this skill for long, multi-phase, unattended, or explicitly exhaustive
+work. Skip it for a small edit with a clear focused check.
+
+The ledger makes completion visible. It does not make commands safe or create a
+sandbox. Approval means that the exact command, expectation, working directory,
+shell, timeout, and inherited environment were reviewed. It does not grant
+filesystem, network, credential, publication, or merge authority.
+
+## 1. Create the ledger
+
+Create one run directory under:
+
+```text
+.krn/runs/unlazy/<run-id>/GATES.md
+```
+
+Keep the run private and ignored. Every gate must name one observable outcome:
+
+```markdown
+# Gates: <deliverable>
+
+OWNS: <repository-relative paths>
+Scope: <one complete outcome>
+
+- [ ] G1: <observable result>
+  CHECK: node ~/.agents/skills/unlazy/scripts/verify-result.mjs
+  EXPECT: result verification passed
+  EVIDENCE: pending
+
+- [ ] G2: <manual decision no command can settle>
+  EVIDENCE: pending
+```
+
+Use unique IDs. A runnable gate has both `CHECK` and `EXPECT`; a manual gate
+has neither. Keep `EVIDENCE` on every gate. Use `ABANDON: <id> <reason>` only
+when the outcome is genuinely impossible, and report that abandonment.
+
+## 2. Inspect before running
+
+Run status mode first. It parses the ledger without executing commands or
+writing evidence:
+
+```bash
+node ~/.agents/skills/unlazy/scripts/gate-check.mjs --status \
+  .krn/runs/unlazy/<run-id>/GATES.md
+```
+
+Read every `CHECK`, the scripts it calls, its `CWD`, and its expected output.
+Do not approve a command you have not inspected.
+
+## 3. Approve and execute deliberately
+
+When the exact commands are understood, approve and run the ledger:
+
+```bash
+node ~/.agents/skills/unlazy/scripts/gate-check.mjs --approve \
+  .krn/runs/unlazy/<run-id>/GATES.md
+```
+
+Approval records live outside the repository. Set
+`KRN_UNLAZY_APPROVAL_DIR` when a separate state root is required. The checker
+records exit status, expectation match, and capped output in the ledger. A
+manual gate remains unmet until its human evidence is recorded.
+
+## 4. Re-verify before reporting
+
+Re-run all runnable gates, including gates that were already marked met:
+
+```bash
+node ~/.agents/skills/unlazy/scripts/gate-check.mjs --reverify \
+  .krn/runs/unlazy/<run-id>/GATES.md
+```
+
+Report met, unmet, and abandoned gates. Never report the outcome as complete
+while a required gate is pending, failed, or missing evidence. Delete the run
+when its owning workflow finishes or the Goal closes.

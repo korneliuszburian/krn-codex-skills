@@ -64,6 +64,11 @@
       "name": "managing-codex-capabilities",
       "path": "skills/meta/managing-codex-capabilities",
       "implicit": true
+    },
+    {
+      "name": "unlazy",
+      "path": "skills/meta/unlazy",
+      "implicit": false
     }
   ],
   "retired_skills": [
