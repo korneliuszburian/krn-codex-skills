@@ -127,7 +127,7 @@ test("rejects a checked manual gate whose evidence is still pending", () => {
 });
 
 test("rejects malformed ABANDON directives", () => {
-  const cases = ["ABANDON G1 reason", "ABANDON: G1", "ABANDON:"];
+  const cases = ["ABANDON G1 reason", "ABANDON: G1", "ABANDON:", "ABANDONED G1 reason"];
   for (const directive of cases) {
     const { root, ledger } = fixture(`# Gates: abandon\n\n- [x] G1: impossible\n  EVIDENCE: accepted\n${directive}\n`);
     try {

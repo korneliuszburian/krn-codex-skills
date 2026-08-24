@@ -73,7 +73,7 @@ function parseLedger(ledgerPath) {
       continue;
     }
     if (/^- \[[ xX]\]/.test(line)) throw new Error(`malformed gate line ${index + 1}`);
-    if (/^ABANDON(?:\s|:|$)/.test(line)) {
+    if (line.startsWith("ABANDON")) {
       const abandonedMatch = line.match(/^ABANDON: ([A-Za-z0-9][A-Za-z0-9._-]*) (\S.*)$/);
       if (!abandonedMatch) throw new Error(`malformed ABANDON directive ${index + 1}`);
       if (abandoned.has(abandonedMatch[1])) throw new Error(`duplicate ABANDON for ${abandonedMatch[1]}`);
