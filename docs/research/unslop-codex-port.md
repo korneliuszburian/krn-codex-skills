@@ -62,3 +62,33 @@ This pilot does not prove general human-likeness, detector evasion, factual
 quality, or usefulness for code, logs, schemas, or raw evidence. A later
 decision must report those non-proofs and may retain the skill as explicit-only
 even if the pilot is useful.
+
+## Exploratory overlay result
+
+An exploratory six-task smoke pilot ran on 2026-08-24 after the skill merge.
+Each task ran once in a baseline fixture and once in an otherwise identical
+fixture with a compact Fabien-style `AGENTS.md` overlay. The 12 runs used
+`gpt-5.6-sol`, `workspace-write`, `--ephemeral`, `--ignore-user-config`, and
+`--ignore-rules`. Three code tasks passed their existing tests in both lanes;
+three prose tasks preserved their required facts and protected fragments.
+
+Observed differences:
+
+- one retry implementation was byte-identical;
+- a host/port implementation was shorter under the overlay, with only error
+  wording differences in independent probes;
+- a `formatBytes` implementation extracted constants under the overlay but
+  silently truncated its unit list: `1 ZiB` became `1024 EiB` for an input
+  outside the visible tests;
+- prose rewrites were sometimes more scannable, but one release note was
+  identical and no blinded human preference was collected.
+
+This is evidence against a global coding-style overlay, not evidence against
+all scoped prose guidance. Keep the KRN skill explicit-only and keep global
+`config/AGENTS.md` unchanged. The raw fixtures, JSONL, diffs, and technical
+summary remain outside the canonical repository at:
+
+`/mnt/storage/coding/krn/agent-style-pilot-v2/`
+
+The durable conclusion is still `lab-test`: a future prose-only pilot needs
+human preference and semantic-preservation review before any promotion.
