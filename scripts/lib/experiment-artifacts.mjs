@@ -8,14 +8,15 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const GIT_OBJECT_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const STATUS_RANK = new Map([
   ["planned", 0], ["approved", 1], ["running", 2],
-  ["executed", 3], ["graded", 4], ["decided", 5], ["abandoned", 5],
+  ["executed", 3], ["graded", 4], ["decision-ready", 5], ["decided", 6], ["abandoned", 6],
 ]);
 const ALLOWED_STATUS_TRANSITIONS = new Map([
   ["planned", new Set(["planned", "approved", "abandoned"])],
   ["approved", new Set(["approved", "running", "abandoned"])],
   ["running", new Set(["running", "executed", "abandoned"])],
   ["executed", new Set(["executed", "graded", "abandoned"])],
-  ["graded", new Set(["graded", "decided", "abandoned"])],
+  ["graded", new Set(["graded", "decision-ready", "abandoned"])],
+  ["decision-ready", new Set(["decision-ready", "decided", "abandoned"])],
   ["decided", new Set(["decided"])],
   ["abandoned", new Set(["abandoned"])],
 ]);
@@ -37,6 +38,9 @@ const FROZEN_INPUT_ROLES = new Set([
 const GRADED_IMMUTABLE_ROLES = new Set([
   ...FROZEN_INPUT_ROLES, "reviewer-approval", "primary-results", "grades", "telemetry",
 ]);
+const DECISION_IMMUTABLE_ROLES = new Set([
+  ...GRADED_IMMUTABLE_ROLES, "allocation-reveal", "summary", "decision", "reviewer-verdict",
+]);
 const FULL_BASE_ROLES = [
   "protocol", "schedule", "model-config", "grader-config", "rubric",
   "allocation-commitment", "stopping-rule",
@@ -47,6 +51,10 @@ const REQUIRED_FULL_ROLES = {
   running: [...FULL_BASE_ROLES, "reviewer-approval"],
   executed: [...FULL_BASE_ROLES, "reviewer-approval", "primary-results", "telemetry"],
   graded: [...FULL_BASE_ROLES, "reviewer-approval", "primary-results", "telemetry", "grades"],
+  "decision-ready": [
+    ...FULL_BASE_ROLES, "reviewer-approval", "primary-results", "grades", "telemetry",
+    "allocation-reveal", "summary", "decision", "reviewer-verdict",
+  ],
   decided: [
     ...FULL_BASE_ROLES, "reviewer-approval", "primary-results", "grades", "telemetry",
     "allocation-reveal", "summary", "decision", "reviewer-verdict",
@@ -70,7 +78,10 @@ const CHECKPOINT_STATUS_RANGES = new Map([
   ["preregistration", ["planned", "approved"]],
   ["execution", ["executed", "executed"]],
   ["grading", ["graded", "graded"]],
-  ["decision", ["decided", "decided"]],
+  // The decision record is committed in the decided manifest, so its
+  // reviewed_commit may point to the completed graded predecessor. Requiring
+  // decided here would create a self-referential commit-SHA requirement.
+  ["decision", ["decision-ready", "decided"]],
 ]);
 const CAPSULE_TERMINAL_ROLES = ["protocol", "summary", "decision", "reviewer-verdict"];
 const PHASES = ["preregistration", "execution", "grading", "decision"];
@@ -78,6 +89,7 @@ const REQUIRED_PHASES = {
   planned: [], approved: ["preregistration"], running: ["preregistration"],
   executed: ["preregistration", "execution"],
   graded: ["preregistration", "execution", "grading"],
+  "decision-ready": ["preregistration", "execution", "grading"],
   decided: PHASES, abandoned: [],
 };
 const FORBIDDEN_PATH = /(?:^|\/)(?:\.env(?:\.|$)|auth\.json$|credentials?(?:\.|$)|id_(?:rsa|ed25519)(?:\.|$)|[^/]+\.(?:pem|key)$|(?:home|codex[-_]?home|runtime(?:[-_]state)?|node_modules|cache|\.cache|\.codex|\.local|\.npm|\.pnpm-store|\.yarn|\.bun|state)(?:\/|$)|[^/]+\.(?:sqlite|db)(?:3)?(?:-(?:wal|shm))?$)/i;
@@ -305,6 +317,9 @@ function validateReviewedCheckpoints(directory, manifest, errors, label, reposit
     }
     if (JSON.stringify(snapshot.target ?? {}) !== currentTarget) {
       errors.push(`${recordLabel}: reviewed_commit target differs from the current target`);
+    }
+    if (record.phase === "decision" && JSON.stringify(snapshot.decision ?? {}) !== JSON.stringify(manifest.decision ?? {})) {
+      errors.push(`${recordLabel}: reviewed_commit decision differs from the current decision`);
     }
 
     const checkpointRoles = CHECKPOINT_ROLES[record.phase];
@@ -603,8 +618,11 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
     if (phases.includes("decision")) {
       for (const role of ["allocation-reveal", "summary"]) allowed.add(role);
     }
+    if (roles.has("allocation-reveal") || roles.has("summary") || roles.has("decision")) {
+      for (const role of ["allocation-reveal", "summary", "decision"]) allowed.add(role);
+    }
     allowed.add("amendment");
-    required = [...allowed].filter((role) => role !== "amendment");
+    required = [...allowed].filter((role) => !["amendment", "allocation-reveal", "summary"].includes(role));
   }
   if (manifest.retention === "capsule-only") allowed = new Set([...required, "supporting-evidence"]);
   if (manifest.retention === "full") allowed.add("amendment");
@@ -615,7 +633,7 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
   for (const role of required) {
     if (!roles.has(role)) errors.push(`${label}: status ${manifest.status} requires role ${role}`);
   }
-  if (new Set(["decided", "abandoned"]).has(manifest.status)) {
+  if (new Set(["decision-ready", "decided", "abandoned"]).has(manifest.status)) {
     if (!new Set(["adopt", "revise", "reject", "defer", "abandoned"]).has(manifest.decision?.disposition)) {
       errors.push(`${label}: terminal status requires a supported decision.disposition`);
     }
@@ -693,8 +711,10 @@ function assertFrozen(previous, next) {
       JSON.stringify(nextAmendments.slice(0, previousAmendments.length)) !== JSON.stringify(previousAmendments)) {
     throw new Error("amendments history is not append-only");
   }
-  const frozenRoles = previousRank >= STATUS_RANK.get("executed")
-    ? GRADED_IMMUTABLE_ROLES
+  const frozenRoles = previousRank >= STATUS_RANK.get("decision-ready")
+    ? DECISION_IMMUTABLE_ROLES
+    : previousRank >= STATUS_RANK.get("executed")
+      ? GRADED_IMMUTABLE_ROLES
     : previousRank >= STATUS_RANK.get("approved") ? FROZEN_INPUT_ROLES : new Set();
   const before = roleHashes(previous, frozenRoles);
   const after = roleHashes(next, frozenRoles);
@@ -702,13 +722,16 @@ function assertFrozen(previous, next) {
   const afterKeys = new Set(after.keys());
   const addedKeys = [...afterKeys].filter((key) => !beforeKeys.has(key));
   const executedToGraded = previous.status === "executed" && next.status === "graded";
+  const gradedToDecisionReady = previous.status === "graded" && next.status === "decision-ready";
+  const decisionRoles = new Set(["allocation-reveal", "summary", "decision", "reviewer-verdict"]);
   const amendmentAdditionAllowed = ["approved", "running", "executed"].includes(next.status) &&
     addedKeys.length > 0 && addedKeys.every((key) => key.startsWith("amendment\0")) &&
     nextAmendments.length > previousAmendments.length &&
     [...nextAmendments.slice(previousAmendments.length).map((entry) => entry.path)]
       .every((amendmentPath) => addedKeys.includes(`amendment\0${amendmentPath}`));
-  if ((!executedToGraded && !amendmentAdditionAllowed && addedKeys.length > 0) ||
+  if ((!executedToGraded && !gradedToDecisionReady && !amendmentAdditionAllowed && addedKeys.length > 0) ||
       (executedToGraded && addedKeys.some((key) => !key.startsWith("grades\0"))) ||
+      (gradedToDecisionReady && addedKeys.some((key) => !decisionRoles.has(key.split("\0")[0]))) ||
       [...beforeKeys].some((key) => !afterKeys.has(key))) {
     throw new Error("frozen artifact set changed");
   }
@@ -722,6 +745,10 @@ function assertFrozen(previous, next) {
   if (previousRank >= STATUS_RANK.get("approved") &&
       JSON.stringify(previous.target ?? {}) !== JSON.stringify(next.target ?? {})) {
     throw new Error("frozen target changed");
+  }
+  if (previousRank >= STATUS_RANK.get("decision-ready") &&
+      JSON.stringify(previous.decision ?? {}) !== JSON.stringify(next.decision ?? {})) {
+    throw new Error("frozen decision changed");
   }
 }
 

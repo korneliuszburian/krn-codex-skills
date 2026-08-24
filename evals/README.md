@@ -82,11 +82,13 @@ verdict, and timestamp in `review.md`/manifest phase history. A new commit after
 requested changes invalidates the earlier approval. GitHub approval is the live
 merge gate; the committed record is the durable audit trail.
 
-The reviewed commit for the execution, grading, and decision gates must be the
-completed boundary checkpoint: `executed`, `graded`, and `decided`
-respectively, with that phase's required outputs present. A lower transitional
-snapshot such as `running` or `executed` before grading is not a valid review
-fixed point.
+The reviewed commit for the execution and grading gates must be the completed
+boundary checkpoint: `executed` and `graded`, with that phase's required outputs
+present. Decision has an explicit nonterminal `decision-ready` checkpoint: it
+contains the reveal, summary, decision, and reviewer-verdict artifacts and is
+reviewed before the final `decided` record is appended. This avoids asking a
+manifest to name its own not-yet-known commit SHA. A lower transitional snapshot
+such as `running` or `executed` before grading is not a valid review fixed point.
 
 Before grading, commit only a cryptographic allocation commitment and its
 algorithm. Keep the mapping outside every grader-visible repository or
