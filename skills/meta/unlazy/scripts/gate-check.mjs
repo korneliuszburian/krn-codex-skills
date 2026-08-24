@@ -10,7 +10,7 @@ const HELP = `usage: gate-check.mjs [--status|--approve|--reverify] [--approval-
 const DEFAULT_TIMEOUT_SECONDS = 120;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const KNOWN_ATTRIBUTES = new Set(["CHECK", "EXPECT", "CWD", "EVIDENCE"]);
-const ATTRIBUTE_LIKE = /^\s{2,}([A-Za-z][A-Za-z0-9_-]*):(?:[ \t]*(.*))?$/;
+const ATTRIBUTE_LIKE = /^\s{2,}([A-Za-z][A-Za-z0-9_-]*)[ \t]*:(?:[ \t]*(.*))?$/;
 
 function fail(message, code = 2) {
   console.error(`gate-check: ${message}`);

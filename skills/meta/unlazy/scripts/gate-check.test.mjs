@@ -91,6 +91,7 @@ test("rejects unknown and empty gate attributes", () => {
   const cases = [
     ["unknown", "  CDW: elsewhere", /unknown attribute CDW/],
     ["empty", "  CHECK: ", /G1: CHECK must not be empty/],
+    ["spaced-empty", "  CHECK : ", /G1: CHECK must not be empty/],
   ];
   for (const [name, line, expected] of cases) {
     const { root, ledger } = fixture(`# Gates: attributes ${name}\n\n- [ ] G1: invalid\n${line}\n  EXPECT: ok\n  EVIDENCE: pending\n`);
