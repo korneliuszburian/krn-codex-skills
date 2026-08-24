@@ -287,6 +287,8 @@ class DestructiveGuardTests(unittest.TestCase):
             "git diff --output=AGENTS.md -- rm",
             "git show --output=AGENTS.md HEAD -- rm",
             "rg --pre /bin/rm rm AGENTS.md",
+            "rg --hostname-bin ./wipe --hyperlink-format='file://{host}{path}' rm AGENTS.md",
+            "rg --hostname-bin=./wipe --hyperlink-format='file://{host}{path}' rm AGENTS.md",
         ):
             with self.subTest(command=command):
                 self.assertIsNotNone(self.hook_reason(command))

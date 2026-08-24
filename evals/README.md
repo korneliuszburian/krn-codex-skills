@@ -82,6 +82,12 @@ verdict, and timestamp in `review.md`/manifest phase history. A new commit after
 requested changes invalidates the earlier approval. GitHub approval is the live
 merge gate; the committed record is the durable audit trail.
 
+The reviewed commit for the execution, grading, and decision gates must be the
+completed boundary checkpoint: `executed`, `graded`, and `decided`
+respectively, with that phase's required outputs present. A lower transitional
+snapshot such as `running` or `executed` before grading is not a valid review
+fixed point.
+
 Before grading, commit only a cryptographic allocation commitment and its
 algorithm. Keep the mapping outside every grader-visible repository or
 namespace. Commit the allocation reveal and deterministic join only after all
@@ -115,7 +121,9 @@ immutable. An infrastructure amendment before reveal requires a new reviewed
 fixed point and explicit amendment artifact. In a full manifest, every
 `role: amendment` artifact has one matching append-only `amendments[]` record
 with its path, base and reviewed Git commits, reviewer identity, and review
-timestamp; the referenced commits must exist. A failure that compromises
+timestamp; the base must be an ancestor of the reviewed commit, and the
+reviewed commit must contain the exact amendment artifact bytes recorded by the
+manifest. A failure that compromises
 independence, completeness, or blinding abandons the run instead of being
 silently repaired.
 

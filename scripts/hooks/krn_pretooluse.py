@@ -176,7 +176,10 @@ def is_safe_inspection(words: tuple[str, ...] | None) -> bool:
     arguments = remaining[1:]
     if executable in SAFE_INSPECTION_COMMANDS:
         if executable == "rg" and any(
-            argument == "--pre" or argument.startswith("--pre=")
+            argument == "--pre"
+            or argument.startswith("--pre=")
+            or argument == "--hostname-bin"
+            or argument.startswith("--hostname-bin=")
             for argument in arguments
         ):
             return False
