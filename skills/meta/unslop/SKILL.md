@@ -54,8 +54,10 @@ because its evidence is vague, flag the gap instead of decorating it.
    person, jokes, messiness, or slang.
 5. Keep the source structure unless the user explicitly requests a structural
    rewrite. Do not add headings, lists, examples, metaphors, or new sections to
-   make a short passage look more complete. Edit only sentences with an
-   identified tell; if no clear tell exists, leave the passage unchanged.
+   make a short passage look more complete. Edit only the smallest existing
+   prose span or element with an identified tell, including a heading, list
+   item, status fragment, or sentence. If no clear tell exists, leave the
+   passage unchanged.
 6. Self-audit the result against the source: every claim, qualifier, named
    entity, link, number, and requested action must survive unchanged. If any
    protected element would change, stop and hand off instead of returning a
