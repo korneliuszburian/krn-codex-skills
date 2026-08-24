@@ -42,10 +42,13 @@ global always-on final pass and do not copy Cursor-specific orchestration.
 
 The port has two public modes. `audit` reports concrete tells without changing
 the input. `rewrite` runs only on an explicit request and protects code, links,
-citations, numbers, direct quotes, named entities, qualifiers, and claims. The
-skill cannot alter those protected semantics; a request to change them leaves
-`$unslop` for a separate content or source-to-decision workflow. The skill is
-language-aware and does not use a fixed English word ban as its proof of quality.
+citations, numbers, direct quotes, named entities, qualifiers, and claims. It
+also preserves the source structure and makes the smallest useful edit: no new
+headings, lists, examples, or sections unless the user asks for restructuring.
+The skill cannot alter those protected semantics; a request to change them
+leaves `$unslop` for a separate content or source-to-decision workflow. The
+skill is language-aware and does not use a fixed English word ban as its proof
+of quality.
 
 ## Pilot and falsifier
 
