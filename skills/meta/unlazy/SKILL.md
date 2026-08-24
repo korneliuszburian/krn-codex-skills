@@ -10,7 +10,7 @@ work. Skip it for a small edit with a clear focused check.
 
 The ledger makes completion visible. It does not make commands safe or create a
 sandbox. Approval means that the exact command, expectation, working directory,
-shell, timeout, and inherited environment were reviewed. It does not grant
+shell, timeout, `PATH`, platform, and Node version were reviewed. It does not grant
 filesystem, network, credential, publication, or merge authority.
 
 ## 1. Create the ledger
@@ -64,10 +64,12 @@ node ~/.agents/skills/unlazy/scripts/gate-check.mjs --approve \
   .krn/runs/unlazy/<run-id>/GATES.md
 ```
 
-Approval records live outside the repository. Set
-`KRN_UNLAZY_APPROVAL_DIR` when a separate state root is required. The checker
-records exit status, expectation match, and capped output in the ledger. A
-manual gate remains unmet until its human evidence is recorded.
+Approval records live outside the repository, and the checker rejects an
+in-repository approval directory. Set `KRN_UNLAZY_APPROVAL_DIR` when a separate
+state root is required. The checker records exit status, expectation match,
+and capped output in the ledger. A checked manual gate with `EVIDENCE: pending`
+is invalid, and an unchecked manual gate remains unmet until its human evidence
+is recorded.
 
 ## 4. Re-verify before reporting
 

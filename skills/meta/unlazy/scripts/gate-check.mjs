@@ -90,6 +90,9 @@ function parseLedger(ledgerPath) {
     const hasExpect = Boolean(gate.expect);
     if (hasCheck !== hasExpect) throw new Error(`${gate.id}: runnable gate requires CHECK and EXPECT`);
     if (gate.evidence === null || !gate.evidence.trim()) throw new Error(`${gate.id}: EVIDENCE is required`);
+    if (gate.checked && gate.evidence.trim().toLowerCase() === "pending") {
+      throw new Error(`${gate.id}: checked gate cannot have pending evidence`);
+    }
     if (abandoned.has(gate.id)) gate.abandoned = abandoned.get(gate.id);
   }
   for (const id of abandoned.keys()) if (!ids.has(id)) throw new Error(`ABANDON references unknown gate ${id}`);
@@ -101,10 +104,22 @@ function approvalDirectory(options) {
     path.join(process.env.XDG_STATE_HOME || path.join(os.homedir(), ".local", "state"), "krn-unlazy", "approvals");
 }
 
+function repositoryRootFor(ledgerPath) {
+  const result = spawnSync("git", ["-C", path.dirname(ledgerPath), "rev-parse", "--show-toplevel"], { encoding: "utf8" });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
+function isWithin(root, candidate) {
+  const resolvedRoot = path.resolve(root);
+  const resolvedCandidate = fs.existsSync(candidate) ? fs.realpathSync(candidate) : path.resolve(candidate);
+  return resolvedCandidate === resolvedRoot || resolvedCandidate.startsWith(`${resolvedRoot}${path.sep}`);
+}
+
 function bindingFor(ledgerPath, gate, cwd, timeout) {
   return {
     ledger: path.resolve(ledgerPath), gate: gate.id, check: gate.check,
     expect: gate.expect, cwd, shell: "/bin/sh", timeout,
+    pathEnv: process.env.PATH || "", platform: process.platform, nodeVersion: process.version,
   };
 }
 
@@ -166,6 +181,12 @@ function main() {
   if (parsedArgs.help) { console.log(HELP); return 0; }
   if (parsedArgs.error) { fail(parsedArgs.error); return 2; }
   const { options, ledger } = parsedArgs;
+  const repositoryRoot = repositoryRootFor(ledger);
+  const approvals = approvalDirectory(options);
+  if (repositoryRoot && isWithin(repositoryRoot, approvals)) {
+    fail("approval directory must be outside the repository");
+    return 2;
+  }
   let parsed;
   try { parsed = parseLedger(ledger); } catch (error) { fail(error.message); return 2; }
   const results = new Map();
