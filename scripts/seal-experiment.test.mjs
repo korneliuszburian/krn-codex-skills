@@ -59,6 +59,7 @@ test("public seal refuses a terminal record with no committed predecessor", () =
       target: { base_commit: "0".repeat(40), head: "0".repeat(40) },
       phase_history: [],
       content_scan_exceptions: [],
+      amendments: [],
       artifacts,
       omissions: [{
         class: "historical",
@@ -146,6 +147,7 @@ test("public seal writes and stages a normal planned experiment manifest", () =>
       target: { base_commit: baseCommit, head: baseCommit },
       phase_history: [],
       content_scan_exceptions: [],
+      amendments: [],
       artifacts,
       omissions: [],
     };

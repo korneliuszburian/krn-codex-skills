@@ -220,6 +220,48 @@ function validateOwnership(manifest, errors, label) {
   }
 }
 
+function validateAmendments(manifest, errors, label, repositoryRoot) {
+  if (!Array.isArray(manifest.amendments)) {
+    if (manifest.retention === "full") errors.push(`${label}: amendments must be an array`);
+    return;
+  }
+  const amendmentArtifacts = new Set(
+    (manifest.artifacts ?? [])
+      .filter((artifact) => artifact?.role === "amendment")
+      .map((artifact) => artifact.path),
+  );
+  const seen = new Set();
+  for (const [index, amendment] of manifest.amendments.entries()) {
+    const amendmentLabel = `${label}: amendment ${index + 1}`;
+    if (!safeRelativePath(amendment?.path)) errors.push(`${amendmentLabel} has an unsafe path`);
+    if (!amendmentArtifacts.has(amendment?.path)) {
+      errors.push(`${amendmentLabel} must reference an artifact with role amendment`);
+    }
+    if (seen.has(amendment?.path)) errors.push(`${amendmentLabel} duplicates an amendment path`);
+    seen.add(amendment?.path);
+    for (const field of ["base_commit", "reviewed_commit"]) {
+      if (!GIT_OBJECT_PATTERN.test(amendment?.[field] ?? "")) {
+        errors.push(`${amendmentLabel} ${field} must be a full Git object id`);
+      } else if (!gitCommitExists(repositoryRoot, amendment[field])) {
+        errors.push(`${amendmentLabel} ${field} does not resolve to a Git commit`);
+      }
+    }
+    if (typeof amendment?.reviewer !== "string" || !amendment.reviewer.trim()) {
+      errors.push(`${amendmentLabel} reviewer must be a non-empty string`);
+    }
+    if (typeof amendment?.reviewed_at !== "string" || Number.isNaN(Date.parse(amendment.reviewed_at))) {
+      errors.push(`${amendmentLabel} reviewed_at must be an ISO timestamp`);
+    }
+  }
+  if (manifest.retention === "full") {
+    for (const artifactPath of amendmentArtifacts) {
+      if (!seen.has(artifactPath)) {
+        errors.push(`${label}: amendment artifact ${artifactPath} lacks a reviewed amendment record`);
+      }
+    }
+  }
+}
+
 function validateManifest(directory, errors, trackedFiles, stagedFiles, repositoryRoot) {
   const id = path.basename(directory);
   const label = `evals/experiments/${id}`;
@@ -265,6 +307,7 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
   }
   validateOwnership(manifest, errors, label);
   validatePhaseHistory(manifest, errors, label, repositoryRoot);
+  validateAmendments(manifest, errors, label, repositoryRoot);
   if (!GIT_OBJECT_PATTERN.test(manifest.target?.base_commit ?? "")) {
     errors.push(`${label}: target.base_commit must be a full Git object id`);
   } else if (!gitCommitExists(repositoryRoot, manifest.target.base_commit)) {
@@ -477,6 +520,12 @@ function assertFrozen(previous, next) {
       JSON.stringify(nextHistory.slice(0, previousHistory.length)) !== JSON.stringify(previousHistory)) {
     throw new Error("phase_history is not append-only");
   }
+  const previousAmendments = previous.amendments ?? [];
+  const nextAmendments = next.amendments ?? [];
+  if (nextAmendments.length < previousAmendments.length ||
+      JSON.stringify(nextAmendments.slice(0, previousAmendments.length)) !== JSON.stringify(previousAmendments)) {
+    throw new Error("amendments history is not append-only");
+  }
   const frozenRoles = previousRank >= STATUS_RANK.get("executed")
     ? GRADED_IMMUTABLE_ROLES
     : previousRank >= STATUS_RANK.get("approved") ? FROZEN_INPUT_ROLES : new Set();
@@ -487,7 +536,10 @@ function assertFrozen(previous, next) {
   const addedKeys = [...afterKeys].filter((key) => !beforeKeys.has(key));
   const executedToGraded = previous.status === "executed" && next.status === "graded";
   const amendmentAdditionAllowed = ["approved", "running", "executed"].includes(next.status) &&
-    addedKeys.length > 0 && addedKeys.every((key) => key.startsWith("amendment\0"));
+    addedKeys.length > 0 && addedKeys.every((key) => key.startsWith("amendment\0")) &&
+    nextAmendments.length > previousAmendments.length &&
+    [...nextAmendments.slice(previousAmendments.length).map((entry) => entry.path)]
+      .every((amendmentPath) => addedKeys.includes(`amendment\0${amendmentPath}`));
   if ((!executedToGraded && !amendmentAdditionAllowed && addedKeys.length > 0) ||
       (executedToGraded && addedKeys.some((key) => !key.startsWith("grades\0"))) ||
       [...beforeKeys].some((key) => !afterKeys.has(key))) {

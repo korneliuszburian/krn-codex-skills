@@ -93,6 +93,7 @@ function withExperiment(run) {
       target: { base_commit: HEAD, head: REVIEWED },
       phase_history,
       content_scan_exceptions: [],
+      amendments: [],
       artifacts,
       omissions: [],
       decision: { disposition: "reject", scope: "exact frozen treatment" },
@@ -137,6 +138,13 @@ test("accepts executed results with amendment but rejects grades and reveal befo
       bytes: fs.statSync(amendmentPath).size,
       sha256: sha256(amendmentPath),
     });
+    manifest.amendments = [{
+      path: "amendment.md",
+      base_commit: HEAD,
+      reviewed_commit: REVIEWED,
+      reviewer: "independent-reviewer",
+      reviewed_at: "2026-08-21T10:00:00+02:00",
+    }];
     writeManifest(directory, manifest);
     assert.deepEqual(validateExperimentTree(root).errors, []);
 
@@ -151,6 +159,76 @@ test("accepts executed results with amendment but rejects grades and reveal befo
     });
     writeManifest(directory, manifest);
     assert.ok(validateExperimentTree(root).errors.some((error) => error.includes("role grades is not allowed")));
+  });
+});
+
+test("requires reviewed evidence when adding a preregistered amendment", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    manifest.status = "approved";
+    manifest.phase_history = manifest.phase_history.slice(0, 1);
+    const allowed = new Set([
+      "protocol", "schedule", "model-config", "grader-config", "rubric",
+      "allocation-commitment", "stopping-rule", "reviewer-approval",
+    ]);
+    for (const artifact of [...manifest.artifacts]) {
+      if (!allowed.has(artifact.role)) {
+        fs.rmSync(path.join(directory, artifact.path));
+        manifest.artifacts = manifest.artifacts.filter((item) => item.path !== artifact.path);
+      }
+    }
+    writeManifest(directory, manifest);
+    const previous = structuredClone(manifest);
+    const amendmentPath = path.join(directory, "amendment.md");
+    fs.writeFileSync(amendmentPath, "reviewed change\n");
+    manifest.artifacts.push({
+      path: "amendment.md",
+      role: "amendment",
+      visibility: "reviewer",
+      bytes: fs.statSync(amendmentPath).size,
+      sha256: sha256(amendmentPath),
+    });
+    manifest.amendments = [{
+      path: "amendment.md",
+      base_commit: "f".repeat(40),
+      reviewed_commit: "1".repeat(40),
+      reviewer: "independent-reviewer",
+      reviewed_at: "2026-08-21T10:00:00+02:00",
+    }];
+    writeManifest(directory, manifest);
+    assert.doesNotThrow(() => sealExperiment(directory, { previousManifest: previous }));
+    assert.deepEqual(validateExperimentTree(root).errors, []);
+  });
+});
+
+test("rejects an amendment artifact without a reviewed amendment record", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    manifest.status = "approved";
+    manifest.phase_history = manifest.phase_history.slice(0, 1);
+    const allowed = new Set([
+      "protocol", "schedule", "model-config", "grader-config", "rubric",
+      "allocation-commitment", "stopping-rule", "reviewer-approval",
+    ]);
+    for (const artifact of [...manifest.artifacts]) {
+      if (!allowed.has(artifact.role)) {
+        fs.rmSync(path.join(directory, artifact.path));
+        manifest.artifacts = manifest.artifacts.filter((item) => item.path !== artifact.path);
+      }
+    }
+    const amendmentPath = path.join(directory, "amendment.md");
+    fs.writeFileSync(amendmentPath, "unreviewed change\n");
+    manifest.artifacts.push({
+      path: "amendment.md",
+      role: "amendment",
+      visibility: "reviewer",
+      bytes: fs.statSync(amendmentPath).size,
+      sha256: sha256(amendmentPath),
+    });
+    writeManifest(directory, manifest);
+    const result = validateExperimentTree(root);
+    assert.ok(
+      result.errors.some((error) => error.includes("lacks a reviewed amendment record")),
+      result.errors.join("\n"),
+    );
   });
 });
 
