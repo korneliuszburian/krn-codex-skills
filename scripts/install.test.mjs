@@ -215,6 +215,29 @@ test("archives every retired upstream skill left by an older install", () => {
   }
 });
 
+test("preserves an active upstream symlink for a tombstoned local name", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
+  try {
+    const env = { ...sandboxEnv(sandbox), KRN_ARCHIVE_LEGACY: "1" };
+    const upstreamSource = path.join(sandbox, "upstream", "code-review");
+    const target = path.join(env.KRN_SKILLS_DEST, "code-review");
+    fs.mkdirSync(upstreamSource, { recursive: true });
+    fs.writeFileSync(path.join(upstreamSource, "SKILL.md"), "upstream source\n");
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.symlinkSync(upstreamSource, target);
+    const result = spawnSync("bash", [installScript, "install"], { encoding: "utf8", env });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(fs.realpathSync(target), fs.realpathSync(upstreamSource));
+    const backups = path.join(env.CODEX_HOME, "skill-migration-backups");
+    const backupMatches = fs.existsSync(backups)
+      ? execFileSync("find", [backups, "-name", "retired-skill__code-review"], { encoding: "utf8" }).trim()
+      : "";
+    assert.equal(backupMatches, "", "active upstream symlink must not be archived");
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
 test("archives every legacy upstream user path left by an older install", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
   try {

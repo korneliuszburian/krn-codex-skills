@@ -52,8 +52,8 @@ node "$repo_root/scripts/validate.mjs"
 mapfile -t skill_rows < <(
   jq -r '.skills[] | [.name, .path] | @tsv' "$manifest"
 )
-mapfile -t retired_skill_names < <(
-  jq -r '.retired_skills[].name' "$manifest"
+mapfile -t retired_skill_rows < <(
+  jq -r '.retired_skills[] | [.name, .owner] | @tsv' "$manifest"
 )
 mapfile -t bin_rows < <(
   jq -r '.bins[] | [.name, .path] | @tsv' "$manifest"
@@ -75,9 +75,18 @@ link_matches() {
   [[ "$(readlink -f "$link")" == "$(readlink -f "$expected")" ]]
 }
 
+active_upstream_link() {
+  local target=$1
+  local owner=$2
+  local resolved
+  [[ "$owner" == upstream:* && -L "$target" ]] || return 1
+  resolved=$(readlink -f "$target" 2>/dev/null || true)
+  [[ -n "$resolved" && -e "$resolved" && "$resolved" != "$repo_root"/* ]]
+}
+
 check_install() {
   local failures=0
-  local name relative source target legacy legacy_relative replacement legacy_hook retired_name
+  local name relative source target legacy legacy_relative replacement legacy_hook retired_name retired_owner
 
   for row in "${bin_rows[@]}"; do
     IFS=$'\t' read -r name relative <<< "$row"
@@ -109,8 +118,13 @@ check_install() {
     fi
   done
 
-  for retired_name in "${retired_skill_names[@]}"; do
+  for row in "${retired_skill_rows[@]}"; do
+    IFS=$'\t' read -r retired_name retired_owner <<< "$row"
     target="$skill_dest/$retired_name"
+    if active_upstream_link "$target" "$retired_owner"; then
+      printf 'ok      %s -> active upstream source\n' "$target"
+      continue
+    fi
     if [[ -e "$target" || -L "$target" ]]; then
       printf 'retired %s (archive with KRN_ARCHIVE_LEGACY=1)\n' "$target"
       failures=1
@@ -213,8 +227,12 @@ for row in "${skill_rows[@]}"; do
   fi
 done
 
-for retired_name in "${retired_skill_names[@]}"; do
+for row in "${retired_skill_rows[@]}"; do
+  IFS=$'\t' read -r retired_name retired_owner <<< "$row"
   target="$skill_dest/$retired_name"
+  if active_upstream_link "$target" "$retired_owner"; then
+    continue
+  fi
   if [[ -e "$target" || -L "$target" ]] && [[ "$archive_legacy" != 1 ]]; then
     echo "refusing retired skill path: $target" >&2
     echo "set KRN_ARCHIVE_LEGACY=1 only after reviewing that path" >&2
@@ -303,7 +321,11 @@ archive_path() {
   printf 'archived %s -> %s\n' "$source" "$backup_dir/$label"
 }
 
-for retired_name in "${retired_skill_names[@]}"; do
+for row in "${retired_skill_rows[@]}"; do
+  IFS=$'\t' read -r retired_name retired_owner <<< "$row"
+  if active_upstream_link "$skill_dest/$retired_name" "$retired_owner"; then
+    continue
+  fi
   archive_path "$skill_dest/$retired_name" "retired-skill__${retired_name}"
 done
 
