@@ -42,6 +42,10 @@
 11. A removed promoted skill remains in `retired_skills` until supported installs
     no longer expose its old index entry. Retirement never silently deletes a
     foreign occupant.
+12. An upstream-owned tombstone preserves an existing symlink only when its
+    resolved target is under an explicit colon-separated `KRN_UPSTREAM_SKILLS_ROOTS`
+    allowlist. An arbitrary external symlink is treated as stale/foreign and
+    still requires archive authority.
 
 ## Rollback
 

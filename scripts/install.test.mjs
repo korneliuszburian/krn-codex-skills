@@ -218,8 +218,13 @@ test("archives every retired upstream skill left by an older install", () => {
 test("preserves an active upstream symlink for a tombstoned local name", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
   try {
-    const env = { ...sandboxEnv(sandbox), KRN_ARCHIVE_LEGACY: "1" };
-    const upstreamSource = path.join(sandbox, "upstream", "code-review");
+    const upstreamSourceRoot = path.join(sandbox, "upstream");
+    const env = {
+      ...sandboxEnv(sandbox),
+      KRN_ARCHIVE_LEGACY: "1",
+      KRN_UPSTREAM_SKILLS_ROOTS: upstreamSourceRoot,
+    };
+    const upstreamSource = path.join(upstreamSourceRoot, "code-review");
     const target = path.join(env.KRN_SKILLS_DEST, "code-review");
     fs.mkdirSync(upstreamSource, { recursive: true });
     fs.writeFileSync(path.join(upstreamSource, "SKILL.md"), "upstream source\n");

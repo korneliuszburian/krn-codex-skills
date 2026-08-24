@@ -26,6 +26,7 @@ global_hooks_source="$repo_root/$(jq -r '.global_hooks' "$manifest")"
 global_hooks_target="$codex_home/hooks.json"
 hook_dest="$codex_home/hooks"
 archive_legacy=${KRN_ARCHIVE_LEGACY:-0}
+upstream_skill_roots=${KRN_UPSTREAM_SKILLS_ROOTS:-}
 replace_global_agents=${KRN_REPLACE_GLOBAL_AGENTS:-0}
 replace_global_claude=${KRN_REPLACE_GLOBAL_CLAUDE:-0}
 replace_global_hooks=${KRN_REPLACE_GLOBAL_HOOKS:-0}
@@ -79,9 +80,20 @@ active_upstream_link() {
   local target=$1
   local owner=$2
   local resolved
+  local root
+  local -a roots
   [[ "$owner" == upstream:* && -L "$target" ]] || return 1
   resolved=$(readlink -f "$target" 2>/dev/null || true)
-  [[ -n "$resolved" && -e "$resolved" && "$resolved" != "$repo_root"/* ]]
+  [[ -n "$resolved" && -e "$resolved" ]] || return 1
+  IFS=: read -r -a roots <<< "$upstream_skill_roots"
+  for root in "${roots[@]}"; do
+    [[ -n "$root" ]] || continue
+    root=$(readlink -f "$root" 2>/dev/null || true)
+    if [[ -n "$root" && ( "$resolved" == "$root" || "$resolved" == "$root"/* ) ]]; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 check_install() {

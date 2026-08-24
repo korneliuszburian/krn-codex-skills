@@ -32,7 +32,7 @@ const ROLES = new Set([
 ]);
 const FROZEN_INPUT_ROLES = new Set([
   "protocol", "schedule", "model-config", "grader-config", "rubric",
-  "allocation-commitment", "stopping-rule",
+  "allocation-commitment", "stopping-rule", "reviewer-approval", "amendment",
 ]);
 const GRADED_IMMUTABLE_ROLES = new Set([
   ...FROZEN_INPUT_ROLES, "reviewer-approval", "primary-results", "grades", "telemetry",
@@ -393,10 +393,11 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
     if (phases.includes("decision")) {
       for (const role of ["allocation-reveal", "summary"]) allowed.add(role);
     }
-    if (!phases.includes("grading")) allowed.add("amendment");
+    allowed.add("amendment");
     required = [...allowed].filter((role) => role !== "amendment");
   }
   if (manifest.retention === "capsule-only") allowed = new Set([...required, "supporting-evidence"]);
+  if (manifest.retention === "full") allowed.add("amendment");
   if (["planned", "approved", "running", "executed"].includes(manifest.status)) allowed.add("amendment");
   for (const role of roles) {
     if (!allowed.has(role)) errors.push(`${label}: role ${role} is not allowed in status ${manifest.status}`);
@@ -485,7 +486,9 @@ function assertFrozen(previous, next) {
   const afterKeys = new Set(after.keys());
   const addedKeys = [...afterKeys].filter((key) => !beforeKeys.has(key));
   const executedToGraded = previous.status === "executed" && next.status === "graded";
-  if ((!executedToGraded && addedKeys.length > 0) ||
+  const amendmentAdditionAllowed = ["approved", "running", "executed"].includes(next.status) &&
+    addedKeys.length > 0 && addedKeys.every((key) => key.startsWith("amendment\0"));
+  if ((!executedToGraded && !amendmentAdditionAllowed && addedKeys.length > 0) ||
       (executedToGraded && addedKeys.some((key) => !key.startsWith("grades\0"))) ||
       [...beforeKeys].some((key) => !afterKeys.has(key))) {
     throw new Error("frozen artifact set changed");
