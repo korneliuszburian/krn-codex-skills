@@ -70,6 +70,7 @@ function parseLedger(ledgerPath) {
       };
       continue;
     }
+    if (/^- \[[ xX]\]/.test(line)) throw new Error(`malformed gate line ${index + 1}`);
     const abandonedMatch = line.match(/^ABANDON: ([A-Za-z0-9][A-Za-z0-9._-]*) (\S.*)$/);
     if (abandonedMatch) {
       abandoned.set(abandonedMatch[1], abandonedMatch[2].trim());
@@ -110,8 +111,16 @@ function repositoryRootFor(ledgerPath) {
 }
 
 function isWithin(root, candidate) {
-  const resolvedRoot = path.resolve(root);
-  const resolvedCandidate = fs.existsSync(candidate) ? fs.realpathSync(candidate) : path.resolve(candidate);
+  const resolvedRoot = fs.realpathSync(root);
+  let existing = path.resolve(candidate);
+  const missing = [];
+  while (!fs.existsSync(existing)) {
+    const parent = path.dirname(existing);
+    if (parent === existing) break;
+    missing.unshift(path.basename(existing));
+    existing = parent;
+  }
+  const resolvedCandidate = path.resolve(fs.realpathSync(existing), ...missing);
   return resolvedCandidate === resolvedRoot || resolvedCandidate.startsWith(`${resolvedRoot}${path.sep}`);
 }
 

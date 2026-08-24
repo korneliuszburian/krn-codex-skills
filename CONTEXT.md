@@ -13,6 +13,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
 - [evals/README.md](evals/README.md) — Git-native experiment lifecycle, reviewer fixed points, and artifact integrity.
+- [skills/meta/unlazy/SKILL.md](skills/meta/unlazy/SKILL.md) — explicit completion ledger with approved checks and re-verification; it does not own lifecycle state or sandbox commands.
 
 ## System vocabulary
 
@@ -128,3 +129,7 @@ a lifecycle transition.
 **Capsule-only experiment** — a terminal historical or external-evidence
 record with explicit omissions and exploratory epistemic status; never a full
 archive or confirmatory result.
+
+**Completion ledger** — an optional `.krn/runs/unlazy/<run-id>/GATES.md` record
+of observable gates, command evidence, and manual blockers. `$unlazy` owns the
+ledger mechanics; `$delivery-loop` still owns lifecycle state and publication.

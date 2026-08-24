@@ -87,6 +87,17 @@ test("rejects an incomplete runnable gate", () => {
   }
 });
 
+test("rejects a malformed gate-like checkbox line", () => {
+  const { root, ledger, approvals } = fixture(`# Gates: malformed\n\n- [ ] G1 missing colon\n- [x] G2: valid but not enough\n  EVIDENCE: reviewed\n`);
+  try {
+    const result = run(["--status", "--approval-dir", approvals, ledger], root);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /malformed gate line/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("rejects a checked manual gate whose evidence is still pending", () => {
   const { root, ledger, approvals } = fixture(`# Gates: stale manual\n\n- [x] G1: human review\n  EVIDENCE: pending\n`);
   try {
@@ -106,6 +117,21 @@ test("rejects an approval directory inside the repository", () => {
     assert.equal(result.status, 2);
     assert.match(result.stderr, /approval directory must be outside the repository/);
   } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects an approval path through a symlinked repository ancestor", () => {
+  const { root, ledger } = fixture(`# Gates: symlink boundary\n\n- [ ] G1: command\n  CHECK: node -e \"console.log('ok')\"\n  EXPECT: ok\n  EVIDENCE: pending\n`);
+  const link = path.join(path.dirname(root), `${path.basename(root)}-link`);
+  try {
+    assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: root }).status, 0);
+    fs.symlinkSync(root, link);
+    const result = run(["--approve", "--approval-dir", path.join(link, ".krn", "approvals"), ledger], root);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /approval directory must be outside the repository/);
+  } finally {
+    fs.rmSync(link, { recursive: true, force: true });
     fs.rmSync(root, { recursive: true, force: true });
   }
 });

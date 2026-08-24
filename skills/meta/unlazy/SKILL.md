@@ -47,6 +47,12 @@ refuses to write evidence for a trackable ledger. If `CWD` is omitted, commands
 run from the repository root; set `CWD` to a repository-relative directory only
 when the gate needs another location.
 
+For example:
+
+```bash
+git check-ignore -q .krn/runs/unlazy/<run-id>/GATES.md
+```
+
 ## 2. Inspect before running
 
 Run status mode first. It parses the ledger without executing commands or
