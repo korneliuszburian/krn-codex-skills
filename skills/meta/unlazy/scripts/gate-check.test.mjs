@@ -192,6 +192,7 @@ test("rejects empty, changed, directory, and symlink approval records without ex
   const mutations = [
     ["empty", (file) => fs.writeFileSync(file, "")],
     ["changed", (file) => fs.writeFileSync(file, "{}\n")],
+    ["non-object", (file) => fs.writeFileSync(file, "null\n")],
     ["directory", (file) => { fs.rmSync(file); fs.mkdirSync(file); }],
     ["symlink", (file, root) => { fs.rmSync(file); fs.symlinkSync(path.join(root, "missing-target"), file); }],
   ];

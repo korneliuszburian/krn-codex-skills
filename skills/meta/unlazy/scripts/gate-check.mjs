@@ -165,6 +165,9 @@ function readApproval(directory, binding) {
   } catch {
     return { valid: false, exists: true, reason: "approval invalid: record is not valid JSON" };
   }
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    return { valid: false, exists: true, reason: "approval invalid: record must be a JSON object" };
+  }
   const storedBinding = {
     ledger: record.ledger, gate: record.gate, check: record.check,
     expect: record.expect, cwd: record.cwd, shell: record.shell,
