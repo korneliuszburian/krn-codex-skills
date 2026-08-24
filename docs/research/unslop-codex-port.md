@@ -13,6 +13,15 @@ intended tone?
 
 ## Sources and mechanisms
 
+Sources pinned and retrieved on 2026-08-24:
+
+- Cursor/pstack `unslop` at commit
+  [`4612556`](https://github.com/cursor/plugins/commit/46125561306434d8a1d7745d540d8932ab0cd2a2),
+  file [`SKILL.md`](https://github.com/cursor/plugins/blob/46125561306434d8a1d7745d540d8932ab0cd2a2/pstack/skills/unslop/SKILL.md);
+- `mshumer/unslop` at commit
+  [`edcb623`](https://github.com/mshumer/unslop/commit/edcb62386d129c65e4395f0cfcc9168eb1ba2148),
+  file [`skills/unslop/SKILL.md`](https://github.com/mshumer/unslop/blob/edcb62386d129c65e4395f0cfcc9168eb1ba2148/skills/unslop/SKILL.md).
+
 The Cursor/pstack `unslop` skill describes a four-part loop: scan for patterns,
 rewrite while preserving meaning and tone, add a specific voice, and self-audit
 for remaining tells. Its examples include puffery, vague attribution, filler,
@@ -33,8 +42,10 @@ global always-on final pass and do not copy Cursor-specific orchestration.
 
 The port has two public modes. `audit` reports concrete tells without changing
 the input. `rewrite` runs only on an explicit request and protects code, links,
-citations, numbers, direct quotes, and claims. The skill is language-aware and
-does not use a fixed English word ban as its proof of quality.
+citations, numbers, direct quotes, named entities, qualifiers, and claims. The
+skill cannot alter those protected semantics; a request to change them leaves
+`$unslop` for a separate content or source-to-decision workflow. The skill is
+language-aware and does not use a fixed English word ban as its proof of quality.
 
 ## Pilot and falsifier
 

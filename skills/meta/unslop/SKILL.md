@@ -27,13 +27,16 @@ exactly:
 
 - code, shell commands, JSON/YAML, tables, URLs, file paths, identifiers, and
   citations;
-- direct quotations, legal or contractual wording, and numbers unless the user
-  explicitly authorizes changes;
-- claims, uncertainty, chronology, and the author's point of view.
+- direct quotations, legal or contractual wording, and numbers;
+- claims, uncertainty, chronology, named entities, links, and the author's
+  point of view.
 
 Never invent a source, example, opinion, metric, or personal experience to make
-the result sound human. If a sentence is vague because its evidence is vague,
-flag the gap instead of decorating it.
+the result sound human. Do not change a protected fact, claim, number, named
+entity, link, citation, or qualifier inside this workflow. If the user asks for
+one of those changes, stop and hand the request to the appropriate content,
+research, or source-to-decision workflow instead. If a sentence is vague
+because its evidence is vague, flag the gap instead of decorating it.
 
 ## Audit and rewrite
 
