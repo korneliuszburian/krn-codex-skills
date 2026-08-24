@@ -52,7 +52,13 @@ because its evidence is vague, flag the gap instead of decorating it.
    rhythm where the source permits it, and keep the author's level of warmth or
    directness. Do not replace one stock style with another or force first
    person, jokes, messiness, or slang.
-5. Self-audit the result against the source: every claim, qualifier, named
+5. Keep the source structure unless the user explicitly requests a structural
+   rewrite. Do not add headings, lists, examples, metaphors, or new sections to
+   make a short passage look more complete. Edit only the smallest existing
+   prose span or element with an identified tell, including a heading, list
+   item, status fragment, or sentence. If no clear tell exists, leave the
+   passage unchanged.
+6. Self-audit the result against the source: every claim, qualifier, named
    entity, link, number, and requested action must survive unchanged. If any
    protected element would change, stop and hand off instead of returning a
    rewrite. Check that the result still sounds like the intended author, not
@@ -63,9 +69,9 @@ because its evidence is vague, flag the gap instead of decorating it.
 The same phrase is not a tell in every language or audience. Judge Polish,
 English, and mixed-language text in context; do not apply an English word ban to
 Polish prose or technical vocabulary. Keep useful headings, lists, and concise
-status formats when they improve scanning. Do not unslop source code, logs,
-schemas, raw evidence, exact quotes, or text whose wording is itself the thing
-being tested.
+status formats when they improve scanning; do not invent new structure merely
+to decorate a rewrite. Do not unslop source code, logs, schemas, raw evidence,
+exact quotes, or text whose wording is itself the thing being tested.
 
 The skill may suggest a separate fact-check, source-to-decision, or code-review
 pass, but it must not perform that workflow implicitly. A polished sentence is
