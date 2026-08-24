@@ -4,7 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const resultsDir = path.join(root, "results");
+const resultsDir = process.env.REVIEWER_BENCHMARK_RESULTS_DIR
+  ? path.resolve(process.env.REVIEWER_BENCHMARK_RESULTS_DIR)
+  : path.join(root, "results");
 const scorer = path.join(root, "scripts", "score-review.mjs");
 
 const usage = `usage:
@@ -36,10 +38,16 @@ if (command === "score") {
     doesNotProve:
       "This heuristic score is a deterministic proxy for the public rubric in oracle/evaluation-rubric.md. It does not prove reviewer quality beyond the fixed benchmark subject.",
   };
-  fs.writeFileSync(
-    path.join(resultsDir, `${recordName}-${new Date().toISOString().slice(0, 10)}.json`),
-    `${JSON.stringify(record, null, 2)}\n`,
-  );
+  fs.mkdirSync(resultsDir, { recursive: true });
+  const recordPath = path.join(resultsDir, `${recordName}-${new Date().toISOString().slice(0, 10)}.json`);
+  try {
+    fs.writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`, { flag: "wx" });
+  } catch (error) {
+    if (error.code === "EEXIST") {
+      throw new Error(`benchmark result already exists for ${recordName} today: ${recordPath}`);
+    }
+    throw error;
+  }
   console.log(JSON.stringify(record, null, 2));
 } else if (command === "summary") {
   const files = fs.existsSync(resultsDir)

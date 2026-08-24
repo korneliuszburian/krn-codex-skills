@@ -53,6 +53,25 @@ const REQUIRED_FULL_ROLES = {
   ],
   abandoned: ["protocol", "decision", "reviewer-verdict"],
 };
+const CHECKPOINT_ROLES = {
+  preregistration: new Set([...FULL_BASE_ROLES, "reviewer-approval"]),
+  execution: new Set([
+    ...FULL_BASE_ROLES, "reviewer-approval", "primary-results", "telemetry",
+  ]),
+  grading: new Set([
+    ...FULL_BASE_ROLES, "reviewer-approval", "primary-results", "telemetry", "grades",
+  ]),
+  decision: new Set([
+    ...FULL_BASE_ROLES, "reviewer-approval", "primary-results", "telemetry", "grades",
+    "allocation-reveal", "summary", "decision", "reviewer-verdict",
+  ]),
+};
+const CHECKPOINT_STATUS_RANGES = new Map([
+  ["preregistration", ["planned", "approved"]],
+  ["execution", ["running", "executed"]],
+  ["grading", ["executed", "graded"]],
+  ["decision", ["graded", "decided"]],
+]);
 const CAPSULE_TERMINAL_ROLES = ["protocol", "summary", "decision", "reviewer-verdict"];
 const PHASES = ["preregistration", "execution", "grading", "decision"];
 const REQUIRED_PHASES = {
@@ -88,6 +107,50 @@ function gitCommitExists(repositoryRoot, objectId) {
     encoding: "utf8",
   });
   return result.status === 0;
+}
+
+function gitBlob(repositoryRoot, revision, relativePath) {
+  const result = spawnSync("git", ["show", `${revision}:${relativePath}`], {
+    cwd: repositoryRoot,
+    encoding: null,
+  });
+  return result.status === 0 ? result.stdout : null;
+}
+
+function gitParent(repositoryRoot) {
+  const result = spawnSync("git", ["rev-parse", "HEAD^"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
+function gitIsAncestor(repositoryRoot, baseCommit, reviewedCommit) {
+  return spawnSync("git", ["merge-base", "--is-ancestor", baseCommit, reviewedCommit], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  }).status === 0;
+}
+
+function gitCommitChangesPath(repositoryRoot, revision, relativePath) {
+  const parent = spawnSync("git", ["rev-parse", `${revision}^`], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  });
+  if (parent.status !== 0) return gitBlob(repositoryRoot, revision, relativePath) !== null;
+  const currentBlob = gitBlob(repositoryRoot, revision, relativePath);
+  const parentBlob = gitBlob(repositoryRoot, parent.stdout.trim(), relativePath);
+  return currentBlob !== null && (parentBlob === null || sha256Buffer(currentBlob) !== sha256Buffer(parentBlob));
+}
+
+function gitManifest(repositoryRoot, revision, relativePath) {
+  const blob = gitBlob(repositoryRoot, revision, relativePath);
+  if (blob === null) return null;
+  try {
+    return JSON.parse(blob.toString("utf8"));
+  } catch {
+    return undefined;
+  }
 }
 
 function safeRelativePath(value) {
@@ -205,6 +268,69 @@ function validatePhaseHistory(manifest, errors, label, repositoryRoot) {
   }
 }
 
+function validateReviewedCheckpoints(directory, manifest, errors, label, repositoryRoot) {
+  if (!repositoryRoot || manifest.retention !== "full" || !Array.isArray(manifest.phase_history)) return;
+  const relativeManifest = path.relative(repositoryRoot, path.join(directory, "manifest.json"))
+    .split(path.sep).join("/");
+  const currentTarget = JSON.stringify(manifest.target ?? {});
+  const currentArtifacts = new Map((manifest.artifacts ?? [])
+    .map((artifact) => [`${artifact.role}\0${artifact.path}`, artifact.sha256]));
+
+  for (const [index, record] of manifest.phase_history.entries()) {
+    const recordLabel = `${label}: phase_history ${index + 1}`;
+    if (!CHECKPOINT_ROLES[record?.phase]) continue;
+    if (!gitIsAncestor(repositoryRoot, record.base_commit, record.reviewed_commit)) {
+      errors.push(`${recordLabel}: base_commit is not an ancestor of reviewed_commit`);
+    }
+    if (!gitCommitChangesPath(repositoryRoot, record.reviewed_commit, relativeManifest)) {
+      errors.push(`${recordLabel}: reviewed_commit does not change the experiment manifest checkpoint`);
+    }
+    const snapshot = gitManifest(repositoryRoot, record.reviewed_commit, relativeManifest);
+    if (snapshot === null) {
+      errors.push(`${recordLabel}: reviewed_commit does not contain ${relativeManifest}`);
+      continue;
+    }
+    if (snapshot === undefined) {
+      errors.push(`${recordLabel}: reviewed_commit contains an invalid manifest`);
+      continue;
+    }
+    if (snapshot.experiment_id !== manifest.experiment_id) {
+      errors.push(`${recordLabel}: reviewed_commit contains a different experiment`);
+    }
+    const [minimumStatus, maximumStatus] = CHECKPOINT_STATUS_RANGES.get(record.phase);
+    if (!STATUS_RANK.has(snapshot.status) ||
+        STATUS_RANK.get(snapshot.status) < STATUS_RANK.get(minimumStatus) ||
+        STATUS_RANK.get(snapshot.status) > STATUS_RANK.get(maximumStatus)) {
+      errors.push(`${recordLabel}: reviewed_commit snapshot status must be between ${minimumStatus} and ${maximumStatus}`);
+    }
+    if (JSON.stringify(snapshot.target ?? {}) !== currentTarget) {
+      errors.push(`${recordLabel}: reviewed_commit target differs from the current target`);
+    }
+
+    const checkpointRoles = CHECKPOINT_ROLES[record.phase];
+    for (const artifact of snapshot.artifacts ?? []) {
+      if (!checkpointRoles.has(artifact.role) && artifact.role !== "amendment") continue;
+      const key = `${artifact.role}\0${artifact.path}`;
+      if (currentArtifacts.get(key) !== artifact.sha256) {
+        errors.push(`${recordLabel}: frozen artifact ${artifact.role} ${artifact.path} differs from reviewed_commit`);
+      }
+      const artifactPath = `${path.posix.dirname(relativeManifest)}/${artifact.path}`;
+      const blob = gitBlob(repositoryRoot, record.reviewed_commit, artifactPath);
+      if (blob === null) {
+        errors.push(`${recordLabel}: reviewed_commit is missing artifact ${artifact.path}`);
+      } else if (sha256Buffer(blob) !== artifact.sha256) {
+        errors.push(`${recordLabel}: reviewed_commit artifact hash mismatch for ${artifact.path}`);
+      }
+    }
+    const snapshotRequiredRoles = REQUIRED_FULL_ROLES[snapshot.status] ?? [];
+    for (const role of snapshotRequiredRoles) {
+      if (!(snapshot.artifacts ?? []).some((artifact) => artifact.role === role)) {
+        errors.push(`${recordLabel}: reviewed_commit snapshot lacks role ${role}`);
+      }
+    }
+  }
+}
+
 function validateOwnership(manifest, errors, label) {
   const ownership = manifest.ownership;
   for (const field of [
@@ -281,6 +407,7 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
   if (stagedFiles && (!stagedFiles.has(path.resolve(manifestPath)) || !gitStagedContentMatches(repositoryRoot, manifestPath))) {
     errors.push(`${label}/manifest.json: working tree bytes differ from staged Git bytes`);
   }
+  const manifestBytes = fs.readFileSync(manifestPath);
   const manifest = parseJson(manifestPath, errors, `${label}/manifest.json`);
   if (!manifest) return { artifacts: 0 };
 
@@ -308,6 +435,8 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
   validateOwnership(manifest, errors, label);
   validatePhaseHistory(manifest, errors, label, repositoryRoot);
   validateAmendments(manifest, errors, label, repositoryRoot);
+  validateReviewedCheckpoints(directory, manifest, errors, label, repositoryRoot);
+  validateHistoricalFreeze(directory, manifest, errors, label, repositoryRoot, manifestBytes);
   if (!GIT_OBJECT_PATTERN.test(manifest.target?.base_commit ?? "")) {
     errors.push(`${label}: target.base_commit must be a full Git object id`);
   } else if (!gitCommitExists(repositoryRoot, manifest.target.base_commit)) {
@@ -555,6 +684,34 @@ function assertFrozen(previous, next) {
   if (previousRank >= STATUS_RANK.get("approved") &&
       JSON.stringify(previous.target ?? {}) !== JSON.stringify(next.target ?? {})) {
     throw new Error("frozen target changed");
+  }
+}
+
+function validateHistoricalFreeze(directory, manifest, errors, label, repositoryRoot, currentBytes) {
+  if (!repositoryRoot || manifest.retention !== "full" || !STATUS_RANK.has(manifest.status)) return;
+  const relativeManifest = path.relative(repositoryRoot, path.join(directory, "manifest.json"))
+    .split(path.sep).join("/");
+  const headBlob = gitBlob(repositoryRoot, "HEAD", relativeManifest);
+  if (headBlob === null) return;
+
+  let previousRevision;
+  if (sha256Buffer(headBlob) === sha256Buffer(currentBytes)) previousRevision = gitParent(repositoryRoot);
+  else previousRevision = "HEAD";
+  if (!previousRevision) return;
+
+  const previousBlob = gitBlob(repositoryRoot, previousRevision, relativeManifest);
+  if (previousBlob === null || sha256Buffer(previousBlob) === sha256Buffer(currentBytes)) return;
+  let previous;
+  try {
+    previous = JSON.parse(previousBlob.toString("utf8"));
+  } catch (error) {
+    errors.push(`${label}: previous committed manifest is invalid JSON (${error.message})`);
+    return;
+  }
+  try {
+    assertFrozen(previous, manifest);
+  } catch (error) {
+    errors.push(`${label}: committed checkpoint history: ${error.message}`);
   }
 }
 

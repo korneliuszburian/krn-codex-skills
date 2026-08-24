@@ -403,6 +403,69 @@ test("rejects fixed-point SHAs that do not exist in the repository", () => {
   });
 });
 
+test("verifier rejects a rewritten frozen manifest against its committed predecessor", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    manifest.status = "approved";
+    manifest.phase_history = manifest.phase_history.slice(0, 1);
+    const allowed = new Set([
+      "protocol", "schedule", "model-config", "grader-config", "rubric",
+      "allocation-commitment", "stopping-rule", "reviewer-approval",
+    ]);
+    for (const artifact of [...manifest.artifacts]) {
+      if (!allowed.has(artifact.role)) {
+        fs.rmSync(path.join(directory, artifact.path));
+        manifest.artifacts = manifest.artifacts.filter((item) => item.path !== artifact.path);
+      }
+    }
+    writeManifest(directory, manifest);
+    const repositoryRoot = path.dirname(root);
+    assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.email", "test@example.invalid"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.name", "test"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["add", "-A"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "approved checkpoint"], { cwd: repositoryRoot }).status, 0);
+
+    const protocolPath = path.join(directory, "protocol.md");
+    fs.appendFileSync(protocolPath, "rewritten after approval\n");
+    const protocol = manifest.artifacts.find((artifact) => artifact.role === "protocol");
+    protocol.bytes = fs.statSync(protocolPath).size;
+    protocol.sha256 = sha256(protocolPath);
+    writeManifest(directory, manifest);
+    const result = validateExperimentTree(root, { repositoryRoot });
+    assert.ok(
+      result.errors.some((error) => error.includes("committed checkpoint history: frozen artifact changed")),
+      result.errors.join("\n"),
+    );
+  });
+});
+
+test("requires reviewed commits to contain a manifest checkpoint change", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    const repositoryRoot = path.dirname(root);
+    assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.email", "test@example.invalid"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.name", "test"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["add", "-A"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "experiment snapshot"], { cwd: repositoryRoot }).status, 0);
+    const baseCommit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).stdout.trim();
+    fs.writeFileSync(path.join(repositoryRoot, "unrelated.txt"), "unrelated\n");
+    assert.equal(spawnSync("git", ["add", "-A"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "unrelated change"], { cwd: repositoryRoot }).status, 0);
+    const unrelatedCommit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).stdout.trim();
+    manifest.phase_history = manifest.phase_history.map((record) => ({
+      ...record,
+      base_commit: baseCommit,
+      reviewed_commit: unrelatedCommit,
+    }));
+    writeManifest(directory, manifest);
+    const result = validateExperimentTree(root, { repositoryRoot });
+    assert.ok(
+      result.errors.some((error) => error.includes("does not change the experiment manifest checkpoint")),
+      result.errors.join("\n"),
+    );
+  });
+});
+
 test("seal is deterministic and terminal committed manifests cannot be resealed", () => {
   withExperiment(({ directory, manifest }) => {
     const first = sealExperiment(directory);

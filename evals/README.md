@@ -137,6 +137,14 @@ sequence is: stage planned artifacts, run `seal`, then run `verify`.
 `npm run validate` includes the same check, so a stale or partial experiment
 cannot merge as apparently valid repository state.
 
+When a full experiment already has a committed predecessor, `verify` also
+compares the current manifest with that prior revision and rejects rewritten
+frozen roles, phase history, targets, or scan exceptions even when the edited
+manifest supplies new hashes. Each phase-history `reviewed_commit` must be an
+ancestor of its declared base relationship, contain the experiment manifest,
+and change that manifest at the checkpoint; the checkpoint snapshot and its
+frozen artifact blobs must match the current record.
+
 The 5 MiB per-file and 50 MiB per-experiment limits are conservative v1 merge
 limits, not a repository growth guarantee. Larger or sensitive raw evidence
 belongs in a separate private Git evidence repository; `main` retains a reviewed

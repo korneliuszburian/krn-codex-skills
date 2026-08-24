@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -96,5 +96,28 @@ test("non-JSON review input scores 0 with reason", () => {
     assert.equal(JSON.parse(output).score, 0);
   } finally {
     fs.rmSync(path.dirname(file), { recursive: true, force: true });
+  }
+});
+
+test("refuses to overwrite a same-day benchmark result", () => {
+  const resultsDir = fs.mkdtempSync(path.join(os.tmpdir(), "benchmark-results-"));
+  const outputPath = path.join(resultsDir, "review.json");
+  const review = JSON.stringify({ verdict: "approve", summary: "nothing found", findings: [] });
+  const env = { ...process.env, REVIEWER_BENCHMARK_RESULTS_DIR: resultsDir };
+  const runner = path.resolve("evals/reviewer-benchmark/scripts/reviewer-benchmark.mjs");
+  try {
+    const first = execFileSync(process.execPath, [runner, "run", `printf '%s' '${review}'`, outputPath, "collision-test"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.match(first, /collision-test/);
+    const second = spawnSync(process.execPath, [runner, "run", `printf '%s' '${review}'`, outputPath, "collision-test"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.notEqual(second.status, 0);
+    assert.match(`${second.stdout}\n${second.stderr}`, /already exists/);
+  } finally {
+    fs.rmSync(resultsDir, { recursive: true, force: true });
   }
 });
