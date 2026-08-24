@@ -14,6 +14,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
 - [evals/README.md](evals/README.md) — Git-native experiment lifecycle, reviewer fixed points, and artifact integrity.
 - [skills/meta/unlazy/SKILL.md](skills/meta/unlazy/SKILL.md) — explicit completion ledger with approved checks and re-verification; it does not own lifecycle state or sandbox commands.
+- [skills/meta/unslop/SKILL.md](skills/meta/unslop/SKILL.md) — explicit prose audit/rewrite with protected factual and technical fragments; it does not own publication or fact-checking.
 
 ## System vocabulary
 

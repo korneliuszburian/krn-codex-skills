@@ -88,6 +88,7 @@ tracker capability is emulated.
 | [`opencode-second-opinion`](skills/advisory/opencode-second-opinion/SKILL.md) | explicit only | bounded independent-model opinion on one explicit path, without diffs |
 | [`managing-codex-capabilities`](skills/meta/managing-codex-capabilities/SKILL.md) | model or user | global skill, plugin, MCP, and profile control |
 | [`unlazy`](skills/meta/unlazy/SKILL.md) | explicit only | machine-checked completion gates for long or multi-phase work |
+| [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
 
 The shared engineering flow (wayfinder, to-spec, implement, diagnosing-bugs,
 prototype, codebase-design, code-review, domain-modeling, tdd, triage, wizard,

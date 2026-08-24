@@ -69,6 +69,11 @@
       "name": "unlazy",
       "path": "skills/meta/unlazy",
       "implicit": false
+    },
+    {
+      "name": "unslop",
+      "path": "skills/meta/unslop",
+      "implicit": false
     }
   ],
   "retired_skills": [
