@@ -466,6 +466,110 @@ test("requires reviewed commits to contain a manifest checkpoint change", () => 
   });
 });
 
+test("requires execution review snapshots to contain completed outputs", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    const complete = structuredClone(manifest);
+    const repositoryRoot = path.dirname(root);
+    assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.email", "test@example.invalid"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.name", "test"], { cwd: repositoryRoot }).status, 0);
+    fs.writeFileSync(path.join(repositoryRoot, ".base"), "base\n");
+    assert.equal(spawnSync("git", ["add", ".base"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "base"], { cwd: repositoryRoot }).status, 0);
+    const baseCommit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).stdout.trim();
+
+    const baseRoles = new Set([
+      "protocol", "schedule", "model-config", "grader-config", "rubric",
+      "allocation-commitment", "stopping-rule", "reviewer-approval",
+    ]);
+    manifest.status = "running";
+    manifest.phase_history = [{
+      ...manifest.phase_history[0],
+      base_commit: baseCommit,
+      reviewed_commit: baseCommit,
+    }];
+    manifest.target = { base_commit: baseCommit, head: baseCommit };
+    manifest.artifacts = manifest.artifacts.filter((artifact) => baseRoles.has(artifact.role));
+    writeManifest(directory, manifest);
+    assert.equal(spawnSync("git", ["add", "-A"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "running checkpoint"], { cwd: repositoryRoot }).status, 0);
+    const reviewedCommit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).stdout.trim();
+
+    const executionRoles = new Set([...baseRoles, "primary-results", "telemetry"]);
+    for (const artifact of complete.artifacts) {
+      if (!executionRoles.has(artifact.role)) fs.rmSync(path.join(directory, artifact.path));
+    }
+    complete.status = "executed";
+    complete.phase_history = [
+      { ...complete.phase_history[0], base_commit: baseCommit, reviewed_commit: baseCommit },
+      {
+        ...complete.phase_history[1],
+        base_commit: baseCommit,
+        reviewed_commit: reviewedCommit,
+      },
+    ];
+    complete.target = { base_commit: baseCommit, head: baseCommit };
+    complete.artifacts = complete.artifacts.filter((artifact) => executionRoles.has(artifact.role));
+    writeManifest(directory, complete);
+    const result = validateExperimentTree(root, { repositoryRoot });
+    assert.ok(
+      result.errors.some((error) => error.includes("phase_history 2: reviewed_commit snapshot status must be between executed and executed")),
+      result.errors.join("\n"),
+    );
+  });
+});
+
+test("binds amendment review commits to the amendment artifact and ancestry", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    manifest.status = "approved";
+    manifest.phase_history = manifest.phase_history.slice(0, 1);
+    const allowed = new Set([
+      "protocol", "schedule", "model-config", "grader-config", "rubric",
+      "allocation-commitment", "stopping-rule", "reviewer-approval",
+    ]);
+    for (const artifact of [...manifest.artifacts]) {
+      if (!allowed.has(artifact.role)) {
+        fs.rmSync(path.join(directory, artifact.path));
+        manifest.artifacts = manifest.artifacts.filter((item) => item.path !== artifact.path);
+      }
+    }
+    const amendmentPath = path.join(directory, "amendment.md");
+    fs.writeFileSync(amendmentPath, "reviewed amendment\n");
+    manifest.artifacts.push({
+      path: "amendment.md",
+      role: "amendment",
+      visibility: "reviewer",
+      bytes: fs.statSync(amendmentPath).size,
+      sha256: sha256(amendmentPath),
+    });
+
+    const repositoryRoot = path.dirname(root);
+    assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.email", "test@example.invalid"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.name", "test"], { cwd: repositoryRoot }).status, 0);
+    fs.writeFileSync(path.join(repositoryRoot, ".base"), "base\n");
+    assert.equal(spawnSync("git", ["add", ".base"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "base"], { cwd: repositoryRoot }).status, 0);
+    const reviewedCommit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).stdout.trim();
+    fs.writeFileSync(path.join(repositoryRoot, "later.txt"), "later\n");
+    assert.equal(spawnSync("git", ["add", "later.txt"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "later"], { cwd: repositoryRoot }).status, 0);
+    const baseCommit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).stdout.trim();
+
+    manifest.amendments = [{
+      path: "amendment.md",
+      base_commit: baseCommit,
+      reviewed_commit: reviewedCommit,
+      reviewer: "independent-reviewer",
+      reviewed_at: "2026-08-21T10:00:00+02:00",
+    }];
+    writeManifest(directory, manifest);
+    const result = validateExperimentTree(root, { repositoryRoot });
+    assert.ok(result.errors.some((error) => error.includes("amendment 1: base_commit is not an ancestor")), result.errors.join("\n"));
+    assert.ok(result.errors.some((error) => error.includes("amendment 1: reviewed_commit does not contain")), result.errors.join("\n"));
+  });
+});
+
 test("seal is deterministic and terminal committed manifests cannot be resealed", () => {
   withExperiment(({ directory, manifest }) => {
     const first = sealExperiment(directory);

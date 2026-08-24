@@ -68,9 +68,9 @@ const CHECKPOINT_ROLES = {
 };
 const CHECKPOINT_STATUS_RANGES = new Map([
   ["preregistration", ["planned", "approved"]],
-  ["execution", ["running", "executed"]],
-  ["grading", ["executed", "graded"]],
-  ["decision", ["graded", "decided"]],
+  ["execution", ["executed", "executed"]],
+  ["grading", ["graded", "graded"]],
+  ["decision", ["decided", "decided"]],
 ]);
 const CAPSULE_TERMINAL_ROLES = ["protocol", "summary", "decision", "reviewer-verdict"];
 const PHASES = ["preregistration", "execution", "grading", "decision"];
@@ -346,7 +346,7 @@ function validateOwnership(manifest, errors, label) {
   }
 }
 
-function validateAmendments(manifest, errors, label, repositoryRoot) {
+function validateAmendments(manifest, errors, label, repositoryRoot, directory) {
   if (!Array.isArray(manifest.amendments)) {
     if (manifest.retention === "full") errors.push(`${label}: amendments must be an array`);
     return;
@@ -357,6 +357,9 @@ function validateAmendments(manifest, errors, label, repositoryRoot) {
       .map((artifact) => artifact.path),
   );
   const seen = new Set();
+  const relativeManifest = repositoryRoot && directory
+    ? path.relative(repositoryRoot, path.join(directory, "manifest.json")).split(path.sep).join("/")
+    : null;
   for (const [index, amendment] of manifest.amendments.entries()) {
     const amendmentLabel = `${label}: amendment ${index + 1}`;
     if (!safeRelativePath(amendment?.path)) errors.push(`${amendmentLabel} has an unsafe path`);
@@ -365,11 +368,46 @@ function validateAmendments(manifest, errors, label, repositoryRoot) {
     }
     if (seen.has(amendment?.path)) errors.push(`${amendmentLabel} duplicates an amendment path`);
     seen.add(amendment?.path);
+    let validCommits = true;
     for (const field of ["base_commit", "reviewed_commit"]) {
       if (!GIT_OBJECT_PATTERN.test(amendment?.[field] ?? "")) {
         errors.push(`${amendmentLabel} ${field} must be a full Git object id`);
+        validCommits = false;
       } else if (!gitCommitExists(repositoryRoot, amendment[field])) {
         errors.push(`${amendmentLabel} ${field} does not resolve to a Git commit`);
+        validCommits = false;
+      }
+    }
+    if (repositoryRoot && relativeManifest && validCommits) {
+      if (!gitIsAncestor(repositoryRoot, amendment.base_commit, amendment.reviewed_commit)) {
+        errors.push(`${amendmentLabel}: base_commit is not an ancestor of reviewed_commit`);
+      }
+      const snapshot = gitManifest(repositoryRoot, amendment.reviewed_commit, relativeManifest);
+      if (snapshot === null) {
+        errors.push(`${amendmentLabel}: reviewed_commit does not contain ${relativeManifest}`);
+      } else if (snapshot === undefined) {
+        errors.push(`${amendmentLabel}: reviewed_commit contains an invalid manifest`);
+      } else {
+        const snapshotArtifact = (snapshot.artifacts ?? []).find(
+          (artifact) => artifact.role === "amendment" && artifact.path === amendment.path,
+        );
+        if (!snapshotArtifact) {
+          errors.push(`${amendmentLabel}: reviewed_commit does not contain amendment artifact ${amendment.path}`);
+        } else {
+          const artifactPath = `${path.posix.dirname(relativeManifest)}/${amendment.path}`;
+          const blob = gitBlob(repositoryRoot, amendment.reviewed_commit, artifactPath);
+          if (blob === null) {
+            errors.push(`${amendmentLabel}: reviewed_commit is missing amendment artifact ${amendment.path}`);
+          } else if (sha256Buffer(blob) !== snapshotArtifact.sha256) {
+            errors.push(`${amendmentLabel}: reviewed_commit amendment hash mismatch for ${amendment.path}`);
+          }
+          const currentArtifact = (manifest.artifacts ?? []).find(
+            (artifact) => artifact.role === "amendment" && artifact.path === amendment.path,
+          );
+          if (currentArtifact?.sha256 !== snapshotArtifact.sha256) {
+            errors.push(`${amendmentLabel}: current amendment hash differs from reviewed_commit`);
+          }
+        }
       }
     }
     if (typeof amendment?.reviewer !== "string" || !amendment.reviewer.trim()) {
@@ -434,7 +472,7 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
   }
   validateOwnership(manifest, errors, label);
   validatePhaseHistory(manifest, errors, label, repositoryRoot);
-  validateAmendments(manifest, errors, label, repositoryRoot);
+  validateAmendments(manifest, errors, label, repositoryRoot, directory);
   validateReviewedCheckpoints(directory, manifest, errors, label, repositoryRoot);
   validateHistoricalFreeze(directory, manifest, errors, label, repositoryRoot, manifestBytes);
   if (!GIT_OBJECT_PATTERN.test(manifest.target?.base_commit ?? "")) {

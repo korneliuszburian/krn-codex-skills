@@ -13,7 +13,7 @@
     "test:hooks": "python3 -B -m unittest scripts/hooks/test_destructive_guard.py",
     "test:validate": "node --test scripts/validate.test.mjs",
     "test:second-opinion": "node --test skills/advisory/opencode-second-opinion/scripts/*.test.mjs",
-    "test:benchmark": "node --test evals/reviewer-benchmark/scripts/*.test.mjs",
+    "test:benchmark": "node --test evals/reviewer-benchmark/scripts/*.test.mjs scripts/review-scorecard.test.mjs",
     "test:experiments": "node --test scripts/verify-experiments.test.mjs",
     "test:seal": "node --test scripts/seal-experiment.test.mjs",
     "benchmark:reviewer": "node evals/reviewer-benchmark/scripts/reviewer-benchmark.mjs",
