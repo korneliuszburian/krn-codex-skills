@@ -62,3 +62,52 @@ This pilot does not prove general human-likeness, detector evasion, factual
 quality, or usefulness for code, logs, schemas, or raw evidence. A later
 decision must report those non-proofs and may retain the skill as explicit-only
 even if the pilot is useful.
+
+## Exploratory overlay result
+
+An exploratory six-task smoke pilot ran on 2026-08-24 after the skill merge.
+Each task ran once in a baseline fixture and once in an otherwise identical
+fixture with a compact Fabien-style `AGENTS.md` overlay. The 12 runs used
+`gpt-5.6-sol`, `workspace-write`, `--ephemeral`, `--ignore-user-config`, and
+`--ignore-rules`. Three code tasks passed their existing tests in both lanes;
+three prose tasks preserved their required facts and protected fragments.
+
+Observed differences:
+
+- one retry implementation was byte-identical;
+- a host/port implementation was shorter under the overlay, with only error
+  wording differences in independent probes;
+- a `formatBytes` implementation extracted constants under the overlay but
+  silently truncated its unit list: `1 ZiB` became `1024 EiB` for an input
+  outside the visible tests;
+- prose rewrites were sometimes more scannable, but one release note was
+  identical and no blinded human preference was collected.
+
+This is evidence against a global coding-style overlay, not evidence against
+all scoped prose guidance. Keep the KRN skill explicit-only and keep global
+`config/AGENTS.md` unchanged. The raw fixtures, JSONL, diffs, and technical
+summary remain outside the canonical repository at:
+
+`/mnt/storage/coding/krn/agent-style-pilot-v2/`
+
+The durable conclusion is still `lab-test`: a future prose-only pilot needs
+human preference and semantic-preservation review before any promotion.
+
+## Strong-overlay falsifier
+
+A second exploratory run on 2026-08-24 tested a stronger KRN/Fabien-style
+overlay with coding rules for constants, control flow, comments, test-first
+work, API boundaries, and concise reports. It used the same six-task pair design
+and 12 fresh `gpt-5.6-sol` runs.
+
+All visible code tests passed, but independent probes found behavior changes
+outside those tests. The overlay's `formatBytes` implementation truncated the
+unit list, changing `1024 ** 7` from `1 ZiB` to `1024 EiB`. Its `parseHostPort`
+implementation also collapsed distinct malformed-input errors into one error
+type. On prose, it sometimes improved scanability but also added unnecessary
+headings to a short README; another release-note result was identical.
+
+This falsifies the broad coding-style overlay as a safe global `AGENTS.md`
+change. Keep the global contract unchanged. `$unslop` remains an explicit,
+prose-scoped lab-test; any future promotion needs a human preference study with
+semantic-preservation checks.
