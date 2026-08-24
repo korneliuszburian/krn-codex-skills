@@ -11,6 +11,7 @@ const DEFAULT_TIMEOUT_SECONDS = 120;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const KNOWN_ATTRIBUTES = new Set(["CHECK", "EXPECT", "CWD", "EVIDENCE"]);
 const ATTRIBUTE_LIKE = /^\s{2,}([A-Za-z][A-Za-z0-9_-]*)[ \t]*:(?:[ \t]*(.*))?$/;
+const MALFORMED_KNOWN_ATTRIBUTE = /^\s*(CHECK|EXPECT|CWD|EVIDENCE)\b/;
 
 function fail(message, code = 2) {
   console.error(`gate-check: ${message}`);
@@ -81,7 +82,11 @@ function parseLedger(ledgerPath) {
       continue;
     }
     const attribute = line.match(ATTRIBUTE_LIKE);
-    if (!attribute) continue;
+    if (!attribute) {
+      const malformed = line.match(MALFORMED_KNOWN_ATTRIBUTE);
+      if (malformed) throw new Error(`${current?.id || "ledger"}: malformed ${malformed[1]} attribute`);
+      continue;
+    }
     const [, key, value = ""] = attribute;
     if (!KNOWN_ATTRIBUTES.has(key)) throw new Error(`${current?.id || "ledger"}: unknown attribute ${key}`);
     if (!current) throw new Error(`${key} attribute appears outside a gate`);

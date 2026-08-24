@@ -105,6 +105,25 @@ test("rejects unknown and empty gate attributes", () => {
   }
 });
 
+test("rejects known attributes with malformed indentation or delimiters", () => {
+  const cases = [
+    ["missing-colon", "  CWD packages/api", /G1: malformed CWD attribute/],
+    ["one-space", " CWD: packages/api", /G1: malformed CWD attribute/],
+    ["unindented", "CHECK: node -e \\\"console.log('ok')\\\"", /G1: malformed CHECK attribute/],
+    ["missing-check-colon", "  CHECK node -e \\\"console.log('ok')\\\"", /G1: malformed CHECK attribute/],
+  ];
+  for (const [name, line, expected] of cases) {
+    const { root, ledger } = fixture(`# Gates: malformed attributes ${name}\n\n- [ ] G1: invalid\n${line}\n  EXPECT: ok\n  EVIDENCE: pending\n`);
+    try {
+      const result = run(["--status", ledger], root);
+      assert.equal(result.status, 2, `${name}: ${result.stdout}\n${result.stderr}`);
+      assert.match(result.stderr, expected);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
 test("rejects a malformed gate-like checkbox line", () => {
   const { root, ledger, approvals } = fixture(`# Gates: malformed\n\n- [ ] G1 missing colon\n- [x] G2: valid but not enough\n  EVIDENCE: reviewed\n`);
   try {

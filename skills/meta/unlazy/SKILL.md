@@ -42,7 +42,8 @@ Scope: <one complete outcome>
 Use unique IDs. A runnable gate has both `CHECK` and `EXPECT`; a manual gate
 has neither. Keep `EVIDENCE` on every gate. Use `ABANDON: <id> <reason>` only
 when the outcome is genuinely impossible, and report that abandonment.
-The parser rejects unknown indented attributes, empty explicit attributes, and
+The parser rejects unknown indented attributes, malformed `CHECK`/`EXPECT`/
+`CWD`/`EVIDENCE` indentation or delimiters, empty explicit attributes, and
 malformed `ABANDON` directives rather than treating them as prose. `CWD`, when
 provided, must be a repository-relative directory that resolves inside the
 repository; absolute, traversal, missing, and escaping-symlink paths are
