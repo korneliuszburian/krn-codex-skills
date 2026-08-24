@@ -477,12 +477,12 @@ function validateManifest(directory, errors, trackedFiles, stagedFiles, reposito
   validateHistoricalFreeze(directory, manifest, errors, label, repositoryRoot, manifestBytes);
   if (!GIT_OBJECT_PATTERN.test(manifest.target?.base_commit ?? "")) {
     errors.push(`${label}: target.base_commit must be a full Git object id`);
-  } else if (!gitCommitExists(repositoryRoot, manifest.target.base_commit)) {
+  } else if (manifest.retention === "full" && !gitCommitExists(repositoryRoot, manifest.target.base_commit)) {
     errors.push(`${label}: target.base_commit does not resolve to a Git commit`);
   }
   if (!GIT_OBJECT_PATTERN.test(manifest.target?.head ?? "")) {
     errors.push(`${label}: target.head must be a full Git object id`);
-  } else if (!gitCommitExists(repositoryRoot, manifest.target.head)) {
+  } else if (manifest.retention === "full" && !gitCommitExists(repositoryRoot, manifest.target.head)) {
     errors.push(`${label}: target.head does not resolve to a Git commit`);
   }
   if (!Array.isArray(manifest.artifacts) || manifest.artifacts.length === 0) {
