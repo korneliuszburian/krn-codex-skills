@@ -403,6 +403,41 @@ test("rejects fixed-point SHAs that do not exist in the repository", () => {
   });
 });
 
+test("permits unavailable historical target objects for capsule-only records", () => {
+  withExperiment(({ root, directory, manifest }) => {
+    manifest.status = "decided";
+    manifest.retention = "capsule-only";
+    manifest.epistemic_status = "exploratory-backfill";
+    manifest.phase_history = [];
+    const allowed = new Set(["protocol", "summary", "decision", "reviewer-verdict"]);
+    for (const artifact of [...manifest.artifacts]) {
+      if (!allowed.has(artifact.role)) {
+        fs.rmSync(path.join(directory, artifact.path));
+        manifest.artifacts = manifest.artifacts.filter((item) => item.path !== artifact.path);
+      }
+    }
+    manifest.omissions = [{
+      class: "historical evidence",
+      reason: "private source retained externally",
+      reason_code: "external-evidence",
+      source_pointer: "sha256:" + "a".repeat(64),
+      omitted_roles: ["primary-results"],
+      omitted_count: 1,
+      aggregate_sha256: "b".repeat(64),
+    }];
+    writeManifest(directory, manifest);
+    const repositoryRoot = path.dirname(root);
+    assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.email", "test@example.invalid"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.name", "test"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["add", "-A"], { cwd: repositoryRoot }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "--quiet", "-m", "capsule fixture"], { cwd: repositoryRoot }).status, 0);
+    const result = validateExperimentTree(root, { repositoryRoot });
+    assert.ok(!result.errors.some((error) => error.includes("target.base_commit does not resolve")), result.errors.join("\n"));
+    assert.ok(!result.errors.some((error) => error.includes("target.head does not resolve")), result.errors.join("\n"));
+  });
+});
+
 test("verifier rejects a rewritten frozen manifest against its committed predecessor", () => {
   withExperiment(({ root, directory, manifest }) => {
     manifest.status = "approved";

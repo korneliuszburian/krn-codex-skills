@@ -308,6 +308,7 @@
         "delivery-loop",
         "managing-codex-capabilities",
         "opencode-second-opinion",
+        "unlazy",
         "setup-repository-workflow",
         "slice-work",
         "source-to-decision",
@@ -435,6 +436,28 @@
         "delivery-loop"
       ],
       "forbidden_skills": []
+    },
+    {
+      "id": "unlazy-long-work-gates-completion",
+      "prompt": "Use $unlazy for this long multi-phase change with several runnable checks and one manual review. Create a private gate ledger, approve only the commands you understand, run the checks, and reverify every gate before reporting completion.",
+      "expected_skills": [
+        "unlazy"
+      ],
+      "forbidden_skills": [
+        "source-to-decision",
+        "setup-repository-workflow",
+        "opencode-second-opinion"
+      ]
+    },
+    {
+      "id": "unlazy-is-not-a-source-decision",
+      "prompt": "Read the official API documentation and decide whether our named consumer should adopt the retry contract. Return the local disposition and falsifier; do not create a completion ledger.",
+      "expected_skills": [
+        "source-to-decision"
+      ],
+      "forbidden_skills": [
+        "unlazy"
+      ]
     }
   ]
 }
