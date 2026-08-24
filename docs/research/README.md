@@ -26,6 +26,7 @@ Git history records the sequence.
 | Capability surface | [capabilities.md](../capabilities.md) | named profiles and evidence-bounded reconciliation | catalog schema, runtime event, or trust boundary changes |
 | Installation and retirement | [migration.md](../migration.md) | collision-safe symlinks, explicit archive authority, recoverable retirement | installer target or host layout changes |
 | Codex completion ledger | [unlazy-codex-port.md](unlazy-codex-port.md) | optional gate ledger with explicit approval and re-verification; no sandbox or lifecycle ownership | second real long-task pilot, measured operator cost, or a false-completion miss |
+| Prose quality and unslop | [unslop-codex-port.md](unslop-codex-port.md) | explicit audit/rewrite candidate with protected facts and technical fragments; not an always-on humanizer | blinded pilot shows semantic drift, no preference gain, or unacceptable review cost |
 
 ## Primary source ledger
 

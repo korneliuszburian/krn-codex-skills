@@ -309,6 +309,7 @@
         "managing-codex-capabilities",
         "opencode-second-opinion",
         "unlazy",
+        "unslop",
         "setup-repository-workflow",
         "slice-work",
         "source-to-decision",
@@ -457,6 +458,25 @@
       ],
       "forbidden_skills": [
         "unlazy"
+      ]
+    },
+    {
+      "id": "unslop-explicit-prose-rewrite",
+      "prompt": "Use $unslop in rewrite mode on this Polish project update. Keep the facts, numbers, links, and direct quotes unchanged, but remove generic AI phrasing and make the voice more direct.",
+      "expected_skills": [
+        "unslop"
+      ],
+      "forbidden_skills": [
+        "source-to-decision",
+        "unlazy"
+      ]
+    },
+    {
+      "id": "unslop-preserves-exact-quote",
+      "prompt": "Do not rewrite this exact legal quotation or the JSON payload. Tell me only whether a separate prose summary would be useful.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "unslop"
       ]
     }
   ]
