@@ -112,7 +112,10 @@ or silently repair failed trials.
 After approval, protocol, schedule, prompt, model/runtime configuration, grader,
 rubric, allocation commitment, sample, retry policy, and stopping rule are
 immutable. An infrastructure amendment before reveal requires a new reviewed
-fixed point and explicit amendment artifact. A failure that compromises
+fixed point and explicit amendment artifact. In a full manifest, every
+`role: amendment` artifact has one matching append-only `amendments[]` record
+with its path, base and reviewed Git commits, reviewer identity, and review
+timestamp; the referenced commits must exist. A failure that compromises
 independence, completeness, or blinding abandons the run instead of being
 silently repaired.
 
