@@ -37,9 +37,11 @@ completion mechanism.
 KRN adds an explicit-only `skills/meta/unlazy` skill. Its checker stores a run
 ledger under `.krn/runs/unlazy/<run-id>/` and approval records outside the
 repository. It binds approval to the command, expectation, CWD, shell, timeout,
-`PATH`, platform, and Node version. It supports `--status`, `--approve`, and
-`--reverify`. It makes no sandbox claim and does not own Goal state, publication,
-or lifecycle transitions; `$delivery-loop` remains the lifecycle owner.
+`PATH`, platform, Node version, and an inherited environment hash. It refuses to
+write a ledger that Git can track and defaults gate commands to the repository
+root. It supports `--status`, `--approve`, and `--reverify`. It makes no sandbox
+claim and does not own Goal state, publication, or lifecycle transitions;
+`$delivery-loop` remains the lifecycle owner.
 
 ## Pilot evidence
 

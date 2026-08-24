@@ -11,6 +11,7 @@ function fixture(content) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "krn-unlazy-test-"));
   const ledger = path.join(root, "GATES.md");
   const approvals = path.join(root, "approvals");
+  fs.writeFileSync(path.join(root, ".gitignore"), "GATES.md\n");
   fs.writeFileSync(ledger, content);
   return { root, ledger, approvals };
 }
@@ -118,10 +119,45 @@ test("binds approval to PATH, platform, and Node version", () => {
     assert.equal(approval.pathEnv, process.env.PATH);
     assert.equal(approval.platform, process.platform);
     assert.equal(approval.nodeVersion, process.version);
+    assert.match(approval.environmentHash, /^[a-f0-9]{64}$/);
     const changedPath = run(["--reverify", "--approval-dir", approvals, ledger], root, { PATH: "/tmp/unlazy-different-path" });
     assert.equal(changedPath.status, 1);
     assert.match(changedPath.stdout, /approval pending/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects a ledger that is not ignored before writing evidence", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "krn-unlazy-unignored-"));
+  const ledger = path.join(root, "GATES.md");
+  const approvals = path.join(root, "..", `${path.basename(root)}-approvals`);
+  fs.writeFileSync(ledger, `# Gates: unignored\n\n- [ ] G1: command\n  CHECK: node -e "console.log('ok')"\n  EXPECT: ok\n  EVIDENCE: pending\n`);
+  assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: root }).status, 0);
+  try {
+    const result = run(["--approve", "--approval-dir", approvals, ledger], root);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /ledger must be ignored before writing/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(approvals, { recursive: true, force: true });
+  }
+});
+
+test("defaults gate CWD to the repository root", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "krn-unlazy-cwd-"));
+  const ledgerDir = path.join(root, ".krn", "runs", "unlazy", "run");
+  const ledger = path.join(ledgerDir, "GATES.md");
+  const approvals = path.join(root, "..", `${path.basename(root)}-approvals`);
+  fs.mkdirSync(ledgerDir, { recursive: true });
+  fs.writeFileSync(path.join(root, ".gitignore"), ".krn/runs/\n");
+  fs.writeFileSync(ledger, `# Gates: cwd\n\n- [ ] G1: root\n  CHECK: node -e "console.log(process.cwd())"\n  EXPECT: ${root}\n  EVIDENCE: pending\n`);
+  assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: root }).status, 0);
+  try {
+    const result = run(["--approve", "--approval-dir", approvals, ledger], root);
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(approvals, { recursive: true, force: true });
   }
 });

@@ -115,11 +115,22 @@ function isWithin(root, candidate) {
   return resolvedCandidate === resolvedRoot || resolvedCandidate.startsWith(`${resolvedRoot}${path.sep}`);
 }
 
+function ledgerIsIgnored(repositoryRoot, ledgerPath) {
+  const relative = path.relative(repositoryRoot, ledgerPath);
+  return spawnSync("git", ["-C", repositoryRoot, "check-ignore", "--quiet", "--", relative], { encoding: "utf8" }).status === 0;
+}
+
+function environmentHash() {
+  const entries = Object.entries(process.env).sort(([left], [right]) => left.localeCompare(right));
+  return crypto.createHash("sha256").update(JSON.stringify(entries)).digest("hex");
+}
+
 function bindingFor(ledgerPath, gate, cwd, timeout) {
   return {
     ledger: path.resolve(ledgerPath), gate: gate.id, check: gate.check,
     expect: gate.expect, cwd, shell: "/bin/sh", timeout,
     pathEnv: process.env.PATH || "", platform: process.platform, nodeVersion: process.version,
+    environmentHash: environmentHash(),
   };
 }
 
@@ -129,9 +140,9 @@ function approvalPath(directory, binding) {
 }
 
 function expectedMatches(expect, output) {
-  if (expect.startsWith("/") && expect.lastIndexOf("/") > 0) {
-    const slash = expect.lastIndexOf("/");
-    try { return new RegExp(expect.slice(1, slash), expect.slice(slash + 1)).test(output); } catch { return false; }
+  const regex = expect.match(/^\/([\s\S]*)\/([dgimsuvy]*)$/);
+  if (regex) {
+    try { return new RegExp(regex[1], regex[2]).test(output); } catch { return false; }
   }
   return output.includes(expect);
 }
@@ -141,7 +152,8 @@ function compactOutput(output) {
 }
 
 function runGate(ledgerPath, gate, options, requireApproval) {
-  const cwd = path.resolve(path.dirname(ledgerPath), gate.cwd || ".");
+  const baseDirectory = repositoryRootFor(ledgerPath) || path.dirname(ledgerPath);
+  const cwd = path.resolve(baseDirectory, gate.cwd || ".");
   if (!fs.existsSync(cwd)) return { ok: false, evidence: `cwd-missing=${cwd}` };
   const binding = bindingFor(ledgerPath, gate, cwd, options.timeout);
   const directory = approvalDirectory(options);
@@ -187,13 +199,22 @@ function main() {
     fail("approval directory must be outside the repository");
     return 2;
   }
+  if (repositoryRoot && options.mode !== "status" && !ledgerIsIgnored(repositoryRoot, ledger)) {
+    fail("ledger must be ignored before writing evidence");
+    return 2;
+  }
   let parsed;
   try { parsed = parseLedger(ledger); } catch (error) { fail(error.message); return 2; }
   const results = new Map();
   let unmet = 0;
   for (const gate of parsed.gates) {
     if (gate.abandoned) { console.log(`ABANDONED ${gate.id}: ${gate.abandoned}`); unmet += 1; continue; }
-    if (!gate.check) { console.log(`${gate.checked ? "MET" : "UNMET"} ${gate.id} (manual)`); if (!gate.checked) unmet += 1; continue; }
+    if (!gate.check) {
+      const manualMet = gate.checked && gate.evidence.trim().toLowerCase() !== "pending";
+      console.log(`${manualMet ? "MET" : "UNMET"} ${gate.id} (manual)`);
+      if (!manualMet) unmet += 1;
+      continue;
+    }
     const shouldRun = options.mode === "approve" || options.mode === "reverify" || (!gate.checked && options.mode === "run");
     if (!shouldRun) { if (!gate.checked) unmet += 1; continue; }
     const result = runGate(ledger, gate, options, options.mode !== "approve");

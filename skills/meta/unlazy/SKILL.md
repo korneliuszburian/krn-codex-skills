@@ -10,7 +10,8 @@ work. Skip it for a small edit with a clear focused check.
 
 The ledger makes completion visible. It does not make commands safe or create a
 sandbox. Approval means that the exact command, expectation, working directory,
-shell, timeout, `PATH`, platform, and Node version were reviewed. It does not grant
+shell, timeout, `PATH`, platform, Node version, and inherited environment hash
+were reviewed. It does not grant
 filesystem, network, credential, publication, or merge authority.
 
 ## 1. Create the ledger
@@ -41,6 +42,10 @@ Scope: <one complete outcome>
 Use unique IDs. A runnable gate has both `CHECK` and `EXPECT`; a manual gate
 has neither. Keep `EVIDENCE` on every gate. Use `ABANDON: <id> <reason>` only
 when the outcome is genuinely impossible, and report that abandonment.
+Before writing the ledger, verify that its path is ignored by Git. The checker
+refuses to write evidence for a trackable ledger. If `CWD` is omitted, commands
+run from the repository root; set `CWD` to a repository-relative directory only
+when the gate needs another location.
 
 ## 2. Inspect before running
 
