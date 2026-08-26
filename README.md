@@ -135,6 +135,7 @@ test -d "$UPSTREAM_SKILLS_ROOTS"
 test -e "$UPSTREAM_SKILLS_ROOTS/skills/engineering/code-review/SKILL.md"
 
 env KRN_UPSTREAM_SKILLS_ROOTS="$UPSTREAM_SKILLS_ROOTS" \
+  KRN_REPLACE_GLOBAL_SKILLS=1 \
   KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
   KRN_REPLACE_GLOBAL_CLAUDE=1 KRN_REPLACE_GLOBAL_HOOKS=1 \
   scripts/install.sh install
@@ -146,6 +147,10 @@ installer preserves an upstream-owned symlink. If an upstream-owned retired
 link exists, omitting the root fails closed. Do not set
 `KRN_ARCHIVE_LEGACY=1` until the upstream root is verified; stale or foreign
 targets still require archive authority.
+
+`KRN_REPLACE_GLOBAL_SKILLS=1` is required only when the installed KRN links
+come from another clean worktree of this same Git repository. The installer
+archives those links before replacing them and still refuses foreign files.
 
 Run `check` again and start a fresh Codex session after installation. Discovery
 is session-scoped. `setup-repository-workflow` and `opencode-second-opinion`

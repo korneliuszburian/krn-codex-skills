@@ -31,6 +31,7 @@ upstream_skill_roots=${KRN_UPSTREAM_SKILLS_ROOTS:-}
 replace_global_agents=${KRN_REPLACE_GLOBAL_AGENTS:-0}
 replace_global_claude=${KRN_REPLACE_GLOBAL_CLAUDE:-0}
 replace_global_hooks=${KRN_REPLACE_GLOBAL_HOOKS:-0}
+replace_global_skills=${KRN_REPLACE_GLOBAL_SKILLS:-0}
 
 if [[ "$archive_legacy" != 0 && "$archive_legacy" != 1 ]]; then
   echo "KRN_ARCHIVE_LEGACY must be 0 or 1" >&2
@@ -46,6 +47,10 @@ if [[ "$replace_global_claude" != 0 && "$replace_global_claude" != 1 ]]; then
 fi
 if [[ "$replace_global_hooks" != 0 && "$replace_global_hooks" != 1 ]]; then
   echo "KRN_REPLACE_GLOBAL_HOOKS must be 0 or 1" >&2
+  exit 64
+fi
+if [[ "$replace_global_skills" != 0 && "$replace_global_skills" != 1 ]]; then
+  echo "KRN_REPLACE_GLOBAL_SKILLS must be 0 or 1" >&2
   exit 64
 fi
 
@@ -86,6 +91,26 @@ link_matches() {
   local expected=$2
   [[ -L "$link" ]] || return 1
   [[ "$(readlink -f "$link")" == "$(readlink -f "$expected")" ]]
+}
+
+repository_common_dir() {
+  local path=$1
+  local directory=$path
+  [[ -d "$directory" ]] || directory=${path%/*}
+  git -C "$directory" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true
+}
+
+same_repository_link() {
+  local link=$1
+  local expected=$2
+  local linked_path expected_path linked_repo expected_repo
+  [[ -L "$link" ]] || return 1
+  linked_path=$(readlink -f "$link" 2>/dev/null || true)
+  expected_path=$(readlink -f "$expected" 2>/dev/null || true)
+  [[ -n "$linked_path" && -n "$expected_path" ]] || return 1
+  linked_repo=$(repository_common_dir "$linked_path")
+  expected_repo=$(repository_common_dir "$expected_path")
+  [[ -n "$linked_repo" && "$linked_repo" == "$expected_repo" ]]
 }
 
 active_upstream_link() {
@@ -342,6 +367,9 @@ for row in "${bin_rows[@]}"; do
   source="$repo_root/$relative"
   target="$bin_dest/$name"
   if [[ -e "$target" || -L "$target" ]] && ! link_matches "$target" "$source"; then
+    if [[ "$replace_global_skills" == 1 ]] && same_repository_link "$target" "$source"; then
+      continue
+    fi
     echo "refusing unowned executable collision: $target" >&2
     exit 78
   fi
@@ -352,6 +380,9 @@ for row in "${skill_rows[@]}"; do
   source="$repo_root/$relative"
   target="$skill_dest/$name"
   if [[ -e "$target" || -L "$target" ]] && ! link_matches "$target" "$source"; then
+    if [[ "$replace_global_skills" == 1 ]] && same_repository_link "$target" "$source"; then
+      continue
+    fi
     echo "refusing unowned destination collision: $target" >&2
     exit 73
   fi
@@ -483,6 +514,13 @@ for row in "${bin_rows[@]}"; do
   if link_matches "$target" "$source"; then
     continue
   fi
+  if [[ -e "$target" || -L "$target" ]]; then
+    if [[ "$replace_global_skills" != 1 ]] || ! same_repository_link "$target" "$source"; then
+      echo "refusing unowned executable collision: $target" >&2
+      exit 78
+    fi
+    archive_path "$target" "bin__${name}"
+  fi
   ln -s "$source" "$target"
   printf 'linked   %s -> %s\n' "$target" "$source"
 done
@@ -501,8 +539,11 @@ for row in "${skill_rows[@]}"; do
     continue
   fi
   if [[ -e "$target" || -L "$target" ]]; then
-    echo "refusing unowned destination collision: $target" >&2
-    exit 73
+    if [[ "$replace_global_skills" != 1 ]] || ! same_repository_link "$target" "$source"; then
+      echo "refusing unowned destination collision: $target" >&2
+      exit 73
+    fi
+    archive_path "$target" "skill__${name}"
   fi
   ln -s "$source" "$target"
   printf 'linked   %s -> %s\n' "$target" "$source"

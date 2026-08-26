@@ -24,7 +24,10 @@
 1. Every manifest name is unique.
 2. Every installed KRN symlink resolves into this checkout.
 3. A real or foreign destination at `~/.agents/skills/<name>` stops the
-   installer; it is never overwritten.
+   installer; it is never overwritten. An existing symlink from another
+   worktree of this same Git repository may be replaced only with explicit
+   `KRN_REPLACE_GLOBAL_SKILLS=1` authority and is archived first; foreign files
+   still stop the installer.
 4. Legacy paths and retired skill-index entries are manifest-declared and
    archived only when `KRN_ARCHIVE_LEGACY=1` authorizes them.
 5. Displaced state is recoverable from the timestamped migration backup.

@@ -103,6 +103,47 @@ test("refuses an unowned skill destination collision without touching it", () =>
   }
 });
 
+test("replaces same-repository skill and bin links only with explicit authority", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
+  try {
+    const env = {
+      ...sandboxEnv(sandbox),
+      KRN_REPLACE_GLOBAL_SKILLS: "1",
+      KRN_REPLACE_GLOBAL_AGENTS: "1",
+      KRN_REPLACE_GLOBAL_CLAUDE: "1",
+      KRN_REPLACE_GLOBAL_HOOKS: "1",
+    };
+    const skillCollision = path.join(env.KRN_SKILLS_DEST, "delivery-loop");
+    const binCollision = path.join(env.KRN_BIN_DEST, "krn-codex-catalog");
+    fs.mkdirSync(path.dirname(skillCollision), { recursive: true });
+    fs.mkdirSync(path.dirname(binCollision), { recursive: true });
+    fs.symlinkSync(path.join(REPO, "skills", "source-to-decision"), skillCollision);
+    fs.symlinkSync(path.join(REPO, "README.md"), binCollision);
+
+    const result = spawnSync("bash", [installScript, "install"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(
+      fs.realpathSync(skillCollision),
+      fs.realpathSync(path.join(REPO, "skills", "engineering", "delivery-loop")),
+    );
+    assert.equal(
+      fs.realpathSync(binCollision),
+      fs.realpathSync(path.join(REPO, "scripts", "catalog.mjs")),
+    );
+    const backups = path.join(env.CODEX_HOME, "skill-migration-backups");
+    const archived = execFileSync("find", [backups, "-type", "l"], {
+      encoding: "utf8",
+    });
+    assert.match(archived, /skill__delivery-loop/);
+    assert.match(archived, /bin__krn-codex-catalog/);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
 test("installs every manifest skill as a collision-safe symlink into the repo", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
   try {
