@@ -35,6 +35,7 @@ freshness, not permanence.
 | TypeScript engineering | [`typescript-engineering` references](../../skills/engineering/typescript-engineering/SKILL.md) | inference, boundary, compiler, and proof mechanisms are owned directly by the companion skill | a current compiler/host change contradicts a retained mechanism |
 | Capability surface | [capabilities.md](../capabilities.md) | named profiles and evidence-bounded reconciliation | catalog schema, runtime event, or trust boundary changes |
 | Installation and retirement | [migration.md](../migration.md) | collision-safe symlinks, explicit archive authority, recoverable retirement | installer target or host layout changes |
+| Agentic engineering EvidenceSpine | [agentic-engineering-approaches.md](agentic-engineering-approaches.md) | compact typed receipt seam is adopted for test-only use; production adapters remain lab-test | a real MUZG→mini-agi→mise trace passes the same binding, retry, idempotency, and publication-boundary falsifiers |
 | Codex completion ledger | [unlazy-codex-port.md](unlazy-codex-port.md) | optional gate ledger with explicit approval and re-verification; no sandbox or lifecycle ownership | second real long-task pilot, measured operator cost, or a false-completion miss |
 | Prose quality and unslop | [unslop-codex-port.md](unslop-codex-port.md) | explicit audit/rewrite candidate with protected facts and technical fragments; not an always-on humanizer | blinded pilot shows semantic drift, no preference gain, or unacceptable review cost |
 

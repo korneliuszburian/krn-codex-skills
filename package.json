@@ -11,6 +11,7 @@
     "test:catalog": "node --test scripts/catalog*.test.mjs",
     "test:install": "node --test scripts/install.test.mjs",
     "test:hooks": "python3 -B -m unittest scripts/hooks/test_destructive_guard.py",
+    "test:evidence-spine": "node --test scripts/evidence-spine-lab.test.mjs",
     "test:validate": "node --test scripts/validate.test.mjs",
     "test:second-opinion": "node --test skills/advisory/opencode-second-opinion/scripts/*.test.mjs",
     "test:benchmark": "node --test evals/reviewer-benchmark/scripts/*.test.mjs scripts/review-scorecard.test.mjs",
