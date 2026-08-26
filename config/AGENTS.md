@@ -27,7 +27,7 @@ Skills own reusable procedures; do not copy their methods here.
 
 Choose the smallest owner for the one unresolved uncertainty:
 
-- composed upstream (`mattpocock/skills`, installed once via `npx skills add` or the Claude plugin; procedure not restated here): `wayfinder`, `domain-modeling`, `to-spec`, `implement`, `diagnosing-bugs`, `prototype`, `codebase-design`, `code-review`, `tdd`, `triage`, `wizard`, `grilling`, `handoff`;
+- composed upstream (`mattpocock/skills`, loaded from a clean checkout at the commit pinned in `config/upstream-sources.json`; procedure not restated here): `ask-matt`, `code-review`, `codebase-design`, `diagnosing-bugs`, `domain-modeling`, `grill-with-docs`, `implement`, `improve-codebase-architecture`, `prototype`, `research`, `resolving-merge-conflicts`, `setup-matt-pocock-skills`, `tdd`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `wizard`, `grill-me`, `grilling`, `handoff`, `teach`, `to-questionnaire`, `wait-what`, `writing-for-agents`;
 - owned here: `source-to-decision`, `slice-work`, `delivery-loop`, `target-repo-work`, `managing-codex-capabilities`.
 
 The three-arm lab measured no advantage of a hand-forked copy over upstream or

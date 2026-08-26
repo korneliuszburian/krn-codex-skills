@@ -1,6 +1,6 @@
 # Orchestration and compact context
 
-Status: accepted synthesis, 2026-07-31. Rework this page in place when a
+Status: accepted synthesis, refreshed 2026-08-26. Rework this page in place when a
 falsifier fires; do not append a parallel “v2” report.
 
 ## Decision question
@@ -14,12 +14,15 @@ or an oversized skill catalog?
 
 | Evidence family | What it establishes | KRN implication | Limit |
 |---|---|---|---|
-| Matt Pocock | small owners, precise leading words, shared language, progressive disclosure, fresh ticket contexts, and four Wayfinder ticket types: research, prototype, grilling, task | keep a sparse composable catalog; let one indexed map link full decision sources while each ticket names its exact KRN owner | his exact catalog, tracker, and spec-retention policy are not KRN policy |
+| Matt Pocock | small owners, precise leading words, shared language, progressive disclosure, fresh ticket contexts, and explicit router/research/architecture/ticket owners in upstream `6654f6b` | keep a sparse composable catalog; let one indexed map link full decision sources while each ticket names its exact KRN owner; refresh the composed set from upstream instead of maintaining a fork | his exact catalog, tracker, and spec-retention policy are not KRN policy |
 | Karpathy compact knowledge | raw sources can feed one indexed synthesis that improves by integration, contradiction handling, and rewriting | continuously compile a few living topic pages; Git supplies chronology | a personal knowledge workflow does not prove a production agent runtime |
 | Rohit Goyal memory extension | useful memory needs provenance, recency, confidence, supersession, and forgetting | put those fields into source decisions; add search/graphs only after scale demands them | automated confidence and crystallization can become ungrounded ceremony |
 | Official Codex guidance | Goal carries one outcome in one chat; skills carry repeatable methods; subagents isolate bounded work; required team rules stay in checked-in authority | Goal/tracker is live state, not a replacement for the selected workflow or repository memory | runtime Goal state is not portable repository knowledge |
-| OpenAI harness engineering | agents need a maintained map into structured repository knowledge, with mechanical checks and gardening | `CONTEXT.md` is the small map; research and ADRs are the system of record | a large product harness would be overbuilt here |
-| Anthropic long-running harnesses | restartable state and independent evaluation reduce drift; parallel agents cost tokens and coordination | checkpoint a compact capsule and use independent fixed-point review for substantial changes | older harness findings do not mandate initializer/evaluator fleets on newer models |
+| OpenAI harness engineering | agents need a maintained map into structured repository knowledge, with mechanical checks and gardening | `CONTEXT.md` is the small map; research and ADRs are the system of record; freshness is part of the maintenance loop | a large product harness would be overbuilt here |
+| Anthropic long-running harnesses | restartable state and independent evaluation reduce drift; harness assumptions go stale as models improve; parallel agents cost tokens and coordination | checkpoint a compact capsule, use independent fixed-point review for substantial changes, and periodically delete or re-test scaffolding | older harness findings do not mandate initializer/evaluator fleets on newer models |
+| Long-horizon agent benchmarks | SWE-EVO reports a large gap between isolated issue fixing and software evolution; SlopCodeBench measures verbosity and structural erosion; DeepSWE finds inherited tests can disagree materially with independent review | proof must include maintainability and trajectory-level checks where repeated agent edits are in scope, not only current test pass/fail | benchmark tasks and metrics are not a substitute for a product-specific acceptance test |
+| `unlazy` harness | its current source puts gates, explicit evidence, re-verification, a task tree, and cooperative leases before or around work; its own boundary notes distinguish coordination from isolation | lab-test a small gate adapter at the next genuinely long-running KRN outcome; do not install a second global lifecycle owner or call prompt-only scope a security boundary | source design and historical self-reports do not prove lower cost, better outcomes, or hostile-process isolation |
+| `ponytail` scope ladder | the current source asks whether work is needed, then prefers reuse, standard library, native capability, installed dependency, or the smallest implementation while preserving trust-boundary and accessibility checks | adopt the ladder as a decision heuristic inside existing `to-spec` and `codebase-design`; do not add a duplicate global skill | its small self-reported benchmark does not establish transfer to KRN or a universal implementation rule |
 | Local deletion probe | five of six artifact roles had no runtime consumer; 18 operator pages mirrored the skills; reviewer-handoff had no external caller | delete generic report roles, doc mirrors, and the unconsumed packet workflow | future measured consumers may justify reintroduction |
 | Local register micro-lab | the observed stale capsule sentence was repairable by fresh Goal/repository/PR readback; SQLite and Git-ref candidates could mechanically fence cooperative writers | retain the compact spine; keep both mechanisms at `lab-test` until a recurring writer-admission failure survives bounded repair | synthetic conformance is not product need, restore recovery, hostile-process exclusion, or power-loss proof |
 
@@ -135,15 +138,75 @@ Wrappers and companions:
   owner crosses into another checkout.
 - `typescript-engineering` sharpens TypeScript work beside implementation,
   diagnosis, design, or review.
-- `second-opinion-review` is an explicit advisory research/rewrite/check pass;
-  repository research stages only allowlisted pinned blobs and binds every
-  repository citation back to the cited source's own allowed paths. Synthesis
-  can forward only exact citation pairs from validated dependencies; local
-  owners verify and dispose its output.
+- `opencode-second-opinion` is an explicit, non-interactive DeepSeek advisory
+  pass over one named path or artifact. It returns prose, never a patch or
+  approval; the initiating owner verifies and disposes its output.
 - `setup-repository-workflow` performs one explicit adoption/repair pass and
   then disappears from ordinary work.
-- `managing-codex-capabilities` and `writing-great-skills` remain separate meta
-  owners.
+- `managing-codex-capabilities` remains the KRN capability owner; the system
+  `skill-creator` remains a separate authoring owner.
+
+## OpenCode advisory transport disposition
+
+**Decision:** `lab-test` the transport hardening boundary before claiming that
+an OpenCode opinion is bounded beyond its prompt. The named consumer is the
+next `$opencode-second-opinion` transport change; this synthesis supersedes the
+unretained raw advisory run at `.krn/runs/opencode-second-opinion/` when a
+mechanical result replaces it.
+
+The current runner accepts either a prose or strict-JSON opinion, does not
+request interactive or automatic permissions, enforces a terminal timeout, and
+retains `raw.failed.jsonl` plus `failure.txt` for failed or interrupted runs.
+That proves a completed response is well-formed and a failure is attributable;
+it does not prove filesystem scope isolation: OpenCode receives the target
+repository directly while allowed paths remain prompt prose. Nor does the
+timeout establish complete process or resource isolation.
+
+| Mechanism to test | Bounded falsifier | Decision limit |
+|---|---|---|
+| A path allowlist is a security boundary only when enforced outside the model prompt. | Give a run one permitted file and ask it to read a sibling ignored run; any returned sibling content rejects the prompt-only boundary. | Do not label the transport sandboxed or send sensitive repository state until a mechanical scope boundary exists. |
+| A bounded external opinion needs a terminal time limit and attributable failure evidence. | Substitute an `opencode` process that never exits, then one that emits an incomplete JSON stream; the runner must terminate and retain the exact partial stream plus failure cause. | Do not adopt a timeout value or failure-artifact schema until the focused tests establish their observable contract. |
+
+This decision does not prove that OpenCode will violate a path brief, that a
+particular timeout is correct, or that DeepSeek output is approval. The next
+owner returns only a focused transport proof to `$source-to-decision`; the
+initiating workflow still verifies any substantive finding locally.
+
+## Third-party harness disposition
+
+The named consumer is `$delivery-loop`, with the next suitable multi-session
+engineering outcome as its lab surface. The current KRN core already owns one
+outcome writer, restart capsules, authority states, scope-aware repository
+work, and proportional proof. Installing another lifecycle framework globally
+would create an ownership collision before it had a measured consumer.
+
+| Candidate | Decision | Local action | Falsifier / next gate |
+|---|---|---|---|
+| `unlazy` | `lab-test` | borrow only the gates-before-work and evidence vocabulary in a disposable adapter; keep leases/dispatch out of the global runtime until their boundary and cost are measured | on one long-running outcome, compare a temporary gate packet with the current capsule: duplicate state, extra human ceremony, missing failure evidence, or no earlier detection rejects the adapter |
+| `ponytail` | `adopt` as a heuristic, no new skill | make “needed → reuse → standard/native → installed dependency → smallest implementation” an explicit question for existing `to-spec` / `codebase-design` owners | a recurring overbuilt slice, missed reuse opportunity, or security/accessibility regression despite the question reopens whether the heuristic belongs in a stronger seam |
+
+Neither candidate is installed as a new global lifecycle owner by this
+decision. The source claims are not a benchmark of KRN, and the lab-test setup
+is not adoption or proof of production isolation.
+
+## Research routing dogfood
+
+**Date:** 2026-08-26. **Consumer:** the global trigger matrix and its validator.
+**Decision:** `adopt` the small bridge that derives accepted upstream skill
+names from the pinned source lock, while keeping KRN-owned workflow validation
+keyed to the local manifest.
+
+The matrix now has three positive `research` cases (primary-source capture,
+competing mechanisms, and an implementation brief) plus hard negatives for
+fact lookup and summary work. `npm run validate` passes 66 cases and the
+validator suite passes 8/8. This closes the previous false “unknown upstream
+skill” failure without granting upstream names local installation ownership.
+
+This proves matrix/schema coverage and the current pinned discovery contract;
+it does not prove that a model selects the intended skill on every prompt, that
+the research result is correct, or that the upstream skill improves engineering
+outcomes. Reopen with a small paired routing experiment if real sessions show
+missed or over-triggered `research` selection.
 
 ## Artifact taxonomy
 
@@ -163,16 +226,17 @@ runtime details, not reusable contracts.
 
 ## Portfolio boundary
 
-The promoted catalog has 17 owners. `reviewer-handoff` was retired because no
-workflow called its compiler: routine review already has repository access and
-the external checker owns its own packet/schema/transport. A deterministic
-helper without a demonstrated consumer is not a promoted workflow.
+The KRN repository promotes eight local owners and composes the pinned
+upstream set separately. `reviewer-handoff` was retired because no workflow
+called its compiler: routine review already has repository access and the
+external checker owns its own packet/schema/transport. A deterministic helper
+without a demonstrated consumer is not a promoted workflow.
 
 Three skills remain explicit-only:
 
 - `wayfinder` because it starts a durable multi-session decision map;
 - `setup-repository-workflow` because it mutates repository instructions;
-- `second-opinion-review` because it starts paid external advisory work.
+- `opencode-second-opinion` because it starts an external advisory run.
 
 `slice-work` is model-invocable because `delivery-loop` composes it. Ticket
 publication remains a separate authority branch; invocation does not grant

@@ -10,8 +10,8 @@ Does a hand-maintained fork of Matt Pocock's skills earn its maintenance cost,
 and do the skills themselves beat no-skill on the same frozen task? The answer
 decides three concrete actions per skill:
 
-- retire the ported skill from `krn-codex-skills` and compose upstream
-  (`npx skills add` or plugin subscription) instead of forking,
+- retire the ported skill from `krn-codex-skills` and compose the pinned
+  upstream checkout instead of forking,
 - adopt the upstream file as-is when it wins,
 - keep and keep publishing the fork when it wins.
 
@@ -20,6 +20,7 @@ decides three concrete actions per skill:
 | Evidence | What it establishes | Limit |
 |---|---|---|
 | Drift measurement 2026-08-12 (this repo vs `matt-pocock/skills`) | every one of the 11 ported skills diverged heavily from upstream v1.2.0: `implement` 69 vs 15 lines, `wait-what` 35 vs 7, `prototype` 103 vs 26, `codebase-design` 122 vs 114 but ~228 diff lines, `wayfinder` 179 vs 128, `writing-for-agents` 159 vs 81; upstream moved only slightly between v1.2.0 and HEAD (e.g. `diagnosing-bugs` 134→140) | divergence is our edits, not upstream evolution; line count is not quality |
+| Upstream refresh 2026-08-26 | `mattpocock/skills` is now at `6654f6b` (26 Aug 2026), with new/expanded owners including `ask-matt`, `grill-with-docs`, `research`, `improve-codebase-architecture`, `to-tickets`, and `resolving-merge-conflicts`; the repository README documents managed Claude distribution versus editable `npx skills@latest` installs | the upstream set is actively evolving; the shared KRN approach must pin and revalidate it, not preserve a stale local snapshot |
 | Matt v1.0 changelog claim | "63% token reduction" for the compact skill rewrite | token claim, not a quality or outcome claim |
 | mini-agi EXP-011 | solo codex iterates internally and is at ceiling on 7/7 generated task classes; loops/skills only pay where the worker is below the bar | generated toy tasks, not real product work |
 | reviewer-quality-poc oracle | the only measured reviewer in the ecosystem scored 4.5/10 (heuristic 5.5) | one subject, one lane, one run |

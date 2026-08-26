@@ -41,6 +41,49 @@ function upstreamLegacyPaths() {
   return manifest.legacy_user_paths.filter((entry) => entry.owner?.startsWith("upstream:"));
 }
 
+function upstreamSkillNames() {
+  const sourceDocument = JSON.parse(
+    fs.readFileSync(path.join(REPO, "config", "upstream-sources.json"), "utf8"),
+  );
+  return sourceDocument.sources[0].required_paths.map((requiredPath) =>
+    path.basename(path.dirname(requiredPath)),
+  );
+}
+
+function createPinnedUpstream(sandbox) {
+  const sourceDocument = JSON.parse(
+    fs.readFileSync(path.join(REPO, "config", "upstream-sources.json"), "utf8"),
+  );
+  const source = sourceDocument.sources[0];
+  const root = path.join(sandbox, "upstream");
+  fs.mkdirSync(root, { recursive: true });
+  for (const requiredPath of source.required_paths) {
+    const file = path.join(root, requiredPath);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, `fixture source for ${requiredPath}\n`);
+  }
+  const directSkill = path.join(root, "code-review", "SKILL.md");
+  fs.mkdirSync(path.dirname(directSkill), { recursive: true });
+  fs.writeFileSync(directSkill, "fixture upstream source\n");
+  execFileSync("git", ["init", "--quiet", root]);
+  execFileSync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
+  execFileSync("git", ["-C", root, "config", "user.name", "KRN installer test"]);
+  execFileSync("git", ["-C", root, "add", "."]);
+  execFileSync("git", ["-C", root, "commit", "--quiet", "-m", "fixture upstream"]);
+  const commit = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], {
+    encoding: "utf8",
+  }).trim();
+  const lockPath = path.join(sandbox, "upstream-sources.json");
+  fs.writeFileSync(
+    lockPath,
+    `${JSON.stringify({
+      ...sourceDocument,
+      sources: [{ ...source, commit }],
+    }, null, 2)}\n`,
+  );
+  return { root, lockPath };
+}
+
 test("refuses an unowned skill destination collision without touching it", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
   try {
@@ -175,7 +218,12 @@ test("reports and explicitly archives a retired installed skill, including a sta
 test("archives every retired upstream skill left by an older install", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
   try {
-    const env = sandboxEnv(sandbox);
+    const { root, lockPath } = createPinnedUpstream(sandbox);
+    const env = {
+      ...sandboxEnv(sandbox),
+      KRN_UPSTREAM_SKILLS_ROOTS: root,
+      KRN_UPSTREAM_LOCK: lockPath,
+    };
     fs.mkdirSync(env.KRN_SKILLS_DEST, { recursive: true });
     const retired = upstreamRetiredSkills();
     for (const skill of retired) {
@@ -215,19 +263,55 @@ test("archives every retired upstream skill left by an older install", () => {
   }
 });
 
+test("refuses upstream retired paths without a verifiable source root", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
+  try {
+    const env = sandboxEnv(sandbox);
+    const retired = upstreamRetiredSkills()[0];
+    const target = path.join(env.KRN_SKILLS_DEST, retired.name);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.symlinkSync(path.join(sandbox, "unverified-upstream-source"), target);
+    const result = spawnSync("bash", [installScript, "check"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.equal(result.status, 82, result.stderr);
+    assert.match(result.stderr, /upstream source root is required/);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("refuses any known upstream skill link without a verifiable source root", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
+  try {
+    const env = sandboxEnv(sandbox);
+    const target = path.join(env.KRN_SKILLS_DEST, upstreamSkillNames().find((name) => name === "research"));
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.symlinkSync(path.join(sandbox, "unverified-research-source"), target);
+    const result = spawnSync("bash", [installScript, "check"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.equal(result.status, 82, result.stderr);
+    assert.match(result.stderr, /upstream source root is required/);
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
 test("preserves an active upstream symlink for a tombstoned local name", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
   try {
-    const upstreamSourceRoot = path.join(sandbox, "upstream");
+    const { root: upstreamSourceRoot, lockPath } = createPinnedUpstream(sandbox);
     const env = {
       ...sandboxEnv(sandbox),
       KRN_ARCHIVE_LEGACY: "1",
       KRN_UPSTREAM_SKILLS_ROOTS: upstreamSourceRoot,
+      KRN_UPSTREAM_LOCK: lockPath,
     };
     const upstreamSource = path.join(upstreamSourceRoot, "code-review");
     const target = path.join(env.KRN_SKILLS_DEST, "code-review");
-    fs.mkdirSync(upstreamSource, { recursive: true });
-    fs.writeFileSync(path.join(upstreamSource, "SKILL.md"), "upstream source\n");
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.symlinkSync(upstreamSource, target);
     const result = spawnSync("bash", [installScript, "install"], { encoding: "utf8", env });
@@ -238,6 +322,29 @@ test("preserves an active upstream symlink for a tombstoned local name", () => {
       ? execFileSync("find", [backups, "-name", "retired-skill__code-review"], { encoding: "utf8" }).trim()
       : "";
     assert.equal(backupMatches, "", "active upstream symlink must not be archived");
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("refuses an upstream source at the wrong pinned commit", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
+  try {
+    const { root, lockPath } = createPinnedUpstream(sandbox);
+    const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+    lock.sources[0].commit = "0".repeat(40);
+    fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+    const result = spawnSync("bash", [installScript, "check"], {
+      encoding: "utf8",
+      env: {
+        ...sandboxEnv(sandbox),
+        KRN_UPSTREAM_SKILLS_ROOTS: root,
+        KRN_UPSTREAM_LOCK: lockPath,
+      },
+    });
+    assert.equal(result.status, 82, result.stderr);
+    assert.match(result.stderr, /upstream source drift/);
+    assert.match(result.stderr, /expected 0000000000000000000000000000000000000000/);
   } finally {
     fs.rmSync(sandbox, { recursive: true, force: true });
   }

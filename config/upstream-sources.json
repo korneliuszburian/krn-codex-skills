@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "id": "mattpocock/skills",
+      "repository": "https://github.com/mattpocock/skills.git",
+      "commit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+      "required_paths": [
+        "skills/engineering/ask-matt/SKILL.md",
+        "skills/engineering/code-review/SKILL.md",
+        "skills/engineering/codebase-design/SKILL.md",
+        "skills/engineering/diagnosing-bugs/SKILL.md",
+        "skills/engineering/domain-modeling/SKILL.md",
+        "skills/engineering/grill-with-docs/SKILL.md",
+        "skills/engineering/implement/SKILL.md",
+        "skills/engineering/improve-codebase-architecture/SKILL.md",
+        "skills/engineering/prototype/SKILL.md",
+        "skills/engineering/research/SKILL.md",
+        "skills/engineering/resolving-merge-conflicts/SKILL.md",
+        "skills/engineering/setup-matt-pocock-skills/SKILL.md",
+        "skills/engineering/tdd/SKILL.md",
+        "skills/engineering/to-spec/SKILL.md",
+        "skills/engineering/to-tickets/SKILL.md",
+        "skills/engineering/triage/SKILL.md",
+        "skills/engineering/wayfinder/SKILL.md",
+        "skills/engineering/wizard/SKILL.md",
+        "skills/productivity/grill-me/SKILL.md",
+        "skills/productivity/grilling/SKILL.md",
+        "skills/productivity/handoff/SKILL.md",
+        "skills/productivity/teach/SKILL.md",
+        "skills/productivity/to-questionnaire/SKILL.md",
+        "skills/productivity/wait-what/SKILL.md",
+        "skills/productivity/writing-for-agents/SKILL.md"
+      ]
+    }
+  ]
+}

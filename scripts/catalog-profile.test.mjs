@@ -361,7 +361,7 @@ test("disables config-only siblings of the enabled plugin owner", () => {
   assert.equal(converged.changed, false);
 });
 
-test("every profile disables the displaced system author while leaving its siblings unmanaged", async () => {
+test("every profile keeps the current system author while leaving its siblings unmanaged", async () => {
   const paths = {
     author: "/home/example/.codex/skills/.system/skill-creator/SKILL.md",
     installer: "/home/example/.codex/skills/.system/skill-installer/SKILL.md",
@@ -390,8 +390,8 @@ test("every profile disables the displaced system author while leaving its sibli
 
     assert.equal(
       resolved.desired.skills[paths.author],
-      false,
-      `${name} must give writing-great-skills sole authoring ownership`,
+      true,
+      `${name} must keep skill-creator as the system authoring owner`,
     );
     assert.equal(
       Object.hasOwn(resolved.desired.skills, paths.installer),
