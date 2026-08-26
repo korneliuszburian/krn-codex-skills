@@ -86,7 +86,8 @@
           "github@openai-curated"
         ],
         "disable": [
-          "github@openai-curated-remote"
+          "github@openai-curated-remote",
+          "security-guidance@claude-plugins-official"
         ],
         "disableFamilies": [
           "asana",
