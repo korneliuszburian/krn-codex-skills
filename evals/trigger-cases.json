@@ -478,6 +478,190 @@
       "forbidden_skills": [
         "unslop"
       ]
+    },
+    {
+      "id": "source-decision-fast-official-contract",
+      "prompt": "Use the current official API documentation and our already-observed client behavior to decide whether the named consumer should adopt the Retry-After header contract. One replayed request can falsify the result.",
+      "expected_skills": [
+        "source-to-decision"
+      ],
+      "forbidden_skills": [
+        "setup-repository-workflow",
+        "target-repo-work",
+        "opencode-second-opinion"
+      ]
+    },
+    {
+      "id": "source-decision-fast-pinned-standard",
+      "prompt": "Evaluate this pinned wire-format standard against our current parser and decide whether we should adopt or reject its length-prefix rule. The standard is authoritative and one parser fixture can contradict the result.",
+      "expected_skills": [
+        "source-to-decision"
+      ],
+      "forbidden_skills": [
+        "setup-repository-workflow",
+        "target-repo-work",
+        "opencode-second-opinion"
+      ]
+    },
+    {
+      "id": "source-decision-fast-single-mechanism-paper",
+      "prompt": "Read the supplied cache-invalidation paper and our current cache boundary, then decide whether its lease mechanism applies to the named consumer. The paper states one mechanism and the local seam is already known.",
+      "expected_skills": [
+        "source-to-decision"
+      ],
+      "forbidden_skills": [
+        "setup-repository-workflow",
+        "target-repo-work",
+        "opencode-second-opinion"
+      ]
+    },
+    {
+      "id": "source-decision-slow-competing-primary-mechanisms",
+      "prompt": "The current platform documentation says backoff is client-owned, while the current service documentation says the server owns retry scheduling. Both mechanisms fit the behavior we have observed, and choosing the wrong one would force a public API migration. Determine the local disposition for the named client consumer.",
+      "expected_skills": [
+        "source-to-decision"
+      ],
+      "forbidden_skills": [
+        "setup-repository-workflow",
+        "target-repo-work",
+        "typescript-engineering",
+        "opencode-second-opinion"
+      ]
+    },
+    {
+      "id": "source-decision-slow-correlated-evidence",
+      "prompt": "Six practitioner articles recommend queue deduplication, but they all derive from one vendor benchmark and an independent paper predicts the opposite under our workload. Decide whether the named ingestion consumer should adopt, reject, lab-test, or defer the mechanism.",
+      "expected_skills": [
+        "source-to-decision"
+      ],
+      "forbidden_skills": [
+        "setup-repository-workflow",
+        "target-repo-work",
+        "typescript-engineering",
+        "opencode-second-opinion"
+      ]
+    },
+    {
+      "id": "source-decision-slow-version-conflict",
+      "prompt": "The current specification, an older paper, and a production incident report imply different consistency guarantees. The migration cost is material and a small read-only replay can distinguish their predictions. Decide our disposition for the named persistence consumer.",
+      "expected_skills": [
+        "source-to-decision"
+      ],
+      "forbidden_skills": [
+        "setup-repository-workflow",
+        "target-repo-work",
+        "typescript-engineering",
+        "opencode-second-opinion"
+      ]
+    },
+    {
+      "id": "evidence-lab-is-not-summary",
+      "prompt": "Summarize the claims, methods, and limitations of these two papers. Do not decide what our repository should adopt.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "source-to-decision",
+        "opencode-second-opinion"
+      ]
+    },
+    {
+      "id": "evidence-lab-is-not-fact-lookup",
+      "prompt": "Look up the currently documented default timeout and report the exact value. Do not make an engineering recommendation.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "source-to-decision",
+        "setup-repository-workflow",
+        "target-repo-work"
+      ]
+    },
+    {
+      "id": "evidence-lab-is-not-domain-choice",
+      "prompt": "We use workspace to mean both the billing container and the collaboration area. Resolve the product language with us before any source research or code change.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "source-to-decision",
+        "setup-repository-workflow",
+        "target-repo-work"
+      ]
+    },
+    {
+      "id": "evidence-lab-is-not-local-seam-design",
+      "prompt": "Inspect the current callers and decide whether retry and transaction policy belongs in callers or the repository adapter. Use only local code and stop before implementation.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "source-to-decision",
+        "setup-repository-workflow",
+        "target-repo-work"
+      ]
+    },
+    {
+      "id": "target-repo-slow-research-remains-source-decision",
+      "prompt": "Use $target-repo-work for the other checkout. The research question asks which of two conflicting external mechanisms should govern a named consumer; return adopt, reject, lab-test, or defer to the sole local decision writer without mutating the target repository.",
+      "expected_skills": [
+        "target-repo-work",
+        "source-to-decision"
+      ],
+      "forbidden_skills": [
+        "setup-repository-workflow",
+        "opencode-second-opinion"
+      ]
+    },
+    {
+      "id": "opencode-opinion-ledger-still-needs-source-decision",
+      "prompt": "Use $opencode-second-opinion to run a bounded source campaign over the allowlisted corpus, then give its validated mechanism ledger to the local decision owner to decide adopt, reject, lab-test, or defer.",
+      "expected_skills": [
+        "opencode-second-opinion",
+        "source-to-decision"
+      ],
+      "forbidden_skills": [
+        "setup-repository-workflow",
+        "target-repo-work"
+      ]
+    },
+    {
+      "id": "research-captures-primary-sources",
+      "prompt": "Investigate this engineering question against current official documentation and other primary sources, capture the cited findings in a Markdown brief, and stop before recommending adoption.",
+      "expected_skills": [
+        "research"
+      ],
+      "forbidden_skills": [
+        "source-to-decision"
+      ]
+    },
+    {
+      "id": "research-compares-primary-mechanisms",
+      "prompt": "Research the competing mechanisms in the current official API documentation and the relevant standard, compare their stated conditions, and write a cited evidence brief without choosing the local implementation.",
+      "expected_skills": [
+        "research"
+      ],
+      "forbidden_skills": [
+        "source-to-decision"
+      ]
+    },
+    {
+      "id": "research-prepares-implementation-brief",
+      "prompt": "Gather high-trust primary-source evidence about this protocol change and capture the citations and limitations in a Markdown brief for the implementation owner; do not make an adoption recommendation.",
+      "expected_skills": [
+        "research"
+      ],
+      "forbidden_skills": [
+        "source-to-decision"
+      ]
+    },
+    {
+      "id": "research-is-not-a-fact-lookup",
+      "prompt": "Look up the current documented timeout and report the exact value; do not investigate a broader engineering question or create a research brief.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "research"
+      ]
+    },
+    {
+      "id": "research-is-not-a-summary",
+      "prompt": "Summarize the supplied paper's claims and limitations without researching additional sources or recommending a local decision.",
+      "expected_skills": [],
+      "forbidden_skills": [
+        "research"
+      ]
     }
   ]
 }

@@ -25,6 +25,7 @@ global_claude_target="$claude_home/CLAUDE.md"
 global_hooks_source="$repo_root/$(jq -r '.global_hooks' "$manifest")"
 global_hooks_target="$codex_home/hooks.json"
 hook_dest="$codex_home/hooks"
+upstream_lock=${KRN_UPSTREAM_LOCK:-"$repo_root/config/upstream-sources.json"}
 archive_legacy=${KRN_ARCHIVE_LEGACY:-0}
 upstream_skill_roots=${KRN_UPSTREAM_SKILLS_ROOTS:-}
 replace_global_agents=${KRN_REPLACE_GLOBAL_AGENTS:-0}
@@ -48,7 +49,7 @@ if [[ "$replace_global_hooks" != 0 && "$replace_global_hooks" != 1 ]]; then
   exit 64
 fi
 
-node "$repo_root/scripts/validate.mjs"
+KRN_UPSTREAM_LOCK="$upstream_lock" node "$repo_root/scripts/validate.mjs"
 
 mapfile -t skill_rows < <(
   jq -r '.skills[] | [.name, .path] | @tsv' "$manifest"
@@ -68,6 +69,17 @@ mapfile -t hook_rows < <(
 mapfile -t legacy_hook_rows < <(
   jq -r '.legacy_global_hook_paths[]' "$manifest"
 )
+upstream_commit=$(jq -r '.sources[] | select(.id == "mattpocock/skills") | .commit' "$upstream_lock")
+mapfile -t upstream_required_paths < <(
+  jq -r '.sources[] | select(.id == "mattpocock/skills") | .required_paths[]' "$upstream_lock"
+)
+mapfile -t upstream_skill_names < <(
+  jq -r '.sources[] | select(.id == "mattpocock/skills") | .required_paths[] | split("/") | .[-2]' "$upstream_lock"
+)
+if [[ -z "$upstream_commit" || "$upstream_commit" == null || "${#upstream_required_paths[@]}" -eq 0 || "${#upstream_skill_names[@]}" -eq 0 ]]; then
+  echo "upstream lock is missing the mattpocock/skills source" >&2
+  exit 82
+fi
 
 link_matches() {
   local link=$1
@@ -95,6 +107,112 @@ active_upstream_link() {
   done
   return 1
 }
+
+retired_upstream_name() {
+  local candidate=$1
+  local row name owner
+  for row in "${retired_skill_rows[@]}"; do
+    IFS=$'\t' read -r name owner <<< "$row"
+    if [[ "$owner" == upstream:* && "$name" == "$candidate" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+verify_upstream_root() {
+  local root=$1
+  local resolved actual status
+
+  resolved=$(readlink -f "$root" 2>/dev/null || true)
+  if [[ -z "$resolved" || ! -d "$resolved" ]]; then
+    echo "invalid upstream source root: $root" >&2
+    return 1
+  fi
+  actual=$(git -C "$resolved" rev-parse --verify HEAD 2>/dev/null || true)
+  if [[ "$actual" != "$upstream_commit" ]]; then
+    echo "upstream source drift: $resolved is ${actual:-not a Git revision}, expected $upstream_commit" >&2
+    return 1
+  fi
+  status=$(git -C "$resolved" status --porcelain --untracked-files=all)
+  if [[ -n "$status" ]]; then
+    echo "upstream source is not clean: $resolved" >&2
+    return 1
+  fi
+  for required_path in "${upstream_required_paths[@]}"; do
+    if [[ ! -f "$resolved/$required_path" ]]; then
+      echo "upstream source is missing required path: $resolved/$required_path" >&2
+      return 1
+    fi
+  done
+}
+
+verify_upstream_roots() {
+  if [[ -z "$upstream_skill_roots" ]]; then
+    for upstream_name in "${upstream_skill_names[@]}"; do
+      target="$skill_dest/$upstream_name"
+      if [[ -e "$target" || -L "$target" ]]; then
+        echo "upstream source root is required to verify: $target" >&2
+        echo "set KRN_UPSTREAM_SKILLS_ROOTS to a pinned source root" >&2
+        return 1
+      fi
+    done
+    return 0
+  fi
+  local root
+  local -a roots
+  local found_root=false
+  IFS=: read -r -a roots <<< "$upstream_skill_roots"
+  for root in "${roots[@]}"; do
+    [[ -n "$root" ]] || continue
+    found_root=true
+    verify_upstream_root "$root" || return 1
+  done
+  if [[ "$found_root" == false ]]; then
+    echo "KRN_UPSTREAM_SKILLS_ROOTS must contain at least one source root" >&2
+    return 1
+  fi
+  verify_upstream_links
+}
+
+verify_upstream_links() {
+  local upstream_name target resolved root
+  local -a roots
+  IFS=: read -r -a roots <<< "$upstream_skill_roots"
+  for upstream_name in "${upstream_skill_names[@]}"; do
+    target="$skill_dest/$upstream_name"
+    [[ -e "$target" || -L "$target" ]] || continue
+    if [[ ! -L "$target" ]]; then
+      echo "upstream skill is not a symlink: $target" >&2
+      return 1
+    fi
+    resolved=$(readlink -f "$target" 2>/dev/null || true)
+    if [[ -z "$resolved" || ! -e "$resolved" ]]; then
+      if retired_upstream_name "$upstream_name"; then
+        continue
+      fi
+      echo "upstream skill link is unresolved: $target" >&2
+      return 1
+    fi
+    local matched_root=false
+    for root in "${roots[@]}"; do
+      [[ -n "$root" ]] || continue
+      root=$(readlink -f "$root" 2>/dev/null || true)
+      if [[ -n "$root" && ( "$resolved" == "$root" || "$resolved" == "$root"/* ) ]]; then
+        matched_root=true
+        break
+      fi
+    done
+    if [[ "$matched_root" == false ]]; then
+      echo "upstream skill link escapes verified roots: $target -> $resolved" >&2
+      return 1
+    fi
+  done
+}
+
+if ! verify_upstream_roots; then
+  exit 82
+fi
 
 check_install() {
   local failures=0

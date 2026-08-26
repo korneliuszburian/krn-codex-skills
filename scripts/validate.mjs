@@ -16,6 +16,9 @@ const manifestPath = path.join(root, "skills", "manifest.json");
 const evalPath = path.join(root, "evals", "trigger-cases.json");
 const experimentsPath = path.join(root, "evals", "experiments");
 const readmePath = path.join(root, "README.md");
+const upstreamSourcesPath = path.resolve(
+  process.env.KRN_UPSTREAM_LOCK ?? path.join(root, "config", "upstream-sources.json"),
+);
 const errors = [];
 
 const read = (file) => fs.readFileSync(file, "utf8");
@@ -365,7 +368,61 @@ function validateTransportSchema(value, location = "review schema") {
   }
 }
 
+function validateUpstreamSources(document) {
+  if (document?.schema_version !== 1) {
+    fail("config/upstream-sources.json: schema_version must be 1");
+  }
+  if (!Array.isArray(document?.sources) || document.sources.length === 0) {
+    fail("config/upstream-sources.json: sources must be a non-empty array");
+    return;
+  }
+  const sourceIds = new Set();
+  for (const source of document.sources) {
+    if (!source || typeof source !== "object") {
+      fail("config/upstream-sources.json: every source must be an object");
+      continue;
+    }
+    if (!/^[A-Za-z0-9][A-Za-z0-9./_-]*$/.test(source.id ?? "")) {
+      fail(`config/upstream-sources.json: invalid source id ${source.id}`);
+    }
+    if (sourceIds.has(source.id)) {
+      fail(`config/upstream-sources.json: duplicate source id ${source.id}`);
+    }
+    sourceIds.add(source.id);
+    if (typeof source.repository !== "string" || !/^https:\/\//.test(source.repository)) {
+      fail(`config/upstream-sources.json: invalid repository for ${source.id}`);
+    }
+    if (!/^[0-9a-f]{40}$/i.test(source.commit ?? "")) {
+      fail(`config/upstream-sources.json: invalid commit for ${source.id}`);
+    }
+    if (!Array.isArray(source.required_paths) || source.required_paths.length === 0) {
+      fail(`config/upstream-sources.json: required_paths must be non-empty for ${source.id}`);
+      continue;
+    }
+    const paths = new Set();
+    for (const requiredPath of source.required_paths) {
+      if (!safeRelativePath(requiredPath) || !requiredPath.startsWith("skills/")) {
+        fail(`config/upstream-sources.json: unsafe required path ${requiredPath}`);
+      }
+      if (paths.has(requiredPath)) {
+        fail(`config/upstream-sources.json: duplicate required path ${requiredPath}`);
+      }
+      paths.add(requiredPath);
+    }
+  }
+  if (!sourceIds.has("mattpocock/skills")) {
+    fail("config/upstream-sources.json: missing mattpocock/skills source");
+  }
+}
+
 const manifest = json(manifestPath);
+const upstreamSources = json(upstreamSourcesPath);
+validateUpstreamSources(upstreamSources);
+const upstreamSkillNames = new Set(
+  upstreamSources.sources.flatMap((source) =>
+    source.required_paths.map((requiredPath) => path.basename(path.dirname(requiredPath))),
+  ),
+);
 const capabilityProfiles = await loadCapabilityProfiles(
   path.join(root, "config", "capability-profiles.json"),
 );
@@ -517,6 +574,8 @@ for (const skill of manifest.skills ?? []) {
     fail(`manifest: skill path must be skills/<group>/${skill.name}`);
   }
 }
+
+const knownSkillNames = new Set([...manifestNames, ...upstreamSkillNames]);
 
 if (!Array.isArray(manifest.retired_skills)) {
   fail("manifest: retired_skills must be an array");
@@ -814,9 +873,10 @@ for (const testCase of triggerCases.cases ?? []) {
     const expectedSkill = (manifest.skills ?? []).find(
       (skill) => skill.name === name,
     );
-    if (!expectedSkill) {
+    if (!expectedSkill && !upstreamSkillNames.has(name)) {
       fail(`${testCase.id}: unknown expected skill ${name}`);
     } else if (
+      expectedSkill &&
       expectedSkill.implicit === false &&
       typeof testCase.prompt === "string" &&
       !hasExactSkillToken(testCase.prompt, name)
@@ -828,7 +888,7 @@ for (const testCase of triggerCases.cases ?? []) {
     positivelyCovered.add(name);
   }
   for (const name of forbiddenSkills) {
-    if (!manifestNames.has(name)) fail(`${testCase.id}: unknown forbidden skill ${name}`);
+    if (!knownSkillNames.has(name)) fail(`${testCase.id}: unknown forbidden skill ${name}`);
     negativelyCovered.add(name);
   }
   const forbiddenSet = new Set(forbiddenSkills);

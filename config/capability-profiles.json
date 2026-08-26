@@ -40,12 +40,12 @@
       "skills": {
         "enable": [
           "omarchy",
-          "openai-docs"
+          "openai-docs",
+          "skill-creator"
         ],
         "enableFamilies": [],
         "disable": [
-          "agent-browser",
-          "skill-creator"
+          "agent-browser"
         ],
         "disableFamilies": [
           "gsap"
@@ -80,7 +80,7 @@
       }
     },
     "lean": {
-      "description": "Production engineering with KRN, OpenAI docs, Omarchy, and one GitHub plugin/app owner.",
+      "description": "Production engineering with KRN, OpenAI docs, Omarchy, and one GitHub plugin/app owner; browser automation stays off unless web-qa is selected.",
       "plugins": {
         "enable": [
           "github@openai-curated"
@@ -101,12 +101,12 @@
       "skills": {
         "enable": [
           "omarchy",
-          "openai-docs"
+          "openai-docs",
+          "skill-creator"
         ],
         "enableFamilies": [],
         "disable": [
-          "agent-browser",
-          "skill-creator"
+          "agent-browser"
         ],
         "disableFamilies": [
           "gsap"
@@ -164,15 +164,13 @@
       "skills": {
         "enable": [
           "omarchy",
-          "openai-docs"
+          "openai-docs",
+          "skill-creator"
         ],
         "enableFamilies": [
           "gsap"
         ],
-        "disable": [
-          "agent-browser",
-          "skill-creator"
-        ],
+        "disable": [],
         "disableFamilies": [],
         "preserveScopes": [
           "krn-global",
@@ -180,7 +178,7 @@
           "system"
         ]
       },
-      "mcps": {
+        "mcps": {
         "enable": [
           "figma"
         ],
@@ -227,14 +225,12 @@
       },
       "skills": {
         "enable": [
-          "agent-browser",
           "omarchy",
-          "openai-docs"
-        ],
-        "enableFamilies": [],
-        "disable": [
+          "openai-docs",
           "skill-creator"
         ],
+        "enableFamilies": [],
+        "disable": [],
         "disableFamilies": [
           "gsap"
         ],
@@ -292,13 +288,11 @@
       "skills": {
         "enable": [
           "omarchy",
-          "openai-docs"
-        ],
-        "enableFamilies": [],
-        "disable": [
-          "agent-browser",
+          "openai-docs",
           "skill-creator"
         ],
+        "enableFamilies": [],
+        "disable": [],
         "disableFamilies": [
           "gsap"
         ],
@@ -356,14 +350,13 @@
         "enable": [
           "agent-browser",
           "omarchy",
-          "openai-docs"
+          "openai-docs",
+          "skill-creator"
         ],
         "enableFamilies": [
           "gsap"
         ],
-        "disable": [
-          "skill-creator"
-        ],
+        "disable": [],
         "disableFamilies": [],
         "preserveScopes": [
           "krn-global",

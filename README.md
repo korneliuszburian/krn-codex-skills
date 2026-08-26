@@ -90,12 +90,16 @@ tracker capability is emulated.
 | [`unlazy`](skills/meta/unlazy/SKILL.md) | explicit only | machine-checked completion gates for long or multi-phase work |
 | [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
 
-The shared engineering flow (wayfinder, to-spec, implement, diagnosing-bugs,
-prototype, codebase-design, code-review, domain-modeling, tdd, triage, wizard,
-grilling, handoff) is **composed from the upstream
-[`mattpocock/skills`](https://github.com/mattpocock/skills) set, not owned
-here** — install it once with `npx skills add mattpocock/skills` or the Claude
-Code plugin, and keep it updated upstream. This repo owns only the decisions
+The shared engineering and productivity flow (`ask-matt`, `wayfinder`,
+`to-spec`, `to-tickets`, `implement`, `diagnosing-bugs`, `research`,
+`prototype`, `codebase-design`, `improve-codebase-architecture`,
+`resolving-merge-conflicts`, `code-review`, `domain-modeling`, `tdd`, `triage`,
+`wizard`, `grill-with-docs`, `grill-me`, `grilling`, `handoff`, `teach`,
+`to-questionnaire`, `wait-what`, `writing-for-agents`, and
+`setup-matt-pocock-skills`) is **composed from a clean checkout of the
+upstream [`mattpocock/skills`](https://github.com/mattpocock/skills) set at the
+commit pinned by `config/upstream-sources.json`, not owned here** — do not use a
+moving `npx skills add` result as the KRN source. This repo owns only the decisions
 and lifecycle envelopes listed above; lab measurement found no advantage of a
 hand-forked copy over upstream or over no skill
 ([`skills-3arm-lab`](docs/research/skills-3arm-lab.md), results in
@@ -128,7 +132,7 @@ archived only with explicit authority:
 # Set this only to the verified root containing active upstream skill sources.
 UPSTREAM_SKILLS_ROOTS="/absolute/path/to/verified-upstream-skills"
 test -d "$UPSTREAM_SKILLS_ROOTS"
-test -e "$UPSTREAM_SKILLS_ROOTS/code-review/SKILL.md"
+test -e "$UPSTREAM_SKILLS_ROOTS/skills/engineering/code-review/SKILL.md"
 
 env KRN_UPSTREAM_SKILLS_ROOTS="$UPSTREAM_SKILLS_ROOTS" \
   KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
@@ -136,9 +140,12 @@ env KRN_UPSTREAM_SKILLS_ROOTS="$UPSTREAM_SKILLS_ROOTS" \
   scripts/install.sh install
 ```
 
-Do not set `KRN_ARCHIVE_LEGACY=1` until the upstream root is verified. The
-installer preserves upstream-owned symlinks only under that explicit root; stale
-or foreign targets still require archive authority.
+The repository lock in `config/upstream-sources.json` requires every supplied
+upstream root to be at the recorded commit, clean, and complete before the
+installer preserves an upstream-owned symlink. If an upstream-owned retired
+link exists, omitting the root fails closed. Do not set
+`KRN_ARCHIVE_LEGACY=1` until the upstream root is verified; stale or foreign
+targets still require archive authority.
 
 Run `check` again and start a fresh Codex session after installation. Discovery
 is session-scoped. `setup-repository-workflow` and `opencode-second-opinion`

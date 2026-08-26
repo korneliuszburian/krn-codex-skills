@@ -17,7 +17,7 @@
 | KRN product language, `krn-memory-core`, and Beads | `mise` | retain as domain guidance only |
 | global Claude instructions | this repository | install `CLAUDE.md` as a symlink resolving to the same managed `AGENTS.md` core |
 | hand-maintained user `PreToolUse` hook | this repository | archive the reviewed legacy hook and install one literal-risk guard for recognized direct protected deletion, non-dry-run `git clean`, exact quarantine references, and patch targets; ambiguous literal composition denies without modeling shell execution, while runtime-built behavior remains contract-governed; the earlier token-proxy rewrite is retired |
-| hand-forked ports of `mattpocock/skills` (`code-review`, `codebase-design`, `diagnosing-bugs`, `domain-modeling`, `implement`, `prototype`, `to-spec`, `wayfinder`, `to-questionnaire`, `wait-what`, `writing-for-agents`) | upstream `mattpocock/skills` | culled 2026-08-12 per three-arm lab verdict (`INCONCLUSIVE` → `RETIRE_TO_UPSTREAM`): no measured advantage over upstream or no-skill; install the shared set once via `npx skills add mattpocock/skills` or the Claude plugin; Git history retains the culled copies |
+| hand-forked ports of `mattpocock/skills` (`code-review`, `codebase-design`, `diagnosing-bugs`, `domain-modeling`, `implement`, `prototype`, `to-spec`, `wayfinder`, `to-questionnaire`, `wait-what`, `writing-for-agents`) | upstream `mattpocock/skills` | culled 2026-08-12 per three-arm lab verdict (`INCONCLUSIVE` → `RETIRE_TO_UPSTREAM`): no measured advantage over upstream or no-skill; KRN uses a clean checkout pinned by `config/upstream-sources.json`; `npx skills` or the Claude plugin remain alternative managed installs; Git history retains the culled copies |
 
 ## Installation Invariants
 
@@ -44,8 +44,10 @@
     foreign occupant.
 12. An upstream-owned tombstone preserves an existing symlink only when its
     resolved target is under an explicit colon-separated `KRN_UPSTREAM_SKILLS_ROOTS`
-    allowlist. An arbitrary external symlink is treated as stale/foreign and
-    still requires archive authority.
+    allowlist whose Git checkout matches the pinned source in
+    `config/upstream-sources.json`, is clean, and contains every required path.
+    An arbitrary external, stale, or modified symlink is treated as
+    stale/foreign and still requires archive authority.
 
 ## Rollback
 

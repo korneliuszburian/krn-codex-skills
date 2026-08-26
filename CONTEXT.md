@@ -21,13 +21,17 @@ a progress log. Update meanings and links in place; Git retains their history.
 **Global system** — the universal KRN engineering workflows versioned here and
 projected into the installed skill index.
 
-**Composed upstream set** — the shared engineering flow (`wayfinder`,
-`to-spec`, `implement`, `diagnosing-bugs`, `prototype`, `codebase-design`,
-`code-review`, `domain-modeling`, `tdd`, `triage`, `wizard`, `grilling`,
-`handoff`) installed from `mattpocock/skills` (`npx skills add` or the Claude
-Code plugin). This checkout references them by name and owns none of their
-procedure; the three-arm lab found no advantage of a hand-forked copy over
-upstream or over no skill.
+**Composed upstream set** — the current stable engineering and productivity
+owners (`ask-matt`, `code-review`, `codebase-design`, `diagnosing-bugs`,
+`domain-modeling`, `grill-with-docs`, `implement`,
+`improve-codebase-architecture`, `prototype`, `research`,
+`resolving-merge-conflicts`, `setup-matt-pocock-skills`, `tdd`, `to-spec`,
+`to-tickets`, `triage`, `wayfinder`, `wizard`, `grill-me`, `grilling`,
+`handoff`, `teach`, `to-questionnaire`, `wait-what`, and
+`writing-for-agents`) installed from a clean checkout of `mattpocock/skills` at
+the commit pinned in `config/upstream-sources.json`. This checkout references
+them by name and owns none of their procedure; the three-arm lab found no
+advantage of a hand-forked copy over upstream or over no skill.
 
 **Source repository** — this checkout. It owns skill source, installation
 metadata, validation, research synthesis, and migration history.

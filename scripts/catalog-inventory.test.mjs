@@ -222,7 +222,12 @@ test("profiles and inventory expose only current, global, sanitized capabilities
     "github@openai-curated-remote",
   ]);
   assert.deepEqual(lean.plugins.enable, ["github@openai-curated"]);
-  assert.deepEqual(lean.skills.disable, ["agent-browser", "skill-creator"]);
+  assert.deepEqual(lean.skills.enable, [
+    "omarchy",
+    "openai-docs",
+    "skill-creator",
+  ]);
+  assert.deepEqual(lean.skills.disable, ["agent-browser"]);
   assert.deepEqual(lean.skills.disableFamilies, ["gsap"]);
   assert.deepEqual(lean.mcps.disable, [
     "agent_browser",
@@ -233,6 +238,32 @@ test("profiles and inventory expose only current, global, sanitized capabilities
   assert.deepEqual(lean.apps.enable, ["github"]);
   assert.equal(lean.skills.preserveScopes.includes("project-local"), true);
   assert.equal(lean.apps.mode, "report-only");
+  const minimal = getCapabilityProfile(profiles, "minimal");
+  assert.deepEqual(minimal.skills.disable, ["agent-browser"]);
+  assert.deepEqual(minimal.mcps.enable, []);
+  assert.deepEqual(minimal.mcps.disable, [
+    "agent_browser",
+    "context7",
+    "figma",
+    "github",
+  ]);
+  const design = getCapabilityProfile(profiles, "design");
+  assert.equal(design.skills.enable.includes("agent-browser"), false);
+  assert.deepEqual(design.mcps.enable, ["figma"]);
+  assert.deepEqual(design.mcps.disable, [
+    "agent_browser",
+    "context7",
+    "github",
+  ]);
+  const comms = getCapabilityProfile(profiles, "comms");
+  assert.equal(comms.skills.enable.includes("agent-browser"), false);
+  assert.deepEqual(comms.mcps.enable, []);
+  assert.deepEqual(comms.mcps.disable, [
+    "agent_browser",
+    "context7",
+    "figma",
+    "github",
+  ]);
   const quarantinedPluginId = profiles.hardQuarantine.pluginIds[0];
   assert.equal(isHardQuarantined(quarantinedPluginId), true);
   assert.equal(

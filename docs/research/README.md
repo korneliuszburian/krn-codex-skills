@@ -17,11 +17,21 @@ Git history records the sequence.
    outside Git. Promote only the distilled mechanism and provenance.
 7. Delete a topic when it has no current consumer; its history remains in Git.
 
+## Refresh rule
+
+The composed upstream set is refreshed from `mattpocock/skills`; this repository
+does not fork or hand-edit those skills. KRN consumes a clean checkout pinned in
+`config/upstream-sources.json`, not a moving installer result. Each refresh
+records the upstream commit and verification date below, then runs the
+repository validation gate. Research claims are rechecked when their source,
+local decision, or falsifier changes; the verification date is evidence
+freshness, not permanence.
+
 ## Topics
 
 | Topic | Current authority | One-line state | Reopen when |
 |---|---|---|---|
-| Agent orchestration and compact context | [orchestration.md](orchestration.md) | accepted compiled-context spine; bounded register lab did not earn a new store; 17 workflow owners; one ignored run namespace | a recurring routing, restart, review, artifact, or writer-admission failure survives bounded repair |
+| Agent orchestration and compact context | [orchestration.md](orchestration.md) | accepted compiled-context spine; bounded register lab did not earn a new store; upstream harness mechanisms are selectively adopted or lab-tested; OpenCode advisory transport hardening remains a lab-test | a recurring routing, restart, review, artifact, writer-admission, or advisory-transport failure survives bounded repair |
 | TypeScript engineering | [`typescript-engineering` references](../../skills/engineering/typescript-engineering/SKILL.md) | inference, boundary, compiler, and proof mechanisms are owned directly by the companion skill | a current compiler/host change contradicts a retained mechanism |
 | Capability surface | [capabilities.md](../capabilities.md) | named profiles and evidence-bounded reconciliation | catalog schema, runtime event, or trust boundary changes |
 | Installation and retirement | [migration.md](../migration.md) | collision-safe symlinks, explicit archive authority, recoverable retirement | installer target or host layout changes |
@@ -32,15 +42,18 @@ Git history records the sequence.
 
 | Family | Primary source and fixed point | Retained mechanism | Verified |
 |---|---|---|---|
-| Matt Pocock skills | [`mattpocock/skills` at `2ab9580`](https://github.com/mattpocock/skills/commit/2ab958093e83e0ec752e6c1c5932da465bf23e0c) | small composable owners, progressive disclosure, leading words, shared language, destination/spec/ticket distinctions | 2026-07-30 |
+| Matt Pocock skills | [`mattpocock/skills` at `6654f6b`](https://github.com/mattpocock/skills/commit/6654f6b60cd9d5be8b54c6fafe44346dabeb3b76) | small composable owners, progressive disclosure, leading words, shared language, destination/spec/ticket distinctions; current upstream also separates managed Claude distribution from editable `npx skills@latest` installs and adds explicit research, architecture, ticket, and merge-conflict owners | 2026-08-26 |
 | Matt on global instructions | [AGENTS.md guide](https://www.aihero.dev/a-complete-guide-to-agents-md), [Never Run `/init`](https://www.aihero.dev/never-run-claude-init) | minimal always-loaded context; discoverable facts do not earn permanent prompt space | 2026-07-30 |
 | Matt on concise output | [initial before/after](https://www.youtube.com/shorts/I12Mf8KBT1I), [later retraction](https://www.youtube.com/watch?v=9tmsq-Gvx6g) | wording strongly changes presentation, but global placement was later rejected in favor of scoped steering | 2026-07-30 |
 | Matt workflow evolution | [v1.1 changelog](https://www.aihero.dev/skills/skills-changelog-v1-1-wayfinder-to-spec-to-tickets-grilling-improvements), [Wayfinder](https://www.youtube.com/watch?v=F3lL98Pj90o) | one fresh context per frontier ticket; exactly research, prototype, grilling, and task tickets; full resolutions remain linked primary sources while the spec is a temporary implementation destination | 2026-07-31 |
 | Karpathy compact memory | [LLM knowledge-work gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) | immutable sources feed a continuously compiled, indexed synthesis | 2026-07-30 |
 | Production memory extension | [Rohit Goyal gist](https://gist.github.com/rohitg00/2067ab416f7bbe447c1977edaaa681e2) | confidence, recency, supersession, and crystallization matter; graph/search automation is scale-dependent | 2026-07-30 |
 | OpenAI Codex | [Long-running work](https://learn.chatgpt.com/docs/long-running-work), [skills](https://learn.chatgpt.com/docs/build-skills), [subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents), [AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md) | Goal owns outcome continuity; skills own methods; subagents isolate bounded work; durable team rules remain checked in | 2026-07-30 |
-| OpenAI harness engineering | [Harness engineering](https://openai.com/index/harness-engineering/) | repository knowledge is a maintained map and system of record, not one giant manual | 2026-07-30 |
-| Long-running harnesses | [Anthropic effective harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents), [harness design](https://www.anthropic.com/engineering/harness-design-long-running-apps) | explicit progress state, clean restart boundaries, and skeptical evaluation help; multi-agent ceremony has real cost | 2026-07-30 |
+| OpenAI harness engineering | [Harness engineering](https://openai.com/index/harness-engineering/) | repository knowledge is a maintained map and system of record, not one giant manual; indexes, mechanical freshness checks, and doc gardening keep progressive disclosure alive | 2026-08-19 |
+| Long-running harnesses | [Anthropic effective harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents), [harness design](https://www.anthropic.com/engineering/harness-design-long-running-apps) | explicit progress state, clean restart boundaries, and skeptical evaluation help; harness assumptions must be removed or re-tested as models improve; multi-agent ceremony has real cost | 2026-08-19 |
+| Agent harness research | [AI Harness Engineering](https://arxiv.org/abs/2605.13357), [Agentic Harness Engineering](https://arxiv.org/abs/2604.25850), [SWE-EVO](https://arxiv.org/abs/2512.18470), [SlopCodeBench](https://arxiv.org/abs/2603.24755), [DeepSWE](https://arxiv.org/abs/2607.07946) | evaluate the model-harness-environment system and long-horizon code evolution, including structural erosion and maintainability; passing a one-shot test is insufficient proof | 2026-08-19 |
+| Gate-first harness coordination | [`unlazy` at `da0b00a`](https://github.com/Leonxlnx/unlazy/tree/da0b00a3a6b706b471797cd4ef579ae1001ff6d7) | gates before work, explicit check/expect evidence, re-verification, a natural-joint task tree, and cooperative leases/dispatch can make long-running progress legible | scope and leases remain coordination mechanisms unless enforced outside the model; historical outcome claims are not independent production proof | 2026-08-26 |
+| Scope and YAGNI pressure | [`ponytail` at `2ed6c52`](https://github.com/DietrichGebert/ponytail/tree/2ed6c52c9d7e5e56942508591085fd45dea277d3) and its [agentic benchmark](https://github.com/DietrichGebert/ponytail/blob/2ed6c52c9d7e5e56942508591085fd45dea277d3/benchmarks/results/2026-06-18-agentic.md) | ask whether a feature is needed, then prefer reuse, standard library, native capability, installed dependency, or the smallest direct implementation while retaining security and accessibility checks | the benchmark is self-reported and small; it supports a heuristic, not a separate global workflow or transfer claim | 2026-08-26 |
 | Bounded experimentation | [`karpathy/autoresearch`](https://github.com/karpathy/autoresearch/tree/228791fb499afffb54b46200aca536f79142f117) | compare one bounded change against a stable baseline and keep only measured improvement | 2026-07-30 |
 
 ## TypeScript provenance
