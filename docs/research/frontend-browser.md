@@ -14,6 +14,9 @@ one session identity and one ref map.
 - `agent-browser` is installed locally at version 0.31.1.
 - Chromium is available locally.
 - Neither tool was opened against the active Ekologus instance.
+- The local `playwright-cli` wrapper currently resolves Playwright through
+  `npx --yes --prefer-online`; this is not a suitable final execution path for
+  a high-throughput evidence loop because it can add startup/network noise.
 
 ## Why Playwright CLI is canonical
 
@@ -26,6 +29,10 @@ specialized persistent exploratory loops.
 That matches KRN's needs: the agent can act through compact refs, while the
 pipeline owns the durable evidence envelope and gate rather than injecting a
 large live page tree into every reasoning step.
+
+The final adapter should pin the Playwright CLI version per repository and use
+the local package with `--no-install` (or a direct resolved binary), never a
+floating online lookup on every action.
 
 ## Where agent-browser fits
 
