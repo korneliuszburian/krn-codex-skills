@@ -10,6 +10,23 @@
     "width": 960,
     "height": 720
   },
+  "build": {
+    "command": "node",
+    "args": [
+      "build.mjs"
+    ],
+    "cwd": ".",
+    "outputRoot": "dist"
+  },
+  "runtime": {
+    "command": "node",
+    "args": [
+      "serve.mjs"
+    ],
+    "cwd": ".",
+    "readyUrl": "http://127.0.0.1:4173/",
+    "timeoutMs": 10000
+  },
   "evidence": {
     "required": [
       "screenshot",

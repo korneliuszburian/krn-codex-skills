@@ -10,12 +10,19 @@ const failures = [];
 if (manifest.targetOrigin !== new URL(config.url).origin || !config.allowedOrigins.includes(manifest.targetOrigin)) failures.push("target: origin is not allowed");
 if (manifest.viewport?.width !== config.viewport.width || manifest.viewport?.height !== config.viewport.height) failures.push("viewport: manifest does not match config");
 if (JSON.stringify(manifest.evidence?.required) !== JSON.stringify(config.evidence.required)) failures.push("evidence: manifest policy does not match config");
+if (manifest.build?.outputRoot !== config.build?.outputRoot) failures.push("build: manifest output root does not match config");
+if (manifest.runtime?.readyUrl !== config.runtime?.readyUrl) failures.push("runtime: manifest readiness URL does not match config");
 for (const artifact of manifest.artifacts) {
   const data = await readFile(path.join(dir, artifact.path));
   const digest = createHash("sha256").update(data).digest("hex");
   if (data.byteLength !== artifact.bytes || digest !== artifact.sha256) {
     failures.push(`${artifact.path}: digest or byte count mismatch`);
   }
+}
+for (const file of manifest.build?.files ?? []) {
+  const data = await readFile(path.join(root, manifest.build.outputRoot, file.path));
+  const digest = createHash("sha256").update(data).digest("hex");
+  if (data.byteLength !== file.bytes || digest !== file.sha256) failures.push(`build/${file.path}: digest or byte count mismatch`);
 }
 const runtimeValue = JSON.parse(await readFile(path.join(dir, "runtime.json"), "utf8"));
 const runtime = typeof runtimeValue === "string" ? JSON.parse(runtimeValue) : runtimeValue;
