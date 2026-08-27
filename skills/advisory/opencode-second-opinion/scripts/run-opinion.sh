@@ -69,6 +69,11 @@ if [[ -z "$variant" ]]; then
   echo "OPENCODE_SECOND_OPINION_VARIANT must not be empty" >&2
   exit 64
 fi
+agent=${OPENCODE_SECOND_OPINION_AGENT:-review}
+if [[ -z "$agent" ]]; then
+  echo "OPENCODE_SECOND_OPINION_AGENT must not be empty" >&2
+  exit 64
+fi
 timeout_seconds=${OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS:-600}
 if [[ -z "$timeout_seconds" || "$timeout_seconds" == *[!0-9]* || "$timeout_seconds" == 0 ]]; then
   echo "OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS must be a positive integer" >&2
@@ -123,7 +128,7 @@ fi
 prompt_sha=$(sha256sum "$prompt_file" | awk '{print $1}')
 
 run_exit=0
-timeout "$timeout_seconds" opencode run --model "$model" --variant "$variant" --format json --dir "$target_dir" "$prompt" > "$temporary_raw" || run_exit=$?
+timeout "$timeout_seconds" opencode run --agent "$agent" --model "$model" --variant "$variant" --format json --dir "$target_dir" "$prompt" > "$temporary_raw" || run_exit=$?
 if [[ $run_exit -ne 0 ]]; then
   if [[ $run_exit -eq 124 ]]; then
     preserve_failure "opencode run timed out after ${timeout_seconds}s" "$run_exit"

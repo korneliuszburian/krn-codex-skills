@@ -116,7 +116,7 @@ const backtickTokens = [...opinion.matchAll(/`([^`\n]+)`/g)].map((match) => matc
 // a boundary and the scan would mis-read it as the absolute `/run.json`.
 const blanked = opinion.replace(/`[^`\n]+`/g, (m) => " ".repeat(m.length));
 const absoluteTokens = [
-  ...blanked.matchAll(/(^|[^A-Za-z0-9_./-])(\/[A-Za-z0-9_.~+-][^\s`"'<>()]+)/g),
+  ...blanked.matchAll(/(^|[^A-Za-z0-9_./-])(\/[A-Za-z0-9_.~+-][^\s`"'<>()]*:\d+(?::\d+)?)/g),
 ].map((match) => match[2]);
 const relativeTokens = [
   ...opinion.matchAll(/(?:^|[\s("'])((?:\.\.?\/)+[A-Za-z0-9_.~+/-]+(?::\d+(?::\d+)?)?)/g),

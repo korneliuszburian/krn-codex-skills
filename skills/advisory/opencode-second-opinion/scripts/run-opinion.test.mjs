@@ -51,7 +51,7 @@ test("runs the explicit reviewer model at max effort non-interactively and write
   try {
     invoke([target, path.join(run, "prompt.md"), output], { PATH: `${bin}:${process.env.PATH}`, OPENCODE_TEST_INVOCATION: invocation });
     const argumentsText = fs.readFileSync(invocation, "utf8");
-    assert.match(argumentsText, /run --model opencode-go\/gpt-5\.6 --variant max --format json --dir/);
+    assert.match(argumentsText, /run --agent review --model opencode-go\/gpt-5\.6 --variant max --format json --dir/);
     assert.doesNotMatch(argumentsText, /--interactive|--auto|--continue|--session/);
     assert.match(argumentsText, /Do not edit files, propose a patch, emit a diff/);
     assert.equal(fs.readFileSync(output, "utf8"), "COMPLETE_OPINION\n");
@@ -166,6 +166,23 @@ test("rejects an existing absolute citation with a line suffix", () => {
     );
     assert.equal(fs.existsSync(output), false);
     assert.ok(fs.existsSync(path.join(run, "raw.failed.jsonl")));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("permits a plain absolute path mentioned as context without a line citation", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
+  const outside = path.join(root, "outside", "context");
+  try {
+    fs.mkdirSync(outside, { recursive: true });
+    invoke([target, path.join(run, "prompt.md"), output], {
+      PATH: `${bin}:${process.env.PATH}`,
+      OPENCODE_TEST_FINAL_TEXT: `The global skill root is ${outside}`,
+      OPENCODE_TEST_INVOCATION: invocation,
+    });
+    assert.match(fs.readFileSync(output, "utf8"), /global skill root/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

@@ -5,7 +5,10 @@ description: Request one bounded read-only OpenCode advisory opinion on an expli
 
 # OpenCode Second Opinion
 
-Use DeepSeek as an advisory reader, not an implementation or approval lane. The
+Use an explicitly selected independent model (DeepSeek is the default choice)
+as an advisory reader, not an implementation or approval lane. The bundled
+runner uses the configured read-only `review` agent by default, preventing the
+reviewer from inheriting an unrestricted implementation tool surface. The
 pass has one question and one explicit target path. It returns prose findings;
 the initiating workflow verifies and dispositions them locally.
 
@@ -61,19 +64,23 @@ owning workflow's review gate, approval, or local verification.
    with absolute paths. It requires `OPENCODE_SECOND_OPINION_MODEL` to name an
    explicit reviewer model from a different family than the initiating agent;
    there is no default, so a run cannot silently execute on the author's own
-   model. `OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS` (default `600`) bounds the
+   model. `OPENCODE_SECOND_OPINION_AGENT` defaults to the configured read-only
+   `review` agent. `OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS` (default `600`) bounds the
    run; a timeout or a rejected stream fails closed and retains the partial
    evidence. The runner passes OpenCode's provider-specific `--variant`,
    defaulting to `max`; set `OPENCODE_SECOND_OPINION_VARIANT` only to a
    supported non-empty provider variant when a different effort is required.
    It requests `--format json` and accepts an opinion only when the event
    stream ends in `step_finish` with `reason: "stop"` and non-empty text for
-   that final message, and only when every cited path resolves inside the
-   target directory (mechanical scope denial). It never passes `--interactive`,
+   that final message, and only when every explicit citation resolves inside
+   the target directory (mechanical scope denial). Backtick paths, relative
+   traversal paths, and line-qualified absolute paths are citations; an
+   ordinary prose mention of an existing environment path is not. It never passes `--interactive`,
    `--auto`, a continuation flag, or an edit request.
 
    ```bash
    OPENCODE_SECOND_OPINION_MODEL=<explicit independent reviewer model> \
+   OPENCODE_SECOND_OPINION_AGENT=review \
    OPENCODE_SECOND_OPINION_VARIANT=max \
    ~/.agents/skills/opencode-second-opinion/scripts/run-opinion.sh \
      /absolute/target-repository \
