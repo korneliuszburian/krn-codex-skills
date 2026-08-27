@@ -15,7 +15,8 @@ const root = path.resolve(configDirectory, config.workspaceRoot ?? ".");
 const outputDirectory = path.resolve(root, config.outputDir ?? ".artifacts");
 const session = `${config.sessionPrefix ?? "krn-frontend"}-${process.pid}`;
 if (typeof config.url !== "string" || config.url.length === 0) throw new Error("browser evidence config requires a non-empty url");
-if (config.action?.kind !== "click" || typeof config.action.text !== "string") throw new Error("browser evidence config currently supports click actions with text");
+const actions = config.actions ?? (config.action === undefined ? [] : [config.action]);
+if (!Array.isArray(actions) || actions.length === 0 || actions.some((action) => action?.kind !== "click" || typeof action.text !== "string")) throw new Error("browser evidence config requires one or more click actions with text");
 if (typeof config.runtimeEval !== "string" || config.runtimeEval.length === 0) throw new Error("browser evidence config requires runtimeEval");
 const targetOrigin = new URL(config.url).origin;
 if (!Array.isArray(config.allowedOrigins) || !config.allowedOrigins.includes(targetOrigin)) throw new Error(`browser evidence target origin is not allowed: ${targetOrigin}`);
@@ -77,8 +78,7 @@ const waitForRuntime = async () => {
 await mkdir(outputDirectory, { recursive: true });
 let opened = false;
 let runtimeProcess;
-let actionRole = "button";
-let actionRef;
+const interactions = [];
 let buildManifest;
 try {
   buildManifest = await runBuild();
@@ -88,11 +88,14 @@ try {
   await save("viewport.txt", ["resize", String(viewport.width), String(viewport.height)]);
   await save("before-output.txt", ["snapshot", `--filename=${artifactPath("before.yml")}`]);
   await save("before-output-screenshot.txt", ["screenshot", `--filename=${artifactPath("before.png")}`]);
-  const findOutput = await save("find.txt", ["find", config.action.text]);
-  actionRole = config.action.role ?? "button";
-  actionRef = findOutput.match(new RegExp(`${actionRole} "${escaped(config.action.text)}" \\[ref=(e\\d+)\\]`))?.[1];
-  if (actionRef === undefined) throw new Error(`browser action target not found: ${actionRole} ${config.action.text}`);
-  await save("interaction.txt", ["click", actionRef]);
+  for (const [index, action] of actions.entries()) {
+    const actionRole = action.role ?? "button";
+    const findOutput = await save(`find-${String(index + 1).padStart(2, "0")}.txt`, ["find", action.text]);
+    const actionRef = findOutput.match(new RegExp(`${actionRole} "${escaped(action.text)}" \\[ref=(e\\d+)\\]`))?.[1];
+    if (actionRef === undefined) throw new Error(`browser action target not found: ${actionRole} ${action.text}`);
+    await save(`interaction-${String(index + 1).padStart(2, "0")}.txt`, ["click", actionRef]);
+    interactions.push({ action: action.kind, role: actionRole, text: action.text, ref: actionRef });
+  }
   await save("after-output.txt", ["snapshot", `--filename=${artifactPath("after.yml")}`]);
   await save("after-output-screenshot.txt", ["screenshot", `--filename=${artifactPath("after.png")}`]);
   await save("runtime.json", ["--raw", "eval", config.runtimeEval]);
@@ -108,8 +111,8 @@ try {
   await writeFile(path.join(outputDirectory, "cleanup.json"), cleanup.stdout, "utf8");
 }
 
-const names = ["open.txt", "viewport.txt", "before-output.txt", "before-output-screenshot.txt", "before.yml", "before.png", "find.txt", "interaction.txt", "after-output.txt", "after-output-screenshot.txt", "after.yml", "after.png", "runtime.json", "console.json", "requests.json", "close.txt", "cleanup.json", ...(buildManifest === undefined ? [] : ["build-output.txt"])]
+const names = ["open.txt", "viewport.txt", "before-output.txt", "before-output-screenshot.txt", "before.yml", "before.png", ...interactions.flatMap((_, index) => [`find-${String(index + 1).padStart(2, "0")}.txt`, `interaction-${String(index + 1).padStart(2, "0")}.txt`]), "after-output.txt", "after-output-screenshot.txt", "after.yml", "after.png", "runtime.json", "console.json", "requests.json", "close.txt", "cleanup.json", ...(buildManifest === undefined ? [] : ["build-output.txt"])]
   .filter((name) => name !== "close.txt" || opened);
 const artifacts = [];
 for (const name of names) { const data = await readFile(path.join(outputDirectory, name)); artifacts.push({ path: name, bytes: data.byteLength, sha256: sha256(data) }); }
-await writeFile(path.join(outputDirectory, "manifest.json"), `${JSON.stringify({ schema: "krn.frontend.browser-evidence.v1", provider: "playwright-cli", session, target: config.url, targetOrigin, viewport, evidence: { required: requiredEvidence }, ...(buildManifest === undefined ? {} : { build: buildManifest }), ...(runtime === undefined ? {} : { runtime: { command: [runtime.command, ...runtime.args], readyUrl: runtime.readyUrl } }), interaction: { action: config.action.kind, role: actionRole, text: config.action.text, ref: actionRef }, artifacts }, null, 2)}\n`, "utf8");
+await writeFile(path.join(outputDirectory, "manifest.json"), `${JSON.stringify({ schema: "krn.frontend.browser-evidence.v1", provider: "playwright-cli", session, target: config.url, targetOrigin, viewport, evidence: { required: requiredEvidence }, ...(buildManifest === undefined ? {} : { build: buildManifest }), ...(runtime === undefined ? {} : { runtime: { command: [runtime.command, ...runtime.args], readyUrl: runtime.readyUrl } }), interactions, artifacts }, null, 2)}\n`, "utf8");

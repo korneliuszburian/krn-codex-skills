@@ -18,7 +18,7 @@ npm run verify
 ```
 
 The capture flow opens the local fixture, obtains a ref from the accessibility
-snapshot, clicks the button, captures before/after snapshots and screenshots,
+snapshot, executes the declared `actions` sequence, captures before/after snapshots and screenshots,
 records runtime geometry, console, network and interaction output, closes the
 session, and records the remaining session list. `verify.mjs` checks artifact
 hashes, the completed state and cleanup. Editing any listed artifact makes the
@@ -26,3 +26,7 @@ gate fail.
 
 `.artifacts/` is generated evidence and must stay out of Git; the fixture code
 and verifier are the durable contract.
+
+Use `actions` for a scenario. Each action currently supports `kind: "click"`,
+an optional accessibility `role`, and visible `text`. The legacy singular
+`action` field remains accepted by the adapter.

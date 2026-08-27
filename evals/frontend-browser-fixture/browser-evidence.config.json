@@ -38,10 +38,12 @@
       "cleanup"
     ]
   },
-  "action": {
-    "kind": "click",
-    "role": "button",
-    "text": "Complete task"
-  },
+  "actions": [
+    {
+      "kind": "click",
+      "role": "button",
+      "text": "Complete task"
+    }
+  ],
   "runtimeEval": "JSON.stringify({url: location.href, status: document.querySelector('[data-testid=task-status]').textContent, state: document.querySelector('[data-testid=task-status]').dataset.state, rect: document.querySelector('[data-testid=task-card]').getBoundingClientRect().toJSON()})"
 }

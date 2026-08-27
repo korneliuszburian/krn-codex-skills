@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test:frontend-browser": "npm --prefix evals/frontend-browser-fixture run capture && npm --prefix evals/frontend-browser-fixture run verify",
+    "frontend:verify": "npm run test:frontend-browser",
     "catalog": "node scripts/catalog.mjs",
     "test:catalog": "node --test scripts/catalog*.test.mjs",
     "test:install": "node --test scripts/install.test.mjs",
