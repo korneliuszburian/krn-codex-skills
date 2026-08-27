@@ -209,6 +209,7 @@ test("profiles and inventory expose only current, global, sanitized capabilities
   assert.deepEqual(Object.keys(profiles.profiles), [
     "minimal",
     "lean",
+    "engineering-full",
     "design",
     "web-qa",
     "comms",
@@ -221,7 +222,10 @@ test("profiles and inventory expose only current, global, sanitized capabilities
   assert.deepEqual(profiles.pluginSkillAliases["github@openai-curated"], [
     "github@openai-curated-remote",
   ]);
-  assert.deepEqual(lean.plugins.enable, ["github@openai-curated"]);
+  assert.deepEqual(lean.plugins.enable, [
+    "codex-cli-wakatime@wakatime",
+    "github@openai-curated",
+  ]);
   assert.deepEqual(lean.skills.enable, [
     "omarchy",
     "openai-docs",
@@ -231,9 +235,13 @@ test("profiles and inventory expose only current, global, sanitized capabilities
   assert.deepEqual(lean.skills.disableFamilies, ["gsap"]);
   assert.deepEqual(lean.mcps.disable, [
     "agent_browser",
+    "ahrefs",
     "context7",
     "figma",
     "github",
+    "krn_decision_packet",
+    "node_repl",
+    "openaiDeveloperDocs",
   ]);
   assert.deepEqual(lean.apps.enable, ["github"]);
   assert.equal(lean.skills.preserveScopes.includes("project-local"), true);
@@ -243,9 +251,13 @@ test("profiles and inventory expose only current, global, sanitized capabilities
   assert.deepEqual(minimal.mcps.enable, []);
   assert.deepEqual(minimal.mcps.disable, [
     "agent_browser",
+    "ahrefs",
     "context7",
     "figma",
     "github",
+    "krn_decision_packet",
+    "node_repl",
+    "openaiDeveloperDocs",
   ]);
   const design = getCapabilityProfile(profiles, "design");
   assert.equal(design.skills.enable.includes("agent-browser"), false);

@@ -18,6 +18,7 @@ export const HARD_QUARANTINE_FAMILIES = Object.freeze(["superpowers"]);
 const PROFILE_NAMES = Object.freeze([
   "minimal",
   "lean",
+  "engineering-full",
   "design",
   "web-qa",
   "comms",
