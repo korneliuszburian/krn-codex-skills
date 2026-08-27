@@ -26,6 +26,10 @@
     {
       "name": "krn-frontend-browser",
       "path": "scripts/frontend-browser-evidence.mjs"
+    },
+    {
+      "name": "krn-frontend-browser-gate",
+      "path": "scripts/frontend-browser-gate.mjs"
     }
   ],
   "skills": [

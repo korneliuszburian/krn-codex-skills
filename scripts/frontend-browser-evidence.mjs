@@ -93,14 +93,14 @@ try {
   for (const [index, action] of actions.entries()) {
     const actionRole = action.role ?? "button";
     const findOutput = await save(`find-${String(index + 1).padStart(2, "0")}.txt`, ["find", action.text]);
-    const actionRef = findOutput.match(new RegExp(`${actionRole} "${escaped(action.text)}" \\[ref=(e\\d+)\\]`))?.[1];
+    const actionRef = findOutput.match(new RegExp(`${escaped(actionRole)} "${escaped(action.text)}"[^\\n]*\\[ref=(e\\d+)\\]`))?.[1];
     if (actionRef === undefined) throw new Error(`browser action target not found: ${actionRole} ${action.text}`);
     await save(`interaction-${String(index + 1).padStart(2, "0")}.txt`, ["click", actionRef]);
     interactions.push({ action: action.kind, role: actionRole, text: action.text, ref: actionRef });
   }
+  await save("runtime.json", ["--raw", "eval", config.runtimeEval]);
   await save("after-output.txt", ["snapshot", `--filename=${artifactPath("after.yml")}`]);
   await save("after-output-screenshot.txt", ["screenshot", `--filename=${artifactPath("after.png")}`]);
-  await save("runtime.json", ["--raw", "eval", config.runtimeEval]);
   await save("console.json", ["--json", "console"]);
   await save("requests.json", ["--json", "requests"]);
 } finally {

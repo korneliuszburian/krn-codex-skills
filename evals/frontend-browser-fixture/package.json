@@ -4,6 +4,6 @@
   "type": "module",
   "scripts": {
     "capture": "node capture.mjs",
-    "verify": "node verify.mjs"
+    "verify": "krn-frontend-browser-gate --config browser-evidence.config.json"
   }
 }
