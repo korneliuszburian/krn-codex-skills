@@ -1,0 +1,12 @@
+{
+  "workspaceRoot": ".",
+  "outputDir": ".artifacts",
+  "sessionPrefix": "krn-frontend-fixture",
+  "url": "http://127.0.0.1:4173/",
+  "action": {
+    "kind": "click",
+    "role": "button",
+    "text": "Complete task"
+  },
+  "runtimeEval": "JSON.stringify({url: location.href, status: document.querySelector('[data-testid=task-status]').textContent, state: document.querySelector('[data-testid=task-status]').dataset.state, rect: document.querySelector('[data-testid=task-card]').getBoundingClientRect().toJSON()})"
+}

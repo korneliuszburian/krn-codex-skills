@@ -89,6 +89,11 @@ Only after this passes should `engineering-full` enable Playwright CLI skills.
 Agent-browser diagnostics and design-specific Figma tooling remain opt-in
 extensions of the same adapter contract.
 
+The first neutral fixture now exercises a config-driven adapter at
+`scripts/frontend-browser-evidence.mjs`; the fixture contributes only a local
+HTTP server and a config file. Its falsifier is executable through the root
+`test:frontend-browser` command.
+
 ## Sources
 
 - Playwright CLI introduction: https://playwright.dev/agent-cli/introduction
