@@ -24,8 +24,14 @@
     "minimal": {
       "description": "Keep the global engineering core and built-in operational skills; turn every optional integration off.",
       "plugins": {
-        "enable": [],
-        "disable": [],
+        "enable": [
+          "codex-cli-wakatime@wakatime"
+        ],
+        "disable": [
+          "airtable@airtable-skills",
+          "codex-app-tools@openai-bundled",
+          "google-drive@openai-curated-remote"
+        ],
         "disableFamilies": [
           "asana",
           "canva",
@@ -60,9 +66,13 @@
         "enable": [],
         "disable": [
           "agent_browser",
+          "ahrefs",
           "context7",
           "figma",
-          "github"
+          "github",
+          "krn_decision_packet",
+          "node_repl",
+          "openaiDeveloperDocs"
         ]
       },
       "apps": {
@@ -83,11 +93,31 @@
       "description": "Production engineering with KRN, OpenAI docs, Omarchy, and one GitHub plugin/app owner; browser automation stays off unless web-qa is selected.",
       "plugins": {
         "enable": [
+          "codex-cli-wakatime@wakatime",
           "github@openai-curated"
         ],
         "disable": [
+          "airtable@airtable-skills",
+          "browser@openai-bundled",
+          "claude-code-setup@claude-plugins-official",
+          "claude-md-management@claude-plugins-official",
+          "code-review@claude-plugins-official",
+          "code-simplifier@claude-plugins-official",
+          "codex-app-tools@openai-bundled",
+          "feature-dev@claude-plugins-official",
           "github@openai-curated-remote",
-          "security-guidance@claude-plugins-official"
+          "google-drive@openai-curated-remote",
+          "remember@claude-plugins-official",
+          "security-guidance@claude-plugins-official",
+          "skill-creator@claude-plugins-official",
+          "sites@openai-bundled",
+          "typescript-lsp@claude-plugins-official",
+          "visualize@openai-bundled",
+          "documents@openai-primary-runtime",
+          "pdf@openai-primary-runtime",
+          "spreadsheets@openai-primary-runtime",
+          "presentations@openai-primary-runtime",
+          "template-creator@openai-primary-runtime"
         ],
         "disableFamilies": [
           "asana",
@@ -122,9 +152,13 @@
         "enable": [],
         "disable": [
           "agent_browser",
+          "ahrefs",
           "context7",
           "figma",
-          "github"
+          "github",
+          "krn_decision_packet",
+          "node_repl",
+          "openaiDeveloperDocs"
         ]
       },
       "apps": {
