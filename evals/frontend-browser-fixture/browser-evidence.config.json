@@ -3,6 +3,24 @@
   "outputDir": ".artifacts",
   "sessionPrefix": "krn-frontend-fixture",
   "url": "http://127.0.0.1:4173/",
+  "allowedOrigins": [
+    "http://127.0.0.1:4173"
+  ],
+  "viewport": {
+    "width": 960,
+    "height": 720
+  },
+  "evidence": {
+    "required": [
+      "screenshot",
+      "snapshot",
+      "runtime",
+      "console",
+      "network",
+      "interaction",
+      "cleanup"
+    ]
+  },
   "action": {
     "kind": "click",
     "role": "button",

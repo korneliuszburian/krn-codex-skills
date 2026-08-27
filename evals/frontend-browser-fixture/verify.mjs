@@ -4,8 +4,12 @@ import path from "node:path";
 
 const root = new URL(".", import.meta.url).pathname;
 const dir = path.join(root, ".artifacts");
+const config = JSON.parse(await readFile(path.join(root, "browser-evidence.config.json"), "utf8"));
 const manifest = JSON.parse(await readFile(path.join(dir, "manifest.json"), "utf8"));
 const failures = [];
+if (manifest.targetOrigin !== new URL(config.url).origin || !config.allowedOrigins.includes(manifest.targetOrigin)) failures.push("target: origin is not allowed");
+if (manifest.viewport?.width !== config.viewport.width || manifest.viewport?.height !== config.viewport.height) failures.push("viewport: manifest does not match config");
+if (JSON.stringify(manifest.evidence?.required) !== JSON.stringify(config.evidence.required)) failures.push("evidence: manifest policy does not match config");
 for (const artifact of manifest.artifacts) {
   const data = await readFile(path.join(dir, artifact.path));
   const digest = createHash("sha256").update(data).digest("hex");

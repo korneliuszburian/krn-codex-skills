@@ -16,6 +16,12 @@ const session = `${config.sessionPrefix ?? "krn-frontend"}-${process.pid}`;
 if (typeof config.url !== "string" || config.url.length === 0) throw new Error("browser evidence config requires a non-empty url");
 if (config.action?.kind !== "click" || typeof config.action.text !== "string") throw new Error("browser evidence config currently supports click actions with text");
 if (typeof config.runtimeEval !== "string" || config.runtimeEval.length === 0) throw new Error("browser evidence config requires runtimeEval");
+const targetOrigin = new URL(config.url).origin;
+if (!Array.isArray(config.allowedOrigins) || !config.allowedOrigins.includes(targetOrigin)) throw new Error(`browser evidence target origin is not allowed: ${targetOrigin}`);
+const viewport = config.viewport;
+if (!Number.isInteger(viewport?.width) || viewport.width < 1 || !Number.isInteger(viewport?.height) || viewport.height < 1) throw new Error("browser evidence config requires a positive integer viewport");
+const requiredEvidence = config.evidence?.required;
+if (!Array.isArray(requiredEvidence) || requiredEvidence.length === 0) throw new Error("browser evidence config requires evidence.required");
 
 const run = async (args) => (await execFileAsync("playwright-cli", ["-s", session, ...args], { cwd: root, env: process.env, maxBuffer: 8 * 1024 * 1024 })).stdout;
 const save = async (name, args) => { const stdout = await run(args); await writeFile(path.join(outputDirectory, name), stdout, "utf8"); return stdout; };
@@ -30,6 +36,7 @@ let actionRef;
 try {
   await save("open.txt", ["open", config.url]);
   opened = true;
+  await save("viewport.txt", ["resize", String(viewport.width), String(viewport.height)]);
   await save("before-output.txt", ["snapshot", `--filename=${artifactPath("before.yml")}`]);
   await save("before-output-screenshot.txt", ["screenshot", `--filename=${artifactPath("before.png")}`]);
   const findOutput = await save("find.txt", ["find", config.action.text]);
@@ -48,7 +55,7 @@ try {
   await writeFile(path.join(outputDirectory, "cleanup.json"), cleanup.stdout, "utf8");
 }
 
-const names = ["open.txt", "before-output.txt", "before-output-screenshot.txt", "before.yml", "before.png", "find.txt", "interaction.txt", "after-output.txt", "after-output-screenshot.txt", "after.yml", "after.png", "runtime.json", "console.json", "requests.json", "close.txt", "cleanup.json"];
+const names = ["open.txt", "viewport.txt", "before-output.txt", "before-output-screenshot.txt", "before.yml", "before.png", "find.txt", "interaction.txt", "after-output.txt", "after-output-screenshot.txt", "after.yml", "after.png", "runtime.json", "console.json", "requests.json", "close.txt", "cleanup.json"];
 const artifacts = [];
 for (const name of names) { const data = await readFile(path.join(outputDirectory, name)); artifacts.push({ path: name, bytes: data.byteLength, sha256: sha256(data) }); }
-await writeFile(path.join(outputDirectory, "manifest.json"), `${JSON.stringify({ schema: "krn.frontend.browser-evidence.v1", provider: "playwright-cli", session, target: config.url, interaction: { action: config.action.kind, role: actionRole, text: config.action.text, ref: actionRef }, artifacts }, null, 2)}\n`, "utf8");
+await writeFile(path.join(outputDirectory, "manifest.json"), `${JSON.stringify({ schema: "krn.frontend.browser-evidence.v1", provider: "playwright-cli", session, target: config.url, targetOrigin, viewport, evidence: { required: requiredEvidence }, interaction: { action: config.action.kind, role: actionRole, text: config.action.text, ref: actionRef }, artifacts }, null, 2)}\n`, "utf8");
