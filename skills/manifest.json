@@ -22,6 +22,10 @@
     {
       "name": "krn-codex-catalog",
       "path": "scripts/catalog.mjs"
+    },
+    {
+      "name": "krn-frontend-browser",
+      "path": "scripts/frontend-browser-evidence.mjs"
     }
   ],
   "skills": [
