@@ -102,6 +102,10 @@ try {
       const line = typeof warning === "string" ? warning : [warning.rule, warning.detail].filter(Boolean).join(": ");
       process.stderr.write(`warning: ${line}\n`);
     }
+    for (const error of report.errors) {
+      const line = typeof error === "string" ? error : [error.rule, error.detail].filter(Boolean).join(": ");
+      process.stderr.write(`error: ${line}\n`);
+    }
     if (report.errors.length > 0 || report.status === "divergent") process.exitCode = 1;
   } else {
   const { positional, options } = parseOptions(raw);

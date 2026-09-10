@@ -84,6 +84,11 @@ function renderLessons(lessons) {
   return `workflow lessons (${lessons.count} from ${lessons.path}):\n${lessons.items.map((item) => `- ${item}`).join("\n")}`;
 }
 
+function renderErrors(errors) {
+  if (errors.length === 0) return "";
+  return `\n\nBlocking errors:\n${errors.map((error) => `- ${error.rule}${error.detail ? `: ${error.detail}` : ""}`).join("\n")}`;
+}
+
 function commitTokens(value) {
   if (!value) return [];
   return [...value.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
@@ -180,7 +185,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
       lessons,
       errors,
       warnings,
-      text: `No file-backed outcome capsule found under .krn/runs/delivery-loop/.\n\n${renderLessons(lessons)}`,
+      text: `No file-backed outcome capsule found under .krn/runs/delivery-loop/.${renderErrors(errors)}\n\n${renderLessons(lessons)}`,
     };
   }
 
@@ -245,6 +250,6 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     lessons,
     errors,
     warnings,
-    text: `${lines.join("\n\n")}\n\n${renderLessons(lessons)}\n\nRun \`krn-codex state check\` before resuming or completing.`,
+    text: `${lines.join("\n\n")}\n\n${renderLessons(lessons)}${renderErrors(errors)}\n\nRun \`krn-codex state check\` before resuming or completing.`,
   };
 }

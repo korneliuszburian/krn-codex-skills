@@ -97,6 +97,17 @@ test("resume loads the repository workflow lessons", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("resume surfaces blocking errors in the brief", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  const rows = Array.from({ length: 25 }, (_, index) => `| lesson ${index} | evidence | gate |`).join("\n");
+  writeFileSync(join(root, "docs/research/workflow-lessons.md"), `| Lesson | Evidence | Enforced by |\n|---|---|---|\n${rows}\n`);
+  const report = resumeBrief({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "lessons-over-budget"));
+  assert.match(report.text, /lessons-over-budget/);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("resume detects dirty scope, a moved HEAD, and unlisted runs", () => {
   const { root, head } = makeRepo();
   writeCapsule(root, `base=${head}; HEAD=${head}; dirty=clean`);
