@@ -302,6 +302,28 @@ function validateReadmeSkillsTable(file, skills) {
   }
 }
 
+function validateReadmeSourceOnlyPointers(file, skills) {
+  const content = read(file);
+  const heading = "### Source-only packs";
+  const start = content.indexOf(heading);
+  const section = start === -1
+    ? ""
+    : content.slice(start, content.indexOf("\n## ", start + heading.length) === -1
+      ? content.length
+      : content.indexOf("\n## ", start + heading.length));
+  if (start === -1) fail(`${relative(file)}: missing Source-only packs section`);
+  for (const skill of skills) {
+    const pointer = `](${skill.path}/SKILL.md)`;
+    const count = section.split(pointer).length - 1;
+    if (count !== 1) {
+      fail(`${relative(file)}: source-only skill ${skill.name} must have exactly one canonical pointer`);
+    }
+  }
+  if (skills.length > 0 && !/\bnot installed\b/i.test(section)) {
+    fail(`${relative(file)}: Source-only packs section must state that the packs are not installed`);
+  }
+}
+
 function hasExactSkillToken(prompt, name) {
   const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(
@@ -539,43 +561,76 @@ for (const bin of manifest.bins ?? []) {
   }
 }
 
-const manifestNames = new Set();
-const manifestPaths = new Set();
-for (const skill of manifest.skills ?? []) {
-  if (!/^[a-z0-9-]{1,63}$/.test(skill.name)) {
+if (!Array.isArray(manifest.skills)) {
+  fail("manifest: skills must be an array");
+}
+if (!Array.isArray(manifest.source_only_skills)) {
+  fail("manifest: source_only_skills must be an array");
+}
+const installableSkills = Array.isArray(manifest.skills) ? manifest.skills : [];
+const sourceOnlySkills = Array.isArray(manifest.source_only_skills)
+  ? manifest.source_only_skills
+  : [];
+const allLocalSkills = [...installableSkills, ...sourceOnlySkills];
+const localSkillNames = new Set();
+const localSkillPaths = new Set();
+const validLocalSkills = [];
+for (const skill of allLocalSkills) {
+  if (!skill || typeof skill !== "object" || Array.isArray(skill)) {
+    fail("manifest: skill metadata must be an object");
+    continue;
+  }
+  const keys = Object.keys(skill).sort();
+  const keysAreValid = keys.join(",") === "implicit,name,path";
+  if (!keysAreValid) {
+    fail(`manifest: skill ${skill.name ?? "<unknown>"} must contain only implicit, name, and path`);
+  }
+  const nameIsValid = /^[a-z0-9-]{1,63}$/.test(skill.name ?? "");
+  if (!nameIsValid) {
     fail(`manifest: invalid skill name ${skill.name}`);
   }
-  if (manifestNames.has(skill.name)) {
+  if (localSkillNames.has(skill.name)) {
     fail(`manifest: duplicate skill name ${skill.name}`);
   }
-  manifestNames.add(skill.name);
-  if (
+  localSkillNames.add(skill.name);
+  const pathIsUnsafe =
     typeof skill.path !== "string" ||
     path.isAbsolute(skill.path) ||
-    skill.path.split("/").includes("..")
-  ) {
+    skill.path.split("/").includes("..");
+  if (pathIsUnsafe) {
     fail(`manifest: unsafe path for ${skill.name}`);
-  }
-  if (manifestPaths.has(skill.path)) {
+  } else if (localSkillPaths.has(skill.path)) {
     fail(`manifest: duplicate skill path ${skill.path}`);
+  } else {
+    localSkillPaths.add(skill.path);
   }
-  manifestPaths.add(skill.path);
-  if (typeof skill.implicit !== "boolean") {
+  const implicitIsValid = typeof skill.implicit === "boolean";
+  if (!implicitIsValid) {
     fail(`manifest: implicit must be boolean for ${skill.name}`);
   }
 
-  const pathParts = skill.path.split("/");
-  if (
-    pathParts.length !== 3 ||
-    pathParts[0] !== "skills" ||
-    !["engineering", "advisory", "meta"].includes(pathParts[1]) ||
-    pathParts[2] !== skill.name
-  ) {
-    fail(`manifest: skill path must be skills/<group>/${skill.name}`);
+  let pathShapeIsValid = false;
+  if (!pathIsUnsafe) {
+    const pathParts = skill.path.split("/");
+    pathShapeIsValid =
+      pathParts.length === 3 &&
+      pathParts[0] === "skills" &&
+      ["engineering", "advisory", "frontend", "meta"].includes(pathParts[1]) &&
+      pathParts[2] === skill.name;
+    if (!pathShapeIsValid) {
+      fail(`manifest: skill path must be skills/<group>/${skill.name}`);
+    }
+  }
+  if (keysAreValid && nameIsValid && !pathIsUnsafe && pathShapeIsValid && implicitIsValid) {
+    validLocalSkills.push(skill);
   }
 }
-
-const knownSkillNames = new Set([...manifestNames, ...upstreamSkillNames]);
+const validInstallableSkills = validLocalSkills.filter((skill) =>
+  installableSkills.includes(skill),
+);
+const validSourceOnlySkills = validLocalSkills.filter((skill) =>
+  sourceOnlySkills.includes(skill),
+);
 
 if (!Array.isArray(manifest.retired_skills)) {
   fail("manifest: retired_skills must be an array");
@@ -600,7 +655,7 @@ for (const retired of manifest.retired_skills ?? []) {
     fail(`manifest: duplicate retired skill name ${retired.name}`);
   }
   retiredSkillNames.add(retired.name);
-  if (manifestNames.has(retired.name)) {
+  if (localSkillNames.has(retired.name)) {
     fail(`manifest: retired skill ${retired.name} is still active`);
   }
   if (typeof retired.owner !== "string" || !retired.owner.trim()) {
@@ -609,7 +664,7 @@ for (const retired of manifest.retired_skills ?? []) {
   if (
     retired.replacement !== null &&
     (typeof retired.replacement !== "string" ||
-      !manifestNames.has(retired.replacement))
+      !localSkillNames.has(retired.replacement))
   ) {
     fail(
       `manifest: retired skill ${retired.name} has unknown replacement ${retired.replacement}`,
@@ -620,14 +675,23 @@ for (const retired of manifest.retired_skills ?? []) {
   }
 }
 
-validateReadmeSkillsTable(readmePath, manifest.skills ?? []);
+const knownSkillNames = new Set([
+  ...localSkillNames,
+  ...retiredSkillNames,
+  ...upstreamSkillNames,
+]);
+
+validateReadmeSkillsTable(readmePath, validInstallableSkills);
+validateReadmeSourceOnlyPointers(
+  readmePath,
+  validSourceOnlySkills,
+);
 
 const skillFiles = filesNamed(path.join(root, "skills"), "SKILL.md");
 const discoveredPaths = new Set(
   skillFiles.map((file) => relative(path.dirname(file))),
 );
-
-for (const skill of manifest.skills) {
+for (const skill of validLocalSkills) {
   const skillDir = path.join(root, skill.path);
   const skillFile = path.join(skillDir, "SKILL.md");
   const metadataFile = path.join(skillDir, "agents", "openai.yaml");
@@ -707,18 +771,18 @@ for (const skill of manifest.skills) {
   }
 
   for (const markdown of filesUnder(skillDir, (file) => file.endsWith(".md"))) {
-    validateSkillMarkdown(markdown, skill, manifestNames);
+    validateSkillMarkdown(markdown, skill, localSkillNames);
     validateMarkdownLinks(markdown);
     validateSemanticXml(markdown);
   }
 }
 
 for (const discovered of discoveredPaths) {
-  if (!manifestPaths.has(discovered)) {
+  if (!localSkillPaths.has(discovered)) {
     fail(`${discovered}: SKILL.md is not promoted in the manifest`);
   }
 }
-for (const promoted of manifestPaths) {
+for (const promoted of localSkillPaths) {
   if (!discoveredPaths.has(promoted)) {
     fail(`${promoted}: manifest path has no SKILL.md`);
   }
@@ -736,7 +800,7 @@ for (const markdown of repositoryMarkdown) {
   validateSemanticXml(markdown);
 }
 
-const secondOpinion = manifest.skills.find(
+const secondOpinion = validInstallableSkills.find(
   (skill) => skill.name === "second-opinion-review",
 );
 if (secondOpinion) {
@@ -830,7 +894,7 @@ for (const item of manifest.legacy_user_paths ?? []) {
   if (typeof item.owner !== "string" || !item.owner.trim()) {
     fail(`manifest: legacy path ${item.path} must declare an owner`);
   }
-  if (item.replacement !== null && !manifestNames.has(item.replacement)) {
+  if (item.replacement !== null && !localSkillNames.has(item.replacement)) {
     fail(`manifest: unknown legacy replacement ${item.replacement}`);
   }
 }
@@ -870,10 +934,13 @@ for (const testCase of triggerCases.cases ?? []) {
   const expectedSkills = skillLists.expected_skills;
   const forbiddenSkills = skillLists.forbidden_skills;
   for (const name of expectedSkills) {
-    const expectedSkill = (manifest.skills ?? []).find(
+    const expectedSkill = validLocalSkills.find(
       (skill) => skill.name === name,
     );
-    if (!expectedSkill && !upstreamSkillNames.has(name)) {
+    if (
+      !expectedSkill &&
+      !upstreamSkillNames.has(name)
+    ) {
       fail(`${testCase.id}: unknown expected skill ${name}`);
     } else if (
       expectedSkill &&
@@ -898,7 +965,7 @@ for (const testCase of triggerCases.cases ?? []) {
     }
   }
 }
-for (const name of manifestNames) {
+for (const name of localSkillNames) {
   if (!positivelyCovered.has(name)) fail(`trigger matrix: no positive case for ${name}`);
   if (!negativelyCovered.has(name)) fail(`trigger matrix: no negative case for ${name}`);
 }
@@ -927,7 +994,7 @@ if (!goalRecovery) {
       ? goalRecovery.forbidden_skills
       : [],
   );
-  for (const name of manifestNames) {
+  for (const name of localSkillNames) {
     if (!forbidden.has(name)) {
       fail(`goal-recovery-is-not-global-workflow: must forbid ${name}`);
     }
@@ -966,7 +1033,7 @@ if (errors.length) {
 }
 
 console.log(
-  `validated ${manifest.skills.length} skills, ${triggerCases.cases.length} trigger cases, ` +
+  `validated ${installableSkills.length} installable skills and ${sourceOnlySkills.length} source-only skills, ${triggerCases.cases.length} trigger cases, ` +
     `${Object.keys(capabilityProfiles.profiles).length} capability profiles, ` +
     `${experimentValidation.experimentCount} experiment manifest${experimentValidation.experimentCount === 1 ? "" : "s"}, ` +
     "and installation metadata",

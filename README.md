@@ -90,6 +90,18 @@ tracker capability is emulated.
 | [`unlazy`](skills/meta/unlazy/SKILL.md) | explicit only | machine-checked completion gates for long or multi-phase work |
 | [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
 
+### Source-only packs
+
+The frontend package is not installed before fresh behavioral proof. Its
+validated source-only packs are
+[`frontend-discovery`](skills/frontend/frontend-discovery/SKILL.md),
+[`frontend-authoring`](skills/frontend/frontend-authoring/SKILL.md),
+[`frontend-cube-css`](skills/frontend/frontend-cube-css/SKILL.md), and
+[`frontend-visual-review`](skills/frontend/frontend-visual-review/SKILL.md).
+Promotion moves an accepted pack into the installable catalog in a later fixed
+point. `frontend-cube-css` additionally requires an authorized migration of the
+incumbent global `cube-css`; this source state neither retires nor replaces it.
+
 The shared engineering and productivity flow (`ask-matt`, `wayfinder`,
 `to-spec`, `to-tickets`, `implement`, `diagnosing-bugs`, `research`,
 `prototype`, `codebase-design`, `improve-codebase-architecture`,

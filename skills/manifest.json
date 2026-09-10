@@ -84,6 +84,28 @@
       "implicit": false
     }
   ],
+  "source_only_skills": [
+    {
+      "name": "frontend-discovery",
+      "path": "skills/frontend/frontend-discovery",
+      "implicit": true
+    },
+    {
+      "name": "frontend-authoring",
+      "path": "skills/frontend/frontend-authoring",
+      "implicit": true
+    },
+    {
+      "name": "frontend-cube-css",
+      "path": "skills/frontend/frontend-cube-css",
+      "implicit": true
+    },
+    {
+      "name": "frontend-visual-review",
+      "path": "skills/frontend/frontend-visual-review",
+      "implicit": true
+    }
+  ],
   "retired_skills": [
     {
       "name": "second-opinion-review",

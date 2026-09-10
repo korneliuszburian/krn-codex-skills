@@ -1,0 +1,6 @@
+interface:
+  display_name: "Frontend Visual Review"
+  short_description: "Critique rendered frontend states without editing them."
+  default_prompt: "Use $frontend-visual-review to critique this rendered frontend without edits."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Frontend CUBE CSS"
+  short_description: "Apply CUBE CSS as a scoped frontend methodology."
+  default_prompt: "Use $frontend-cube-css to apply CUBE methodology to this bounded frontend styling decision."
+policy:
+  allow_implicit_invocation: true

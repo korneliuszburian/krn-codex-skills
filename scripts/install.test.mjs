@@ -27,6 +27,13 @@ function manifestSkills() {
   return manifest.skills;
 }
 
+function sourceOnlySkills() {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(REPO, "skills", "manifest.json"), "utf8"),
+  );
+  return manifest.source_only_skills;
+}
+
 function upstreamRetiredSkills() {
   const manifest = JSON.parse(
     fs.readFileSync(path.join(REPO, "skills", "manifest.json"), "utf8"),
@@ -158,6 +165,40 @@ test("installs every manifest skill as a collision-safe symlink into the repo", 
         fs.realpathSync(link),
         fs.realpathSync(path.join(REPO, skill.path)),
         `${skill.name} does not resolve to the repo source`,
+      );
+    }
+    for (const skill of sourceOnlySkills()) {
+      assert.ok(
+        !fs.existsSync(path.join(env.KRN_SKILLS_DEST, skill.name)),
+        `${skill.name} source-only pack must not be installed`,
+      );
+    }
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
+test("leaves every source-only skill destination untouched", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-test-"));
+  try {
+    const env = { ...sandboxEnv(sandbox), KRN_ARCHIVE_LEGACY: "1" };
+    fs.mkdirSync(env.KRN_SKILLS_DEST, { recursive: true });
+    for (const skill of sourceOnlySkills()) {
+      fs.writeFileSync(
+        path.join(env.KRN_SKILLS_DEST, skill.name),
+        `operator-owned source-only destination: ${skill.name}`,
+      );
+    }
+
+    const result = spawnSync("bash", [installScript, "install"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    for (const skill of sourceOnlySkills()) {
+      assert.equal(
+        fs.readFileSync(path.join(env.KRN_SKILLS_DEST, skill.name), "utf8"),
+        `operator-owned source-only destination: ${skill.name}`,
       );
     }
   } finally {

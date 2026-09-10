@@ -197,6 +197,161 @@ test("rejects an unknown retired-skill replacement", () => {
   });
 });
 
+test("fully validates source-only skill metadata", () => {
+  withFixture((fixture) => {
+    fs.rmSync(
+      path.join(fixture, "skills", "frontend", "frontend-cube-css", "agents", "openai.yaml"),
+    );
+
+    const result = validate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.match(diagnostics(result), /frontend-cube-css: missing agents\/openai.yaml/);
+  });
+});
+
+test("requires a canonical README pointer for every source-only skill", () => {
+  withFixture((fixture) => {
+    const readme = path.join(fixture, "README.md");
+    const source = fs.readFileSync(readme, "utf8");
+    const changed = source.replace(
+      "](skills/frontend/frontend-cube-css/SKILL.md)",
+      "](skills/frontend/frontend-cube-css/missing.md)",
+    );
+    assert.notEqual(changed, source, "fixture must contain the source-only pointer");
+    fs.writeFileSync(readme, changed);
+
+    const result = validate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.match(diagnostics(result), /source-only skill frontend-cube-css must have exactly one canonical pointer/);
+  });
+});
+
+test("rejects a source-only skill that collides with a retired name", () => {
+  withFixture((fixture) => {
+    const manifestPath = path.join(fixture, "skills", "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    manifest.retired_skills.push({
+      name: "frontend-cube-css",
+      replacement: null,
+      owner: "repository",
+    });
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const result = validate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.match(diagnostics(result), /retired skill frontend-cube-css is still active/);
+  });
+});
+
+test("rejects a retired skill as a positive routing expectation", () => {
+  withFixture((fixture) => {
+    const evalPath = path.join(fixture, "evals", "trigger-cases.json");
+    const triggerCases = JSON.parse(fs.readFileSync(evalPath, "utf8"));
+    triggerCases.cases.push({
+      id: "retired-positive-owner",
+      prompt: "Use the retired review owner.",
+      expected_skills: ["second-opinion-review"],
+      forbidden_skills: [],
+    });
+    fs.writeFileSync(evalPath, `${JSON.stringify(triggerCases, null, 2)}\n`);
+
+    const result = validate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.match(diagnostics(result), /unknown expected skill second-opinion-review/);
+  });
+});
+
+test("rejects malformed source-only metadata without crashing", () => {
+  withFixture((fixture) => {
+    const manifestPath = path.join(fixture, "skills", "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    manifest.source_only_skills = [{
+      name: "frontend-cube-css",
+      path: 7,
+      implicit: true,
+      staging: true,
+    }];
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const result = validate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(diagnostics(result), /TypeError/);
+    assert.match(diagnostics(result), /must contain only implicit, name, and path/);
+    assert.match(diagnostics(result), /unsafe path for frontend-cube-css/);
+  });
+});
+
+test("rejects a null source-only entry without crashing", () => {
+  withFixture((fixture) => {
+    const manifestPath = path.join(fixture, "skills", "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    manifest.source_only_skills = [null];
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const result = validate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(diagnostics(result), /TypeError/);
+    assert.match(diagnostics(result), /skill metadata must be an object/);
+  });
+});
+
+test("rejects malformed skill registries without crashing", () => {
+  withFixture((fixture) => {
+    const manifestPath = path.join(fixture, "skills", "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    manifest.skills = {};
+    manifest.source_only_skills = {};
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const result = validate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(diagnostics(result), /TypeError/);
+    assert.match(diagnostics(result), /skills must be an array/);
+    assert.match(diagnostics(result), /source_only_skills must be an array/);
+  });
+});
+
+test("rejects a null installable skill entry without crashing", () => {
+  withFixture((fixture) => {
+    const manifestPath = path.join(fixture, "skills", "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    manifest.skills.push(null);
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const result = validate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(diagnostics(result), /TypeError/);
+    assert.match(diagnostics(result), /skill metadata must be an object/);
+  });
+});
+
+test("rejects a malformed installable skill path without crashing", () => {
+  withFixture((fixture) => {
+    const manifestPath = path.join(fixture, "skills", "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    manifest.skills[0].path = 7;
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const result = validate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(diagnostics(result), /TypeError/);
+    assert.match(diagnostics(result), /unsafe path for delivery-loop/);
+  });
+});
+
+test("rejects an installable and source-only skill name collision", () => {
+  withFixture((fixture) => {
+    const manifestPath = path.join(fixture, "skills", "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    manifest.source_only_skills[0].name = manifest.skills[0].name;
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const result = validate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.match(diagnostics(result), /duplicate skill name delivery-loop/);
+  });
+});
+
 test("rejects broken Markdown links and unclosed semantic XML", () => {
   withFixture((fixture) => {
     const research = path.join(fixture, "docs", "research", "orchestration.md");
