@@ -125,6 +125,19 @@ test("export includes only the harness subset of upstream paths", () => {
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
+test("check fails when the marker skill set drifts by name", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  const from = path.join(f.root, ".agents", "skills", "one");
+  const to = path.join(f.root, ".agents", "skills", "one-x");
+  fs.renameSync(from, to);
+  const skillFile = path.join(to, "SKILL.md");
+  fs.writeFileSync(skillFile, fs.readFileSync(skillFile, "utf8").replace("name: one", "name: one-x"));
+  const check = checkSkills({ root: f.root });
+  assert.ok(check.errors.some((error) => error.includes("marker lists")), JSON.stringify(check.errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
 test("re-export regenerates a previous export", () => {
   const f = fixture();
   exportSkills({ source: f.source, upstream: f.upstream, root: f.root });

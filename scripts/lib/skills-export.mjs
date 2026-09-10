@@ -2,6 +2,8 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+import { readFrontmatter, skillMetadata } from "./skill-metadata.mjs";
+
 const MARKER = ".krn-export.json";
 const BUDGET = 8000;
 
@@ -23,15 +25,6 @@ function harnessCommit(source) {
   const release = path.join(source, ".krn-release.json");
   if (fs.existsSync(release)) return readJson(release).commit;
   throw new Error(`harness source has no git HEAD or release metadata: ${source}`);
-}
-
-function frontmatter(file) {
-  const text = fs.readFileSync(file, "utf8");
-  const match = text.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) return null;
-  return Object.fromEntries(
-    [...match[1].matchAll(/^(name|description):\s*(.+)$/gm)].map(([, key, value]) => [key, value.trim().replace(/^["']|["']$/g, "")]),
-  );
 }
 
 function upstreamSource(lock) {
@@ -108,7 +101,7 @@ export function exportSkills({ source, upstream, root }) {
   for (const skill of manifestSkills) {
     const relative = skill.path;
     fs.cpSync(path.join(source, relative), path.join(skillsDir, skill.name), { recursive: true, dereference: true });
-    skills.push({ name: skill.name, origin: "krn", description: frontmatter(path.join(source, relative, "SKILL.md"))?.description ?? "" });
+    skills.push({ name: skill.name, origin: "krn", description: skillMetadata(path.join(source, relative, "SKILL.md"))?.description ?? "" });
   }
   const harnessPaths = Array.isArray(upstreamPin.harness_paths) && upstreamPin.harness_paths.length > 0
     ? upstreamPin.harness_paths
@@ -117,7 +110,7 @@ export function exportSkills({ source, upstream, root }) {
     const relative = path.dirname(required);
     const name = path.basename(relative);
     fs.cpSync(path.join(resolvedUpstream, relative), path.join(skillsDir, name), { recursive: true, dereference: true });
-    skills.push({ name, origin: "upstream", description: frontmatter(path.join(resolvedUpstream, relative, "SKILL.md"))?.description ?? "" });
+    skills.push({ name, origin: "upstream", description: skillMetadata(path.join(resolvedUpstream, relative, "SKILL.md"))?.description ?? "" });
   }
   const license = path.join(resolvedUpstream, "LICENSE");
   if (fs.existsSync(license)) fs.copyFileSync(license, path.join(skillsDir, "UPSTREAM-LICENSE"));
@@ -157,16 +150,18 @@ export function checkSkills({ root }) {
   const marker = fs.existsSync(markerFile) ? readJson(markerFile) : null;
   let total = 0;
   let count = 0;
+  const names = [];
   for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
     if (!entry.isDirectory()) continue;
     count += 1;
+    names.push(entry.name);
     const dir = path.join(skillsDir, entry.name);
     const skillFile = path.join(dir, "SKILL.md");
     if (!fs.existsSync(skillFile)) {
       errors.push(`${entry.name}: missing SKILL.md`);
       continue;
     }
-    const fields = frontmatter(skillFile);
+    const fields = skillMetadata(skillFile);
     if (!fields?.name || !fields?.description) {
       errors.push(`${entry.name}: SKILL.md needs name and description frontmatter`);
       continue;
@@ -186,8 +181,11 @@ export function checkSkills({ root }) {
     for (const pin of [marker.krn?.commit, marker.upstream?.commit]) {
       if (!pin || !catalog.includes(pin)) errors.push(`.agents/skills/README.md is missing provenance pin ${pin ?? "?"}`);
     }
-    const expected = marker.skills ?? [];
-    if (marker.skills && expected.length !== count) errors.push(`marker lists ${expected.length} skills but ${count} directories exist`);
+    const expected = [...(marker.skills ?? [])].sort();
+    const actual = [...names].sort();
+    if (marker.skills && JSON.stringify(actual) !== JSON.stringify(expected)) {
+      errors.push(`marker lists [${expected.join(", ")}] but the directory holds [${actual.join(", ")}]`);
+    }
   }
   if (!fs.existsSync(path.join(skillsDir, "UPSTREAM-LICENSE"))) errors.push(".agents/skills/UPSTREAM-LICENSE is missing");
 
