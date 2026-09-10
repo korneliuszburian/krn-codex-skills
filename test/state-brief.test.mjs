@@ -1,0 +1,107 @@
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+
+import { ABI_LABELS } from "../scripts/lib/state-check.mjs";
+import { compileCapsule, resumeBrief } from "../scripts/lib/state-brief.mjs";
+
+function git(root, args) {
+  return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+}
+
+function makeRepo() {
+  const root = mkdtempSync(join(tmpdir(), "krn-brief-"));
+  git(root, ["init", "-q"]);
+  git(root, ["config", "user.email", "lab@krn.local"]);
+  git(root, ["config", "user.name", "lab"]);
+  git(root, ["commit", "-q", "--allow-empty", "-m", "seed"]);
+  mkdirSync(join(root, ".krn", "runs"), { recursive: true });
+  writeFileSync(join(root, ".krn", "runs", ".gitignore"), "*\n!.gitignore\n");
+  git(root, ["add", ".krn/runs/.gitignore"]);
+  git(root, ["commit", "-q", "-m", "runs boundary"]);
+  return { root, head: git(root, ["rev-parse", "HEAD"]) };
+}
+
+function writeCapsule(root, fixedPoint) {
+  const dir = join(root, ".krn", "runs", "delivery-loop", "out-1");
+  mkdirSync(dir, { recursive: true });
+  const lines = [
+    "Outcome and observable acceptance: brief test",
+    "Current workflow owner and sole writer: $delivery-loop",
+    "Outcome state: ACTIVE",
+    "Publication state: LOCAL_ONLY",
+    `Repository base, HEAD or working-tree fingerprint, and dirty-state scope: ${fixedPoint}`,
+    "Native Goal identity/state and configured tracker item/state: none",
+    "Restart state: ABSENT",
+    "Outstanding workflow-run cleanup: none",
+    "Authority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none",
+    "Evidence observed: probe",
+    "Explicit non-proofs: probe",
+    "Review fixed point and Standards / Spec disposition: none",
+    "Open unknowns and blockers with owners: none",
+    "Durable CONTEXT / ADR / research references: none",
+    "Next bounded owner and action: resume brief",
+    "",
+  ];
+  writeFileSync(join(dir, "state.md"), lines.join("\n"));
+}
+
+test("compile prefills every ABI field with deterministic repo truth", () => {
+  const { root, head } = makeRepo();
+  const report = compileCapsule({ repo: root });
+  assert.deepEqual(report.errors, []);
+  assert.equal(report.head, head);
+  for (const label of ABI_LABELS) {
+    assert.ok(report.capsule.includes(`${label}:`), `missing ${label}`);
+  }
+  assert.ok(report.capsule.includes(`HEAD=${head}`));
+  assert.ok(report.capsule.includes("dirty=clean"));
+  assert.ok(report.capsule.includes("Outstanding workflow-run cleanup: none"));
+  assert.equal(report.ignoredRuns, true);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("compile inventories active runs and warns about an existing capsule", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "slice-work", "run-1"), { recursive: true });
+  mkdirSync(join(root, ".krn", "runs", "delivery-loop", "out-1"), { recursive: true });
+  writeFileSync(join(root, ".krn", "runs", "delivery-loop", "out-1", "state.md"), "Outcome state: ACTIVE\n");
+  const report = compileCapsule({ repo: root });
+  assert.ok(report.capsule.includes(".krn/runs/slice-work/run-1; slice-work;"));
+  assert.ok(report.capsule.includes("ACTIVE"));
+  assert.ok(report.capsules.includes("out-1"));
+  assert.ok(report.warnings.some((warning) => warning.includes("already exists")));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("resume reports no file-backed capsule without inventing one", () => {
+  const { root } = makeRepo();
+  const report = resumeBrief({ repo: root });
+  assert.equal(report.applicability, "no-file-backed-capsule");
+  assert.deepEqual(report.capsules, []);
+  assert.match(report.text, /No file-backed outcome capsule/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("resume detects dirty scope, a moved HEAD, and unlisted runs", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, `base=${head}; HEAD=${head}; dirty=clean`);
+  const clean = resumeBrief({ repo: root });
+  assert.equal(clean.capsules[0].headMoved, false);
+  assert.equal(clean.capsules[0].liveDirty.length, 0);
+
+  writeFileSync(join(root, "dirty.txt"), "wip\n");
+  const dirty = resumeBrief({ repo: root });
+  assert.ok(dirty.capsules[0].liveDirty.includes("dirty.txt"));
+
+  git(root, ["add", "-A"]);
+  git(root, ["commit", "-q", "-m", "next"]);
+  mkdirSync(join(root, ".krn", "runs", "slice-work", "run-2"), { recursive: true });
+  const moved = resumeBrief({ repo: root });
+  assert.equal(moved.capsules[0].headMoved, true);
+  assert.deepEqual(moved.capsules[0].unlistedRuns, [".krn/runs/slice-work/run-2"]);
+  rmSync(root, { recursive: true, force: true });
+});

@@ -130,7 +130,11 @@ krn-codex doctor
 
 `krn-codex state check` structurally validates a repository's file-backed
 outcome capsule, restart path, and run cleanup obligations; `$delivery-loop`
-runs it at every boundary.
+runs it at every boundary. `krn-codex state compile` prints a capsule skeleton
+with the mechanical fields (HEAD, dirty scope, active runs) already filled, and
+`krn-codex state resume` prints a deterministic restart brief that diffs the
+recorded capsule against live repository state. Both are read-only and never
+write the capsule.
 `krn-codex install plan` is read-only. `install apply` accepts only a clean
 Git checkout at its checked-out commit, validates that exact tree, copies an
 explicit manifest-owned runtime closure to

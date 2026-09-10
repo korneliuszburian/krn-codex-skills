@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { applyInstall, createInstallPlan, inspectInstall } from "./lib/install-release.mjs";
 import { inspectSpineState } from "./lib/state-check.mjs";
+import { compileCapsule, resumeBrief } from "./lib/state-brief.mjs";
 import { checkSkills, exportSkills } from "./lib/skills-export.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -16,7 +17,7 @@ const usage = `Usage:
   krn-codex doctor [--json]
   krn-codex capability <inventory|usage|profile|plan|apply|check> [...args]
   krn-codex repo <inspect|apply> [...args]
-  krn-codex state check [PATH] [--json]
+  krn-codex state <check|compile|resume> [PATH] [--json]
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]`;
 
 function fail(message, code = 64) {
@@ -81,15 +82,24 @@ try {
     }
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));
-    if (positional[0] !== "check" || positional.length > 2 || options.source || options.yes) fail(usage);
+    const command = positional[0];
+    if (!["check", "compile", "resume"].includes(command) || positional.length > 2 || options.source || options.yes) fail(usage);
+    const repo = positional[1] ?? process.cwd();
     let report;
     try {
-      report = inspectSpineState({ repo: positional[1] ?? process.cwd() });
+      report = command === "check"
+        ? inspectSpineState({ repo })
+        : command === "compile"
+          ? compileCapsule({ repo })
+          : resumeBrief({ repo });
     } catch (error) {
       fail(error.message, 64);
     }
-    print(report, options.json);
-    if (report.status === "divergent") process.exitCode = 1;
+    if (command === "compile" && !options.json) process.stdout.write(`${report.capsule}\n`);
+    else if (command === "resume" && !options.json) process.stdout.write(`${report.text}\n`);
+    else print(report, options.json);
+    for (const warning of report.warnings) process.stderr.write(`warning: ${warning}\n`);
+    if (report.errors.length > 0 || report.status === "divergent") process.exitCode = 1;
   } else {
   const { positional, options } = parseOptions(raw);
   if (positional[0] === "install") {

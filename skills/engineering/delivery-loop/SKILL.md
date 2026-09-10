@@ -87,7 +87,10 @@ hosts own their mechanics and policy.
 
    At every boundary, and before any `COMPLETE` claim, run
    `krn-codex state check`; `divergent` blocks, while `not-applicable` means no
-   file-backed capsule was checked, not a pass.
+   file-backed capsule was checked, not a pass. A fresh session may run
+   `krn-codex state resume` for the live repository delta and
+   `krn-codex state compile` to prefill the mechanical capsule fields; neither
+   writes the capsule.
 
    For an accepted outcome, discharge every triggered specialist cleanup,
    reconcile tracker closure when configured, remove delivery restart state when
