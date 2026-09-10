@@ -46,6 +46,6 @@ bash -n scripts/install.sh
 git diff --check
 ```
 
-Use Conventional Commit messages on a branch you own; commit and publish only
-under explicit authority. Installation, retirement, and rollback follow
+Work on a branch you own; commit and publish only under explicit authority.
+Installation, retirement, and rollback follow
 `scripts/lib/install-release.mjs` and `docs/migration.md`.
