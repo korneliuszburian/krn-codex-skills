@@ -8,9 +8,9 @@ description: Request one bounded read-only OpenCode advisory opinion on an expli
 Use DeepSeek V4.1 Flash (`opencode-go/deepseek-flash`) by default as an
 independent advisory reader, not an implementation or approval lane. This
 provider identifier is intentionally distinct from the older DeepSeek V4 Flash
-identifier, `opencode-go/deepseek-v4-flash`. The bundled runner uses the
-configured read-only `review` agent by default, preventing the
-reviewer from inheriting an unrestricted implementation tool surface. The
+identifier, `opencode-go/deepseek-v4-flash`. The bundled runner always selects
+the configured `review` agent; callers cannot override that agent through the
+runner. This reduces tool authority but does not prove filesystem isolation. The
 pass has one question and one explicit target path. It returns prose findings;
 the initiating workflow verifies and dispositions them locally.
 
@@ -65,9 +65,9 @@ owning workflow's review gate, approval, or local verification.
 3. **Run one non-interactive, read-only opinion.** Invoke the installed runner
    with absolute paths. `OPENCODE_SECOND_OPINION_MODEL` defaults to
    `opencode-go/deepseek-flash`, OpenCode Go's identifier for DeepSeek V4.1
-   Flash. Override it only with an explicit reviewer model from a different
-   family than the initiating agent. `OPENCODE_SECOND_OPINION_AGENT` defaults to the configured read-only
-   `review` agent. `OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS` (default `600`) bounds the
+Flash. Override it only with an explicit reviewer model from a different
+family than the initiating agent. The runner always selects the configured
+`review` agent. `OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS` (default `600`) bounds the
    run; a timeout or a rejected stream fails closed and retains the partial
    evidence. The runner passes OpenCode's provider-specific `--variant`,
    defaulting to `max`; set `OPENCODE_SECOND_OPINION_VARIANT` only to a
@@ -75,13 +75,13 @@ owning workflow's review gate, approval, or local verification.
    It requests `--format json` and accepts an opinion only when the event
    stream ends in `step_finish` with `reason: "stop"` and non-empty text for
    that final message, and only when every explicit citation resolves inside
-   the target directory (mechanical scope denial). Backtick paths, relative
+   the target directory. This is an output-citation filter, not a sandbox or
+   proof that no other path was read. Backtick paths, relative
    traversal paths, and line-qualified absolute paths are citations; an
    ordinary prose mention of an existing environment path is not. It never passes `--interactive`,
    `--auto`, a continuation flag, or an edit request.
 
    ```bash
-   OPENCODE_SECOND_OPINION_AGENT=review \
    OPENCODE_SECOND_OPINION_VARIANT=max \
    ~/.agents/skills/opencode-second-opinion/scripts/run-opinion.sh \
      /absolute/target-repository \

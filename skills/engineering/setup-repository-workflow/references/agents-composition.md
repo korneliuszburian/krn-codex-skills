@@ -5,8 +5,8 @@ compose automatically — keep them separate.
 
 ## How the harness composes AGENTS.md
 
-Codex (and CLAUDE.md for Claude Code) build the brief at session start by walking
-the filesystem, not by reading one file:
+Codex builds the brief at session start by walking the filesystem, not by
+reading one file:
 
 1. **Global first** — `~/.codex/AGENTS.md` (or `CODEX_HOME`) loads for every
    repository. This is where the universal methodology lives.
@@ -46,20 +46,20 @@ require the audited `bd version 1.0.4` boundary; stop before mutation for every
 other version. Record the current `HEAD` (or unborn-branch state), status, full
 repository-local Git config, the hook path resolved by
 `git rev-parse --path-format=absolute --git-path hooks`, and fingerprints of
-existing `AGENTS.md`, `CLAUDE.md`, and `.claude/`.
+the existing `AGENTS.md`.
 
 Afterwards, read back every recorded surface and the complete commit path set.
 The only permitted local-config delta is `beads.role=maintainer`; existing
-instruction files, `.claude/`, and resolved Git hooks remain byte-identical,
-previously absent instruction surfaces remain absent, and `.beads/hooks/`
+`AGENTS.md` and resolved Git hooks remain byte-identical, previously absent
+instruction surfaces remain absent, and `.beads/hooks/`
 remains absent. Stop if anything else changed. At the audited boundary the
 command creates a Git commit even with both skip flags. Do not hide a shared
 durable tracker with `--stealth`, and do not initialize it when local commit
 authority is absent.
 
 Only after that isolated transition should `apply` seed a **thin** `AGENTS.md`
-(specifics only, with fillable placeholders) and symlink `CLAUDE.md` to it when
-neither instruction owner exists. This ordering prevents the tracker from
+(specifics only, with fillable placeholders) when no instruction owner exists.
+This ordering prevents the tracker from
 claiming the repository brief or committing the skill's managed files. Beads
 usage remains available on demand through `bd --help` and `bd prime`, never as
 an injected always-loaded reference.

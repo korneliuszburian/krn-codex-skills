@@ -71,19 +71,20 @@ cache discovery, local TOML, or a positive usage record.
 
 ## Commands
 
-After `scripts/install.sh install`, run the manifest-owned executable from any
-working directory:
+After `krn-codex install apply --source <clean-checkout> --yes`, run the
+manifest-owned CLI from any working directory:
 
 ```bash
-krn-codex-catalog inventory
-krn-codex-catalog usage --days 30
-krn-codex-catalog profile show lean
-krn-codex-catalog plan lean
-krn-codex-catalog apply lean
-krn-codex-catalog check lean
+krn-codex capability inventory
+krn-codex capability usage --days 30
+krn-codex capability profile show lean
+krn-codex capability plan lean
+krn-codex capability apply lean
+krn-codex capability check lean
 ```
 
-Inside the source checkout, `npm run catalog -- COMMAND` is equivalent.
+`krn-codex-catalog` remains a one-release compatibility entrypoint. Inside the
+source checkout, `npm run catalog -- COMMAND` is equivalent.
 
 `apply` is the only mutating command. Restart Codex after it succeeds: current
 sessions retain the capability index loaded at session start.

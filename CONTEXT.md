@@ -41,7 +41,7 @@ metadata, validation, research synthesis, and migration history.
 KRN, vendor, and plugin entries may coexist; discovery does not imply ownership.
 
 **Global instruction core** — `config/AGENTS.md`. Codex loads its installed
-symlink directly; Claude reaches the same file through `CLAUDE.md`.
+snapshot directly.
 
 **Workflow owner** — the one skill responsible for a repeated procedure. Skills
 may compose, but two skills may not own the same sequence.

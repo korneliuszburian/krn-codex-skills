@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 const START = "<!-- krn-agent-workflow:start -->";
@@ -49,29 +49,15 @@ function regularOrSymlink(path) {
 
 function instructionState(root) {
   const agents = join(root, "AGENTS.md");
-  const claude = join(root, "CLAUDE.md");
   const hasAgents = regularOrSymlink(agents);
-  const hasClaude = regularOrSymlink(claude);
-  const sameSemanticFile = hasAgents && hasClaude && realpathSync(agents) === realpathSync(claude);
-  return { agents, claude, hasAgents, hasClaude, sameSemanticFile };
+  return { agents, hasAgents };
 }
 
 function chooseInstruction(root, requested) {
   const state = instructionState(root);
-  if (requested) {
-    if (!new Set(["AGENTS.md", "CLAUDE.md"]).has(requested)) {
-      fail("--instruction must be AGENTS.md or CLAUDE.md");
-    }
-    const selected = join(root, requested);
-    if (!regularOrSymlink(selected)) fail(`${requested} does not exist`);
-    return selected;
-  }
-  if (state.hasAgents && state.hasClaude && !state.sameSemanticFile) {
-    fail("AGENTS.md and CLAUDE.md are independent; select --instruction explicitly");
-  }
+  if (requested && requested !== "AGENTS.md") fail("--instruction must be AGENTS.md");
   if (state.hasAgents) return state.agents;
-  if (state.hasClaude) return state.claude;
-  fail("no root AGENTS.md or CLAUDE.md; create the repository instruction owner first");
+  fail("no root AGENTS.md; create the repository instruction owner first");
 }
 
 function isInside(root, path) {
@@ -133,15 +119,7 @@ function inspect(root) {
     }
   }
   const monorepo = existsSync(join(root, "pnpm-workspace.yaml")) || workspaces;
-  const instruction = state.sameSemanticFile
-    ? "AGENTS.md (shared with CLAUDE.md)"
-    : state.hasAgents && state.hasClaude
-      ? "conflict"
-      : state.hasAgents
-        ? "AGENTS.md"
-        : state.hasClaude
-          ? "CLAUDE.md"
-          : "missing";
+  const instruction = state.hasAgents ? "AGENTS.md" : "missing";
   return {
     root,
     head: git(root, ["rev-parse", "HEAD"]),
@@ -249,28 +227,16 @@ function thinAgentsTemplate(root) {
 }
 
 // The skill owns the repo brief: when no instruction owner exists, seed a thin
-// AGENTS.md (specifics only) and symlink CLAUDE.md to it, so a tracker's init
-// (e.g. bd) never fills the void with its own always-loaded reference bloat.
+// AGENTS.md (specifics only), so a tracker's init (e.g. bd) never fills the
+// void with its own always-loaded reference bloat.
 function bootstrapInstructionIfAbsent(root) {
   const state = instructionState(root);
-  if (state.hasAgents || state.hasClaude) return [];
-  for (const candidate of [state.agents, state.claude]) {
-    if (lstatSync(candidate, { throwIfNoEntry: false })) {
-      fail(`instruction bootstrap destination is occupied: ${relative(root, candidate)}`);
-    }
+  if (state.hasAgents) return [];
+  if (lstatSync(state.agents, { throwIfNoEntry: false })) {
+    fail(`instruction bootstrap destination is occupied: ${relative(root, state.agents)}`);
   }
   writeFileSync(state.agents, thinAgentsTemplate(root));
-  try {
-    symlinkSync("AGENTS.md", state.claude);
-  } catch (error) {
-    try {
-      unlinkSync(state.agents);
-    } catch {
-      // The command still fails closed and reports the partial-path risk.
-    }
-    fail(`cannot create shared CLAUDE.md instruction owner: ${error.message}`);
-  }
-  return ["AGENTS.md", "CLAUDE.md"];
+  return ["AGENTS.md"];
 }
 
 const { command, options } = parseArgs(process.argv.slice(2));

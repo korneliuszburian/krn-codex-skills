@@ -3,8 +3,9 @@
 ## Current disposition
 
 P7 v2 in [frontend authoring decisions](frontend-authoring.md) supersedes the
-former public pipeline, `engineering-full` profile, and frontend-delivery-skill
-topology. This topic retains only reusable evidence mechanisms for a future
+former public pipeline and frontend-delivery-skill topology proposed for the
+still-active `engineering-full` profile; it does not retire that profile.
+This topic retains only reusable evidence mechanisms for a future
 frozen behavioral proof. It defines no public workflow owner and authorizes no
 profile, installation, migration, release, or project credential.
 

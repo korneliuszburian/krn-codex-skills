@@ -124,48 +124,37 @@ only human skill catalog; there are no hand-maintained per-skill mirror pages.
 
 ```bash
 npm run validate
-scripts/install.sh check
-scripts/install.sh install
+krn-codex install plan --source /absolute/path/to/clean/krn-codex-skills
+krn-codex install apply --source /absolute/path/to/clean/krn-codex-skills --yes
+krn-codex doctor
 ```
 
-The installer links only manifest-owned skills into `~/.agents/skills`, the
-catalog executable into `~/.local/bin`, the global contract into Codex, and one
-deterministic `PreToolUse` guard. It
+`krn-codex install plan` is read-only. `install apply` accepts only a clean
+Git checkout at its checked-out commit, validates that exact tree, copies an
+explicit manifest-owned runtime closure to
+`$CODEX_HOME/krn/releases/<commit>/`, hashes it, then atomically switches
+`$CODEX_HOME/krn/current`. Stable skill, bin, global-contract, and hook links
+lead through `current`, never to the source checkout. Existing matching
+releases are idempotent; a mismatched or tampered release fails closed. The
+installer links only manifest-owned skills into `~/.agents/skills`, the CLI,
+catalog compatibility shim, and neutral browser-evidence executables into
+`~/.local/bin`, the global contract into Codex, and one deterministic
+`PreToolUse` guard. It
 applies path-aware policy to recognized direct `rm`, denies recognized literal
 non-dry-run `git clean`, blocks exact literal quarantine references and patch
 targets, and denies unsupported shell composition only when it contains the
 same literal risk. It does not interpret shell execution; runtime-built,
 sourced, or obfuscated behavior remains governed by the global contract. Only
 bare, uncomposed `echo` and `printf` are treated as inert risk text. The
-installer refuses foreign collisions. Named legacy and retired entries are
-archived only with explicit authority:
+installer refuses foreign collisions and archives only its previous managed
+links while it reconciles them through `current`. `scripts/install.sh` remains
+a one-release `check`/`install` compatibility shim; it invokes the same CLI.
 
-```bash
-# Set this only to the verified root containing active upstream skill sources.
-UPSTREAM_SKILLS_ROOTS="/absolute/path/to/verified-upstream-skills"
-test -d "$UPSTREAM_SKILLS_ROOTS"
-test -e "$UPSTREAM_SKILLS_ROOTS/skills/engineering/code-review/SKILL.md"
-
-env KRN_UPSTREAM_SKILLS_ROOTS="$UPSTREAM_SKILLS_ROOTS" \
-  KRN_REPLACE_GLOBAL_SKILLS=1 \
-  KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
-  KRN_REPLACE_GLOBAL_HOOKS=1 \
-  scripts/install.sh install
-```
-
-The repository lock in `config/upstream-sources.json` requires every supplied
-upstream root to be at the recorded commit, clean, and complete before the
-installer preserves an upstream-owned symlink. If an upstream-owned retired
-link exists, omitting the root fails closed. Do not set
-`KRN_ARCHIVE_LEGACY=1` until the upstream root is verified; stale or foreign
-targets still require archive authority.
-
-`KRN_REPLACE_GLOBAL_SKILLS=1` is required only when the installed KRN links
-come from another clean worktree of this same Git repository. The installer
-archives those links before replacing them and still refuses foreign files.
-
-Run `check` again and start a fresh Codex session after installation. Discovery
-is session-scoped. `setup-repository-workflow` and `opencode-second-opinion`
+Use `krn-codex install check` for filesystem state and `krn-codex doctor` when
+you need the distinction between an installed filesystem snapshot, a broken or
+foreign link, a legacy mutable source link, and unknown/stale session loading.
+Start a fresh Codex session after installation. Discovery is session-scoped.
+`setup-repository-workflow` and `opencode-second-opinion`
 require an explicit `$skill-name` attachment; the composed upstream
 `wayfinder` is explicit-only in that set.
 
@@ -176,8 +165,7 @@ rollback guarantees.
 
 `$setup-repository-workflow` writes one managed block into an existing root
 instruction owner plus `.krn/runs/.gitignore`. In an empty repository it first
-bootstraps thin `AGENTS.md` and a `CLAUDE.md` symlink to that same owner, and
-reports all three changed paths. It names tracker state — including `none` — and
+bootstraps a thin `AGENTS.md`, and reports the two managed paths. It names tracker state — including `none` — and
 the context layout directly; `CONTEXT.md`, ADRs, and research pages appear later
 only when a real decision earns them.
 
@@ -188,10 +176,10 @@ directory as an absolute path; there is no implicit home fallback.
 ## Capability catalog
 
 ```bash
-krn-codex-catalog inventory
-krn-codex-catalog usage --days 30
-krn-codex-catalog plan lean
-krn-codex-catalog apply lean
+krn-codex capability inventory
+krn-codex capability usage --days 30
+krn-codex capability plan lean
+krn-codex capability apply lean
 ```
 
 Named profiles keep optional integrations intentional. Usage evidence never

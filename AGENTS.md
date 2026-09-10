@@ -6,7 +6,6 @@ reusable process. Product repositories own their language, commands, and gates.
 ## Repository map
 
 - `config/AGENTS.md` — the installed global safety and production core.
-- `config/CLAUDE.md` — a symlink to the same semantic core.
 - `skills/<group>/<name>/` — one promoted workflow and its direct resources.
 - `skills/manifest.json` — names, install paths, invocation, and retirement.
 - `evals/` — positive, negative, explicit, and composition routing cases.

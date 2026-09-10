@@ -1,57 +1,50 @@
-# Migration
+# Installation and migration
+
+`krn-codex` installs a verified, immutable runtime snapshot. The source
+checkout remains an authoring surface; it is never a stable discovery target.
 
 ## Ownership
 
-| Current surface | Target owner | Action |
+| Surface | Owner | Installer action |
 |---|---|---|
-| `~/.codex/skills/{code-review,codebase-design,diagnosing-bugs,writing-great-skills}` | this repository | archive legacy copies, install canonical symlinks |
-| Claude second-opinion skill or duplicate `~/.codex/skills/opencode-second-opinion` symlink | `opencode-second-opinion` | archive the retired or duplicate entry, install one explicit OpenCode skill only in `~/.agents/skills` |
-| third-party browser, GSAP, Omarchy, system, and plugin skills | upstream/vendor | preserve untouched |
-| old public `krn-codex-skills` layout | this branch | replace project-local pack with global source |
-| private `krn-skills` | WordPress/domain owner | keep domain-only; do not install as global engineering canon |
-| `mini-metalab-skills` and `krn-skills-lab` | evaluation owners | keep as labs, never runtime sources |
-| generic review, diagnosis, implementation, TypeScript, and advisory workflow formerly in `mise` | this repository | removed from `mise` main; discover only from the installed global catalog |
-| retired installed `reviewer-handoff` entry | culled 2026-08-12; routine review composes upstream `code-review` | report during `check`; archive only with `KRN_ARCHIVE_LEGACY=1` |
-| old Claude review roots | initiating goal or review owner | historical artifacts remain deferred and are never resumed; remove a pass only by its owner's explicit closure decision; new OpenCode opinions use `.krn/runs/opencode-second-opinion/` |
-| generated `docs/agents/{issue-tracker.md,domain.md,delivery.md,artifacts.md,artifact-paths.json,review.md,runs/.gitignore}` adapters and their old managed-block links in product repositories | closest repository contract and semantic owner | run current setup to replace and read back the managed block first; then remove only generator-owned outputs with no live consumer, preserving any earned semantic content under its normalized owner; the new setup does not recreate these adapters |
-| KRN product language, `krn-memory-core`, and Beads | `mise` | retain as domain guidance only |
-| hand-maintained user `PreToolUse` hook | this repository | archive the reviewed legacy hook and install one literal-risk guard for recognized direct protected deletion, non-dry-run `git clean`, exact quarantine references, and patch targets; ambiguous literal composition denies without modeling shell execution, while runtime-built behavior remains contract-governed; the earlier token-proxy rewrite is retired |
-| hand-forked ports of `mattpocock/skills` (`code-review`, `codebase-design`, `diagnosing-bugs`, `domain-modeling`, `implement`, `prototype`, `to-spec`, `wayfinder`, `to-questionnaire`, `wait-what`, `writing-for-agents`) | upstream `mattpocock/skills` | culled 2026-08-12 per three-arm lab verdict (`INCONCLUSIVE` → `RETIRE_TO_UPSTREAM`): no measured advantage over upstream or no-skill; KRN uses a clean checkout pinned by `config/upstream-sources.json`; `npx skills` or the Claude plugin remain alternative managed installs; Git history retains the culled copies |
+| manifest-declared skills, bins, global AGENTS, hooks | this repository | copy their runtime closure into a commit-addressed release and link stable destinations through `current` |
+| source-only frontend pack and incumbent `cube-css` | frontend decision / existing owner | leave untouched and absent from every release |
+| vendor, plugin-cache, and upstream skills | their own owner | leave untouched |
+| foreign stable destination | operator | refuse without changing it |
+| old KRN link into a source checkout or prior KRN release | KRN installer | move the link to a timestamped backup, then replace it through `current` |
 
-## Installation Invariants
+## Installation invariants
 
-1. Every manifest name is unique.
-2. Every installed KRN symlink resolves into this checkout.
-3. A real or foreign destination at `~/.agents/skills/<name>` stops the
-   installer; it is never overwritten. An existing symlink from another
-   worktree of this same Git repository may be replaced only with explicit
-   `KRN_REPLACE_GLOBAL_SKILLS=1` authority and is archived first; foreign files
-   still stop the installer.
-4. Legacy paths and retired skill-index entries are manifest-declared and
-   archived only when `KRN_ARCHIVE_LEGACY=1` authorizes them.
-5. Displaced state is recoverable from the timestamped migration backup.
-6. Vendor skills and plugin caches are outside the migration surface.
-7. A foreign global `AGENTS.md` requires `KRN_REPLACE_GLOBAL_AGENTS=1`;
-   `AGENTS.override.md` always stops installation because it masks the managed
-   file.
-8. `CODEX_HOME` scopes Codex config and migration backups;
-   `KRN_SKILLS_DEST` independently scopes the installed user skill index.
-9. User-level `hooks.json`, manifest-owned hook files, and named legacy hook
-    paths stay inside `CODEX_HOME`. A foreign target requires
-    `KRN_REPLACE_GLOBAL_HOOKS=1` and is archived before replacement.
-10. A removed promoted skill remains in `retired_skills` until supported installs
-    no longer expose its old index entry. Retirement never silently deletes a
-    foreign occupant.
-11. An upstream-owned tombstone preserves an existing symlink only when its
-    resolved target is under an explicit colon-separated `KRN_UPSTREAM_SKILLS_ROOTS`
-    allowlist whose Git checkout matches the pinned source in
-    `config/upstream-sources.json`, is clean, and contains every required path.
-    An arbitrary external, stale, or modified symlink is treated as
-    stale/foreign and still requires archive authority.
+1. Every manifest name is unique and source validation passes before staging.
+2. A release lives at `$CODEX_HOME/krn/releases/<commit>/`, is addressed by
+   the exact clean Git `HEAD`, and contains only the manifest-owned runtime
+   closure and its direct runtime dependencies.
+3. Release metadata binds the commit, sorted runtime paths, and a content
+   digest. Existing matching releases are idempotent; a mismatch is corruption.
+4. `$CODEX_HOME/krn/current` is atomically switched only after the complete
+   staged release has been read and hashed.
+5. Stable entries in `~/.agents/skills`, `~/.local/bin`, `$CODEX_HOME/AGENTS.md`,
+   `$CODEX_HOME/hooks.json`, and `$CODEX_HOME/hooks/` point through `current`.
+   They never point directly to an active checkout.
+6. A foreign file, directory, or link fails closed. The installer can replace
+   only a prior KRN link into a source checkout or release, preserving it under
+   `$CODEX_HOME/krn/migration-backups/`.
+7. Source-only packs, legacy names outside manifest ownership, vendor skills,
+   and plugin caches are not inferred or cleaned up by installation.
+8. If reconciliation fails after switching `current`, the previous `current`
+   binding is restored. The unselected staged release remains diagnostic state.
+
+## Doctor evidence
+
+`krn-codex doctor --json` is a filesystem observer, not a discovery or
+execution test. Its filesystem state is one of `filesystem_installed`,
+`legacy_mutable_source`, `foreign_collision`, `broken_link`, or `missing`.
+It reports session loading as `session_loaded_unknown` and post-install loading
+as `stale_session_likely` until a fresh Codex session provides stronger evidence.
 
 ## Rollback
 
-Remove only symlinks that resolve into this checkout, restore the timestamped
-backup paths, and restart Codex. Archived objects retain their metadata because
-the installer moves rather than copies them. Restore only into an absent path
-or over the still-managed symlink; never overwrite a new foreign occupant.
+Select a verified prior release by atomically repointing `current`, restore a
+timestamped KRN-link backup only into an absent path or over its still-managed
+replacement, then restart Codex. Never overwrite a new foreign occupant. Do
+not delete a release while an installed link or session may still depend on it.

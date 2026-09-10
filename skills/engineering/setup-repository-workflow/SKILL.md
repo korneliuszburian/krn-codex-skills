@@ -78,15 +78,15 @@ plans remain ephemeral.
    mutation on any other version. Record `HEAD` (or the unborn-branch state),
    status, repository-local Git config, the hook path resolved by
    `git rev-parse --path-format=absolute --git-path hooks`, and fingerprints
-   of any existing `AGENTS.md`, `CLAUDE.md`, and `.claude/`, then run:
+   of the existing `AGENTS.md`, then run:
 
    ```text
    bd init --skip-agents --skip-hooks --non-interactive
    ```
 
    Read back the resulting `HEAD`, commit paths, status, local Git config,
-   resolved Git hooks, and instruction surfaces. The only permitted config
-   delta is `beads.role=maintainer`; pre-existing instruction and hook surfaces
+   resolved Git hooks, and `AGENTS.md`. The only permitted config delta is
+   `beads.role=maintainer`; pre-existing instruction and hook surfaces
    remain byte-identical, absent ones remain absent, and `.beads/hooks/` remains
    absent. Stop on any other delta. At the audited boundary this command
    advances `HEAD` even with both skip flags. Do not run without local commit
@@ -102,11 +102,9 @@ plans remain ephemeral.
      --domain <single|multi> --delivery <local|strict>
    ```
 
-   Pass `--instruction AGENTS.md` or `--instruction CLAUDE.md` only to resolve
-   two independent existing files. When no instruction owner exists, `apply`
-   seeds a **thin** `AGENTS.md` (specifics and placeholders only) and symlinks
-   `CLAUDE.md` to it — this skill owns the repository brief so a tracker's init
-   never fills the void. See [agents-composition.md](references/agents-composition.md)
+   When no instruction owner exists, `apply` seeds a **thin** `AGENTS.md`
+   (specifics and placeholders only). It neither reads nor mutates instruction
+   surfaces for other harnesses. See [agents-composition.md](references/agents-composition.md)
    for why the brief stays thin, how the harness composes it with the global
    core, and why Beads initialization is isolated from instruction ownership.
 

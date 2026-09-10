@@ -65,11 +65,7 @@ if [[ -z "$variant" ]]; then
   echo "OPENCODE_SECOND_OPINION_VARIANT must not be empty" >&2
   exit 64
 fi
-agent=${OPENCODE_SECOND_OPINION_AGENT:-review}
-if [[ -z "$agent" ]]; then
-  echo "OPENCODE_SECOND_OPINION_AGENT must not be empty" >&2
-  exit 64
-fi
+agent=review
 timeout_seconds=${OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS:-600}
 if [[ -z "$timeout_seconds" || "$timeout_seconds" == *[!0-9]* || "$timeout_seconds" == 0 ]]; then
   echo "OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS must be a positive integer" >&2
@@ -124,9 +120,9 @@ fi
 prompt_sha=$(sha256sum "$prompt_file" | awk '{print $1}')
 
 run_exit=0
-timeout "$timeout_seconds" opencode run --agent "$agent" --model "$model" --variant "$variant" --format json --dir "$target_dir" "$prompt" > "$temporary_raw" || run_exit=$?
+timeout -k 5 "$timeout_seconds" opencode run --agent "$agent" --model "$model" --variant "$variant" --format json --dir "$target_dir" "$prompt" > "$temporary_raw" || run_exit=$?
 if [[ $run_exit -ne 0 ]]; then
-  if [[ $run_exit -eq 124 ]]; then
+  if [[ $run_exit -eq 124 || $run_exit -eq 137 ]]; then
     preserve_failure "opencode run timed out after ${timeout_seconds}s" "$run_exit"
   else
     preserve_failure "opencode run failed" "$run_exit"
@@ -149,7 +145,9 @@ fi
 
 mv -- "$temporary_raw" "$raw_output_file"
 mv -- "$temporary_opinion" "$output_file"
-printf '{"promptSha256":"%s","model":"%s","variant":"%s","target":"%s","completedAt":"%s"}\n' \
-  "$prompt_sha" "$model" "$variant" "$target_dir" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$output_dir/meta.json"
+node -e '
+  const [promptSha256, model, variant, target, completedAt] = process.argv.slice(1);
+  process.stdout.write(`${JSON.stringify({ promptSha256, model, variant, target, completedAt })}\n`);
+' "$prompt_sha" "$model" "$variant" "$target_dir" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$output_dir/meta.json"
 trap - EXIT
 rm -f -- "$temporary_extraction_error"

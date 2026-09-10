@@ -9,6 +9,8 @@ Own one substantial rendered-view outcome: build or refine a page or section
 from an adequate brief, discovery dossier, review report, reference intent, or
 existing product surface. Start at the host seam: reuse its rendering, asset,
 component, style, and verification conventions before adding a local solution.
+If none of those inputs supplies adequate intent, stop and obtain a discovery
+dossier or an explicit user decision; do not invent the brief.
 Keep semantics, meaningful source order, a usable progressive baseline where it
 matters, and declared content/viewport/interaction states in scope. Leave
 product data, cross-view state, acceptance, and design-system ownership with

@@ -203,6 +203,41 @@ test("passes through one explicit non-empty provider variant", () => {
   }
 });
 
+test("does not permit callers to override the read-only review agent", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
+  try {
+    invoke([target, path.join(run, "prompt.md"), output], {
+      PATH: `${bin}:${process.env.PATH}`,
+      OPENCODE_SECOND_OPINION_AGENT: "build",
+      OPENCODE_TEST_INVOCATION: invocation,
+    });
+    assert.match(fs.readFileSync(invocation, "utf8"), /--agent review/);
+    assert.doesNotMatch(fs.readFileSync(invocation, "utf8"), /--agent build/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("writes valid metadata JSON for hostile explicit model text", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
+  try {
+    const model = 'provider/model"with\\escapes';
+    invoke([target, path.join(run, "prompt.md"), output], {
+      PATH: `${bin}:${process.env.PATH}`,
+      OPENCODE_SECOND_OPINION_MODEL: model,
+      OPENCODE_TEST_INVOCATION: invocation,
+    });
+    assert.equal(
+      JSON.parse(fs.readFileSync(path.join(run, "meta.json"), "utf8")).model,
+      model,
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("defaults to DeepSeek V4.1 Flash when no reviewer model is named", () => {
   const { root, target, run, bin, invocation } = sandbox();
   const output = path.join(run, "opinion.md");

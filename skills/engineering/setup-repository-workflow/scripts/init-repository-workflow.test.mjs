@@ -41,7 +41,7 @@ function directorySnapshot(root) {
   }));
 }
 
-test("apply bootstraps a thin AGENTS.md and CLAUDE.md symlink when none exists", () => {
+test("apply bootstraps a thin AGENTS.md when none exists", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-repo-setup-empty-"));
   execFileSync("git", ["init", "-q", root]);
   const result = JSON.parse(apply(root));
@@ -49,11 +49,11 @@ test("apply bootstraps a thin AGENTS.md and CLAUDE.md symlink when none exists",
   assert.match(agents, /Methodology/);
   assert.match(agents, /global skills/);
   assert.match(agents, /krn-agent-workflow:start/);
-  assert.equal(realpathSync(join(root, "CLAUDE.md")), realpathSync(join(root, "AGENTS.md")));
+  assert.equal(existsSync(join(root, "CLAUDE.md")), false);
   assert.doesNotMatch(agents, /bd prime|BEADS INTEGRATION|Never stop before pushing/i);
   assert.deepEqual(
     [...result.written].sort(),
-    [".krn/runs/.gitignore", "AGENTS.md", "CLAUDE.md"],
+    [".krn/runs/.gitignore", "AGENTS.md"],
   );
   const changed = execFileSync(
     "git",
@@ -63,19 +63,14 @@ test("apply bootstraps a thin AGENTS.md and CLAUDE.md symlink when none exists",
   assert.deepEqual(changed, [...result.written].sort());
 });
 
-test("bootstrap fails closed on an occupied CLAUDE.md destination", () => {
+test("bootstrap leaves a foreign CLAUDE.md surface untouched", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-repo-setup-bootstrap-collision-"));
   execFileSync("git", ["init", "-q", root]);
-  mkdirSync(join(root, "CLAUDE.md"));
-  const result = spawnSync(
-    process.execPath,
-    [script, "apply", "--root", root, "--tracker", "beads", "--domain", "single", "--delivery", "strict"],
-    { encoding: "utf8" },
-  );
-  assert.equal(result.status, 64);
-  assert.match(result.stderr, /instruction bootstrap destination is occupied: CLAUDE\.md/);
-  assert.equal(existsSync(join(root, "AGENTS.md")), false);
-  assert.equal(existsSync(join(root, ".krn")), false);
+  writeFileSync(join(root, "CLAUDE.md"), "# Foreign harness contract\n");
+  const result = JSON.parse(apply(root));
+  assert.equal(result.instruction, "AGENTS.md");
+  assert.equal(readFileSync(join(root, "CLAUDE.md"), "utf8"), "# Foreign harness contract\n");
+  assert.ok(existsSync(join(root, "AGENTS.md")));
 });
 
 test("apply preserves user prose and is byte-idempotent", () => {
@@ -113,19 +108,18 @@ test("apply leaves domain and documentation artifacts lazy", () => {
   assert.equal(existsSync(join(root, "docs", "research")), false);
 });
 
-test("shared CLAUDE symlink keeps AGENTS as one semantic owner", () => {
+test("a foreign CLAUDE symlink does not alter AGENTS ownership", () => {
   const root = fixture();
   symlinkSync("AGENTS.md", join(root, "CLAUDE.md"));
   const result = JSON.parse(apply(root));
   assert.equal(result.instruction, "AGENTS.md");
 });
 
-test("independent AGENTS and CLAUDE require an explicit owner", () => {
+test("an independent CLAUDE file remains untouched", () => {
   const root = fixture();
   writeFileSync(join(root, "CLAUDE.md"), "# Separate owner\n");
-  const result = spawnSync(process.execPath, [script, "apply", "--root", root, "--tracker", "beads", "--domain", "single", "--delivery", "local"], { encoding: "utf8" });
-  assert.equal(result.status, 64);
-  assert.match(result.stderr, /select --instruction explicitly/);
+  apply(root);
+  assert.equal(readFileSync(join(root, "CLAUDE.md"), "utf8"), "# Separate owner\n");
 });
 
 test("inspect reports repository signals without writing", () => {

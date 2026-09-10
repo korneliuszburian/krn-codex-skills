@@ -74,79 +74,6 @@ function unfencedLines(content) {
   return lines;
 }
 
-function activeShellLines(content) {
-  return content
-    .split("\n")
-    .map((line) => {
-      let singleQuoted = false;
-      let doubleQuoted = false;
-      let escaped = false;
-      for (let index = 0; index < line.length; index += 1) {
-        const character = line[index];
-        if (escaped) {
-          escaped = false;
-          continue;
-        }
-        if (character === "\\" && !singleQuoted) {
-          escaped = true;
-          continue;
-        }
-        if (character === "'" && !doubleQuoted) {
-          singleQuoted = !singleQuoted;
-          continue;
-        }
-        if (character === '"' && !singleQuoted) {
-          doubleQuoted = !doubleQuoted;
-          continue;
-        }
-        if (
-          character === "#" &&
-          !singleQuoted &&
-          !doubleQuoted &&
-          (index === 0 || /\s/.test(line[index - 1]))
-        ) {
-          return line.slice(0, index).trim();
-        }
-      }
-      return line.trim();
-    })
-    .filter(Boolean);
-}
-
-function shellWords(line) {
-  return line.match(/"(?:\\.|[^"\\])*"|'[^']*'|[^\s]+/g) ?? [];
-}
-
-function unquoteShellWord(word) {
-  if (
-    (word.startsWith('"') && word.endsWith('"')) ||
-    (word.startsWith("'") && word.endsWith("'"))
-  ) {
-    return word.slice(1, -1);
-  }
-  return word;
-}
-
-function isClaudeInvocation(line) {
-  const words = shellWords(line).map(unquoteShellWord);
-  const command = 0;
-  if (words[command] === "claude") return true;
-  return (
-    words[command] === "timeout" &&
-    words.slice(command + 1).includes("claude")
-  );
-}
-
-function isClaudeWindowGuard(line) {
-  const words = shellWords(line).map(unquoteShellWord);
-  const command = 0;
-  return (
-    words[command] === "node" &&
-    words[command + 1]?.endsWith("check-claude-window.mjs") &&
-    words[command + 2] === "check"
-  );
-}
-
 function validateMarkdownLinks(file) {
   for (const { line, number } of unfencedLines(read(file))) {
     for (const match of line.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
@@ -302,7 +229,7 @@ function validateReadmeSkillsTable(file, skills) {
   }
 }
 
-function validateReadmeSourceOnlyPointers(file, skills) {
+function validateReadmeSourceOnlyPointers(file, skills, installableSkills) {
   const content = read(file);
   const heading = "### Source-only packs";
   const start = content.indexOf(heading);
@@ -317,6 +244,12 @@ function validateReadmeSourceOnlyPointers(file, skills) {
     const count = section.split(pointer).length - 1;
     if (count !== 1) {
       fail(`${relative(file)}: source-only skill ${skill.name} must have exactly one canonical pointer`);
+    }
+  }
+  for (const skill of installableSkills) {
+    const pointer = `](${skill.path}/SKILL.md)`;
+    if (section.includes(pointer)) {
+      fail(`${relative(file)}: installable skill ${skill.name} must not appear in the Source-only packs section`);
     }
   }
   if (skills.length > 0 && !/\bnot installed\b/i.test(section)) {
@@ -370,24 +303,6 @@ function parseFrontmatter(file) {
 
 function lineCount(file) {
   return read(file).split("\n").length;
-}
-
-function validateTransportSchema(value, location = "review schema") {
-  if (Array.isArray(value)) {
-    value.forEach((item, index) =>
-      validateTransportSchema(item, `${location}[${index}]`),
-    );
-    return;
-  }
-  if (!value || typeof value !== "object") return;
-  for (const [key, child] of Object.entries(value)) {
-    if (key === "$schema" || key === "const") {
-      fail(
-        `${location}: ${key} is not portable across configured structured-output backends; use structural constraints or enum`,
-      );
-    }
-    validateTransportSchema(child, `${location}.${key}`);
-  }
 }
 
 function validateUpstreamSources(document) {
@@ -460,8 +375,20 @@ if (!globalHooksPathSafe) {
   fail("manifest: unsafe global_hooks path");
 }
 
+function manifestArray(value, key) {
+  if (!Array.isArray(value)) {
+    fail(`manifest: ${key} must be an array`);
+    return [];
+  }
+  return value;
+}
+
 const hookFileNames = new Set();
-for (const hookFile of manifest.global_hook_files ?? []) {
+for (const hookFile of manifestArray(manifest.global_hook_files, "global_hook_files")) {
+  if (!hookFile || typeof hookFile !== "object" || Array.isArray(hookFile)) {
+    fail("manifest: global_hook_files entries must be objects");
+    continue;
+  }
   if (!/^[a-zA-Z0-9_.-]{1,80}$/.test(hookFile.name ?? "")) {
     fail(`manifest: invalid global hook file name ${hookFile.name}`);
   }
@@ -491,7 +418,7 @@ for (const hookFile of manifest.global_hook_files ?? []) {
 }
 
 const legacyGlobalHookPaths = new Set();
-for (const legacyPath of manifest.legacy_global_hook_paths ?? []) {
+for (const legacyPath of manifestArray(manifest.legacy_global_hook_paths, "legacy_global_hook_paths")) {
   if (!safeRelativePath(legacyPath)) {
     fail(`manifest: unsafe legacy global hook path ${legacyPath}`);
   }
@@ -533,7 +460,11 @@ if (globalHooksPathSafe) {
 }
 
 const binNames = new Set();
-for (const bin of manifest.bins ?? []) {
+for (const bin of manifestArray(manifest.bins, "bins")) {
+  if (!bin || typeof bin !== "object" || Array.isArray(bin)) {
+    fail("manifest: bins entries must be objects");
+    continue;
+  }
   if (!/^[a-z0-9-]{1,63}$/.test(bin.name ?? "")) {
     fail(`manifest: invalid bin name ${bin.name}`);
   }
@@ -681,6 +612,7 @@ validateReadmeSkillsTable(readmePath, validInstallableSkills);
 validateReadmeSourceOnlyPointers(
   readmePath,
   validSourceOnlySkills,
+  validInstallableSkills,
 );
 
 const skillFiles = filesNamed(path.join(root, "skills"), "SKILL.md");
@@ -796,86 +728,12 @@ for (const markdown of repositoryMarkdown) {
   validateSemanticXml(markdown);
 }
 
-const secondOpinion = validInstallableSkills.find(
-  (skill) => skill.name === "second-opinion-review",
-);
-if (secondOpinion) {
-  const skillRoot = path.join(root, secondOpinion.path);
-  const skillEntrypoint = read(path.join(skillRoot, "SKILL.md"));
-  const artifactHelper = "prepare-artifacts.mjs";
-  const artifactHelperPath = path.join(skillRoot, "scripts", artifactHelper);
-  if (!fs.existsSync(artifactHelperPath)) {
-    fail(`${secondOpinion.path}: missing ${artifactHelper}`);
-  }
-  if (!skillEntrypoint.includes(`scripts/${artifactHelper}`)) {
-    fail(`${secondOpinion.path}: SKILL.md must route through ${artifactHelper}`);
-  }
-  const reviewSchemaPath = path.join(
-    skillRoot,
-    "references",
-    "review.schema.json",
-  );
-  if (!fs.existsSync(reviewSchemaPath)) {
-    fail(`${secondOpinion.path}: missing review.schema.json`);
-  } else {
-    validateTransportSchema(json(reviewSchemaPath));
-  }
-  const researchSchemaPath = path.join(
-    skillRoot,
-    "references",
-    "research.schema.json",
-  );
-  if (!fs.existsSync(researchSchemaPath)) {
-    fail(`${secondOpinion.path}: missing research.schema.json`);
-  } else {
-    validateTransportSchema(json(researchSchemaPath));
-  }
-
-  for (const requiredFile of [
-    "references/research-template.md",
-    "scripts/research-campaign.mjs",
-    "scripts/run-research.mjs",
-  ]) {
-    if (!fs.existsSync(path.join(skillRoot, requiredFile))) {
-      fail(`${secondOpinion.path}: missing ${requiredFile}`);
-    }
-  }
-  const researchRunner = read(path.join(skillRoot, "scripts", "run-research.mjs"));
-  const researchWindow = researchRunner.indexOf("check-claude-window.mjs");
-  const researchInvocation = researchRunner.indexOf("claudeInvoker({");
-  if (
-    researchWindow === -1 ||
-    researchInvocation === -1 ||
-    researchWindow >= researchInvocation
-  ) {
-    fail(
-      `${secondOpinion.path}: run-research.mjs must bind the Claude window before invocation`,
-    );
-  }
-
-  const windowGuard = "check-claude-window.mjs";
-  for (const runner of ["run-review.sh", "run-handoff.sh"]) {
-    const runnerPath = path.join(skillRoot, "scripts", runner);
-    if (!fs.existsSync(runnerPath)) {
-      fail(`${secondOpinion.path}: missing ${runner}`);
-      continue;
-    }
-
-    const activeLines = activeShellLines(read(runnerPath));
-    const firstClaude = activeLines.findIndex(isClaudeInvocation);
-    const firstGuard = activeLines.findIndex(isClaudeWindowGuard);
-    if (firstClaude === -1) {
-      fail(`${secondOpinion.path}: ${runner} has no active Claude invocation`);
-    } else if (firstGuard === -1 || firstGuard >= firstClaude) {
-      fail(
-        `${secondOpinion.path}: ${runner} must run an active ${windowGuard} check before its first Claude invocation`,
-      );
-    }
-  }
-}
-
 const legacyPaths = new Set();
-for (const item of manifest.legacy_user_paths ?? []) {
+for (const item of manifestArray(manifest.legacy_user_paths, "legacy_user_paths")) {
+  if (!item || typeof item !== "object" || Array.isArray(item)) {
+    fail("manifest: legacy_user_paths entries must be objects");
+    continue;
+  }
   if (
     typeof item.path !== "string" ||
     !item.path.startsWith(".codex/skills/") ||

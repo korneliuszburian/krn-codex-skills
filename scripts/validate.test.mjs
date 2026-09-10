@@ -226,6 +226,29 @@ test("requires a canonical README pointer for every source-only skill", () => {
   });
 });
 
+test("rejects an installable skill pointer in the Source-only packs section", () => {
+  withFixture((fixture) => {
+    const readme = path.join(fixture, "README.md");
+    const source = fs.readFileSync(readme, "utf8");
+    const heading = "### Source-only packs\n";
+    assert.ok(source.includes(heading));
+    fs.writeFileSync(
+      readme,
+      source.replace(
+        heading,
+        `${heading}\n[delivery-loop](skills/engineering/delivery-loop/SKILL.md)\n`,
+      ),
+    );
+
+    const result = validate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.match(
+      diagnostics(result),
+      /installable skill delivery-loop must not appear in the Source-only packs section/,
+    );
+  });
+});
+
 test("rejects a source-only skill that collides with a retired name", () => {
   withFixture((fixture) => {
     const manifestPath = path.join(fixture, "skills", "manifest.json");
@@ -309,6 +332,27 @@ test("rejects malformed skill registries without crashing", () => {
     assert.match(diagnostics(result), /skills must be an array/);
     assert.match(diagnostics(result), /source_only_skills must be an array/);
   });
+});
+
+test("rejects malformed installation registries without crashing", () => {
+  for (const [key, malformed] of [
+    ["bins", {}],
+    ["global_hook_files", [null]],
+    ["legacy_global_hook_paths", {}],
+    ["legacy_user_paths", [null]],
+  ]) {
+    withFixture((fixture) => {
+      const manifestPath = path.join(fixture, "skills", "manifest.json");
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+      manifest[key] = malformed;
+      fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+      const result = validate(fixture);
+      assert.notEqual(result.status, 0, `${key} must be rejected`);
+      assert.doesNotMatch(diagnostics(result), /TypeError/);
+      assert.match(diagnostics(result), new RegExp(`manifest: ${key}`));
+    });
+  }
 });
 
 test("rejects a null installable skill entry without crashing", () => {
