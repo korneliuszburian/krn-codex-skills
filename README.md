@@ -110,9 +110,8 @@ skill has been benchmarked.
 
 ### Source-only packs
 
-There are no source-only packs on this core branch. Frontend skills and their
-browser labs are maintained on `frontend-lab` until a separate promotion
-decision is made.
+There are no source-only packs on this core branch. Domain-specific packs stay
+on their own branch until a separate promotion decision is made.
 
 Descriptions and `agents/openai.yaml` are the routing authority. README is the
 only human skill catalog; there are no hand-maintained per-skill mirror pages.

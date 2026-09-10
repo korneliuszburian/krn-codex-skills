@@ -171,12 +171,3 @@ disposition, cost, limitations, falsifier, and next action.
 benchmark with its existing scorer and `results/`. It is not duplicated by this
 generic lifecycle. A future redesign may wrap benchmark releases in an
 experiment manifest only after a real consumer needs unified indexing.
-
-## Neutral frontend browser fixture
-
-`frontend-browser-fixture/` is a small non-project-specific browser evidence
-lab. Run `npm run test:frontend-browser` from the repository root. It uses one
-official `playwright-cli` session, records compact snapshots plus runtime,
-console, network, screenshot and interaction artifacts, verifies their hashes,
-and proves that a tampered artifact fails closed. Generated evidence stays
-ignored; the fixture code is the durable contract.

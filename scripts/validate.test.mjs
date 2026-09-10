@@ -51,7 +51,7 @@ function withFixture(run) {
     const fixtureReadmePath = path.join(fixture, "README.md");
     const fixtureReadme = fs.readFileSync(fixtureReadmePath, "utf8");
     fs.writeFileSync(fixtureReadmePath, fixtureReadme.replace(
-      "There are no source-only packs on this core branch. Frontend skills and their\nbrowser labs are maintained on `frontend-lab` until a separate promotion\ndecision is made.",
+      "There are no source-only packs on this core branch. Domain-specific packs stay\non their own branch until a separate promotion decision is made.",
       "- [`fixture-source-only`](skills/meta/fixture-source-only/SKILL.md) — fixture source-only pack, not installed.",
     ));
     const fixtureCasesPath = path.join(fixture, "evals", "trigger-cases.json");
