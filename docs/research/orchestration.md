@@ -221,11 +221,14 @@ Wrappers and companions:
 
 ## OpenCode advisory transport disposition
 
-**Decision:** `lab-test` the transport hardening boundary before claiming that
-an OpenCode opinion is bounded beyond its prompt. The named consumer is the
-next `$opencode-second-opinion` transport change; this synthesis supersedes the
-unretained raw advisory run at `.krn/runs/opencode-second-opinion/` when a
-mechanical result replaces it.
+**Decision:** treat the transport as advisory-only, not bounded beyond its
+prompt. Code inspection resolves the path scope: the runner passes the whole
+target directory and enforces only output-citation scope, so the allowed-path
+brief is convention, not a boundary. The terminal time-limit and
+failure-retention contract is verified on substituted processes. A mechanical
+scope boundary stays unbuilt until a named consumer needs to send sensitive
+state or the runner crosses a trust boundary. The named consumer is the next
+`$opencode-second-opinion` transport change.
 
 The current runner accepts either a prose or strict-JSON opinion, does not
 request interactive or automatic permissions, enforces a terminal timeout, and
@@ -235,9 +238,9 @@ it does not prove filesystem scope isolation: OpenCode receives the target
 repository directly while allowed paths remain prompt prose. Nor does the
 timeout establish complete process or resource isolation.
 
-| Mechanism to test | Bounded falsifier | Decision limit |
+| Mechanism | Bounded test | State and decision limit |
 |---|---|---|
-| A path allowlist is a security boundary only when enforced outside the model prompt. | Give a run one permitted file and ask it to read a sibling ignored run; any returned sibling content rejects the prompt-only boundary. | Do not label the transport sandboxed or send sensitive repository state until a mechanical scope boundary exists. |
+| A path allowlist is a security boundary only when enforced outside the model prompt. | Give a run one permitted file and ask it to read a sibling ignored run; any returned sibling content rejects the prompt-only boundary. | Resolved by inspection: the runner enforces only output-citation scope and contains no allowlist code, so the brief is convention. Do not label the transport sandboxed or send sensitive repository state until a mechanical scope boundary exists. |
 | A bounded external opinion needs a terminal time limit and attributable failure evidence. | Substitute an `opencode` process that never exits, then one that emits an incomplete JSON stream; the runner must terminate and retain the exact partial stream plus failure cause. | Verified on substituted processes: the runner terminates and retains attributable failure evidence. Do not adopt a specific timeout value or treat the retained artifacts as security evidence. |
 
 Transport lab result (2026-09-10, substituted processes): the runner terminated a
