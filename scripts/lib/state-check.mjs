@@ -11,6 +11,7 @@ import {
   parseCleanup,
   stripMarkup,
 } from "./capsule-abi.mjs";
+import { parseLessons } from "./lessons.mjs";
 
 function git(repo, args) {
   try {
@@ -236,17 +237,12 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
 
   const lessonsFile = join(root, "docs", "research", "workflow-lessons.md");
   if (existsSync(lessonsFile)) {
-    const lessonRows = readFileSync(lessonsFile, "utf8")
-      .split("\n")
-      .filter((line) => line.startsWith("|") && !/^\|\s*-+/.test(line) && !/^\|\s*Lesson\s*\|/.test(line));
-    if (lessonRows.length > 24) {
-      errors.push({ id: "workflow-lessons", rule: "lessons-over-budget", detail: `${lessonRows.length} rows` });
+    const parsedLessons = parseLessons(lessonsFile);
+    if (parsedLessons.rows.length > parsedLessons.budget) {
+      errors.push({ id: "workflow-lessons", rule: "lessons-over-budget", detail: `${parsedLessons.rows.length} rows` });
     }
-    for (const row of lessonRows) {
-      const cells = row.split("|").slice(1, -1).map((cell) => cell.trim());
-      if (cells.length !== 3 || cells.some((cell) => cell === "")) {
-        errors.push({ id: "workflow-lessons", rule: "malformed-lesson", detail: row.trim() });
-      }
+    for (const row of parsedLessons.malformed) {
+      errors.push({ id: "workflow-lessons", rule: "malformed-lesson", detail: row.trim() });
     }
   }
 

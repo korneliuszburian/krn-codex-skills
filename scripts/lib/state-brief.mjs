@@ -3,6 +3,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { inspectSpineState } from "./state-check.mjs";
 import { commitTokens, fieldLine, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
+import { parseLessons } from "./lessons.mjs";
 
 function git(repo, args) {
   try {
@@ -65,12 +66,8 @@ function workflowLessons(root) {
   const relative = join("docs", "research", "workflow-lessons.md");
   const file = join(root, relative);
   if (!existsSync(file)) return { path: null, count: 0, items: [] };
-  const items = readFileSync(file, "utf8")
-    .split("\n")
-    .filter((line) => line.startsWith("|") && !/^\|\s*-+/.test(line) && !/^\|\s*Lesson\s*\|/.test(line))
-    .map((line) => line.split("|")[1].trim())
-    .filter(Boolean);
-  return { path: relative, count: items.length, items };
+  const { rows } = parseLessons(file);
+  return { path: relative, count: rows.length, items: rows.map((row) => row.lesson) };
 }
 
 function renderLessons(lessons) {

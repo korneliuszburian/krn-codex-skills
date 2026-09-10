@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
 import { ABI_LABELS } from "./lib/capsule-abi.mjs";
+import { parseLessons } from "./lib/lessons.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
@@ -766,15 +767,12 @@ for (const markdown of repositoryMarkdown) {
   }
   const lessonsFile = path.join(researchDirectory, "workflow-lessons.md");
   if (fs.existsSync(lessonsFile)) {
-    const lessonRows = read(lessonsFile)
-      .split("\n")
-      .filter((line) => line.startsWith("|") && !/^\|\s*-+/.test(line) && !/^\|\s*Lesson\s*\|/.test(line));
-    if (lessonRows.length > 24) fail("docs/research/workflow-lessons.md exceeds 24 lesson rows; displace or condense");
-    for (const row of lessonRows) {
-      const cells = row.split("|").slice(1, -1).map((cell) => cell.trim());
-      if (cells.length !== 3 || cells.some((cell) => cell === "")) {
-        fail(`docs/research/workflow-lessons.md: a lesson row needs non-empty Lesson, Evidence, and Enforced by cells: ${row.trim()}`);
-      }
+    const parsedLessons = parseLessons(lessonsFile);
+    if (parsedLessons.rows.length > parsedLessons.budget) {
+      fail(`docs/research/workflow-lessons.md exceeds ${parsedLessons.budget} lesson rows; displace or condense`);
+    }
+    for (const row of parsedLessons.malformed) {
+      fail(`docs/research/workflow-lessons.md: a lesson row needs non-empty Lesson, Evidence, and Enforced by cells: ${row.trim()}`);
     }
   }
   assertDurableHeader(path.join(root, "docs", "capabilities.md"));

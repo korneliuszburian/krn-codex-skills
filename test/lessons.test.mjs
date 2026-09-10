@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkLessons } from "../scripts/lib/lessons.mjs";
+import { checkLessons, parseLessons } from "../scripts/lib/lessons.mjs";
 
 function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "krn-lessons-"));
@@ -12,6 +12,17 @@ function makeRoot() {
   writeFileSync(join(root, "package.json"), '{\n  "scripts": { "test:state": "x" }\n}\n');
   return root;
 }
+
+test("parseLessons owns the row schema and reports malformed rows", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  writeFileSync(file, "| Lesson | Evidence | Enforced by |\n|---|---|---|\n| A | probe | `manual:review` |\n| B | probe | `test:state` | extra |\n");
+  const parsed = parseLessons(file);
+  assert.deepEqual(parsed.rows.map((row) => row.lesson), ["A"]);
+  assert.equal(parsed.malformed.length, 1);
+  assert.equal(parsed.budget, 24);
+  rmSync(root, { recursive: true, force: true });
+});
 
 test("a lesson with a resolving script or manual gate passes", () => {
   const root = makeRoot();
