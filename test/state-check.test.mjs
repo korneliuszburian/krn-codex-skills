@@ -240,3 +240,12 @@ test("an over-budget workflow-lessons page diverges", () => {
   assert.ok(report.errors.some((error) => error.rule === "lessons-over-budget"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a lesson without an enforcing gate diverges", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by |\n|---|---|---|\n| A lesson without a gate | probe evidence | |\n");
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "malformed-lesson"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

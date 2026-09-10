@@ -280,12 +280,17 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
 
   const lessonsFile = join(root, "docs", "research", "workflow-lessons.md");
   if (existsSync(lessonsFile)) {
-    const rows = readFileSync(lessonsFile, "utf8")
+    const lessonRows = readFileSync(lessonsFile, "utf8")
       .split("\n")
-      .filter((line) => line.startsWith("|") && !/^\|\s*-+/.test(line) && !/^\|\s*Lesson\s*\|/.test(line))
-      .length;
-    if (rows > 24) {
-      errors.push({ id: "workflow-lessons", rule: "lessons-over-budget", detail: `${rows} rows` });
+      .filter((line) => line.startsWith("|") && !/^\|\s*-+/.test(line) && !/^\|\s*Lesson\s*\|/.test(line));
+    if (lessonRows.length > 24) {
+      errors.push({ id: "workflow-lessons", rule: "lessons-over-budget", detail: `${lessonRows.length} rows` });
+    }
+    for (const row of lessonRows) {
+      const cells = row.split("|").slice(1, -1).map((cell) => cell.trim());
+      if (cells.length !== 3 || cells.some((cell) => cell === "")) {
+        errors.push({ id: "workflow-lessons", rule: "malformed-lesson", detail: row.trim() });
+      }
     }
   }
 

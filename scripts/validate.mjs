@@ -766,8 +766,16 @@ for (const markdown of repositoryMarkdown) {
   }
   const lessonsFile = path.join(researchDirectory, "workflow-lessons.md");
   if (fs.existsSync(lessonsFile)) {
-    const rows = read(lessonsFile).split("\n").filter((line) => line.startsWith("|")).length - 2;
-    if (rows > 24) fail("docs/research/workflow-lessons.md exceeds 24 lesson rows; displace or condense");
+    const lessonRows = read(lessonsFile)
+      .split("\n")
+      .filter((line) => line.startsWith("|") && !/^\|\s*-+/.test(line) && !/^\|\s*Lesson\s*\|/.test(line));
+    if (lessonRows.length > 24) fail("docs/research/workflow-lessons.md exceeds 24 lesson rows; displace or condense");
+    for (const row of lessonRows) {
+      const cells = row.split("|").slice(1, -1).map((cell) => cell.trim());
+      if (cells.length !== 3 || cells.some((cell) => cell === "")) {
+        fail(`docs/research/workflow-lessons.md: a lesson row needs non-empty Lesson, Evidence, and Enforced by cells: ${row.trim()}`);
+      }
+    }
   }
   assertDurableHeader(path.join(root, "docs", "capabilities.md"));
   assertDurableHeader(path.join(root, "docs", "migration.md"));
