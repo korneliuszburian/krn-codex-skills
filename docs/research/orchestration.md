@@ -189,25 +189,6 @@ Neither candidate is installed as a new global lifecycle owner by this
 decision. The source claims are not a benchmark of KRN, and the lab-test setup
 is not adoption or proof of production isolation.
 
-## Research routing dogfood
-
-**Date:** 2026-08-26. **Consumer:** the global trigger matrix and its validator.
-**Decision:** `adopt` the small bridge that derives accepted upstream skill
-names from the pinned source lock, while keeping KRN-owned workflow validation
-keyed to the local manifest.
-
-The matrix now has positive `research` cases for primary-source capture,
-competing mechanisms, and an implementation brief, plus hard negatives for
-fact lookup and summary work. The validator keeps the pinned discovery
-contract separate from local installation ownership and rejects unknown
-upstream names without granting them local ownership.
-
-This proves matrix/schema coverage and the current pinned discovery contract;
-it does not prove that a model selects the intended skill on every prompt, that
-the research result is correct, or that the upstream skill improves engineering
-outcomes. Reopen with a small paired routing experiment if real sessions show
-missed or over-triggered `research` selection.
-
 ## Artifact taxonomy
 
 | Information | Canonical owner and destination | Lifecycle |

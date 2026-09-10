@@ -154,6 +154,65 @@ def static_simple_words(command: str) -> tuple[str, ...] | None:
     return words or None
 
 
+def split_safe_and_chain(command: str) -> tuple[str, ...] | None:
+    """Split a chain only when its sole shell operator is literal ``&&``.
+
+    The hook still refuses pipes, redirects, substitutions, globs, and other
+    shell composition.  Allowing a concrete ``&&`` chain lets normal cleanup
+    such as ``rm -rf build && npm run check`` proceed while every destructive
+    segment is checked independently.
+    """
+
+    segments: list[str] = []
+    segment_start = 0
+    quote: str | None = None
+    index = 0
+    while index < len(command):
+        character = command[index]
+        if quote == "'":
+            if character == "'":
+                quote = None
+            index += 1
+            continue
+        if quote == '"':
+            if character == "\\" and index + 1 < len(command):
+                index += 2
+                continue
+            if character == '"':
+                quote = None
+            elif character in {"$", "`"}:
+                return None
+            index += 1
+            continue
+        if character == "\\" and index + 1 < len(command):
+            index += 2
+            continue
+        if character in {"'", '"'}:
+            quote = character
+            index += 1
+            continue
+        if character == "&":
+            if index + 1 >= len(command) or command[index + 1] != "&":
+                return None
+            segment = command[segment_start:index].strip()
+            if not segment:
+                return None
+            segments.append(segment)
+            index += 2
+            segment_start = index
+            continue
+        if character in {";", "|", "<", ">", "(", ")", "{", "}", "\n", "\r", "$", "`", "*", "?", "["}:
+            return None
+        index += 1
+    if quote is not None:
+        return None
+    final = command[segment_start:].strip()
+    if not final:
+        return None
+    segments.append(final)
+    return tuple(segments)
+
+
 def is_safe_text(words: tuple[str, ...] | None) -> bool:
     return bool(words and words[0] in SAFE_TEXT_COMMANDS)
 
@@ -188,14 +247,6 @@ def is_safe_inspection(words: tuple[str, ...] | None) -> bool:
             or argument.startswith(("-exec=", "-execdir=", "-ok=", "-okdir="))
             or argument == "-fls"
             or argument.startswith(("-fls", "-fprint", "-fprintf"))
-            for argument in arguments
-        ):
-            return False
-        if executable == "sed" and any(
-            argument == "-i"
-            or argument.startswith("-i")
-            or argument == "--in-place"
-            or argument.startswith("--in-place=")
             for argument in arguments
         ):
             return False
@@ -237,10 +288,23 @@ def has_static_destructive_reference(words: tuple[str, ...] | None) -> bool:
 def bash_denial_reason(command: str, cwd: Path) -> str | None:
     lexical_text = command.replace("\\\r\n", "").replace("\\\n", "")
     literal_text = without_shell_comments(lexical_text)
+    chain = split_safe_and_chain(literal_text)
+    if chain is not None and len(chain) > 1:
+        for segment in chain:
+            reason = bash_denial_reason(segment, cwd)
+            if reason is not None:
+                return reason
+        return None
     words = static_simple_words(literal_text)
     forbidden = references_forbidden_capability(lexical_text)
+    literal_risk = DESTRUCTIVE_LITERAL.search(lexical_text) is not None
+    if words is not None and words and words[0] == "git":
+        # A commit message may contain words such as "clean" or "rm". The
+        # parsed git argv, not arbitrary message text, decides whether this is
+        # the destructive `git clean` command.
+        literal_risk = False
     destructive = (
-        DESTRUCTIVE_LITERAL.search(lexical_text) is not None
+        literal_risk
         or has_static_destructive_reference(words)
     )
     if not forbidden and not destructive:

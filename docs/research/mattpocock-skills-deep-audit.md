@@ -115,7 +115,7 @@ contract.
 
 No candidate currently earns `adopt`. The falsifiers above are deliberately
 concrete: a future adoption must first prove a missing consumer and a distinct
-stopping condition through routing cases, then pass the install and ownership
+stopping condition through a concrete routing failure, then pass the install and ownership
 boundaries.
 
 ## Open upstream proposals worth tracking

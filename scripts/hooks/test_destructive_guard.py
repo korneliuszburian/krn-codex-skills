@@ -40,6 +40,13 @@ class DestructiveGuardSmoke(unittest.TestCase):
             self.assertIn("destructive removal blocked", reason("rm -rf .") or "")
             self.assertIsNotNone(reason("rm -f .env"))
             self.assertIsNone(reason("rm -rf /tmp/krn-disposable-output"))
+            self.assertIsNone(reason("rm -rf build && printf done"))
+            self.assertIsNone(reason("git commit -m 'clean runtime residue'"))
+            self.assertIn("non-dry-run git clean", reason("git clean -fd") or "")
+            self.assertIn(
+                "destructive removal blocked",
+                reason("rm -rf build && rm -rf .") or "",
+            )
 
 
 if __name__ == "__main__":

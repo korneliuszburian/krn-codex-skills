@@ -44,7 +44,7 @@ result to the current owner; none becomes a mandatory pipeline stage.
 `target-repo-work` wraps another checkout. `typescript-engineering` is a
 language companion. `opencode-second-opinion` is an explicit advisory side path.
 Setup, capability management, and skill authoring remain separate owners. The
-evidence, admission matrix, and lifecycle invariants live in
+evidence, admission map, and lifecycle invariants live in
 [the orchestration synthesis](docs/research/orchestration.md).
 
 ## Compact context spine
