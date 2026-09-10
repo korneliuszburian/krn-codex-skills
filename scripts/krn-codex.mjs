@@ -61,7 +61,7 @@ try {
     if (positional[0] !== "check" || positional.length > 2 || options.source || options.yes) fail(usage);
     const report = inspectSpineState({ repo: positional[1] ?? process.cwd() });
     print(report, options.json);
-    if (report.status !== "clean") process.exitCode = 1;
+    if (report.status === "divergent") process.exitCode = 1;
   } else {
   const { positional, options } = parseOptions(raw);
   if (positional[0] === "install") {

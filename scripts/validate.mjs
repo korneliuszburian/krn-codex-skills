@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
+import { ABI_LABELS } from "./lib/state-check.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
@@ -734,6 +735,23 @@ for (const markdown of repositoryMarkdown) {
   }
   assertDurableHeader(path.join(root, "docs", "capabilities.md"));
   assertDurableHeader(path.join(root, "docs", "migration.md"));
+}
+
+{
+  const capsuleSkill = path.join(root, "skills", "engineering", "delivery-loop", "SKILL.md");
+  const capsuleBlock = read(capsuleSkill).match(/<outcome-capsule>\n([\s\S]*?)<\/outcome-capsule>/);
+  if (!capsuleBlock) {
+    fail("delivery-loop SKILL.md is missing the outcome-capsule block");
+  } else {
+    const labels = capsuleBlock[1]
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => line.split(":")[0].trim());
+    if (labels.length !== ABI_LABELS.length || labels.some((label, index) => label !== ABI_LABELS[index])) {
+      fail("delivery-loop capsule ABI labels must match scripts/lib/state-check.mjs ABI_LABELS");
+    }
+  }
 }
 
 if (lineCount(path.join(root, "AGENTS.md")) > 90) {

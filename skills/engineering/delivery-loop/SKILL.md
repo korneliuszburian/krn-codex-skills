@@ -96,8 +96,8 @@ hosts own their mechanics and policy.
    only that entry `BLOCKED`. `none` means the list is empty.
 
    At every boundary, and before any `COMPLETE` claim, run
-   `krn-codex state check`; a `divergent` status is a blocker to repair, not a
-   warning.
+   `krn-codex state check`; `divergent` blocks, while `not-applicable` means no
+   file-backed capsule was checked, not a pass.
 
    For an accepted outcome, discharge every triggered specialist cleanup,
    reconcile tracker closure when configured, remove delivery restart state when
@@ -175,5 +175,5 @@ hosts own their mechanics and policy.
    non-proofs, review identity, actual publication state, and either no remaining
    required transition or one blocker with its owner and requested action.
    `COMPLETE` additionally requires terminal Goal and tracker readback wherever
-   they exist plus a clean `krn-codex state check`; `SUPERSEDED` and
+   they exist plus a non-`divergent` `krn-codex state check`; `SUPERSEDED` and
    `ABANDONED` never imply Goal completion.

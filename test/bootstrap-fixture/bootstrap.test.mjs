@@ -102,6 +102,37 @@ test("installed CLI bootstraps a target repository through its public seam", () 
     assert.equal(fs.readFileSync(path.join(target, "LOCAL.md"), "utf8"), foreign);
     assert.equal(fs.readFileSync(path.join(target, ".krn", "runs", ".gitignore"), "utf8"), runsGitignore);
 
+    const notApplicable = invoke(installedCli, ["state", "check", target], root);
+    assert.equal(notApplicable.status, 0, notApplicable.stderr);
+    assert.equal(JSON.parse(notApplicable.stdout).status, "not-applicable");
+
+    const capsuleDir = path.join(target, ".krn", "runs", "delivery-loop", "fixture");
+    fs.mkdirSync(capsuleDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(capsuleDir, "state.md"),
+      [
+        "Outcome and observable acceptance: fixture",
+        "Current workflow owner and sole writer: $delivery-loop",
+        "Outcome state: DONE",
+        "Publication state: LOCAL_ONLY",
+        "Repository base, HEAD or working-tree fingerprint, and dirty-state scope: fingerprint=working-tree",
+        "Native Goal identity/state and configured tracker item/state: none",
+        "Restart state: ABSENT",
+        "Outstanding workflow-run cleanup: none",
+        "Authority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none",
+        "Evidence observed: none",
+        "Explicit non-proofs: none",
+        "Review fixed point and Standards / Spec disposition: none",
+        "Open unknowns and blockers with owners: none",
+        "Durable CONTEXT / ADR / research references: none",
+        "Next bounded owner and action: none",
+        "",
+      ].join("\n"),
+    );
+    const divergent = invoke(installedCli, ["state", "check", target], root);
+    assert.equal(divergent.status, 1, divergent.stderr);
+    assert.ok(JSON.parse(divergent.stdout).errors.some((error) => error.rule === "invalid-outcome-state"));
+
     fs.writeFileSync(path.join(target, ".krn", "runs", ".gitignore"), "operator-owned\n");
     const beforeCollision = fs.readFileSync(path.join(target, "AGENTS.md"), "utf8");
     const collisionFileBefore = fs.readFileSync(path.join(target, ".krn", "runs", ".gitignore"), "utf8");

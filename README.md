@@ -122,8 +122,9 @@ krn-codex install apply --source /absolute/path/to/clean/krn-codex-skills --yes
 krn-codex doctor
 ```
 
-`krn-codex state check` validates a repository's outcome capsule, restart path,
-and run cleanup obligations; `$delivery-loop` runs it at every boundary.
+`krn-codex state check` structurally validates a repository's file-backed
+outcome capsule, restart path, and run cleanup obligations; `$delivery-loop`
+runs it at every boundary.
 `krn-codex install plan` is read-only. `install apply` accepts only a clean
 Git checkout at its checked-out commit, validates that exact tree, copies an
 explicit manifest-owned runtime closure to
