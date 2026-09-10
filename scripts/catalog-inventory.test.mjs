@@ -400,6 +400,49 @@ test("profiles and inventory expose only current, global, sanitized capabilities
     /Plugin marketplace 'linked-marketplace' must not be a symlink/,
   );
 
+  const latestAliasCache = join(fixture, "latest-alias-cache");
+  await writePluginVersion(latestAliasCache, "vendor", "sample", "1.0.0", {
+    manifestName: "sample-old",
+    skillNames: ["sample-old"],
+  });
+  await writePluginVersion(latestAliasCache, "vendor", "sample", "2.0.0", {
+    manifestName: "sample",
+    skillNames: ["sample-current"],
+  });
+  await symlink(
+    "2.0.0",
+    join(latestAliasCache, "vendor", "sample", "latest"),
+  );
+  const latestAliasInventory = await inventoryPluginsOnly(latestAliasCache);
+  assert.equal(latestAliasInventory.plugins[0].currentVersion, "2.0.0");
+  assert.deepEqual(latestAliasInventory.plugins[0].versions, ["1.0.0", "2.0.0"]);
+  assert.equal(
+    latestAliasInventory.plugins[0].skillPaths[0],
+    join(
+      latestAliasCache,
+      "vendor",
+      "sample",
+      "2.0.0",
+      "skills",
+      "sample-current",
+      "SKILL.md",
+    ),
+  );
+
+  const escapingLatestCache = join(fixture, "escaping-latest-cache");
+  await writePluginVersion(escapingLatestCache, "vendor", "sample", "1.0.0", {
+    manifestName: "sample",
+    skillNames: [],
+  });
+  await symlink(
+    join(fixture, "external-plugin-version"),
+    join(escapingLatestCache, "vendor", "sample", "latest"),
+  );
+  await assert.rejects(
+    () => inventoryPluginsOnly(escapingLatestCache),
+    /must resolve to a sibling version directory/,
+  );
+
   const skillsLinkCache = join(fixture, "skills-link-cache");
   await writePluginVersion(skillsLinkCache, "vendor", "sample", "1.0.0", {
     manifestName: "sample",

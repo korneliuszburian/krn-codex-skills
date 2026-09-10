@@ -16,7 +16,6 @@ function sandboxEnv(sandbox) {
     KRN_SKILLS_DEST: path.join(sandbox, "skills"),
     KRN_BIN_DEST: path.join(sandbox, "bin"),
     CODEX_HOME: path.join(sandbox, "codex"),
-    CLAUDE_CONFIG_DIR: path.join(sandbox, "claude"),
   };
 }
 
@@ -117,7 +116,6 @@ test("replaces same-repository skill and bin links only with explicit authority"
       ...sandboxEnv(sandbox),
       KRN_REPLACE_GLOBAL_SKILLS: "1",
       KRN_REPLACE_GLOBAL_AGENTS: "1",
-      KRN_REPLACE_GLOBAL_CLAUDE: "1",
       KRN_REPLACE_GLOBAL_HOOKS: "1",
     };
     const skillCollision = path.join(env.KRN_SKILLS_DEST, "delivery-loop");

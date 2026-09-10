@@ -129,8 +129,8 @@ scripts/install.sh install
 ```
 
 The installer links only manifest-owned skills into `~/.agents/skills`, the
-catalog executable into `~/.local/bin`, the global contract into Codex, the
-same semantic core into Claude, and one deterministic `PreToolUse` guard. It
+catalog executable into `~/.local/bin`, the global contract into Codex, and one
+deterministic `PreToolUse` guard. It
 applies path-aware policy to recognized direct `rm`, denies recognized literal
 non-dry-run `git clean`, blocks exact literal quarantine references and patch
 targets, and denies unsupported shell composition only when it contains the
@@ -149,7 +149,7 @@ test -e "$UPSTREAM_SKILLS_ROOTS/skills/engineering/code-review/SKILL.md"
 env KRN_UPSTREAM_SKILLS_ROOTS="$UPSTREAM_SKILLS_ROOTS" \
   KRN_REPLACE_GLOBAL_SKILLS=1 \
   KRN_ARCHIVE_LEGACY=1 KRN_REPLACE_GLOBAL_AGENTS=1 \
-  KRN_REPLACE_GLOBAL_CLAUDE=1 KRN_REPLACE_GLOBAL_HOOKS=1 \
+  KRN_REPLACE_GLOBAL_HOOKS=1 \
   scripts/install.sh install
 ```
 

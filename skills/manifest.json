@@ -1,7 +1,6 @@
 {
   "schema_version": 1,
   "global_agents": "config/AGENTS.md",
-  "global_claude": "config/CLAUDE.md",
   "global_hooks": "config/hooks.json",
   "global_hook_files": [
     {
@@ -179,6 +178,11 @@
     }
   ],
   "legacy_user_paths": [
+    {
+      "path": ".codex/skills/opencode-second-opinion",
+      "replacement": "opencode-second-opinion",
+      "owner": "repository"
+    },
     {
       "path": ".codex/skills/claude-second-opinion-review",
       "replacement": "opencode-second-opinion",

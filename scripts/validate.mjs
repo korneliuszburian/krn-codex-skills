@@ -455,10 +455,6 @@ const globalAgentsPathSafe = safeRelativePath(manifest.global_agents);
 if (!globalAgentsPathSafe) {
   fail("manifest: unsafe global_agents path");
 }
-const globalClaudePathSafe = safeRelativePath(manifest.global_claude);
-if (!globalClaudePathSafe) {
-  fail("manifest: unsafe global_claude path");
-}
 const globalHooksPathSafe = safeRelativePath(manifest.global_hooks);
 if (!globalHooksPathSafe) {
   fail("manifest: unsafe global_hooks path");
@@ -1010,23 +1006,6 @@ if (
 ) {
   fail(`${manifest.global_agents} exceeds 60 lines`);
 }
-if (globalClaudePathSafe) {
-  const globalClaude = path.join(root, manifest.global_claude);
-  if (
-    !fs.lstatSync(globalClaude).isSymbolicLink() ||
-    fs.readlinkSync(globalClaude) !== "AGENTS.md"
-  ) {
-    fail(`${manifest.global_claude} must symlink to the shared AGENTS.md`);
-  }
-}
-const sourceClaude = path.join(root, "CLAUDE.md");
-if (
-  !fs.lstatSync(sourceClaude).isSymbolicLink() ||
-  fs.readlinkSync(sourceClaude) !== "AGENTS.md"
-) {
-  fail("CLAUDE.md must symlink to the source-repository AGENTS.md");
-}
-
 if (errors.length) {
   for (const error of errors) console.error(`ERROR ${error}`);
   process.exit(1);

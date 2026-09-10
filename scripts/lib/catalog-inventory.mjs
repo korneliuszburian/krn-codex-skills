@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
 import { open, readdir, readlink, lstat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -369,21 +369,44 @@ async function inventoryPluginCache(root, records, quarantine) {
         `Plugin cache family '${family}@${marketplace}'`,
       );
       const versions = [];
+      let latestVersion = null;
       for (const versionEntry of await readDirectory(pluginPath, quarantine)) {
         if (versionEntry.name.startsWith(".") || quarantine.matches(versionEntry.name)) {
           continue;
         }
         if (versionEntry.isSymbolicLink()) {
-          throw new Error(
-            `Plugin cache version '${family}@${marketplace}/${versionEntry.name}' must not be a symlink`,
+          if (versionEntry.name !== "latest") {
+            throw new Error(
+              `Plugin cache version '${family}@${marketplace}/${versionEntry.name}' must not be a symlink`,
+            );
+          }
+          const aliasPath = join(pluginPath, versionEntry.name);
+          const target = await safeReadlink(aliasPath, quarantine);
+          const resolvedTarget = resolve(pluginPath, target ?? "");
+          if (dirname(resolvedTarget) !== pluginPath) {
+            throw new Error(
+              `Plugin cache latest alias '${family}@${marketplace}' must resolve to a sibling version directory`,
+            );
+          }
+          await requirePlainDirectory(
+            resolvedTarget,
+            quarantine,
+            `Plugin cache latest target '${family}@${marketplace}/${basename(resolvedTarget)}'`,
           );
+          latestVersion = basename(resolvedTarget);
+          continue;
         }
         if (versionEntry.isDirectory()) versions.push(versionEntry.name);
       }
       versions.sort(versionCollator.compare);
       if (versions.length === 0) continue;
 
-      const currentVersion = versions.at(-1);
+      if (latestVersion !== null && !versions.includes(latestVersion)) {
+        throw new Error(
+          `Plugin cache latest alias '${family}@${marketplace}' must name an inventoried version directory`,
+        );
+      }
+      const currentVersion = latestVersion ?? versions.at(-1);
       const currentPath = join(pluginPath, currentVersion);
       const allSkillPaths = [];
       let skillPaths = [];
