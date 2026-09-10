@@ -95,6 +95,10 @@ hosts own their mechanics and policy.
    removes the entry only after verifying the run absent; a failed cleanup marks
    only that entry `BLOCKED`. `none` means the list is empty.
 
+   At every boundary, and before any `COMPLETE` claim, run
+   `krn-codex state check`; a `divergent` status is a blocker to repair, not a
+   warning.
+
    For an accepted outcome, discharge every triggered specialist cleanup,
    reconcile tracker closure when configured, remove delivery restart state when
    it exists, and complete the native Goal when present as one terminal sequence.
@@ -118,8 +122,7 @@ hosts own their mechanics and policy.
 4. **Require returned proof and commission fixed-point review.** Require the
    focused observer and repository gates earned by changed risk. Then give
    composed upstream `code-review` the accepted outcome or spec, bounded diff,
-   applicable
-   instructions, exact proof and gaps, non-goals, and authority state.
+   applicable instructions, exact proof and gaps, non-goals, and authority state.
 
    A mechanical, low-risk 0-budget slice records its cheapest evidence and
    skips fixed-point review, including inside an active lifecycle envelope, only
@@ -172,4 +175,5 @@ hosts own their mechanics and policy.
    non-proofs, review identity, actual publication state, and either no remaining
    required transition or one blocker with its owner and requested action.
    `COMPLETE` additionally requires terminal Goal and tracker readback wherever
-   they exist; `SUPERSEDED` and `ABANDONED` never imply Goal completion.
+   they exist plus a clean `krn-codex state check`; `SUPERSEDED` and
+   `ABANDONED` never imply Goal completion.

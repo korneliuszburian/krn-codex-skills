@@ -5,6 +5,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { applyInstall, createInstallPlan, inspectInstall } from "./lib/install-release.mjs";
+import { inspectSpineState } from "./lib/state-check.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const usage = `Usage:
@@ -13,7 +14,8 @@ const usage = `Usage:
   krn-codex install check [--json]
   krn-codex doctor [--json]
   krn-codex capability <inventory|usage|profile|plan|apply|check> [...args]
-  krn-codex repo <inspect|apply> [...args]`;
+  krn-codex repo <inspect|apply> [...args]
+  krn-codex state check [PATH] [--json]`;
 
 function fail(message, code = 64) {
   const error = new Error(message);
@@ -54,6 +56,12 @@ try {
     delegate("scripts/catalog.mjs", raw.slice(1));
   } else if (raw[0] === "repo") {
     delegate("skills/engineering/setup-repository-workflow/scripts/init-repository-workflow.mjs", raw.slice(1));
+  } else if (raw[0] === "state") {
+    const { positional, options } = parseOptions(raw.slice(1));
+    if (positional[0] !== "check" || positional.length > 2 || options.source || options.yes) fail(usage);
+    const report = inspectSpineState({ repo: positional[1] ?? process.cwd() });
+    print(report, options.json);
+    if (report.status !== "clean") process.exitCode = 1;
   } else {
   const { positional, options } = parseOptions(raw);
   if (positional[0] === "install") {

@@ -104,6 +104,7 @@ function runtimePaths(root, manifest) {
     "scripts/lib/catalog-profile.mjs",
     "scripts/lib/catalog-usage.mjs",
     "scripts/lib/install-release.mjs",
+    "scripts/lib/state-check.mjs",
   ]);
   for (const candidate of [manifest.global_agents, manifest.global_hooks]) files.add(candidate);
   for (const hook of manifest.global_hook_files) files.add(hook.path);
