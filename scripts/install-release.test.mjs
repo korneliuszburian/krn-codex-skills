@@ -211,6 +211,44 @@ test("foreign current bindings and source-adjacent links fail closed", () => {
   }
 });
 
+test("an independent same-origin checkout and arbitrary link remain foreign", () => {
+  const { root, source } = sourceFixture();
+  try {
+    const foreign = path.join(root, "foreign");
+    fs.cpSync(source, foreign, { recursive: true });
+    fs.rmSync(path.join(foreign, ".git"), { recursive: true, force: true });
+    execFileSync("git", ["init", "--quiet", foreign]);
+    execFileSync("git", ["-C", foreign, "remote", "add", "origin", "https://example.invalid/krn.git"]);
+    execFileSync("git", ["-C", source, "remote", "add", "origin", "https://example.invalid/krn.git"]);
+    const target = path.join(root, "skills", "delivery-loop");
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.symlinkSync(path.join(foreign, "skills", "engineering", "delivery-loop"), target);
+    const result = invoke(root, ["install", "apply", "--source", source, "--yes"]);
+    assert.equal(result.status, 73);
+    assert.equal(fs.realpathSync(target), path.join(foreign, "skills", "engineering", "delivery-loop"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("doctor calls arbitrary external links foreign and rejects unknown options", () => {
+  const { root, source } = sourceFixture();
+  try {
+    apply(root, source);
+    const target = path.join(root, "skills", "delivery-loop");
+    const foreign = path.join(root, "foreign");
+    fs.mkdirSync(foreign);
+    fs.unlinkSync(target);
+    fs.symlinkSync(foreign, target);
+    const doctor = JSON.parse(invoke(root, ["doctor", "--json"]).stdout);
+    assert.equal(doctor.filesystem.status, "foreign_collision");
+    const typo = invoke(root, ["install", "apply", "--soruce", source, "--yes"]);
+    assert.equal(typo.status, 64);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a global instruction override blocks apply", () => {
   const { root, source } = sourceFixture();
   try {

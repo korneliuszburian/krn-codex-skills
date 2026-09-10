@@ -233,20 +233,15 @@ function isPriorReleasePath(plan, item, linked) {
   return segments.length > 1 && segments.slice(1).join(path.sep) === item.relative;
 }
 
-function isTrustedLegacySource(plan, item, linked) {
-  const root = git(path.dirname(linked), ["rev-parse", "--show-toplevel"]);
-  if (!root || path.relative(root, linked) !== item.relative) return false;
-  const expectedRemote = git(plan.source, ["remote", "get-url", "origin"]);
-  return Boolean(expectedRemote && expectedRemote === git(root, ["remote", "get-url", "origin"]));
-}
-
 function preflightCurrent(plan) {
   const stat = fs.lstatSync(plan.current, { throwIfNoEntry: false });
   if (!stat) return;
   const linked = resolvedLink(plan.current);
-  if (!linked || !isInside(path.join(plan.releaseRoot, "releases"), linked)) {
+  const releases = path.join(plan.releaseRoot, "releases");
+  if (!linked || path.dirname(linked) !== releases) {
     fail(`refusing foreign current binding: ${plan.current}`, EXIT_COLLISION);
   }
+  verifyRelease(linked, path.basename(linked));
 }
 
 function preflightTargets(plan) {
@@ -261,7 +256,7 @@ function preflightTargets(plan) {
     const linked = resolvedLink(item.target);
     const expectedSource = path.join(plan.source, item.relative);
     const expectedCurrent = resolvedLink(stableTarget(plan, item));
-    if (linked && (linked === expectedSource || linked === expectedCurrent || isPriorReleasePath(plan, item, linked) || isTrustedLegacySource(plan, item, linked))) continue;
+    if (linked && (linked === expectedSource || linked === expectedCurrent || isPriorReleasePath(plan, item, linked))) continue;
     fail(`refusing foreign managed destination collision: ${item.target}`, EXIT_COLLISION);
   }
 }
@@ -296,6 +291,7 @@ function reconcileTargets(plan) {
         if (textual.includes(`${path.sep}current${path.sep}`)) continue;
       }
       const entry = { target: item.target, backup: null };
+      changed.push(entry);
       if (fs.lstatSync(item.target, { throwIfNoEntry: false })) {
         fs.mkdirSync(backup, { recursive: true });
         entry.backup = path.join(backup, item.label);
@@ -303,7 +299,6 @@ function reconcileTargets(plan) {
         usedBackup = true;
       }
       fs.symlinkSync(expected, item.target);
-      changed.push(entry);
       if (process.env.KRN_TEST_FAIL_DURING_RECONCILE === "1" && changed.length === 1) {
         throw new Error("injected reconciliation failure");
       }
@@ -364,7 +359,10 @@ function itemStatus(plan, item) {
     const text = fs.readlinkSync(item.target);
     return { target: item.target, status: text.includes(`${path.sep}current${path.sep}`) ? "filesystem_installed" : "stable_link_bypasses_current" };
   }
-  return { target: item.target, status: "legacy_mutable_source" };
+  if (linked === path.join(plan.source, item.relative)) {
+    return { target: item.target, status: "legacy_mutable_source" };
+  }
+  return { target: item.target, status: "foreign_collision" };
 }
 
 export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex") } = {}) {

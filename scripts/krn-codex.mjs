@@ -31,7 +31,8 @@ function parseOptions(args) {
     else if (arg === "--source") {
       options.source = args[++index];
       if (!options.source) fail("--source requires REF or PATH");
-    } else positional.push(arg);
+    } else if (arg.startsWith("--")) fail(`unknown option: ${arg}`);
+    else positional.push(arg);
   }
   return { positional, options };
 }
@@ -56,6 +57,7 @@ try {
   } else {
   const { positional, options } = parseOptions(raw);
   if (positional[0] === "install") {
+    if (positional.length !== 2) fail(usage);
     const command = positional[1];
     if (command === "check") {
       const report = inspectInstall();
@@ -72,6 +74,7 @@ try {
       }
     } else fail(usage);
   } else if (positional[0] === "doctor") {
+    if (positional.length !== 1 || options.source || options.yes) fail(usage);
     print(inspectInstall(), options.json);
   } else {
     print(usage, false);

@@ -11,7 +11,7 @@ checkout remains an authoring surface; it is never a stable discovery target.
 | source-only frontend pack and incumbent `cube-css` | frontend decision / existing owner | leave untouched and absent from every release |
 | vendor, plugin-cache, and upstream skills | their own owner | leave untouched |
 | foreign stable destination | operator | refuse without changing it |
-| old KRN link into a source checkout or prior KRN release | KRN installer | move the link to a timestamped backup, then replace it through `current` |
+| old KRN link into the selected source checkout or a prior KRN release | KRN installer | move the link to a timestamped backup, then replace it through `current` |
 
 ## Installation invariants
 
@@ -27,7 +27,7 @@ checkout remains an authoring surface; it is never a stable discovery target.
    `$CODEX_HOME/hooks.json`, and `$CODEX_HOME/hooks/` point through `current`.
    They never point directly to an active checkout.
 6. A foreign file, directory, or link fails closed. The installer can replace
-   only a prior KRN link into a source checkout or release, preserving it under
+   only a prior link into the selected source checkout or a release, preserving it under
    `$CODEX_HOME/krn/migration-backups/`.
 7. Source-only packs, legacy names outside manifest ownership, vendor skills,
    and plugin caches are not inferred or cleaned up by installation.
