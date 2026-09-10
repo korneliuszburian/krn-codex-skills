@@ -1,8 +1,8 @@
 # Orchestration and compact context
 
-Status: accepted synthesis, refreshed 2026-09-10. Consumer: maintainer,
-`$delivery-loop`, and `$source-to-decision`. Rework this page in place when a
-falsifier fires; do not append a parallel “v2” report.
+Status: `accepted`. Consumer: maintainer, `$delivery-loop`, and
+`$source-to-decision`. Owner: maintainer. Verified: 2026-09-10. Rework this page
+in place when a falsifier fires; do not append a parallel “v2” report.
 
 ## Decision question
 
@@ -45,7 +45,12 @@ and a falsifier; otherwise it remains a bounded experiment or is rejected.
 | Lossy compaction or proactive memory actions | lab-test | one bounded capsule rewrite/readback experiment; a dropped field causing a wrong action that readback cannot repair fails it | no generic summarizer, embeddings, graph, or episodic memory service |
 | Generator/evaluator loop for frontend taste and browser behavior | lab-test, separate branch | one real frontend outcome with a solo baseline, evaluator run, cost, and human acceptance; no material lift at acceptable cost rejects it | never globalize a multi-hour evaluator loop or turn taste into a universal score |
 | Issue tracker as orchestration control plane or Beads-like backend | defer | only a measured queue/concurrency bottleneck with explicit remote-write authority can reopen it | native Goal, tracker, and capsule stay distinct; no new task database now |
-| Mechanical golden-principle or doc-gardening checks | lab-test only after recurrence | maintainer records a repeated stale/structural pattern and a check that catches it earlier than review | no CI machinery for hypothetical freshness |
+| Mechanical checks for already-declared durable-page fields | adopt | maintainer and `$source-to-decision` promotion; removing a required header field or index row must fail `npm run validate` | no freshness scoring, prose-style linting, or checks beyond fields that already have a reader |
+
+The durable-page field check was promoted to `adopt` on 2026-09-10 after two
+independent audits recorded six header shapes across the four topic pages and a
+dangling, unlabeled `lab-test` disposition; the check asserts only fields a
+named reader already consumes.
 
 The frontend result is especially important: Anthropic reports that skeptical
 evaluation improved originality and last-mile behavior, but also reports rising
@@ -112,25 +117,9 @@ flowchart LR
   FRESH --> CAPSULE
 ```
 
-`delivery-loop` owns the exact capsule ABI:
-
-```text
-Outcome and observable acceptance
-Current workflow owner and sole writer
-Outcome state: ACTIVE | BLOCKED | DEFERRED | NEEDS_REVIEW | COMPLETE | SUPERSEDED | ABANDONED
-Publication state: NOT_REQUESTED | NOT_AUTHORIZED | LOCAL_ONLY | PUBLISH_PENDING | PR_OPEN | MERGE_READY | MERGED | DEPLOYED
-Repository base, HEAD or working-tree fingerprint, and dirty-state scope
-Native Goal identity/state and configured tracker item/state
-Restart state: ABSENT | <semantic path owned by the current Goal>
-Outstanding workflow-run cleanup: none | [<semantic pointer; workflow; sole consumer; trigger; ACTIVE | CLEANUP_PENDING | BLOCKED>, ...]
-Separate authority for writes, tracker/issue mutation, commit, push, PR, merge, and deployment/install
-Evidence observed
-Explicit non-proofs
-Review fixed point and Standards / Spec disposition
-Open unknowns and blockers with owners
-Durable CONTEXT / ADR / research references
-Next bounded owner and action
-```
+`$delivery-loop` owns the exact capsule ABI; that skill is the only
+authoritative field list. This page records only how the capsule is compiled,
+where it may live, and who may write it.
 
 For a multi-session outcome, the accepted request or native Goal owns current
 thread intent and authority. A configured tracker, when present, owns durable

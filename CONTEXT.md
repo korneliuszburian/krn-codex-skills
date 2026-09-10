@@ -60,14 +60,10 @@ _Avoid_: global project standard, universal stack
 accepted outcome, canonical language, decisions, evidence, unknowns, and links.
 It excludes transcript history and copied source material.
 
-**Outcome capsule** — a living restart record containing outcome and acceptance,
-sole writer, separate outcome and publication states, repository fixed point and
-dirty scope, Goal and optional configured-tracker identity, restart-run identity,
-outstanding cleanup obligations for specialist runs, separate authorities,
-evidence and non-proofs, review disposition, owned unknowns, durable references,
-and the next owner. It is updated in place at owner or context boundaries;
-`$delivery-loop` owns its
-exact field ABI.
+**Outcome capsule** — the living restart record for one accepted outcome,
+rewritten in place at owner or context boundaries. `$delivery-loop` alone owns
+its field ABI, path, and lifecycle; other artifacts link to it instead of
+restating its fields.
 
 **Working run** — private ignored state at
 `.krn/runs/<workflow>/<run-id>/`. It may carry that workflow's prompt, manifest,

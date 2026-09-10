@@ -1,9 +1,9 @@
 # Unslop port to Codex
 
-Status: `lab-test`, 2026-08-24. Consumer: `$source-to-decision` and the
-maintainer's publication loop. This page records a bounded prose-quality
-mechanism; it does not claim that a rewrite is more truthful or that every
-technical response should be made conversational.
+Status: `lab-test`. Consumer: `$source-to-decision` and the maintainer's
+publication loop. Owner: maintainer. Verified: 2026-08-24. This page records a
+bounded prose-quality mechanism; it does not claim that a rewrite is more
+truthful or that every technical response should be made conversational.
 
 ## Decision question
 

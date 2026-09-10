@@ -4,6 +4,9 @@ This directory is compiled decision memory. It is not a notebook, transcript
 archive, or chronological log. Each topic page is rewritten as evidence changes;
 Git history records the sequence.
 
+Status: `accepted`. Consumer: maintainer and `$source-to-decision` promotion.
+Owner: maintainer. Verified: 2026-09-10.
+
 ## Curation contract
 
 1. Start with a named local decision and future consumer.
@@ -16,6 +19,34 @@ Git history records the sequence.
 6. Keep raw corpora, captions, prompts, model output, caches, and working ledgers
    outside Git. Promote only the distilled mechanism and provenance.
 7. Delete a topic when it has no current consumer; its history remains in Git.
+
+## Durable page contract
+
+Every durable page carries one header ABI so a fresh reader can determine its
+state without reading the body:
+
+```text
+Status: `<accepted | lab-test | defer | reject>`. Consumer: <reader>. Owner: <writer>. Verified: <YYYY-MM-DD>.
+```
+
+- The ABI sits in the page header, before the first `##` section; a topic page
+  may add a short qualifier after the status enum.
+- `Consumer` names the workflow or operator that reads the page; `Owner` names
+  the writer that rewrites it; `Verified` is the last evidence check.
+- `accepted` is the page state of an adopted decision; decision dispositions
+  keep using `adopt`, `reject`, `lab-test`, and `defer`.
+- Each page carries its reopen rule or a `Supersession` line at its end. A page
+  without one inherits the `Reopen when` cell of its row below.
+- This index is a derived cache: the page is the source, and a page change
+  updates its row here in the same change.
+- Owned elsewhere: `test/bootstrap-fixture/project/LOCAL.md` stays foreign and
+  byte-identical; ADR and `CONTEXT.md` formats follow the composed upstream
+  `domain-modeling` owner; skill and reference shapes follow `validate.mjs` and
+  the upstream `writing-for-agents` owner.
+
+Consumer: maintainer and `$source-to-decision` promotion. Falsifier: a durable
+page whose state is not readable from its header, or a row that disagrees with
+its page, survives one normal review pass.
 
 ## Source reuse and ephemeral research passes
 

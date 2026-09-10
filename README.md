@@ -191,13 +191,15 @@ the operator entrypoints; it does not duplicate the execution policy.
 ## Repository map
 
 ```text
-AGENTS.md       source-repository editing contract
-config/         installed global contract and hook configuration
-skills/         canonical workflow owners and direct resources
-test/           the retained installed-release bootstrap smoke fixture
-scripts/        deterministic validation, installation, hooks, and catalog
-CONTEXT.md      compact current vocabulary and knowledge index
-docs/research/  living source-backed synthesis
-docs/adr/       earned durable decisions
-.krn/runs/      ignored resumable working state
+AGENTS.md             source-repository editing contract
+config/               installed global contract and hook configuration
+skills/               canonical workflow owners and direct resources
+test/                 the retained installed-release bootstrap smoke fixture
+scripts/              deterministic validation, installation, hooks, and catalog
+CONTEXT.md            compact current vocabulary and knowledge index
+docs/research/        living source-backed synthesis
+docs/adr/             earned durable decisions
+docs/capabilities.md  global capability profiles and evidence states
+docs/migration.md     installation ownership, retirement, and rollback
+.krn/runs/            ignored resumable working state
 ```

@@ -1,9 +1,9 @@
 # Unlazy port to Codex
 
-Status: `lab-test`, 2026-08-24. Consumer: `$delivery-loop` and long-running
-`$source-to-decision` runs. This page records the mechanism and the bounded
-Codex port. It does not claim that the external skill is a sandbox or that the
-pilot proves better model quality.
+Status: `lab-test`. Consumer: `$delivery-loop` and long-running
+`$source-to-decision` runs. Owner: maintainer. Verified: 2026-08-24. This page
+records the mechanism and the bounded Codex port. It does not claim that the
+external skill is a sandbox or that the pilot proves better model quality.
 
 ## Source and question
 

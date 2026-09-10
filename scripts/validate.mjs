@@ -709,6 +709,33 @@ for (const markdown of repositoryMarkdown) {
   validateSemanticXml(markdown);
 }
 
+{
+  const assertDurableHeader = (file) => {
+    const header = read(file).split("\n## ")[0];
+    if (!/^Status: `(accepted|lab-test|defer|reject)`/m.test(header)) {
+      fail(`${relative(file)}: header needs a canonical Status enum (accepted|lab-test|defer|reject)`);
+    }
+    if (!/Consumer: /.test(header)) fail(`${relative(file)}: header needs Consumer:`);
+    if (!/Owner: /.test(header)) fail(`${relative(file)}: header needs Owner:`);
+    if (!/Verified: \d{4}-\d{2}-\d{2}/.test(header)) {
+      fail(`${relative(file)}: header needs Verified: YYYY-MM-DD`);
+    }
+  };
+  const researchDirectory = path.join(root, "docs", "research");
+  const researchIndexText = read(path.join(researchDirectory, "README.md"));
+  const topicsSection = (researchIndexText.split("\n## Topics\n")[1] ?? "").split("\n## ")[0];
+  for (const entry of fs.readdirSync(researchDirectory, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith(".md") || entry.name === "README.md") continue;
+    const topic = path.join(researchDirectory, entry.name);
+    assertDurableHeader(topic);
+    if (!topicsSection.includes(`](${entry.name})`)) {
+      fail(`${relative(topic)}: topic is missing from docs/research/README.md Topics`);
+    }
+  }
+  assertDurableHeader(path.join(root, "docs", "capabilities.md"));
+  assertDurableHeader(path.join(root, "docs", "migration.md"));
+}
+
 if (lineCount(path.join(root, "AGENTS.md")) > 90) {
   fail("AGENTS.md exceeds 90 lines");
 }

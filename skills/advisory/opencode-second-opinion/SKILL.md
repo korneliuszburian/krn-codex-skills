@@ -116,6 +116,10 @@ family than the initiating agent. The runner always selects the configured
    repeat the same checker. Exit `64` means malformed run state. Do not start a
    second opinion in the same run directory.
 
+   **Done when:** the checker returns `completed` or `failed` for the owned run
+   directory and `opinion.md` or `failure.txt` has been read; exit `64` is a
+   blocker, not completion.
+
 5. **Verify and close.** Treat every claim as a hypothesis. Inspect each cited
    path and line locally, classify it as `accept_and_fix`, `evidence_gap`,
    `reject_with_evidence`, `follow_up`, or `human_decision`, and record that

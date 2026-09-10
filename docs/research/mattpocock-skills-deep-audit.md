@@ -1,6 +1,7 @@
 # Deep audit of the current Matt Pocock skills repository
 
-Status: source-backed audit, verified 2026-09-10. This report answers a
+Status: `accepted`. Consumer: KRN's repository owner for upstream refresh and
+skill topology. Owner: maintainer. Verified: 2026-09-10. This report answers a
 different question from a release diff: what is in the current upstream tree,
 what is promoted versus experimental, and what (if anything) KRN should
 consume.
@@ -11,8 +12,7 @@ consume.
 skill, routing contract, or transferable mechanism that KRN should add to its
 Codex-only global set or its future frontend work?
 
-**Active consumer:** KRN's repository owner for upstream refresh and skill
-topology. **Disposition for this audit:** do not change the upstream pin or
+**Disposition for this audit:** do not change the upstream pin or
 install any additional upstream path yet. The promoted tree is already the
 configured composition; the remaining candidates need local collision and
 consumer decisions rather than blind adoption.
