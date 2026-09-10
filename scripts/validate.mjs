@@ -735,6 +735,11 @@ for (const markdown of repositoryMarkdown) {
   }
   assertDurableHeader(path.join(root, "docs", "capabilities.md"));
   assertDurableHeader(path.join(root, "docs", "migration.md"));
+  for (const target of ["../capabilities.md", "../migration.md"]) {
+    if (!topicsSection.includes(`](${target})`)) {
+      fail(`docs/research/README.md Topics is missing ${target}`);
+    }
+  }
 }
 
 {

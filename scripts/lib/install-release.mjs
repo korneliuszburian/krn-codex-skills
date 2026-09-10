@@ -140,7 +140,7 @@ export function createInstallPlan({ source, cwd, codexHome = process.env.CODEX_H
   };
 }
 
-function digestTree(root) {
+export function digestTree(root) {
   const hash = crypto.createHash("sha256");
   const entries = [];
   function visit(relative = "") {

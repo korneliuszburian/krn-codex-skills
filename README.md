@@ -150,8 +150,11 @@ you need the distinction between an installed filesystem snapshot, a broken or
 foreign link, a legacy mutable source link, and unknown/stale session loading.
 Start a fresh Codex session after installation. Discovery is session-scoped.
 `setup-repository-workflow`, `opencode-second-opinion`, `unlazy`, and `unslop`
-require an explicit `$skill-name` attachment; the composed upstream
-`wayfinder` is explicit-only in that set.
+require an explicit `$skill-name` attachment. Descriptions route the task;
+manifest invocation mode decides auto-attachment, and many composed upstream
+owners are explicit-only — including `ask-matt`, `implement`,
+`improve-codebase-architecture`, `to-spec`, `to-tickets`, `triage`, `handoff`,
+and `wayfinder`.
 
 For a disposable end-to-end proof, run `npm run test:bootstrap`; it installs a
 temporary release and drives the linked CLI against

@@ -181,7 +181,7 @@ function domainSummary(domain) {
 
 function deliverySummary(delivery) {
   if (delivery === "strict") {
-    return "Use one outcome branch and pull request, preferring squash merges so the PR title remains the maintained conventional subject; run focused proof before publication, honor required host checks, and keep commit, push, merge, and deployment as separate authority.";
+    return "Use one outcome branch and pull request, preferring squash merges so the maintained subject is the PR title; run focused proof before publication, honor required host checks, and keep commit, push, merge, and deployment as separate authority.";
   }
   return "Work on one accepted outcome at a time and run focused proof before local completion. Branch, PR, CI, merge, and deployment follow explicit repository or host policy.";
 }

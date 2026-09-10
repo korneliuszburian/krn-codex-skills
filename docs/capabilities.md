@@ -32,7 +32,7 @@ reads its files.
 
 | Profile | Default use |
 |---|---|
-| `minimal` | KRN engineering only, with optional surfaces off |
+| `minimal` | KRN engineering plus the Wakatime baseline, with other optional surfaces off |
 | `lean` | daily KRN engineering with GitHub and official OpenAI docs |
 | `engineering-full` | lean engineering plus Playwright CLI, Figma MCP, CUBE CSS and GSAP |
 | `design` | lean engineering plus Figma, Canva, and GSAP |

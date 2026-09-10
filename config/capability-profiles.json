@@ -22,7 +22,7 @@
   },
   "profiles": {
     "minimal": {
-      "description": "Keep the global engineering core and built-in operational skills; turn every optional integration off.",
+      "description": "Keep the global engineering core, built-in operational skills, and the Wakatime baseline; turn every other optional integration off.",
       "plugins": {
         "enable": [
           "codex-cli-wakatime@wakatime"

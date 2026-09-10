@@ -24,7 +24,7 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
 1. Run `git status --short --branch` before editing; preserve unrelated work.
 2. Read the affected `SKILL.md` and direct references; load research only when
    the decision depends on it. Consult `CONTEXT.md` when vocabulary may move.
-3. Do not add status files, progress logs, or per-skill mirrors; durable
+3. Do not add per-skill mirrors; durable
    knowledge keeps one owner per artifact, defined by `CONTEXT.md` and the
    research curation contract.
 4. Cross into another checkout through `$target-repo-work`; manage the installed

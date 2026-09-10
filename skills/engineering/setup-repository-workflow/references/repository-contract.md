@@ -61,8 +61,9 @@ required prose snapshots, mandatory documentation churn, and CI jobs that only
 test their own fixture are not evidence that repository delivery works.
 
 When the repository explicitly needs review-gated, multi-commit delivery, a
-strict local profile may require one outcome branch, cohesive Conventional
-Commits, one PR, fresh required CI, linear history, and squash merge. Keep the
+strict local profile may require one outcome branch, one PR, fresh required CI,
+linear history, and squash merge; the installed global contract owns the
+commit-subject format. Keep the
 PR number on the durable squash commit instead of forcing it into every inner
 commit. CODEOWNERS and automated review are advisory unless the host ruleset
 requires an approval, resolved thread, or named review status.

@@ -27,6 +27,10 @@ jobs:
         run: npm run test:bootstrap
       - name: Test hooks
         run: npm run test:hooks
+      - name: Test spine state gate
+        run: npm run test:state
+      - name: Test skill export
+        run: npm run test:skills
       - name: Check shell and diff hygiene
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
