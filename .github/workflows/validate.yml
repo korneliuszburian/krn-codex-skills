@@ -35,6 +35,8 @@ jobs:
         run: npm run test:catalog
       - name: Test installer
         run: npm run test:install
+      - name: Test installed-release bootstrap
+        run: npm run test:bootstrap
       - name: Test hooks
         run: npm run test:hooks
       - name: Test repository setup

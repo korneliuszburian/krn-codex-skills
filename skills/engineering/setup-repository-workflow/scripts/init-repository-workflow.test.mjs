@@ -132,6 +132,14 @@ test("inspect reports repository signals without writing", () => {
   assert.equal(readFileSync(join(root, "AGENTS.md"), "utf8"), before);
 });
 
+test("inspect redacts credentials embedded in an origin URL", () => {
+  const root = fixture();
+  execFileSync("git", ["-C", root, "remote", "add", "origin", "https://user:token@example.invalid/org/repo.git"]);
+  const result = JSON.parse(execFileSync(process.execPath, [script, "inspect", "--root", root], { encoding: "utf8" }));
+  assert.equal(result.remote, "https://example.invalid/org/repo.git");
+  assert.doesNotMatch(JSON.stringify(result), /token/);
+});
+
 test("apply rejects an unowned managed file before changing instructions", () => {
   const root = fixture();
   mkdirSync(join(root, ".krn", "runs"), { recursive: true });

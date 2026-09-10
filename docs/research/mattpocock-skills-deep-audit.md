@@ -101,11 +101,11 @@ contract.
 ## Candidate dispositions for KRN
 
 | Candidate | Disposition | Local implication and falsifier |
-|---|---|---|
+|---|---|---|---|
 | `implement-spec` | **reject for now** | It is a second implementation owner beside upstream `implement` plus KRN's lifecycle and slice owners. Reopen only if a concrete spec-to-code seam cannot be served by that composition and a collision experiment shows a unique stopping condition. |
 | `loop-me` | **defer** | It appears to grill a workflow author about workflows, but KRN already has `grilling`, `grill-with-docs`, and delivery-loop. A named consumer and non-duplicating stop condition are missing. Reopen with a routing case that current owners cannot answer. |
-| `retro` | **lab-test** | A retrospective may improve a completed KRN run, but no current global owner consumes it. Run one bounded post-run comparison only if a real run produces a decision to improve; do not install it as a default phase. |
-| `setup-ts-deep-modules` | **lab-test** | It could be a project-local dependency-cruiser adapter, not a universal TypeScript workflow. Test it against one target repository and the existing `typescript-engineering` boundary; reject if it mutates project policy without an explicit local owner. |
+| `retro` | **defer** | A retrospective may improve a completed KRN run, but no current global owner consumes it. Reopen only with a preregistered post-run comparison naming a real run, baseline, grader, and stop rule; do not install it as a default phase. |
+| `setup-ts-deep-modules` | **defer** | It could be a project-local dependency-cruiser adapter, not a universal TypeScript workflow. Reopen only with a preregistered target repository, package boundary, baseline, and acceptance signal. |
 | `writing-fragments` / `writing-shape` / `writing-beats` | **defer** | These are staged writing modes, not engineering or frontend owners. They become relevant only with a named authoring consumer and a routing case that does not duplicate `teach`, `writing-for-agents`, or `grilling`. |
 | `claude-handoff` | **reject** | It is tied to another harness's handoff contract and conflicts with KRN's Codex-only installation boundary. Reopen only for a separately owned adapter, never by copying the upstream procedure into the global set. |
 | `git-guardrails-claude-code` | **reject** | It is a host-specific guardrail package, while KRN owns its own deterministic hook and global safety contract. A second hook would create policy collision. |
@@ -118,22 +118,50 @@ concrete: a future adoption must first prove a missing consumer and a distinct
 stopping condition through routing cases, then pass the install and ownership
 boundaries.
 
+## Open upstream proposals worth tracking
+
+The current default branch is not the whole upstream signal. Open issues and
+contributor branches are useful candidate evidence, but they are not promoted
+interfaces and must not be installed from a fork. The following proposals have
+the strongest possible KRN relevance and were checked against their official
+issue text on 2026-09-10:
+
+| Proposal | Observed state (2026-09-10) | Evidence and mechanism | KRN disposition |
+|---|---|---|
+| [`to-pr` + `resolving-review-comments`](https://github.com/mattpocock/skills/issues/938) | Open issue with a contributor branch; not present in `main`. | Proposed bridge from a committed branch to a reviewable PR, then a loop for fetching, sorting, fixing, replying to, and resolving review threads. | **defer** until a preregistered publication-boundary experiment names a real PR authority. KRN's `delivery-loop` and `code-review` stop before PR/merge authority. |
+| [`skeptic`](https://github.com/mattpocock/skills/issues/566) | Open proposal branch; not promoted. | Proposed blind refutation pass for review findings, followed by a bounded attack on the fix. | **defer**. KRN already has independent second-opinion transport and fixed-point review. |
+| [`to-spec` current-state boundary](https://github.com/mattpocock/skills/issues/843) | Open issue; no merged `skills/**` change at current head. | Proposed separation of retained existing behaviour, modified behaviour, new behaviour, and invariants that must remain unchanged. | **adopt as a local evaluation invariant**, not as a forked upstream skill. Falsifier: a spec silently redesigns an existing surface. |
+| [`to-spec` executable cross-boundary contracts](https://github.com/mattpocock/skills/issues/660) | Open issue; no merged `skills/**` change at current head. | Proposed executable contracts for frontend/backend field names, nullability, enums, errors, pagination, and versions. | **defer** until a preregistered target-repo experiment names a real cross-boundary seam. It is not a global KRN contract format. |
+| [`implement-spec` run findings](https://github.com/mattpocock/skills/issues/1010) and [serialised shared surfaces](https://github.com/mattpocock/skills/issues/991) | Open run reports against the existing `in-progress` file. | Reports propose tip merges, serialising shared surfaces, named branches, and clearer text. | **defer**. Use the reports as falsifiers for `implement`/`to-tickets`, not permission for another implementation owner. |
+| [`setup-ts-deep-modules`](https://github.com/mattpocock/skills/blob/6654f6b60cd9d5be8b54c6fafe44346dabeb3b76/skills/in-progress/setup-ts-deep-modules/SKILL.md) | `in-progress` file exists at the pinned tree; not promoted. | Target-repository adapter that installs dependency-cruiser rules so package internals stay behind entry points. | **defer** until a preregistered target-repo experiment names a package boundary and acceptance signal. It may not become global TypeScript policy. |
+| [`loop-me`](https://github.com/mattpocock/skills/blob/6654f6b60cd9d5be8b54c6fafe44346dabeb3b76/skills/in-progress/loop-me/SKILL.md) | `in-progress` file exists at the pinned tree; not promoted. | User-invoked loop that grills a workflow author into a multi-session workflow specification; it is closer to `to-spec`/`wayfinder` than ordinary `grilling`. | **defer** until a routing case proves current owners cannot finish. |
+| [`skill-router`](https://github.com/mattpocock/skills/issues/252) | Open community request; no merged skill. | Request for another router over the skill set. | **reject** for KRN: `ask-matt` and the local owner/companion boundary already provide the router seam. |
+| [`review-docs`](https://github.com/mattpocock/skills/issues/307) | Open community request; no merged skill. | Proposed repository-wide documentation/code alignment reviewer. | **defer**. KRN has `writing-for-agents`, domain modeling, validation, and fixed code review. |
+| [`write-commit`](https://github.com/mattpocock/skills/issues/235) | Open community request; no merged skill. | Proposed dedicated commit-authoring workflow. | **reject** as a global owner: repository convention and delivery-loop publication state already own this. |
+| [`codehealth-mcp`](https://github.com/mattpocock/skills/issues/260) | Open community request; no merged skill. | Proposed external CodeScene MCP integration. | **reject** for the global set: no KRN-wide consumer or trust contract. |
+
+These proposals explain why a simple main-branch inventory is not enough for
+roadmap planning. They do **not** establish that the proposals are accepted by
+Matt, merged, safe, or better than KRN's current owners. Their state must be
+rechecked before any upstream refresh or local implementation.
+
 ## Consequence for KRN's next work
 
 1. Keep the upstream pin at `6654f6b` until a refresh changes a `skills/**`,
-   routing, invocation, or ownership contract. The current head does not.
+   routing, invocation, or ownership contract. The current head does not; open
+   proposals are not a valid reason to move the pin.
 2. Treat the 25 promoted upstream skills as the source of truth; audit KRN's
    local composition and references for drift instead of forking their text.
 3. Keep all 12 experimental/misc paths out of the release. Evaluate one only
    when a real KRN consumer, a collision case, and a falsifier exist.
-4. For frontend development, upstream supplies general mechanisms such as
-   prototyping, research, architecture, and writing-for-agents; it does not
-   supply a current frontend/CUBE skill. The frontend package therefore needs
-   its own original, source-backed decisions and evaluation protocol.
+4. Treat the strongest transferable mechanisms as evaluation invariants: an
+   explicit existing-versus-new spec boundary, a single publication owner,
+   blind falsification only when a real review failure exists, and target-local
+   dependency boundaries. Do not turn them into aliases or mandatory phases.
 
 ## Limits and reopen rules
 
-This is a point-in-time public-tree audit. It does not inspect unpublished
+This is a point-in-time public-tree and issue audit. It does not inspect unpublished
 branches, private material, runtime quality, or skill advantage. Re-run it when
 the upstream default branch changes, when KRN considers moving its pin, or when
 a concrete local task exposes a routing gap. Any resulting change must record

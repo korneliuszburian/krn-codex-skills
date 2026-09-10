@@ -8,6 +8,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [README.md](README.md) — operator entrypoint, main workflow, and skill catalog.
 - [docs/research/README.md](docs/research/README.md) — research index and curation contract.
 - [docs/research/orchestration.md](docs/research/orchestration.md) — current lifecycle spine, admission matrix, and falsifiers.
+- [docs/research/harmonic-harness.md](docs/research/harmonic-harness.md) — complete skill map and the adopted context/evidence/authority architecture, with frontend and Beads lab boundaries.
 - [docs/research/skills-3arm-lab.md](docs/research/skills-3arm-lab.md) — three-arm skills lab spec and verdict: no measured advantage of forked skills over upstream or no-skill; the shared set composes upstream.
 - [docs/research/frontend-authoring.md](docs/research/frontend-authoring.md) — source-backed frontend mechanism dispositions after the P5 `STOP_SAFETY` result; constrains P7 topology and any fresh replacement protocol.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
@@ -32,7 +33,9 @@ owners (`ask-matt`, `code-review`, `codebase-design`, `diagnosing-bugs`,
 `writing-for-agents`) installed from a clean checkout of `mattpocock/skills` at
 the commit pinned in `config/upstream-sources.json`. This checkout references
 them by name and owns none of their procedure; the three-arm lab found no
-advantage of a hand-forked copy over upstream or over no skill.
+advantage of a hand-forked `diagnosing-bugs` copy over upstream or over no
+skill. The broader composition is a policy decision, not a claim that every
+upstream skill was benchmarked.
 
 **Source repository** — this checkout. It owns skill source, installation
 metadata, validation, research synthesis, and migration history.

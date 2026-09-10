@@ -182,7 +182,7 @@ would create an ownership collision before it had a measured consumer.
 
 | Candidate | Decision | Local action | Falsifier / next gate |
 |---|---|---|---|
-| `unlazy` | `lab-test` | borrow only the gates-before-work and evidence vocabulary in a disposable adapter; keep leases/dispatch out of the global runtime until their boundary and cost are measured | on one long-running outcome, compare a temporary gate packet with the current capsule: duplicate state, extra human ceremony, missing failure evidence, or no earlier detection rejects the adapter |
+| `unlazy` | `adopt` as an explicit companion | keep the machine-checked gate ledger and re-verification; it does not own lifecycle, sandboxing, leases, or dispatch | a second long-running pilot shows duplicate state, extra ceremony, or no earlier detection; then revisit the explicit companion |
 | `ponytail` | `adopt` as a heuristic, no new skill | make “needed → reuse → standard/native → installed dependency → smallest implementation” an explicit question for existing `to-spec` / `codebase-design` owners | a recurring overbuilt slice, missed reuse opportunity, or security/accessibility regression despite the question reopens whether the heuristic belongs in a stronger seam |
 
 Neither candidate is installed as a new global lifecycle owner by this
@@ -226,17 +226,19 @@ runtime details, not reusable contracts.
 
 ## Portfolio boundary
 
-The KRN repository promotes eight local owners and composes the pinned
+The KRN repository promotes ten local owners and composes the pinned
 upstream set separately. `reviewer-handoff` was retired because no workflow
 called its compiler: routine review already has repository access and the
 external checker owns its own packet/schema/transport. A deterministic helper
 without a demonstrated consumer is not a promoted workflow.
 
-Three skills remain explicit-only:
+Five local skills remain explicit-only:
 
 - `wayfinder` because it starts a durable multi-session decision map;
 - `setup-repository-workflow` because it mutates repository instructions;
-- `opencode-second-opinion` because it starts an external advisory run.
+- `opencode-second-opinion` because it starts an external advisory run;
+- `unlazy` because it starts a completion ledger and gate re-verification;
+- `unslop` because it performs a deliberate prose audit or rewrite.
 
 `slice-work` is model-invocable because `delivery-loop` composes it. Ticket
 publication remains a separate authority branch; invocation does not grant

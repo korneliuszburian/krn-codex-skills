@@ -114,8 +114,11 @@ commit pinned by `config/upstream-sources.json`, not owned here** — do not use
 moving `npx skills add` result as the KRN source. This repo owns only the decisions
 and lifecycle envelopes listed above; lab measurement found no advantage of a
 hand-forked copy over upstream or over no skill
-([`skills-3arm-lab`](docs/research/skills-3arm-lab.md), results in
-`skills-lab-3arm/results/`).
+([`skills-3arm-lab`](docs/research/skills-3arm-lab.md); its raw run data is
+retained in the private content-addressed archive named by that experiment).
+Only `diagnosing-bugs` was directly measured; the broader upstream composition
+is a policy decision constrained by that limited result, not a claim that every
+skill has been benchmarked.
 
 Descriptions and `agents/openai.yaml` are the routing authority. README is the
 only human skill catalog; there are no hand-maintained per-skill mirror pages.
@@ -154,9 +157,15 @@ Use `krn-codex install check` for filesystem state and `krn-codex doctor` when
 you need the distinction between an installed filesystem snapshot, a broken or
 foreign link, a legacy mutable source link, and unknown/stale session loading.
 Start a fresh Codex session after installation. Discovery is session-scoped.
-`setup-repository-workflow` and `opencode-second-opinion`
+`setup-repository-workflow`, `opencode-second-opinion`, `unlazy`, and `unslop`
 require an explicit `$skill-name` attachment; the composed upstream
 `wayfinder` is explicit-only in that set.
+
+For a disposable end-to-end proof, run `npm run test:bootstrap`; it installs a
+temporary release and drives the linked CLI against
+[`evals/codex-bootstrap-fixture`](evals/codex-bootstrap-fixture/). The installer
+validates the exact clean source checkout before a release is created; refreshes
+should still run `npm run validate` first.
 
 See [migration](docs/migration.md) for ownership, retirement, backup, and
 rollback guarantees.

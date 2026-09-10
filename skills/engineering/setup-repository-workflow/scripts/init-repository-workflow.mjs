@@ -41,6 +41,21 @@ function git(root, args) {
   }
 }
 
+function redactRemote(remote) {
+  if (!remote) return remote;
+  try {
+    const parsed = new URL(remote);
+    if (parsed.username || parsed.password) {
+      parsed.username = "";
+      parsed.password = "";
+      return parsed.toString();
+    }
+  } catch {
+    // SCP-style Git remotes and opaque providers have no URL userinfo to redact.
+  }
+  return remote;
+}
+
 function regularOrSymlink(path) {
   const stat = lstatSync(path, { throwIfNoEntry: false });
   if (!stat) return false;
@@ -124,7 +139,7 @@ function inspect(root) {
     root,
     head: git(root, ["rev-parse", "HEAD"]),
     status: git(root, ["status", "--short", "--branch"]),
-    remote,
+    remote: redactRemote(remote),
     provider,
     instruction,
     trackerSignals: {
@@ -235,7 +250,15 @@ function bootstrapInstructionIfAbsent(root) {
   if (lstatSync(state.agents, { throwIfNoEntry: false })) {
     fail(`instruction bootstrap destination is occupied: ${relative(root, state.agents)}`);
   }
-  writeFileSync(state.agents, thinAgentsTemplate(root));
+  assertManagedFileSafe(root, state.agents, "");
+  try {
+    writeFileSync(state.agents, thinAgentsTemplate(root), { flag: "wx" });
+  } catch (error) {
+    if (error.code === "EEXIST") {
+      fail(`instruction bootstrap destination is occupied: ${relative(root, state.agents)}`);
+    }
+    throw error;
+  }
   return ["AGENTS.md"];
 }
 
