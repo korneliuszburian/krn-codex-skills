@@ -18,6 +18,7 @@
     "scripts/lib/catalog-profile.mjs",
     "scripts/lib/catalog-usage.mjs",
     "scripts/lib/install-release.mjs",
+    "scripts/lib/lessons.mjs",
     "scripts/lib/skills-export.mjs",
     "scripts/lib/state-brief.mjs",
     "scripts/lib/state-check.mjs",

@@ -228,6 +228,19 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         detail: "acceptance names no command, path, or code marker; state the check the next session can run",
       });
     }
+    const disposition = fields["Review fixed point and Standards / Spec disposition"];
+    if (
+      disposition &&
+      !/^(none|pending|not-applicable)$/i.test(stripMarkup(disposition)) &&
+      !/evidence=/.test(disposition) &&
+      !/`[^`]+`/.test(disposition)
+    ) {
+      warnings.push({
+        id: entry.name,
+        rule: "disposition-without-evidence",
+        detail: "store the executed command, its exit, and the fixed point",
+      });
+    }
 
     if (outcome && !OUTCOME_STATES.has(stripMarkup(outcome))) {
       errors.push({ id: entry.name, rule: "invalid-outcome-state", detail: outcome });

@@ -35,6 +35,10 @@ jobs:
         run: npm run test:skills
       - name: Check exported skill set
         run: npm run skills:check
+      - name: Check workflow lessons
+        run: npm run lessons:check
+      - name: Test lesson gate resolver
+        run: npm run test:lessons
       - name: Check shell and diff hygiene
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

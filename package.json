@@ -15,6 +15,8 @@
     "test:state": "node --test test/state-check.test.mjs test/state-brief.test.mjs test/composition.test.mjs",
     "test:skills": "node --test test/skills-export.test.mjs",
     "skills:check": "node scripts/krn-codex.mjs skills check --root .",
+    "lessons:check": "node scripts/krn-codex.mjs lessons check --root .",
+    "test:lessons": "node --test test/lessons.test.mjs",
     "validate": "node scripts/validate.mjs",
     "install:check": "bash scripts/install.sh check"
   }

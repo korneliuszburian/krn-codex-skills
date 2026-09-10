@@ -147,7 +147,7 @@ hosts own their mechanics and policy.
    the recorded fixed point matches the reviewed fingerprints; advisory lanes
    never upgrade to approval. For a non-trivial change, add at least one
    acceptance check the producer did not author — a composition or held-out
-   check — before the disposition counts.
+   check — before the disposition counts; dispositions record executed evidence.
 
    **Done when:** acceptance is observable through the public seam, required
    proof passes, both review axes are dispositioned for the current fixed point,

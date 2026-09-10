@@ -259,6 +259,15 @@ test("a prose-only acceptance warns without diverging", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a disposition without executed evidence warns without diverging", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}` }).replace("Review fixed point and Standards / Spec disposition: none", "Review fixed point and Standards / Spec disposition: inspected by a separate reviewer"));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.warnings.some((warning) => warning.rule === "disposition-without-evidence"), JSON.stringify(report.warnings));
+  assert.equal(report.status, "clean");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("the CLI prints readable warning lines, not objects", () => {
   const { root, head } = makeRepo();
   writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}` }).replace("Outcome and observable acceptance: test", "Outcome and observable acceptance: it works"));
