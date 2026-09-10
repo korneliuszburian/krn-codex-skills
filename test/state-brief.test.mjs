@@ -87,6 +87,16 @@ test("resume reports no file-backed capsule without inventing one", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("resume loads the repository workflow lessons", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs/research/workflow-lessons.md"), "| Lesson | Evidence | Enforced by |\n|---|---|---|\n| Never skip the gate. | probe | test |\n");
+  const report = resumeBrief({ repo: root });
+  assert.equal(report.lessons.count, 1);
+  assert.match(report.text, /Never skip the gate/);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("resume detects dirty scope, a moved HEAD, and unlisted runs", () => {
   const { root, head } = makeRepo();
   writeCapsule(root, `base=${head}; HEAD=${head}; dirty=clean`);

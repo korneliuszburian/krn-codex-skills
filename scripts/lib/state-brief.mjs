@@ -67,6 +67,23 @@ function fieldLine(text, label) {
   return null;
 }
 
+function workflowLessons(root) {
+  const relative = join("docs", "research", "workflow-lessons.md");
+  const file = join(root, relative);
+  if (!existsSync(file)) return { path: null, count: 0, items: [] };
+  const items = readFileSync(file, "utf8")
+    .split("\n")
+    .filter((line) => line.startsWith("|") && !/^\|\s*-+/.test(line) && !/^\|\s*Lesson\s*\|/.test(line))
+    .map((line) => line.split("|")[1].trim())
+    .filter(Boolean);
+  return { path: relative, count: items.length, items };
+}
+
+function renderLessons(lessons) {
+  if (lessons.count === 0) return "workflow lessons: none";
+  return `workflow lessons (${lessons.count} from ${lessons.path}):\n${lessons.items.map((item) => `- ${item}`).join("\n")}`;
+}
+
 function commitTokens(value) {
   if (!value) return [];
   return [...value.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
@@ -153,15 +170,17 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
   const report = inspectSpineState({ repo });
   const errors = [...report.errors];
   const warnings = [...report.warnings];
+  const lessons = workflowLessons(report.root);
   if (report.capsules.length === 0) {
     return {
       root: report.root,
       applicability: "no-file-backed-capsule",
       status: report.status,
       capsules: [],
+      lessons,
       errors,
       warnings,
-      text: "No file-backed outcome capsule found under .krn/runs/delivery-loop/.",
+      text: `No file-backed outcome capsule found under .krn/runs/delivery-loop/.\n\n${renderLessons(lessons)}`,
     };
   }
 
@@ -223,8 +242,9 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     applicability: "checked",
     status: report.status,
     capsules: briefs,
+    lessons,
     errors,
     warnings,
-    text: `${lines.join("\n\n")}\n\nRun \`krn-codex state check\` before resuming or completing.`,
+    text: `${lines.join("\n\n")}\n\n${renderLessons(lessons)}\n\nRun \`krn-codex state check\` before resuming or completing.`,
   };
 }

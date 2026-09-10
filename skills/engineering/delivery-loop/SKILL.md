@@ -95,7 +95,7 @@ hosts own their mechanics and policy.
    file-backed capsule was checked, not a pass. A fresh session may run
    `krn-codex state resume` for the live repository delta and
    `krn-codex state compile` to prefill the mechanical capsule fields; neither
-   writes the capsule.
+   writes the capsule, and `state resume` prints the workflow lessons.
 
    For an accepted outcome, discharge every triggered specialist cleanup,
    reconcile tracker closure when configured, remove delivery restart state when
