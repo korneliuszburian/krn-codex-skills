@@ -8,11 +8,9 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [README.md](README.md) — operator entrypoint, main workflow, and skill catalog.
 - [docs/research/README.md](docs/research/README.md) — research index and curation contract.
 - [docs/research/orchestration.md](docs/research/orchestration.md) — current lifecycle spine, admission matrix, and falsifiers.
-- [docs/research/skills-3arm-lab.md](docs/research/skills-3arm-lab.md) — three-arm skills lab spec and verdict: no measured advantage of forked skills over upstream or no-skill; the shared set composes upstream.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
-- [evals/README.md](evals/README.md) — Git-native experiment lifecycle, reviewer fixed points, and artifact integrity.
 - [skills/meta/unlazy/SKILL.md](skills/meta/unlazy/SKILL.md) — explicit completion ledger with approved checks and re-verification; it does not own lifecycle state or sandbox commands.
 - [skills/meta/unslop/SKILL.md](skills/meta/unslop/SKILL.md) — explicit prose audit/rewrite with protected factual and technical fragments; it does not own publication or fact-checking.
 
@@ -128,18 +126,6 @@ Publication state is reported separately from semantic completion.
 
 **Decision** — `adopt`, `reject`, `lab-test`, or `defer` for a named consumer
 and falsifier. Sources support decisions; they do not override local evidence.
-
-**Experiment record** — one Git-tracked `evals/experiments/<id>/` directory
-whose manifest binds protocol, admissible evidence, grading, decision, review
-fixed points, hashes, omissions, and epistemic status.
-
-**Experiment seal** — the deterministic artifact inventory and content-safety
-gate. It writes hashes and byte counts; it does not decide quality or authorize
-a lifecycle transition.
-
-**Capsule-only experiment** — a terminal historical or external-evidence
-record with explicit omissions and exploratory epistemic status; never a full
-archive or confirmatory result.
 
 **Completion ledger** — an optional `.krn/runs/unlazy/<run-id>/GATES.md` record
 of observable gates, command evidence, and manual blockers. `$unlazy` owns the

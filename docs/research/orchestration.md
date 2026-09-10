@@ -282,23 +282,6 @@ hold mechanisms and examples, and scripts perform only deterministic work.
 Promotion requires a new task to beat a baseline without a trigger collision,
 owner collision, or evidence gap.
 
-## Task-graph boundary
-
-Beads remains a bounded task-graph candidate, not a lifecycle or memory owner.
-
-| Surface | Owns |
-|---|---|
-| Beads, if adopted | tasks, dependencies, claims, queue state |
-| `delivery-loop` | outcome truth, authority, publication, capsule |
-| skills | procedures and decision ownership |
-| `evals/` | admissible evidence and grading |
-| `CONTEXT.md` / research / ADRs | durable semantic knowledge |
-
-Any Beads pilot must use a pinned binary in a disposable target repository,
-avoid default instruction or hook mutations, and compare duplicate claims,
-blocker release, reset recovery, false completion, and operator cost against
-the current capsule baseline. See the detailed [Beads audit](beads-task-system.md).
-
 ## Review and re-review
 
 A review result is keyed to:
@@ -356,7 +339,7 @@ repository/host readback, and any configured tracker. Conformance demonstrates
 mechanism feasibility among cooperating clients; it does not establish a
 production authority boundary.
 
-## Falsifiers and next experiments
+## Falsifiers and maintenance triggers
 
 1. **Restart test:** a fresh agent must resume three representative long outcomes
    from capsule plus repository/tracker state without transcript reconstruction.

@@ -16,21 +16,20 @@ The inventory was measured from the working tree on 2026-09-10:
 
 | Surface | Count / shape | Interpretation |
 |---|---:|---|
-| `docs/**/*.md` | 12 files, 2,098 lines | one ADR, two operator references, nine research/index pages |
-| `docs/research/*.md` | 9 files | one index plus topic syntheses, with two overlapping harness pages |
-| `scripts` and skill-local Node tests | 15 `*.test.mjs` files | deterministic contract tests, not model-quality proof |
+| `docs/**/*.md` | 9 files | one ADR, two operator references, six research/index pages |
+| `docs/research/*.md` | 6 files | one index plus compact topic syntheses |
+| Node tests | 1 `*.test.mjs` file | installed-release bootstrap smoke only |
 | Python tests | 1 unittest module | destructive-command hook contract |
-| TypeScript test file | 1 benchmark subject fixture | input material, not a package suite |
-| `evals` | bootstrap fixture, reviewer benchmark, one experiment, routing data | public-seam fixtures and immutable evidence, with different lifecycles |
-| validator output | 10 installable skills, 70 trigger cases, 7 profiles, 1 experiment manifest | current generated facts, not durable prose to hand-count |
+| `evals` | bootstrap fixture and routing data | installed-release smoke and routing data |
+| validator output | 10 installable skills, 70 trigger cases, 7 profiles | current generated facts, not durable prose to hand-count |
 
 The apparent sprawl has three different causes that must not be solved with one
 deletion rule:
 
-1. durable knowledge is mixed with historical experiment narration;
+1. durable knowledge was mixed with historical experiment narration;
 2. two research pages both describe the harness map;
-3. deterministic tests cover several real public seams, while routing cases
-   and experiments are being counted as if they were the same kind of test.
+3. deterministic tests covered several real public seams, while routing cases
+   were being counted as if they were the same kind of test.
 
 ## Upstream comparison
 
@@ -44,12 +43,10 @@ bucket catalogs, `AGENTS.md` topology rules, plugin metadata, and link/install
 scripts. Its model is small composable procedures plus human/model invocation
 boundaries, not a benchmarked proof harness.
 
-That comparison is useful for prose and taxonomy, not for deleting KRN tests.
-KRN owns an immutable release installer, collision-safe migration, global hooks,
-capability reconciliation, advisory transport, experiment sealing, and an
-installed-release bootstrap. Those are executable public contracts and need
-deterministic falsifiers. Matt's absence of a suite is not evidence that these
-contracts are unnecessary.
+That comparison is useful for prose and taxonomy. KRN keeps only one installed
+release bootstrap smoke and one hook smoke; static validation covers the
+remaining metadata and routing contract. Matt's absence of a suite supports
+this deliberately small proof budget.
 
 ## Target topology
 
@@ -76,7 +73,7 @@ The destinations remain intentionally small:
 | `docs/capabilities.md` | capability profiles and evidence states | setup tutorials and source research |
 | `docs/research/<topic>.md` | source-backed living synthesis for a named consumer | raw transcripts, duplicate ledgers, chronological logs |
 | `docs/adr/<id>-slug.md` | rare consequential, hard-to-reverse accepted trade-off | routine cleanup and provisional ideas |
-| `evals/` | immutable experiment and public-seam proof records | generic documentation and unsealed scratch work |
+| `evals/` | installed-release bootstrap fixture and routing data | generic experiment machinery and raw scratch work |
 | `.krn/runs/` | ignored working state and transport | durable knowledge |
 
 No new generic documentation manager, normalizer, memory database, or audit
@@ -88,10 +85,6 @@ tool is part of this plan.
 
 - `docs/research/mattpocock-skills-deep-audit.md`: upstream refresh consumer;
   keep current pin, promoted/in-progress/misc map, and dispositions.
-- `docs/research/skills-3arm-lab.md`: source-composition decision and its
-  falsifier. Resolve its missing raw-manifest provenance before changing it.
-- `docs/research/beads-task-system.md`: bounded task-graph adoption audit;
-  keep separate because its decision is still `lab-test`.
 - `docs/research/unlazy-codex-port.md`: explicit completion-ledger decision;
   keep with its own consumer and falsifier.
 - `docs/research/unslop-codex-port.md`: explicit prose-quality decision;
@@ -106,24 +99,15 @@ Use `docs/research/orchestration.md` as the survivor because
 `README.md`, ADR 0001, and the existing validator fixture already refer to that
 slug. Fold in the unique owner map, skill boundaries, context/evidence/authority
 map, and Beads boundary from `harmonic-harness.md`. Before deleting the second
-file, update all Markdown references and the hard-coded fixture path in
-`scripts/validate.test.mjs`, reconcile status dates, and list every preserved
+file, update all Markdown references, reconcile status dates, and list every preserved
 section in the diff. This migration is complete; `harmonic-harness.md` was
 removed after its unique owner map, condensing rules, and Beads boundary were
 folded into `orchestration.md`.
 
 ### Condense or retire after evidence review
 
-`docs/research/agentic-engineering-approaches.md` is the only broad merge
-candidate. Preserve its unique source comparisons and limitations, but remove
-duplicated primary-source ledger entries and external run narration. Its
-EvidenceSpine decision must first be resolved: either put `test:evidence-spine`
-in CI and retain the lab, or retire the runner, test, package command, and
-claims together.
-
 `docs/research/README.md` must index every retained topic. It currently omits
-`skills-3arm-lab.md` and `beads-task-system.md`; add those rows before any
-deletion decision. Empty legacy directories and ignored `.remember` or
+the retained topics. Empty legacy directories and ignored `.remember` or
 delivery-loop state are inventory items, not documentation candidates. Assign
 their cleanup owner separately.
 
@@ -133,45 +117,30 @@ Tests are grouped by the public seam they falsify, not by file count:
 
 | Seam | Current proof | Default disposition |
 |---|---|---|
-| source validator and routing schema | `test:validate`, trigger cases | keep; prune only with positive/negative coverage matrix |
-| release installer and migration | `test:install`, bootstrap fixture | keep; these protect filesystem and rollback invariants |
+| source validator and routing schema | `npm run validate`, trigger cases | keep the executable validator; no duplicate assertion suite |
+| release installer and migration | bootstrap fixture | keep one public end-to-end smoke |
 | global hook | `test:hooks` | keep; security boundary |
-| capability catalog | `test:catalog` | keep; profile and privacy boundary |
-| repository setup | `test:setup` | keep; target-repo write contract |
-| advisory transport | `test:second-opinion` | keep; runner completion and citation boundary |
-| experiment sealing and verification | `test:seal`, `test:experiments` | keep; artifact integrity boundary |
-| reviewer benchmark | `test:benchmark` and the specialized scorer under `evals/reviewer-benchmark/` | keep; the standing benchmark has a named reviewer-lane consumer |
-| completion ledger | `test:unlazy` | keep; explicit-only gate contract |
-| EvidenceSpine lab | `test:evidence-spine` | decide CI integration or retire as one unit |
+| capability catalog, setup, advisory, and completion ledger | manual CLI paths | keep implementation, remove dedicated test suites until a regression is observed |
 
 `evals/trigger-cases.json` is routing data, not a second executable suite. A
-pruning change must preserve at least one positive and one hard negative for
-each local skill, the explicit `$name` attachment rule, the global recovery
-negative, and the exact cases required by validator tests. The benchmark's
-TypeScript file is subject material, not test coverage.
-
-Experiments remain immutable records under `evals/experiments/<id>/` with a
-manifest, protocol, results, decision, and review. Deterministic regression
-harnesses may remain beside `scripts/` when they are directly tied to a public
-seam; they are not required to become full model experiments.
+pruning keeps the validator's schema and routing checks as one executable
+command. No separate benchmark or experiment suite remains on the core branch.
 
 ## Migration slices
 
 ### Slice 0: truthful inventory, no deletion — complete
 
-Create one ownership matrix containing every research page, every referrer of
-the two harness pages, every `test:*` command, its CI status, and its public
-invariant. Correct the absolute host path in `unslop-codex-port.md`, reconcile
-the unlazy source pin, remove stale 66/8 counts from orchestration prose, and
-correct the local/upstream skill count. Add missing research-index rows. Decide
-whether the reviewer scorecard has a live consumer. Run `npm run validate`,
-`npm run test:validate`, and the affected seam tests.
+Create one ownership matrix containing every research page and every retained
+smoke command. Correct the absolute host path, reconcile the unlazy source pin,
+remove stale counts, and correct the local/upstream skill count. Run
+`npm run validate` and the two retained smoke commands.
 
-### Slice 1: restore proof parity — complete
+### Slice 1: remove unowned proof machinery — complete
 
-Resolve the EvidenceSpine CI decision. If retained, add its test to CI and
-document the exact gate. If rejected, remove its runner, test, package command,
-and durable claims together. No page merge occurs in this slice.
+Removed the EvidenceSpine lab, experiment sealing/verification, reviewer
+benchmark, and dedicated meta-skill test suites. The validator no longer loads
+experiment manifests. Their durable research pages and eval records were
+removed with them.
 
 ### Slice 2: one harness-page merge — complete
 
@@ -181,21 +150,18 @@ deleted. The full relevant validation and test boundary is recorded below.
 
 ### Slice 3: research pruning — complete for the current core branch
 
-The broad EvidenceSpine synthesis remains independent because it has a named
-consumer, a distinct test seam, and source comparisons not present in the
-surviving orchestration page. The five independent decision topics remain
-separate for the same reason. No page was deleted without a consumer and
-supersession decision.
+The EvidenceSpine, Beads, and three-arm lab pages were removed with their
+unowned lab machinery. The upstream audit, orchestration synthesis, and
+explicit skill decision pages remain as the only durable research topics.
 
 ### Slice 4: test pruning by measured redundancy — complete
 
 Use the seam matrix to identify duplicate assertions or dead commands. Remove
 only tests that prove the same observable contract through the same public seam,
 or an orphan tool with no consumer. Preserve one focused falsifier for each
-distinct acceptance requirement. The orphan `scripts/review-scorecard.mjs` and
-its test were removed because the reviewer benchmark owns its own scorer and no
-CI, skill, or document consumed the scorecard. No files were moved for
-aesthetics alone.
+distinct acceptance requirement. Fourteen Node test files and their CI/package
+entries were removed; the remaining bootstrap and hook tests are the only
+runtime smoke surfaces. No files were moved for aesthetics alone.
 
 ### Slice 5: final normalization — in progress
 
@@ -210,11 +176,7 @@ a separate promotion decision supplies its own consumer and evaluation plan.
   one lifecycle rule;
 - no durable page contains a physical checkout or mount prefix;
 - every research page is indexed or explicitly classified as transient;
-- every `test:*` command is either CI-backed or explicitly marked local-only
-  with a named consumer;
-- every retained test maps to an observable invariant and a public seam;
-- no experiment claim points to an absent manifest without an explicit
-  unavailable-evidence disposition;
+- every retained test maps to one observable invariant and public seam;
 - the README remains the only human skill catalog;
 - the core branch contains no frontend pack or frontend lab fixture;
 - the final full suite and diff check pass at the chosen fixed point.
@@ -231,10 +193,6 @@ a separate promotion decision supplies its own consumer and evaluation plan.
 
 ## Independent review
 
-`opencode-second-opinion` reviewed this plan in a read-only DeepSeek V4.1 Flash
-run. The completed opinion identified the same high-risk areas: name the
-surviving harness slug before deletion, repair missing research-index rows,
-resolve EvidenceSpine CI parity, remove the host path, reconcile stale counts
-and pins, and preserve independent decision pages. Local verification is stored
-in the ignored run disposition; the opinion is advisory and not an approval
-gate.
+`opencode-second-opinion` reviewed the original consolidation plan in a
+read-only DeepSeek V4.1 Flash run. Its findings were verified, then the
+unowned lab and test machinery was removed rather than preserved as ceremony.

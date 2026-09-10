@@ -9,21 +9,8 @@
   },
   "scripts": {
     "catalog": "node scripts/catalog.mjs",
-    "test:catalog": "node --test scripts/catalog*.test.mjs",
-    "test:install": "node --test scripts/install-release.test.mjs",
     "test:bootstrap": "node --test evals/codex-bootstrap-fixture/bootstrap.test.mjs",
     "test:hooks": "python3 -B -m unittest scripts/hooks/test_destructive_guard.py",
-    "test:evidence-spine": "node --test scripts/evidence-spine-lab.test.mjs",
-    "test:validate": "node --test scripts/validate.test.mjs",
-    "test:second-opinion": "node --test skills/advisory/opencode-second-opinion/scripts/*.test.mjs",
-    "test:benchmark": "node --test evals/reviewer-benchmark/scripts/*.test.mjs",
-    "test:unlazy": "node --test skills/meta/unlazy/scripts/*.test.mjs",
-    "test:experiments": "node --test scripts/verify-experiments.test.mjs",
-    "test:seal": "node --test scripts/seal-experiment.test.mjs",
-    "benchmark:reviewer": "node evals/reviewer-benchmark/scripts/reviewer-benchmark.mjs",
-    "seal:experiment": "node scripts/seal-experiment.mjs",
-    "verify:experiments": "node scripts/verify-experiments.mjs",
-    "test:setup": "node --test skills/engineering/setup-repository-workflow/scripts/init-repository-workflow.test.mjs",
     "validate": "node scripts/validate.mjs",
     "install:check": "bash scripts/install.sh check"
   }

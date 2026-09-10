@@ -102,8 +102,8 @@ commit pinned by `config/upstream-sources.json`, not owned here** — do not use
 moving `npx skills add` result as the KRN source. This repo owns only the decisions
 and lifecycle envelopes listed above; lab measurement found no advantage of a
 hand-forked copy over upstream or over no skill
-([`skills-3arm-lab`](docs/research/skills-3arm-lab.md); its raw run data is
-not part of this checkout and its aggregate disposition is retained here).
+The upstream composition is a policy decision constrained by the limited
+measurement record; no local fork is maintained.
 Only `diagnosing-bugs` was directly measured; the broader upstream composition
 is a policy decision constrained by that limited result, not a claim that every
 skill has been benchmarked.
@@ -203,7 +203,7 @@ Every pull request runs this full repository proof once on its fixed revision.
 AGENTS.md       source-repository editing contract
 config/         installed global contract and hook configuration
 skills/         canonical workflow owners and direct resources
-evals/          routing cases
+evals/          installed-release bootstrap fixture and routing cases
 scripts/        deterministic validation, installation, hooks, and catalog
 CONTEXT.md      compact current vocabulary and knowledge index
 docs/research/  living source-backed synthesis

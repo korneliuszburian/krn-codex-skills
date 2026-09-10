@@ -5,16 +5,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
-import {
-  gitStagedFiles,
-  gitTrackedFiles,
-  validateExperimentTree,
-} from "./lib/experiment-artifacts.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
 const evalPath = path.join(root, "evals", "trigger-cases.json");
-const experimentsPath = path.join(root, "evals", "experiments");
 const readmePath = path.join(root, "README.md");
 const upstreamSourcesPath = path.resolve(
   process.env.KRN_UPSTREAM_LOCK ?? path.join(root, "config", "upstream-sources.json"),
@@ -824,13 +818,6 @@ for (const name of localSkillNames) {
   if (!negativelyCovered.has(name)) fail(`trigger matrix: no negative case for ${name}`);
 }
 
-const experimentValidation = validateExperimentTree(experimentsPath, {
-  trackedFiles: gitTrackedFiles(root, experimentsPath),
-  stagedFiles: gitStagedFiles(root, experimentsPath),
-  repositoryRoot: root,
-});
-for (const error of experimentValidation.errors) fail(error);
-
 const goalRecovery = triggerCases.cases.find(
   (testCase) => testCase.id === "goal-recovery-is-not-global-workflow",
 );
@@ -872,6 +859,5 @@ if (errors.length) {
 console.log(
   `validated ${installableSkills.length} installable skills and ${sourceOnlySkills.length} source-only skills, ${triggerCases.cases.length} trigger cases, ` +
     `${Object.keys(capabilityProfiles.profiles).length} capability profiles, ` +
-    `${experimentValidation.experimentCount} experiment manifest${experimentValidation.experimentCount === 1 ? "" : "s"}, ` +
     "and installation metadata",
 );
