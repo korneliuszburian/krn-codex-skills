@@ -41,6 +41,7 @@ npm run validate
 npm run test:bootstrap
 npm run test:hooks
 npm run test:state
+npm run test:skills
 bash -n scripts/install.sh
 git diff --check
 ```

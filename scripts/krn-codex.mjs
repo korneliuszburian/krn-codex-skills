@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { applyInstall, createInstallPlan, inspectInstall } from "./lib/install-release.mjs";
 import { inspectSpineState } from "./lib/state-check.mjs";
+import { checkSkills, exportSkills } from "./lib/skills-export.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const usage = `Usage:
@@ -15,7 +16,8 @@ const usage = `Usage:
   krn-codex doctor [--json]
   krn-codex capability <inventory|usage|profile|plan|apply|check> [...args]
   krn-codex repo <inspect|apply> [...args]
-  krn-codex state check [PATH] [--json]`;
+  krn-codex state check [PATH] [--json]
+  krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]`;
 
 function fail(message, code = 64) {
   const error = new Error(message);
@@ -33,6 +35,12 @@ function parseOptions(args) {
     else if (arg === "--source") {
       options.source = args[++index];
       if (!options.source) fail("--source requires REF or PATH");
+    } else if (arg === "--root") {
+      options.root = args[++index];
+      if (!options.root) fail("--root requires a path");
+    } else if (arg === "--upstream") {
+      options.upstream = args[++index];
+      if (!options.upstream) fail("--upstream requires a path");
     } else if (arg.startsWith("--")) fail(`unknown option: ${arg}`);
     else positional.push(arg);
   }
@@ -56,6 +64,21 @@ try {
     delegate("scripts/catalog.mjs", raw.slice(1));
   } else if (raw[0] === "repo") {
     delegate("skills/engineering/setup-repository-workflow/scripts/init-repository-workflow.mjs", raw.slice(1));
+  } else if (raw[0] === "skills") {
+    const { positional, options } = parseOptions(raw.slice(1));
+    if ((positional[0] !== "export" && positional[0] !== "check") || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
+    try {
+      if (positional[0] === "check") {
+        const report = checkSkills({ root: options.root });
+        print(report, options.json);
+        if (report.errors.length) process.exitCode = 1;
+      } else {
+        const report = exportSkills({ source: root, upstream: options.upstream, root: options.root });
+        print(report, options.json);
+      }
+    } catch (error) {
+      fail(error.message, 64);
+    }
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));
     if (positional[0] !== "check" || positional.length > 2 || options.source || options.yes) fail(usage);
