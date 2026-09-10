@@ -230,7 +230,8 @@ function isPriorReleasePath(plan, item, linked) {
   const releases = path.join(plan.releaseRoot, "releases");
   if (!isInside(releases, linked)) return false;
   const segments = path.relative(releases, linked).split(path.sep);
-  return segments.length > 1 && segments.slice(1).join(path.sep) === item.relative;
+  if (segments.length <= 1 || segments.slice(1).join(path.sep) !== item.relative) return false;
+  try { verifyRelease(path.join(releases, segments[0]), segments[0]); return true; } catch { return false; }
 }
 
 function preflightCurrent(plan) {
@@ -359,7 +360,8 @@ function itemStatus(plan, item) {
     const text = fs.readlinkSync(item.target);
     return { target: item.target, status: text.includes(`${path.sep}current${path.sep}`) ? "filesystem_installed" : "stable_link_bypasses_current" };
   }
-  if (linked === path.join(plan.source, item.relative)) {
+  const sourceRoot = git(path.dirname(linked), ["rev-parse", "--show-toplevel"]);
+  if (sourceRoot && path.relative(sourceRoot, linked) === item.relative) {
     return { target: item.target, status: "legacy_mutable_source" };
   }
   return { target: item.target, status: "foreign_collision" };
