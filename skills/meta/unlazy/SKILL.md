@@ -31,7 +31,7 @@ OWNS: <repository-relative paths>
 Scope: <one complete outcome>
 
 - [ ] G1: <observable result>
-  CHECK: node ~/.agents/skills/unlazy/scripts/verify-result.mjs
+  CHECK: node ~/.agents/skills/unlazy/scripts/gate-check.mjs --status GATES.md
   EXPECT: result verification passed
   EVIDENCE: pending
 

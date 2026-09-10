@@ -26,6 +26,8 @@ or an oversized skill catalog?
 | Local deletion probe | five of six artifact roles had no runtime consumer; 18 operator pages mirrored the skills; reviewer-handoff had no external caller | delete generic report roles, doc mirrors, and the unconsumed packet workflow | future measured consumers may justify reintroduction |
 | Local register micro-lab | the observed stale capsule sentence was repairable by fresh Goal/repository/PR readback; SQLite and Git-ref candidates could mechanically fence cooperative writers | retain the compact spine; keep both mechanisms at `lab-test` until a recurring writer-admission failure survives bounded repair | synthetic conformance is not product need, restore recovery, hostile-process exclusion, or power-loss proof |
 
+Primary-source refresh (2026-09-10): [OpenAI's harness-engineering guidance](https://openai.com/index/harness-engineering/) treats `AGENTS.md` as a short table of contents and the repository knowledge base as the system of record, with mechanical boundary checks. [Anthropic's long-running harness work](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) supports restartable artifacts and tractable work units while warning that harness assumptions age. [Context as a Tool](https://arxiv.org/abs/2512.22087) supports structured task anchors, condensed long-term memory, and recent high-fidelity context; it does not justify a generic KRN memory service.
+
 ## Breakthrough: compile context at boundaries
 
 The continuity unit is not a chat transcript, report directory, or autonomous
@@ -224,9 +226,9 @@ Four local skills remain explicit-only:
 publication remains a separate authority branch; invocation does not grant
 remote mutation.
 
-No central router is added. Descriptions are the admission router and the
-small global route table records only collision-prone seams. Add a router only
-after repeated human recall failures across the four explicit-only local skills.
+No central router is added. Skill descriptions are the admission router; add a
+router only after repeated human recall failures across the four explicit-only
+local skills.
 
 ## Complete owner map
 
@@ -245,6 +247,10 @@ Every owner has one stop condition. A test pass, issue status, advisory answer,
 or successful install proves only its own boundary; it never grants authority
 for another workflow. `delivery-loop` owns lifecycle state and the single
 outcome capsule writer, while specialist skills retain their procedures.
+
+`to-tickets` shapes an authorized publication item; `$slice-work` shapes the
+implementation units. Resolve the implementation shape first, then return to
+ticket publication only when that remote mutation is separately authorized.
 
 ## Condensing expert material into skills
 

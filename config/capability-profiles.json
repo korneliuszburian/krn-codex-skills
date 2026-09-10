@@ -30,7 +30,8 @@
         "disable": [
           "airtable@airtable-skills",
           "codex-app-tools@openai-bundled",
-          "google-drive@openai-curated-remote"
+          "google-drive@openai-curated-remote",
+          "remember@claude-plugins-official"
         ],
         "disableFamilies": [
           "asana",
@@ -275,7 +276,8 @@
         "disable": [
           "figma@openai-curated",
           "figma@openai-curated-remote",
-          "github@openai-curated-remote"
+          "github@openai-curated-remote",
+          "remember@claude-plugins-official"
         ],
         "disableFamilies": [
           "asana",
@@ -336,7 +338,8 @@
         "disable": [
           "figma@openai-curated",
           "figma@openai-curated-remote",
-          "github@openai-curated-remote"
+          "github@openai-curated-remote",
+          "remember@claude-plugins-official"
         ],
         "disableFamilies": [
           "asana",
@@ -400,7 +403,8 @@
         ],
         "disable": [
           "asana@openai-curated-remote",
-          "github@openai-curated-remote"
+          "github@openai-curated-remote",
+          "remember@claude-plugins-official"
         ],
         "disableFamilies": [
           "canva",
@@ -466,7 +470,8 @@
           "asana@openai-curated-remote",
           "figma@openai-curated",
           "figma@openai-curated-remote",
-          "github@openai-curated-remote"
+          "github@openai-curated-remote",
+          "remember@claude-plugins-official"
         ],
         "disableFamilies": []
       },

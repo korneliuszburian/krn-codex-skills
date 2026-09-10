@@ -2,6 +2,8 @@
 
 This private repository owns KRN's universal Codex engineering skills and
 reusable process. Product repositories own their language, commands, and gates.
+This file is the source-repository adapter; the installed stable policy lives in
+`config/AGENTS.md`.
 
 ## Repository map
 
@@ -21,7 +23,7 @@ reusable process. Product repositories own their language, commands, and gates.
 1. Run `git status --short --branch`; preserve unrelated work.
 2. Read `config/AGENTS.md`, then `CONTEXT.md`.
 3. Read only the affected skill and relevant research topic.
-4. State the workflow owner, changed trigger or contract, and cheapest proof.
+4. State the workflow owner, changed seam or contract, authority, and cheapest proof.
 
 ## Knowledge contract
 
@@ -40,46 +42,17 @@ reusable process. Product repositories own their language, commands, and gates.
   canonical semantic destination, and a cleanup or supersession rule.
 - Never put a physical checkout or mount prefix into a reusable contract.
 
-## Skill contract
-
-- One repeated workflow has one owner and one public name.
-- Put every installable skill at `skills/<group>/<name>/SKILL.md`.
-- Keep frontmatter to `name` and `description`; put Codex invocation policy in
-  `agents/openai.yaml` and front-load the distinct task plus nearest boundary.
-- Keep common procedure in `SKILL.md`; point directly to branch-only material
-  in `references/`. Add scripts only for fragile repeated deterministic work.
-- Keep skill prose and scripts independent of the active shell wrapper;
-  `config/AGENTS.md` owns injected global policy.
-- README is the sole human skill catalog and links to canonical `SKILL.md` files. Do not
-  maintain per-skill operator mirrors.
-- Prefer positive steering. Delete aliases, duplicated procedure, stale
-  references, compatibility sediment, and unused agents.
-
 ## Repository boundaries
 
-- Do not vendor repositories, private course text, transcripts, or raw corpora.
-- Never mirror a global workflow into a product repository. Local skills may
-  add domain-only knowledge or compose the global owner without restating it.
-- Do not mutate another repository or the installed index while reviewing.
-- The installer may touch only manifest-declared paths and must back up
-  displaced state.
+Do not vendor private source material or raw corpora. Do not mutate another
+repository or the installed index while reviewing. The installer may touch only
+manifest-declared paths and must back up displaced state.
 
-## Verification budget
+## Local gates
 
-- `0`: documentation, metadata, topology, type-only, or already-observed
-  behavior-preserving work. Run `npm run validate`; do not add a test, prompt,
-  or document unless it has a named consumer.
-- `1`: one changed runtime, security, authority, parser, or migration contract.
-  Run one relevant retained smoke (`npm run test:bootstrap` or
-  `npm run test:hooks`).
-- `N`: only for distinct acceptance requirements or failure modes, named before
-  implementation. Do not create a benchmark or evaluation harness without a
-  consumer and a deletion trigger.
-- Routing prose is owned by skill descriptions and the README catalog; it does
-  not require a prompt-evaluation matrix by default.
-- Before handoff, run the CI command set once (`npm run validate`,
-  `npm run test:bootstrap`, `npm run test:hooks`, `bash -n scripts/install.sh`),
-  then `git diff --check`.
+The global contract owns proof budgeting. Before handoff, run the local command
+set once: `npm run validate`, `npm run test:bootstrap`, `npm run test:hooks`,
+`bash -n scripts/install.sh`, and `git diff --check`.
 
 Use Conventional Commits on an owned branch. Do not run untouched gates during
 the inner loop.

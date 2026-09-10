@@ -13,6 +13,3 @@ tmp/
 .remember/
 __pycache__/
 *.pyc
-# Retired private review namespaces; keep while v1 migration remains supported.
-/reviews/
-/review-artifacts/

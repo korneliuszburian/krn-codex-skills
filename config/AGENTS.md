@@ -1,8 +1,8 @@
 # Global Agent Contract
 
-This is the universal, always-loaded engineering contract. Repository
-`AGENTS.md` files add product language, commands, authority, and local gates.
-Skills own reusable procedures; do not copy their methods here.
+This installed file is the stable, universal engineering contract. Repository
+`AGENTS.md` files are adapters for product language, commands, authority, and
+local gates; `CONTEXT.md` carries current domain truth. Skills own procedures.
 
 ## Surface ownership
 
@@ -27,22 +27,22 @@ Skills own reusable procedures; do not copy their methods here.
 
 Choose the smallest owner for the one unresolved uncertainty:
 
-- composed upstream (`mattpocock/skills`, loaded from a clean checkout at the commit pinned in `config/upstream-sources.json`; procedure not restated here): `ask-matt`, `code-review`, `codebase-design`, `diagnosing-bugs`, `domain-modeling`, `grill-with-docs`, `implement`, `improve-codebase-architecture`, `prototype`, `research`, `resolving-merge-conflicts`, `setup-matt-pocock-skills`, `tdd`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `wizard`, `grill-me`, `grilling`, `handoff`, `teach`, `to-questionnaire`, `wait-what`, `writing-for-agents`;
+- composed upstream: use the installed skill whose description owns the uncertainty; the pinned clean checkout is the source, and this repo owns no upstream procedure.
 - owned here: `source-to-decision`, `slice-work`, `delivery-loop`, `setup-repository-workflow`, `target-repo-work`, `typescript-engineering`, `opencode-second-opinion`, `managing-codex-capabilities`, `unlazy`, `unslop`.
 
-Updates to composed skills come from the pinned upstream checkout; this
-repository does not maintain a hand-forked copy.
+Updates to composed skills come from the pinned upstream checkout; this repository does not maintain a hand-forked copy.
+One workflow owns each repeated procedure; a companion sharpens only the same
+slice. A goal tracks outcome state, not procedure or ownership.
 
-One workflow owns the repeated procedure. A companion may sharpen a language
-or seam but may not duplicate ownership. A goal tracks outcome state; it does
-not replace the selected skill, proof, or repository contract.
+## Execution protocol
 
-## Production loop
-
-1. Read the closest instructions and minimum map from caller to public seam.
-2. Build the smallest complete production slice.
-3. Run the cheapest signal that can disagree with the current claim.
-4. Run broad suites only when changed risk or repository policy requires them.
+1. Classify the request: answer, diagnose, review, change, or lifecycle.
+2. Select the smallest owner for one unresolved uncertainty; honor its manifest
+   invocation mode and use one companion only to sharpen that same slice.
+3. Before mutation, state owner, paths, authority, and the cheapest proof.
+4. Read the nearest instructions, build the smallest complete slice, run the
+   cheapest disagreeing signal, and stop at the owner's return contract.
+5. Run broad suites only when changed risk or repository policy requires them.
 
 ## Proof and completion
 
@@ -53,7 +53,5 @@ not replace the selected skill, proof, or repository contract.
 - `N` falsifiers only for distinct acceptance requirements and failure modes.
 - Do not create test, benchmark, evaluation, or documentation machinery without
   a named consumer and a deletion or supersession trigger.
-- One outcome has one writer; independent read-only exploration and review may
-  run in parallel. Parallel writers require isolated worktrees and one integrator.
-- Every update states owner, evidence, changed paths, unknowns, and next action.
-  Claim only complete, blocked, deferred, needs review, superseded, or abandoned.
+- One outcome has one writer; independent read-only exploration and review may run in parallel. Parallel writers require isolated worktrees and one integrator.
+- Every update states owner, evidence, paths, unknowns, and next action; claim only complete, blocked, deferred, needs review, superseded, or abandoned.

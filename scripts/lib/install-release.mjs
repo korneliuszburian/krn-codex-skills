@@ -93,6 +93,7 @@ function validateSource(root) {
 function runtimePaths(root, manifest) {
   const files = new Set([
     "skills/manifest.json",
+    "config/upstream-sources.json",
     "config/capability-profiles.json",
     "scripts/install.sh",
     "scripts/krn-codex.mjs",

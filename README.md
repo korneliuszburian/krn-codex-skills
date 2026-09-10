@@ -94,7 +94,7 @@ The shared engineering and productivity flow is **composed from a clean
 checkout of the upstream [`mattpocock/skills`](https://github.com/mattpocock/skills)
 set at the commit pinned by `config/upstream-sources.json`, not owned here**.
 The lock file is the machine-readable source of the set; `config/AGENTS.md`
-contains its always-loaded route list. Do not use a moving `npx skills add`
+contains the stable ownership boundary. Do not use a moving `npx skills add`
 result as the KRN source, and do not create a local fork without a named
 consumer and falsifier.
 

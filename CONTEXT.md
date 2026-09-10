@@ -22,7 +22,7 @@ projected into the installed skill index.
 **Composed upstream set** — the pinned `mattpocock/skills` checkout named by
 `config/upstream-sources.json`. This repository references those owners by name
 and owns none of their procedure; the lock is the source of truth and the
-always-loaded route list lives in `config/AGENTS.md`.
+always-loaded ownership boundary lives in `config/AGENTS.md`.
 
 **Source repository** — this checkout. It owns skill source, installation
 metadata, validation, research synthesis, and migration history.

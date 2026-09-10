@@ -250,7 +250,7 @@ function validateReadmeSourceOnlyPointers(file, skills, installableSkills) {
   }
 }
 
-function validateSkillMarkdown(file, skill, manifestNames) {
+function validateSkillMarkdown(file, skill, knownSkillNames) {
   const content = read(file);
   if (/\b(?:node|bash|python3?)\s+(?:\.\/)?scripts\//.test(content)) {
     fail(
@@ -258,8 +258,8 @@ function validateSkillMarkdown(file, skill, manifestNames) {
     );
   }
   for (const match of content.matchAll(/\$([a-z][a-z0-9-]+)/g)) {
-    if (!manifestNames.has(match[1])) {
-      fail(`${relative(file)}: unknown composed skill $${match[1]}`);
+    if (!knownSkillNames.has(match[1])) {
+      fail(`${relative(file)}: unknown skill reference $${match[1]}`);
     }
   }
 }
@@ -538,6 +538,7 @@ for (const skill of allLocalSkills) {
     validLocalSkills.push(skill);
   }
 }
+const knownSkillNames = new Set([...localSkillNames, ...upstreamSkillNames]);
 const validInstallableSkills = validLocalSkills.filter((skill) =>
   installableSkills.includes(skill),
 );
@@ -679,7 +680,7 @@ for (const skill of validLocalSkills) {
   }
 
   for (const markdown of filesUnder(skillDir, (file) => file.endsWith(".md"))) {
-    validateSkillMarkdown(markdown, skill, localSkillNames);
+    validateSkillMarkdown(markdown, skill, knownSkillNames);
     validateMarkdownLinks(markdown);
     validateSemanticXml(markdown);
   }
@@ -706,31 +707,6 @@ const repositoryMarkdown = new Set([
 for (const markdown of repositoryMarkdown) {
   validateMarkdownLinks(markdown);
   validateSemanticXml(markdown);
-}
-
-const legacyPaths = new Set();
-for (const item of manifestArray(manifest.legacy_user_paths, "legacy_user_paths")) {
-  if (!item || typeof item !== "object" || Array.isArray(item)) {
-    fail("manifest: legacy_user_paths entries must be objects");
-    continue;
-  }
-  if (
-    typeof item.path !== "string" ||
-    !item.path.startsWith(".codex/skills/") ||
-    item.path.split("/").includes("..")
-  ) {
-    fail(`manifest: unsafe legacy path ${item.path}`);
-  }
-  if (legacyPaths.has(item.path)) {
-    fail(`manifest: duplicate legacy path ${item.path}`);
-  }
-  legacyPaths.add(item.path);
-  if (typeof item.owner !== "string" || !item.owner.trim()) {
-    fail(`manifest: legacy path ${item.path} must declare an owner`);
-  }
-  if (item.replacement !== null && !localSkillNames.has(item.replacement)) {
-    fail(`manifest: unknown legacy replacement ${item.replacement}`);
-  }
 }
 
 if (lineCount(path.join(root, "AGENTS.md")) > 90) {
