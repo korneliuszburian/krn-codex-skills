@@ -176,16 +176,10 @@ krn-codex capability apply lean
 Named profiles keep optional integrations intentional. Usage evidence never
 disables a capability automatically. See [capabilities](docs/capabilities.md).
 
-## Proof budget
+## Proof
 
-| Budget | Use |
-|---|---|
-| `0` | mechanical, documentation, topology, type-only, or already-covered work |
-| `1` | one changed runtime contract, validator, migration, authority rule, or reproduced bug |
-| `N` | distinct acceptance requirements with distinct failure modes |
-
-Broad suites are completion evidence, not the inner loop.
-Every pull request runs this full repository proof once on its fixed revision.
+The installed `config/AGENTS.md` owns the `0/1/N` proof budget. README records
+the operator entrypoints; it does not duplicate the execution policy.
 
 ## Repository map
 
