@@ -5,10 +5,10 @@ description: Request one bounded non-editing OpenCode advisory opinion on an exp
 
 # OpenCode Second Opinion
 
-Use DeepSeek V4.1 Flash (`opencode-go/deepseek-flash`) by default as an
+Use DeepSeek V4.1 Flash (`opencode-go/deepseek-v4.1-flash`) by default as an
 independent advisory reader, not an implementation or approval lane. This
-provider identifier is intentionally distinct from the older DeepSeek V4 Flash
-identifier, `opencode-go/deepseek-v4-flash`. The bundled runner always selects
+provider identifier is listed by `opencode models` and is distinct from the
+older DeepSeek V4 Flash identifier, `opencode-go/deepseek-v4-flash`. The bundled runner always selects
 the configured `review` agent; callers cannot override that agent through the
 runner. This reduces tool authority but does not prove filesystem isolation. The
 pass has one question and one explicit target path. It returns prose findings;
@@ -64,7 +64,7 @@ owning workflow's review gate, approval, or local verification.
 
 3. **Run one non-interactive, non-editing opinion.** Invoke the installed runner
    with absolute paths. `OPENCODE_SECOND_OPINION_MODEL` defaults to
-   `opencode-go/deepseek-flash`, OpenCode Go's identifier for DeepSeek V4.1
+   `opencode-go/deepseek-v4.1-flash`, OpenCode Go's identifier for DeepSeek V4.1
 Flash. Override it only with an explicit reviewer model from a different
 family than the initiating agent. The runner always selects the configured
 `review` agent. `OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS` (default `600`) bounds the

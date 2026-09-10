@@ -59,7 +59,7 @@ fi
 
 # OpenCode Go exposes DeepSeek V4.1 Flash through this stable provider model
 # identifier. Callers may override it with another independent reviewer.
-model=${OPENCODE_SECOND_OPINION_MODEL:-opencode-go/deepseek-flash}
+model=${OPENCODE_SECOND_OPINION_MODEL:-opencode-go/deepseek-v4.1-flash}
 variant=${OPENCODE_SECOND_OPINION_VARIANT:-max}
 if [[ -z "$variant" ]]; then
   echo "OPENCODE_SECOND_OPINION_VARIANT must not be empty" >&2
