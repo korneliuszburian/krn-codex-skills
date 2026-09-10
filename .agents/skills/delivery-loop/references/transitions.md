@@ -21,7 +21,7 @@ cross-cutting and never own a transition.
 | Success is agreed, every implementation gate is settled, but the first written spec does not exist | `to-spec` | one destination-first spec with source links and no gating unknowns, routed to `implement` or `slice-work` |
 | A settled written spec needs several demonstrable units or migration stages | `slice-work` | an implementation-ready list routed one unit at a time to `implement` |
 | A failure's cause is unknown | `diagnosing-bugs` | a proven cause routed to `implement` only with repair and mutation authority, otherwise a bounded diagnosis |
-| One scoped change or proven repair is clear | `implement` | production behavior plus proportional proof |
+| One scoped change or proven repair is clear | `implement` | production behavior plus proportional proof; when `implement` is explicit-only and unattached, a mechanical or single-seam scoped change may proceed directly under the proof budget, while non-mechanical or multi-file work asks for `$implement` |
 | A diff, PR, or fingerprinted working tree needs read-only judgment | `code-review` | Standards and Spec disposition on one fixed point |
 | A repository needs its one-time local contract adoption or repair | `setup-repository-workflow` | a thin managed contract and ignored runs boundary; setup stops |
 | The user requests ownership of an already-agreed outcome through all authorized transitions | `delivery-loop` | lifecycle truth, one current owner, and the actual outcome/publication state |

@@ -38,7 +38,7 @@ from their pinned checkout; do not hand-maintain or vendor a local copy. For lif
 ## Execution protocol
 
 1. Classify the request: answer, diagnose, review, change, or lifecycle.
-2. Honor the owner's manifest invocation mode; when the handler is explicit-only and unattached, ask the user to attach it instead of imitating its procedure, then stop at its return contract.
+2. Honor the owner's manifest invocation mode; for an explicit-only handler, ask the user only for non-mechanical work and let a mechanical or single-seam scoped change proceed under the proof budget, then stop at its return contract.
 3. Before mutation, state owner, paths, authority, and the cheapest proof.
 4. Read the nearest instructions, build the smallest complete slice, and run the
    cheapest signal that can disagree with the claim.
