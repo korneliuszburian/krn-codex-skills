@@ -1,12 +1,13 @@
 ---
 name: unlazy
-description: Keep long or multi-phase work honest with a machine-checked gate ledger, explicit command approval, and re-verification before completion.
+description: Keep explicitly requested long or multi-phase work honest with a machine-checked gate ledger, explicit command approval, and re-verification before completion; skip small focused edits.
 ---
 
 # Unlazy
 
-Use this skill for long, multi-phase, unattended, or explicitly exhaustive
-work. Skip it for a small edit with a clear focused check.
+Use this skill only when explicitly attached for long, multi-phase, unattended,
+or explicitly exhaustive work. Skip it for a small edit with a clear focused
+check.
 
 The ledger makes completion visible. It does not make commands safe or create a
 sandbox. Approval means that the exact command, expectation, working directory,

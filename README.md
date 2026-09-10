@@ -103,8 +103,9 @@ consumer and falsifier.
 There are no source-only packs on this core branch. Domain-specific packs stay
 on their own branch until a separate promotion decision is made.
 
-Descriptions and `agents/openai.yaml` are the routing authority. README is the
-only human skill catalog; there are no hand-maintained per-skill mirror pages.
+Skill frontmatter descriptions route admission; `agents/openai.yaml` owns the
+interface and invocation policy. README is the only human skill catalog; there
+are no hand-maintained per-skill mirror pages.
 
 ## Install
 
