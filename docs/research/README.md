@@ -12,8 +12,11 @@ Owner: maintainer. Verified: 2026-09-10.
 1. Start with a named local decision and future consumer.
 2. Prefer current primary sources; pin a revision or verification date.
 3. Keep stated claims separate from KRN inferences.
-4. Merge new evidence into the existing topic page. Mark an old conclusion
-   superseded in the same place instead of keeping two current versions.
+4. Merge new evidence into the existing topic page with itemized, localized
+   edits. Mark an old conclusion superseded in the same place instead of
+   keeping two current versions, and never let a full rewrite drop a retained
+   mechanism, condition, counterexample, or provenance link (ACE's context
+   collapse).
 5. Keep limitations, counterexamples, falsifiers, and non-proofs beside the
    decision they constrain.
 6. Keep raw corpora, captions, prompts, model output, caches, and working ledgers
@@ -94,6 +97,10 @@ freshness, not permanence.
 | Matt Pocock skills | [`mattpocock/skills` at `6654f6b`](https://github.com/mattpocock/skills/commit/6654f6b60cd9d5be8b54c6fafe44346dabeb3b76), compared with current [`main`](https://github.com/mattpocock/skills/tree/3cca18b368ae95cdbdebbff572ccafa662551015) | small composable owners, progressive disclosure, leading words, shared language, destination/spec/ticket distinctions; the 2026-09-10 audit confirms the promoted set is unchanged at the pin and records open candidates separately | 2026-09-10 |
 | Matt on global instructions | [AGENTS.md guide](https://www.aihero.dev/a-complete-guide-to-agents-md), [Never Run `/init`](https://www.aihero.dev/never-run-claude-init) | minimal always-loaded context; discoverable facts do not earn permanent prompt space | 2026-07-30 |
 | Commit history contract | [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) | a typed, optionally scoped commit header carries machine-readable intent; automation and history queries depend on consistent conformance, while an unstructured history is missed by tooling | 2026-09-10 |
+| Agentic context engineering | [ACE, ICLR 2026](https://arxiv.org/abs/2510.04618) | contexts as structured evolving playbooks; incremental delta updates plus grow-and-refine prevent context collapse and brevity bias; execution feedback can curate without labels | 2026-09-10 |
+| Sleep-time compute | [Letta and UC Berkeley, 2504.13171](https://arxiv.org/abs/2504.13171) | offline precomputation for predictable future queries cuts test-time compute roughly fivefold; the gain tracks query predictability from the context | 2026-09-10 |
+| Recursive language models | [MIT CSAIL, 2512.24601](https://arxiv.org/abs/2512.24601) | context as an external variable manipulated by code beats compaction for dense long inputs; sub-calls decompose; even frontier models exhibit context rot | 2026-09-10 |
+| Agent memory surveys | [2603.07670](https://arxiv.org/abs/2603.07670), [2605.06716](https://arxiv.org/abs/2605.06716) | working, episodic, semantic, and procedural stores; the episodic-to-semantic transition policy and procedural experience extraction are the underserved, fragile stages | 2026-09-10 |
 | Matt on concise output | [initial before/after](https://www.youtube.com/shorts/I12Mf8KBT1I), [later retraction](https://www.youtube.com/watch?v=9tmsq-Gvx6g) | wording strongly changes presentation, but global placement was later rejected in favor of scoped steering | 2026-07-30 |
 | Matt workflow evolution | [v1.1 changelog](https://www.aihero.dev/skills/skills-changelog-v1-1-wayfinder-to-spec-to-tickets-grilling-improvements), [Wayfinder](https://www.youtube.com/watch?v=F3lL98Pj90o) | one fresh context per frontier ticket; exactly research, prototype, grilling, and task tickets; full resolutions remain linked primary sources while the spec is a temporary implementation destination | 2026-07-31 |
 | Karpathy compact memory | [LLM knowledge-work gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) | immutable sources feed a continuously compiled, indexed synthesis | 2026-07-30 |
