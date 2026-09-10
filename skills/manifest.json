@@ -6,6 +6,23 @@
     "slice-work",
     "source-to-decision"
   ],
+  "runtime_paths": [
+    "config/capability-profiles.json",
+    "config/upstream-sources.json",
+    "scripts/catalog.mjs",
+    "scripts/install.sh",
+    "scripts/krn-codex.mjs",
+    "scripts/lib/catalog-config.mjs",
+    "scripts/lib/catalog-inventory.mjs",
+    "scripts/lib/catalog-path-safety.mjs",
+    "scripts/lib/catalog-profile.mjs",
+    "scripts/lib/catalog-usage.mjs",
+    "scripts/lib/install-release.mjs",
+    "scripts/lib/skills-export.mjs",
+    "scripts/lib/state-brief.mjs",
+    "scripts/lib/state-check.mjs",
+    "skills/manifest.json"
+  ],
   "global_agents": "config/AGENTS.md",
   "global_hooks": "config/hooks.json",
   "global_hook_files": [

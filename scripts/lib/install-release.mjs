@@ -91,23 +91,26 @@ function validateSource(root) {
 }
 
 function runtimePaths(root, manifest) {
-  const files = new Set([
-    "skills/manifest.json",
-    "config/upstream-sources.json",
-    "config/capability-profiles.json",
-    "scripts/install.sh",
-    "scripts/krn-codex.mjs",
-    "scripts/catalog.mjs",
-    "scripts/lib/catalog-config.mjs",
-    "scripts/lib/catalog-inventory.mjs",
-    "scripts/lib/catalog-path-safety.mjs",
-    "scripts/lib/catalog-profile.mjs",
-    "scripts/lib/catalog-usage.mjs",
-    "scripts/lib/install-release.mjs",
-    "scripts/lib/skills-export.mjs",
-    "scripts/lib/state-brief.mjs",
-    "scripts/lib/state-check.mjs",
-  ]);
+  const declared = Array.isArray(manifest.runtime_paths) && manifest.runtime_paths.length > 0
+    ? manifest.runtime_paths
+    : [
+        "skills/manifest.json",
+        "config/upstream-sources.json",
+        "config/capability-profiles.json",
+        "scripts/install.sh",
+        "scripts/krn-codex.mjs",
+        "scripts/catalog.mjs",
+        "scripts/lib/catalog-config.mjs",
+        "scripts/lib/catalog-inventory.mjs",
+        "scripts/lib/catalog-path-safety.mjs",
+        "scripts/lib/catalog-profile.mjs",
+        "scripts/lib/catalog-usage.mjs",
+        "scripts/lib/install-release.mjs",
+        "scripts/lib/skills-export.mjs",
+        "scripts/lib/state-brief.mjs",
+        "scripts/lib/state-check.mjs",
+      ];
+  const files = new Set(declared);
   for (const candidate of [manifest.global_agents, manifest.global_hooks]) files.add(candidate);
   for (const hook of manifest.global_hook_files) files.add(hook.path);
   for (const bin of manifest.bins) files.add(bin.path);
@@ -370,11 +373,21 @@ export function applyInstall(plan) {
   replaceCurrent(plan, plan.release);
   try {
     if (process.env.KRN_TEST_FAIL_AFTER_CURRENT === "1") throw new Error("injected post-current failure");
+    verifyInstalledCli(plan);
     const backup = reconcileTargets(plan);
     return { ...plan, backup, idempotent: Boolean(previous === plan.release) };
   } catch (error) {
     restoreCurrent(plan, previous);
     throw error;
+  }
+}
+
+function verifyInstalledCli(plan) {
+  const entry = path.join(plan.current, "scripts", "krn-codex.mjs");
+  const result = spawnSync(process.execPath, [entry], { encoding: "utf8" });
+  if (result.status !== EXIT_USAGE) {
+    const detail = `${result.stderr || result.stdout || ""}`.split("\n").find((line) => line.trim()) ?? "no output";
+    fail(`installed CLI smoke failed (exit ${result.status ?? "signal"}): ${detail}`, EXIT_CORRUPT);
   }
 }
 

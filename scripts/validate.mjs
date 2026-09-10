@@ -561,6 +561,15 @@ if (manifest.harness_skills !== undefined) {
     }
   }
 }
+if (manifest.runtime_paths !== undefined) {
+  if (!Array.isArray(manifest.runtime_paths) || manifest.runtime_paths.length === 0) {
+    fail("manifest: runtime_paths must be a non-empty array");
+  } else {
+    for (const relative of manifest.runtime_paths) {
+      if (!safeRelativePath(relative)) fail(`manifest: unsafe runtime path ${relative}`);
+    }
+  }
+}
 const knownSkillNames = new Set([...localSkillNames, ...upstreamSkillNames]);
 const validInstallableSkills = validLocalSkills.filter((skill) =>
   installableSkills.includes(skill),

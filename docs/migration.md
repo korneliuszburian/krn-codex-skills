@@ -36,6 +36,11 @@ Verified: 2026-09-10.
    are not inferred or cleaned up by installation.
 8. If reconciliation fails after switching `current`, the previous `current`
    binding is restored. The unselected staged release remains diagnostic state.
+9. The runtime closure is declared by the artifact being installed
+   (`skills/manifest.json` `runtime_paths`), never by the running installer
+   version. After switching `current`, `apply` smoke-runs the linked CLI and
+   restores the previous `current` if it cannot start, so a release that omits
+   a runtime module fails closed instead of reporting a broken install.
 
 ## Doctor evidence
 
