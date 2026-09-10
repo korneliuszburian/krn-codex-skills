@@ -117,8 +117,8 @@ function runtimePaths(root, manifest) {
   }
   const tracked = git(root, ["ls-tree", "-r", "--full-tree", "HEAD", "--", ...files]);
   if (!tracked) fail("manifest runtime closure has no tracked files", EXIT_SOURCE);
-  if (tracked.split("\n").some((line) => line.startsWith("120000 "))) {
-    fail("manifest runtime closure must not contain symbolic links", EXIT_SOURCE);
+  if (tracked.split("\n").some((line) => /^(120000|160000) /.test(line))) {
+    fail("manifest runtime closure must not contain symbolic links or gitlinks", EXIT_SOURCE);
   }
   return [...files].sort();
 }

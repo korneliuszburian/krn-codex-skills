@@ -73,6 +73,22 @@ test("plan is read-only and rejects a dirty source checkout", () => {
   }
 });
 
+test("apply rejects an unsafe manifest hook destination before creating state", () => {
+  const { root, source } = sourceFixture();
+  try {
+    const manifestPath = path.join(source, "skills", "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    manifest.global_hook_files.push({ name: "..", path: "scripts/hooks/krn_pretooluse.py", executable: true });
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    commit(source, "unsafe hook fixture");
+    const result = invoke(root, ["install", "apply", "--source", source, "--yes"]);
+    assert.equal(result.status, 65);
+    assert.equal(fs.existsSync(path.join(root, "codex", "krn")), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("apply materializes an exact immutable release and stable links through current", () => {
   const { root, source } = sourceFixture();
   try {
