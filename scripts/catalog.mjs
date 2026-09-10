@@ -19,7 +19,9 @@ import {
 import { resolveProfile } from "./lib/catalog-profile.mjs";
 import { scanCatalogUsage } from "./lib/catalog-usage.mjs";
 
-const EXIT_USAGE = 64;
+import { EXIT_CODES } from "./lib/diagnostics.mjs";
+
+const EXIT_USAGE = EXIT_CODES.USAGE;
 const EXIT_DRIFT = 3;
 const OPTIONAL_CAPABILITY_PATTERNS = Object.freeze({
   asana: /(?:^|[_@.:-])asana(?:[_@.:-]|$)/i,

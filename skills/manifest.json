@@ -18,6 +18,7 @@
     "scripts/lib/catalog-path-safety.mjs",
     "scripts/lib/catalog-profile.mjs",
     "scripts/lib/catalog-usage.mjs",
+    "scripts/lib/diagnostics.mjs",
     "scripts/lib/install-release.mjs",
     "scripts/lib/lessons.mjs",
     "scripts/lib/skills-export.mjs",

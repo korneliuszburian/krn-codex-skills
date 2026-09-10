@@ -4,10 +4,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const EXIT_USAGE = 64;
-const EXIT_SOURCE = 65;
-const EXIT_CORRUPT = 66;
-const EXIT_COLLISION = 73;
+import { EXIT_CODES } from "./diagnostics.mjs";
+
+const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
 function fail(message, exitCode = 1) {
   const error = new Error(message);

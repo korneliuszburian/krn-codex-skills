@@ -41,6 +41,8 @@ jobs:
         run: npm run test:lessons
       - name: Test validator rule modules
         run: npm run test:validate
+      - name: Test shared libraries
+        run: npm run test:lib
       - name: Check shell and diff hygiene
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

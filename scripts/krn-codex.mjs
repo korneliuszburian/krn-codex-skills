@@ -9,6 +9,7 @@ import { inspectSpineState } from "./lib/state-check.mjs";
 import { compileCapsule, resumeBrief } from "./lib/state-brief.mjs";
 import { checkSkills, exportSkills } from "./lib/skills-export.mjs";
 import { checkLessons } from "./lib/lessons.mjs";
+import { EXIT_CODES, renderDiagnostics } from "./lib/diagnostics.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const usage = `Usage:
@@ -22,7 +23,7 @@ const usage = `Usage:
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
   krn-codex lessons check --root DIR [--json]`;
 
-function fail(message, code = 64) {
+function fail(message, code = EXIT_CODES.USAGE) {
   const error = new Error(message);
   error.exitCode = code;
   throw error;
@@ -80,7 +81,7 @@ try {
         print(report, options.json);
       }
     } catch (error) {
-      fail(error.message, 64);
+      fail(error.message, EXIT_CODES.USAGE);
     }
   } else if (raw[0] === "lessons") {
     const { positional, options } = parseOptions(raw.slice(1));
@@ -101,19 +102,14 @@ try {
           ? compileCapsule({ repo })
           : resumeBrief({ repo });
     } catch (error) {
-      fail(error.message, 64);
+      fail(error.message, EXIT_CODES.USAGE);
     }
     if (command === "compile" && !options.json) process.stdout.write(`${report.capsule}\n`);
     else if (command === "resume" && !options.json) process.stdout.write(`${report.text}\n`);
     else print(report, options.json);
-    for (const warning of report.warnings) {
-      const line = typeof warning === "string" ? warning : [warning.rule, warning.detail].filter(Boolean).join(": ");
-      process.stderr.write(`warning: ${line}\n`);
-    }
-    for (const error of report.errors) {
-      const line = typeof error === "string" ? error : [error.rule, error.detail].filter(Boolean).join(": ");
-      process.stderr.write(`error: ${line}\n`);
-    }
+    const diagnostics = renderDiagnostics(report);
+    for (const warning of diagnostics.warnings) process.stderr.write(`warning: ${warning}\n`);
+    for (const error of diagnostics.errors) process.stderr.write(`error: ${error}\n`);
     if (report.errors.length > 0 || report.status === "divergent") process.exitCode = 1;
   } else {
   const { positional, options } = parseOptions(raw);
@@ -139,7 +135,7 @@ try {
     print(inspectInstall(), options.json);
   } else {
     print(usage, false);
-    process.exitCode = 64;
+    process.exitCode = EXIT_CODES.USAGE;
   }
   }
 } catch (error) {
