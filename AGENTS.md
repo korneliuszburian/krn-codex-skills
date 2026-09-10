@@ -39,6 +39,7 @@ The global contract owns proof budgeting. Run this set once before handoff:
 ```bash
 npm run validate
 npm run test:bootstrap
+npm run test:install
 npm run test:hooks
 npm run test:state
 npm run test:skills

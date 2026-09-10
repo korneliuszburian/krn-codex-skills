@@ -25,6 +25,8 @@ jobs:
         run: npm run validate
       - name: Test installed-release bootstrap
         run: npm run test:bootstrap
+      - name: Test install fail-closed smoke
+        run: npm run test:install
       - name: Test hooks
         run: npm run test:hooks
       - name: Test spine state gate
