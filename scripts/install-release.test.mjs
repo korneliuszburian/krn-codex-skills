@@ -120,6 +120,23 @@ test("an existing matching release is idempotent and corruption fails closed", (
   }
 });
 
+test("a self-attested replacement release is still rejected", () => {
+  const { root, source } = sourceFixture();
+  try {
+    const first = apply(root, source);
+    const releaseSkill = path.join(first.release, "skills", "engineering", "delivery-loop", "SKILL.md");
+    fs.appendFileSync(releaseSkill, "\nforged release\n");
+    const metadata = path.join(first.release, ".krn-release.json");
+    const forged = JSON.parse(fs.readFileSync(metadata, "utf8"));
+    forged.digest = "0".repeat(64);
+    fs.writeFileSync(metadata, `${JSON.stringify(forged)}\n`);
+    const result = invoke(root, ["install", "apply", "--source", source, "--yes"]);
+    assert.equal(result.status, 66);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("checkout mutation cannot alter installed bytes and an interrupted switch rolls current back", () => {
   const { root, source } = sourceFixture();
   try {
@@ -144,6 +161,21 @@ test("checkout mutation cannot alter installed bytes and an interrupted switch r
   }
 });
 
+test("a reconciliation failure restores current and every touched stable destination", () => {
+  const { root, source } = sourceFixture();
+  try {
+    const stable = path.join(root, "skills", "delivery-loop");
+    fs.mkdirSync(path.dirname(stable), { recursive: true });
+    fs.symlinkSync(path.join(source, "skills", "engineering", "delivery-loop"), stable);
+    const result = invoke(root, ["install", "apply", "--source", source, "--yes"], { KRN_TEST_FAIL_DURING_RECONCILE: "1" });
+    assert.notEqual(result.status, 0);
+    assert.equal(fs.realpathSync(stable), path.join(source, "skills", "engineering", "delivery-loop"));
+    assert.equal(fs.existsSync(path.join(root, "codex", "krn", "current")), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("foreign destinations are never replaced", () => {
   const { root, source } = sourceFixture();
   try {
@@ -153,6 +185,55 @@ test("foreign destinations are never replaced", () => {
     const result = invoke(root, ["install", "apply", "--source", source, "--yes"]);
     assert.equal(result.status, 73);
     assert.equal(fs.readFileSync(target, "utf8"), "operator-owned");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("foreign current bindings and source-adjacent links fail closed", () => {
+  const { root, source } = sourceFixture();
+  try {
+    const current = path.join(root, "codex", "krn", "current");
+    fs.mkdirSync(path.dirname(current), { recursive: true });
+    fs.writeFileSync(current, "operator-owned-current");
+    const currentResult = invoke(root, ["install", "apply", "--source", source, "--yes"]);
+    assert.equal(currentResult.status, 73);
+    assert.equal(fs.readFileSync(current, "utf8"), "operator-owned-current");
+    fs.unlinkSync(current);
+    const target = path.join(root, "skills", "delivery-loop");
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.symlinkSync(path.join(source, "README.md"), target);
+    const linkResult = invoke(root, ["install", "apply", "--source", source, "--yes"]);
+    assert.equal(linkResult.status, 73);
+    assert.equal(fs.realpathSync(target), path.join(source, "README.md"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a global instruction override blocks apply", () => {
+  const { root, source } = sourceFixture();
+  try {
+    const override = path.join(root, "codex", "AGENTS.override.md");
+    fs.mkdirSync(path.dirname(override), { recursive: true });
+    fs.writeFileSync(override, "operator override");
+    const result = invoke(root, ["install", "apply", "--source", source, "--yes"]);
+    assert.equal(result.status, 73);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("ignored source bytes never enter a release", () => {
+  const { root, source } = sourceFixture();
+  try {
+    const privateFile = path.join(source, "skills", "engineering", "delivery-loop", "private.txt");
+    fs.writeFileSync(path.join(source, ".gitignore"), "skills/engineering/delivery-loop/private.txt\n", { flag: "a" });
+    fs.writeFileSync(privateFile, "do not release");
+    commit(source, "ignore private release fixture");
+    fs.writeFileSync(privateFile, "do not release");
+    const installed = apply(root, source);
+    assert.equal(fs.existsSync(path.join(installed.release, "skills", "engineering", "delivery-loop", "private.txt")), false);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

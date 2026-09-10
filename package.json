@@ -5,7 +5,7 @@
   "type": "module",
   "bin": {
     "krn-codex": "scripts/krn-codex.mjs",
-    "krn-codex-catalog": "scripts/catalog.mjs"
+    "krn-codex-catalog": "scripts/krn-codex-catalog.mjs"
   },
   "scripts": {
     "test:frontend-browser": "npm --prefix evals/frontend-browser-fixture run capture && npm --prefix evals/frontend-browser-fixture run verify",

@@ -82,7 +82,6 @@ function runtimePaths(root, manifest) {
   const files = new Set([
     "skills/manifest.json",
     "config/capability-profiles.json",
-    "config/upstream-sources.json",
     "scripts/install.sh",
     "scripts/krn-codex.mjs",
     "scripts/catalog.mjs",
@@ -103,6 +102,11 @@ function runtimePaths(root, manifest) {
     if (!safeRelativePath(relative) || !fs.existsSync(path.join(root, relative))) {
       fail(`manifest runtime path is absent or unsafe: ${relative}`, EXIT_SOURCE);
     }
+  }
+  const tracked = git(root, ["ls-tree", "-r", "--full-tree", "HEAD", "--", ...files]);
+  if (!tracked) fail("manifest runtime closure has no tracked files", EXIT_SOURCE);
+  if (tracked.split("\n").some((line) => line.startsWith("120000 "))) {
+    fail("manifest runtime closure must not contain symbolic links", EXIT_SOURCE);
   }
   return [...files].sort();
 }
@@ -157,6 +161,10 @@ function releaseMetadata(release) {
 }
 
 function verifyRelease(release, commit) {
+  const stat = fs.lstatSync(release, { throwIfNoEntry: false });
+  if (!stat || !stat.isDirectory() || stat.isSymbolicLink()) {
+    fail(`existing release is not a regular directory: ${release}`, EXIT_CORRUPT);
+  }
   const metadata = releaseMetadata(release);
   if (metadata.schemaVersion !== 1 || metadata.commit !== commit || typeof metadata.digest !== "string") {
     fail(`existing release metadata does not match ${commit}: ${release}`, EXIT_CORRUPT);
@@ -167,12 +175,13 @@ function verifyRelease(release, commit) {
 }
 
 function copyRuntime(plan, staging) {
-  for (const relative of plan.runtimePaths) {
-    const source = path.join(plan.source, relative);
-    const destination = path.join(staging, relative);
-    fs.mkdirSync(path.dirname(destination), { recursive: true });
-    fs.cpSync(source, destination, { dereference: true, recursive: true, force: false });
-  }
+  // Git archive, rather than a filesystem copy, makes the release exactly the
+  // resolved commit: ignored and untracked bytes can never cross the boundary.
+  const archive = execFileSync("git", ["archive", "--format=tar", plan.commit, "--", ...plan.runtimePaths], {
+    cwd: plan.source,
+    maxBuffer: 32 * 1024 * 1024,
+  });
+  execFileSync("tar", ["-x", "-C", staging, "--no-same-owner"], { input: archive });
   const metadata = {
     schemaVersion: 1,
     commit: plan.commit,
@@ -217,12 +226,42 @@ function stableTarget(plan, item) {
   return path.join(plan.current, item.relative);
 }
 
+function isPriorReleasePath(plan, item, linked) {
+  const releases = path.join(plan.releaseRoot, "releases");
+  if (!isInside(releases, linked)) return false;
+  const segments = path.relative(releases, linked).split(path.sep);
+  return segments.length > 1 && segments.slice(1).join(path.sep) === item.relative;
+}
+
+function isTrustedLegacySource(plan, item, linked) {
+  const root = git(path.dirname(linked), ["rev-parse", "--show-toplevel"]);
+  if (!root || path.relative(root, linked) !== item.relative) return false;
+  const expectedRemote = git(plan.source, ["remote", "get-url", "origin"]);
+  return Boolean(expectedRemote && expectedRemote === git(root, ["remote", "get-url", "origin"]));
+}
+
+function preflightCurrent(plan) {
+  const stat = fs.lstatSync(plan.current, { throwIfNoEntry: false });
+  if (!stat) return;
+  const linked = resolvedLink(plan.current);
+  if (!linked || !isInside(path.join(plan.releaseRoot, "releases"), linked)) {
+    fail(`refusing foreign current binding: ${plan.current}`, EXIT_COLLISION);
+  }
+}
+
 function preflightTargets(plan) {
+  preflightCurrent(plan);
+  const override = path.join(path.dirname(plan.releaseRoot), "AGENTS.override.md");
+  if (fs.lstatSync(override, { throwIfNoEntry: false })) {
+    fail(`refusing masked global instructions: ${override}`, EXIT_COLLISION);
+  }
   for (const item of managedTargets(plan)) {
     const stat = fs.lstatSync(item.target, { throwIfNoEntry: false });
     if (!stat) continue;
     const linked = resolvedLink(item.target);
-    if (linked && (isInside(plan.releaseRoot, linked) || isInside(plan.source, linked))) continue;
+    const expectedSource = path.join(plan.source, item.relative);
+    const expectedCurrent = resolvedLink(stableTarget(plan, item));
+    if (linked && (linked === expectedSource || linked === expectedCurrent || isPriorReleasePath(plan, item, linked) || isTrustedLegacySource(plan, item, linked))) continue;
     fail(`refusing foreign managed destination collision: ${item.target}`, EXIT_COLLISION);
   }
 }
@@ -246,20 +285,37 @@ function restoreCurrent(plan, previous) {
 function reconcileTargets(plan) {
   const backup = path.join(plan.releaseRoot, "migration-backups", `${new Date().toISOString().replaceAll(/[:.]/g, "-")}-${process.pid}`);
   let usedBackup = false;
-  for (const item of managedTargets(plan)) {
-    fs.mkdirSync(path.dirname(item.target), { recursive: true });
-    const expected = stableTarget(plan, item);
-    const linked = resolvedLink(item.target);
-    if (linked === fs.realpathSync(expected)) {
-      const textual = fs.readlinkSync(item.target);
-      if (textual.includes(`${path.sep}current${path.sep}`)) continue;
+  const changed = [];
+  try {
+    for (const item of managedTargets(plan)) {
+      fs.mkdirSync(path.dirname(item.target), { recursive: true });
+      const expected = stableTarget(plan, item);
+      const linked = resolvedLink(item.target);
+      if (linked === fs.realpathSync(expected)) {
+        const textual = fs.readlinkSync(item.target);
+        if (textual.includes(`${path.sep}current${path.sep}`)) continue;
+      }
+      const entry = { target: item.target, backup: null };
+      if (fs.lstatSync(item.target, { throwIfNoEntry: false })) {
+        fs.mkdirSync(backup, { recursive: true });
+        entry.backup = path.join(backup, item.label);
+        fs.renameSync(item.target, entry.backup);
+        usedBackup = true;
+      }
+      fs.symlinkSync(expected, item.target);
+      changed.push(entry);
+      if (process.env.KRN_TEST_FAIL_DURING_RECONCILE === "1" && changed.length === 1) {
+        throw new Error("injected reconciliation failure");
+      }
     }
-    if (fs.lstatSync(item.target, { throwIfNoEntry: false })) {
-      fs.mkdirSync(backup, { recursive: true });
-      fs.renameSync(item.target, path.join(backup, item.label));
-      usedBackup = true;
+  } catch (error) {
+    for (const entry of changed.reverse()) {
+      if (fs.lstatSync(entry.target, { throwIfNoEntry: false })) fs.unlinkSync(entry.target);
+      if (entry.backup && fs.lstatSync(entry.backup, { throwIfNoEntry: false })) {
+        fs.renameSync(entry.backup, entry.target);
+      }
     }
-    fs.symlinkSync(expected, item.target);
+    throw error;
   }
   return usedBackup ? backup : null;
 }
@@ -267,17 +323,23 @@ function reconcileTargets(plan) {
 export function applyInstall(plan) {
   preflightTargets(plan);
   fs.mkdirSync(path.dirname(plan.release), { recursive: true });
-  if (fs.existsSync(plan.release)) {
-    verifyRelease(plan.release, plan.commit);
-  } else {
-    const staging = fs.mkdtempSync(path.join(plan.releaseRoot, ".staging-"));
-    try {
-      copyRuntime(plan, staging);
-      fs.renameSync(staging, plan.release);
-    } catch (error) {
+  const staging = fs.mkdtempSync(path.join(plan.releaseRoot, ".staging-"));
+  try {
+    const expected = copyRuntime(plan, staging);
+    if (fs.lstatSync(plan.release, { throwIfNoEntry: false })) {
+      const existing = verifyRelease(plan.release, plan.commit);
+      if (existing.digest !== expected.digest || JSON.stringify(existing.runtimePaths) !== JSON.stringify(expected.runtimePaths)) {
+        fail(`existing release does not match the resolved source: ${plan.release}`, EXIT_CORRUPT);
+      }
       fs.rmSync(staging, { recursive: true, force: true });
-      throw error;
+    } else {
+      fs.renameSync(staging, plan.release);
     }
+  } catch (error) {
+    if (fs.lstatSync(staging, { throwIfNoEntry: false })) {
+      fs.rmSync(staging, { recursive: true, force: true });
+    }
+    throw error;
   }
   verifyRelease(plan.release, plan.commit);
   const previous = resolvedLink(plan.current);
@@ -300,7 +362,7 @@ function itemStatus(plan, item) {
   if (!linked) return { target: item.target, status: "broken_link" };
   if (isInside(plan.releaseRoot, linked)) {
     const text = fs.readlinkSync(item.target);
-    return { target: item.target, status: text.includes(`${path.sep}current${path.sep}`) ? "filesystem_installed" : "legacy_mutable_source" };
+    return { target: item.target, status: text.includes(`${path.sep}current${path.sep}`) ? "filesystem_installed" : "stable_link_bypasses_current" };
   }
   return { target: item.target, status: "legacy_mutable_source" };
 }
@@ -315,7 +377,10 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     session: { status: "session_loaded_unknown" },
     sessionAfterApply: { status: "stale_session_likely" },
   };
-  if (!currentTarget) return { ...base, filesystem: { status: fs.lstatSync(current, { throwIfNoEntry: false }) ? "broken_link" : "missing" }, targets: [] };
+  if (!currentTarget) {
+    const currentStat = fs.lstatSync(current, { throwIfNoEntry: false });
+    return { ...base, filesystem: { status: currentStat && !currentStat.isSymbolicLink() ? "foreign_collision" : currentStat ? "broken_link" : "missing" }, targets: [] };
+  }
   let metadata;
   try { metadata = verifyRelease(currentTarget, path.basename(currentTarget)); }
   catch (error) { return { ...base, filesystem: { status: "broken_link", detail: error.message }, targets: [] }; }

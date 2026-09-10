@@ -24,7 +24,7 @@
     },
     {
       "name": "krn-codex-catalog",
-      "path": "scripts/catalog.mjs"
+      "path": "scripts/krn-codex-catalog.mjs"
     },
     {
       "name": "krn-frontend-browser",
