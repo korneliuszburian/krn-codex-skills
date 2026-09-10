@@ -8,9 +8,8 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [README.md](README.md) — operator entrypoint, main workflow, and skill catalog.
 - [docs/research/README.md](docs/research/README.md) — research index and curation contract.
 - [docs/research/orchestration.md](docs/research/orchestration.md) — current lifecycle spine, admission matrix, and falsifiers.
-- [docs/research/harmonic-harness.md](docs/research/harmonic-harness.md) — complete skill map and the adopted context/evidence/authority architecture, with frontend and Beads lab boundaries.
+- [docs/research/harmonic-harness.md](docs/research/harmonic-harness.md) — complete core-harness skill map and the adopted context/evidence/authority architecture.
 - [docs/research/skills-3arm-lab.md](docs/research/skills-3arm-lab.md) — three-arm skills lab spec and verdict: no measured advantage of forked skills over upstream or no-skill; the shared set composes upstream.
-- [docs/research/frontend-authoring.md](docs/research/frontend-authoring.md) — source-backed frontend mechanism dispositions after the P5 `STOP_SAFETY` result; constrains P7 topology and any fresh replacement protocol.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
@@ -63,52 +62,8 @@ the system emits the canonical term so handoffs stay stable.
 **Trigger collision** — two descriptions claim the same task without a clear
 owner/companion relationship.
 
-**Frontend authoring owner** — the sole mutable outcome workflow for creating
-or substantially refining a rendered frontend view from a brief, discovery
-dossier, review report, reference, or existing codebase. It consumes review as
-repair input, may compose CUBE methodology when selected, and does not own
-product acceptance, data, or cross-view state.
-_Avoid_: frontend pipeline, refinement skill, master frontend skill
-
-**Frontend branch** — a conditional authoring decision that has no independent
-public trigger or stopping condition. It belongs inside the frontend authoring
-owner and may load a direct reference.
-_Avoid_: micro-skill, mandatory phase
-
-**Frontend discovery** — the no-edit dossier owner for lawful reference,
-screenshot, and existing-surface analysis. It distinguishes observation from
-inference and hands unresolved user choices to generic grilling, source facts to
-research, and one disposable uncertainty to prototype when needed.
-_Avoid_: build phase, frontend grilling alias, asset extraction
-
-**Frontend visual review** — the read-only critique owner for a rendered view
-against supplied intent and declared states. It returns evidence-linked,
-severity/confidence-qualified repair findings and never edits or accepts work.
-_Avoid_: browser provider, code review, visual acceptance
-
-**Frontend CUBE CSS companion** — the repo-owned `frontend-cube-css` explicit
-CSS responsibility-and-scope methodology: Global, Composition, Utility, Block,
-and Exception. It informs a selected authoring decision and may independently
-complete only one declared styling edit inside an already-owned existing block
-or composition; it owns neither lifecycle nor a competing full-view workflow.
-The full P7 v2 frontend package remains source-only until fresh behavioral
-proof. A future CUBE installation additionally requires separately authorized
-retirement or migration of the incumbent global `cube-css`.
-_Avoid_: generic frontend author, CUBE pipeline, alternate mutation owner
-
-**Frontend reference pack** — provenance-bound, conditionally loaded knowledge
-or examples that inform one owner or companion but never trigger or orchestrate
-work independently.
-_Avoid_: library skill, source dump
-
-**Frontend evidence provider** — a browser or deterministic tool surface that
-observes a frontend result. It produces admissible evidence but never owns
-authoring decisions or subjective quality judgment; visual review interprets
-the evidence against intent.
-_Avoid_: frontend reviewer, visual-quality skill
-
 **Project adapter** — local domain and runtime constraints that connect a
-global frontend owner to one repository without becoming global doctrine.
+global workflow owner to one repository without becoming global doctrine.
 _Avoid_: global project standard, universal stack
 
 ## Context continuity

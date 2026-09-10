@@ -1,9 +1,0 @@
-{
-  "name": "@krn/frontend-browser-fixture",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "capture": "node capture.mjs",
-    "verify": "node ../../scripts/frontend-browser-gate.mjs --config browser-evidence.config.json"
-  }
-}

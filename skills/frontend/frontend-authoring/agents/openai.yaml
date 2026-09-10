@@ -1,6 +1,0 @@
-interface:
-  display_name: "Frontend Authoring"
-  short_description: "Author substantial responsive rendered frontend views."
-  default_prompt: "Use $frontend-authoring to create or substantially rework this rendered frontend view."
-policy:
-  allow_implicit_invocation: true

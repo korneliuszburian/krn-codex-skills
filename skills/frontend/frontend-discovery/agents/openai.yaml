@@ -1,6 +1,0 @@
-interface:
-  display_name: "Frontend Discovery"
-  short_description: "Analyse references into a build-ready frontend dossier."
-  default_prompt: "Use $frontend-discovery to analyse this reference without building it."
-policy:
-  allow_implicit_invocation: true

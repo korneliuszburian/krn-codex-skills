@@ -8,7 +8,6 @@ checkout remains an authoring surface; it is never a stable discovery target.
 | Surface | Owner | Installer action |
 |---|---|---|
 | manifest-declared skills, bins, global AGENTS, hooks | this repository | copy their runtime closure into a commit-addressed release and link stable destinations through `current` |
-| source-only frontend pack and incumbent `cube-css` | frontend decision / existing owner | leave untouched and absent from every release |
 | vendor, plugin-cache, and upstream skills | their own owner | leave untouched |
 | foreign stable destination | operator | refuse without changing it |
 | old KRN link into the selected source checkout or a prior KRN release | KRN installer | move the link to a timestamped backup, then replace it through `current` |
@@ -29,8 +28,8 @@ checkout remains an authoring surface; it is never a stable discovery target.
 6. A foreign file, directory, or link fails closed. The installer can replace
    only a prior link into the selected source checkout or a release, preserving it under
    `$CODEX_HOME/krn/migration-backups/`.
-7. Source-only packs, legacy names outside manifest ownership, vendor skills,
-   and plugin caches are not inferred or cleaned up by installation.
+7. Legacy names outside manifest ownership, vendor skills, and plugin caches
+   are not inferred or cleaned up by installation.
 8. If reconciliation fails after switching `current`, the previous `current`
    binding is restored. The unselected staged release remains diagnostic state.
 

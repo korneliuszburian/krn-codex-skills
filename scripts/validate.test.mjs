@@ -40,6 +40,29 @@ function withFixture(run) {
         return VISIBLE_REPOSITORY_PATHS.has(path.relative(REPO, source));
       },
     });
+    const sourceOnlyRoot = path.join(fixture, "skills", "meta", "fixture-source-only");
+    fs.mkdirSync(path.join(sourceOnlyRoot, "agents"), { recursive: true });
+    fs.writeFileSync(path.join(sourceOnlyRoot, "SKILL.md"), "---\nname: fixture-source-only\ndescription: Fixture source-only skill.\n---\n\n# Fixture source-only skill\n");
+    fs.writeFileSync(path.join(sourceOnlyRoot, "agents", "openai.yaml"), "interface:\n  display_name: \"Fixture Source-only\"\n  short_description: \"Validate source-only metadata\"\n  default_prompt: \"Use $fixture-source-only for this fixture.\"\npolicy:\n  allow_implicit_invocation: true\n");
+    const fixtureManifestPath = path.join(fixture, "skills", "manifest.json");
+    const fixtureManifest = JSON.parse(fs.readFileSync(fixtureManifestPath, "utf8"));
+    fixtureManifest.source_only_skills = [{ name: "fixture-source-only", path: "skills/meta/fixture-source-only", implicit: true }];
+    fs.writeFileSync(fixtureManifestPath, `${JSON.stringify(fixtureManifest, null, 2)}\n`);
+    const fixtureReadmePath = path.join(fixture, "README.md");
+    const fixtureReadme = fs.readFileSync(fixtureReadmePath, "utf8");
+    fs.writeFileSync(fixtureReadmePath, fixtureReadme.replace(
+      "There are no source-only packs on this core branch. Frontend skills and their\nbrowser labs are maintained on `frontend-lab` until a separate promotion\ndecision is made.",
+      "- [`fixture-source-only`](skills/meta/fixture-source-only/SKILL.md) — fixture source-only pack, not installed.",
+    ));
+    const fixtureCasesPath = path.join(fixture, "evals", "trigger-cases.json");
+    const fixtureCases = JSON.parse(fs.readFileSync(fixtureCasesPath, "utf8"));
+    fixtureCases.cases.push(
+      { id: "fixture-source-only-positive", prompt: "Use the fixture source-only skill for this fixture task.", expected_skills: ["fixture-source-only"], forbidden_skills: [] },
+      { id: "fixture-source-only-negative", prompt: "Implement this ordinary fixture task without the source-only pack.", expected_skills: [], forbidden_skills: ["fixture-source-only"] },
+    );
+    const recovery = fixtureCases.cases.find((entry) => entry.id === "goal-recovery-is-not-global-workflow");
+    recovery.forbidden_skills.push("fixture-source-only");
+    fs.writeFileSync(fixtureCasesPath, `${JSON.stringify(fixtureCases, null, 2)}\n`);
     const initialized = spawnSync("git", ["init", "--quiet"], {
       cwd: fixture,
       encoding: "utf8",
@@ -200,12 +223,12 @@ test("rejects an unknown retired-skill replacement", () => {
 test("fully validates source-only skill metadata", () => {
   withFixture((fixture) => {
     fs.rmSync(
-      path.join(fixture, "skills", "frontend", "frontend-cube-css", "agents", "openai.yaml"),
+      path.join(fixture, "skills", "meta", "fixture-source-only", "agents", "openai.yaml"),
     );
 
     const result = validate(fixture);
     assert.notEqual(result.status, 0);
-    assert.match(diagnostics(result), /frontend-cube-css: missing agents\/openai.yaml/);
+    assert.match(diagnostics(result), /fixture-source-only: missing agents\/openai.yaml/);
   });
 });
 
@@ -214,15 +237,15 @@ test("requires a canonical README pointer for every source-only skill", () => {
     const readme = path.join(fixture, "README.md");
     const source = fs.readFileSync(readme, "utf8");
     const changed = source.replace(
-      "](skills/frontend/frontend-cube-css/SKILL.md)",
-      "](skills/frontend/frontend-cube-css/missing.md)",
+      "](skills/meta/fixture-source-only/SKILL.md)",
+      "](skills/meta/fixture-source-only/missing.md)",
     );
     assert.notEqual(changed, source, "fixture must contain the source-only pointer");
     fs.writeFileSync(readme, changed);
 
     const result = validate(fixture);
     assert.notEqual(result.status, 0);
-    assert.match(diagnostics(result), /source-only skill frontend-cube-css must have exactly one canonical pointer/);
+    assert.match(diagnostics(result), /source-only skill fixture-source-only must have exactly one canonical pointer/);
   });
 });
 
@@ -254,7 +277,7 @@ test("rejects a source-only skill that collides with a retired name", () => {
     const manifestPath = path.join(fixture, "skills", "manifest.json");
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
     manifest.retired_skills.push({
-      name: "frontend-cube-css",
+      name: "fixture-source-only",
       replacement: null,
       owner: "repository",
     });
@@ -262,7 +285,7 @@ test("rejects a source-only skill that collides with a retired name", () => {
 
     const result = validate(fixture);
     assert.notEqual(result.status, 0);
-    assert.match(diagnostics(result), /retired skill frontend-cube-css is still active/);
+    assert.match(diagnostics(result), /retired skill fixture-source-only is still active/);
   });
 });
 
@@ -289,7 +312,7 @@ test("rejects malformed source-only metadata without crashing", () => {
     const manifestPath = path.join(fixture, "skills", "manifest.json");
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
     manifest.source_only_skills = [{
-      name: "frontend-cube-css",
+      name: "fixture-source-only",
       path: 7,
       implicit: true,
       staging: true,
@@ -300,7 +323,7 @@ test("rejects malformed source-only metadata without crashing", () => {
     assert.notEqual(result.status, 0);
     assert.doesNotMatch(diagnostics(result), /TypeError/);
     assert.match(diagnostics(result), /must contain only implicit, name, and path/);
-    assert.match(diagnostics(result), /unsafe path for frontend-cube-css/);
+    assert.match(diagnostics(result), /unsafe path for fixture-source-only/);
   });
 });
 

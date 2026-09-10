@@ -3,7 +3,7 @@
 Status: **adopted architecture map; selected mechanisms remain lab-test or
 deferred**. Verified 2026-09-10. This page is the canonical synthesis for the
 whole KRN harness: upstream workflow composition, local owners, context
-continuity, evidence, target-repository setup, and future frontend/Beads work.
+continuity, evidence, target-repository setup, and optional task-graph adapters.
 It is not a second skill catalog and it does not authorize installing an
 upstream experiment or a third-party tracker.
 
@@ -18,10 +18,9 @@ Named consumers:
 - `CONTEXT.md` and `README.md` — the compact operator map and routing language;
 - `delivery-loop` — outcome state, handoffs, authority, and cleanup;
 - `setup-repository-workflow` — target-repository bootstrap and tracker branch;
-- `evals/` — falsifiers for routing, installation, setup, and future frontend
-  behavior;
-- source-only frontend packs — a future authoring/discovery/review experiment,
-  not an unconditional global install.
+- `evals/` — falsifiers for routing, installation, setup, and harness behavior;
+- future domain-specific packs — separate branches until a named consumer and
+  behavioral proof exist.
 
 ## The one spine
 
@@ -177,50 +176,6 @@ scripts. A reference is not promoted because it sounds wise or because a model
 repeats it. It is promoted when a new task beats a baseline without creating a
 trigger collision, owner collision, or evidence gap.
 
-## Frontend/CUBE development lane
-
-The frontend package stays source-only until fresh behavior proves a consumer.
-It must remain four distinct surfaces:
-
-```text
-frontend-discovery
-  observe lawful references, existing DOM/CSS, and declared states;
-  separate observation from inference and unresolved user choices.
-
-frontend-authoring
-  owns the mutable rendered-view outcome and composes selected references.
-
-frontend-cube-css
-  is a scoped Global/Composition/Utility/Block/Exception companion;
-  it does not become a competing full-view owner.
-
-frontend-visual-review
-  independently interprets browser evidence against intent;
-  it never edits or accepts the work.
-```
-
-The senior reasoning loop is relational, not a class-name recipe:
-
-```text
-content relationship
-  → layout primitive (flow, grid, cluster, sidebar, switcher, ...)
-  → responsibility layer (global / composition / utility / block / exception)
-  → local exception only when the invariant is explicit
-  → responsive failure mode and browser evidence
-```
-
-The minimum future comparison is three arms: plain authoring; authoring with
-the condensed CUBE pack; and CUBE plus independent visual review. A screenshot
-alone is not proof. The evaluator must combine semantics, behavior at declared
-viewports, console/network/runtime evidence, and a calibrated visual rubric
-(severity, confidence, evidence pointer, repair recommendation, abstention).
-The experiment must test transfer to layouts that do not match the reference
-examples; otherwise it measures mimicry, not senior reasoning.
-
-No private course text, transcript, exercise, or solution belongs in this
-repository. Only original mechanisms, boundaries, and cited public provenance
-are eligible for promotion.
-
 ## Beads boundary
 
 Beads is a candidate **task-graph adapter**, not a replacement harness. Its
@@ -252,8 +207,6 @@ exist. See the detailed [Beads audit](beads-task-system.md).
 | Acceptance locks and direct-seam proof | adopt as local invariant | a simpler existing evaluator catches the same contradictions with equal reliability |
 | Generic vector/SQLite memory | defer | multi-session trials show capsule/context loss that links and compact files cannot repair |
 | Beads core graph | lab-test | claims duplicate, blockers do not release, or tracker state is mistaken for completion |
-| Frontend CUBE reference pack | lab-test | three-arm transfer trial shows no improvement or increases routing/maintenance cost |
-| Independent browser visual review | lab-test | calibrated review fails to distinguish known defects or cannot provide evidence pointers |
 | OpenCode advisory transport | lab-test | bounded-run tests fail timeout, attribution, or scope/readback invariants |
 
 Every proposed addition must name one consumer, one owner, one stopping
@@ -281,6 +234,6 @@ the primary papers [ReAct](https://arxiv.org/abs/2210.03629),
 [Beads repository](https://github.com/gastownhall/beads).
 
 These sources establish mechanisms and design hypotheses, not proof that KRN
-or any future frontend pack improves a model. KRN's own fixtures and
+or any future domain-specific pack improves a model. KRN's own fixtures and
 experiments remain the acceptance evidence. Recheck moving upstream pages,
 issue proposals, model behavior, and third-party commands before adoption.

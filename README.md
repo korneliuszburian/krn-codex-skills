@@ -90,18 +90,6 @@ tracker capability is emulated.
 | [`unlazy`](skills/meta/unlazy/SKILL.md) | explicit only | machine-checked completion gates for long or multi-phase work |
 | [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
 
-### Source-only packs
-
-The frontend package is not installed before fresh behavioral proof. Its
-validated source-only packs are
-[`frontend-discovery`](skills/frontend/frontend-discovery/SKILL.md),
-[`frontend-authoring`](skills/frontend/frontend-authoring/SKILL.md),
-[`frontend-cube-css`](skills/frontend/frontend-cube-css/SKILL.md), and
-[`frontend-visual-review`](skills/frontend/frontend-visual-review/SKILL.md).
-Promotion moves an accepted pack into the installable catalog in a later fixed
-point. `frontend-cube-css` additionally requires an authorized migration of the
-incumbent global `cube-css`; this source state neither retires nor replaces it.
-
 The shared engineering and productivity flow (`ask-matt`, `wayfinder`,
 `to-spec`, `to-tickets`, `implement`, `diagnosing-bugs`, `research`,
 `prototype`, `codebase-design`, `improve-codebase-architecture`,
@@ -119,6 +107,12 @@ retained in the private content-addressed archive named by that experiment).
 Only `diagnosing-bugs` was directly measured; the broader upstream composition
 is a policy decision constrained by that limited result, not a claim that every
 skill has been benchmarked.
+
+### Source-only packs
+
+There are no source-only packs on this core branch. Frontend skills and their
+browser labs are maintained on `frontend-lab` until a separate promotion
+decision is made.
 
 Descriptions and `agents/openai.yaml` are the routing authority. README is the
 only human skill catalog; there are no hand-maintained per-skill mirror pages.
@@ -139,10 +133,9 @@ explicit manifest-owned runtime closure to
 `$CODEX_HOME/krn/current`. Stable skill, bin, global-contract, and hook links
 lead through `current`, never to the source checkout. Existing matching
 releases are idempotent; a mismatched or tampered release fails closed. The
-installer links only manifest-owned skills into `~/.agents/skills`, the CLI,
-catalog compatibility shim, and neutral browser-evidence executables into
-`~/.local/bin`, the global contract into Codex, and one deterministic
-`PreToolUse` guard. It
+installer links only manifest-owned skills into `~/.agents/skills`, the CLI, and
+catalog compatibility shim into `~/.local/bin`, the global contract into Codex,
+and one deterministic `PreToolUse` guard. It
 applies path-aware policy to recognized direct `rm`, denies recognized literal
 non-dry-run `git clean`, blocks exact literal quarantine references and patch
 targets, and denies unsupported shell composition only when it contains the

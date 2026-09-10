@@ -97,8 +97,6 @@ function runtimePaths(root, manifest) {
     "scripts/install.sh",
     "scripts/krn-codex.mjs",
     "scripts/catalog.mjs",
-    "scripts/frontend-browser-evidence.mjs",
-    "scripts/frontend-browser-gate.mjs",
     "scripts/lib/catalog-config.mjs",
     "scripts/lib/catalog-inventory.mjs",
     "scripts/lib/catalog-path-safety.mjs",
