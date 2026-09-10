@@ -1,6 +1,6 @@
 # Orchestration and compact context
 
-Status: accepted synthesis, refreshed 2026-08-26. Rework this page in place when a
+Status: accepted synthesis, refreshed 2026-09-10. Rework this page in place when a
 falsifier fires; do not append a parallel “v2” report.
 
 ## Decision question
@@ -196,11 +196,11 @@ is not adoption or proof of production isolation.
 names from the pinned source lock, while keeping KRN-owned workflow validation
 keyed to the local manifest.
 
-The matrix now has three positive `research` cases (primary-source capture,
-competing mechanisms, and an implementation brief) plus hard negatives for
-fact lookup and summary work. `npm run validate` passes 66 cases and the
-validator suite passes 8/8. This closes the previous false “unknown upstream
-skill” failure without granting upstream names local installation ownership.
+The matrix now has positive `research` cases for primary-source capture,
+competing mechanisms, and an implementation brief, plus hard negatives for
+fact lookup and summary work. The validator keeps the pinned discovery
+contract separate from local installation ownership and rejects unknown
+upstream names without granting them local ownership.
 
 This proves matrix/schema coverage and the current pinned discovery contract;
 it does not prove that a model selects the intended skill on every prompt, that
@@ -232,9 +232,8 @@ called its compiler: routine review already has repository access and the
 external checker owns its own packet/schema/transport. A deterministic helper
 without a demonstrated consumer is not a promoted workflow.
 
-Five local skills remain explicit-only:
+Four local skills remain explicit-only:
 
-- `wayfinder` because it starts a durable multi-session decision map;
 - `setup-repository-workflow` because it mutates repository instructions;
 - `opencode-second-opinion` because it starts an external advisory run;
 - `unlazy` because it starts a completion ledger and gate re-verification;
@@ -247,6 +246,58 @@ remote mutation.
 No central router is added. Descriptions are the admission router and the
 small global route table records only collision-prone seams. Add a router only
 after repeated human recall failures across the three explicit skills.
+
+## Complete owner map
+
+The harness map is a routing boundary, not a second skill catalog. This compact
+map records the owner groups and their stopping boundaries so `README.md` can
+remain the human catalog.
+
+| Owner group | Owners | Boundary |
+|---|---|---|
+| Admission | `ask-matt`, `wayfinder`, `triage`, `grill-with-docs`, `grilling`, `wait-what` | select one unresolved owner or restore shared understanding; no production mutation |
+| Evidence and design | `research`, `source-to-decision`, `prototype`, `domain-modeling`, `codebase-design`, `improve-codebase-architecture`, `target-repo-work`, `typescript-engineering` | produce cited facts, a decision, a disposable artifact, or a selected seam |
+| Planning and execution | `to-spec`, `slice-work`, `to-tickets`, `implement`, `tdd`, `diagnosing-bugs`, `setup-repository-workflow`, `setup-matt-pocock-skills`, `resolving-merge-conflicts`, `wizard` | produce one authorized slice, setup operation, or resolved repository operation |
+| Proof and continuity | `code-review`, `opencode-second-opinion`, `unlazy`, `handoff`, `delivery-loop`, `writing-for-agents`, `managing-codex-capabilities`, `unslop` | interpret evidence, preserve restart state, or reconcile explicitly owned capability/prose state |
+
+Every owner has one stop condition. A test pass, issue status, advisory answer,
+or successful install proves only its own boundary; it never grants authority
+for another workflow. `delivery-loop` owns lifecycle state and the single
+outcome capsule writer, while specialist skills retain their procedures.
+
+## Condensing expert material into skills
+
+The reusable unit is a mechanism, not a lesson, slogan, transcript, or copied
+course chapter:
+
+```text
+source material → candidate mechanisms → boundary and hard negative
+→ representative example → named owner and trigger → falsifier → promotion
+```
+
+Each promoted reference must state its mechanism, use condition, desired choice,
+tempting counter-choice, one representative example, one counterexample, owner,
+and falsifier. `SKILL.md` remains the routing/procedure boundary, references
+hold mechanisms and examples, and scripts perform only deterministic work.
+Promotion requires a new task to beat a baseline without a trigger collision,
+owner collision, or evidence gap.
+
+## Task-graph boundary
+
+Beads remains a bounded task-graph candidate, not a lifecycle or memory owner.
+
+| Surface | Owns |
+|---|---|
+| Beads, if adopted | tasks, dependencies, claims, queue state |
+| `delivery-loop` | outcome truth, authority, publication, capsule |
+| skills | procedures and decision ownership |
+| `evals/` | admissible evidence and grading |
+| `CONTEXT.md` / research / ADRs | durable semantic knowledge |
+
+Any Beads pilot must use a pinned binary in a disposable target repository,
+avoid default instruction or hook mutations, and compare duplicate claims,
+blocker release, reset recovery, false completion, and operator cost against
+the current capsule baseline. See the detailed [Beads audit](beads-task-system.md).
 
 ## Review and re-review
 

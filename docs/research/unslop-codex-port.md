@@ -90,9 +90,8 @@ Observed differences:
 This is evidence against a global coding-style overlay, not evidence against
 all scoped prose guidance. Keep the KRN skill explicit-only and keep global
 `config/AGENTS.md` unchanged. The raw fixtures, JSONL, diffs, and technical
-summary remain outside the canonical repository at:
-
-`/mnt/storage/coding/krn/agent-style-pilot-v2/`
+summary remain outside the canonical repository in a private archive. Its
+physical location is intentionally omitted from durable documentation.
 
 The durable conclusion is still `lab-test`: a future prose-only pilot needs
 human preference and semantic-preservation review before any promotion.

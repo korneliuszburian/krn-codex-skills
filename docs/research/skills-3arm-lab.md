@@ -104,7 +104,7 @@ fork and the 140-line upstream) showed **no measured advantage** over no-skill:
 baseline tied or won every task, including the hard protocol-level one where
 all three arms failed. Result: `INCONCLUSIVE` → `RETIRE_TO_UPSTREAM`. The 11
 hand-forked ports were culled from this repository on 2026-08-12; the shared
-engineering set is composed from `mattpocock/skills`. Full run data is retained
-under the content-addressed private lab archive recorded by its experiment
-manifest; this repository stores the durable mechanism and disposition, not a
-checkout-specific path.
+engineering set is composed from `mattpocock/skills`. Raw run data was not
+promoted into this checkout; only the aggregate result, limitations, and
+disposition are retained, so the historical run is not independently
+replayable from the repository.

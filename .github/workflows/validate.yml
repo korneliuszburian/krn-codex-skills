@@ -29,6 +29,8 @@ jobs:
         run: npm run test:seal
       - name: Test experiment artifacts
         run: npm run test:experiments
+      - name: Test EvidenceSpine lab
+        run: npm run test:evidence-spine
       - name: Verify experiment artifacts
         run: npm run verify:experiments
       - name: Test catalog

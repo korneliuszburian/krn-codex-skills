@@ -5,6 +5,9 @@ skills and cached plugins, aggregates privacy-preserving usage evidence, and
 reconciles named profiles into `config.toml` without rewriting unrelated
 configuration.
 
+Status: `accepted`. Consumer: operators selecting or auditing a KRN capability
+profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-10.
+
 ## Trust model
 
 - `inventory` and `usage` are read-only.

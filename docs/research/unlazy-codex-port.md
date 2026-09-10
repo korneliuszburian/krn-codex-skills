@@ -11,7 +11,7 @@ Question: can unlazy's completion discipline stop a long Codex task from being
 reported as complete while checks or independent review are still pending,
 without creating a second lifecycle authority?
 
-Pinned source: [unlazy at commit `754d9a6`](https://github.com/Leonxlnx/unlazy/commit/754d9a68109e39b836cc72a39fb9a823f9d6b613).
+Pinned source: [unlazy at commit `da0b00a`](https://github.com/Leonxlnx/unlazy/tree/da0b00a3a6b706b471797cd4ef579ae1001ff6d7).
 The source defines a machine-checked `GATES.md` ledger, explicit command
 approval, evidence recording, and re-verification. Its own security note says
 approval does not sandbox inherited filesystem, environment, credentials, or

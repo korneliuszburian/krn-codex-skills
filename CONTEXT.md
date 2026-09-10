@@ -8,7 +8,6 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [README.md](README.md) — operator entrypoint, main workflow, and skill catalog.
 - [docs/research/README.md](docs/research/README.md) — research index and curation contract.
 - [docs/research/orchestration.md](docs/research/orchestration.md) — current lifecycle spine, admission matrix, and falsifiers.
-- [docs/research/harmonic-harness.md](docs/research/harmonic-harness.md) — complete core-harness skill map and the adopted context/evidence/authority architecture.
 - [docs/research/skills-3arm-lab.md](docs/research/skills-3arm-lab.md) — three-arm skills lab spec and verdict: no measured advantage of forked skills over upstream or no-skill; the shared set composes upstream.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.

@@ -144,12 +144,12 @@
     {
       "name": "writing-great-skills",
       "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "owner": "repository"
     },
     {
       "name": "reviewer-handoff",
       "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "owner": "repository"
     }
   ],
   "legacy_user_paths": [

@@ -2,6 +2,11 @@
 
 _Research read and source verification: 2026-08-26. GitHub repositories are pinned to the commits listed in the reading list._
 
+Status: `adopt` for the test-only EvidenceSpine contract; production adapters
+remain `lab-test`. Consumer: the EvidenceSpine regression and future
+delivery-loop integration decisions. Owner: `source-to-decision` with the
+EvidenceSpine test seam. Verified: 2026-09-10.
+
 ## Pytanie decyzyjne
 
 Co powinno sprawić, że harness agentic engineeringu dowozi przez wiele godzin i
