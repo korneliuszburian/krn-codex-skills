@@ -230,3 +230,13 @@ test("a COMPLETE capsule blocks on undispositioned lesson candidates", () => {
   assert.ok(report.errors.some((error) => error.rule === "complete-with-friction"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("an over-budget workflow-lessons page diverges", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  const rows = Array.from({ length: 25 }, (_, index) => `| lesson ${index} | evidence | gate |`).join("\n");
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), `| Lesson | Evidence | Enforced by |\n|---|---|---|\n${rows}\n`);
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "lessons-over-budget"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

@@ -278,6 +278,17 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     }
   }
 
+  const lessonsFile = join(root, "docs", "research", "workflow-lessons.md");
+  if (existsSync(lessonsFile)) {
+    const rows = readFileSync(lessonsFile, "utf8")
+      .split("\n")
+      .filter((line) => line.startsWith("|") && !/^\|\s*-+/.test(line) && !/^\|\s*Lesson\s*\|/.test(line))
+      .length;
+    if (rows > 24) {
+      errors.push({ id: "workflow-lessons", rule: "lessons-over-budget", detail: `${rows} rows` });
+    }
+  }
+
   return {
     root,
     git: hasGit,
