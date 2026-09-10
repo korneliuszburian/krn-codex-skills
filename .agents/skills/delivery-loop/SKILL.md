@@ -49,8 +49,8 @@ hosts own their mechanics and policy.
    work, edit, publish, or declare the outcome done.
 
    **Done when:** one outcome, one writer, one active implementation item at
-   most, and evidence, non-proofs, unknowns, durable pointers, fingerprints,
-   and every external action's separate authority state are explicit.
+   most, explicit observable acceptance, and evidence, non-proofs, unknowns,
+   durable pointers, fingerprints, and separate authority states.
 
 2. **Route only the current uncertainty.** Select the smallest handler for the
    one unresolved condition in [references/transitions.md](references/transitions.md).

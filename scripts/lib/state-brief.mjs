@@ -132,7 +132,7 @@ export function compileCapsule({ repo = process.cwd() } = {}) {
     : "none";
 
   const values = {
-    "Outcome and observable acceptance": "<fill: outcome and observable acceptance>",
+    "Outcome and observable acceptance": "<fill: outcome and acceptance, with the command or path that checks it>",
     "Current workflow owner and sole writer": "<fill: current owner; sole writer>",
     "Outcome state": "ACTIVE",
     "Publication state": "NOT_REQUESTED",

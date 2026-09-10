@@ -219,6 +219,15 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     const restart = fields["Restart state"];
     const cleanup = fields["Outstanding workflow-run cleanup"];
     const fixedPoint = fields["Repository base, HEAD or working-tree fingerprint, and dirty-state scope"];
+    const acceptance = fields["Outcome and observable acceptance"];
+
+    if (acceptance && !/`[^`]+`/.test(acceptance) && !/[\\/]|--|\btest\b|\bcheck\b/.test(acceptance)) {
+      warnings.push({
+        id: entry.name,
+        rule: "vague-acceptance",
+        detail: "acceptance names no command, path, or code marker; state the check the next session can run",
+      });
+    }
 
     if (outcome && !OUTCOME_STATES.has(stripMarkup(outcome))) {
       errors.push({ id: entry.name, rule: "invalid-outcome-state", detail: outcome });
