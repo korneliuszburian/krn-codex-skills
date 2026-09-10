@@ -19,7 +19,7 @@ cross-cutting and never own a transition.
 | A seam, interface, or ownership decision is unresolved | `codebase-design` | one chosen boundary, bounded first slice, or decision-only handoff |
 | A disposable runnable experiment can answer one design question | `prototype` | a verdict in the current owner and no unapproved production residue |
 | Success is agreed, every implementation gate is settled, but the first written spec does not exist | `to-spec` | one destination-first spec with source links and no gating unknowns, routed to `implement` or `slice-work` |
-| A settled written spec needs several demonstrable units or migration stages | `slice-work` | an implementation-ready list routed one unit at a time to `implement` |
+| A settled written spec needs several demonstrable units or migration stages | `slice-work` | an implementation-ready list routed one unit at a time to `implement`, where each unit names the check that decides it before work starts |
 | A failure's cause is unknown | `diagnosing-bugs` | a proven cause routed to `implement` only with repair and mutation authority, otherwise a bounded diagnosis |
 | One scoped change or proven repair is clear | `implement` | production behavior plus proportional proof; when `implement` is explicit-only and unattached, a mechanical or single-seam scoped change may proceed directly under the proof budget, while non-mechanical or multi-file work asks for `$implement` |
 | A diff, PR, or fingerprinted working tree needs read-only judgment | `code-review` | Standards and Spec disposition on one fixed point |

@@ -57,7 +57,7 @@ hosts own their mechanics and policy.
    That table is the canonical routing contract and the definition of the
    harness baseline. Compose the handler and stop at its return boundary; do not
    copy a composed skill's procedure into this contract, and do not manufacture
-   a stage.
+   a stage. A decomposed spec gives `$slice-work` units whose deciding check is named first.
 
    **Done when:** the current owner receives bounded acceptance, an explicit
    mutation-authority state (including none), relevant paths, and the evidence
@@ -145,9 +145,9 @@ hosts own their mechanics and policy.
    context or holds write authority for the outcome is not admissible, (b)
    every accepted finding carries a concrete path and local evidence, and (c)
    the recorded fixed point matches the reviewed fingerprints; advisory lanes
-   never upgrade to approval. Any change to reviewed code, base,
-   acceptance/spec, or applicable standards creates a new fixed point and
-   invalidates the stored disposition, not just the review step.
+   never upgrade to approval. For a non-trivial change, add at least one
+   acceptance check the producer did not author — a composition or held-out
+   check — before the disposition counts.
 
    **Done when:** acceptance is observable through the public seam, required
    proof passes, both review axes are dispositioned for the current fixed point,
