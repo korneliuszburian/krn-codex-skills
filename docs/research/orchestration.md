@@ -50,7 +50,7 @@ and a falsifier; otherwise it remains a bounded experiment or is rejected.
 | Generator/evaluator loop for frontend taste and browser behavior | lab-test, separate branch | one real frontend outcome with a solo baseline, evaluator run, cost, and human acceptance; no material lift at acceptable cost rejects it | never globalize a multi-hour evaluator loop or turn taste into a universal score |
 | Issue tracker as orchestration control plane or Beads-like backend | defer | only a measured queue/concurrency bottleneck with explicit remote-write authority can reopen it | native Goal, tracker, and capsule stay distinct; no new task database now |
 | Mechanical checks for already-declared durable-page fields | adopt | maintainer and `$source-to-decision` promotion; removing a required header field or index row must fail `npm run validate` | no freshness scoring, prose-style linting, or checks beyond fields that already have a reader |
-| Cross-repo history hygiene in the always-loaded contract | adopt | every installed session and future repository contract; a conflicting repository convention or an observed non-conventional authored commit that survives review reopens ownership, and a machine-parsing consumer reopens enforcement | Conventional Commits on authored commits plus the no-machinery rule naming status and progress artifacts; no per-repo duplicate rule, no commit recipe book, no hook without a named consumer |
+| Cross-repo history hygiene in the always-loaded contract | adopt | every installed session and future repository contract; a conflicting repository convention or an observed non-conventional authored commit that survives review reopens ownership, and a machine-parsing consumer reopens enforcement | Conventional Commits on authored commits, PR titles, and squash subjects plus the no-machinery rule naming status and progress artifacts; squash merges keep the PR title as the maintained subject; no per-repo duplicate rule, no commit recipe book, no hook without a named consumer |
 
 The durable-page field check was promoted to `adopt` on 2026-09-10 after two
 independent audits recorded six header shapes across the four topic pages and a
@@ -68,7 +68,10 @@ intact, so no other rule was displaced. Mechanical enforcement (`commit-msg`
 hook or CI lint) remains deferred: no non-conventional authored commit has been
 observed, generated merge commits are outside the rule, and the host exposes
 only `PreToolUse`; a local Git hook would first need a repository owner and a
-named consumer. This does not prove that a prompt-level rule changes commit
+named consumer. The rule also names PR titles and squash subjects, because a
+squash subject is the authored PR title; generated merge commits remain outside
+it, and strict delivery prefers squash merges so the maintained subject stays
+conventional. This does not prove that a prompt-level rule changes commit
 behavior; it makes the shared convention explicit and single-owned.
 
 The frontend result is especially important: Anthropic reports that skeptical
