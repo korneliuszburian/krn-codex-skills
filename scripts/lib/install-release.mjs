@@ -256,8 +256,11 @@ function preflightTargets(plan) {
     if (!stat) continue;
     const linked = resolvedLink(item.target);
     const expectedSource = path.join(plan.source, item.relative);
+    const legacySource = item.label === "bin__krn-codex-catalog"
+      ? path.join(plan.source, "scripts/catalog.mjs")
+      : null;
     const expectedCurrent = resolvedLink(stableTarget(plan, item));
-    if (linked && (linked === expectedSource || linked === expectedCurrent || isPriorReleasePath(plan, item, linked))) continue;
+    if (linked && (linked === expectedSource || linked === legacySource || linked === expectedCurrent || isPriorReleasePath(plan, item, linked))) continue;
     fail(`refusing foreign managed destination collision: ${item.target}`, EXIT_COLLISION);
   }
 }
