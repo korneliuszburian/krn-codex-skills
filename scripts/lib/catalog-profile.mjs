@@ -1,3 +1,5 @@
+import { pluginFamilyFromId } from "./plugin-identity.mjs";
+
 function selectorMatches(record, selectors = []) {
   return selectors.some((selector) =>
     [record.id, record.name, record.family].includes(selector),
@@ -6,15 +8,6 @@ function selectorMatches(record, selectors = []) {
 
 function familyMatches(record, families = []) {
   return families.includes(record.family);
-}
-
-function pluginFamilyFromId(id) {
-  const separator = id.lastIndexOf("@");
-  if (separator <= 0 || separator === id.length - 1) return undefined;
-  const family = id.slice(0, separator);
-  const marketplace = id.slice(separator + 1);
-  const token = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-  return token.test(family) && token.test(marketplace) ? family : undefined;
 }
 
 function assignDesired(target, key, enabled, reason) {

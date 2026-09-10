@@ -8,6 +8,7 @@ import {
   requireDirectoryWithoutSymlinks,
   requireRegularFileWithoutSymlinks,
 } from "./catalog-path-safety.mjs";
+import { matchesQuarantined, pluginFamilyFromId } from "./plugin-identity.mjs";
 
 export const DEFAULT_PROFILES_PATH = fileURLToPath(
   new URL("../../config/capability-profiles.json", import.meta.url),
@@ -52,10 +53,7 @@ export function isHardQuarantined(
   value,
   families = HARD_QUARANTINE_FAMILIES,
 ) {
-  const candidate = String(value ?? "").toLowerCase();
-  return families.some((family) =>
-    candidate.includes(String(family).toLowerCase()),
-  );
+  return matchesQuarantined(value, families);
 }
 
 export async function loadCapabilityProfiles(filePath = DEFAULT_PROFILES_PATH) {
@@ -734,7 +732,7 @@ function validatePluginSkillAliases(value) {
   const owners = new Set(Object.keys(value));
   const claimedAliases = new Set();
   for (const [owner, aliases] of Object.entries(value)) {
-    const family = pluginIdFamily(owner);
+    const family = pluginFamilyFromId(owner);
     if (family === undefined || isHardQuarantined(owner)) {
       throw new Error(`Invalid plugin skill alias owner: ${owner}`);
     }
@@ -752,7 +750,7 @@ function validatePluginSkillAliases(value) {
       if (
         alias === owner ||
         owners.has(alias) ||
-        pluginIdFamily(alias) !== family ||
+        pluginFamilyFromId(alias) !== family ||
         isHardQuarantined(alias)
       ) {
         throw new Error(`Invalid plugin skill alias '${alias}' for '${owner}'`);
@@ -763,16 +761,6 @@ function validatePluginSkillAliases(value) {
       claimedAliases.add(alias);
     }
   }
-}
-
-function pluginIdFamily(id) {
-  if (typeof id !== "string") return undefined;
-  const separator = id.lastIndexOf("@");
-  if (separator <= 0 || separator === id.length - 1) return undefined;
-  const family = id.slice(0, separator);
-  const marketplace = id.slice(separator + 1);
-  const token = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-  return token.test(family) && token.test(marketplace) ? family : undefined;
 }
 
 function validateProfile(name, profile) {

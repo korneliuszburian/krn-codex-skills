@@ -4,6 +4,7 @@ import { lstat, open, rename, unlink } from "node:fs/promises";
 import { basename, dirname, isAbsolute, normalize } from "node:path";
 
 import { requireRegularFileWithoutSymlinks } from "./catalog-path-safety.mjs";
+import { matchesQuarantined, pluginFamilyFromId } from "./plugin-identity.mjs";
 
 const HARD_QUARANTINE_FAMILIES = Object.freeze(["superpowers"]);
 
@@ -85,11 +86,6 @@ function normalizeFamilies(extraFamilies) {
   return [...families];
 }
 
-function isQuarantined(value, families) {
-  const lexicalValue = value.toLowerCase();
-  return families.some((family) => lexicalValue.includes(family));
-}
-
 function normalizeStateRecord(value, label) {
   if (value === undefined) return new Map();
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -107,15 +103,6 @@ function normalizeStateRecord(value, label) {
     states.set(id, enabled);
   }
   return states;
-}
-
-function pluginFamilyFromId(id) {
-  const separator = id.lastIndexOf("@");
-  if (separator <= 0 || separator === id.length - 1) return undefined;
-  const family = id.slice(0, separator);
-  const marketplace = id.slice(separator + 1);
-  const token = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-  return token.test(family) && token.test(marketplace) ? family : undefined;
 }
 
 function normalizePluginFamilies(value) {
@@ -181,7 +168,7 @@ function normalizePluginSkillAliases(value, families) {
     const family = pluginFamilyFromId(owner);
     if (
       family === undefined ||
-      isQuarantined(owner, families) ||
+      matchesQuarantined(owner, families) ||
       !Array.isArray(aliases) ||
       aliases.length === 0
     ) {
@@ -198,7 +185,7 @@ function normalizePluginSkillAliases(value, families) {
         alias === owner ||
         ownerIds.has(alias) ||
         pluginFamilyFromId(alias) !== family ||
-        isQuarantined(alias, families) ||
+        matchesQuarantined(alias, families) ||
         normalizedAliases.has(alias) ||
         claimedAliases.has(alias)
       ) {
@@ -246,7 +233,7 @@ function normalizeDesired(desired, families, pluginSkillAliases) {
 
   for (const states of [plugins, mcpServers]) {
     for (const [id, enabled] of states) {
-      if (enabled && isQuarantined(id, families)) {
+      if (enabled && matchesQuarantined(id, families)) {
         throw new QuarantineViolationError(id);
       }
     }
@@ -268,7 +255,7 @@ function normalizeDesired(desired, families, pluginSkillAliases) {
   for (const [rawPath, enabled] of rawSkills) {
     // This is deliberately lexical. Skill paths are never statted, resolved,
     // realpathed, or read by the reconciler.
-    const quarantinedBeforeNormalization = isQuarantined(rawPath, families);
+    const quarantinedBeforeNormalization = matchesQuarantined(rawPath, families);
     if (enabled && quarantinedBeforeNormalization) {
       throw new QuarantineViolationError(rawPath);
     }
@@ -280,7 +267,7 @@ function normalizeDesired(desired, families, pluginSkillAliases) {
     }
 
     const stablePath = normalize(rawPath);
-    if (enabled && isQuarantined(stablePath, families)) {
+    if (enabled && matchesQuarantined(stablePath, families)) {
       throw new QuarantineViolationError(rawPath);
     }
     if (skills.has(stablePath)) {
@@ -696,7 +683,7 @@ function parseSkillPath(document, block) {
 }
 
 function skillPathContainsQuarantine(document, block, skillPath, families) {
-  if (skillPath !== undefined) return isQuarantined(skillPath, families);
+  if (skillPath !== undefined) return matchesQuarantined(skillPath, families);
 
   // If the path is malformed, inspect only its lexical assignment rather than
   // comments or unrelated lines in the block. The caller will then fail closed
@@ -931,7 +918,7 @@ export function planCatalogConfig({
   // Hard quarantine is an invariant over existing config, even when the
   // active profile omits the family.
   for (const [id] of pluginBlocks) {
-    if (isQuarantined(id, families)) managedPluginStates.set(id, false);
+    if (matchesQuarantined(id, families)) managedPluginStates.set(id, false);
   }
 
   for (const [id, enabled] of [...managedPluginStates].sort(([left], [right]) =>
@@ -946,7 +933,7 @@ export function planCatalogConfig({
         allowedKeys: PLUGIN_KEYS,
         target: id,
         resource: "plugin",
-        reason: isQuarantined(id, families)
+        reason: matchesQuarantined(id, families)
           ? "hard-quarantine"
           : normalizedDesired.plugins.has(id)
             ? "desired-state"
@@ -972,7 +959,7 @@ export function planCatalogConfig({
 
   const managedMcpStates = new Map(normalizedDesired.mcpServers);
   for (const [id] of mcpBlocks) {
-    if (isQuarantined(id, families)) managedMcpStates.set(id, false);
+    if (matchesQuarantined(id, families)) managedMcpStates.set(id, false);
   }
 
   for (const [id, enabled] of [...managedMcpStates].sort(([left], [right]) =>
@@ -987,7 +974,7 @@ export function planCatalogConfig({
         allowedKeys: MCP_SERVER_KEYS,
         target: id,
         resource: "mcp-server",
-        reason: isQuarantined(id, families) ? "hard-quarantine" : "desired-state",
+        reason: matchesQuarantined(id, families) ? "hard-quarantine" : "desired-state",
         operations,
         actions,
       });
@@ -1165,7 +1152,7 @@ function sameFileIdentity(left, right) {
 }
 
 async function inspectRegularConfig(configPath, expectedIdentity) {
-  if (isQuarantined(configPath, HARD_QUARANTINE_FAMILIES)) {
+  if (matchesQuarantined(configPath, HARD_QUARANTINE_FAMILIES)) {
     throw configPathError(
       "Refusing filesystem access to a hard-quarantined config path",
       "CONFIG_PATH_QUARANTINED",

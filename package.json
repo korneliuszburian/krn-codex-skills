@@ -18,7 +18,7 @@
     "lessons:check": "node scripts/krn-codex.mjs lessons check --root .",
     "test:lessons": "node --test test/lessons.test.mjs",
     "test:validate": "node --test test/durable-pages.test.mjs",
-    "test:lib": "node --test test/diagnostics.test.mjs test/skill-metadata.test.mjs",
+    "test:lib": "node --test test/diagnostics.test.mjs test/skill-metadata.test.mjs test/plugin-identity.test.mjs",
     "validate": "node scripts/validate.mjs",
     "install:check": "bash scripts/install.sh check"
   }
