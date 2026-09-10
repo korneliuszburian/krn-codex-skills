@@ -1,0 +1,6 @@
+interface:
+  display_name: "Target Repo Work"
+  short_description: "Control authority across repository boundaries"
+  default_prompt: "Use $target-repo-work to inspect this other checkout safely."
+policy:
+  allow_implicit_invocation: true

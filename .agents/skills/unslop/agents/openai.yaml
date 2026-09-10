@@ -1,0 +1,6 @@
+interface:
+  display_name: "Unslop"
+  short_description: "Remove robotic prose without changing meaning"
+  default_prompt: "Use $unslop only when explicitly asked to audit or rewrite prose."
+policy:
+  allow_implicit_invocation: false

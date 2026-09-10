@@ -1,0 +1,6 @@
+interface:
+  display_name: "Delivery Loop"
+  short_description: "Coordinate one agreed outcome lifecycle"
+  default_prompt: "Use $delivery-loop to coordinate this accepted outcome through its authorized lifecycle."
+policy:
+  allow_implicit_invocation: true

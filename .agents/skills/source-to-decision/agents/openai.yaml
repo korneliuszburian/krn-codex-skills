@@ -1,0 +1,6 @@
+interface:
+  display_name: "Source To Decision"
+  short_description: "Turn a source into one named local decision"
+  default_prompt: "Use $source-to-decision to decide what this source means for the named local consumer."
+policy:
+  allow_implicit_invocation: true

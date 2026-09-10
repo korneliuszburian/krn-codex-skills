@@ -102,7 +102,10 @@ set at the commit pinned by `config/upstream-sources.json`, not owned here**.
 The lock file is the machine-readable source of the set; `config/AGENTS.md`
 contains the stable ownership boundary. Do not use a moving `npx skills add`
 result as the KRN source, and do not create a local fork without a named
-consumer and falsifier.
+consumer and falsifier. The pinned development set is materialized into the
+generated, provenance-marked `.agents/skills/` by `krn-codex skills export`;
+regenerate instead of editing, and `npm run skills:check` fails on drift or a
+foreign destination.
 
 ### Source-only packs
 

@@ -13,6 +13,7 @@
     "test:hooks": "python3 -B -m unittest scripts/hooks/test_destructive_guard.py",
     "test:state": "node --test test/state-check.test.mjs",
     "test:skills": "node --test test/skills-export.test.mjs",
+    "skills:check": "node scripts/krn-codex.mjs skills check --root .",
     "validate": "node scripts/validate.mjs",
     "install:check": "bash scripts/install.sh check"
   }

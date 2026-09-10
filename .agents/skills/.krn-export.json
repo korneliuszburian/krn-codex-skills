@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "krn": {
+    "commit": "66e5978de4cf292e9b95d165e519220e8adc738d"
+  },
+  "upstream": {
+    "id": "mattpocock/skills",
+    "commit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76"
+  },
+  "skills": [
+    "ask-matt",
+    "code-review",
+    "codebase-design",
+    "delivery-loop",
+    "diagnosing-bugs",
+    "domain-modeling",
+    "grill-me",
+    "grill-with-docs",
+    "grilling",
+    "handoff",
+    "implement",
+    "improve-codebase-architecture",
+    "managing-codex-capabilities",
+    "opencode-second-opinion",
+    "prototype",
+    "research",
+    "resolving-merge-conflicts",
+    "setup-matt-pocock-skills",
+    "setup-repository-workflow",
+    "slice-work",
+    "source-to-decision",
+    "target-repo-work",
+    "tdd",
+    "teach",
+    "to-questionnaire",
+    "to-spec",
+    "to-tickets",
+    "triage",
+    "typescript-engineering",
+    "unlazy",
+    "unslop",
+    "wait-what",
+    "wayfinder",
+    "wizard",
+    "writing-for-agents"
+  ]
+}
