@@ -100,6 +100,7 @@ function runtimePaths(root, manifest) {
         "scripts/install.sh",
         "scripts/krn-codex.mjs",
         "scripts/catalog.mjs",
+        "scripts/lib/capsule-abi.mjs",
         "scripts/lib/catalog-config.mjs",
         "scripts/lib/catalog-inventory.mjs",
         "scripts/lib/catalog-path-safety.mjs",

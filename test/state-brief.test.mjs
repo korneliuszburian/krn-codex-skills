@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { ABI_LABELS } from "../scripts/lib/state-check.mjs";
+import { ABI_LABELS } from "../scripts/lib/capsule-abi.mjs";
 import { compileCapsule, resumeBrief } from "../scripts/lib/state-brief.mjs";
 
 function git(root, args) {

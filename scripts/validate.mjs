@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
-import { ABI_LABELS } from "./lib/state-check.mjs";
+import { ABI_LABELS } from "./lib/capsule-abi.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
@@ -798,7 +798,7 @@ for (const markdown of repositoryMarkdown) {
       .filter(Boolean)
       .map((line) => line.split(":")[0].trim());
     if (labels.length !== ABI_LABELS.length || labels.some((label, index) => label !== ABI_LABELS[index])) {
-      fail("delivery-loop capsule ABI labels must match scripts/lib/state-check.mjs ABI_LABELS");
+      fail("delivery-loop capsule ABI labels must match scripts/lib/capsule-abi.mjs ABI_LABELS");
     }
   }
 }

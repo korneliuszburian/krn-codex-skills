@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { ABI_LABELS, inspectSpineState } from "./state-check.mjs";
+import { inspectSpineState } from "./state-check.mjs";
+import { commitTokens, fieldLine, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
 
 function git(repo, args) {
   try {
@@ -60,13 +61,6 @@ function capsuleIds(root) {
     .sort((a, b) => a.localeCompare(b));
 }
 
-function fieldLine(text, label) {
-  for (const line of text.split("\n")) {
-    if (line.trimStart().startsWith(`${label}:`)) return line.trimStart().slice(label.length + 1).trim();
-  }
-  return null;
-}
-
 function workflowLessons(root) {
   const relative = join("docs", "research", "workflow-lessons.md");
   const file = join(root, relative);
@@ -87,26 +81,6 @@ function renderLessons(lessons) {
 function renderErrors(errors) {
   if (errors.length === 0) return "";
   return `\n\nBlocking errors:\n${errors.map((error) => `- ${error.rule}${error.detail ? `: ${error.detail}` : ""}`).join("\n")}`;
-}
-
-function commitTokens(value) {
-  if (!value) return [];
-  return [...value.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
-}
-
-function listedCleanup(value) {
-  if (!value) return [];
-  const open = value.indexOf("[");
-  const close = value.lastIndexOf("]");
-  if (open === -1 || close <= open) return [];
-  return value
-    .slice(open + 1, close)
-    .split(",")
-    .map((entry) => entry.replace(/[<>]/g, "").trim())
-    .filter(Boolean)
-    .map((entry) => entry.split(";").map((part) => part.trim()))
-    .filter((parts) => parts.length === 5)
-    .map((parts) => ({ pointer: parts[0], state: parts[4] }));
 }
 
 export function compileCapsule({ repo = process.cwd() } = {}) {
@@ -155,7 +129,7 @@ export function compileCapsule({ repo = process.cwd() } = {}) {
     "Next bounded owner and action": "<fill: next bounded owner and action>",
   };
 
-  const body = ABI_LABELS.map((label) => `${label}: ${values[label]}`).join("\n");
+  const body = renderCapsule(values);
   return {
     root,
     git: usableGit,
@@ -202,7 +176,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     const recorded = commitTokens(fixedPoint);
     const headMoved = recorded.length > 0 && liveHead.ok && liveHead.out !== "" && !recorded.includes(liveHead.out.toLowerCase());
     const cleanupValue = fieldLine(text, "Outstanding workflow-run cleanup");
-    const listed = listedCleanup(cleanupValue);
+    const listed = parseCleanup(cleanupValue).entries;
     const listedPointers = new Set(listed.map((entry) => entry.pointer));
     const missingRuns = listed
       .filter((entry) => (entry.state === "ACTIVE" || entry.state === "BLOCKED") && !liveRuns.has(entry.pointer))

@@ -2,45 +2,15 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
 
-export const ABI_LABELS = [
-  "Outcome and observable acceptance",
-  "Current workflow owner and sole writer",
-  "Outcome state",
-  "Publication state",
-  "Repository base, HEAD or working-tree fingerprint, and dirty-state scope",
-  "Native Goal identity/state and configured tracker item/state",
-  "Restart state",
-  "Outstanding workflow-run cleanup",
-  "Authority",
-  "Evidence observed",
-  "Explicit non-proofs",
-  "Review fixed point and Standards / Spec disposition",
-  "Open unknowns and blockers with owners",
-  "Workflow friction and lesson candidates",
-  "Durable CONTEXT / ADR / research references",
-  "Next bounded owner and action",
-];
-
-const OUTCOME_STATES = new Set([
-  "ACTIVE",
-  "BLOCKED",
-  "DEFERRED",
-  "NEEDS_REVIEW",
-  "COMPLETE",
-  "SUPERSEDED",
-  "ABANDONED",
-]);
-const PUBLICATION_STATES = new Set([
-  "NOT_REQUESTED",
-  "NOT_AUTHORIZED",
-  "LOCAL_ONLY",
-  "PUBLISH_PENDING",
-  "PR_OPEN",
-  "MERGE_READY",
-  "MERGED",
-  "DEPLOYED",
-]);
-const CLEANUP_STATES = new Set(["ACTIVE", "CLEANUP_PENDING", "BLOCKED"]);
+import {
+  ABI_LABELS,
+  CLEANUP_STATES,
+  OUTCOME_STATES,
+  PUBLICATION_STATES,
+  fieldLine,
+  parseCleanup,
+  stripMarkup,
+} from "./capsule-abi.mjs";
 
 function git(repo, args) {
   try {
@@ -69,42 +39,6 @@ function inside(root, candidate) {
   const target = resolve(root, candidate);
   const rel = relative(root, target);
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
-}
-
-function fieldLine(text, label) {
-  for (const line of text.split("\n")) {
-    if (line.trimStart().startsWith(`${label}:`)) return line.trimStart().slice(label.length + 1).trim();
-  }
-  return null;
-}
-
-function stripMarkup(value) {
-  return value.replace(/[`<>]/g, "").trim();
-}
-
-function parseCleanup(value) {
-  const open = value.indexOf("[");
-  const close = value.lastIndexOf("]");
-  if (open === -1 || close <= open) return { entries: [], malformed: [value] };
-  if (value.slice(close + 1).trim() !== "") return { entries: [], malformed: [value] };
-  const entries = [];
-  const malformed = [];
-  for (const chunk of value.slice(open + 1, close).split(",")) {
-    const entry = chunk.replace(/[<>]/g, "").trim();
-    if (!entry) continue;
-    const parts = entry.split(";").map((part) => part.trim());
-    const wellFormed =
-      parts.length === 5 &&
-      parts.slice(0, 4).every((part) => part !== "") &&
-      CLEANUP_STATES.has(parts[4]);
-    if (!wellFormed) {
-      malformed.push(entry);
-      continue;
-    }
-    entries.push({ pointer: parts[0], state: parts[4] });
-  }
-  if (entries.length === 0 && malformed.length === 0) malformed.push(value);
-  return { entries, malformed };
 }
 
 function fixedPointErrors(root, fixedPoint, canCheckCommits) {
