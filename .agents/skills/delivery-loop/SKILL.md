@@ -134,13 +134,14 @@ hosts own their mechanics and policy.
    When a lane emits machine-readable evidence, record it against the current
    fixed point (base, head or fingerprint, Spec, Standards) with reviewer
    identity and model, a verdict, and per-finding path plus local evidence.
-   A disposition is admissible only when (a) the reviewer identity and model
-   differ from the implementer's, (b) every accepted finding carries a concrete
-   path and local evidence, and (c) the recorded fixed point matches the
-   reviewed fingerprints; advisory lanes never upgrade to approval. Any change
-   to reviewed code, base, acceptance/spec, or applicable standards creates a
-   new fixed point and invalidates the stored disposition, not just the review
-   step.
+   A disposition is admissible only when (a) the reviewer identity, model, and
+   context differ from the implementer's — a review that shares the producing
+   context or holds write authority for the outcome is not admissible, (b)
+   every accepted finding carries a concrete path and local evidence, and (c)
+   the recorded fixed point matches the reviewed fingerprints; advisory lanes
+   never upgrade to approval. Any change to reviewed code, base,
+   acceptance/spec, or applicable standards creates a new fixed point and
+   invalidates the stored disposition, not just the review step.
 
    **Done when:** acceptance is observable through the public seam, required
    proof passes, both review axes are dispositioned for the current fixed point,
