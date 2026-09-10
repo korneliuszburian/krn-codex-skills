@@ -89,6 +89,24 @@ test("apply rejects an unsafe manifest hook destination before creating state", 
   }
 });
 
+test("installer containment rejects an unsafe hook destination even behind a stale validator", () => {
+  const { root, source } = sourceFixture();
+  try {
+    const manifestPath = path.join(source, "skills", "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    manifest.global_hook_files.push({ name: "..", path: "scripts/hooks/krn_pretooluse.py", executable: true });
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    fs.writeFileSync(path.join(source, "scripts", "validate.mjs"), "process.exitCode = 0;\n");
+    commit(source, "stale validator fixture");
+    const result = invoke(root, ["install", "apply", "--source", source, "--yes"]);
+    assert.equal(result.status, 65);
+    assert.match(result.stderr, /unsafe managed destination: ../);
+    assert.equal(fs.existsSync(path.join(root, "codex", "krn")), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("apply materializes an exact immutable release and stable links through current", () => {
   const { root, source } = sourceFixture();
   try {
@@ -115,6 +133,25 @@ test("apply materializes an exact immutable release and stable links through cur
       fs.realpathSync(path.join(root, "codex", "AGENTS.md")),
       path.join(release, manifest.global_agents),
     );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a symlinked CODEX_HOME remains idempotent and doctor stays truthful", () => {
+  const { root, source } = sourceFixture();
+  try {
+    const actualHome = path.join(root, "actual-codex");
+    const linkedHome = path.join(root, "codex-link");
+    fs.mkdirSync(actualHome);
+    fs.symlinkSync(actualHome, linkedHome);
+    const first = apply(root, source, { CODEX_HOME: linkedHome });
+    const second = apply(root, source, { CODEX_HOME: linkedHome });
+    assert.equal(first.release.startsWith(actualHome), true);
+    assert.equal(second.idempotent, true);
+    const doctor = invoke(root, ["doctor", "--json"], { CODEX_HOME: linkedHome });
+    assert.equal(doctor.status, 0, doctor.stderr);
+    assert.equal(JSON.parse(doctor.stdout).filesystem.status, "filesystem_installed");
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
