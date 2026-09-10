@@ -90,28 +90,15 @@ function validateSource(root) {
   }
 }
 
+export function declaredRuntimePaths(manifest) {
+  if (!Array.isArray(manifest.runtime_paths) || manifest.runtime_paths.length === 0) {
+    fail("manifest is missing runtime_paths", EXIT_SOURCE);
+  }
+  return [...manifest.runtime_paths].sort();
+}
+
 function runtimePaths(root, manifest) {
-  const declared = Array.isArray(manifest.runtime_paths) && manifest.runtime_paths.length > 0
-    ? manifest.runtime_paths
-    : [
-        "skills/manifest.json",
-        "config/upstream-sources.json",
-        "config/capability-profiles.json",
-        "scripts/install.sh",
-        "scripts/krn-codex.mjs",
-        "scripts/catalog.mjs",
-        "scripts/lib/capsule-abi.mjs",
-        "scripts/lib/catalog-config.mjs",
-        "scripts/lib/catalog-inventory.mjs",
-        "scripts/lib/catalog-path-safety.mjs",
-        "scripts/lib/catalog-profile.mjs",
-        "scripts/lib/catalog-usage.mjs",
-        "scripts/lib/install-release.mjs",
-        "scripts/lib/skills-export.mjs",
-        "scripts/lib/state-brief.mjs",
-        "scripts/lib/state-check.mjs",
-      ];
-  const files = new Set(declared);
+  const files = new Set(declaredRuntimePaths(manifest));
   for (const candidate of [manifest.global_agents, manifest.global_hooks]) files.add(candidate);
   for (const hook of manifest.global_hook_files) files.add(hook.path);
   for (const bin of manifest.bins) files.add(bin.path);
@@ -272,6 +259,22 @@ function preflightCurrent(plan) {
   verifyRelease(linked, path.basename(linked));
 }
 
+export function classifyTarget(plan, item, linked) {
+  const expectedSource = plan.source ? path.join(plan.source, item.relative) : null;
+  const legacySource = item.label === "bin__krn-codex-catalog" && plan.source
+    ? path.join(plan.source, "scripts/catalog.mjs")
+    : null;
+  if (expectedSource && (linked === expectedSource || linked === legacySource)) return "legacy_source";
+  const expectedCurrent = resolvedPath(stableTarget(plan, item));
+  if (expectedCurrent && linked === expectedCurrent) return "current";
+  if (isInside(plan.releaseRoot, linked)) {
+    return isPriorReleasePath(plan, item, linked) ? "prior_release" : "other_release";
+  }
+  const sourceRoot = git(path.dirname(linked), ["rev-parse", "--show-toplevel"]);
+  if (sourceRoot && path.relative(sourceRoot, linked) === item.relative) return "legacy_source";
+  return "foreign";
+}
+
 function preflightTargets(plan) {
   preflightCurrent(plan);
   const override = path.join(path.dirname(plan.releaseRoot), "AGENTS.override.md");
@@ -282,12 +285,8 @@ function preflightTargets(plan) {
     const stat = fs.lstatSync(item.target, { throwIfNoEntry: false });
     if (!stat) continue;
     const linked = resolvedLink(item.target);
-    const expectedSource = path.join(plan.source, item.relative);
-    const legacySource = item.label === "bin__krn-codex-catalog"
-      ? path.join(plan.source, "scripts/catalog.mjs")
-      : null;
-    const expectedCurrent = resolvedLink(stableTarget(plan, item));
-    if (linked && (linked === expectedSource || linked === legacySource || linked === expectedCurrent || isPriorReleasePath(plan, item, linked))) continue;
+    const kind = linked ? classifyTarget(plan, item, linked) : "foreign";
+    if (kind === "legacy_source" || kind === "current" || kind === "prior_release") continue;
     fail(`refusing foreign managed destination collision: ${item.target}`, EXIT_COLLISION);
   }
 }
@@ -398,18 +397,15 @@ function itemStatus(plan, item) {
   if (!stat.isSymbolicLink()) return { target: item.target, status: "foreign_collision" };
   const linked = resolvedLink(item.target);
   if (!linked) return { target: item.target, status: "broken_link" };
-  if (isInside(plan.releaseRoot, linked)) {
-    const expected = resolvedPath(stableTarget(plan, item));
-    return {
-      target: item.target,
-      status: linked === expected ? "filesystem_installed" : "stable_link_bypasses_current",
-    };
-  }
-  const sourceRoot = git(path.dirname(linked), ["rev-parse", "--show-toplevel"]);
-  if (sourceRoot && path.relative(sourceRoot, linked) === item.relative) {
-    return { target: item.target, status: "legacy_mutable_source" };
-  }
-  return { target: item.target, status: "foreign_collision" };
+  const kind = classifyTarget(plan, item, linked);
+  const status = kind === "current"
+    ? "filesystem_installed"
+    : kind === "prior_release" || kind === "other_release"
+      ? "stable_link_bypasses_current"
+      : kind === "legacy_source"
+        ? "legacy_mutable_source"
+        : "foreign_collision";
+  return { target: item.target, status };
 }
 
 export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex") } = {}) {

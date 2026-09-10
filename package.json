@@ -11,7 +11,7 @@
     "catalog": "node scripts/catalog.mjs",
     "test:bootstrap": "node --test test/bootstrap-fixture/bootstrap.test.mjs",
     "test:hooks": "python3 -B -m unittest scripts/hooks/test_destructive_guard.py",
-    "test:install": "node --test test/install-smoke.test.mjs",
+    "test:install": "node --test test/install-smoke.test.mjs test/install-classify.test.mjs",
     "test:state": "node --test test/state-check.test.mjs test/state-brief.test.mjs test/composition.test.mjs test/capsule-abi.test.mjs",
     "test:skills": "node --test test/skills-export.test.mjs",
     "skills:check": "node scripts/krn-codex.mjs skills check --root .",
