@@ -781,6 +781,35 @@ for (const markdown of repositoryMarkdown) {
   }
 }
 
+{
+  const transitions = read(
+    path.join(root, "skills", "engineering", "delivery-loop", "references", "transitions.md"),
+  );
+  const handlers = transitions
+    .split("\n")
+    .filter((line) => /^\|\s*[^|]+\|\s*`[^`]+`\s*\|/.test(line))
+    .map((line) => line.split("|")[2].trim().replace(/^`|`$/g, ""));
+  const knownHandlers = new Set([...localSkillNames, ...upstreamSkillNames]);
+  for (const handler of handlers) {
+    if (!knownHandlers.has(handler)) fail(`transitions: unknown handler ${handler}`);
+  }
+  const duplicates = handlers.filter((handler, index) => handlers.indexOf(handler) !== index);
+  if (duplicates.length > 0) fail(`transitions: duplicate handler ${duplicates[0]}`);
+  const baseline = new Set([
+    ...(Array.isArray(manifest.harness_skills) ? manifest.harness_skills : []),
+    ...upstreamSources.sources.flatMap((source) => {
+      const paths = source.harness_paths ?? source.required_paths;
+      return paths.map((requiredPath) => path.basename(path.dirname(requiredPath)));
+    }),
+  ]);
+  for (const handler of handlers) {
+    if (!baseline.has(handler)) fail(`transitions: handler ${handler} is not in the harness baseline`);
+  }
+  for (const name of baseline) {
+    if (!handlers.includes(name)) fail(`transitions: baseline skill ${name} is not named by any transition`);
+  }
+}
+
 if (lineCount(path.join(root, "AGENTS.md")) > 90) {
   fail("AGENTS.md exceeds 90 lines");
 }

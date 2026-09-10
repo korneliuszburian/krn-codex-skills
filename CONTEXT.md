@@ -36,6 +36,10 @@ snapshot directly.
 **Workflow owner** — the one skill responsible for a repeated procedure. Skills
 may compose, but two skills may not own the same sequence.
 
+**Transition table** — the canonical condition → handler → return contract owned
+by `$delivery-loop`; the repository-scoped harness baseline is derived from its
+handler column and validated against the manifest and pin.
+
 **Current uncertainty** — the one unresolved condition that selects the next
 workflow owner. Settled phases are skipped; there is no mandatory full pipeline.
 

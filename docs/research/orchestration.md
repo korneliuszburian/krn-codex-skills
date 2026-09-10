@@ -180,19 +180,11 @@ stage. When a specialist return satisfies the requested outcome or has no
 authorized next action, it is terminal instead of being routed merely to keep
 the graph moving:
 
-| Observable unresolved condition | Smallest owner | Exact return boundary |
-|---|---|---|
-| The user explicitly requests a tracker-backed route map for an unclear effort spanning sessions | `wayfinder` | one open map with a named frontier/blocker, or one closed map with an exact terminal owner |
-| A user-owned choice or contested concept blocks progress | `domain-modeling` | an executable decision or bounded handoff to its named consumer |
-| External evidence must change a named local decision | `source-to-decision` | `adopt`, `reject`, `lab-test`, or `defer` for that consumer and falsifier |
-| A disposable runnable experiment can answer one design question | `prototype` | a verdict in the current owner and no unapproved production residue |
-| A seam, interface, or ownership decision is unresolved | `codebase-design` | one chosen boundary, bounded first slice, or decision-only handoff |
-| Success is agreed, every implementation gate is settled, but the first written spec does not exist | `to-spec` | one destination-first spec with source links and no gating unknowns, routed to `implement` or `slice-work` |
-| A settled written spec needs several demonstrable units or migration stages | `slice-work` | an implementation-ready list routed one unit at a time to `implement` |
-| A failure's cause is unknown | `diagnosing-bugs` | a proven cause routed to `implement` only with repair and mutation authority, otherwise a bounded diagnosis |
-| One scoped change or proven repair is clear | `implement` | production behavior plus proportional proof |
-| A diff, PR, or fingerprinted working tree needs read-only judgment | `code-review` | Standards and Spec disposition on one fixed point |
-| The user requests ownership of an already-agreed outcome through all authorized transitions | `delivery-loop` | lifecycle truth, one current owner, and the actual outcome/publication state |
+The canonical transition table is owned by the lifecycle skill:
+[`delivery-loop/references/transitions.md`](../../skills/engineering/delivery-loop/references/transitions.md).
+Its handler column defines the repository-scoped baseline, and `npm run
+validate` fails when table, manifest, and pin disagree. This page keeps the
+admission rationale and must not duplicate the table.
 
 This removes the graph's former generic `CHOSEN`, `DISP`, and `VERDICT` nodes.
 Those were not shared runtime states; each specialist already has a more

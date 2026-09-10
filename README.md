@@ -39,7 +39,10 @@ external evidence must change a named local decision, and composed upstream
 for the rest: `domain-modeling` for a user-owned choice or contested concept,
 `prototype` for a disposable runnable experiment, or `codebase-design` for a
 seam or ownership decision. Each returns a bounded
-result to the current owner; none becomes a mandatory pipeline stage.
+result to the current owner; none becomes a mandatory pipeline stage. The canonical condition → handler
+table, and with it the repository-scoped harness baseline, is owned by
+[`delivery-loop/references/transitions.md`](skills/engineering/delivery-loop/references/transitions.md);
+this README keeps only the operator graph.
 
 `target-repo-work` wraps another checkout. `typescript-engineering` is a
 language companion. `opencode-second-opinion` is an explicit advisory side path.

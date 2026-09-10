@@ -50,22 +50,12 @@ hosts own their mechanics and policy.
    most, and evidence, non-proofs, unknowns, durable pointers, fingerprints,
    and every external action's separate authority state are explicit.
 
-2. **Route only the current uncertainty.** Give a clear bounded change to
-   composed upstream `implement`; a proven failure cause returns there only
-   when repair and
-   mutation are authorized. Otherwise retain the bounded diagnosis result and
-   its authority state. Give an unknown failure to the composed upstream
-   `diagnosing-bugs`, a seam or ownership question to the composed upstream
-   `codebase-design`, a contested concept to the composed upstream
-   `domain-modeling`, and an external-evidence decision to
-   `$source-to-decision`. Give one runnable design question to the composed
-   upstream `prototype`; it
-   must return a verdict and dispose of throwaway residue before production
-   work. If the destination is settled but its executable spec is missing, use
-   composed upstream `to-spec`. If the settled spec cannot fit one fresh
-   implementation context,
-   use `$slice-work`, then advance one slice at a time. Do not copy a composed
-   skill's procedure into this contract.
+2. **Route only the current uncertainty.** Select the smallest handler for the
+   one unresolved condition in [references/transitions.md](references/transitions.md).
+   That table is the canonical routing contract and the definition of the
+   harness baseline. Compose the handler and stop at its return boundary; do not
+   copy a composed skill's procedure into this contract, and do not manufacture
+   a stage.
 
    **Done when:** the current owner receives bounded acceptance, an explicit
    mutation-authority state (including none), relevant paths, and the evidence
