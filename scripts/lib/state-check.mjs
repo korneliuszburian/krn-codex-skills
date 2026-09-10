@@ -16,6 +16,7 @@ export const ABI_LABELS = [
   "Explicit non-proofs",
   "Review fixed point and Standards / Spec disposition",
   "Open unknowns and blockers with owners",
+  "Workflow friction and lesson candidates",
   "Durable CONTEXT / ADR / research references",
   "Next bounded owner and action",
 ];
@@ -269,6 +270,10 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       }
       if (restart && stripMarkup(restart) !== "ABSENT") {
         errors.push({ id: entry.name, rule: "complete-with-restart", detail: stripMarkup(restart) });
+      }
+      const friction = fields["Workflow friction and lesson candidates"];
+      if (friction && stripMarkup(friction) !== "none") {
+        errors.push({ id: entry.name, rule: "complete-with-friction", detail: stripMarkup(friction) });
       }
     }
   }

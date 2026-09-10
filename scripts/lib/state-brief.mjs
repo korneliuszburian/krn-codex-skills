@@ -128,6 +128,7 @@ export function compileCapsule({ repo = process.cwd() } = {}) {
     "Explicit non-proofs": "<fill: explicit non-proofs>",
     "Review fixed point and Standards / Spec disposition": "<fill: review fixed point and disposition>",
     "Open unknowns and blockers with owners": "<fill: open unknowns and blockers>",
+    "Workflow friction and lesson candidates": "none",
     "Durable CONTEXT / ADR / research references": "<fill: durable references>",
     "Next bounded owner and action": "<fill: next bounded owner and action>",
   };
@@ -191,6 +192,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
       publicationState: fieldLine(text, "Publication state"),
       owner: fieldLine(text, "Current workflow owner and sole writer"),
       nextAction: fieldLine(text, "Next bounded owner and action"),
+      friction: fieldLine(text, "Workflow friction and lesson candidates"),
       recordedCommits: recorded,
       liveHead: liveHead.ok ? liveHead.out : null,
       headMoved,
@@ -210,6 +212,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
       `state: ${brief.outcomeState} / publication ${brief.publicationState}`,
       `owner: ${brief.owner}`,
       `next: ${brief.nextAction}`,
+      `friction: ${brief.friction}`,
       repoLine,
       cleanupLine,
     ].join("\n");

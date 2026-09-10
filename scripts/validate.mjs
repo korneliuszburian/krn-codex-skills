@@ -764,6 +764,11 @@ for (const markdown of repositoryMarkdown) {
       fail(`${relative(topic)}: topic is missing from docs/research/README.md Topics`);
     }
   }
+  const lessonsFile = path.join(researchDirectory, "workflow-lessons.md");
+  if (fs.existsSync(lessonsFile)) {
+    const rows = read(lessonsFile).split("\n").filter((line) => line.startsWith("|")).length - 2;
+    if (rows > 24) fail("docs/research/workflow-lessons.md exceeds 24 lesson rows; displace or condense");
+  }
   assertDurableHeader(path.join(root, "docs", "capabilities.md"));
   assertDurableHeader(path.join(root, "docs", "migration.md"));
   for (const target of ["../capabilities.md", "../migration.md"]) {

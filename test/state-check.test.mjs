@@ -25,7 +25,7 @@ function makeRepo({ initialCommit = true } = {}) {
   return { root, head: initialCommit ? git(root, ["rev-parse", "HEAD"]) : null };
 }
 
-function capsule({ outcome = "ACTIVE", publication = "LOCAL_ONLY", restart = "ABSENT", cleanup = "none", fixedPoint }) {
+function capsule({ outcome = "ACTIVE", publication = "LOCAL_ONLY", restart = "ABSENT", cleanup = "none", fixedPoint, friction = "none" }) {
   return [
     "Outcome and observable acceptance: test",
     "Current workflow owner and sole writer: $delivery-loop",
@@ -40,6 +40,7 @@ function capsule({ outcome = "ACTIVE", publication = "LOCAL_ONLY", restart = "AB
     "Explicit non-proofs: none",
     "Review fixed point and Standards / Spec disposition: none",
     "Open unknowns and blockers with owners: none",
+    `Workflow friction and lesson candidates: ${friction}`,
     "Durable CONTEXT / ADR / research references: none",
     "Next bounded owner and action: none",
     "",
@@ -219,5 +220,13 @@ test("the CLI resolves the repository top level and returns terminal exit codes"
   writeCapsule(root, capsule({ outcome: "DONE", fixedPoint: `HEAD=${head}` }));
   const divergent = spawnSync(process.execPath, [cli, "state", "check"], { cwd: nested, encoding: "utf8" });
   assert.equal(divergent.status, 1, divergent.stdout + divergent.stderr);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a COMPLETE capsule blocks on undispositioned lesson candidates", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `base=${head}; HEAD=${head}; dirty=clean`, friction: "reviewer skipped the context check; candidate gate: state check" }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "complete-with-friction"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });

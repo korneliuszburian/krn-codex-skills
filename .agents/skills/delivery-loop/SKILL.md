@@ -13,9 +13,10 @@ hosts own their mechanics and policy.
 
 1. **Bind one outcome and one writer.** Read the closest repository
    instructions, current Git state, configured tracker item when one exists,
-   and active native goal when one exists. Create a native goal only when the
-   user explicitly requested persistent autonomous progress; otherwise the
-   accepted request is the outcome authority. Reconcile a pre-existing goal
+   active native goal when one exists, and `docs/research/workflow-lessons.md`
+   when it exists as the cross-run workflow memory. Create a native goal only
+   when the user explicitly requested persistent autonomous progress; otherwise
+   the accepted request is the outcome authority. Reconcile a pre-existing goal
    with repository and tracker truth before continuing.
 
    Keep exactly one compact working record and replace its fields in place:
@@ -34,6 +35,7 @@ hosts own their mechanics and policy.
    Explicit non-proofs:
    Review fixed point and Standards / Spec disposition:
    Open unknowns and blockers with owners:
+   Workflow friction and lesson candidates: none | [<observed friction; evidence; candidate gate, instruction edit, or bounded lab-test>, ...]
    Durable CONTEXT / ADR / research references:
    Next bounded owner and action:
    </outcome-capsule>
@@ -76,7 +78,7 @@ hosts own their mechanics and policy.
    `.krn/runs/delivery-loop/<outcome-id>/state.md`, but only after verifying
    `.krn/runs/` is ignored by Git. This optional restart state is owned and
    consumed by `$delivery-loop`; it contains no copied diffs, raw logs,
-   credentials, or source corpora. When a composed workflow returns a run
+   credentials, or source corpora.    When a composed workflow returns a run
    pointer, upsert one `Outstanding workflow-run cleanup` entry keyed by that
    semantic pointer. Preserve its creating workflow, sole in-goal consumer,
    exact trigger, and state without replacing sibling entries. The creating
@@ -84,6 +86,9 @@ hosts own their mechanics and policy.
    writer marks only that entry `CLEANUP_PENDING`, commissions its owner, and
    removes the entry only after verifying the run absent; a failed cleanup marks
    only that entry `BLOCKED`. `none` means the list is empty.
+
+   Record process friction in `Workflow friction and lesson candidates` with
+   evidence and the gate, instruction edit, or lab-test it would become.
 
    At every boundary, and before any `COMPLETE` claim, run
    `krn-codex state check`; `divergent` blocks, while `not-applicable` means no
@@ -94,7 +99,8 @@ hosts own their mechanics and policy.
 
    For an accepted outcome, discharge every triggered specialist cleanup,
    reconcile tracker closure when configured, remove delivery restart state when
-   it exists, and complete the native Goal when present as one terminal sequence.
+   it exists, disposition every lesson candidate into the workflow-lessons
+   page, and complete the native Goal when present as one terminal sequence.
    Record an absent tracker, Goal, run, or cleanup obligation explicitly; do not
    claim `COMPLETE` until every participant that exists is observed terminal.
    Never complete a superseded or abandoned Goal: record that state and its next

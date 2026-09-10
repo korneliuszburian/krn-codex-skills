@@ -84,6 +84,7 @@ function fixtureCapsule({ outcome, cleanup }) {
     "Explicit non-proofs: none",
     "Review fixed point and Standards / Spec disposition: none",
     "Open unknowns and blockers with owners: none",
+    "Workflow friction and lesson candidates: none",
     "Durable CONTEXT / ADR / research references: none",
     "Next bounded owner and action: none",
     "",
