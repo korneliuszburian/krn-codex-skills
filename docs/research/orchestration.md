@@ -203,6 +203,39 @@ particular timeout is correct, or that DeepSeek output is approval. The next
 owner returns only a focused transport proof to `$source-to-decision`; the
 initiating workflow still verifies any substantive finding locally.
 
+## Claude memory comparison: reuse the mechanism, not the plugin
+
+The old project-local `.remember` material is not Claude Code's native memory.
+The public Remember project is a third-party, source-available plugin. Its
+useful mechanism is a lifecycle pipeline: session start recovery, filtered
+transcript extraction, bounded summarisation, a current handoff, and later
+consolidation into recent/archive files. It also documents locks, atomic
+same-directory replacement, cooldowns, and worktree-aware external storage.
+Those are observations about that project, not permission to vendor it; its
+license prohibits modification and redistribution, and KRN forbids vendoring
+external code or raw corpora.
+
+Claude's native feature is smaller: project-scoped Markdown memory is loaded at
+session start, is bounded, editable, and acts as context rather than an
+enforcement boundary. KRN therefore ports the semantic boundary, not the
+implementation:
+
+| Remember mechanism | KRN decision | Local boundary |
+|---|---|---|
+| Automatic transcript capture and tiered daily/archive summaries | reject for now | duplicates the research ledger, hides stale model-written context, and adds privacy/token cost; reopen only after a named restart failure and retention rule |
+| Explicit `/remember` handoff | adopt as a semantic pattern | `$delivery-loop` rewrites one compact outcome capsule with evidence, non-proofs, authority, and next action; no second memory store |
+| Per-project/worktree external storage | adopt existing boundary | ignored `.krn/runs` and canonical repository identity already isolate transient state; durable shared facts belong in `CONTEXT.md`, research, or ADRs |
+| SessionStart/PostToolUse lifecycle hooks | defer | the KRN hook stays narrow and deterministic; add lifecycle hooks only after a reproducible missed-restart case has a consumer, cleanup trigger, and falsifier |
+| Locks, cooldowns, atomic replacement, and recovery | lab-test only | use if concurrent capsule writers or power-loss recovery fails in a real run; do not add a generic memory daemon |
+| Personal preferences or identity memory | reject in the repository | keep operator preferences outside product knowledge; only shared vocabulary and accepted decisions are durable |
+
+The resulting invariant is simple: a fresh owner reads the accepted request or
+Goal, current repository/tracker state, and one compact capsule. If that is not
+enough, the owner records the missing fact in the canonical decision topic or
+asks for authority; it does not silently grow a transcript archive. The
+canonical topic records the source identity and decision residue so later work
+can reuse the decision without rereading the same material.
+
 ## Third-party harness disposition
 
 The named consumer is `$delivery-loop`, with the next suitable multi-session

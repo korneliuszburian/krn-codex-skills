@@ -17,6 +17,23 @@ Git history records the sequence.
    outside Git. Promote only the distilled mechanism and provenance.
 7. Delete a topic when it has no current consumer; its history remains in Git.
 
+## Source reuse and ephemeral research passes
+
+Before browsing, search this index by canonical URL, owner, revision, or
+question. Reuse an existing source identity when the source and decision scope
+are unchanged; extend the owning topic instead of creating a second summary. A
+refreshed source gets a new verification date and an explicit supersession
+note. The primary-source table is an index into decisions, not a chronological
+pass log.
+
+A bounded pass may carry `pass-id`, question, consumer, source identities,
+disposition (`adopt`, `reject`, `lab-test`, or `defer`), falsifier, non-proof,
+and cleanup trigger, but that record stays in the ignored
+`.krn/runs/<workflow>/<run-id>/` boundary. When the consumer finishes, promote
+only the source identity and decision residue into the canonical topic; remove
+the pass artifacts. The registry is provenance and deduplication, never a
+generic episodic-memory or transcript-replay system.
+
 ## Refresh rule
 
 The composed upstream set is refreshed from `mattpocock/skills`; this repository
@@ -58,6 +75,10 @@ freshness, not permanence.
 | Scope and YAGNI pressure | [`ponytail` at `2ed6c52`](https://github.com/DietrichGebert/ponytail/tree/2ed6c52c9d7e5e56942508591085fd45dea277d3) and its [agentic benchmark](https://github.com/DietrichGebert/ponytail/blob/2ed6c52c9d7e5e56942508591085fd45dea277d3/benchmarks/results/2026-06-18-agentic.md) | ask whether a feature is needed, then prefer reuse, standard library, native capability, installed dependency, or the smallest direct implementation while retaining security and accessibility checks | the benchmark is self-reported and small; it supports a heuristic, not a separate global workflow or transfer claim | 2026-08-26 |
 | Bounded experimentation | [`karpathy/autoresearch`](https://github.com/karpathy/autoresearch/tree/228791fb499afffb54b46200aca536f79142f117) | compare one bounded change against a stable baseline and keep only measured improvement | 2026-07-30 |
 | Agent knowledge distillation | [Self-Instruct](https://arxiv.org/abs/2212.10560), [Distilling Step-by-Step](https://arxiv.org/abs/2305.02301), [DSPy](https://arxiv.org/abs/2310.03714), [ReAct](https://arxiv.org/abs/2210.03629), [Voyager](https://arxiv.org/abs/2305.16291) | extract mechanisms, hard negatives, executable verification, and promotion only after evidence; papers inform hypotheses, not KRN proof | 2026-09-10 |
+| OpenAI workflow cookbooks | [Iterative Codex workflows](https://github.com/openai/openai-cookbook/blob/main/examples/codex/iterating-development-workflows-with-codex.md), [Using Goals](https://github.com/openai/openai-cookbook/blob/main/examples/codex/using_goals_in_codex.ipynb), [Cookbook AGENTS.md](https://github.com/openai/openai-cookbook/blob/main/AGENTS.md) | phase files and acceptance gates are useful only when a named outcome consumes them; avoid duplicate plans and unverified claims | 2026-09-10 |
+| Anthropic context and harness guidance | [Context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents), [agent patterns](https://github.com/anthropics/anthropic-cookbook/tree/main/patterns/agents), [long-running harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents), [application harness](https://www.anthropic.com/engineering/harness-design-long-running-apps) | just-in-time references, compact restart state, and skeptical evaluation are conditional mechanisms; complexity and cost must earn a consumer | 2026-09-10 |
+| Claude memory | [Native memory](https://code.claude.com/docs/en/memory) and the third-party [Remember plugin](https://github.com/Digital-Process-Tools/claude-remember) | adopt explicit bounded handoff semantics; reject transcript replay and plugin code; existing KRN capsules and ignored runs are the local storage boundary | 2026-09-10 |
+| Provenance and retrieval research | [W3C PROV-DM](https://www.w3.org/TR/prov-dm/), [ALCE](https://arxiv.org/abs/2305.14627), [RARR](https://arxiv.org/abs/2210.08726), [Adaptive-RAG](https://arxiv.org/abs/2403.14403), [deduplication](https://arxiv.org/abs/2107.06499) | keep claim-level provenance, canonical-source deduplication, freshness, and supersession; lab-test run-level metadata before adding machinery | 2026-09-10 |
 
 ## TypeScript provenance
 
