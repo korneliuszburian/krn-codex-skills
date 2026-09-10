@@ -38,6 +38,18 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
+function canonicalPath(candidate) {
+  const suffix = [];
+  let existing = path.resolve(candidate);
+  while (!fs.existsSync(existing)) {
+    suffix.unshift(path.basename(existing));
+    const parent = path.dirname(existing);
+    if (parent === existing) break;
+    existing = parent;
+  }
+  return path.join(fs.realpathSync(existing), ...suffix);
+}
+
 function sourceRootFromLocator(locator, cwd) {
   const asPath = locator && fs.existsSync(locator) ? path.resolve(locator) : null;
   if (asPath) {
@@ -115,7 +127,7 @@ export function createInstallPlan({ source, cwd, codexHome = process.env.CODEX_H
   const resolved = resolveSource({ source, cwd });
   validateSource(resolved.root);
   const manifest = readJson(path.join(resolved.root, "skills", "manifest.json"));
-  const releaseRoot = path.join(path.resolve(codexHome), "krn");
+  const releaseRoot = path.join(canonicalPath(codexHome), "krn");
   return {
     source: resolved.root,
     commit: resolved.commit,
@@ -198,16 +210,21 @@ function managedTargets(plan) {
   const binDest = process.env.KRN_BIN_DEST || path.join(os.homedir(), ".local", "bin");
   const codexHome = path.dirname(plan.releaseRoot);
   const targets = [];
+  const add = (label, root, name, relative) => {
+    const target = path.join(root, name);
+    if (path.dirname(target) !== root || name === "." || name === "..") fail(`unsafe managed destination: ${name}`, EXIT_SOURCE);
+    targets.push({ label, target, relative });
+  };
   for (const skill of plan.manifest.skills) {
-    targets.push({ label: `skill__${skill.name}`, target: path.join(skillDest, skill.name), relative: skill.path });
+    add(`skill__${skill.name}`, skillDest, skill.name, skill.path);
   }
   for (const bin of plan.manifest.bins) {
-    targets.push({ label: `bin__${bin.name}`, target: path.join(binDest, bin.name), relative: bin.path });
+    add(`bin__${bin.name}`, binDest, bin.name, bin.path);
   }
   targets.push({ label: "global__AGENTS.md", target: path.join(codexHome, "AGENTS.md"), relative: plan.manifest.global_agents });
   targets.push({ label: "global__hooks.json", target: path.join(codexHome, "hooks.json"), relative: plan.manifest.global_hooks });
   for (const hook of plan.manifest.global_hook_files) {
-    targets.push({ label: `hook__${hook.name}`, target: path.join(codexHome, "hooks", hook.name), relative: hook.path });
+    add(`hook__${hook.name}`, path.join(codexHome, "hooks"), hook.name, hook.path);
   }
   return targets;
 }
@@ -294,7 +311,7 @@ function reconcileTargets(plan) {
         const textual = fs.readlinkSync(item.target);
         if (textual.includes(`${path.sep}current${path.sep}`)) continue;
       }
-      const entry = { target: item.target, backup: null };
+      const entry = { target: item.target, backup: null, created: false };
       changed.push(entry);
       if (fs.lstatSync(item.target, { throwIfNoEntry: false })) {
         fs.mkdirSync(backup, { recursive: true });
@@ -303,13 +320,15 @@ function reconcileTargets(plan) {
         usedBackup = true;
       }
       fs.symlinkSync(expected, item.target);
+      entry.created = true;
       if (process.env.KRN_TEST_FAIL_DURING_RECONCILE === "1" && changed.length === 1) {
         throw new Error("injected reconciliation failure");
       }
     }
   } catch (error) {
     for (const entry of changed.reverse()) {
-      if (fs.lstatSync(entry.target, { throwIfNoEntry: false })) fs.unlinkSync(entry.target);
+      const current = fs.lstatSync(entry.target, { throwIfNoEntry: false });
+      if (entry.created && current?.isSymbolicLink()) fs.unlinkSync(entry.target);
       if (entry.backup && fs.lstatSync(entry.backup, { throwIfNoEntry: false })) {
         fs.renameSync(entry.backup, entry.target);
       }
@@ -371,7 +390,7 @@ function itemStatus(plan, item) {
 }
 
 export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex") } = {}) {
-  const releaseRoot = path.join(path.resolve(codexHome), "krn");
+  const releaseRoot = path.join(canonicalPath(codexHome), "krn");
   const current = path.join(releaseRoot, "current");
   const currentTarget = resolvedLink(current);
   const base = {

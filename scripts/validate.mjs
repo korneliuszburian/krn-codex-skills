@@ -389,7 +389,7 @@ for (const hookFile of manifestArray(manifest.global_hook_files, "global_hook_fi
     fail("manifest: global_hook_files entries must be objects");
     continue;
   }
-  if (!/^[a-zA-Z0-9_.-]{1,80}$/.test(hookFile.name ?? "")) {
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}$/.test(hookFile.name ?? "")) {
     fail(`manifest: invalid global hook file name ${hookFile.name}`);
   }
   if (hookFileNames.has(hookFile.name)) {
