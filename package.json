@@ -9,7 +9,7 @@
   },
   "scripts": {
     "catalog": "node scripts/catalog.mjs",
-    "test:bootstrap": "node --test evals/codex-bootstrap-fixture/bootstrap.test.mjs",
+    "test:bootstrap": "node --test test/bootstrap-fixture/bootstrap.test.mjs",
     "test:hooks": "python3 -B -m unittest scripts/hooks/test_destructive_guard.py",
     "validate": "node scripts/validate.mjs",
     "install:check": "bash scripts/install.sh check"

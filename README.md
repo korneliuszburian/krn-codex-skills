@@ -90,23 +90,13 @@ tracker capability is emulated.
 | [`unlazy`](skills/meta/unlazy/SKILL.md) | explicit only | machine-checked completion gates for long or multi-phase work |
 | [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
 
-The shared engineering and productivity flow (`ask-matt`, `wayfinder`,
-`to-spec`, `to-tickets`, `implement`, `diagnosing-bugs`, `research`,
-`prototype`, `codebase-design`, `improve-codebase-architecture`,
-`resolving-merge-conflicts`, `code-review`, `domain-modeling`, `tdd`, `triage`,
-`wizard`, `grill-with-docs`, `grill-me`, `grilling`, `handoff`, `teach`,
-`to-questionnaire`, `wait-what`, `writing-for-agents`, and
-`setup-matt-pocock-skills`) is **composed from a clean checkout of the
-upstream [`mattpocock/skills`](https://github.com/mattpocock/skills) set at the
-commit pinned by `config/upstream-sources.json`, not owned here** — do not use a
-moving `npx skills add` result as the KRN source. This repo owns only the decisions
-and lifecycle envelopes listed above; lab measurement found no advantage of a
-hand-forked copy over upstream or over no skill
-The upstream composition is a policy decision constrained by the limited
-measurement record; no local fork is maintained.
-Only `diagnosing-bugs` was directly measured; the broader upstream composition
-is a policy decision constrained by that limited result, not a claim that every
-skill has been benchmarked.
+The shared engineering and productivity flow is **composed from a clean
+checkout of the upstream [`mattpocock/skills`](https://github.com/mattpocock/skills)
+set at the commit pinned by `config/upstream-sources.json`, not owned here**.
+The lock file is the machine-readable source of the set; `config/AGENTS.md`
+contains its always-loaded route list. Do not use a moving `npx skills add`
+result as the KRN source, and do not create a local fork without a named
+consumer and falsifier.
 
 ### Source-only packs
 
@@ -155,7 +145,7 @@ require an explicit `$skill-name` attachment; the composed upstream
 
 For a disposable end-to-end proof, run `npm run test:bootstrap`; it installs a
 temporary release and drives the linked CLI against
-[`evals/codex-bootstrap-fixture`](evals/codex-bootstrap-fixture/). The installer
+[`test/bootstrap-fixture`](test/bootstrap-fixture/). The installer
 validates the exact clean source checkout before a release is created; refreshes
 should still run `npm run validate` first.
 
@@ -203,7 +193,7 @@ Every pull request runs this full repository proof once on its fixed revision.
 AGENTS.md       source-repository editing contract
 config/         installed global contract and hook configuration
 skills/         canonical workflow owners and direct resources
-evals/          installed-release bootstrap fixture and routing cases
+test/           the retained installed-release bootstrap smoke fixture
 scripts/        deterministic validation, installation, hooks, and catalog
 CONTEXT.md      compact current vocabulary and knowledge index
 docs/research/  living source-backed synthesis

@@ -12,9 +12,6 @@ build/
 tmp/
 __pycache__/
 *.pyc
-evals/frontend-browser-fixture/.artifacts/
-evals/frontend-browser-fixture/.playwright-cli/
-
 # Retired private review namespaces; keep while v1 migration remains supported.
 /reviews/
 /review-artifacts/

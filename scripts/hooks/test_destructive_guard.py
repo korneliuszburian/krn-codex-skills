@@ -1,27 +1,41 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
-import shlex
 import sys
+import subprocess
 import tempfile
 import unittest
 
-sys.path.insert(0, str(Path(__file__).parent))
-
-from destructive_guard import direct_destructive_denial_reason
+HOOK = Path(__file__).with_name("krn_pretooluse.py")
 
 
 class DestructiveGuardSmoke(unittest.TestCase):
-    def test_blocks_protected_root_and_allows_disposable_output(self) -> None:
+    def test_installed_hook_blocks_protected_root_and_allows_disposable_output(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary) / "repo"
             repo.mkdir()
             (repo / ".git").mkdir()
 
             def reason(command: str) -> str | None:
-                return direct_destructive_denial_reason(
-                    tuple(shlex.split(command)), repo
+                payload = {
+                    "hook_event_name": "PreToolUse",
+                    "tool_name": "Bash",
+                    "cwd": str(repo),
+                    "tool_input": {"command": command},
+                }
+                result = subprocess.run(
+                    [sys.executable, str(HOOK)],
+                    input=json.dumps(payload),
+                    text=True,
+                    capture_output=True,
+                    check=False,
                 )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                if not result.stdout.strip():
+                    return None
+                output = json.loads(result.stdout)
+                return output["hookSpecificOutput"]["permissionDecisionReason"]
 
             self.assertIn("destructive removal blocked", reason("rm -rf .") or "")
             self.assertIsNotNone(reason("rm -f .env"))

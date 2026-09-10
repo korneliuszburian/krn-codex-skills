@@ -92,6 +92,13 @@ it.
    evidence, rejected or deferred paths are explicit, and consumer and
    falsifier are named or their absence is the stated reason to defer.
 
+   A one-line decision with no named durable consumer uses a compact
+   disposition: source, mechanism, local implication, decision, owner or
+   consumer, falsifier, non-proof, and next action. Do not fill tracker,
+   capsule, research, or index fields with `none` merely to complete a large
+   template. Use the full form only when a named durable consumer already
+   exists or the decision crosses a Goal or tracker boundary.
+
 5. **Try to break the disposition.** Use the narrowest current observation,
    counterexample, or authorized disposable experiment that can contradict the
    local implication. A `lab-test` remains an experiment; its setup is not

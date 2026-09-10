@@ -51,7 +51,7 @@ as a completion signal.
 ## Pilot evidence
 
 The first pilot used the current PR fixed point and four runnable gates for
-HEAD, repository validation, experiment regressions, and GitHub CI, plus one
+HEAD, repository validation, historical gate regressions, and GitHub CI, plus one
 manual gate for an independent review of the exact HEAD.
 
 Observed result:

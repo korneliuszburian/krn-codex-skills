@@ -19,19 +19,10 @@ a progress log. Update meanings and links in place; Git retains their history.
 **Global system** — the universal KRN engineering workflows versioned here and
 projected into the installed skill index.
 
-**Composed upstream set** — the current stable engineering and productivity
-owners (`ask-matt`, `code-review`, `codebase-design`, `diagnosing-bugs`,
-`domain-modeling`, `grill-with-docs`, `implement`,
-`improve-codebase-architecture`, `prototype`, `research`,
-`resolving-merge-conflicts`, `setup-matt-pocock-skills`, `tdd`, `to-spec`,
-`to-tickets`, `triage`, `wayfinder`, `wizard`, `grill-me`, `grilling`,
-`handoff`, `teach`, `to-questionnaire`, `wait-what`, and
-`writing-for-agents`) installed from a clean checkout of `mattpocock/skills` at
-the commit pinned in `config/upstream-sources.json`. This checkout references
-them by name and owns none of their procedure; the three-arm lab found no
-advantage of a hand-forked `diagnosing-bugs` copy over upstream or over no
-skill. The broader composition is a policy decision, not a claim that every
-upstream skill was benchmarked.
+**Composed upstream set** — the pinned `mattpocock/skills` checkout named by
+`config/upstream-sources.json`. This repository references those owners by name
+and owns none of their procedure; the lock is the source of truth and the
+always-loaded route list lives in `config/AGENTS.md`.
 
 **Source repository** — this checkout. It owns skill source, installation
 metadata, validation, research synthesis, and migration history.
@@ -53,7 +44,7 @@ writer, handoffs, and authorized transitions around specialist owners. It does
 not absorb their procedures.
 
 **Semantic ABI** — the canonical nouns that connect prompt shape, skill
-description, artifact fields, and routing evals. A synonym may be accepted, but
+description, artifact fields, and routing language. A synonym may be accepted, but
 the system emits the canonical term so handoffs stay stable.
 
 **Trigger collision** — two descriptions claim the same task without a clear

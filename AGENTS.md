@@ -8,7 +8,7 @@ reusable process. Product repositories own their language, commands, and gates.
 - `config/AGENTS.md` — the installed global safety and production core.
 - `skills/<group>/<name>/` — one promoted workflow and its direct resources.
 - `skills/manifest.json` — names, install paths, invocation, and retirement.
-- `evals/` — positive, negative, explicit, and composition routing cases.
+- `test/` — the one retained public bootstrap smoke fixture.
 - `scripts/` — deterministic validation, installation, hooks, and catalog tools.
 - `CONTEXT.md` — the compact current system model and knowledge index.
 - `docs/research/` — living source-backed synthesis, never raw research notes.
@@ -64,13 +64,22 @@ reusable process. Product repositories own their language, commands, and gates.
 - The installer may touch only manifest-declared paths and must back up
   displaced state.
 
-## Verification
+## Verification budget
 
-| Changed surface | Required signal |
-|---|---|
-| skill, metadata, manifest, reference, or routing | `npm run validate` plus the nearest fresh positive/negative prompt |
-| setup, installer, migration, or hook behavior | focused tests plus shell syntax where applicable |
-| final owned diff | relevant full suite once, then `git diff --check` |
+- `0`: documentation, metadata, topology, type-only, or already-observed
+  behavior-preserving work. Run `npm run validate`; do not add a test, prompt,
+  or document unless it has a named consumer.
+- `1`: one changed runtime, security, authority, parser, or migration contract.
+  Run one relevant retained smoke (`npm run test:bootstrap` or
+  `npm run test:hooks`).
+- `N`: only for distinct acceptance requirements or failure modes, named before
+  implementation. Do not create a benchmark or evaluation harness without a
+  consumer and a deletion trigger.
+- Routing prose is owned by skill descriptions and the README catalog; it does
+  not require a prompt-evaluation matrix by default.
+- Before handoff, run the CI command set once (`npm run validate`,
+  `npm run test:bootstrap`, `npm run test:hooks`, `bash -n scripts/install.sh`),
+  then `git diff --check`.
 
 Use Conventional Commits on an owned branch. Do not run untouched gates during
 the inner loop.

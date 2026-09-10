@@ -31,7 +31,6 @@ freshness, not permanence.
 
 | Topic | Current authority | One-line state | Reopen when |
 |---|---|---|---|
-| Documentation and proof topology | [documentation-and-proof-topology.md](documentation-and-proof-topology.md) | accepted migration record for one canonical document taxonomy and seam-based proof; final pruning remains measured | a retained page or test loses its owner, consumer, or falsifier |
 | Agent orchestration and compact context | [orchestration.md](orchestration.md) | accepted compiled-context spine; bounded register lab did not earn a new store; upstream harness mechanisms are selectively adopted or lab-tested; OpenCode advisory transport hardening remains a lab-test | a recurring routing, restart, review, artifact, writer-admission, or advisory-transport failure survives bounded repair |
 | TypeScript engineering | [`typescript-engineering` references](../../skills/engineering/typescript-engineering/SKILL.md) | inference, boundary, compiler, and proof mechanisms are owned directly by the companion skill | a current compiler/host change contradicts a retained mechanism |
 | Capability surface | [capabilities.md](../capabilities.md) | named profiles and evidence-bounded reconciliation | catalog schema, runtime event, or trust boundary changes |

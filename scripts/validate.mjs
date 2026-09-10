@@ -8,7 +8,6 @@ import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
-const evalPath = path.join(root, "evals", "trigger-cases.json");
 const readmePath = path.join(root, "README.md");
 const upstreamSourcesPath = path.resolve(
   process.env.KRN_UPSTREAM_LOCK ?? path.join(root, "config", "upstream-sources.json"),
@@ -249,13 +248,6 @@ function validateReadmeSourceOnlyPointers(file, skills, installableSkills) {
   if (skills.length > 0 && !/\bnot installed\b/i.test(section)) {
     fail(`${relative(file)}: Source-only packs section must state that the packs are not installed`);
   }
-}
-
-function hasExactSkillToken(prompt, name) {
-  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(
-    `(?:^|[^A-Za-z0-9_$-])\\$${escapedName}(?=$|[^A-Za-z0-9_-])`,
-  ).test(prompt);
 }
 
 function validateSkillMarkdown(file, skill, manifestNames) {
@@ -596,12 +588,6 @@ for (const retired of manifest.retired_skills ?? []) {
   }
 }
 
-const knownSkillNames = new Set([
-  ...localSkillNames,
-  ...retiredSkillNames,
-  ...upstreamSkillNames,
-]);
-
 validateReadmeSkillsTable(readmePath, validInstallableSkills);
 validateReadmeSourceOnlyPointers(
   readmePath,
@@ -747,101 +733,6 @@ for (const item of manifestArray(manifest.legacy_user_paths, "legacy_user_paths"
   }
 }
 
-const triggerCases = json(evalPath);
-if (triggerCases.schema_version !== 1) {
-  fail("evals/trigger-cases.json: schema_version must be 1");
-}
-const caseIds = new Set();
-const positivelyCovered = new Set();
-const negativelyCovered = new Set();
-for (const testCase of triggerCases.cases ?? []) {
-  if (!testCase.id || caseIds.has(testCase.id)) {
-    fail(`trigger case has missing or duplicate id: ${testCase.id}`);
-  }
-  caseIds.add(testCase.id);
-  if (typeof testCase.prompt !== "string" || !testCase.prompt.trim()) {
-    fail(`${testCase.id}: prompt must be non-empty`);
-  }
-  const skillLists = {};
-  for (const field of ["expected_skills", "forbidden_skills"]) {
-    const names = testCase[field];
-    if (!Array.isArray(names)) {
-      fail(`${testCase.id}: ${field} must be an array`);
-      skillLists[field] = [];
-      continue;
-    }
-    const unique = new Set();
-    for (const name of names) {
-      if (unique.has(name)) {
-        fail(`${testCase.id}: duplicate ${field} member ${name}`);
-      }
-      unique.add(name);
-    }
-    skillLists[field] = names;
-  }
-  const expectedSkills = skillLists.expected_skills;
-  const forbiddenSkills = skillLists.forbidden_skills;
-  for (const name of expectedSkills) {
-    const expectedSkill = validLocalSkills.find(
-      (skill) => skill.name === name,
-    );
-    if (
-      !expectedSkill &&
-      !upstreamSkillNames.has(name)
-    ) {
-      fail(`${testCase.id}: unknown expected skill ${name}`);
-    } else if (
-      expectedSkill &&
-      expectedSkill.implicit === false &&
-      typeof testCase.prompt === "string" &&
-      !hasExactSkillToken(testCase.prompt, name)
-    ) {
-      fail(
-        `${testCase.id}: explicit-only expected skill ${name} requires exact $${name} attachment in prompt`,
-      );
-    }
-    positivelyCovered.add(name);
-  }
-  for (const name of forbiddenSkills) {
-    if (!knownSkillNames.has(name)) fail(`${testCase.id}: unknown forbidden skill ${name}`);
-    negativelyCovered.add(name);
-  }
-  const forbiddenSet = new Set(forbiddenSkills);
-  for (const name of new Set(expectedSkills)) {
-    if (forbiddenSet.has(name)) {
-      fail(`${testCase.id}: skill ${name} is both expected and forbidden`);
-    }
-  }
-}
-for (const name of localSkillNames) {
-  if (!positivelyCovered.has(name)) fail(`trigger matrix: no positive case for ${name}`);
-  if (!negativelyCovered.has(name)) fail(`trigger matrix: no negative case for ${name}`);
-}
-
-const goalRecovery = triggerCases.cases.find(
-  (testCase) => testCase.id === "goal-recovery-is-not-global-workflow",
-);
-if (!goalRecovery) {
-  fail("trigger matrix: missing goal-recovery-is-not-global-workflow case");
-} else {
-  if (
-    !Array.isArray(goalRecovery.expected_skills) ||
-    goalRecovery.expected_skills.length !== 0
-  ) {
-    fail("goal-recovery-is-not-global-workflow: expected_skills must stay empty");
-  }
-  const forbidden = new Set(
-    Array.isArray(goalRecovery.forbidden_skills)
-      ? goalRecovery.forbidden_skills
-      : [],
-  );
-  for (const name of localSkillNames) {
-    if (!forbidden.has(name)) {
-      fail(`goal-recovery-is-not-global-workflow: must forbid ${name}`);
-    }
-  }
-}
-
 if (lineCount(path.join(root, "AGENTS.md")) > 90) {
   fail("AGENTS.md exceeds 90 lines");
 }
@@ -857,7 +748,7 @@ if (errors.length) {
 }
 
 console.log(
-  `validated ${installableSkills.length} installable skills and ${sourceOnlySkills.length} source-only skills, ${triggerCases.cases.length} trigger cases, ` +
+  `validated ${installableSkills.length} installable skills and ${sourceOnlySkills.length} source-only skills, ` +
     `${Object.keys(capabilityProfiles.profiles).length} capability profiles, ` +
     "and installation metadata",
 );

@@ -181,7 +181,7 @@
     {
       "path": ".codex/skills/writing-great-skills",
       "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "owner": "repository"
     }
   ]
 }

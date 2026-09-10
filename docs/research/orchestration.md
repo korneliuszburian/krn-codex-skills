@@ -245,7 +245,7 @@ remote mutation.
 
 No central router is added. Descriptions are the admission router and the
 small global route table records only collision-prone seams. Add a router only
-after repeated human recall failures across the three explicit skills.
+after repeated human recall failures across the four explicit-only local skills.
 
 ## Complete owner map
 
@@ -315,7 +315,7 @@ evidence actually supports: no concurrent mutation of the same outcome state.
 | Global “sacrifice grammar” instruction | reject | Matt later moved it out of global context; terse output can hide proof and uncertainty |
 | Per-skill operator page | reject | mirrors `SKILL.md` and creates a second manual catalog |
 | Artifact-role JSON registry | reject | configurable names without consumers or semantic lifecycle |
-| `ask-krn` router | defer | only three explicit skills remain and no measured recall failure exists |
+| `ask-krn` router | defer | only four explicit-only local skills remain and no measured recall failure exists |
 | Mandatory full pipeline | reject | clear single changes should route directly to the smallest owner |
 | Reviewer-handoff skill | retire | no independent caller; packet generation alone is not a workflow outcome |
 

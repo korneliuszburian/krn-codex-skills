@@ -76,6 +76,10 @@ hosts own their mechanics and policy.
    and host state. Replace the capsule rather than appending a narrative status
    trail.
 
+   For mechanical, documentation, or topology-only 0-budget work, reconcile
+   only the capsule axes that changed; do not rewrite the whole capsule at
+   every boundary.
+
    When a later session must resume the outcome, the writer may store only the
    capsule and pointers to its authorities at
    `.krn/runs/delivery-loop/<outcome-id>/state.md`, but only after verifying
@@ -115,6 +119,10 @@ hosts own their mechanics and policy.
    composed upstream `code-review` the accepted outcome or spec, bounded diff,
    applicable
    instructions, exact proof and gaps, non-goals, and authority state.
+
+   A mechanical, low-risk 0-budget slice records its cheapest evidence and
+   skips fixed-point review. Behavior, authority, security, or spec/acceptance
+   changes require review.
 
    Any change to reviewed code, base, acceptance/spec, or applicable standards
    creates a new fixed point and invalidates the old review. An accepted finding

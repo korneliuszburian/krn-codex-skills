@@ -30,8 +30,8 @@ Choose the smallest owner for the one unresolved uncertainty:
 - composed upstream (`mattpocock/skills`, loaded from a clean checkout at the commit pinned in `config/upstream-sources.json`; procedure not restated here): `ask-matt`, `code-review`, `codebase-design`, `diagnosing-bugs`, `domain-modeling`, `grill-with-docs`, `implement`, `improve-codebase-architecture`, `prototype`, `research`, `resolving-merge-conflicts`, `setup-matt-pocock-skills`, `tdd`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `wizard`, `grill-me`, `grilling`, `handoff`, `teach`, `to-questionnaire`, `wait-what`, `writing-for-agents`;
 - owned here: `source-to-decision`, `slice-work`, `delivery-loop`, `setup-repository-workflow`, `target-repo-work`, `typescript-engineering`, `opencode-second-opinion`, `managing-codex-capabilities`, `unlazy`, `unslop`.
 
-The three-arm lab measured no advantage of a hand-forked copy over upstream or
-over no skill (`docs/research/skills-3arm-lab.md`); updates come from upstream.
+Updates to composed skills come from the pinned upstream checkout; this
+repository does not maintain a hand-forked copy.
 
 One workflow owns the repeated procedure. A companion may sharpen a language
 or seam but may not duplicate ownership. A goal tracks outcome state; it does
@@ -51,6 +51,8 @@ not replace the selected skill, proof, or repository contract.
 - `1` focused falsifier for one changed runtime contract, migration, authority
   boundary, parser, or reproduced bug.
 - `N` falsifiers only for distinct acceptance requirements and failure modes.
+- Do not create test, benchmark, evaluation, or documentation machinery without
+  a named consumer and a deletion or supersession trigger.
 - One outcome has one writer; independent read-only exploration and review may
   run in parallel. Parallel writers require isolated worktrees and one integrator.
 - Every update states owner, evidence, changed paths, unknowns, and next action.
