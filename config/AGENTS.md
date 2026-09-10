@@ -55,5 +55,5 @@ from their pinned checkout; do not hand-maintain or vendor a local copy. For lif
   artifacts without a named consumer and a deletion or supersession trigger.
 - One outcome has one writer; independent read-only exploration and review may run
   in parallel. Parallel writers require isolated worktrees and one integrator.
-- Every update states owner, evidence, paths, unknowns, and next action; never
-  claim completion without observed evidence or readback.
+- Every update states owner, evidence, paths, unknowns, and next action; never claim completion without observed evidence or readback;
+  a deterministic falsifier outranks a model review, and same-model self-assessment is never proof.
