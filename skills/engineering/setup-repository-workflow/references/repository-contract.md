@@ -30,6 +30,10 @@ condensed truth into the successor-owned run before cleanup. For a superseded
 or abandoned delivery run, transfer alone is not consumer completion; retain
 the original until its Goal's non-active state is read back.
 
+When the `krn-codex` CLI is installed, `krn-codex state check` verifies a
+file-backed capsule structurally from the repository root; run it before
+resuming or completing.
+
 Durable knowledge has semantic owners rather than a generic report directory:
 
 - `CONTEXT.md` holds current shared vocabulary only when a real consumer needs it;

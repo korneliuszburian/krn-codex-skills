@@ -201,6 +201,14 @@ test("a missing git binary is reported, not misattributed", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a file path is a usage error, not a false pass", () => {
+  const { root } = makeRepo();
+  const result = spawnSync(process.execPath, [cli, "state", "check", join(root, ".krn", "runs", ".gitignore")], { encoding: "utf8" });
+  assert.equal(result.status, 64, result.stderr);
+  assert.match(result.stderr, /repository directory/);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("the CLI resolves the repository top level and returns terminal exit codes", () => {
   const { root, head } = makeRepo();
   writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}` }));

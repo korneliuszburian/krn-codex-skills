@@ -193,7 +193,7 @@ function managedBlock(tracker, domain, delivery) {
 - **Tracker:** ${trackerSummary(tracker)}
 - **Domain knowledge:** ${domainSummary(domain)}
 - **Delivery:** ${deliverySummary(delivery)}
-- **Transient runs:** Keep resumable workflow state under the ignored \`.krn/runs/<workflow>/<run-id>/\`. Delete it when its sole in-goal consumer finishes the accepted outcome or its owning Goal closes; cross-Goal continuation transfers condensed truth into the successor's own run first. For a superseded or abandoned delivery run, transfer alone is not consumer completion: retain the original until its Goal's non-active state is read back.
+- **Transient runs:** Keep resumable workflow state under the ignored \`.krn/runs/<workflow>/<run-id>/\`. Delete it when its sole in-goal consumer finishes the accepted outcome or its owning Goal closes; cross-Goal continuation transfers condensed truth into the successor's own run first. For a superseded or abandoned delivery run, transfer alone is not consumer completion: retain the original until its Goal's non-active state is read back. When the installed \`krn-codex\` CLI is available, verify a file-backed outcome capsule with \`krn-codex state check\` from the repository root before resuming or completing.
 
 Installed global skills own implementation, diagnosis, review, and reusable engineering procedure. Do not copy or rename them in this repository.
 ${END}`;

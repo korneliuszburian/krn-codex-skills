@@ -123,7 +123,11 @@ function fixedPointErrors(root, fixedPoint, canCheckCommits) {
 
 export function inspectSpineState({ repo = process.cwd() } = {}) {
   const requested = resolve(repo);
-  if (!existsSync(requested)) throw new Error(`repository path does not exist: ${requested}`);
+  const requestedStat = statSync(requested, { throwIfNoEntry: false });
+  if (!requestedStat) throw new Error(`repository path does not exist: ${requested}`);
+  if (!requestedStat.isDirectory()) {
+    throw new Error(`state check expects a repository directory, got a file: ${requested}`);
+  }
   const hasGit = gitAvailable();
   const top = hasGit ? git(requested, ["rev-parse", "--show-toplevel"]) : { ok: false, out: "" };
   const root = top.ok && top.out ? resolve(top.out) : requested;

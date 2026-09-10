@@ -59,7 +59,12 @@ try {
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));
     if (positional[0] !== "check" || positional.length > 2 || options.source || options.yes) fail(usage);
-    const report = inspectSpineState({ repo: positional[1] ?? process.cwd() });
+    let report;
+    try {
+      report = inspectSpineState({ repo: positional[1] ?? process.cwd() });
+    } catch (error) {
+      fail(error.message, 64);
+    }
     print(report, options.json);
     if (report.status === "divergent") process.exitCode = 1;
   } else {
