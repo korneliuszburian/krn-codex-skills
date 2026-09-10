@@ -333,6 +333,17 @@ function validateUpstreamSources(document) {
       }
       paths.add(requiredPath);
     }
+    if (source.harness_paths !== undefined) {
+      if (!Array.isArray(source.harness_paths) || source.harness_paths.length === 0) {
+        fail(`config/upstream-sources.json: harness_paths must be non-empty for ${source.id}`);
+      } else {
+        for (const harnessPath of source.harness_paths) {
+          if (!paths.has(harnessPath)) {
+            fail(`config/upstream-sources.json: harness path ${harnessPath} is not in required_paths`);
+          }
+        }
+      }
+    }
   }
   if (!sourceIds.has("mattpocock/skills")) {
     fail("config/upstream-sources.json: missing mattpocock/skills source");
@@ -537,6 +548,17 @@ for (const skill of allLocalSkills) {
   }
   if (keysAreValid && nameIsValid && !pathIsUnsafe && pathShapeIsValid && implicitIsValid) {
     validLocalSkills.push(skill);
+  }
+}
+if (manifest.harness_skills !== undefined) {
+  if (!Array.isArray(manifest.harness_skills) || manifest.harness_skills.length === 0) {
+    fail("manifest: harness_skills must be a non-empty array");
+  } else {
+    for (const name of manifest.harness_skills) {
+      if (!localSkillNames.has(name)) {
+        fail(`manifest: harness skill ${name} is not a local installable skill`);
+      }
+    }
   }
 }
 const knownSkillNames = new Set([...localSkillNames, ...upstreamSkillNames]);

@@ -1,6 +1,0 @@
-interface:
-  display_name: "OpenCode Second Opinion"
-  short_description: "Ask the configured reviewer model for a read-only path opinion"
-  default_prompt: "Use $opencode-second-opinion to ask the configured independent reviewer model for an advisory opinion on this explicit path."
-policy:
-  allow_implicit_invocation: false

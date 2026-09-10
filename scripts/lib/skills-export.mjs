@@ -102,12 +102,18 @@ export function exportSkills({ source, upstream, root }) {
   fs.mkdirSync(skillsDir, { recursive: true });
 
   const skills = [];
-  for (const skill of manifest.skills) {
+  const manifestSkills = Array.isArray(manifest.harness_skills) && manifest.harness_skills.length > 0
+    ? manifest.skills.filter((skill) => manifest.harness_skills.includes(skill.name))
+    : manifest.skills;
+  for (const skill of manifestSkills) {
     const relative = skill.path;
     fs.cpSync(path.join(source, relative), path.join(skillsDir, skill.name), { recursive: true, dereference: true });
     skills.push({ name: skill.name, origin: "krn", description: frontmatter(path.join(source, relative, "SKILL.md"))?.description ?? "" });
   }
-  for (const required of upstreamPin.required_paths) {
+  const harnessPaths = Array.isArray(upstreamPin.harness_paths) && upstreamPin.harness_paths.length > 0
+    ? upstreamPin.harness_paths
+    : upstreamPin.required_paths;
+  for (const required of harnessPaths) {
     const relative = path.dirname(required);
     const name = path.basename(relative);
     fs.cpSync(path.join(resolvedUpstream, relative), path.join(skillsDir, name), { recursive: true, dereference: true });

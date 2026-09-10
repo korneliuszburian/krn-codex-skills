@@ -38,16 +38,18 @@ function fixture() {
   const upstream = path.join(base, "upstream");
   initRepo(upstream);
   writeSkill(path.join(upstream, "skills", "eng", "one"), "one", "Upstream skill one");
+  writeSkill(path.join(upstream, "skills", "eng", "two"), "two", "Upstream skill two");
   fs.writeFileSync(path.join(upstream, "LICENSE"), "MIT License\n");
   const upstreamHead = commit(upstream, "upstream");
 
   const source = path.join(base, "source");
   initRepo(source);
   writeSkill(path.join(source, "skills", "meta", "local"), "local", "Local skill");
+  writeSkill(path.join(source, "skills", "meta", "extra"), "extra", "Excluded local skill");
   fs.mkdirSync(path.join(source, "config"), { recursive: true });
   fs.writeFileSync(
     path.join(source, "skills", "manifest.json"),
-    `${JSON.stringify({ schema_version: 1, skills: [{ name: "local", path: "skills/meta/local", implicit: true }] }, null, 2)}\n`,
+    `${JSON.stringify({ schema_version: 1, harness_skills: ["local"], skills: [{ name: "local", path: "skills/meta/local", implicit: true }, { name: "extra", path: "skills/meta/extra", implicit: false }] }, null, 2)}\n`,
   );
   fs.writeFileSync(
     path.join(source, "config", "upstream-sources.json"),
@@ -59,7 +61,8 @@ function fixture() {
             id: "mattpocock/skills",
             repository: "https://example.invalid/skills.git",
             commit: upstreamHead,
-            required_paths: ["skills/eng/one/SKILL.md"],
+            required_paths: ["skills/eng/one/SKILL.md", "skills/eng/two/SKILL.md"],
+            harness_paths: ["skills/eng/one/SKILL.md"],
           },
         ],
       },
@@ -108,6 +111,17 @@ test("export refuses a mismatched upstream pin", () => {
   fs.writeFileSync(path.join(f.upstream, "extra.txt"), "drift\n");
   commit(f.upstream, "drift");
   assert.throws(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }), /expected/);
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
+test("export includes only the harness subset of upstream paths", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  assert.ok(fs.existsSync(path.join(f.root, ".agents", "skills", "one", "SKILL.md")));
+  assert.ok(!fs.existsSync(path.join(f.root, ".agents", "skills", "two", "SKILL.md")));
+  assert.ok(!fs.existsSync(path.join(f.root, ".agents", "skills", "extra", "SKILL.md")));
+  const marker = JSON.parse(fs.readFileSync(path.join(f.root, ".agents", "skills", ".krn-export.json"), "utf8"));
+  assert.deepEqual(marker.skills, ["local", "one"]);
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 

@@ -1,6 +1,0 @@
-interface:
-  display_name: "TypeScript Engineering"
-  short_description: "Design safer TypeScript boundaries and APIs"
-  default_prompt: "Use $typescript-engineering to sharpen the types and proof for this TypeScript change."
-policy:
-  allow_implicit_invocation: true

@@ -1,5 +1,11 @@
 {
   "schema_version": 1,
+  "harness_skills": [
+    "delivery-loop",
+    "setup-repository-workflow",
+    "slice-work",
+    "source-to-decision"
+  ],
   "global_agents": "config/AGENTS.md",
   "global_hooks": "config/hooks.json",
   "global_hook_files": [
