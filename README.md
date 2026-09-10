@@ -103,7 +103,7 @@ moving `npx skills add` result as the KRN source. This repo owns only the decisi
 and lifecycle envelopes listed above; lab measurement found no advantage of a
 hand-forked copy over upstream or over no skill
 ([`skills-3arm-lab`](docs/research/skills-3arm-lab.md); its raw run data is
-retained in the private content-addressed archive named by that experiment).
+not part of this checkout and its aggregate disposition is retained here).
 Only `diagnosing-bugs` was directly measured; the broader upstream composition
 is a policy decision constrained by that limited result, not a claim that every
 skill has been benchmarked.
