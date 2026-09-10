@@ -54,3 +54,12 @@ Select a verified prior release by atomically repointing `current`, restore a
 timestamped KRN-link backup only into an absent path or over its still-managed
 replacement, then restart Codex. Never overwrite a new foreign occupant. Do
 not delete a release while an installed link or session may still depend on it.
+
+If `install apply` exits 66 (`existing release is corrupt`) or `doctor` reports
+`broken_link`, `current` selects an unverified release; a dangling or foreign
+`current` exits 73 (`refusing foreign current binding`). Recover by verifying a
+sibling under `$CODEX_HOME/krn/releases/<commit>/` with `digestTree` from
+`scripts/lib/install-release.mjs`, repointing `current` to it through an atomic
+relative-symlink rename, and re-running apply. Never edit a release in place;
+delete a corrupt or superseded release only after no installed link or session
+references it.

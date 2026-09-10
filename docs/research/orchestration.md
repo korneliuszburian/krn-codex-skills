@@ -255,9 +255,10 @@ value, prove filesystem scope isolation, or show model behavior toward the path
 brief; the path allowlist remains a prompt convention, not an enforced boundary.
 
 This decision does not prove that OpenCode will violate a path brief, that a
-particular timeout is correct, or that DeepSeek output is approval. The next
-owner returns only a focused transport proof to `$source-to-decision`; the
-initiating workflow still verifies any substantive finding locally.
+particular timeout is correct, or that DeepSeek output is approval. If a future
+consumer needs a mechanical scope boundary, the next owner returns only a
+focused transport proof to `$source-to-decision`; until then the initiating
+workflow still verifies any substantive finding locally.
 
 ## Claude memory comparison: reuse the mechanism, not the plugin
 

@@ -8,18 +8,20 @@ description: Request one bounded non-editing OpenCode advisory opinion on an exp
 Use DeepSeek V4.1 Flash (`opencode-go/deepseek-v4.1-flash`) by default as an
 independent advisory reader, not an implementation or approval lane. This
 provider identifier is listed by `opencode models` and is distinct from the
-older DeepSeek V4 Flash identifier, `opencode-go/deepseek-v4-flash`. The bundled runner always selects
-the configured `review` agent; callers cannot override that agent through the
-runner. This reduces tool authority but does not prove filesystem isolation. The
-pass has one question and one explicit target path. It returns prose findings;
+older DeepSeek V4 Flash identifier, `opencode-go/deepseek-v4-flash`. The
+bundled runner always selects the configured `review` agent; callers cannot
+override it through the runner. This reduces tool authority but does not prove
+filesystem isolation. The pass has one question and one explicit target path.
+It returns prose findings;
 the initiating workflow verifies and dispositions them locally.
 
 When a calling workflow needs model JSON, set
 `OPENCODE_SECOND_OPINION_OUTPUT=json`. The runner then extracts and compacts
 exactly one JSON object from the terminal answer, even when prose or one code
 fence accidentally surrounds it, and fails closed for prose, malformed JSON,
-arrays, or multiple JSON candidates. This is transport normalization only: the calling workflow
-must still validate its own schema and must not synthesize missing fields.
+arrays, or multiple JSON candidates. This is transport normalization only:
+the calling workflow must still validate its own schema and must not
+synthesize missing fields.
 
 ## Transport boundary
 
@@ -28,9 +30,10 @@ then infer an opinion from tool events, partial output, or an absent final
 message. After starting the runner, use `check-opinion.sh` on its run directory
 instead of inspecting processes or temporary files. A stream is evidence only
 when the checker returns `completed` and `opinion.md`, `raw.jsonl`, and
-`meta.json` exist; `failed` retains `raw.failed.jsonl` and `failure.txt`; any
-other result is pending. The opinion remains advisory and never replaces the
-owning workflow's review gate, approval, or local verification.
+`meta.json` exist; `failed` retains `failure.txt` plus `raw.failed.jsonl` when a
+partial stream exists; any other result is pending. The opinion remains
+advisory and never replaces the owning workflow's review gate, approval, or
+local verification.
 
 1. **Fix the question and target.** Name the absolute repository or artifact
    directory OpenCode may inspect, the precise question, allowed paths, and
@@ -79,8 +82,8 @@ family than the initiating agent. The runner always selects the configured
    security boundary; it is an output-citation filter, not proof that no other
    path was read. Backtick paths, relative
    traversal paths, and line-qualified absolute paths are citations; an
-   ordinary prose mention of an existing environment path is not. It never passes `--interactive`,
-   `--auto`, a continuation flag, or an edit request.
+   ordinary prose mention of an existing environment path is not. It never passes
+   `--interactive`, `--auto`, a continuation flag, or an edit request.
 
    ```bash
    OPENCODE_SECOND_OPINION_VARIANT=max \
