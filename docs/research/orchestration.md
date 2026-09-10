@@ -238,7 +238,18 @@ timeout establish complete process or resource isolation.
 | Mechanism to test | Bounded falsifier | Decision limit |
 |---|---|---|
 | A path allowlist is a security boundary only when enforced outside the model prompt. | Give a run one permitted file and ask it to read a sibling ignored run; any returned sibling content rejects the prompt-only boundary. | Do not label the transport sandboxed or send sensitive repository state until a mechanical scope boundary exists. |
-| A bounded external opinion needs a terminal time limit and attributable failure evidence. | Substitute an `opencode` process that never exits, then one that emits an incomplete JSON stream; the runner must terminate and retain the exact partial stream plus failure cause. | Do not adopt a timeout value or failure-artifact schema until the focused tests establish their observable contract. |
+| A bounded external opinion needs a terminal time limit and attributable failure evidence. | Substitute an `opencode` process that never exits, then one that emits an incomplete JSON stream; the runner must terminate and retain the exact partial stream plus failure cause. | Verified on substituted processes: the runner terminates and retains attributable failure evidence. Do not adopt a specific timeout value or treat the retained artifacts as security evidence. |
+
+Transport lab result (2026-09-10, substituted processes): the runner terminated a
+never-exiting process at the configured timeout (exit `124`) and retained
+`failure.txt` with reason and exit code; it rejected an incomplete JSON stream
+during extraction (exit `78`) and retained the partial stream as
+`raw.failed.jsonl` plus `failure.txt`; a nonzero process exit retained the same
+failure evidence (exit `7`). `check-opinion.sh` returned `failed` for all three
+and no `opinion.md` was produced. This establishes the terminal time-limit and
+attributable-failure contract of the current runner. It does not adopt a timeout
+value, prove filesystem scope isolation, or show model behavior toward the path
+brief; the path allowlist remains a prompt convention, not an enforced boundary.
 
 This decision does not prove that OpenCode will violate a path brief, that a
 particular timeout is correct, or that DeepSeek output is approval. The next
