@@ -98,7 +98,10 @@ try {
     if (command === "compile" && !options.json) process.stdout.write(`${report.capsule}\n`);
     else if (command === "resume" && !options.json) process.stdout.write(`${report.text}\n`);
     else print(report, options.json);
-    for (const warning of report.warnings) process.stderr.write(`warning: ${warning}\n`);
+    for (const warning of report.warnings) {
+      const line = typeof warning === "string" ? warning : [warning.rule, warning.detail].filter(Boolean).join(": ");
+      process.stderr.write(`warning: ${line}\n`);
+    }
     if (report.errors.length > 0 || report.status === "divergent") process.exitCode = 1;
   } else {
   const { positional, options } = parseOptions(raw);

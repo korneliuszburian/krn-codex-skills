@@ -258,3 +258,13 @@ test("a prose-only acceptance warns without diverging", () => {
   assert.equal(report.status, "clean");
   rmSync(root, { recursive: true, force: true });
 });
+
+test("the CLI prints readable warning lines, not objects", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}` }).replace("Outcome and observable acceptance: test", "Outcome and observable acceptance: it works"));
+  const result = spawnSync(process.execPath, [cli, "state", "check"], { cwd: root, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stderr, /vague-acceptance/);
+  assert.doesNotMatch(result.stderr, /\[object Object\]/);
+  rmSync(root, { recursive: true, force: true });
+});
