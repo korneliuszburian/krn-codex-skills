@@ -203,19 +203,31 @@ test("passes through one explicit non-empty provider variant", () => {
   }
 });
 
-test("fails closed when no reviewer model is named and no default exists", () => {
-  const { root, target, run, bin } = sandbox();
+test("defaults to DeepSeek V4.1 Flash when no reviewer model is named", () => {
+  const { root, target, run, bin, invocation } = sandbox();
+  const output = path.join(run, "opinion.md");
   try {
-    assert.throws(
-      () =>
-        execFileSync(runner, [target, path.join(run, "prompt.md"), path.join(run, "opinion.md")], {
-          env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, OPENCODE_SECOND_OPINION_MODEL: "" },
-          stdio: "pipe",
-        }),
-      (error) => error.status === 64 && /OPENCODE_SECOND_OPINION_MODEL must name the explicit reviewer model/.test(error.stderr.toString()),
+    execFileSync(runner, [target, path.join(run, "prompt.md"), output], {
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        OPENCODE_SECOND_OPINION_MODEL: "",
+        OPENCODE_TEST_INVOCATION: invocation,
+      },
+      stdio: "pipe",
+    });
+    assert.match(
+      fs.readFileSync(invocation, "utf8"),
+      /--model opencode-go\/deepseek-flash/,
     );
-    assert.equal(fs.existsSync(path.join(run, "opinion.md")), false);
-    assert.equal(fs.existsSync(path.join(run, "raw.jsonl")), false);
+    assert.doesNotMatch(
+      fs.readFileSync(invocation, "utf8"),
+      /--model opencode-go\/deepseek-v4-flash/,
+    );
+    assert.equal(
+      JSON.parse(fs.readFileSync(path.join(run, "meta.json"), "utf8")).model,
+      "opencode-go/deepseek-flash",
+    );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

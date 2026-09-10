@@ -5,9 +5,11 @@ description: Request one bounded read-only OpenCode advisory opinion on an expli
 
 # OpenCode Second Opinion
 
-Use an explicitly selected independent model (DeepSeek is the default choice)
-as an advisory reader, not an implementation or approval lane. The bundled
-runner uses the configured read-only `review` agent by default, preventing the
+Use DeepSeek V4.1 Flash (`opencode-go/deepseek-flash`) by default as an
+independent advisory reader, not an implementation or approval lane. This
+provider identifier is intentionally distinct from the older DeepSeek V4 Flash
+identifier, `opencode-go/deepseek-v4-flash`. The bundled runner uses the
+configured read-only `review` agent by default, preventing the
 reviewer from inheriting an unrestricted implementation tool surface. The
 pass has one question and one explicit target path. It returns prose findings;
 the initiating workflow verifies and dispositions them locally.
@@ -61,10 +63,10 @@ owning workflow's review gate, approval, or local verification.
    directory, rather than beside source files or in a shared temporary path.
 
 3. **Run one non-interactive, read-only opinion.** Invoke the installed runner
-   with absolute paths. It requires `OPENCODE_SECOND_OPINION_MODEL` to name an
-   explicit reviewer model from a different family than the initiating agent;
-   there is no default, so a run cannot silently execute on the author's own
-   model. `OPENCODE_SECOND_OPINION_AGENT` defaults to the configured read-only
+   with absolute paths. `OPENCODE_SECOND_OPINION_MODEL` defaults to
+   `opencode-go/deepseek-flash`, OpenCode Go's identifier for DeepSeek V4.1
+   Flash. Override it only with an explicit reviewer model from a different
+   family than the initiating agent. `OPENCODE_SECOND_OPINION_AGENT` defaults to the configured read-only
    `review` agent. `OPENCODE_SECOND_OPINION_TIMEOUT_SECONDS` (default `600`) bounds the
    run; a timeout or a rejected stream fails closed and retains the partial
    evidence. The runner passes OpenCode's provider-specific `--variant`,
@@ -79,7 +81,6 @@ owning workflow's review gate, approval, or local verification.
    `--auto`, a continuation flag, or an edit request.
 
    ```bash
-   OPENCODE_SECOND_OPINION_MODEL=<explicit independent reviewer model> \
    OPENCODE_SECOND_OPINION_AGENT=review \
    OPENCODE_SECOND_OPINION_VARIANT=max \
    ~/.agents/skills/opencode-second-opinion/scripts/run-opinion.sh \

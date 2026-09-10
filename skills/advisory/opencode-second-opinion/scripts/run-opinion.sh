@@ -57,13 +57,9 @@ if ! command -v opencode >/dev/null 2>&1; then
   exit 127
 fi
 
-# The reviewer model is an explicit, non-author choice. There is no default,
-# so a run can never silently execute on the initiating agent's own model.
-model=${OPENCODE_SECOND_OPINION_MODEL:-}
-if [[ -z "$model" ]]; then
-  echo "OPENCODE_SECOND_OPINION_MODEL must name the explicit reviewer model (a different family than the initiating agent)" >&2
-  exit 64
-fi
+# OpenCode Go exposes DeepSeek V4.1 Flash through this stable provider model
+# identifier. Callers may override it with another independent reviewer.
+model=${OPENCODE_SECOND_OPINION_MODEL:-opencode-go/deepseek-flash}
 variant=${OPENCODE_SECOND_OPINION_VARIANT:-max}
 if [[ -z "$variant" ]]; then
   echo "OPENCODE_SECOND_OPINION_VARIANT must not be empty" >&2
