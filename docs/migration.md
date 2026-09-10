@@ -39,7 +39,9 @@ checkout remains an authoring surface; it is never a stable discovery target.
 `krn-codex doctor --json` is a filesystem observer, not a discovery or
 execution test. Its filesystem state is one of `filesystem_installed`,
 `legacy_mutable_source`, `stable_link_bypasses_current`, `foreign_collision`,
-`broken_link`, or `missing`.
+`broken_link`, `missing`, or `masked_by_override`. The last state means a
+present `$CODEX_HOME/AGENTS.override.md` would block `install apply`, even if
+the installed release and stable links themselves are intact.
 It reports session loading as `session_loaded_unknown` and post-install loading
 as `stale_session_likely` until a fresh Codex session provides stronger evidence.
 

@@ -302,6 +302,33 @@ test("doctor calls arbitrary external links foreign and rejects unknown options"
   }
 });
 
+test("doctor detects a release link that only looks like it travels through current", () => {
+  const { root, source } = sourceFixture();
+  try {
+    const first = apply(root, source);
+    fs.appendFileSync(path.join(source, "README.md"), "\nsecond fixture release\n");
+    const secondCommit = commit(source, "second fixture release");
+    const failed = invoke(root, ["install", "apply", "--source", source, "--yes"], { KRN_TEST_FAIL_AFTER_CURRENT: "1" });
+    assert.notEqual(failed.status, 0);
+    const releaseRoot = path.join(root, "codex", "krn");
+    const current = path.join(releaseRoot, "current");
+    fs.unlinkSync(current);
+    fs.symlinkSync(path.join("releases", secondCommit), current);
+    const target = path.join(root, "skills", "delivery-loop");
+    fs.unlinkSync(target);
+    const deceptiveCurrent = path.join(root, "deceptive", "current");
+    fs.mkdirSync(path.dirname(deceptiveCurrent), { recursive: true });
+    fs.symlinkSync(first.release, deceptiveCurrent);
+    fs.symlinkSync(path.join(deceptiveCurrent, "skills", "engineering", "delivery-loop"), target);
+    assert.equal(fs.realpathSync(target), path.join(first.release, "skills", "engineering", "delivery-loop"));
+    const doctor = JSON.parse(invoke(root, ["doctor", "--json"]).stdout);
+    assert.equal(doctor.filesystem.status, "stable_link_bypasses_current");
+    assert.equal(doctor.targets.find((item) => item.target === target)?.status, "stable_link_bypasses_current");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a global instruction override blocks apply", () => {
   const { root, source } = sourceFixture();
   try {
@@ -310,6 +337,11 @@ test("a global instruction override blocks apply", () => {
     fs.writeFileSync(override, "operator override");
     const result = invoke(root, ["install", "apply", "--source", source, "--yes"]);
     assert.equal(result.status, 73);
+    const doctor = invoke(root, ["doctor", "--json"]);
+    assert.equal(doctor.status, 0, doctor.stderr);
+    const report = JSON.parse(doctor.stdout);
+    assert.equal(report.filesystem.status, "masked_by_override");
+    assert.equal(report.filesystem.detail, override);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

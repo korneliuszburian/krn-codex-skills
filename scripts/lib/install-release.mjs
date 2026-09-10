@@ -231,6 +231,10 @@ function managedTargets(plan) {
 
 function resolvedLink(target) {
   if (!fs.lstatSync(target, { throwIfNoEntry: false })?.isSymbolicLink()) return null;
+  return resolvedPath(target);
+}
+
+function resolvedPath(target) {
   try { return fs.realpathSync(target); } catch { return null; }
 }
 
@@ -379,8 +383,11 @@ function itemStatus(plan, item) {
   const linked = resolvedLink(item.target);
   if (!linked) return { target: item.target, status: "broken_link" };
   if (isInside(plan.releaseRoot, linked)) {
-    const text = fs.readlinkSync(item.target);
-    return { target: item.target, status: text.includes(`${path.sep}current${path.sep}`) ? "filesystem_installed" : "stable_link_bypasses_current" };
+    const expected = resolvedPath(stableTarget(plan, item));
+    return {
+      target: item.target,
+      status: linked === expected ? "filesystem_installed" : "stable_link_bypasses_current",
+    };
   }
   const sourceRoot = git(path.dirname(linked), ["rev-parse", "--show-toplevel"]);
   if (sourceRoot && path.relative(sourceRoot, linked) === item.relative) {
@@ -392,6 +399,8 @@ function itemStatus(plan, item) {
 export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex") } = {}) {
   const releaseRoot = path.join(canonicalPath(codexHome), "krn");
   const current = path.join(releaseRoot, "current");
+  const override = path.join(path.dirname(releaseRoot), "AGENTS.override.md");
+  const overridePresent = Boolean(fs.lstatSync(override, { throwIfNoEntry: false }));
   const currentTarget = resolvedLink(current);
   const base = {
     releaseRoot,
@@ -401,7 +410,14 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   };
   if (!currentTarget) {
     const currentStat = fs.lstatSync(current, { throwIfNoEntry: false });
-    return { ...base, filesystem: { status: currentStat && !currentStat.isSymbolicLink() ? "foreign_collision" : currentStat ? "broken_link" : "missing" }, targets: [] };
+    return {
+      ...base,
+      filesystem: {
+        status: overridePresent ? "masked_by_override" : currentStat && !currentStat.isSymbolicLink() ? "foreign_collision" : currentStat ? "broken_link" : "missing",
+        ...(overridePresent ? { detail: override } : {}),
+      },
+      targets: [],
+    };
   }
   let metadata;
   try { metadata = verifyRelease(currentTarget, path.basename(currentTarget)); }
@@ -413,7 +429,9 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   return {
     ...base,
     commit: metadata.commit,
-    filesystem: { status: bad ? bad.status : "filesystem_installed" },
+    filesystem: overridePresent
+      ? { status: "masked_by_override", detail: override }
+      : { status: bad ? bad.status : "filesystem_installed" },
     targets,
   };
 }

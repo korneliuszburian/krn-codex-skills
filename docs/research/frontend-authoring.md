@@ -156,6 +156,42 @@ protocol must freeze task class, permitted writes, development/holdout split,
 thresholds, graders, treatment masks, and environment. Existing receipts and
 untouched holdouts remain immutable and do not transfer advantage.
 
+## P8 visual-evidence transport decision
+
+**Question:** may a future frozen P8 frontend experiment claim human visual
+inspection while the Git-owned experiment envelope rejects its screenshot
+bytes? **Active consumer and sole result writer:** the future P8 protocol
+owner. **Current local behavior:** `frontend-browser-evidence.mjs` emits PNG
+screenshots for the neutral fixture, but `experiment-artifacts.mjs` classifies
+NUL-containing artifacts as `binary-content`; a full experiment therefore
+cannot seal those PNGs. The evaluation lifecycle requires admissible raw
+outputs for a full record, while a `capsule-only` record is terminal,
+exploratory/external, and cannot establish confirmatory behavioral evidence.
+
+**Source and mechanism:** the local evidence writer, artifact scanner, and
+evaluation lifecycle are the first-party authority for KRN's evidence format
+(read 2026-09-10). Their combined mechanism is intentional: content hashes
+bind bytes, but the present text safety scanner has no image-aware admission or
+review rule. A hash alone proves neither what an image depicts nor that a human
+inspected it.
+
+**Decision: defer.** P8 must not be frozen until its protocol selects and
+implements one reviewable evidence route: either a narrowly admitted,
+hash-bound image artifact type with explicit size, format, scan, and reviewer
+rules; or a separate private evidence repository whose immutable pointer,
+aggregate hash, access boundary, and human-review receipt are bound into the
+experiment model. Merely omitting images into a `capsule-only` record is not a
+substitute for full P8 evidence. This does not authorize a binary allowlist,
+external repository, P8 execution, or a claim that screenshots alone prove
+quality, accessibility, or skill advantage.
+
+**Falsifier / reopen rule:** replace this deferral only when a proposed P8
+protocol demonstrates that its declared visual question is discriminated by
+admissible non-image evidence, or when one of the two routes above is specified
+and survives a focused seal/tamper/reviewer-readback test. The durable consumer
+remains this topic; no private screenshots, course passages, or raw corpus are
+committed here.
+
 The four-surface package is source only, not installed capability state. A
 later fixed point may promote only the surfaces admitted by fresh behavioral
 proof. Installation of `frontend-cube-css` additionally needs a separately
