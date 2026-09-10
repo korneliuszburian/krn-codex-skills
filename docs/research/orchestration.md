@@ -1,6 +1,7 @@
 # Orchestration and compact context
 
-Status: accepted synthesis, refreshed 2026-09-10. Rework this page in place when a
+Status: accepted synthesis, refreshed 2026-09-10. Consumer: maintainer,
+`$delivery-loop`, and `$source-to-decision`. Rework this page in place when a
 falsifier fires; do not append a parallel “v2” report.
 
 ## Decision question
@@ -25,8 +26,9 @@ or an oversized skill catalog?
 | `ponytail` scope ladder | the current source asks whether work is needed, then prefers reuse, standard library, native capability, installed dependency, or the smallest implementation while preserving trust-boundary and accessibility checks | `lab-test` the question inside one real `to-spec` or `codebase-design` outcome; do not add a duplicate global skill | its small self-reported benchmark does not establish transfer to KRN or a universal implementation rule |
 | Local deletion probe | five of six artifact roles had no runtime consumer; 18 operator pages mirrored the skills; reviewer-handoff had no external caller | delete generic report roles, doc mirrors, and the unconsumed packet workflow | future measured consumers may justify reintroduction |
 | Local register micro-lab | the observed stale capsule sentence was repairable by fresh Goal/repository/PR readback; SQLite and Git-ref candidates could mechanically fence cooperative writers | retain the compact spine; keep both mechanisms at `lab-test` until a recurring writer-admission failure survives bounded repair | synthetic conformance is not product need, restore recovery, hostile-process exclusion, or power-loss proof |
+| Local retrieval probe | 17 opportunistically chosen questions (facts, structure, metadata, links, supersession, negatives) were answerable by fresh same-model agents from the live map, lexical/git, metadata, and link rungs, and every cited line was checked locally | keep the retrieval ladder unchanged at this scale | the question set was self-authored with no sampling frame or retained pass record, so it neither tests whether a lower rung fails nor proves scale, cross-family parity, or hostile-input behavior |
 
-Primary-source refresh (2026-09-10): [OpenAI's harness-engineering guidance](https://openai.com/index/harness-engineering/) treats `AGENTS.md` as a short table of contents and the repository knowledge base as the system of record, with mechanical boundary checks. [Anthropic's long-running harness work](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) supports restartable artifacts and tractable work units while warning that harness assumptions age. [Anthropic's application harness work](https://www.anthropic.com/engineering/harness-design-long-running-apps) shows that a skeptical generator/evaluator loop can lift subjective frontend quality, but only when the task is beyond the model's solo reliability and at substantial cost. [Context as a Tool](https://arxiv.org/abs/2512.22087) and [ACON](https://arxiv.org/abs/2510.00615) support structured or learned context compression; they justify only a bounded capsule lab-test here, not a generic memory service. [SWE-EVO](https://arxiv.org/abs/2512.18470) shows a large gap between isolated fixes and multi-file evolution, while [SecureVibeBench](https://arxiv.org/abs/2509.22097) shows that functional success and explicit security instructions do not guarantee secure code. These are hypotheses and risk signals, not KRN proof.
+Primary-source refresh (2026-09-10): [OpenAI's harness-engineering guidance](https://openai.com/index/harness-engineering/) treats `AGENTS.md` as a short table of contents and the repository knowledge base as the system of record, with mechanical boundary checks. [Anthropic's long-running harness work](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) supports restartable artifacts and tractable work units while warning that harness assumptions age. [Anthropic's application harness work](https://www.anthropic.com/engineering/harness-design-long-running-apps) shows that a skeptical generator/evaluator loop can lift subjective frontend quality, but only when the task is beyond the model's solo reliability and at substantial cost. [Context as a Tool](https://arxiv.org/abs/2512.22087) and [ACON](https://arxiv.org/abs/2510.00615) support structured or learned context compression; they justify only a bounded capsule lab-test here, not a generic memory service. [SWE-EVO](https://arxiv.org/abs/2512.18470) shows a large gap between isolated fixes and multi-file evolution, while [SecureVibeBench](https://arxiv.org/abs/2509.22097) shows that functional success and explicit security instructions do not guarantee secure code. The [LIMIT study](https://arxiv.org/abs/2508.21038v2) proves a dimension bound on single-vector top-k expressivity and calls for techniques beyond the single-vector paradigm; the theorem is established, while its application to KRN is untested. The remaining sources here are hypotheses and risk signals, not KRN proof.
 
 ## 2026 research refresh: complexity must earn its owner
 
@@ -39,6 +41,7 @@ and a falsifier; otherwise it remains a bounded experiment or is rejected.
 | Skill descriptions as admission router; progressive disclosure; thin `AGENTS.md` map | adopt | `config/AGENTS.md`, README, and the pinned composed set; routing collisions or repeated misroutes despite improved descriptions reopen the decision | no central router, per-skill mirrors, or duplicated procedure |
 | Compiled outcome capsule with pointers, explicit non-proofs, and one writer | adopt | `$delivery-loop`; a fresh agent must resume three representative long outcomes without transcript reconstruction | no transcript archive, vector store, or durable reflection log |
 | Plan–act–observe, staged diagnosis before repair, provenance, and fixed-point review | adopt | current specialist owner plus `$source-to-decision` / `code-review`; a public-seam acceptance failure or stale fixed point falsifies the gate | no mandatory full pipeline or benchmark-as-proof |
+| Retrieval as a composed process over the live map, lexical/git, metadata, links, and a conditional local full-text index; embeddings as one optional tool | adopt | maintainer owns the map, links, and rung decisions; a workflow that builds a derived index owns that index only; `$source-to-decision` loads and `research` passes consume it; a measured failure authorizes current-rung repair before the next rung | no central vector store, graph database, or similarity-first memory service |
 | Lossy compaction or proactive memory actions | lab-test | one bounded capsule rewrite/readback experiment; a dropped field causing a wrong action that readback cannot repair fails it | no generic summarizer, embeddings, graph, or episodic memory service |
 | Generator/evaluator loop for frontend taste and browser behavior | lab-test, separate branch | one real frontend outcome with a solo baseline, evaluator run, cost, and human acceptance; no material lift at acceptable cost rejects it | never globalize a multi-hour evaluator loop or turn taste into a universal score |
 | Issue tracker as orchestration control plane or Beads-like backend | defer | only a measured queue/concurrency bottleneck with explicit remote-write authority can reopen it | native Goal, tracker, and capsule stay distinct; no new task database now |
@@ -51,6 +54,45 @@ therefore keeps frontend taste as a separate branch experiment, not a global
 skill or permanent evaluator harness. The same conditional rule applies to
 cross-model review and parallel writers: measure detection or integration lift
 against cost before promoting either mechanism.
+
+## Retrieval escalation ladder
+
+KRN keeps retrieval as a composed process, not one similarity search. The
+[LIMIT study](https://arxiv.org/abs/2508.21038v2) shows that a single vector can
+express only a dimension-bounded number of top-k relevance sets, even when
+embeddings are optimized directly on the test set; the result bounds the
+single-vector paradigm, not KRN's current corpus. The local response is a
+ladder: climb one rung only after the current rung repeatedly fails on a
+measured durable corpus.
+
+1. **Live map** — `CONTEXT.md`, `README.md`, and the installed contract; the
+   smallest current index, always loaded.
+2. **Exact and lexical** — path and glob search, `ripgrep` over canonical files,
+   and `git log` or `blame` for chronology and supersession. Deterministic and
+   cheap.
+3. **Structured metadata** — source identities, statuses, owners, verification
+   dates, decision vocabulary, and configured tracker fields.
+4. **Explicit links** — map → topic → primary-source row → owning skill,
+   including supersession edges. This link graph is the graph; no graph database
+   is earned at this scale.
+5. **Local full-text index** — for example SQLite FTS5, only when a measured
+   durable corpus outgrows exact search.
+6. **Embeddings as one optional tool** — never the authority, never the central
+   store, and only after the earlier rungs demonstrably fail.
+
+Owner: maintainer, who keeps the map, links, and rung decisions current.
+Consumers: `$source-to-decision` source loads and `research` passes. A derived
+rung-5 or rung-6 index is owned only by the workflow that builds it. Falsifier: a
+durable corpus and query class that repeatedly fails the current rung; repair the
+current rung first (index, links, vocabulary), then let that failure authorize
+the next rung, and reopen the topic decision only if the failure survives the
+bounded repair and the climb it authorizes. Non-proof: the LIMIT result bounds
+single-vector expressivity; it does not measure KRN, nor prove that lexical
+retrieval suffices at any future scale. Supersession: replace a rung when a
+mature local mechanism makes it obsolete. Any rung-5 or rung-6 index is derived
+and disposable: built by a workflow inside its own ignored run, deleted when that
+run's consumer finishes like any other run state, and never promoted to durable
+knowledge.
 
 ## Breakthrough: compile context at boundaries
 
@@ -77,7 +119,7 @@ Outcome and observable acceptance
 Current workflow owner and sole writer
 Outcome state: ACTIVE | BLOCKED | DEFERRED | NEEDS_REVIEW | COMPLETE | SUPERSEDED | ABANDONED
 Publication state: NOT_REQUESTED | NOT_AUTHORIZED | LOCAL_ONLY | PUBLISH_PENDING | PR_OPEN | MERGE_READY | MERGED | DEPLOYED
-Repository base, head or working-tree fingerprint, and dirty-state scope
+Repository base, HEAD or working-tree fingerprint, and dirty-state scope
 Native Goal identity/state and configured tracker item/state
 Restart state: ABSENT | <semantic path owned by the current Goal>
 Outstanding workflow-run cleanup: none | [<semantic pointer; workflow; sole consumer; trigger; ACTIVE | CLEANUP_PENDING | BLOCKED>, ...]
@@ -363,7 +405,7 @@ evidence actually supports: no concurrent mutation of the same outcome state.
 | Alternative | Disposition | Reason |
 |---|---|---|
 | Generic memory skill | reject | duplicates domain, source, tracker, and lifecycle owners |
-| Vector database, embeddings, or knowledge graph now | defer | this repository has tens, not thousands, of durable pages; links and content index suffice |
+| Vector database, embeddings, or knowledge graph now | defer | this repository has tens, not thousands, of durable pages, so links and content index suffice now; the deferral is independent of [the dimension bound on single-vector top-k expressivity](https://arxiv.org/abs/2508.21038v2), which means single-vector embeddings cannot be the central or sole mechanism even at scale |
 | Append-only research log | reject | Git already records chronology; a second log would preserve superseded prose as active context |
 | Global “sacrifice grammar” instruction | reject | Matt later moved it out of global context; terse output can hide proof and uncertainty |
 | Per-skill operator page | reject | mirrors `SKILL.md` and creates a second manual catalog |
@@ -415,9 +457,10 @@ production authority boundary.
    operator mirrors.
 7. **Router test — maintainer:** add a router only if repeated observed
    explicit-skill recall failures survive naming and README improvements.
-8. **Search-scale test — `$source-to-decision`:** introduce embeddings or a
-   graph only after content indexing repeatedly fails on a measured durable
-   corpus.
+8. **Search-scale test — maintainer, with `$source-to-decision` evidence:** climb
+   the retrieval ladder one rung at a time — live map, lexical/git, metadata,
+   explicit links, local full-text index, embeddings as one tool — only after the
+   current rung repeatedly fails on a measured durable corpus.
 
 The architecture is deliberately falsifiable. A mechanism that does not change
 routing, restart accuracy, proof quality, or maintenance cost does not earn
