@@ -1,6 +1,6 @@
 ---
 name: opencode-second-opinion
-description: Request one bounded read-only OpenCode advisory opinion on an explicit path or artifact. Use only by explicit request through its validated runner; it neither edits nor produces a diff.
+description: Request one bounded non-editing OpenCode advisory opinion on an explicit path or artifact. Use only by explicit request through its validated runner; it neither edits nor produces a diff, and its path brief is not a filesystem sandbox.
 ---
 
 # OpenCode Second Opinion
@@ -62,7 +62,7 @@ owning workflow's review gate, approval, or local verification.
    **Done when:** the prompt and later response stay under one owned run
    directory, rather than beside source files or in a shared temporary path.
 
-3. **Run one non-interactive, read-only opinion.** Invoke the installed runner
+3. **Run one non-interactive, non-editing opinion.** Invoke the installed runner
    with absolute paths. `OPENCODE_SECOND_OPINION_MODEL` defaults to
    `opencode-go/deepseek-flash`, OpenCode Go's identifier for DeepSeek V4.1
 Flash. Override it only with an explicit reviewer model from a different
@@ -75,8 +75,9 @@ family than the initiating agent. The runner always selects the configured
    It requests `--format json` and accepts an opinion only when the event
    stream ends in `step_finish` with `reason: "stop"` and non-empty text for
    that final message, and only when every explicit citation resolves inside
-   the target directory. This is an output-citation filter, not a sandbox or
-   proof that no other path was read. Backtick paths, relative
+   the target directory. This is an advisory convention, not a filesystem
+   security boundary; it is an output-citation filter, not proof that no other
+   path was read. Backtick paths, relative
    traversal paths, and line-qualified absolute paths are citations; an
    ordinary prose mention of an existing environment path is not. It never passes `--interactive`,
    `--auto`, a continuation flag, or an edit request.

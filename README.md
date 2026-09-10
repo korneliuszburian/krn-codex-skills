@@ -22,7 +22,7 @@ flowchart LR
   DIAG -->|cause proven + repair + mutation authorized| IMPL
   DIAG -->|otherwise| BOUNDED["bounded diagnosis"]
   IMPL --> PROOF["0 / 1 / N proof"]
-  PROOF -->|non-trivial, requested, or lifecycle envelope active| REVIEW
+  PROOF -->|non-trivial, requested, or envelope active and not mechanical 0-budget| REVIEW
   PROOF -->|otherwise| STATE
   REVIEW -->|accepted finding + repair + mutation authorized| IMPL
   REVIEW -->|unresolved or authority absent| NEEDS["NEEDS_REVIEW"]
@@ -74,6 +74,12 @@ chronological log; raw transcripts, prompts, and reviewer packets do not become
 documentation by default. When no tracker is configured, the accepted request or
 native Goal plus capsule, repository, and host readback carry current truth; no
 tracker capability is emulated.
+
+When sources disagree, the accepted user request or native Goal supplies intent
+and authority, repository and host state supply observed execution truth, and a
+configured tracker supplies shared remote acceptance and publication truth. The
+capsule is a compiled cache, never the winning source; an irreconcilable
+disagreement blocks the next transition until the owner records the resolution.
 
 ## Skills
 

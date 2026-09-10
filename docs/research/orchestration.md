@@ -21,12 +21,36 @@ or an oversized skill catalog?
 | OpenAI harness engineering | agents need a maintained map into structured repository knowledge, with mechanical checks and gardening | `CONTEXT.md` is the small map; research and ADRs are the system of record; freshness is part of the maintenance loop | a large product harness would be overbuilt here |
 | Anthropic long-running harnesses | restartable state and independent evaluation reduce drift; harness assumptions go stale as models improve; parallel agents cost tokens and coordination | checkpoint a compact capsule, use independent fixed-point review for substantial changes, and periodically delete or re-test scaffolding | older harness findings do not mandate initializer/evaluator fleets on newer models |
 | Long-horizon agent benchmarks | SWE-EVO reports a large gap between isolated issue fixing and software evolution; SlopCodeBench measures verbosity and structural erosion; DeepSWE finds inherited tests can disagree materially with independent review | proof must include maintainability and trajectory-level checks where repeated agent edits are in scope, not only current test pass/fail | benchmark tasks and metrics are not a substitute for a product-specific acceptance test |
-| `unlazy` harness | its current source puts gates, explicit evidence, re-verification, a task tree, and cooperative leases before or around work; its own boundary notes distinguish coordination from isolation | adopt the ledger as an explicit companion while keeping its production benefit at `lab-test`; it does not own lifecycle, sandboxing, leases, or dispatch | source design and historical self-reports do not prove lower cost, better outcomes, or hostile-process isolation |
-| `ponytail` scope ladder | the current source asks whether work is needed, then prefers reuse, standard library, native capability, installed dependency, or the smallest implementation while preserving trust-boundary and accessibility checks | adopt the ladder as a decision heuristic inside existing `to-spec` and `codebase-design`; do not add a duplicate global skill | its small self-reported benchmark does not establish transfer to KRN or a universal implementation rule |
+| `unlazy` harness | its current source puts gates, explicit evidence, re-verification, a task tree, and cooperative leases before or around work; its own boundary notes distinguish coordination from isolation | installed as an explicit companion; keep its production benefit at `lab-test`; it does not own lifecycle, sandboxing, leases, or dispatch | source design and historical self-reports do not prove lower cost, better outcomes, or hostile-process isolation |
+| `ponytail` scope ladder | the current source asks whether work is needed, then prefers reuse, standard library, native capability, installed dependency, or the smallest implementation while preserving trust-boundary and accessibility checks | `lab-test` the question inside one real `to-spec` or `codebase-design` outcome; do not add a duplicate global skill | its small self-reported benchmark does not establish transfer to KRN or a universal implementation rule |
 | Local deletion probe | five of six artifact roles had no runtime consumer; 18 operator pages mirrored the skills; reviewer-handoff had no external caller | delete generic report roles, doc mirrors, and the unconsumed packet workflow | future measured consumers may justify reintroduction |
 | Local register micro-lab | the observed stale capsule sentence was repairable by fresh Goal/repository/PR readback; SQLite and Git-ref candidates could mechanically fence cooperative writers | retain the compact spine; keep both mechanisms at `lab-test` until a recurring writer-admission failure survives bounded repair | synthetic conformance is not product need, restore recovery, hostile-process exclusion, or power-loss proof |
 
-Primary-source refresh (2026-09-10): [OpenAI's harness-engineering guidance](https://openai.com/index/harness-engineering/) treats `AGENTS.md` as a short table of contents and the repository knowledge base as the system of record, with mechanical boundary checks. [Anthropic's long-running harness work](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) supports restartable artifacts and tractable work units while warning that harness assumptions age. [Context as a Tool](https://arxiv.org/abs/2512.22087) supports structured task anchors, condensed long-term memory, and recent high-fidelity context; it does not justify a generic KRN memory service.
+Primary-source refresh (2026-09-10): [OpenAI's harness-engineering guidance](https://openai.com/index/harness-engineering/) treats `AGENTS.md` as a short table of contents and the repository knowledge base as the system of record, with mechanical boundary checks. [Anthropic's long-running harness work](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) supports restartable artifacts and tractable work units while warning that harness assumptions age. [Anthropic's application harness work](https://www.anthropic.com/engineering/harness-design-long-running-apps) shows that a skeptical generator/evaluator loop can lift subjective frontend quality, but only when the task is beyond the model's solo reliability and at substantial cost. [Context as a Tool](https://arxiv.org/abs/2512.22087) and [ACON](https://arxiv.org/abs/2510.00615) support structured or learned context compression; they justify only a bounded capsule lab-test here, not a generic memory service. [SWE-EVO](https://arxiv.org/abs/2512.18470) shows a large gap between isolated fixes and multi-file evolution, while [SecureVibeBench](https://arxiv.org/abs/2509.22097) shows that functional success and explicit security instructions do not guarantee secure code. These are hypotheses and risk signals, not KRN proof.
+
+## 2026 research refresh: complexity must earn its owner
+
+The current evidence converges on a deliberately small production spine. A
+mechanism enters KRN only when it has a named consumer, one canonical owner,
+and a falsifier; otherwise it remains a bounded experiment or is rejected.
+
+| Mechanism | Decision | Local consumer and falsifier | Slop boundary |
+|---|---|---|---|
+| Skill descriptions as admission router; progressive disclosure; thin `AGENTS.md` map | adopt | `config/AGENTS.md`, README, and the pinned composed set; routing collisions or repeated misroutes despite improved descriptions reopen the decision | no central router, per-skill mirrors, or duplicated procedure |
+| Compiled outcome capsule with pointers, explicit non-proofs, and one writer | adopt | `$delivery-loop`; a fresh agent must resume three representative long outcomes without transcript reconstruction | no transcript archive, vector store, or durable reflection log |
+| Plan–act–observe, staged diagnosis before repair, provenance, and fixed-point review | adopt | current specialist owner plus `$source-to-decision` / `code-review`; a public-seam acceptance failure or stale fixed point falsifies the gate | no mandatory full pipeline or benchmark-as-proof |
+| Lossy compaction or proactive memory actions | lab-test | one bounded capsule rewrite/readback experiment; a dropped field causing a wrong action that readback cannot repair fails it | no generic summarizer, embeddings, graph, or episodic memory service |
+| Generator/evaluator loop for frontend taste and browser behavior | lab-test, separate branch | one real frontend outcome with a solo baseline, evaluator run, cost, and human acceptance; no material lift at acceptable cost rejects it | never globalize a multi-hour evaluator loop or turn taste into a universal score |
+| Issue tracker as orchestration control plane or Beads-like backend | defer | only a measured queue/concurrency bottleneck with explicit remote-write authority can reopen it | native Goal, tracker, and capsule stay distinct; no new task database now |
+| Mechanical golden-principle or doc-gardening checks | lab-test only after recurrence | maintainer records a repeated stale/structural pattern and a check that catches it earlier than review | no CI machinery for hypothetical freshness |
+
+The frontend result is especially important: Anthropic reports that skeptical
+evaluation improved originality and last-mile behavior, but also reports rising
+complexity, multi-hour runs, and diminishing value as the model improves. KRN
+therefore keeps frontend taste as a separate branch experiment, not a global
+skill or permanent evaluator harness. The same conditional rule applies to
+cross-model review and parallel writers: measure detection or integration lift
+against cost before promoting either mechanism.
 
 ## Breakthrough: compile context at boundaries
 
@@ -57,7 +81,7 @@ Repository base, head or working-tree fingerprint, and dirty-state scope
 Native Goal identity/state and configured tracker item/state
 Restart state: ABSENT | <semantic path owned by the current Goal>
 Outstanding workflow-run cleanup: none | [<semantic pointer; workflow; sole consumer; trigger; ACTIVE | CLEANUP_PENDING | BLOCKED>, ...]
-Separate authority for writes, commit, push, PR, merge, and deployment/install
+Separate authority for writes, tracker/issue mutation, commit, push, PR, merge, and deployment/install
 Evidence observed
 Explicit non-proofs
 Review fixed point and Standards / Spec disposition
@@ -67,10 +91,12 @@ Next bounded owner and action
 ```
 
 For a multi-session outcome, the accepted request or native Goal owns current
-thread continuation. A configured tracker, when present, owns durable shared
-acceptance, queue, blocker, and active-Spec state. Its absence is explicit; the
-workflow then reconciles Goal, capsule, repository, and host truth before
-continuing. When a fresh process must resume without the current chat,
+thread intent and authority. A configured tracker, when present, owns durable
+shared acceptance, queue, blocker, and active-Spec state. Repository and host
+state own observed execution truth. The capsule is a compiled cache, never the
+winning source. Its absence is explicit; an irreconcilable disagreement blocks
+the next transition until the owner records the resolution. When a fresh process
+must resume without the current chat,
 `$delivery-loop`'s named sole writer may mirror the capsule only at
 `.krn/runs/delivery-loop/<outcome-id>/state.md`. Other workflows keep
 continuation in the native Goal or configured tracker, or hand lifecycle
@@ -90,9 +116,10 @@ diamond is a decision rule, not a central router skill. Every resolved phase is
 skipped. Once one production slice is clear, the ordinary spine is
 `implement` → `0/1/N proof` → fixed-point `code-review` when the slice is
 non-trivial, review is requested, or a `$delivery-loop` lifecycle envelope is
-active → truthful outcome and publication state. Outside that envelope, review
-remains optional for a trivial slice. An accepted, authorized review repair
-returns to a fresh `implement` task.
+active and the slice is not mechanical 0-budget → truthful outcome and
+publication state. A mechanical low-risk 0-budget slice may skip review when it
+changes no behavior, authority, security, or spec/acceptance surface. An
+accepted, authorized review repair returns to a fresh `implement` task.
 
 Everything before that spine is a typed admission or return, not a mandatory
 stage. When a specialist return satisfies the requested outcome or has no
@@ -117,8 +144,8 @@ This removes the graph's former generic `CHOSEN`, `DISP`, and `VERDICT` nodes.
 Those were not shared runtime states; each specialist already has a more
 precise return contract. Authority is a precondition and reported state, not a
 workflow stage. The change owner produces proof; an active lifecycle envelope
-requires and commissions fixed-point review without taking over either
-procedure. `$delivery-loop` is the optional lifecycle envelope around the
+commissions fixed-point review for every non-mechanical slice without taking
+over either procedure. `$delivery-loop` is the optional lifecycle envelope around the
 selected owners; it never executes their procedures and is not a downstream
 decision consumer merely because a decision completed.
 
@@ -133,6 +160,8 @@ non-proof; their canonical **Result return** block alone holds the mutable retur
 destination. Every write-capable child uses an isolated worktree and one
 integration owner. Concurrent file writers additionally use disjoint allowed
 paths; otherwise the child remains read-only.
+These writer, worktree, and allowed-path rules coordinate cooperating clients;
+they are not a process-isolation or security boundary.
 
 Wrappers and companions:
 
@@ -332,24 +361,30 @@ production authority boundary.
 
 ## Falsifiers and maintenance triggers
 
-1. **Restart test:** a fresh agent must resume three representative long outcomes
-   from capsule plus repository/tracker state without transcript reconstruction.
-2. **Routing ABI test:** for `foggy route`, `contested concept`, `external
-   evidence`, `fixed diff`, and `clear change`, compare canonical words,
-   natural synonyms, and nearest negatives across supported models.
-3. **Artifact test:** every durable file must name its consumer and
-   supersession/cleanup rule; every run must disappear when its in-goal consumer
-   finishes or its owning Goal closes.
-4. **Path test:** create, list, and resume a second-opinion pass through a
-   symlinked or moved checkout without a JSON resolver or exposed unignored data.
-5. **Review test:** changing any member of the fixed-point identity must
-   invalidate the previous Standards/Spec disposition.
-6. **Pruning test:** a fresh operator must recover invocation, boundary, and
-   composition from README plus the linked `SKILL.md` without operator mirrors.
-7. **Router test:** add a router only if repeated observed explicit-skill recall
-   failures survive naming and README improvements.
-8. **Search-scale test:** introduce embeddings or a graph only after content
-   indexing repeatedly fails on a measured durable corpus.
+1. **Restart test — `$delivery-loop`:** a fresh agent must resume three
+   representative long outcomes from capsule plus repository/tracker state
+   without transcript reconstruction.
+2. **Routing ABI test — maintainer / `$managing-codex-capabilities`:** for
+   `foggy route`, `contested concept`, `external evidence`, `fixed diff`, and
+   `clear change`, compare canonical words, natural synonyms, and nearest
+   negatives across supported models.
+3. **Artifact test — `$source-to-decision`:** every durable file must name its
+   consumer and supersession/cleanup rule; every run must disappear when its
+   in-goal consumer finishes or its owning Goal closes.
+4. **Path test — `$opencode-second-opinion`:** create, list, and resume a
+   second-opinion pass through a symlinked or moved checkout without a JSON
+   resolver or exposed unignored data.
+5. **Review test — `$code-review` / `$delivery-loop`:** changing any member of
+   the fixed-point identity must invalidate the previous Standards/Spec
+   disposition.
+6. **Pruning test — maintainer:** a fresh operator must recover invocation,
+   boundary, and composition from README plus the linked `SKILL.md` without
+   operator mirrors.
+7. **Router test — maintainer:** add a router only if repeated observed
+   explicit-skill recall failures survive naming and README improvements.
+8. **Search-scale test — `$source-to-decision`:** introduce embeddings or a
+   graph only after content indexing repeatedly fails on a measured durable
+   corpus.
 
 The architecture is deliberately falsifiable. A mechanism that does not change
 routing, restart accuracy, proof quality, or maintenance cost does not earn

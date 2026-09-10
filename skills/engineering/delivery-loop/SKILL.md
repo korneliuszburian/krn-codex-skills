@@ -29,7 +29,7 @@ hosts own their mechanics and policy.
    Native Goal identity/state and configured tracker item/state:
    Restart state: ABSENT | <semantic path owned by the current Goal>
    Outstanding workflow-run cleanup: none | [<semantic pointer; workflow; sole consumer; trigger; ACTIVE | CLEANUP_PENDING | BLOCKED>, ...]
-   Authority: writes=; commit=; push=; PR=; merge=; deployment/install=
+   Authority: writes=; tracker/issue=; commit=; push=; PR=; merge=; deployment/install=
    Evidence observed:
    Explicit non-proofs:
    Review fixed point and Standards / Spec disposition:
@@ -39,7 +39,8 @@ hosts own their mechanics and policy.
    </outcome-capsule>
 
    Exactly one agent or session may mutate tracked files, the outcome branch,
-   tracker state, or goal state at a time. Transfer that writer role explicitly
+   tracker state, or goal state at a time. This is a cooperative coordination
+   invariant, not process isolation or a security boundary. Transfer that writer role explicitly
    before a mutating handoff. Parallel work is read-only, pinned to an immutable
    repository or artifact identity, and returns its evidence to the named sole
    writer or integrator for disposition and capsule update. It may not claim
@@ -121,8 +122,9 @@ hosts own their mechanics and policy.
    instructions, exact proof and gaps, non-goals, and authority state.
 
    A mechanical, low-risk 0-budget slice records its cheapest evidence and
-   skips fixed-point review. Behavior, authority, security, or spec/acceptance
-   changes require review.
+   skips fixed-point review, including inside an active lifecycle envelope, only
+   when it changes no behavior, authority, security, or spec/acceptance surface.
+   Every other slice, and every explicitly requested review, requires review.
 
    Any change to reviewed code, base, acceptance/spec, or applicable standards
    creates a new fixed point and invalidates the old review. An accepted finding
