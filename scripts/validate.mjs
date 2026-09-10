@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
 import { ABI_LABELS } from "./lib/capsule-abi.mjs";
-import { parseLessons } from "./lib/lessons.mjs";
+import { checkDurablePages } from "./lib/durable-pages.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
@@ -741,45 +741,8 @@ for (const markdown of repositoryMarkdown) {
 }
 
 {
-  const assertDurableHeader = (file) => {
-    const header = read(file).split("\n## ")[0];
-    if (!/^Status: `(accepted|lab-test|defer|reject)`/m.test(header)) {
-      fail(`${relative(file)}: header needs a canonical Status enum (accepted|lab-test|defer|reject)`);
-    }
-    if (!/Consumer: /.test(header)) fail(`${relative(file)}: header needs Consumer:`);
-    if (!/Owner: /.test(header)) fail(`${relative(file)}: header needs Owner:`);
-    if (!/Verified: \d{4}-\d{2}-\d{2}/.test(header)) {
-      fail(`${relative(file)}: header needs Verified: YYYY-MM-DD`);
-    }
-  };
-  const researchDirectory = path.join(root, "docs", "research");
-  const researchIndexText = read(path.join(researchDirectory, "README.md"));
-  const topicsSection = (researchIndexText.split("\n## Topics\n")[1] ?? "").split("\n## ")[0];
-  for (const entry of fs.readdirSync(researchDirectory, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.endsWith(".md") || entry.name === "README.md") continue;
-    const topic = path.join(researchDirectory, entry.name);
-    assertDurableHeader(topic);
-    if (!topicsSection.includes(`](${entry.name})`)) {
-      fail(`${relative(topic)}: topic is missing from docs/research/README.md Topics`);
-    }
-  }
-  const lessonsFile = path.join(researchDirectory, "workflow-lessons.md");
-  if (fs.existsSync(lessonsFile)) {
-    const parsedLessons = parseLessons(lessonsFile);
-    if (parsedLessons.rows.length > parsedLessons.budget) {
-      fail(`docs/research/workflow-lessons.md exceeds ${parsedLessons.budget} lesson rows; displace or condense`);
-    }
-    for (const row of parsedLessons.malformed) {
-      fail(`docs/research/workflow-lessons.md: a lesson row needs non-empty Lesson, Evidence, and Enforced by cells: ${row.trim()}`);
-    }
-  }
-  assertDurableHeader(path.join(root, "docs", "capabilities.md"));
-  assertDurableHeader(path.join(root, "docs", "migration.md"));
-  for (const target of ["../capabilities.md", "../migration.md"]) {
-    if (!topicsSection.includes(`](${target})`)) {
-      fail(`docs/research/README.md Topics is missing ${target}`);
-    }
-  }
+  const durable = checkDurablePages({ root });
+  for (const error of durable.errors) fail(error);
 }
 
 {

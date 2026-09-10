@@ -46,6 +46,7 @@ npm run test:skills
 npm run skills:check
 npm run lessons:check
 npm run test:lessons
+npm run test:validate
 bash -n scripts/install.sh
 git diff --check
 ```

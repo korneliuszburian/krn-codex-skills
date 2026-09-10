@@ -17,6 +17,7 @@
     "skills:check": "node scripts/krn-codex.mjs skills check --root .",
     "lessons:check": "node scripts/krn-codex.mjs lessons check --root .",
     "test:lessons": "node --test test/lessons.test.mjs",
+    "test:validate": "node --test test/durable-pages.test.mjs",
     "validate": "node scripts/validate.mjs",
     "install:check": "bash scripts/install.sh check"
   }
