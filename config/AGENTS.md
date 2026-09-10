@@ -56,4 +56,4 @@ from their pinned checkout; do not hand-maintain or vendor a local copy. For lif
 - One outcome has one writer; independent read-only exploration and review may run
   in parallel. Parallel writers require isolated worktrees and one integrator.
 - Every update states owner, evidence, paths, unknowns, and next action; never claim completion without observed evidence or readback;
-  a deterministic falsifier outranks a model review, and same-model self-assessment is never proof.
+  a deterministic falsifier outranks a model review, same-model self-assessment is never proof, and each new falsifier must be shown failing on the pre-change or mutated behavior, or it is proof theater.
