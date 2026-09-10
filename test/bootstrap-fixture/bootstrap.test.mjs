@@ -69,6 +69,27 @@ function initTarget(root) {
   return target;
 }
 
+function fixtureCapsule({ outcome, cleanup }) {
+  return [
+    "Outcome and observable acceptance: fixture",
+    "Current workflow owner and sole writer: $delivery-loop",
+    `Outcome state: ${outcome}`,
+    "Publication state: LOCAL_ONLY",
+    "Repository base, HEAD or working-tree fingerprint, and dirty-state scope: fingerprint=working-tree",
+    "Native Goal identity/state and configured tracker item/state: none",
+    "Restart state: ABSENT",
+    `Outstanding workflow-run cleanup: ${cleanup}`,
+    "Authority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none",
+    "Evidence observed: none",
+    "Explicit non-proofs: none",
+    "Review fixed point and Standards / Spec disposition: none",
+    "Open unknowns and blockers with owners: none",
+    "Durable CONTEXT / ADR / research references: none",
+    "Next bounded owner and action: none",
+    "",
+  ].join("\n");
+}
+
 test("installed CLI bootstraps a target repository through its public seam", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "krn-bootstrap-fixture-"));
   try {
@@ -109,30 +130,30 @@ test("installed CLI bootstraps a target repository through its public seam", () 
 
     const capsuleDir = path.join(target, ".krn", "runs", "delivery-loop", "fixture");
     fs.mkdirSync(capsuleDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(capsuleDir, "state.md"),
-      [
-        "Outcome and observable acceptance: fixture",
-        "Current workflow owner and sole writer: $delivery-loop",
-        "Outcome state: DONE",
-        "Publication state: LOCAL_ONLY",
-        "Repository base, HEAD or working-tree fingerprint, and dirty-state scope: fingerprint=working-tree",
-        "Native Goal identity/state and configured tracker item/state: none",
-        "Restart state: ABSENT",
-        "Outstanding workflow-run cleanup: none",
-        "Authority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none",
-        "Evidence observed: none",
-        "Explicit non-proofs: none",
-        "Review fixed point and Standards / Spec disposition: none",
-        "Open unknowns and blockers with owners: none",
-        "Durable CONTEXT / ADR / research references: none",
-        "Next bounded owner and action: none",
-        "",
-      ].join("\n"),
-    );
+    const capsulePath = path.join(capsuleDir, "state.md");
+    fs.writeFileSync(capsulePath, fixtureCapsule({ outcome: "DONE", cleanup: "none" }));
     const divergent = invoke(installedCli, ["state", "check", target], root);
     assert.equal(divergent.status, 1, divergent.stderr);
     assert.ok(JSON.parse(divergent.stdout).errors.some((error) => error.rule === "invalid-outcome-state"));
+
+    const runDir = path.join(target, ".krn", "runs", "slice-work", "run-life");
+    fs.mkdirSync(runDir, { recursive: true });
+    fs.writeFileSync(path.join(runDir, "manifest.md"), "owner: $slice-work\nconsumer: $delivery-loop\n");
+    fs.writeFileSync(capsulePath, fixtureCapsule({ outcome: "ACTIVE", cleanup: "[.krn/runs/slice-work/run-life; slice-work; $delivery-loop; closes; ACTIVE]" }));
+    const active = invoke(installedCli, ["state", "check", target], root);
+    assert.equal(active.status, 0, active.stderr);
+    assert.equal(JSON.parse(active.stdout).status, "clean");
+
+    fs.writeFileSync(capsulePath, fixtureCapsule({ outcome: "COMPLETE", cleanup: "[.krn/runs/slice-work/run-life; slice-work; $delivery-loop; closes; ACTIVE]" }));
+    const premature = invoke(installedCli, ["state", "check", target], root);
+    assert.equal(premature.status, 1, premature.stderr);
+    assert.ok(JSON.parse(premature.stdout).errors.some((error) => error.rule === "complete-with-cleanup"));
+
+    fs.rmSync(runDir, { recursive: true, force: true });
+    fs.writeFileSync(capsulePath, fixtureCapsule({ outcome: "COMPLETE", cleanup: "none" }));
+    const completed = invoke(installedCli, ["state", "check", target], root);
+    assert.equal(completed.status, 0, completed.stderr);
+    assert.equal(JSON.parse(completed.stdout).status, "clean");
 
     fs.writeFileSync(path.join(target, ".krn", "runs", ".gitignore"), "operator-owned\n");
     const beforeCollision = fs.readFileSync(path.join(target, "AGENTS.md"), "utf8");
