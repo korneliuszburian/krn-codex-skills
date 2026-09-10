@@ -7,6 +7,7 @@ test("toLine normalizes string and record diagnostics", () => {
   assert.equal(toLine("plain"), "plain");
   assert.equal(toLine({ rule: "missing-field", detail: "Authority" }), "missing-field: Authority");
   assert.equal(toLine({ rule: "x" }), "x");
+  assert.equal(toLine({}), "unknown");
 });
 
 test("renderDiagnostics normalizes both lists and tolerates missing ones", () => {
