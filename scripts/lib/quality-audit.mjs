@@ -63,7 +63,7 @@ const normalizedBody = (source, start) => {
 };
 
 export function auditRepository(root) {
-  const allFiles = [...walk(join(root, "scripts")), ...walk(join(root, "test"))];
+  const allFiles = [...walk(join(root, "scripts")), ...walk(join(root, "test")), ...walk(join(root, "skills"))];
   const sources = new Map(allFiles.map((file) => [file, readFileSync(file, "utf8")]));
   const runtime = [...sources.keys()].filter((file) => relative(root, file).startsWith(`scripts${sep}`));
   const label = (file) => relative(root, file).split(sep).join("/");
