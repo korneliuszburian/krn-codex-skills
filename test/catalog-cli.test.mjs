@@ -97,3 +97,44 @@ test("the legacy catalog bin delegates to the capability CLI", () => {
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+test("catalog profile show prints a resolved profile", () => {
+  const { base, env } = makeHome();
+  try {
+    const result = run(["profile", "show", "minimal", "--json"], env);
+    assert.equal(result.status, 0, result.stderr);
+    const profile = JSON.parse(result.stdout);
+    assert.equal(profile.name, "minimal");
+    assert.equal(typeof profile.description, "string");
+    assert.equal(profile.capability_states.profile, "declared");
+    assert.ok(Array.isArray(profile.plugins.disable));
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test("catalog usage reports aggregates and the usage state contract", () => {
+  const { base, env } = makeHome();
+  try {
+    const sessions = join(base, "sessions", "2026", "01", "06");
+    mkdirSync(sessions, { recursive: true });
+    const at = (seconds, payload) =>
+      `${JSON.stringify({ timestamp: `2026-01-06T00:00:0${seconds}.000Z`, type: "response_item", payload })}\n`;
+    writeFileSync(
+      join(sessions, "rollout-2026-01-06T00-00-00.jsonl"),
+      at(0, { type: "function_call", call_id: "c1", name: "exec_command", arguments: JSON.stringify({ cmd: "echo hi" }) }) +
+        at(1, { type: "function_call_output", call_id: "c1" }),
+    );
+    const result = run(["usage", "--json", "--days", "3650", "--sessions-root", join(base, "sessions")], env);
+    assert.equal(result.status, 0, result.stderr);
+    const usage = JSON.parse(result.stdout);
+    assert.deepEqual(
+      usage.aggregates.map(({ kind, id, confirmed_calls }) => ({ kind, id, confirmed_calls })),
+      [{ kind: "tool", id: "exec_command", confirmed_calls: 1 }],
+    );
+    assert.ok(Array.isArray(usage.capability_states.optional_capabilities));
+    assert.equal(usage.capability_states.evidence_window.through_day, new Date().toISOString().slice(0, 10));
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
