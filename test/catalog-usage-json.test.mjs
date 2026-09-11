@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { balancedJsonObject, freeformSource, isObject, literalToolCalls, parseObject } from "../scripts/lib/catalog-usage-json.mjs";
+import { balancedJsonObject, freeformSource, isObject, literalToolCalls, nestedExecCommands, parseFlatExecLiteral, parseObject } from "../scripts/lib/catalog-usage-json.mjs";
 
 test("parseObject accepts objects and JSON strings only", () => {
   assert.deepEqual(parseObject({ a: 1 }), { a: 1 });
@@ -28,4 +28,14 @@ test("freeformSource reads input from parsed arguments", () => {
   assert.equal(freeformSource({ arguments: '{"input": "hello"}' }), "hello");
   assert.equal(freeformSource({ input: "direct" }), "direct");
   assert.equal(freeformSource({ arguments: "not-json" }), "not-json");
+});
+
+test("parseFlatExecLiteral reads cmd and workdir from both literal styles", () => {
+  assert.deepEqual(parseFlatExecLiteral('{"cmd":"ls","workdir":"/tmp"}'), { cmd: "ls", workdir: "/tmp" });
+  assert.deepEqual(parseFlatExecLiteral('{cmd: "ls -la", workdir: "/tmp"}'), { cmd: "ls -la", workdir: "/tmp" });
+});
+
+test("nestedExecCommands extracts exec_command literals only", () => {
+  assert.deepEqual(nestedExecCommands('tools.exec_command({"cmd":"ls","workdir":"/tmp"})'), [{ cmd: "ls", workdir: "/tmp" }]);
+  assert.deepEqual(nestedExecCommands('tools.other({"cmd":"ls"})'), []);
 });
