@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -22,6 +23,12 @@ const withRepo = (files, body) => {
 
 test("the repository itself passes the quality audit", () => {
   assert.deepEqual(auditRepository(process.cwd()).errors, []);
+});
+
+test("the audit wrapper exits clean on the repository", () => {
+  const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "quality-audit.mjs")], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /quality audit clean/);
 });
 
 test("the audit catches a cross-file call that is never imported", () => {

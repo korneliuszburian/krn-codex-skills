@@ -14,3 +14,12 @@ test("the validation workflow runs on every main push as well as pull requests",
   assert.match(workflow, /group:\s*validate-\$\{\{\s*github\.ref\s*\}\}/, "concurrency must key on the ref so pushes and PRs do not collide");
   assert.match(workflow, /BASE_SHA:-HEAD~1/, "push runs have no pull_request base, so base-dependent steps must fall back");
 });
+
+test("every gate named in AGENTS.md runs in the workflow", () => {
+  const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
+  const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
+  const gates = new Set([...agents.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
+  const steps = new Set([...workflow.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
+  if (/krn-codex\.mjs changes check/.test(workflow)) steps.add("changes:check");
+  for (const gate of gates) assert.ok(steps.has(gate), `AGENTS.md gate ${gate} is missing from the workflow`);
+});
