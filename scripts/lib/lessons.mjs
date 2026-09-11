@@ -40,12 +40,17 @@ function resolveFalsifier(root, cell) {
   if (!raw) return { ok: false, reason: "no falsifier recorded" };
   const match = FALSIFIER.exec(raw);
   if (!match) return { ok: false, reason: `falsifier must be <test|scripts>/file.mjs::<case>@<7-hex>, got "${raw}"` };
-  const [, rel, , sha] = match;
-  const spec = `${rel}::${match[2]}`;
+  const [, rel, caseName, sha] = match;
+  const spec = `${rel}::${caseName}`;
   const absolute = path.resolve(root, rel);
   const relCheck = path.relative(root, absolute);
   if (!relCheck || relCheck.startsWith("..") || path.isAbsolute(relCheck)) return { ok: false, reason: `falsifier path escapes the repository: ${rel}` };
   if (!fs.statSync(absolute, { throwIfNoEntry: false })?.isFile()) return { ok: false, reason: `falsifier file not found: ${rel}` };
+  const realRel = path.relative(fs.realpathSync(root), fs.realpathSync(absolute)).split(path.sep).join("/");
+  if (!realRel || realRel.startsWith("..") || path.isAbsolute(realRel)) return { ok: false, reason: `falsifier path escapes the repository through a link: ${rel}` };
+  if (!fs.readFileSync(absolute, "utf8").includes(caseName)) {
+    return { ok: false, reason: `falsifier case "${caseName}" is not present in ${rel}` };
+  }
   if (runGit(root, ["rev-parse", "--git-dir"]).ok) {
     const known = runGit(root, ["cat-file", "-e", `${sha}^{commit}`]).ok;
     if (known && !runGit(root, ["merge-base", "--is-ancestor", sha, "HEAD"]).ok) {

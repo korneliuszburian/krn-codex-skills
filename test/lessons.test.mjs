@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -10,7 +10,7 @@ function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "krn-lessons-"));
   mkdirSync(join(root, "docs", "research"), { recursive: true });
   mkdirSync(join(root, "test"), { recursive: true });
-  writeFileSync(join(root, "test", "gate.test.mjs"), "// falsifier case\n");
+  writeFileSync(join(root, "test", "gate.test.mjs"), "// probe: the falsifier case\n");
   writeFileSync(join(root, "package.json"), '{\n  "scripts": { "test:state": "x" }\n}\n');
   return root;
 }
@@ -163,12 +163,29 @@ test("recurring rows must carry the falsifier that proved the gate", () => {
   writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | \`probe@abcdef0\` |\n`);
   assert.ok(checkLessons({ root }).errors.some((e) => e.includes("falsifier must be")), "a proof must name a file, case, and commit");
 
+  writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | \`test/gate.test.mjs::not-a-real-case@abcdef0\` |\n`);
+  assert.ok(checkLessons({ root }).errors.some((e) => e.includes("is not present in")), "the named case must exist in the file");
+
   writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | ${FALSIFIER} |\n`);
   assert.deepEqual(checkLessons({ root }).errors, [], "a resolvable proof passes");
 
   writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-01@abcdef1 | ${FALSIFIER} |\n`);
   assert.deepEqual(checkLessons({ root }).errors, [], "a single occurrence may still record its proof");
   rmSync(root, { recursive: true, force: true });
+});
+
+test("a falsifier cannot escape the repository through a symlink", () => {
+  const root = makeRoot();
+  const outside = mkdtempSync(join(tmpdir(), "krn-outside-"));
+  writeFileSync(join(outside, "x.test.mjs"), "// probe\n");
+  symlinkSync(join(outside, "x.test.mjs"), join(root, "test", "link.test.mjs"));
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n| A | probe | `test:state` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | `test/link.test.mjs::probe@abcdef0` |\n",
+  );
+  assert.ok(checkLessons({ root }).errors.some((e) => e.includes("through a link")), JSON.stringify(checkLessons({ root }).errors));
+  rmSync(root, { recursive: true, force: true });
+  rmSync(outside, { recursive: true, force: true });
 });
 
 test("occurrence tokens must be a date and short commit", () => {
