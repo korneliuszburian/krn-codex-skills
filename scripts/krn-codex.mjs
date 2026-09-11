@@ -144,8 +144,9 @@ try {
     if (!["recall", "usage"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
     if (positional[0] === "usage") {
       const report = lessonUsage({ root: options.root });
-      print(report, options.json);
-      if (!options.json) {
+      if (options.json) {
+        print(report, true);
+      } else {
         for (const entry of report.usage) process.stdout.write(`${entry.recalls}\t${entry.lesson}\n`);
         if (report.neverRecalled?.length) process.stdout.write(`never recalled: ${report.neverRecalled.length}\n`);
       }

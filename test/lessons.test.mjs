@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { checkLessons, lessonUsage, matchesTrigger, parseLessons, recallLessons } from "../scripts/lib/lessons.mjs";
 
@@ -396,6 +397,21 @@ test("lessonUsage credits a symbol-triggered lesson", () => {
   const usage = lessonUsage({ root });
   assert.equal(usage.usage.find((entry) => entry.lesson === "Symbolic").recalls, 1, JSON.stringify(usage));
   assert.deepEqual(usage.neverRecalled, []);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("memory usage renders text without --json", () => {
+  const root = makeRoot();
+  const git = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  git(["init", "-q"]);
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Flagged | probe | `test:state` | | | path:scripts/x.mjs |\n");
+  git(["add", "-A"]);
+  git(["-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", "init"]);
+  const cli = fileURLToPath(new URL("../scripts/krn-codex.mjs", import.meta.url));
+  const result = spawnSync(process.execPath, [cli, "memory", "usage", "--root", root], { encoding: "utf8" });
+  assert.ok(!result.stdout.includes("{"), `expected text, got: ${result.stdout}`);
+  assert.match(result.stdout, /0\tFlagged/);
+  assert.match(result.stdout, /never recalled: 1/);
   rmSync(root, { recursive: true, force: true });
 });
 
