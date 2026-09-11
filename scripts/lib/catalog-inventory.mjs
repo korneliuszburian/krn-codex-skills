@@ -339,9 +339,10 @@ async function inventoryPluginCache(root, records, quarantine) {
       if (manifest.name && quarantine.matches(manifest.name)) {
         quarantine.add(
           "plugin",
-          `${family}@${marketplace}`,
+          manifest.name,
           "manifest-name",
           root.id,
+          resolve(currentPath),
         );
         continue;
       }

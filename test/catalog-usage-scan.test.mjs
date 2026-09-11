@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, realpathSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -98,6 +98,45 @@ test("scanCatalogUsage reports window skips, undated files, and malformed candid
     assert.equal(report.coverage.skipped_files_after_window, 1);
     assert.equal(report.coverage.undated_rollout_files_scanned, 1);
     assert.equal(report.coverage.records_without_usable_date, 1);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("scanCatalogUsage skips symlinked and forbidden rollout entries", async () => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-usage-skip-")));
+  try {
+    const dayDirectory = path.join(root, "2026", "01", "06");
+    mkdirSync(dayDirectory, { recursive: true });
+    const inside = path.join(dayDirectory, "rollout-2026-01-06T00-00-00.jsonl");
+    writeFileSync(
+      inside,
+      line({
+        timestamp: "2026-01-06T00:00:00.000Z",
+        type: "response_item",
+        payload: { type: "function_call", call_id: "c1", name: "exec" },
+      }) +
+        line({
+          timestamp: "2026-01-06T00:00:01.000Z",
+          type: "response_item",
+          payload: { type: "function_call_output", call_id: "c1" },
+        }),
+    );
+    symlinkSync(inside, path.join(root, "rollout-copy.jsonl"));
+    const forbidden = path.join(root, "logs", "2026", "01", "06");
+    mkdirSync(forbidden, { recursive: true });
+    writeFileSync(path.join(forbidden, "rollout-2026-01-06T00-00-00.jsonl"), call("z1") + output("z1"));
+
+    const report = await scanCatalogUsage({
+      sessionsRoot: root,
+      canonicalSkillPaths: [],
+      sinceDay: "2026-01-01",
+    });
+
+    assert.equal(report.scanned_files, 1);
+    assert.deepEqual(report.aggregates.map(({ id, confirmed_calls }) => ({ id, confirmed_calls })), [
+      { id: "exec", confirmed_calls: 1 },
+    ]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

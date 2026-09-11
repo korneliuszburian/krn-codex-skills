@@ -77,6 +77,29 @@ test("inventoryCapabilities rejects symlinked versions and marketplaces", async 
   });
 });
 
+test("inventoryCapabilities quarantines a plugin by manifest name", async () => {
+  await withRoot("krn-inv-manifest-name-", async (root) => {
+    const metadata = path.join(root, "market", "demo", "1.0.0", ".codex-plugin");
+    mkdirSync(metadata, { recursive: true });
+    writeFileSync(path.join(metadata, "plugin.json"), JSON.stringify({ name: "superpowers" }));
+
+    const inventory = await inventoryCapabilities({
+      skillRoots: [],
+      pluginCacheRoots: [{ id: "cache", path: root }],
+    });
+    assert.deepEqual(inventory.plugins, []);
+    assert.deepEqual(inventory.hardQuarantine, [
+      {
+        kind: "plugin",
+        id: "superpowers",
+        evidence: "manifest-name",
+        sourceId: "cache",
+        path: path.join(root, "market", "demo", "1.0.0"),
+      },
+    ]);
+  });
+});
+
 test("inventoryCapabilities records quarantined configured roots and skips them", async () => {
   await withRoot("krn-inv-quarantine-root-", async (root) => {
     const quarantined = path.join(root, "superpowers");
