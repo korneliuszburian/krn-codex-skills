@@ -415,6 +415,25 @@ test("memory usage renders text without --json", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a triggered lesson that was never recalled warns", () => {
+  const root = makeRoot();
+  const git = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  git(["init", "-q"]);
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  writeFileSync(join(root, "scripts", "x.mjs"), "// x\n");
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Flagged | probe | `test:state` | | | path:scripts/x.mjs |\n");
+  const commit = (message) => {
+    git(["add", "-A"]);
+    git(["-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", message]);
+  };
+  commit("init");
+  assert.ok(checkLessons({ root }).warnings.some((warning) => warning.includes("never been recalled")), "a triggered lesson with no recall warns");
+  writeFileSync(join(root, "scripts", "x.mjs"), "// x2\n");
+  commit("feat: touch x\n\nRecall: test:state => scripts/x.mjs");
+  assert.ok(!checkLessons({ root }).warnings.some((warning) => warning.includes("never been recalled")), "a recalled trigger is quiet");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

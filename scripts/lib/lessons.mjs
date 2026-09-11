@@ -251,16 +251,23 @@ export function checkLessons({ root, git = runGit }) {
     }
     lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences, falsifier: row.falsifier, trigger: row.trigger, status: "" });
   }
+  if (git(root, ["rev-parse", "--git-dir"]).ok) {
+    const usage = recallUsage(root, git, rows);
+    for (const row of rows) {
+      if (row.status || !(row.trigger ?? "").trim()) continue;
+      if ((usage.get(row.lesson) ?? 0) === 0) warnings.push(`lesson "${row.lesson}": trigger has never been recalled; verify it with \`krn-codex memory usage\``);
+    }
+  }
   return { root, lessons, errors, warnings };
 }
 
-export function lessonUsage({ root, git = runGit } = {}) {
-  const file = path.join(root, "docs", "research", "workflow-lessons.md");
-  const { rows } = parseLessons(file);
-  const triggered = rows.filter((row) => !row.status && (row.trigger ?? "").trim());
-  if (!git(root, ["rev-parse", "--git-dir"]).ok) return { root, usage: [], neverRecalled: [], skipped: true };
+function recallUsage(root, git, rows) {
+  const active = rows.filter((row) => !row.status && (row.trigger ?? "").trim());
+  const counts = new Map();
+  if (active.length === 0 || !git(root, ["rev-parse", "--git-dir"]).ok) return counts;
   const log = git(root, ["log", "--format=%H%x1f%b%x1e"]);
-  if (!log.ok) return { root, usage: [], neverRecalled: [], skipped: true };
+  if (!log.ok) return counts;
+  const churnEnabled = rows.some((row) => (row.trigger ?? "").includes("churn:"));
   const records = log.out
     .split("\u001e")
     .map((record) => record.trim())
@@ -269,8 +276,6 @@ export function lessonUsage({ root, git = runGit } = {}) {
       const [sha, body] = record.split("\u001f");
       return { sha, body: body ?? "" };
     });
-  const churnEnabled = rows.some((row) => (row.trigger ?? "").includes("churn:"));
-  const counts = new Map();
   for (const record of records) {
     const lines = [...record.body.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
     if (lines.length === 0) continue;
@@ -281,16 +286,25 @@ export function lessonUsage({ root, git = runGit } = {}) {
     for (const hit of recallLessons({ root, files, symbols, hot })) {
       const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
       const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
-      const named = [...ids, falsifierFile].filter(Boolean);
+      const names = [...ids, falsifierFile].filter(Boolean);
       const credited = lines.some((line) => {
         const [left, right] = line.split("=>").map((part) => part?.trim() ?? "");
         if (!right) return false;
-        if (!named.some((id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(left))) return false;
+        if (!names.some((id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(left))) return false;
         return right.split(/[\s,;]+/).filter(Boolean).some((target) => files.includes(target) || symbols.includes(target));
       });
       if (credited) counts.set(hit.lesson, (counts.get(hit.lesson) ?? 0) + 1);
     }
   }
+  return counts;
+}
+
+export function lessonUsage({ root, git = runGit } = {}) {
+  const file = path.join(root, "docs", "research", "workflow-lessons.md");
+  const { rows } = parseLessons(file);
+  const triggered = rows.filter((row) => !row.status && (row.trigger ?? "").trim());
+  if (!git(root, ["rev-parse", "--git-dir"]).ok) return { root, usage: [], neverRecalled: [], skipped: true };
+  const counts = recallUsage(root, git, rows);
   const usage = triggered.map((row) => ({ lesson: row.lesson, recalls: counts.get(row.lesson) ?? 0 }));
   return { root, usage, neverRecalled: usage.filter((entry) => entry.recalls === 0).map((entry) => entry.lesson) };
 }
