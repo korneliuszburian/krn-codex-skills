@@ -57,7 +57,7 @@ test("a surface commit without a contract fails closed", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test("a non-falsifiable prediction is rejected unless a No-check reason is given", () => {
+test("a non-falsifiable prediction needs a No-check reason plus an At-risk check", () => {
   const root = makeRoot();
   const git = fakeGit({
     commits: [{ sha: "a1", subject: "chore: tidy", body: "Change-contract: test:lessons:green->green" }],
@@ -65,10 +65,16 @@ test("a non-falsifiable prediction is rejected unless a No-check reason is given
     baseScripts: { "test:lessons": "x" },
   });
   assert.ok(checkChangeContract({ root, base: "base", git, run: green }).errors.some((error) => error.rule === "non-falsifiable-prediction"));
-  const warned = fakeGit({
-    commits: [{ sha: "a1", subject: "chore: tidy", body: "Change-contract: test:lessons:green->green\nNo-check: comment-only" }],
+  const bare = fakeGit({
+    commits: [{ sha: "a1", subject: "chore: tidy", body: "No-check: whatever" }],
     files: { a1: ["scripts/lib/lessons.mjs"] },
     baseScripts: { "test:lessons": "x" },
+  });
+  assert.ok(checkChangeContract({ root, base: "base", git: bare, run: green }).errors.some((error) => error.rule === "missing-change-contract"), "a bare No-check is not enough");
+  const warned = fakeGit({
+    commits: [{ sha: "a1", subject: "chore: tidy", body: "Change-contract: test:lessons:green->green\nNo-check: comment-only\nAt-risk: test:lib" }],
+    files: { a1: ["scripts/lib/lessons.mjs"] },
+    baseScripts: { "test:lessons": "x", "test:lib": "x" },
   });
   assert.deepEqual(checkChangeContract({ root, base: "base", git: warned, run: green }).errors, []);
   rmSync(root, { recursive: true, force: true });

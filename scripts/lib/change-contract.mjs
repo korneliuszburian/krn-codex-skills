@@ -5,14 +5,12 @@ import { spawnSync } from "node:child_process";
 import { runGit } from "./git-cli.mjs";
 
 const SURFACE = [
-  /^scripts\/.*\.mjs$/,
-  /^scripts\/.*\.sh$/,
-  /^scripts\/hooks\//,
+  /^scripts\//,
+  /^test\//,
   /^package\.json$/,
-  /^config\/.*\.(md|json)$/,
+  /^config\//,
   /^skills\/manifest\.json$/,
-  /^test\/.*\.mjs$/,
-  /^\.github\/workflows\/.*\.ya?ml$/,
+  /^\.github\/workflows\//,
 ];
 const DENY = new Set(["changes:check"]);
 const CONTRACT = /^(?:Change-contract|Prediction):\s*(.+?):\s*(red|green)\s*->\s*(red|green)\s*$/i;
@@ -91,10 +89,11 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const files = changed.ok ? changed.out.split("\n").map((entry) => entry.trim()).filter(Boolean) : [];
     const contract = parseChangeContract(`${commit.subject}\n${commit.body}`);
     const surface = contractSurface(files);
-    if (surface && contract.contracts.length === 0 && !contract.noCheck) {
+    const justified = Boolean(contract.noCheck) && contract.atRisk.length > 0;
+    if (surface && contract.contracts.length === 0 && !justified) {
       errors.push({ rule: "missing-change-contract", commit: commit.sha, detail: files.filter((file) => SURFACE.some((pattern) => pattern.test(file))).join(", ") });
-    } else if (surface && contract.contracts.length > 0 && !contract.contracts.some((entry) => entry.before !== entry.after) && !contract.noCheck) {
-      errors.push({ rule: "non-falsifiable-prediction", commit: commit.sha, detail: "declare a red->green flip or a No-check reason" });
+    } else if (surface && contract.contracts.length > 0 && !contract.contracts.some((entry) => entry.before !== entry.after) && !justified) {
+      errors.push({ rule: "non-falsifiable-prediction", commit: commit.sha, detail: "declare a red->green flip, or a No-check reason plus an At-risk check" });
     }
     const parentSha = `${commit.sha}^`;
     const parentPackage = git(root, ["show", `${parentSha}:package.json`]);
