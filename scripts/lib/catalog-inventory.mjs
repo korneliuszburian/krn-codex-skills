@@ -10,6 +10,7 @@ import {
   isHardQuarantined,
   validateProfilesDocument,
 } from "./catalog-profiles.mjs";
+import { resolveInventoryRoots } from "./catalog-inventory-roots.mjs";
 import {
   requireDirectoryWithoutSymlinks,
   requireRegularFileWithoutSymlinks,
@@ -25,13 +26,6 @@ export const DEFAULT_PROFILES_PATH = fileURLToPath(
   new URL("../../config/capability-profiles.json", import.meta.url),
 );
 
-const ALLOWED_ROOT_SCOPES = new Set([
-  "global-index",
-  "krn-global",
-  "system",
-  "user",
-  "vendor-global",
-]);
 const versionCollator = new Intl.Collator("en", {
   numeric: true,
   sensitivity: "base",
@@ -61,22 +55,16 @@ export async function inventoryCapabilities(options = {}) {
     options.codexHome ?? process.env.CODEX_HOME ?? join(homeDirectory, ".codex");
   const agentsHome =
     options.agentsHome ?? process.env.AGENTS_HOME ?? join(homeDirectory, ".agents");
-  const skillRoots =
-    options.skillRoots ?? defaultSkillRoots({ codexHome, agentsHome });
-  const pluginCacheRoots =
-    options.pluginCacheRoots ?? [
-      {
-        id: "codex-plugin-cache",
-        path: join(codexHome, "plugins", "cache"),
-      },
-    ];
+  const { skillRoots, pluginCacheRoots } = resolveInventoryRoots({
+    skillRoots: options.skillRoots,
+    pluginCacheRoots: options.pluginCacheRoots,
+    codexHome,
+    agentsHome,
+  });
   const quarantine = createQuarantineCollector(
     options.quarantineEvidence ?? [],
     options.quarantineFamilies ?? [],
   );
-
-  validateSkillRoots(skillRoots);
-  validateCacheRoots(pluginCacheRoots);
 
   const skills = [];
   for (const root of skillRoots) {
@@ -97,56 +85,6 @@ export async function inventoryCapabilities(options = {}) {
     plugins,
     hardQuarantine: quarantine.values(),
   };
-}
-
-function defaultSkillRoots({ codexHome, agentsHome }) {
-  return [
-    {
-      id: "codex-user-skills",
-      path: join(codexHome, "skills"),
-      scope: "user",
-      readFrontmatter: false,
-    },
-    {
-      id: "codex-system-skills",
-      path: join(codexHome, "skills", ".system"),
-      scope: "system",
-      readFrontmatter: false,
-    },
-    {
-      id: "agent-global-index",
-      path: join(agentsHome, "skills"),
-      scope: "global-index",
-      readFrontmatter: false,
-    },
-  ];
-}
-
-function validateSkillRoots(roots) {
-  if (!Array.isArray(roots)) {
-    throw new TypeError("skillRoots must be an array");
-  }
-  for (const root of roots) {
-    if (!root || typeof root.id !== "string" || typeof root.path !== "string") {
-      throw new TypeError("Each skill root needs string id and path fields");
-    }
-    if (!ALLOWED_ROOT_SCOPES.has(root.scope)) {
-      throw new Error(
-        `Skill root '${root.id}' has unsupported scope '${root.scope}'. Project-local roots are never globally inventoried.`,
-      );
-    }
-  }
-}
-
-function validateCacheRoots(roots) {
-  if (!Array.isArray(roots)) {
-    throw new TypeError("pluginCacheRoots must be an array");
-  }
-  for (const root of roots) {
-    if (!root || typeof root.id !== "string" || typeof root.path !== "string") {
-      throw new TypeError("Each plugin cache root needs string id and path fields");
-    }
-  }
 }
 
 async function inventorySkillRoot(root, records, quarantine) {
