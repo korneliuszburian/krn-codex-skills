@@ -48,7 +48,9 @@ jobs:
       - name: Check change contracts
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: node scripts/krn-codex.mjs changes check --root . --base "$BASE_SHA" --head HEAD
+        run: |
+          base="${BASE_SHA:-HEAD~1}"
+          node scripts/krn-codex.mjs changes check --root . --base "$base" --head HEAD
       - name: Test change-contract gate
         run: npm run test:change-contract
       - name: Test validator rule modules
@@ -68,4 +70,4 @@ jobs:
           bash -n scripts/install.sh
           bash -n skills/advisory/opencode-second-opinion/scripts/check-opinion.sh
           bash -n skills/advisory/opencode-second-opinion/scripts/run-opinion.sh
-          git diff --check "$BASE_SHA...HEAD"
+          git diff --check "${BASE_SHA:-HEAD~1}...HEAD"
