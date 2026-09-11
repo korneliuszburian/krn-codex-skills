@@ -101,7 +101,7 @@ test("applyCatalogConfigPlan rejects tampered, invalid, and stale plans", async 
     writeFileSync(configPath, SOURCE.replace("false", "true"));
     await assert.rejects(
       applyCatalogConfigPlan({ configPath, plan }),
-      (error) => error.name === "ConcurrentConfigChangeError",
+      (error) => error.name === "ConcurrentConfigChangeError" && error.code === "CONFIG_CONCURRENT_CHANGE",
     );
   });
 });
