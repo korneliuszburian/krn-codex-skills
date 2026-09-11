@@ -34,8 +34,8 @@ function runCase({ root, file, name, timeout }) {
   return { ok: result.status === 0 && matched, status: result.status, output };
 }
 
-export function verifyLessons({ root, timeout = 120000, runner = runCase } = {}) {
-  if (process.env.KRN_LESSONS_VERIFY === "0") return { root, results: [], failures: [], skipped: true };
+export function verifyLessons({ root, timeout = 120000, runner = runCase, force = false } = {}) {
+  if (!force && process.env.KRN_LESSONS_VERIFY === "0") return { root, results: [], failures: [], skipped: true };
   const report = checkLessons({ root });
   const results = [];
   for (const lesson of report.lessons) {

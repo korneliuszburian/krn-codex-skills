@@ -69,6 +69,7 @@ test("the executor does not recurse when the guard is set", () => {
   process.env.KRN_LESSONS_VERIFY = "0";
   try {
     assert.equal(verifyLessons({ root }).skipped, true);
+    assert.equal(verifyLessons({ root, force: true }).results[0].status, "pass", "the CLI entrypoint forces execution against ambient env");
   } finally {
     delete process.env.KRN_LESSONS_VERIFY;
   }

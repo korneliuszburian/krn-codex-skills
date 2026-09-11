@@ -93,7 +93,7 @@ try {
       for (const warning of report.warnings ?? []) process.stderr.write(`warning: ${warning}\n`);
       if (report.errors.length) process.exitCode = 1;
     } else {
-      const report = verifyLessons({ root: options.root });
+      const report = verifyLessons({ root: options.root, force: true });
       print(report, options.json);
       if (!options.json) {
         for (const result of report.results) process.stdout.write(`${result.status}\t${result.file}::${result.case}\n`);
