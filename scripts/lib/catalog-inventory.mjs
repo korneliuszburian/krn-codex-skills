@@ -11,6 +11,10 @@ import {
   validateProfilesDocument,
 } from "./catalog-profiles.mjs";
 import { resolveInventoryRoots } from "./catalog-inventory-roots.mjs";
+import {
+  compareInventoryRecords,
+  createQuarantineCollector,
+} from "./catalog-inventory-quarantine.mjs";
 import { parseSkillFrontmatter, validSkillName } from "./catalog-inventory-frontmatter.mjs";
 import {
   requireDirectoryWithoutSymlinks,
@@ -481,66 +485,6 @@ async function readSmallJson(path, maxBytes, quarantine) {
   }
 }
 
-function createQuarantineCollector(evidence, additionalFamilies) {
-  if (
-    !Array.isArray(additionalFamilies) ||
-    additionalFamilies.some(
-      (family) => typeof family !== "string" || family.trim() === "",
-    )
-  ) {
-    throw new TypeError("quarantineFamilies must contain non-empty strings");
-  }
-  const families = [
-    ...new Set([
-      ...HARD_QUARANTINE_FAMILIES,
-      ...additionalFamilies.map((family) => family.toLowerCase()),
-    ]),
-  ];
-  const matches = (value) => isHardQuarantined(value, families);
-  const familyFor = (value) => {
-    const candidate = String(value ?? "").toLowerCase();
-    return families.find((family) => candidate.includes(family));
-  };
-  const records = new Map();
-  const add = (kind, id, evidenceType, sourceId, lexicalPath) => {
-    if (!matches(id) && !matches(lexicalPath)) return;
-    const record = {
-      kind: sanitizeLabel(kind),
-      id: sanitizeLabel(id),
-      evidence: sanitizeLabel(evidenceType),
-      sourceId: sanitizeLabel(sourceId),
-      ...(typeof lexicalPath === "string" ? { path: lexicalPath } : {}),
-    };
-    records.set(JSON.stringify(record), record);
-  };
-
-  for (const item of evidence) {
-    if (!item || typeof item.id !== "string") continue;
-    add(
-      item.kind ?? "unknown",
-      item.id,
-      item.evidence ?? "supplied-name",
-      item.sourceId ?? "supplied",
-      item.path,
-    );
-  }
-
-  return {
-    add,
-    familyFor,
-    matches,
-    values: () => [...records.values()].sort(compareInventoryRecords),
-  };
-}
-
-function sanitizeLabel(value) {
-  return String(value ?? "unknown")
-    .replace(/[\r\n\t]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 160);
-}
-
 async function readDirectory(path, quarantine) {
   assertAllowedPath(path, quarantine);
   try {
@@ -589,10 +533,4 @@ async function requirePlainDirectory(
     allowMissing,
     beforeAccess: (candidate) => assertAllowedPath(candidate, quarantine),
   });
-}
-
-function compareInventoryRecords(left, right) {
-  const leftKey = `${left.kind ?? ""}:${left.id ?? ""}:${left.sourceId ?? ""}`;
-  const rightKey = `${right.kind ?? ""}:${right.id ?? ""}:${right.sourceId ?? ""}`;
-  return leftKey.localeCompare(rightKey);
 }
