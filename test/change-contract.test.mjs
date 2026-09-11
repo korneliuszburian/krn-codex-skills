@@ -214,6 +214,34 @@ test("a churn trigger requires a Recall trailer for a hot file", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a recalled lesson with a testable gate must be exercised by the change", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "test"), { recursive: true });
+  writeFileSync(join(root, "test", "gate.test.mjs"), "// probe\n");
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `test/gate.test.mjs` | | | path:scripts/lib/git-cli.mjs |\n",
+  );
+  const gitFor = (body) => (_root, args) => {
+    if (args[0] === "log") return { ok: true, out: `a1\u001ffic: use\u001f${body}` };
+    if (args[0] === "show") {
+      const last = args[args.length - 1];
+      if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x", "test:lib": "x" } }) };
+      if (last.includes(":")) return { ok: true, out: "export const x = 1;\n" };
+      return { ok: true, out: "scripts/lib/git-cli.mjs" };
+    }
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    if (args[0] === "rev-list") return { ok: true, out: "0" };
+    return { ok: false, out: "" };
+  };
+  const recalled = "Change-contract: test:lessons:red->green\nRecall: test/gate.test.mjs => scripts/lib/git-cli.mjs";
+  const used = checkChangeContract({ root, base: "base", git: gitFor(recalled), run: green });
+  assert.ok(used.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(used.errors));
+  const exercised = checkChangeContract({ root, base: "base", git: gitFor(`${recalled}\nAt-risk: test/gate.test.mjs`), run: green });
+  assert.ok(!exercised.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(exercised.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("the guard disables the CLI check when set in the environment", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-contract-"));
   const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "krn-codex.mjs"), "changes", "check", "--root", root, "--base", "HEAD", "--head", "HEAD", "--json"], {

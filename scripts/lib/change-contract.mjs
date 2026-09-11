@@ -119,6 +119,12 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       });
       if (!reconstructed) {
         errors.push({ rule: "unreconstructed-recall", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add Recall: <${named.join(" or ") || "gate"}> => <changed file or symbol>` });
+      } else {
+        const requiredTests = [...new Set([falsifierFile, ...ids.filter((id) => /^test\/.*\.mjs$/.test(id))].filter(Boolean))];
+        const declaredRefs = [...contract.contracts.map((entry) => entry.ref), ...contract.atRisk];
+        if (requiredTests.length > 0 && !requiredTests.some((test) => declaredRefs.includes(test))) {
+          errors.push({ rule: "unused-recall", commit: commit.sha, ref: hit.lesson, detail: `declare At-risk: ${requiredTests.join(" or ")} so the recalled lesson's test is exercised` });
+        }
       }
     }
     const justified = Boolean(contract.noCheck) && contract.atRisk.length > 0;
