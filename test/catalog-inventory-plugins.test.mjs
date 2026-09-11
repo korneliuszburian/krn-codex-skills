@@ -61,3 +61,62 @@ test("inventoryCapabilities ignores a plugin cache with no version directories",
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+const manifestNameFor = async (prefix, writeManifest) => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), prefix)));
+  try {
+    const version = path.join(root, "market", "demo", "1.0.0");
+    skillFile(path.join(version, "skills", "alpha"), "alpha");
+    writeManifest(version);
+    const inventory = await inventoryCapabilities({
+      skillRoots: [],
+      pluginCacheRoots: [{ id: "cache", path: root }],
+    });
+    return inventory.plugins[0]?.manifestName;
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+};
+
+test("inventoryCapabilities resolves plugin manifest candidates in order", async () => {
+  assert.equal(
+    await manifestNameFor("krn-manifest-preferred-", (version) => {
+      mkdirSync(path.join(version, ".codex-plugin"), { recursive: true });
+      writeFileSync(path.join(version, ".codex-plugin", "plugin.json"), JSON.stringify({ name: "Preferred" }));
+      writeFileSync(path.join(version, "plugin.json"), JSON.stringify({ name: "PluginJson" }));
+      writeFileSync(path.join(version, "manifest.json"), JSON.stringify({ name: "ManifestJson" }));
+    }),
+    "Preferred",
+  );
+  assert.equal(
+    await manifestNameFor("krn-manifest-plugin-", (version) => {
+      writeFileSync(path.join(version, "plugin.json"), JSON.stringify({ name: "PluginJson" }));
+      writeFileSync(path.join(version, "manifest.json"), JSON.stringify({ name: "ManifestJson" }));
+    }),
+    "PluginJson",
+  );
+  assert.equal(
+    await manifestNameFor("krn-manifest-fallback-", (version) => {
+      writeFileSync(path.join(version, "manifest.json"), JSON.stringify({ name: "ManifestJson" }));
+    }),
+    "ManifestJson",
+  );
+  assert.equal(await manifestNameFor("krn-manifest-none-", () => {}), "demo");
+});
+
+test("inventoryCapabilities skips a directory-valued or oversized manifest", async () => {
+  assert.equal(
+    await manifestNameFor("krn-manifest-dir-", (version) => {
+      mkdirSync(path.join(version, "plugin.json"), { recursive: true });
+      writeFileSync(path.join(version, "manifest.json"), JSON.stringify({ name: "Fallback" }));
+    }),
+    "Fallback",
+  );
+  assert.equal(
+    await manifestNameFor("krn-manifest-big-", (version) => {
+      writeFileSync(path.join(version, "plugin.json"), Buffer.alloc(70 * 1024, 32));
+      writeFileSync(path.join(version, "manifest.json"), JSON.stringify({ name: "Small" }));
+    }),
+    "Small",
+  );
+});
