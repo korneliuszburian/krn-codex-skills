@@ -114,6 +114,21 @@ test("recurrence bypasses are closed: no trailing pipe, doc-only gate, duplicate
   rmSync(root, { recursive: true, force: true });
 });
 
+test("structural classification uses the resolved path, not the raw reference", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  writeFileSync(join(root, "scripts", "x.mjs"), "// gate\n");
+  const header = "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n";
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+
+  writeFileSync(file, `${header}| A | probe | \`node ./scripts/x.mjs\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n`);
+  assert.deepEqual(checkLessons({ root }).errors, [], "a normalized node script is structural");
+
+  writeFileSync(file, `${header}| A | probe | \`scripts/../docs/research/workflow-lessons.md\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n`);
+  assert.ok(checkLessons({ root }).errors.some((e) => e.includes("no structural gate")), "a traversal to docs is not structural");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

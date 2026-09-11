@@ -13,7 +13,7 @@ export function parseLessons(file) {
     const trimmed = line.trim();
     if (!trimmed.startsWith("|")) continue;
     if (/^\|[\s:|-]*-{1,}[\s:|-]*\|?$/.test(trimmed)) continue;
-    if (/^\|\s*lesson\s*\|/i.test(trimmed)) continue;
+    if (/^\|\s*lesson\s*\|\s*evidence\s*\|/i.test(trimmed)) continue;
     const body = trimmed.startsWith("|") ? trimmed.slice(1) : trimmed;
     const inner = body.endsWith("|") ? body.slice(0, -1) : body;
     const cells = inner.split("|").map((cell) => cell.trim());
@@ -45,9 +45,9 @@ function resolveReference(root, scripts, reference) {
     if (rel && !rel.startsWith("..") && !path.isAbsolute(rel)) {
       const stat = fs.statSync(absolute, { throwIfNoEntry: false });
       if (stat?.isFile()) {
-        const realRel = path.relative(fs.realpathSync(root), fs.realpathSync(absolute));
+        const realRel = path.relative(fs.realpathSync(root), fs.realpathSync(absolute)).split(path.sep).join("/");
         if (realRel && !realRel.startsWith("..") && !path.isAbsolute(realRel)) {
-          return { ok: true, kind: "path" };
+          return { ok: true, kind: "path", path: realRel };
         }
       }
     }
@@ -73,12 +73,12 @@ export function checkLessons({ root }) {
     const resolved = [];
     for (const reference of candidates) {
       const result = resolveReference(root, scripts, reference);
-      if (result.ok) resolved.push({ reference, kind: result.kind });
+      if (result.ok) resolved.push({ reference, kind: result.kind, ...(result.path ? { path: result.path } : {}) });
       else errors.push(`lesson "${row.lesson}": ${result.reason}`);
     }
     if (resolved.length === 0) errors.push(`lesson "${row.lesson}": no resolvable gate reference`);
     const structural = resolved.filter(
-      (entry) => entry.kind === "script" || (entry.kind === "path" && /^(scripts|test|\.github)\//.test(entry.reference)),
+      (entry) => entry.kind === "script" || (entry.kind === "path" && /^(scripts|test|\.github)\//.test(entry.path ?? entry.reference)),
     );
     if (row.occurrences.length >= 2 && structural.length === 0) {
       errors.push(`lesson "${row.lesson}": recurring friction (${row.occurrences.length} occurrences) has no structural gate; consolidate it into a script or test, or supersede the row`);
