@@ -24,6 +24,7 @@
     "scripts/lib/catalog-usage.mjs",
     "scripts/lib/catalog-usage-json.mjs",
     "scripts/lib/catalog-usage-shell.mjs",
+    "scripts/lib/catalog-usage-normalize.mjs",
     "scripts/lib/catalog-profiles.mjs",
     "scripts/lib/catalog-inventory-roots.mjs",
     "scripts/lib/content-rules.mjs",
