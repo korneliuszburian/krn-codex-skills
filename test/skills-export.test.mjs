@@ -110,6 +110,10 @@ test("export generates a checked skill set from both pins", () => {
   assert.ok(fs.existsSync(path.join(f.root, ".agents", "skills", "local", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(f.root, ".agents", "skills", "one", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(f.root, ".agents", "skills", "UPSTREAM-LICENSE")));
+  const marker = JSON.parse(fs.readFileSync(path.join(f.root, ".agents", "skills", ".krn-export.json"), "utf8"));
+  assert.equal(marker.krn.commit, git(f.source, ["rev-parse", "HEAD"]), "the marker records the source HEAD");
+  const exported = fs.readFileSync(path.join(f.root, ".agents", "skills", "local", "SKILL.md"), "utf8");
+  assert.equal(execFileSync("git", ["-C", f.source, "show", `${marker.krn.commit}:skills/meta/local/SKILL.md`], { encoding: "utf8" }), exported, "the named commit reproduces the exported bytes");
   const check = checkSkills({ root: f.root });
   assert.deepEqual(check.errors, [], JSON.stringify(check));
   fs.rmSync(f.base, { recursive: true, force: true });

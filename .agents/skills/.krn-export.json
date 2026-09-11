@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "krn": {
-    "commit": "995b0fa21d8bfb7630197ee4ac650e431b909477"
+    "commit": "31b77ca0cbfa2257028f6c662ad94cb780aa38d2"
   },
   "upstream": {
     "id": "mattpocock/skills",
