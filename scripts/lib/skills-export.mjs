@@ -214,7 +214,7 @@ export function checkSkills({ root }) {
     }
     if (!fs.existsSync(path.join(dir, "agents", "openai.yaml"))) errors.push(`${entry.name}: missing agents/openai.yaml`);
     total += fields.name.length + fields.description.length;
-    if (fields.description.length > 280) {
+    if (fields.description.length > 280 && sourceByName.has(entry.name)) {
       warnings.push(`${entry.name}: description is ${fields.description.length} chars (informational; KRN-owned skills stay within 280)`);
     }
   }

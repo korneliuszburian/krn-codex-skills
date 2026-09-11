@@ -77,6 +77,21 @@ function fixture() {
   return { base, upstream, source, root };
 }
 
+test("the long-description warning names only KRN-owned skills", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  fs.mkdirSync(path.join(f.root, "skills"), { recursive: true });
+  fs.copyFileSync(path.join(f.source, "skills", "manifest.json"), path.join(f.root, "skills", "manifest.json"));
+  const long = "x".repeat(300);
+  for (const name of ["local", "one"]) {
+    const file = path.join(f.root, ".agents", "skills", name, "SKILL.md");
+    fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace(/^description:.*$/m, `description: ${long}`));
+  }
+  const report = checkSkills({ root: f.root });
+  assert.ok(report.warnings.some((warning) => warning.startsWith("local:")), JSON.stringify(report.warnings));
+  assert.ok(!report.warnings.some((warning) => warning.startsWith("one:")), "an upstream skill is not held to the KRN budget");
+});
+
 test("check fails when the upstream pin moves without a re-export", () => {
   const f = fixture();
   exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
