@@ -29,7 +29,7 @@ const CONFIDENCE_RANK = new Map([
   ["confirmed", 3],
 ]);
 
-function isValidDay(value) {
+export function isValidDay(value) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
   }
