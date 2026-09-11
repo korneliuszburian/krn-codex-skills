@@ -8,6 +8,12 @@ import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
 import { ABI_LABELS } from "./lib/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/durable-pages.mjs";
 import {
+  lineLimitErrors,
+  openaiYamlErrors,
+  skillContentErrors,
+  skillPointerErrors,
+} from "./lib/skill-rules.mjs";
+import {
   capsuleAbiErrors,
   transitionErrors,
 } from "./lib/delivery-loop-rules.mjs";
@@ -260,45 +266,31 @@ for (const skill of validLocalSkills) {
   if (!fields.description || fields.description.length > 280) {
     fail(`${skill.path}: description must be 1-280 characters`);
   }
-  if (lineCount(skillFile) > 180) {
-    fail(`${skill.path}: SKILL.md exceeds 180 lines; disclose branch detail`);
+  for (const message of lineLimitErrors({
+    label: `${skill.path}: SKILL.md`,
+    lineCount: lineCount(skillFile),
+    max: 180,
+    suffix: "; disclose branch detail",
+  })) {
+    fail(message);
   }
 
   const metadata = read(metadataFile);
-  const metadataMatch = metadata.match(
-    /^interface:\n  display_name: "([^"\n]+)"\n  short_description: "([^"\n]+)"\n  default_prompt: "([^"\n]+)"\npolicy:\n  allow_implicit_invocation: (true|false)\n?$/,
-  );
-  if (!metadataMatch) {
-    fail(`${skill.path}: agents/openai.yaml must match the canonical schema`);
-  } else {
-    const [, displayName, shortDescription, defaultPrompt, policy] = metadataMatch;
-    if (!displayName) fail(`${skill.path}: missing quoted display_name`);
-    if (shortDescription.length < 25 || shortDescription.length > 64) {
-      fail(`${skill.path}: short_description must be 25-64 characters`);
-    }
-    if (!defaultPrompt.includes(`$${skill.name}`)) {
-      fail(`${skill.path}: default_prompt must mention $${skill.name}`);
-    }
-    if (policy !== String(skill.implicit)) {
-      fail(`${skill.path}: invocation policy differs from manifest`);
-    }
+  for (const message of openaiYamlErrors(metadata, {
+    name: skill.name,
+    implicit: skill.implicit,
+    skillPath: skill.path,
+  })) {
+    fail(message);
   }
 
   const content = read(skillFile);
-  if (/disable-model-invocation/.test(content)) {
-    fail(`${skill.path}: Claude-only invocation frontmatter is not canonical`);
-  }
-  if (/TODO|\[TODO|Structuring This Skill/i.test(content)) {
-    fail(`${skill.path}: unresolved scaffold text`);
-  }
-  for (const match of content.matchAll(/\]\((references|scripts)\/([^)#]+)\)/g)) {
-    const target = path.join(skillDir, match[1], match[2]);
-    if (!fs.existsSync(target)) {
-      fail(`${skill.path}: broken direct pointer ${match[0]}`);
-    }
-  }
-  if (/\]\(\.\.\//.test(content)) {
-    fail(`${skill.path}: cross-skill relative pointers are not allowed`);
+  for (const message of skillContentErrors(content, { skillPath: skill.path })) fail(message);
+  for (const message of skillPointerErrors(content, {
+    skillPath: skill.path,
+    resolveTarget: (kind, rest) => fs.existsSync(path.join(skillDir, kind, rest)),
+  })) {
+    fail(message);
   }
 
   const referenceRoot = path.join(skillDir, "references");
@@ -364,14 +356,21 @@ for (const markdown of repositoryMarkdown) {
   for (const error of transitionErrors(transitions, { knownHandlers, baseline })) fail(error);
 }
 
-if (lineCount(path.join(root, "AGENTS.md")) > 90) {
-  fail("AGENTS.md exceeds 90 lines");
+for (const message of lineLimitErrors({
+  label: "AGENTS.md",
+  lineCount: lineCount(path.join(root, "AGENTS.md")),
+  max: 90,
+})) {
+  fail(message);
 }
-if (
-  globalAgentsPathSafe &&
-  lineCount(path.join(root, manifest.global_agents)) > 60
-) {
-  fail(`${manifest.global_agents} exceeds 60 lines`);
+if (globalAgentsPathSafe) {
+  for (const message of lineLimitErrors({
+    label: manifest.global_agents,
+    lineCount: lineCount(path.join(root, manifest.global_agents)),
+    max: 60,
+  })) {
+    fail(message);
+  }
 }
 if (errors.length) {
   for (const error of errors) console.error(`ERROR ${error}`);

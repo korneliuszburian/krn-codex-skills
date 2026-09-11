@@ -49,6 +49,11 @@ const cases = [
     present: ["runGit", "gitText", "gitAvailable"],
     absent: [],
   },
+  {
+    module: "../scripts/lib/skill-rules.mjs",
+    present: ["openaiYamlErrors", "skillContentErrors", "skillPointerErrors", "lineLimitErrors"],
+    absent: [],
+  },
 ];
 
 test("module surfaces expose only the intended interface", async () => {

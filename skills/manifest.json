@@ -34,6 +34,7 @@
     "scripts/lib/delivery-loop-rules.mjs",
     "scripts/lib/git-cli.mjs",
     "scripts/lib/quality-audit.mjs",
+    "scripts/lib/skill-rules.mjs",
     "scripts/quality-audit.mjs",
     "scripts/lib/catalog-toml.mjs",
     "scripts/lib/content-rules.mjs",

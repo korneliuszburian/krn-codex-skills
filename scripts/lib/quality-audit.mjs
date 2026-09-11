@@ -124,8 +124,9 @@ export function auditRepository(root) {
 
   for (const file of runtime.filter((candidate) => label(candidate).startsWith(`scripts${sep}lib${sep}`))) {
     if (isSelf(file)) continue;
-    for (const match of sources.get(file).matchAll(/\b(console\.log|debugger|TODO|FIXME|XXX)\b/g)) {
-      errors.push(`${label(file)}: smell ${match[1]}`);
+    const source = sources.get(file);
+    for (const match of source.matchAll(/\b(console\.log|debugger)\b|(?:\/\/|#|<!--)\s*(TODO|FIXME|XXX)\b/g)) {
+      errors.push(`${label(file)}: smell ${match[1] ?? match[2]}`);
     }
   }
 
