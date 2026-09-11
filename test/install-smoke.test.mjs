@@ -17,12 +17,9 @@ test("apply fails closed and restores current when the installed CLI cannot star
   const archive = execFileSync("git", ["-C", sourceRoot, "archive", "HEAD"], { maxBuffer: 64 * 1024 * 1024 });
   execFileSync("tar", ["-x", "-C", copy], { input: archive });
   execFileSync("git", ["-C", copy, "init", "-q"]);
-  const manifestPath = path.join(copy, "skills", "manifest.json");
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-  manifest.runtime_paths = manifest.runtime_paths.filter((entry) => entry !== "scripts/lib/state-brief.mjs");
-  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  fs.appendFileSync(path.join(copy, "scripts", "lib", "diagnostics.mjs"), '\nthrow new Error("krn smoke failure");\n');
   execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "add", "-A"]);
-  execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", "omit runtime module"]);
+  execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", "break the installed CLI start"]);
 
   const home = path.join(base, "codex");
   const previousSkills = process.env.KRN_SKILLS_DEST;
@@ -31,7 +28,7 @@ test("apply fails closed and restores current when the installed CLI cannot star
   process.env.KRN_BIN_DEST = path.join(base, "bin");
   try {
     const plan = createInstallPlan({ source: copy, cwd: copy, codexHome: home });
-    assert.ok(!plan.runtimePaths.includes("scripts/lib/state-brief.mjs"));
+    assert.ok(plan.runtimePaths.includes("scripts/lib/diagnostics.mjs"));
     assert.throws(
       () => applyInstall(plan),
       (error) => error.exitCode === installExitCodes.EXIT_CORRUPT && /smoke failed/.test(error.message),
