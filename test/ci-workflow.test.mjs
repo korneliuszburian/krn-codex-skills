@@ -24,3 +24,10 @@ test("every gate named in AGENTS.md runs in the workflow", () => {
   if (/krn-codex\.mjs changes check/.test(workflow)) steps.add("changes:check");
   for (const gate of gates) assert.ok(steps.has(gate), `AGENTS.md gate ${gate} is missing from the workflow`);
 });
+
+test("the gate list does not duplicate a check that validate already runs", () => {
+  const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
+  const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
+  assert.doesNotMatch(agents, /npm run lessons:check/, "lessons:check is subsumed by validate");
+  assert.doesNotMatch(workflow, /npm run lessons:check/, "lessons:check is subsumed by validate");
+});

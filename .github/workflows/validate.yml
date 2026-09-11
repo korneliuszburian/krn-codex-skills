@@ -37,8 +37,6 @@ jobs:
         run: npm run test:skills
       - name: Check exported skill set
         run: npm run skills:check
-      - name: Check workflow lessons
-        run: npm run lessons:check
       - name: Verify lesson proofs
         run: npm run lessons:verify
       - name: Test lesson gate resolver

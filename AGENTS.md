@@ -44,7 +44,6 @@ npm run test:hooks
 npm run test:state
 npm run test:skills
 npm run skills:check
-npm run lessons:check
 npm run lessons:verify
 npm run changes:check
 npm run test:lessons
