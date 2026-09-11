@@ -22,13 +22,15 @@ a pattern that matches no test, fails the command. A recurrence recorded after
 the proof commit fails closed as a gate that did not stick: the friction came
 back, so the lesson is strengthened or split into a distinct class.
 
-A row may carry a sixth `Trigger` column of `path:<glob>` or `symbol:<name>`
-entries. Delivery is harness-evaluated, not left to the reader: `npm run memory
-recall --changed <paths>` and `--symbol <names>` return every lesson whose
-trigger matches (a `symbol:` trigger uses an AST-lite span match against the
-commit's changed line ranges), and `changes check` requires a matching surface
-change to acknowledge it with a `Recall: <gate or falsifier>` trailer, so the
-lesson reaches the decision point instead of waiting to be read.
+A row may carry a sixth `Trigger` column of `path:<glob>`, `symbol:<name>`, or
+`churn:<glob>` entries. Delivery is harness-evaluated, not left to the reader:
+`npm run memory recall --changed <paths>` and `--symbol <names>` return every
+lesson whose trigger matches (a `symbol:` trigger uses an AST-lite span match
+against the commit's changed line ranges, and a `churn:` trigger fires when a
+changed file matching the glob was touched at least twice in the last 90 days),
+and `changes check` requires a matching surface change to acknowledge it with a
+`Recall: <gate or falsifier>` trailer, so the lesson reaches the decision point
+instead of waiting to be read.
 
 | Lesson | Evidence | Enforced by |
 |---|---|---|

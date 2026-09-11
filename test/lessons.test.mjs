@@ -238,6 +238,16 @@ test("a symbol trigger delivers the matching lesson", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a churn trigger delivers the lesson for a hot changed file", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  writeFileSync(file, "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Fragile | probe | `test:state` | | | churn:scripts/** |\n");
+  assert.equal(recallLessons({ root, files: [], symbols: [], hot: ["scripts/hot.mjs"] }).length, 1);
+  assert.deepEqual(recallLessons({ root, files: [], symbols: [], hot: [] }), []);
+  assert.deepEqual(recallLessons({ root, files: [], symbols: [], hot: ["docs/hot.md"] }), [], "a hot file outside the glob does not match");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

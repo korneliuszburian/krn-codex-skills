@@ -43,30 +43,41 @@ function triggerGlobs(trigger) {
     .map((entry) => entry.slice("path:".length).replace(/^\.\//, ""));
 }
 
-export function matchesTrigger(trigger, files) {
-  const globs = triggerGlobs(trigger);
-  if (globs.length === 0) return [];
-  const patterns = globs.map((glob) => new RegExp(`^${glob
+function globToRegex(glob) {
+  return new RegExp(`^${glob
     .replace(/[.+^${}()|[\]\\]/g, "\\$&")
     .replace(/\*\*/g, "\u0000")
     .replace(/\*/g, "[^/]*")
-    .replace(/\u0000/g, ".*")}$`));
+    .replace(/\u0000/g, ".*")}$`);
+}
+
+export function matchesTrigger(trigger, files) {
+  const globs = triggerGlobs(trigger);
+  if (globs.length === 0) return [];
+  const patterns = globs.map(globToRegex);
   return files.filter((file) => patterns.some((pattern) => pattern.test(file)));
 }
 
-function triggerSymbols(trigger) {
+function triggerEntries(trigger, prefix) {
   return (trigger ?? "")
     .split(/[;,]/)
     .map((entry) => entry.trim())
-    .filter((entry) => entry.startsWith("symbol:"))
-    .map((entry) => entry.slice("symbol:".length));
+    .filter((entry) => entry.startsWith(prefix))
+    .map((entry) => entry.slice(prefix.length));
 }
 
-export function recallLessons({ root, files = [], symbols = [] }) {
+export function recallLessons({ root, files = [], symbols = [], hot = [] }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
   const hits = [];
   for (const row of parseLessons(file).rows) {
-    const matched = [...matchesTrigger(row.trigger, files), ...triggerSymbols(row.trigger).filter((name) => symbols.includes(name))];
+    const globs = triggerEntries(row.trigger, "path:");
+    const symbolMatches = triggerEntries(row.trigger, "symbol:").filter((name) => symbols.includes(name));
+    const churnMatches = hot.filter((candidate) => triggerEntries(row.trigger, "churn:").some((glob) => globToRegex(glob).test(candidate)));
+    const matched = [
+      ...files.filter((candidate) => globs.map(globToRegex).some((pattern) => pattern.test(candidate))),
+      ...symbolMatches,
+      ...churnMatches,
+    ];
     if (matched.length > 0) hits.push({ lesson: row.lesson, trigger: row.trigger, gate: row.gate, falsifier: row.falsifier, matched });
   }
   return hits;
