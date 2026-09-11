@@ -15,7 +15,9 @@ duplicates. A recurring row must also carry a fifth `Falsifier` column,
 `<test>/<file>.mjs::<case>@<7-hex>`: the check observed failing on the
 pre-change behavior and the commit that recorded it. `lessons:check` verifies
 the file exists and, in a git checkout, that the commit is an ancestor of HEAD,
-so a gate whose proof is missing or unreachable fails closed.
+so a gate whose proof is missing or unreachable file fails closed; a proof
+commit absent from this checkout is treated as provenance and is not
+ancestry-checked (see `orchestration.md`).
 `lessons:check` also warns when the proof commit predates later changes to the
 falsifier file, and `lessons:verify` re-runs each named case: a failing case, or
 a pattern that matches no test, fails the command. A recurrence recorded after
@@ -25,8 +27,9 @@ back, so the lesson is strengthened or split into a distinct class.
 A row may carry a sixth `Trigger` column of `path:<glob>`, `symbol:<name>`, or
 `churn:<glob>` entries. Delivery is harness-evaluated, not left to the reader:
 `npm run memory recall --changed <paths>` and `--symbol <names>` return every
-lesson whose trigger matches (a `symbol:` trigger uses an AST-lite span match
-against the commit's changed line ranges, and a `churn:` trigger fires when a
+lesson whose trigger matches (a `symbol:` trigger is evaluated against the
+commit's changed line ranges by `changes check`, while `memory recall --symbol`
+matches names you pass explicitly, and a `churn:` trigger fires when a
 changed file matching the glob was touched at least twice before this commit),
 and `changes check` requires a matching surface change to reconstruct the lesson
 with a `Recall: <gate or falsifier> => <changed file or symbol>` trailer, so the

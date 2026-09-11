@@ -38,7 +38,7 @@ export function verifyLessons({ root, timeout = 120000, runner = runCase, force 
   if (!force && process.env.KRN_LESSONS_VERIFY === "0") return { root, results: [], failures: [], skipped: true };
   const report = checkLessons({ root });
   const results = [];
-  for (const lesson of report.lessons) {
+  for (const lesson of report.lessons.filter((entry) => !entry.status)) {
     const match = TOKEN.exec((lesson.falsifier ?? "").replace(/`/g, "").trim());
     if (!match) continue;
     const [, file, name] = match;

@@ -90,3 +90,19 @@ test("a proof outside test/ is rejected and never executed", () => {
   assert.equal(verifyLessons({ root }).results[0].status, "skipped");
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a retired row's proof is not executed", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-verify-"));
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  mkdirSync(join(root, "test"), { recursive: true });
+  writeFileSync(join(root, "package.json"), '{\n  "scripts": { "test:state": "x" }\n}\n');
+  writeFileSync(join(root, "test", "proof.test.mjs"), 'import test from "node:test";\ntest("probe", () => { throw new Error("boom"); });\n');
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n"
+    + "| Old | probe | `scripts/gone.mjs` | | `test/proof.test.mjs::probe@abcdef0` | | retired@abcdef0 |\n",
+  );
+  const report = verifyLessons({ root });
+  assert.deepEqual(report.results, [], "a retired row is archival and not re-run");
+  rmSync(root, { recursive: true, force: true });
+});
