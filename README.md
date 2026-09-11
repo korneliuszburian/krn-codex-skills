@@ -105,7 +105,8 @@ set at the commit pinned by `config/upstream-sources.json`, not owned here**.
 The lock file is the machine-readable source of the set; `config/AGENTS.md`
 contains the stable ownership boundary. Do not use a moving `npx skills add`
 result as the KRN source, and do not create a local fork without a named
-consumer and falsifier. The curated harness subset is materialized into the
+consumer and falsifier. The curated harness subset named by `harness_skills` in
+`skills/manifest.json` is materialized into the
 generated, provenance-marked `.agents/skills/` by `krn-codex skills export`
 (the full pin stays in `config/upstream-sources.json`); regenerate instead of
 editing, and `npm run skills:check` fails on a foreign destination, a stale name or provenance pin, or an exported skill whose bytes differ from its source.

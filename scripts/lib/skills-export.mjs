@@ -142,10 +142,9 @@ export function checkSkills({ root }) {
   const marker = fs.existsSync(markerFile) ? readJson(markerFile) : null;
   const sourceByName = new Map();
   const sourceManifest = path.join(root, "skills", "manifest.json");
-  if (fs.existsSync(sourceManifest)) {
-    for (const skill of readJson(sourceManifest).skills ?? []) {
-      sourceByName.set(skill.name, path.join(root, skill.path, "SKILL.md"));
-    }
+  const rootManifest = fs.existsSync(sourceManifest) ? readJson(sourceManifest) : null;
+  for (const skill of rootManifest?.skills ?? []) {
+    sourceByName.set(skill.name, path.join(root, skill.path, "SKILL.md"));
   }
   let total = 0;
   let count = 0;
@@ -177,6 +176,14 @@ export function checkSkills({ root }) {
     }
   }
   if (total > BUDGET) errors.push(`skill list costs ${total} characters of ${BUDGET}; prune, split scopes, or set allow_implicit_invocation: false`);
+  const harness = Array.isArray(rootManifest?.harness_skills) && rootManifest.harness_skills.length > 0 ? rootManifest.harness_skills : null;
+  if (harness) {
+    const krnExported = names.filter((name) => sourceByName.has(name)).sort();
+    const expected = [...harness].sort();
+    if (JSON.stringify(krnExported) !== JSON.stringify(expected)) {
+      errors.push(`exported krn skills [${krnExported.join(", ")}] must equal manifest.harness_skills [${expected.join(", ")}]; run \`krn-codex skills export\``);
+    }
+  }
   const catalogFile = path.join(skillsDir, "README.md");
   const catalog = fs.existsSync(catalogFile) ? fs.readFileSync(catalogFile, "utf8") : "";
   if (!catalog) errors.push(".agents/skills/README.md is missing");
