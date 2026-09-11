@@ -72,6 +72,39 @@ test("rejects a symlinked leaf or parent with CATALOG_PATH_SYMLINK", async () =>
   });
 });
 
+test("covers the file helper's missing, allowMissing, and symlink behavior", async () => {
+  await withRoot(async (root) => {
+    const missing = path.join(root, "nope.txt");
+    await assert.rejects(
+      requireRegularFileWithoutSymlinks(missing, { label: "file" }),
+      (error) => error.code === "CATALOG_PATH_MISSING",
+    );
+    assert.equal(
+      await requireRegularFileWithoutSymlinks(missing, { label: "file", allowMissing: true }),
+      false,
+    );
+
+    const target = path.join(root, "target.txt");
+    writeFileSync(target, "x");
+    const link = path.join(root, "linked.txt");
+    symlinkSync(target, link);
+    await assert.rejects(
+      requireRegularFileWithoutSymlinks(link, { label: "file" }),
+      (error) => error.code === "CATALOG_PATH_SYMLINK",
+    );
+
+    const seen = [];
+    assert.equal(
+      await requireRegularFileWithoutSymlinks(target, {
+        label: "file",
+        beforeAccess: (candidate) => seen.push(candidate),
+      }),
+      true,
+    );
+    assert.ok(seen.includes(path.resolve(target)));
+  });
+});
+
 test("runs beforeAccess for the candidate and each component and honors its throw", async () => {
   await withRoot(async (root) => {
     const directory = path.join(root, "a", "b");
