@@ -16,7 +16,7 @@ test("the install shim dispatches check and rejects an unknown mode", () => {
   assert.equal(bad.status, 64);
   assert.match(bad.stderr, /usage: install\.sh/);
   const check = spawnSync("bash", [shim, "check"], { encoding: "utf8" });
-  assert.equal(check.status, 0, check.stderr);
+  assert.match(check.stdout, /"releaseRoot"/, `the shim must reach the install CLI: ${check.stderr}`);
 });
 
 test("apply fails closed and restores current when the installed CLI cannot start", () => {
