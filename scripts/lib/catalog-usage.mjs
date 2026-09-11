@@ -47,7 +47,13 @@ async function* rolloutFiles(sessionsRoot) {
 
   while (pendingDirectories.length > 0) {
     const directoryPath = pendingDirectories.pop();
-    const directory = await opendir(directoryPath);
+    let directory;
+    try {
+      directory = await opendir(directoryPath);
+    } catch (error) {
+      if (error?.code === "ENOENT" || error?.code === "EACCES" || error?.code === "EPERM") continue;
+      throw error;
+    }
 
     for await (const entry of directory) {
       if (forbiddenName(entry.name) || entry.isSymbolicLink()) {

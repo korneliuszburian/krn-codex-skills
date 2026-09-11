@@ -15,12 +15,17 @@ export function markdownLinkErrors(content, { label, resolveTarget }) {
   const errors = [];
   for (const { line, number } of unfencedLines(content)) {
     for (const match of line.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
-      let target = match[1].trim().split(/\s+"/)[0];
+      let       target = match[1].trim().split(/\s+"/)[0];
       if (/^<.*>$/.test(target)) target = target.slice(1, -1);
       if (!target || target.startsWith("#") || /^[a-z][a-z+.-]*:/i.test(target)) {
         continue;
       }
-      target = decodeURIComponent(target.split("#")[0]);
+      try {
+        target = decodeURIComponent(target.split("#")[0]);
+      } catch {
+        errors.push(`${label}:${number}: malformed Markdown link target ${match[1]}`);
+        continue;
+      }
       if (!resolveTarget(target)) {
         errors.push(`${label}:${number}: broken Markdown link ${match[1]}`);
       }
@@ -213,13 +218,13 @@ export function skillMarkdownErrors(content, { label, name, knownSkillNames }) {
 
 export function parseFrontmatterFields(content, label) {
   const errors = [];
-  const match = content.match(/^---\n([\s\S]*?)\n---\n/);
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
   if (!match) {
     errors.push(`${label}: missing YAML frontmatter`);
     return { fields: {}, errors };
   }
   const fields = {};
-  for (const line of match[1].split("\n")) {
+  for (const line of match[1].split(/\r?\n/)) {
     const field = line.match(/^([a-z_]+):\s*(.+)$/);
     if (!field) {
       errors.push(`${label}: unsupported frontmatter line "${line}"`);

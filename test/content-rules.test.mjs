@@ -39,6 +39,11 @@ test("markdownLinkErrors resolves relative targets and skips external and anchor
   });
   assert.deepEqual(seen, ["missing.md"]);
   assert.deepEqual(errors, ["README.md:1: broken Markdown link missing.md"]);
+
+  assert.deepEqual(
+    markdownLinkErrors("[x](bad%ZZ)", { label: "f.md", resolveTarget: () => true }),
+    ["f.md:1: malformed Markdown link target bad%ZZ"],
+  );
 });
 
 const tableSkill = { name: "alpha", path: "skills/g/alpha/SKILL.md", implicit: false };
@@ -103,6 +108,10 @@ test("parseFrontmatterFields parses and validates keys", () => {
   assert.deepEqual(valid.errors, []);
   assert.deepEqual(valid.fields, { name: "alpha", description: "demo" });
   assert.deepEqual(parseFrontmatterFields("body", "SKILL.md").errors, ["SKILL.md: missing YAML frontmatter"]);
+  assert.deepEqual(
+    parseFrontmatterFields("---\r\nname: alpha\ndescription: demo\r\n---\r\nbody", "SKILL.md").fields,
+    { name: "alpha", description: "demo" },
+  );
   assert.ok(
     parseFrontmatterFields("---\nname: a\nextra: b\n---\n", "SKILL.md").errors.includes(
       "SKILL.md: frontmatter must contain only name and description",

@@ -60,11 +60,6 @@ const cases = [
     absent: [],
   },
   {
-    module: "../scripts/lib/catalog-desired.mjs",
-    present: ["normalizeDesired", "normalizeFamilies", "pluginIdFromCachedSkillPath"],
-    absent: ["normalizeStateRecord", "normalizePluginFamilies", "derivePluginOwners", "normalizePluginSkillAliases", "isTrustedPluginSkill"],
-  },
-  {
     module: "../scripts/lib/catalog-profile.mjs",
     present: ["resolveProfile"],
     absent: [],

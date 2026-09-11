@@ -1,10 +1,10 @@
 export const MAX_ROLLOUT_RECORD_BYTES = 16 * 1_024 * 1_024;
 
 const CANDIDATE_RECORD_TYPES = [
-  '"type":"function_call"',
-  '"type":"function_call_output"',
-  '"type":"custom_tool_call"',
-  '"type":"custom_tool_call_output"',
+  "function_call",
+  "function_call_output",
+  "custom_tool_call",
+  "custom_tool_call_output",
 ].map((value) => Buffer.from(value));
 const CANDIDATE_MARKER_OVERLAP = Math.max(...CANDIDATE_RECORD_TYPES.map((value) => value.length)) - 1;
 

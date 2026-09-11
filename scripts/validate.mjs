@@ -306,13 +306,21 @@ for (const markdown of repositoryMarkdown) {
 }
 
 {
-  const durable = checkDurablePages({ root });
-  for (const error of durable.errors) fail(error);
+  try {
+    const durable = checkDurablePages({ root });
+    for (const error of durable.errors) fail(error);
+  } catch (error) {
+    fail(`durable-pages check failed: ${error.message}`);
+  }
 }
 
 {
-  const lessons = checkLessons({ root });
-  for (const error of lessons.errors) fail(error);
+  try {
+    const lessons = checkLessons({ root });
+    for (const error of lessons.errors) fail(error);
+  } catch (error) {
+    fail(`lessons check failed: ${error.message}`);
+  }
 }
 
 {

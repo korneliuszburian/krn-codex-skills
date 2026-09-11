@@ -1,3 +1,5 @@
+import { normalize } from "node:path";
+
 import { ConfigReconcileError } from "./catalog-errors.mjs";
 import { matchesQuarantined } from "./plugin-identity.mjs";
 import {

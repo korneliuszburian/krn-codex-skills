@@ -24,3 +24,10 @@ test("planCatalogConfig refuses enabling a hard-quarantined target", () => {
     QuarantineViolationError,
   );
 });
+
+test("planCatalogConfig reads a managed skills.config path without crashing", () => {
+  const skillsSource = '[[skills.config]]\npath = "/opt/skills/alpha/SKILL.md"\nenabled = true\n';
+  const plan = planCatalogConfig({ source: skillsSource, desired: {} });
+  assert.equal(typeof plan.originalHash, "string");
+  assert.equal(typeof plan.nextSource, "string");
+});

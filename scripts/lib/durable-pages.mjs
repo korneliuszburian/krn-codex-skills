@@ -21,7 +21,12 @@ export function checkDurablePages({ root }) {
   };
 
   const researchDirectory = path.join(root, "docs", "research");
-  const researchIndex = fs.readFileSync(path.join(researchDirectory, "README.md"), "utf8");
+  const researchIndexFile = path.join(researchDirectory, "README.md");
+  if (!fs.existsSync(researchIndexFile)) {
+    errors.push("docs/research/README.md is missing the curation index");
+    return { errors };
+  }
+  const researchIndex = fs.readFileSync(researchIndexFile, "utf8");
   const topicsSection = (researchIndex.split("\n## Topics\n")[1] ?? "").split("\n## ")[0];
   for (const entry of fs.readdirSync(researchDirectory, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith(".md") || entry.name === "README.md") continue;

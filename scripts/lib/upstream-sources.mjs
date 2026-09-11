@@ -66,6 +66,6 @@ export function upstreamSourceErrors(document) {
 
 export function upstreamSkillNamesFrom(document) {
   return document.sources.flatMap((source) =>
-    source.required_paths.map((requiredPath) => path.basename(path.dirname(requiredPath))),
+    (source.required_paths ?? []).map((requiredPath) => path.basename(path.dirname(requiredPath))),
   );
 }

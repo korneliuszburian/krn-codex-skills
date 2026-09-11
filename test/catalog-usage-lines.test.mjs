@@ -26,10 +26,10 @@ test("consumeLines joins chunks, strips CR, and reports byte counts", async () =
   assert.deepEqual(oversized, []);
 });
 
-test("isCandidateRecordLine matches compact call markers only", () => {
+test("isCandidateRecordLine matches call markers regardless of JSON spacing", () => {
   assert.equal(isCandidateRecordLine(Buffer.from('{"type":"function_call"}')), true);
   assert.equal(isCandidateRecordLine(Buffer.from('{"type":"function_call_output"}')), true);
-  assert.equal(isCandidateRecordLine(Buffer.from('{"type": "function_call"}')), false);
+  assert.equal(isCandidateRecordLine(Buffer.from('{"type": "function_call"}')), true);
   assert.equal(isCandidateRecordLine(Buffer.from("plain")), false);
 });
 

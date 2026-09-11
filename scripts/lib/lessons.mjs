@@ -39,7 +39,10 @@ export function checkLessons({ root }) {
   const lessons = [];
   if (rows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} lesson rows; displace or condense`);
   if (!fs.existsSync(file)) return { root, lessons, errors, skipped: true };
-  const scripts = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts ?? {};
+  const packageFile = path.join(root, "package.json");
+  const scripts = fs.existsSync(packageFile)
+    ? JSON.parse(fs.readFileSync(packageFile, "utf8")).scripts ?? {}
+    : {};
   for (const row of rows) {
     const candidates = [...row.gate.matchAll(/`([^`]+)`/g)]
       .map((match) => match[1].trim())

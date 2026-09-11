@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { EXIT_CODES } from "./diagnostics.mjs";
+import { isSafeRelativePath as safeRelativePath } from "./path-rules.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
@@ -13,14 +14,6 @@ function fail(message, exitCode = 1) {
   const error = new Error(message);
   error.exitCode = exitCode;
   throw error;
-}
-
-function safeRelativePath(candidate) {
-  return typeof candidate === "string" &&
-    candidate.length > 0 &&
-    !path.isAbsolute(candidate) &&
-    !candidate.split(/[\\/]/).includes("..") &&
-    !candidate.includes("\\");
 }
 
 function readJson(file) {

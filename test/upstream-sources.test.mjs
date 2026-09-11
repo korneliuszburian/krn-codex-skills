@@ -57,6 +57,7 @@ test("upstreamSkillNamesFrom derives skill directory names", () => {
   const document = validSource();
   document.sources[0].required_paths.push("skills/grp/beta/SKILL.md");
   assert.deepEqual(upstreamSkillNamesFrom(document), ["alpha", "beta"]);
+  assert.deepEqual(upstreamSkillNamesFrom({ sources: [{ id: "x" }] }), []);
 });
 
 test("isSafeRelativePath rejects absolute and escaping paths", () => {
@@ -64,4 +65,6 @@ test("isSafeRelativePath rejects absolute and escaping paths", () => {
   assert.equal(isSafeRelativePath("/abs"), false);
   assert.equal(isSafeRelativePath("a/../b"), false);
   assert.equal(isSafeRelativePath("  "), false);
+  assert.equal(isSafeRelativePath("a\\..\\b"), false);
+  assert.equal(isSafeRelativePath("a\\b"), false);
 });

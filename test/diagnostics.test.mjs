@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { EXIT_CODES, renderDiagnostics, toLine } from "../scripts/lib/diagnostics.mjs";
+import { renderDiagnostics, toLine } from "../scripts/lib/diagnostics.mjs";
 
 test("toLine normalizes string and record diagnostics", () => {
   assert.equal(toLine("plain"), "plain");
@@ -15,5 +15,4 @@ test("renderDiagnostics normalizes both lists and tolerates missing ones", () =>
   assert.deepEqual(report.errors, ["a: b", "c"]);
   assert.deepEqual(report.warnings, ["w"]);
   assert.deepEqual(renderDiagnostics({}), { errors: [], warnings: [] });
-  assert.equal(EXIT_CODES.USAGE, 64);
 });

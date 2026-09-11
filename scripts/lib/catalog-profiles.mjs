@@ -1,6 +1,7 @@
+import { HARD_QUARANTINE_FAMILIES } from "./catalog-errors.mjs";
 import { matchesQuarantined, pluginFamilyFromId } from "./plugin-identity.mjs";
 
-export const HARD_QUARANTINE_FAMILIES = Object.freeze(["superpowers"]);
+export { HARD_QUARANTINE_FAMILIES } from "./catalog-errors.mjs";
 
 const PROFILE_NAMES = Object.freeze([
   "minimal",
