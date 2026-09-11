@@ -1,6 +1,6 @@
 import { join } from "node:path";
 
-export const ALLOWED_ROOT_SCOPES = new Set([
+const ALLOWED_ROOT_SCOPES = new Set([
   "global-index",
   "krn-global",
   "system",

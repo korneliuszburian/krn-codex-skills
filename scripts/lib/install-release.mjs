@@ -63,7 +63,7 @@ function sourceRootFromLocator(locator, cwd) {
   return { root: fs.realpathSync(root), ref: locator || "HEAD" };
 }
 
-export function resolveSource({ source, cwd = process.cwd() } = {}) {
+function resolveSource({ source, cwd = process.cwd() } = {}) {
   const { root, ref } = sourceRootFromLocator(source, cwd);
   const commit = git(root, ["rev-parse", "--verify", `${ref}^{commit}`]);
   const head = git(root, ["rev-parse", "--verify", "HEAD"]);
@@ -131,7 +131,7 @@ export function createInstallPlan({ source, cwd, codexHome = process.env.CODEX_H
   };
 }
 
-export function digestTree(root) {
+function digestTree(root) {
   const hash = crypto.createHash("sha256");
   const entries = [];
   function visit(relative = "") {

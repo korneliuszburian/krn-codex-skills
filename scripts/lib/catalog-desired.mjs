@@ -24,7 +24,7 @@ export function normalizeFamilies(extraFamilies) {
   return [...families];
 }
 
-export function normalizeStateRecord(value, label) {
+function normalizeStateRecord(value, label) {
   if (value === undefined) return new Map();
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new ConfigReconcileError(`${label} must be an object of boolean states`);
@@ -43,7 +43,7 @@ export function normalizeStateRecord(value, label) {
   return states;
 }
 
-export function normalizePluginFamilies(value) {
+function normalizePluginFamilies(value) {
   const families = normalizeStateRecord(value, "desired.pluginFamilies");
 
   for (const [family, enabled] of families) {
@@ -67,7 +67,7 @@ export function normalizePluginFamilies(value) {
   return families;
 }
 
-export function derivePluginOwners(plugins) {
+function derivePluginOwners(plugins) {
   const owners = new Map();
   for (const [owner, enabled] of plugins) {
     if (!enabled) continue;
@@ -90,7 +90,7 @@ export function derivePluginOwners(plugins) {
   return owners;
 }
 
-export function normalizePluginSkillAliases(value, families) {
+function normalizePluginSkillAliases(value, families) {
   if (value === undefined) return new Map();
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new ConfigReconcileError(
@@ -140,7 +140,7 @@ export function normalizePluginSkillAliases(value, families) {
   return aliasesByOwner;
 }
 
-export function isTrustedPluginSkill(pluginId, pluginOwners, aliasesByOwner) {
+function isTrustedPluginSkill(pluginId, pluginOwners, aliasesByOwner) {
   const family = pluginFamilyFromId(pluginId);
   if (family === undefined) return false;
   const owner = pluginOwners.get(family);

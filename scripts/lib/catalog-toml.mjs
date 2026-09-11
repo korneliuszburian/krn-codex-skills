@@ -132,7 +132,7 @@ export function parseDottedHeaderKey(inner) {
   return undefined;
 }
 
-export function looksLikeManagedOwner(inner) {
+function looksLikeManagedOwner(inner) {
   const trimmed = inner.trimStart();
   const withoutOpeningQuote = /^["']/.test(trimmed)
     ? trimmed.slice(1)
@@ -145,7 +145,7 @@ export function looksLikeManagedOwner(inner) {
   );
 }
 
-export function ambiguousManagedHeader() {
+function ambiguousManagedHeader() {
   throw new ConfigReconcileError("Ambiguous managed TOML table header", {
     code: "CONFIG_AMBIGUOUS_MANAGED_HEADER",
   });
@@ -230,7 +230,7 @@ export function parseDocument(source) {
   return { source, lines, blocks, eol };
 }
 
-export function looksLikeManagedRootAssignment(content) {
+function looksLikeManagedRootAssignment(content) {
   const trimmed = content.trimStart();
   if (trimmed === "" || trimmed.startsWith("#")) return false;
 
@@ -286,7 +286,7 @@ export function parseAssignment(content) {
   };
 }
 
-export function parseAssignmentKey(content) {
+function parseAssignmentKey(content) {
   return parseAssignment(content)?.key;
 }
 

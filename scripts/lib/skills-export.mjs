@@ -33,7 +33,7 @@ function upstreamSource(lock) {
   return source;
 }
 
-export function defaultUpstreamPath(lock, home = process.env.HOME) {
+function defaultUpstreamPath(lock, home = process.env.HOME) {
   const source = upstreamSource(lock);
   return path.join(home, ".cache", "krn-upstream", source.id.replace("/", "-"));
 }

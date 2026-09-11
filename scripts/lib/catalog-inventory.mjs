@@ -27,7 +27,7 @@ export {
   isHardQuarantined,
 } from "./catalog-profiles.mjs";
 
-export const DEFAULT_PROFILES_PATH = fileURLToPath(
+const DEFAULT_PROFILES_PATH = fileURLToPath(
   new URL("../../config/capability-profiles.json", import.meta.url),
 );
 

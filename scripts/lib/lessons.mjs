@@ -3,7 +3,7 @@ import path from "node:path";
 
 const CANDIDATE = /^(npm run |test:|manual:)|[.][a-z0-9]{2,4}$/i;
 
-export const LESSON_BUDGET = 24;
+const LESSON_BUDGET = 24;
 
 export function parseLessons(file) {
   if (!fs.existsSync(file)) return { rows: [], malformed: [], budget: LESSON_BUDGET };

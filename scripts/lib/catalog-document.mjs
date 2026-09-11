@@ -33,7 +33,7 @@ export const MCP_SERVER_KEYS = new Set([
 export const PLUGIN_KEYS = new Set(["enabled"]);
 export const SKILL_KEYS = new Set(["enabled", "path"]);
 
-export function assertManagedBlock(document, block, allowedKeys, target) {
+function assertManagedBlock(document, block, allowedKeys, target) {
   const assignments = directAssignments(document, block);
 
   for (const [key, lineIndexes] of assignments) {
@@ -118,7 +118,7 @@ export function skillPathContainsQuarantine(document, block, skillPath, families
   });
 }
 
-export function insertionAtBlockEnd(document, block, text) {
+function insertionAtBlockEnd(document, block, text) {
   let insertLineIndex = block.endLineIndex;
   while (
     insertLineIndex > block.startLineIndex + 1 &&
@@ -136,7 +136,7 @@ export function insertionAtBlockEnd(document, block, text) {
   return { start: offset, end: offset, text: `${leadingEol}${text}${document.eol}` };
 }
 
-export function replaceEnabledOperation(document, lineIndex, enabled) {
+function replaceEnabledOperation(document, lineIndex, enabled) {
   const line = document.lines[lineIndex];
   const parsed = parseEnabled(document, lineIndex, "config");
   return {
@@ -146,7 +146,7 @@ export function replaceEnabledOperation(document, lineIndex, enabled) {
   };
 }
 
-export function deletionOperation(document, block) {
+function deletionOperation(document, block) {
   let lastOwnedLine = block.endLineIndex - 1;
   while (
     lastOwnedLine > block.startLineIndex &&
