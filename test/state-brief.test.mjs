@@ -25,7 +25,7 @@ function makeRepo() {
   return { root, head: git(root, ["rev-parse", "HEAD"]) };
 }
 
-function writeCapsule(root, fixedPoint) {
+function writeCapsule(root, fixedPoint, cleanup = "none") {
   const dir = join(root, ".krn", "runs", "delivery-loop", "out-1");
   mkdirSync(dir, { recursive: true });
   const lines = [
@@ -36,7 +36,7 @@ function writeCapsule(root, fixedPoint) {
     `Repository base, HEAD or working-tree fingerprint, and dirty-state scope: ${fixedPoint}`,
     "Native Goal identity/state and configured tracker item/state: none",
     "Restart state: ABSENT",
-    "Outstanding workflow-run cleanup: none",
+    `Outstanding workflow-run cleanup: ${cleanup}`,
     "Authority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none",
     "Evidence observed: probe",
     "Explicit non-proofs: probe",
@@ -125,5 +125,13 @@ test("resume detects dirty scope, a moved HEAD, and unlisted runs", () => {
   const moved = resumeBrief({ repo: root });
   assert.equal(moved.capsules[0].headMoved, true);
   assert.deepEqual(moved.capsules[0].unlistedRuns, [".krn/runs/slice-work/run-2"]);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("resume reports cleanup entries whose run directory is gone", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, `HEAD=${head}`, "[.krn/runs/slice-work/gone; slice-work; $delivery-loop; closes; ACTIVE]");
+  const report = resumeBrief({ repo: root });
+  assert.deepEqual(report.capsules[0].missingRuns, [".krn/runs/slice-work/gone"]);
   rmSync(root, { recursive: true, force: true });
 });

@@ -234,6 +234,38 @@ test("scanCatalogUsage reports skill reads from canonical paths", async () => {
   }
 });
 
+test("scanCatalogUsage dedupes call ids and ignores mismatched outputs", async () => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-usage-pending-")));
+  try {
+    const dayDirectory = path.join(root, "2026", "01", "06");
+    mkdirSync(dayDirectory, { recursive: true });
+    const at = (seconds, payload) =>
+      line({ timestamp: `2026-01-06T00:00:0${seconds}.000Z`, type: "response_item", payload });
+    writeFileSync(
+      path.join(dayDirectory, "rollout-2026-01-06T00-00-00.jsonl"),
+      at(0, { type: "function_call", call_id: "c1", name: "exec" }) +
+        at(1, { type: "function_call", call_id: "c1", name: "exec" }) +
+        at(2, { type: "function_call", call_id: "c2", name: "exec" }) +
+        at(3, { type: "custom_tool_call_output", call_id: "c2" }) +
+        at(4, { type: "function_call_output", call_id: "c1" }),
+    );
+
+    const report = await scanCatalogUsage({
+      sessionsRoot: root,
+      canonicalSkillPaths: [],
+      sinceDay: "2026-01-01",
+    });
+
+    assert.deepEqual(
+      report.aggregates.map(({ kind, id, confirmed_calls }) => ({ kind, id, confirmed_calls })),
+      [{ kind: "tool", id: "exec", confirmed_calls: 1 }],
+    );
+    assert.equal(report.coverage.records_without_usable_date, 0);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("scanCatalogUsage counts oversized candidate records without parsing them", async () => {
   const root = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-usage-oversize-")));
   try {

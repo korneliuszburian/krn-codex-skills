@@ -40,6 +40,34 @@ test("the audit catches a cross-file call that is never imported", () => {
   );
 });
 
+test("the audit flags smells, unused lib files, and duplicate bodies", () => {
+  const duplicateBody = [
+    "export function dup(a, b, c) {",
+    "  const first = a + b + c;",
+    "  const second = first * c - a;",
+    "  const third = second + first - b;",
+    "  const fourth = third * a + second;",
+    "  return fourth - third + second - first + c;",
+    "}",
+  ].join("\n");
+  withRepo(
+    {
+      "scripts/lib/noisy.mjs": "export function noisy() {\n  console.log(\"x\");\n  return 1;\n}\n",
+      "scripts/lib/todo.mjs": "// TODO: finish\nexport const done = 1;\n",
+      "scripts/lib/lonely.mjs": "export function lonely() {\n  return 1;\n}\n",
+      "scripts/lib/one.mjs": duplicateBody,
+      "scripts/lib/two.mjs": duplicateBody,
+    },
+    (root) => {
+      const { errors, info } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("noisy.mjs: smell console.log")), JSON.stringify(errors));
+      assert.ok(errors.some((message) => message.includes("todo.mjs: smell TODO")), JSON.stringify(errors));
+      assert.ok(errors.some((message) => message.includes("lonely.mjs: lib file is never imported")), JSON.stringify(errors));
+      assert.ok(info.some((message) => message.includes("duplicate function body")), JSON.stringify(info));
+    },
+  );
+});
+
 test("the audit catches a dead export and an unreferenced function", () => {
   withRepo(
     {
