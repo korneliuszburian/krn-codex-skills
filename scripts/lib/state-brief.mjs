@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { runGit as git } from "./git-cli.mjs";
+import { gitAvailable, runGit as git } from "./git-cli.mjs";
 import { inspectSpineState } from "./state-check.mjs";
 import { commitTokens, fieldLine, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
 import { parseLessons } from "./lessons.mjs";
