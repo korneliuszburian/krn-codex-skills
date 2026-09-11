@@ -77,6 +77,17 @@ function fixture() {
   return { base, upstream, source, root };
 }
 
+test("check fails when the upstream pin moves without a re-export", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  const lock = JSON.parse(fs.readFileSync(path.join(f.source, "config", "upstream-sources.json"), "utf8"));
+  lock.sources[0].commit = "0".repeat(40);
+  fs.mkdirSync(path.join(f.root, "config"), { recursive: true });
+  fs.writeFileSync(path.join(f.root, "config", "upstream-sources.json"), JSON.stringify(lock));
+  const report = checkSkills({ root: f.root });
+  assert.ok(report.errors.some((error) => error.includes("upstream-sources.json pins")), JSON.stringify(report.errors));
+});
+
 test("export generates a checked skill set from both pins", () => {
   const f = fixture();
   const report = exportSkills({ source: f.source, upstream: f.upstream, root: f.root });

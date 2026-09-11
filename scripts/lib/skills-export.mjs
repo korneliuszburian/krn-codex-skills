@@ -239,6 +239,13 @@ export function checkSkills({ root }) {
     if (marker.skills && JSON.stringify(actual) !== JSON.stringify(expected)) {
       errors.push(`marker lists [${expected.join(", ")}] but the directory holds [${actual.join(", ")}]`);
     }
+    const lockFile = path.join(root, "config", "upstream-sources.json");
+    if (marker.upstream && fs.existsSync(lockFile)) {
+      const pin = readJson(lockFile).sources?.find((source) => source.id === marker.upstream.id);
+      if (pin && pin.commit !== marker.upstream.commit) {
+        errors.push(`export marker records ${marker.upstream.id}@${marker.upstream.commit} but config/upstream-sources.json pins @${pin.commit}; run \`krn-codex skills export\``);
+      }
+    }
   }
   if (!fs.existsSync(path.join(skillsDir, "UPSTREAM-LICENSE"))) errors.push(".agents/skills/UPSTREAM-LICENSE is missing");
 
