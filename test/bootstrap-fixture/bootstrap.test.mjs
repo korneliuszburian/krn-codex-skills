@@ -122,7 +122,7 @@ test("installed CLI bootstraps a target repository through its public seam", () 
 
     const second = invoke(installedCli, ["repo", "apply", "--root", target, "--tracker", "none", "--domain", "single", "--delivery", "local"], root);
     assert.equal(second.status, 0, second.stderr);
-    assert.deepEqual(JSON.parse(second.stdout).written.sort(), firstReport.written.sort());
+    assert.deepEqual(JSON.parse(second.stdout).written.sort(), [".krn/runs/.gitignore", "AGENTS.md"]);
     assert.equal(fs.readFileSync(path.join(target, "AGENTS.md"), "utf8"), agents);
     assert.equal(fs.readFileSync(path.join(target, "LOCAL.md"), "utf8"), foreign);
     assert.equal(fs.readFileSync(path.join(target, ".krn", "runs", ".gitignore"), "utf8"), runsGitignore);
