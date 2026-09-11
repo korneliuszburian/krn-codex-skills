@@ -140,6 +140,13 @@ export function checkSkills({ root }) {
     errors.push(`\`${MARKER}\` is missing; this directory is not a generated export`);
   }
   const marker = fs.existsSync(markerFile) ? readJson(markerFile) : null;
+  const sourceByName = new Map();
+  const sourceManifest = path.join(root, "skills", "manifest.json");
+  if (fs.existsSync(sourceManifest)) {
+    for (const skill of readJson(sourceManifest).skills ?? []) {
+      sourceByName.set(skill.name, path.join(root, skill.path, "SKILL.md"));
+    }
+  }
   let total = 0;
   let count = 0;
   const names = [];
@@ -159,6 +166,10 @@ export function checkSkills({ root }) {
       continue;
     }
     if (fields.name !== entry.name) errors.push(`${entry.name}: frontmatter name "${fields.name}" must equal the directory name`);
+    const sourceFile = sourceByName.get(entry.name);
+    if (sourceFile && fs.existsSync(sourceFile) && fs.readFileSync(sourceFile, "utf8") !== fs.readFileSync(skillFile, "utf8")) {
+      errors.push(`${entry.name}: exported SKILL.md differs from source; run \`krn-codex skills export\``);
+    }
     if (!fs.existsSync(path.join(dir, "agents", "openai.yaml"))) errors.push(`${entry.name}: missing agents/openai.yaml`);
     total += fields.name.length + fields.description.length;
     if (fields.description.length > 280) {

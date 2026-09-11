@@ -40,7 +40,7 @@ jobs:
       - name: Test lesson gate resolver
         run: npm run test:lessons
       - name: Test validator rule modules
-        run: npm run test:validate
+        run: npm run test:durable-pages
       - name: Test shared libraries
         run: npm run test:lib
       - name: Check shell and diff hygiene

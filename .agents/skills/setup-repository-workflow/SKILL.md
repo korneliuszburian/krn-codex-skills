@@ -1,6 +1,6 @@
 ---
 name: setup-repository-workflow
-description: Set up or condense one repository's durable agent workflow, instruction ownership, tracker boundary, and mechanical gates. Use explicitly for repo adoption or repair; skip normal delivery and global capability installation.
+description: Set up or condense one repository's durable agent workflow, instruction ownership, tracker boundary, and mechanical gates. Use for this repository's instruction or gate-layer repair; skip normal delivery, another checkout's runtime work, and global capability installation.
 ---
 
 # Setup Repository Workflow

@@ -108,7 +108,7 @@ result as the KRN source, and do not create a local fork without a named
 consumer and falsifier. The curated harness subset is materialized into the
 generated, provenance-marked `.agents/skills/` by `krn-codex skills export`
 (the full pin stays in `config/upstream-sources.json`); regenerate instead of
-editing, and `npm run skills:check` fails on drift or a foreign destination.
+editing, and `npm run skills:check` fails on a foreign destination, a stale name or provenance pin, or an exported skill whose bytes differ from its source.
 
 ### Source-only packs
 

@@ -1,6 +1,6 @@
 ---
 name: unlazy
-description: Keep explicitly requested long or multi-phase work honest with a machine-checked gate ledger, explicit command approval, and re-verification before completion; skip small focused edits.
+description: Keep explicitly requested long or multi-phase work honest with a machine-checked gate ledger, explicit command approval, and re-verification; it gates one already-chosen owner's work, never lifecycle continuity (use delivery-loop for that); skip small focused edits.
 ---
 
 # Unlazy
