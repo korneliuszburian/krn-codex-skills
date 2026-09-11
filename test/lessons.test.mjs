@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkLessons, parseLessons } from "../scripts/lib/lessons.mjs";
+import { checkLessons, matchesTrigger, parseLessons, recallLessons } from "../scripts/lib/lessons.mjs";
 
 function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "krn-lessons-"));
@@ -208,6 +208,23 @@ test("friction that recurs after its consolidation proof fails closed", () => {
 
   writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-02@bbbbbbb | \`test/gate.test.mjs::probe@ccccccc\` |\n`);
   assert.deepEqual(checkLessons({ root, git: fakeGit }).errors, [], "only pre-proof occurrences are allowed");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a trigger delivers the matching lesson for changed paths", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  writeFileSync(
+    file,
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n"
+    + "| Guards | probe | `test:state` | | | path:scripts/lib/git-cli.mjs |\n",
+  );
+  const all = recallLessons({ root, files: ["scripts/lib/git-cli.mjs", "docs/x.md"] });
+  assert.equal(all.length, 1);
+  assert.deepEqual(all[0].matched, ["scripts/lib/git-cli.mjs"]);
+  assert.deepEqual(recallLessons({ root, files: ["docs/x.md"] }), []);
+  assert.deepEqual(matchesTrigger("path:scripts/**", ["scripts/a/b.mjs", "docs/x.md"]), ["scripts/a/b.mjs"]);
+  assert.deepEqual(matchesTrigger("path:scripts/*.mjs", ["scripts/a.mjs", "scripts/a/b.mjs"]), ["scripts/a.mjs"]);
   rmSync(root, { recursive: true, force: true });
 });
 

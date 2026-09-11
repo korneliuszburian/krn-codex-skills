@@ -19,7 +19,7 @@ export function parseLessons(file) {
     const body = trimmed.startsWith("|") ? trimmed.slice(1) : trimmed;
     const inner = body.endsWith("|") ? body.slice(0, -1) : body;
     const cells = inner.split("|").map((cell) => cell.trim());
-    if (cells.length < 3 || cells.length > 5 || cells.slice(0, 3).some((cell) => cell === "")) {
+    if (cells.length < 3 || cells.length > 6 || cells.slice(0, 3).some((cell) => cell === "")) {
       malformed.push(line);
       continue;
     }
@@ -28,12 +28,41 @@ export function parseLessons(file) {
       malformed.push(line);
       continue;
     }
-    rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences, falsifier: cells[4] ?? "" });
+    rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences, falsifier: cells[4] ?? "", trigger: cells[5] ?? "" });
   }
   return { rows, malformed, budget: LESSON_BUDGET };
 }
 
 const FALSIFIER = /^(test\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
+
+function triggerGlobs(trigger) {
+  return (trigger ?? "")
+    .split(/[;,]/)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.startsWith("path:"))
+    .map((entry) => entry.slice("path:".length));
+}
+
+export function matchesTrigger(trigger, files) {
+  const globs = triggerGlobs(trigger);
+  if (globs.length === 0) return [];
+  const patterns = globs.map((glob) => new RegExp(`^${glob
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*/g, "\u0000")
+    .replace(/\*/g, "[^/]*")
+    .replace(/\u0000/g, ".*")}$`));
+  return files.filter((file) => patterns.some((pattern) => pattern.test(file)));
+}
+
+export function recallLessons({ root, files }) {
+  const file = path.join(root, "docs", "research", "workflow-lessons.md");
+  const hits = [];
+  for (const row of parseLessons(file).rows) {
+    const matched = matchesTrigger(row.trigger, files);
+    if (matched.length > 0) hits.push({ lesson: row.lesson, trigger: row.trigger, gate: row.gate, falsifier: row.falsifier, matched });
+  }
+  return hits;
+}
 
 function resolveFalsifier(root, cell, git = runGit) {
   const raw = (cell ?? "").replace(/`/g, "").trim();
@@ -154,7 +183,7 @@ export function checkLessons({ root, git = runGit }) {
         }
       }
     }
-    lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences, falsifier: row.falsifier });
+    lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences, falsifier: row.falsifier, trigger: row.trigger });
   }
   return { root, lessons, errors, warnings };
 }

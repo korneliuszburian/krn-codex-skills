@@ -8,7 +8,7 @@ import { applyInstall, createInstallPlan, inspectInstall } from "./lib/install-r
 import { inspectSpineState } from "./lib/state-check.mjs";
 import { compileCapsule, resumeBrief } from "./lib/state-brief.mjs";
 import { checkSkills, exportSkills } from "./lib/skills-export.mjs";
-import { checkLessons } from "./lib/lessons.mjs";
+import { checkLessons, recallLessons } from "./lib/lessons.mjs";
 import { verifyLessons } from "./lib/lessons-verify.mjs";
 import { checkChangeContract } from "./lib/change-contract.mjs";
 import { EXIT_CODES, renderDiagnostics } from "./lib/diagnostics.mjs";
@@ -24,7 +24,8 @@ const usage = `Usage:
   krn-codex state <check|compile|resume> [PATH] [--json]
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
   krn-codex lessons <check|verify> --root DIR [--json]
-  krn-codex changes check --base REF [--head REF] --root DIR [--json]`;
+  krn-codex changes check --base REF [--head REF] --root DIR [--json]
+  krn-codex memory recall --root DIR --changed PATH[,PATH...] [--json]`;
 
 function fail(message, code = EXIT_CODES.USAGE) {
   const error = new Error(message);
@@ -48,6 +49,10 @@ function parseOptions(args) {
     } else if (arg === "--base") {
       options.base = args[++index];
       if (!options.base) fail("--base requires a revision");
+    } else if (arg === "--changed") {
+      const value = args[++index];
+      if (!value) fail("--changed requires a path list");
+      options.changed = [...(options.changed ?? []), ...value.split(",").map((entry) => entry.trim()).filter(Boolean)];
     } else if (arg === "--head") {
       options.head = args[++index];
       if (!options.head) fail("--head requires a revision");
@@ -121,6 +126,12 @@ try {
       if (report.errors.some((failure) => failure.commit)) process.stderr.write("revert or repair the offending commit(s) before proceeding\n");
     }
     if (report.errors.length) process.exitCode = 1;
+  } else if (raw[0] === "memory") {
+    const { positional, options } = parseOptions(raw.slice(1));
+    if (positional[0] !== "recall" || positional.length > 1 || options.source || options.yes || !options.root || !options.changed?.length) fail(usage);
+    const hits = recallLessons({ root: options.root, files: options.changed });
+    print({ root: options.root, changed: options.changed, hits }, options.json);
+    if (!options.json) for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));
     const command = positional[0];

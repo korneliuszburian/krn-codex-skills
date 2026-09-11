@@ -130,6 +130,27 @@ test("an at-risk regression blocks", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a change that triggers a lesson requires a Recall trailer", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `scripts/lib/git-cli.mjs` | | | path:scripts/lib/git-cli.mjs |\n",
+  );
+  const base = {
+    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green" }],
+    files: { a1: ["scripts/lib/git-cli.mjs"] },
+    baseScripts: { "test:lessons": "x" },
+  };
+  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(base), run: green }).errors.some((error) => error.rule === "unrecalled-lesson"));
+  const recalled = {
+    ...base,
+    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/git-cli.mjs" }],
+  };
+  assert.ok(!checkChangeContract({ root, base: "base", git: fakeGit(recalled), run: green }).errors.some((error) => error.rule === "unrecalled-lesson"));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("the guard disables the CLI check when set in the environment", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-contract-"));
   const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "krn-codex.mjs"), "changes", "check", "--root", root, "--base", "HEAD", "--head", "HEAD", "--json"], {

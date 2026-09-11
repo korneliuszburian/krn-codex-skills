@@ -3,6 +3,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { runGit } from "./git-cli.mjs";
+import { recallLessons } from "./lessons.mjs";
 
 const SURFACE = [
   /^scripts\//,
@@ -89,6 +90,16 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const files = changed.ok ? changed.out.split("\n").map((entry) => entry.trim()).filter(Boolean) : [];
     const contract = parseChangeContract(`${commit.subject}\n${commit.body}`);
     const surface = contractSurface(files);
+    const recalled = [...`${commit.subject}\n${commit.body}`.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
+    for (const hit of recallLessons({ root, files })) {
+      const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
+      const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
+      const named = [...ids, falsifierFile].filter(Boolean);
+      const acknowledged = recalled.some((line) => named.some((id) => line.includes(id)));
+      if (!acknowledged) {
+        errors.push({ rule: "unrecalled-lesson", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add a Recall: trailer naming ${named.join(" or ") || "the gate"}` });
+      }
+    }
     const justified = Boolean(contract.noCheck) && contract.atRisk.length > 0;
     if (surface && contract.contracts.length === 0 && !justified) {
       errors.push({ rule: "missing-change-contract", commit: commit.sha, detail: files.filter((file) => SURFACE.some((pattern) => pattern.test(file))).join(", ") });
