@@ -17,7 +17,12 @@ const commit = (root, message) => {
 const run = (args) => {
   const env = { ...process.env };
   delete env.KRN_CHANGE_CONTRACT;
-  return JSON.parse(spawnSync(process.execPath, [cli, ...args, "--json"], { encoding: "utf8", env }).stdout);
+  const result = spawnSync(process.execPath, [cli, ...args, "--json"], { encoding: "utf8", env });
+  try {
+    return JSON.parse(result.stdout);
+  } catch {
+    assert.fail(`the CLI did not return JSON (status ${result.status}): ${result.stderr || result.stdout}`);
+  }
 };
 
 test("the memory harness composes: a triggered lesson blocks an unreconstructed change", () => {
@@ -43,7 +48,7 @@ test("the memory harness composes: a triggered lesson blocks an unreconstructed 
     writeFileSync(join(root, "scripts", "x.mjs"), "export const x = 3;\n");
     const reconstructed = commit(root, "fix: touch x\n\nChange-contract: test/gate.mjs:red->green\nRecall: test/gate.mjs => scripts/x.mjs");
     const allowed = run(["changes", "check", "--root", root, "--base", unreconstructed, "--head", reconstructed]);
-    assert.ok(!allowed.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(allowed.errors));
+    assert.deepEqual(allowed.errors, [], JSON.stringify(allowed.errors));
 
     const lessons = run(["lessons", "check", "--root", root]);
     assert.deepEqual(lessons.errors, [], JSON.stringify(lessons.errors));
