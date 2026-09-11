@@ -138,6 +138,15 @@ test("check fails when the marker skill set drifts by name", () => {
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
+test("check detects drift in an upstream-composed export", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  fs.appendFileSync(path.join(f.root, ".agents", "skills", "one", "SKILL.md"), "tampered\n");
+  const check = checkSkills({ root: f.root });
+  assert.ok(check.errors.some((error) => error.includes("exported files changed since export")), JSON.stringify(check.errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
 test("re-export regenerates a previous export", () => {
   const f = fixture();
   exportSkills({ source: f.source, upstream: f.upstream, root: f.root });

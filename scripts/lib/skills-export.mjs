@@ -1,4 +1,5 @@
 import { gitText as git } from "./git-cli.mjs";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -6,6 +7,25 @@ import { readFrontmatter, skillMetadata } from "./skill-metadata.mjs";
 
 const MARKER = ".krn-export.json";
 const BUDGET = 8000;
+
+function directoryDigest(directory) {
+  const hash = crypto.createHash("sha256");
+  const walk = (dir) =>
+    fs
+      .readdirSync(dir, { withFileTypes: true })
+      .sort((left, right) => left.name.localeCompare(right.name))
+      .flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        return entry.isDirectory() ? walk(full) : [[path.relative(directory, full).split(path.sep).join("/"), full]];
+      });
+  for (const [relativePath, file] of walk(directory)) {
+    hash.update(relativePath);
+    hash.update("\0");
+    hash.update(fs.readFileSync(file));
+    hash.update("\0");
+  }
+  return hash.digest("hex");
+}
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -106,6 +126,9 @@ export function exportSkills({ source, upstream, root }) {
   }
   const license = path.join(resolvedUpstream, "LICENSE");
   if (fs.existsSync(license)) fs.copyFileSync(license, path.join(skillsDir, "UPSTREAM-LICENSE"));
+  const digests = Object.fromEntries(
+    skills.map((skill) => [skill.name, directoryDigest(path.join(skillsDir, skill.name))]),
+  );
 
   fs.writeFileSync(
     path.join(skillsDir, "README.md"),
@@ -119,6 +142,7 @@ export function exportSkills({ source, upstream, root }) {
         krn: { commit: krnCommit },
         upstream: { id: upstreamPin.id, commit: upstreamPin.commit },
         skills: skills.map((skill) => skill.name).sort(),
+        digests,
       },
       null,
       2,
@@ -181,6 +205,12 @@ export function checkSkills({ root }) {
     const sourceDir = sourceByName.get(entry.name);
     if (sourceDir && fs.existsSync(sourceDir) && !directoriesMatch(sourceDir, dir)) {
       errors.push(`${entry.name}: exported files differ from source; run \`krn-codex skills export\``);
+    }
+    const recorded = marker?.digests?.[entry.name];
+    if (!recorded) {
+      errors.push(`${entry.name}: export marker has no recorded digest; run \`krn-codex skills export\``);
+    } else if (directoryDigest(dir) !== recorded) {
+      errors.push(`${entry.name}: exported files changed since export; run \`krn-codex skills export\``);
     }
     if (!fs.existsSync(path.join(dir, "agents", "openai.yaml"))) errors.push(`${entry.name}: missing agents/openai.yaml`);
     total += fields.name.length + fields.description.length;

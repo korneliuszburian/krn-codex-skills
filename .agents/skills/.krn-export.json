@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "krn": {
-    "commit": "713c0b14ffbab2f8f69fb408481b609fc401d118"
+    "commit": "356f172af9fdf434d91c61433e4a8afe0d94fba1"
   },
   "upstream": {
     "id": "mattpocock/skills",
@@ -21,5 +21,20 @@
     "source-to-decision",
     "to-spec",
     "wayfinder"
-  ]
+  ],
+  "digests": {
+    "delivery-loop": "57450f86cdeec2908f9d6608f93d80f2f5666a3e5f1b7dbd02b5f5f629485afb",
+    "source-to-decision": "5bd95f3844e5f436d6e0658de98cd653d847c21653bbc89fc96eecedc102001f",
+    "slice-work": "f934a1745cf279f54933073281e343bcec65dbf3c6f6e208abd8b42c8be5785f",
+    "setup-repository-workflow": "00c00704edea02485b19d5a0b6bd048c0d3ab2398affe661f8e2552f1a068ab6",
+    "code-review": "12daafb9c4f77deb3c3303dc2e6f8a3c2a0ff7928fc004af959ba18b8bd38068",
+    "codebase-design": "9f457cc65ef2d70eb5b8a44a4dae2b139840078b6596a67ee8c4e95f5a0e6f5c",
+    "diagnosing-bugs": "bcdaec9e1033901c396437fcb102161d8ad3cd87632007aaf270b19e03e70117",
+    "domain-modeling": "2bc3bb0a64ea9c6f5c3bcf78fc17f0fcdc7c062edc547ef006441de0b576d248",
+    "implement": "b49a049477c7eec7f8dd90745dbc3f27bf75617b832d5b5f33c55aab7638a12e",
+    "prototype": "492e4433fcd9cf88c0854aba063829ee248b208849e5827a45da8424199fd10f",
+    "to-spec": "f8041146ec1678c32304f46c9de99b73a4b5dadf664e35a8124be47c4cfe3196",
+    "wayfinder": "93d2a866764b048ad641e82e27e7a1940fc370e7933470bffeb937fa1fb3922b",
+    "grilling": "0ca4cfe5105d79c6ef6755491492e056c43e88b82666376d8ecd7fac695d96e6"
+  }
 }
