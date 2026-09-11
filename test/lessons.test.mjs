@@ -126,6 +126,22 @@ test("structural classification uses the resolved path, not the raw reference", 
 
   writeFileSync(file, `${header}| A | probe | \`scripts/../docs/research/workflow-lessons.md\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n`);
   assert.ok(checkLessons({ root }).errors.some((e) => e.includes("no structural gate")), "a traversal to docs is not structural");
+
+  writeFileSync(file, `${header}| A | probe | \`node --test test/x.test.mjs\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n`);
+  mkdirSync(join(root, "test"), { recursive: true });
+  writeFileSync(join(root, "test", "x.test.mjs"), "// test\n");
+  assert.deepEqual(checkLessons({ root }).errors, [], "a node --test invocation is structural");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("prototype-chain names cannot masquerade as npm scripts", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  writeFileSync(
+    file,
+    "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n| A | probe | `npm run constructor` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n",
+  );
+  assert.ok(checkLessons({ root }).errors.some((e) => e.includes("unknown npm script constructor")), JSON.stringify(checkLessons({ root }).errors));
   rmSync(root, { recursive: true, force: true });
 });
 
