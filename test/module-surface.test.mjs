@@ -54,6 +54,11 @@ const cases = [
     present: ["openaiYamlErrors", "skillContentErrors", "skillPointerErrors", "lineLimitErrors", "skillLayoutErrors", "skillIdentityErrors", "referenceLinkErrors"],
     absent: [],
   },
+  {
+    module: "../scripts/lib/catalog-desired.mjs",
+    present: ["normalizeDesired", "normalizeFamilies", "pluginIdFromCachedSkillPath"],
+    absent: ["normalizeStateRecord", "normalizePluginFamilies", "derivePluginOwners", "normalizePluginSkillAliases", "isTrustedPluginSkill"],
+  },
 ];
 
 test("module surfaces expose only the intended interface", async () => {
