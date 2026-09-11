@@ -66,16 +66,17 @@ function initTarget(root) {
   execFileSync("git", ["init", "--quiet", target]);
   execFileSync("git", ["-C", target, "config", "user.email", "fixture@example.invalid"]);
   execFileSync("git", ["-C", target, "config", "user.name", "KRN bootstrap fixture"]);
+  execFileSync("git", ["-C", target, "commit", "-q", "--allow-empty", "-m", "seed"]);
   return target;
 }
 
-function fixtureCapsule({ outcome, cleanup }) {
+function fixtureCapsule({ outcome, cleanup, fixedPoint = "fingerprint=working-tree" }) {
   return [
     "Outcome and observable acceptance: fixture",
     "Current workflow owner and sole writer: $delivery-loop",
     `Outcome state: ${outcome}`,
     "Publication state: LOCAL_ONLY",
-    "Repository base, HEAD or working-tree fingerprint, and dirty-state scope: fingerprint=working-tree",
+    `Repository base, HEAD or working-tree fingerprint, and dirty-state scope: ${fixedPoint}`,
     "Native Goal identity/state and configured tracker item/state: none",
     "Restart state: ABSENT",
     `Outstanding workflow-run cleanup: ${cleanup}`,
@@ -102,6 +103,7 @@ test("installed CLI bootstraps a target repository through its public seam", () 
     assert.equal(fs.realpathSync(installedCli), path.join(root, "codex", "krn", "releases", JSON.parse(installed.stdout).commit, "scripts", "krn-codex.mjs"));
 
     const target = initTarget(root);
+    const fixtureHead = execFileSync("git", ["-C", target, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     const beforeInspect = snapshot(target);
     const inspect = invoke(installedCli, ["repo", "inspect", "--root", target], root);
     assert.equal(inspect.status, 0, inspect.stderr);
@@ -145,13 +147,13 @@ test("installed CLI bootstraps a target repository through its public seam", () 
     assert.equal(active.status, 0, active.stderr);
     assert.equal(JSON.parse(active.stdout).status, "clean");
 
-    fs.writeFileSync(capsulePath, fixtureCapsule({ outcome: "COMPLETE", cleanup: "[.krn/runs/slice-work/run-life; slice-work; $delivery-loop; closes; ACTIVE]" }));
+    fs.writeFileSync(capsulePath, fixtureCapsule({ outcome: "COMPLETE", cleanup: "[.krn/runs/slice-work/run-life; slice-work; $delivery-loop; closes; ACTIVE]", fixedPoint: `HEAD=${fixtureHead}` }));
     const premature = invoke(installedCli, ["state", "check", target], root);
     assert.equal(premature.status, 1, premature.stderr);
     assert.ok(JSON.parse(premature.stdout).errors.some((error) => error.rule === "complete-with-cleanup"));
 
     fs.rmSync(runDir, { recursive: true, force: true });
-    fs.writeFileSync(capsulePath, fixtureCapsule({ outcome: "COMPLETE", cleanup: "none" }));
+    fs.writeFileSync(capsulePath, fixtureCapsule({ outcome: "COMPLETE", cleanup: "none", fixedPoint: `HEAD=${fixtureHead}` }));
     const completed = invoke(installedCli, ["state", "check", target], root);
     assert.equal(completed.status, 0, completed.stderr);
     assert.equal(JSON.parse(completed.stdout).status, "clean");

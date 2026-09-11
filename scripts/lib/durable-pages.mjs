@@ -44,7 +44,9 @@ export function checkDurablePages({ root }) {
     if (adrEntries.length > 0 && !fs.existsSync(contextFile)) {
       errors.push("CONTEXT.md is missing the knowledge map that must link every accepted ADR");
     } else if (fs.existsSync(contextFile)) {
-      const context = fs.readFileSync(contextFile, "utf8");
+      const context = fs.readFileSync(contextFile, "utf8")
+        .replace(/```[\s\S]*?```/g, "")
+        .replace(/<!--[\s\S]*?-->/g, "");
       for (const entry of adrEntries) {
         if (!context.includes(`](docs/adr/${entry.name})`)) {
           errors.push(`docs/adr/${entry.name}: accepted decision is not linked from CONTEXT.md`);

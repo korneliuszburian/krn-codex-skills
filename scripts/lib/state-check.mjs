@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import {
   ABI_LABELS,
@@ -18,6 +18,10 @@ function inside(root, candidate) {
   const target = resolve(root, candidate);
   const rel = relative(root, target);
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
+function normalizeRunPointer(root, pointer) {
+  return relative(root, resolve(root, pointer)).split(sep).join("/");
 }
 
 function fixedPointErrors(root, fixedPoint, canCheckCommits) {
@@ -55,9 +59,14 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   const usableGit = gitRepo.ok && gitRepo.out === "true";
 
   const capsuleBase = join(root, ".krn", "runs", "delivery-loop");
-  const candidates = existsSync(capsuleBase)
-    ? readdirSync(capsuleBase, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))
-    : [];
+  let candidates = [];
+  if (existsSync(capsuleBase)) {
+    try {
+      candidates = readdirSync(capsuleBase, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name));
+    } catch {
+      errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop" });
+    }
+  }
 
   const currentHead = usableGit ? git(root, ["rev-parse", "HEAD"]) : { ok: false, out: "" };
 
@@ -178,7 +187,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         errors.push({ id: entry.name, rule: "malformed-cleanup", detail: entryText });
       }
       for (const parsedEntry of parsed.entries) {
-        listedRunPointers.add(parsedEntry.pointer);
+        listedRunPointers.add(normalizeRunPointer(root, parsedEntry.pointer));
         if (!inside(root, parsedEntry.pointer)) {
           errors.push({ id: entry.name, rule: "cleanup-pointer-outside-repo", detail: parsedEntry.pointer });
         } else if ((parsedEntry.state === "ACTIVE" || parsedEntry.state === "BLOCKED") && !existsSync(resolve(root, parsedEntry.pointer))) {
@@ -192,6 +201,9 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         errors.push({ id: entry.name, ...finding });
       }
       const commits = [...fixedPoint.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
+      if (outcome && stripMarkup(outcome) === "COMPLETE" && commits.length === 0) {
+        errors.push({ id: entry.name, rule: "complete-without-commit-anchor", detail: stripMarkup(fixedPoint) });
+      }
       if (commits.length > 0 && currentHead.ok && !commits.includes(currentHead.out.toLowerCase())) {
         const stale = { id: entry.name, rule: "stale-fixed-point", detail: `capsule records ${commits.join(", ")} but HEAD is ${currentHead.out}` };
         if (outcome && stripMarkup(outcome) === "COMPLETE") errors.push(stale);
@@ -220,7 +232,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
 
   if (capsules.length > 0) {
     for (const run of runDirectories(root)) {
-      if (!listedRunPointers.has(run.pointer)) {
+      if (!listedRunPointers.has(normalizeRunPointer(root, run.pointer))) {
         errors.push({ id: run.workflow, rule: "orphaned-run", detail: run.pointer });
       }
     }

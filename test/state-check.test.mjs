@@ -208,10 +208,18 @@ test("an unlisted workflow run is an orphaned error while a listed run passes", 
 
   writeCapsule(root, capsule({
     fixedPoint: `HEAD=${head}`,
-    cleanup: "[.krn/runs/slice-work/run-1; slice-work; $delivery-loop; closes; ACTIVE]",
+    cleanup: "[./.krn/runs/slice-work/run-1/; slice-work; $delivery-loop; closes; ACTIVE]",
   }));
   report = inspectSpineState({ repo: root });
   assert.equal(report.status, "clean", JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a COMPLETE capsule needs a commit anchor, not just a fingerprint", () => {
+  const { root } = makeRepo();
+  writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: "fingerprint=working-tree" }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("complete-without-commit-anchor"), rules(report).join(","));
   rmSync(root, { recursive: true, force: true });
 });
 

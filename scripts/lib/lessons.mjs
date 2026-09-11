@@ -28,8 +28,10 @@ function resolveReference(root, scripts, reference) {
     return scripts[name] ? { ok: true, kind: "script" } : { ok: false, reason: `unknown npm script ${name}` };
   }
   if (scripts[reference]) return { ok: true, kind: "script" };
-  if (fs.existsSync(path.join(root, reference))) return { ok: true, kind: "path" };
-  return { ok: false, reason: `no file or npm script at ${reference}` };
+  if (/^(scripts|test|skills|config|docs|\.github)\//.test(reference) && fs.existsSync(path.join(root, reference))) {
+    return { ok: true, kind: "path" };
+  }
+  return { ok: false, reason: `no npm script or owned path at ${reference}` };
 }
 
 export function checkLessons({ root }) {

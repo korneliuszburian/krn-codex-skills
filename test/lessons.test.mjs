@@ -36,7 +36,16 @@ test("an unresolvable gate reference fails", () => {
   const root = makeRoot();
   writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by |\n|---|---|---|\n| A | probe | `scripts/missing.mjs` |\n");
   const report = checkLessons({ root });
-  assert.ok(report.errors.some((error) => error.includes("no file or npm script")), JSON.stringify(report.errors));
+  assert.ok(report.errors.some((error) => error.includes("no npm script or owned path")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a gate must be an npm script or an owned path, not any root file", () => {
+  const root = makeRoot();
+  writeFileSync(join(root, "README.md"), "x\n");
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by |\n|---|---|---|\n| A | probe | `README.md` |\n");
+  const report = checkLessons({ root });
+  assert.ok(report.errors.some((error) => error.includes("no npm script or owned path at README.md")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
 

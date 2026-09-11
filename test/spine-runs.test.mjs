@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -18,6 +18,22 @@ test("runDirectories lists non-delivery runs and skips delivery-loop, files, and
       [".krn/runs/slice-work/run-1", ".krn/runs/slice-work/run-2"],
     );
     assert.deepEqual(runDirectories(join(root, "missing")), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("runDirectories includes a symlinked run so it cannot hide from the orphan gate", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-spine-symlink-"));
+  try {
+    mkdirSync(join(root, ".krn", "runs", "slice-work"), { recursive: true });
+    const target = join(root, "real-run");
+    mkdirSync(target);
+    symlinkSync(target, join(root, ".krn", "runs", "slice-work", "run-link"));
+    assert.deepEqual(
+      runDirectories(root).map((run) => run.pointer),
+      [".krn/runs/slice-work/run-link"],
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

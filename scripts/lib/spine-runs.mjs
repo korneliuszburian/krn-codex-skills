@@ -6,10 +6,10 @@ export function runDirectories(root) {
   if (!existsSync(runsBase)) return [];
   const runs = [];
   for (const workflow of readdirSync(runsBase, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-    if (!workflow.isDirectory() || workflow.name === "delivery-loop") continue;
+    if ((!workflow.isDirectory() && !workflow.isSymbolicLink()) || workflow.name === "delivery-loop") continue;
     const workflowPath = join(runsBase, workflow.name);
     for (const run of readdirSync(workflowPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      if (!run.isDirectory()) continue;
+      if (!run.isDirectory() && !run.isSymbolicLink()) continue;
       runs.push({ workflow: workflow.name, pointer: join(".krn", "runs", workflow.name, run.name) });
     }
   }
