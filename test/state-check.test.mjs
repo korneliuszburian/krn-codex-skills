@@ -10,6 +10,14 @@ import { inspectSpineState } from "../scripts/lib/state-check.mjs";
 
 const cli = fileURLToPath(new URL("../scripts/krn-codex.mjs", import.meta.url));
 
+test("state check honors --root instead of ignoring it", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-state-root-"));
+  const result = spawnSync(process.execPath, [cli, "state", "check", "--root", root, "--json"], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).root, root);
+  rmSync(root, { recursive: true, force: true });
+});
+
 function git(root, args) {
   return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 }

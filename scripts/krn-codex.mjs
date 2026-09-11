@@ -151,7 +151,7 @@ try {
     const { positional, options } = parseOptions(raw.slice(1));
     const command = positional[0];
     if (!["check", "compile", "resume"].includes(command) || positional.length > 2 || options.source || options.yes) fail(usage);
-    const repo = positional[1] ?? process.cwd();
+    const repo = options.root ?? positional[1] ?? process.cwd();
     let report;
     try {
       report = command === "check"
