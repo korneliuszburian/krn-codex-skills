@@ -7,6 +7,14 @@ import { fileURLToPath } from "node:url";
 import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
 import { ABI_LABELS } from "./lib/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/durable-pages.mjs";
+import {
+  markdownLinkErrors,
+  parseFrontmatterFields,
+  readmeSkillsTableErrors,
+  readmeSourceOnlyPointerErrors,
+  semanticXmlErrors,
+  skillMarkdownErrors,
+} from "./lib/content-rules.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
@@ -56,239 +64,45 @@ function filesUnder(directory, predicate = () => true) {
   return results;
 }
 
-function unfencedLines(content) {
-  const lines = [];
-  let fenced = false;
-  for (const [index, line] of content.split("\n").entries()) {
-    if (/^\s*```/.test(line)) {
-      fenced = !fenced;
-      continue;
-    }
-    if (!fenced) lines.push({ line, number: index + 1 });
-  }
-  return lines;
-}
-
 function validateMarkdownLinks(file) {
-  for (const { line, number } of unfencedLines(read(file))) {
-    for (const match of line.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
-      let target = match[1].trim().split(/\s+"/)[0];
-      if (/^<.*>$/.test(target)) target = target.slice(1, -1);
-      if (!target || target.startsWith("#") || /^[a-z][a-z+.-]*:/i.test(target)) {
-        continue;
-      }
-      target = decodeURIComponent(target.split("#")[0]);
-      if (!fs.existsSync(path.resolve(path.dirname(file), target))) {
-        fail(`${relative(file)}:${number}: broken Markdown link ${match[1]}`);
-      }
-    }
+  for (const message of markdownLinkErrors(read(file), {
+    label: relative(file),
+    resolveTarget: (target) => fs.existsSync(path.resolve(path.dirname(file), target)),
+  })) {
+    fail(message);
   }
 }
-
 function validateSemanticXml(file) {
-  const stack = [];
-  for (const { line, number } of unfencedLines(read(file))) {
-    const trimmed = line.trim();
-    const close = trimmed.match(/^<\/([a-z][a-z0-9-]*)>$/);
-    if (close) {
-      const open = stack.pop();
-      if (!open || open.name !== close[1]) {
-        fail(`${relative(file)}:${number}: unmatched </${close[1]}>`);
-      }
-      continue;
-    }
-    const open = trimmed.match(/^<([a-z][a-z0-9-]*)(?:\s+[^>]*)?>$/);
-    if (open) stack.push({ name: open[1], number });
-  }
-  for (const open of stack) {
-    fail(`${relative(file)}:${open.number}: unclosed <${open.name}>`);
-  }
+  for (const message of semanticXmlErrors(read(file), relative(file))) fail(message);
 }
-
 function validateReadmeSkillsTable(file, skills) {
-  const lines = read(file).split("\n");
-  const headings = lines
-    .map((line, index) => (line.trim() === "## Skills" ? index : -1))
-    .filter((index) => index !== -1);
-  if (headings.length !== 1) {
-    fail(
-      `${relative(file)}: expected exactly one ## Skills section, found ${headings.length}`,
-    );
-    return;
-  }
-
-  let headerIndex = headings[0] + 1;
-  while (headerIndex < lines.length && !lines[headerIndex].trim()) {
-    headerIndex += 1;
-  }
-  if (
-    !/^\|\s*Skill\s*\|\s*Invocation\s*\|\s*Owns\s*\|\s*$/.test(
-      lines[headerIndex] ?? "",
-    )
-  ) {
-    fail(
-      `${relative(file)}:${headerIndex + 1}: Skills table must use Skill, Invocation, and Owns columns`,
-    );
-    return;
-  }
-
-  const dividerIndex = headerIndex + 1;
-  if (
-    !/^\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|\s*$/.test(
-      lines[dividerIndex] ?? "",
-    )
-  ) {
-    fail(`${relative(file)}:${dividerIndex + 1}: invalid Skills table divider`);
-    return;
-  }
-
-  const rows = [];
-  for (let index = dividerIndex + 1; index < lines.length; index += 1) {
-    const line = lines[index].trim();
-    if (!line || /^#{1,6}\s/.test(line)) break;
-    if (!line.startsWith("|") || !line.endsWith("|")) {
-      fail(`${relative(file)}:${index + 1}: malformed Skills table row`);
-      break;
-    }
-    const cells = line
-      .slice(1, -1)
-      .split("|")
-      .map((cell) => cell.trim());
-    if (cells.length !== 3) {
-      fail(
-        `${relative(file)}:${index + 1}: Skills table row must have exactly three cells`,
-      );
-      continue;
-    }
-    const skillLink = cells[0].match(
-      /^\[`([a-z0-9-]+)`\]\(skills\/([a-z0-9-]+)\/([a-z0-9-]+)\/SKILL\.md\)$/,
-    );
-    if (!skillLink) {
-      fail(
-        `${relative(file)}:${index + 1}: skill cell must be a canonical skills/<group>/<skill>/SKILL.md link`,
-      );
-      continue;
-    }
-    rows.push({
-      name: skillLink[1],
-      group: skillLink[2],
-      linkedName: skillLink[3],
-      invocation: cells[1],
-      line: index + 1,
-    });
-  }
-
-  const manifestByName = new Map(
-    skills
-      .filter((skill) => typeof skill?.name === "string")
-      .map((skill) => [skill.name, skill]),
-  );
-  const seen = new Set();
-  for (const row of rows) {
-    if (seen.has(row.name)) {
-      fail(`${relative(file)}:${row.line}: duplicate skill row ${row.name}`);
-      continue;
-    }
-    seen.add(row.name);
-
-    const skill = manifestByName.get(row.name);
-    if (!skill) {
-      fail(`${relative(file)}:${row.line}: unknown skill row ${row.name}`);
-      continue;
-    }
-    if (row.linkedName !== row.name) {
-      fail(
-        `${relative(file)}:${row.line}: skill ${row.name} link must end in ${row.name}/SKILL.md`,
-      );
-    }
-    const expectedGroup = skill.path?.split("/")[1];
-    if (expectedGroup && row.group !== expectedGroup) {
-      fail(
-        `${relative(file)}:${row.line}: skill ${row.name} group ${row.group} differs from manifest group ${expectedGroup}`,
-      );
-    }
-    if (typeof skill.implicit === "boolean") {
-      const expectedInvocation = skill.implicit ? "model or user" : "explicit only";
-      if (row.invocation !== expectedInvocation) {
-        fail(
-          `${relative(file)}:${row.line}: skill ${row.name} invocation must be "${expectedInvocation}"`,
-        );
-      }
-    }
-  }
-
-  for (const name of manifestByName.keys()) {
-    if (!seen.has(name)) {
-      fail(`${relative(file)}: Skills table is missing manifest skill ${name}`);
-    }
+  for (const message of readmeSkillsTableErrors(read(file), { label: relative(file), skills })) {
+    fail(message);
   }
 }
-
 function validateReadmeSourceOnlyPointers(file, skills, installableSkills) {
-  const content = read(file);
-  const heading = "### Source-only packs";
-  const start = content.indexOf(heading);
-  const section = start === -1
-    ? ""
-    : content.slice(start, content.indexOf("\n## ", start + heading.length) === -1
-      ? content.length
-      : content.indexOf("\n## ", start + heading.length));
-  if (start === -1) fail(`${relative(file)}: missing Source-only packs section`);
-  for (const skill of skills) {
-    const pointer = `](${skill.path}/SKILL.md)`;
-    const count = section.split(pointer).length - 1;
-    if (count !== 1) {
-      fail(`${relative(file)}: source-only skill ${skill.name} must have exactly one canonical pointer`);
-    }
-  }
-  for (const skill of installableSkills) {
-    const pointer = `](${skill.path}/SKILL.md)`;
-    if (section.includes(pointer)) {
-      fail(`${relative(file)}: installable skill ${skill.name} must not appear in the Source-only packs section`);
-    }
-  }
-  if (skills.length > 0 && !/\bnot installed\b/i.test(section)) {
-    fail(`${relative(file)}: Source-only packs section must state that the packs are not installed`);
+  for (const message of readmeSourceOnlyPointerErrors(read(file), {
+    label: relative(file),
+    skills,
+    installableSkills,
+  })) {
+    fail(message);
   }
 }
-
 function validateSkillMarkdown(file, skill, knownSkillNames) {
-  const content = read(file);
-  if (/\b(?:node|bash|python3?)\s+(?:\.\/)?scripts\//.test(content)) {
-    fail(
-      `${relative(file)}: runnable global skill scripts must use the installed ~/.agents/skills/${skill.name}/scripts path`,
-    );
-  }
-  for (const match of content.matchAll(/\$([a-z][a-z0-9-]+)/g)) {
-    if (!knownSkillNames.has(match[1])) {
-      fail(`${relative(file)}: unknown skill reference $${match[1]}`);
-    }
+  for (const message of skillMarkdownErrors(read(file), {
+    label: relative(file),
+    name: skill.name,
+    knownSkillNames,
+  })) {
+    fail(message);
   }
 }
-
 function parseFrontmatter(file) {
-  const content = read(file);
-  const match = content.match(/^---\n([\s\S]*?)\n---\n/);
-  if (!match) {
-    fail(`${relative(file)}: missing YAML frontmatter`);
-    return {};
-  }
-  const fields = {};
-  for (const line of match[1].split("\n")) {
-    const field = line.match(/^([a-z_]+):\s*(.+)$/);
-    if (!field) {
-      fail(`${relative(file)}: unsupported frontmatter line "${line}"`);
-      continue;
-    }
-    fields[field[1]] = field[2].replace(/^"(.*)"$/, "$1");
-  }
-  const keys = Object.keys(fields).sort();
-  if (keys.join(",") !== "description,name") {
-    fail(`${relative(file)}: frontmatter must contain only name and description`);
-  }
+  const { fields, errors } = parseFrontmatterFields(read(file), relative(file));
+  for (const message of errors) fail(message);
   return fields;
 }
-
 function lineCount(file) {
   return read(file).split("\n").length;
 }
