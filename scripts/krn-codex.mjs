@@ -9,6 +9,7 @@ import { inspectSpineState } from "./lib/state-check.mjs";
 import { compileCapsule, resumeBrief } from "./lib/state-brief.mjs";
 import { checkSkills, exportSkills } from "./lib/skills-export.mjs";
 import { checkLessons } from "./lib/lessons.mjs";
+import { verifyLessons } from "./lib/lessons-verify.mjs";
 import { EXIT_CODES, renderDiagnostics } from "./lib/diagnostics.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -21,7 +22,7 @@ const usage = `Usage:
   krn-codex repo <inspect|apply> [...args]
   krn-codex state <check|compile|resume> [PATH] [--json]
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
-  krn-codex lessons check --root DIR [--json]`;
+  krn-codex lessons <check|verify> --root DIR [--json]`;
 
 function fail(message, code = EXIT_CODES.USAGE) {
   const error = new Error(message);
@@ -85,10 +86,21 @@ try {
     }
   } else if (raw[0] === "lessons") {
     const { positional, options } = parseOptions(raw.slice(1));
-    if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
-    const report = checkLessons({ root: options.root });
-    print(report, options.json);
-    if (report.errors.length) process.exitCode = 1;
+    if (!["check", "verify"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
+    if (positional[0] === "check") {
+      const report = checkLessons({ root: options.root });
+      print(report, options.json);
+      for (const warning of report.warnings ?? []) process.stderr.write(`warning: ${warning}\n`);
+      if (report.errors.length) process.exitCode = 1;
+    } else {
+      const report = verifyLessons({ root: options.root });
+      print(report, options.json);
+      if (!options.json) {
+        for (const result of report.results) process.stdout.write(`${result.status}\t${result.file}::${result.case}\n`);
+        for (const result of report.failures) process.stderr.write(`error: lesson "${result.lesson}" proof failed: ${result.file}::${result.case}\n`);
+      }
+      if (report.failures.length) process.exitCode = 1;
+    }
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));
     const command = positional[0];

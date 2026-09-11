@@ -56,6 +56,11 @@ function resolveFalsifier(root, cell) {
     if (known && !runGit(root, ["merge-base", "--is-ancestor", sha, "HEAD"]).ok) {
       return { ok: false, reason: `falsifier commit ${sha} for ${spec} is not an ancestor of HEAD` };
     }
+    const newer = known ? runGit(root, ["log", "--oneline", `${sha}..HEAD`, "--", rel]) : { ok: false, out: "" };
+    if (newer.ok && newer.out) {
+      const since = runGit(root, ["rev-list", "--count", `${sha}..HEAD`]);
+      return { ok: true, warning: `proof ${sha} predates later changes to ${rel} (${since.ok ? since.out : "?"} commits since HEAD); re-run \`npm run lessons:verify\`` };
+    }
   }
   return { ok: true };
 }
@@ -90,9 +95,10 @@ export function checkLessons({ root }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
   const { rows, malformed, budget } = parseLessons(file);
   const errors = malformed.map((row) => `malformed lesson row: ${row.trim()}`);
+  const warnings = [];
   const lessons = [];
   if (rows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} lesson rows; displace or condense`);
-  if (!fs.existsSync(file)) return { root, lessons, errors, skipped: true };
+  if (!fs.existsSync(file)) return { root, lessons, errors, warnings, skipped: true };
   const packageFile = path.join(root, "package.json");
   const scripts = fs.existsSync(packageFile)
     ? JSON.parse(fs.readFileSync(packageFile, "utf8")).scripts ?? {}
@@ -118,9 +124,11 @@ export function checkLessons({ root }) {
       const falsifier = resolveFalsifier(root, row.falsifier);
       if (!falsifier.ok) {
         errors.push(`lesson "${row.lesson}": recurring friction needs the falsifier that proved the gate; ${falsifier.reason}`);
+      } else if (falsifier.warning) {
+        warnings.push(`lesson "${row.lesson}": ${falsifier.warning}`);
       }
     }
     lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences, falsifier: row.falsifier });
   }
-  return { root, lessons, errors };
+  return { root, lessons, errors, warnings };
 }
