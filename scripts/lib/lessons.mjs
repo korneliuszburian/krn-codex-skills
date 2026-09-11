@@ -47,7 +47,7 @@ function triggerGlobs(trigger) {
 
 function globToRegex(glob) {
   return new RegExp(`^${glob
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
     .replace(/\*\*/g, "\u0000")
     .replace(/\*/g, "[^/]*")
     .replace(/\u0000/g, ".*")}$`);
@@ -176,6 +176,11 @@ export function checkLessons({ root, git = runGit }) {
     ? JSON.parse(fs.readFileSync(packageFile, "utf8")).scripts ?? {}
     : {};
   for (const row of rows) {
+    const invalidTrigger = (row.trigger ?? "").split(/[;,]/).map((entry) => entry.trim()).filter(Boolean).find((entry) => !/^(path|symbol|churn):/.test(entry));
+    if (invalidTrigger) {
+      errors.push(`lesson "${row.lesson}": unknown trigger "${invalidTrigger}"; use path:, symbol:, or churn:`);
+      continue;
+    }
     if (row.status) {
       const retirement = RETIRE.exec(row.status);
       if (!retirement) {

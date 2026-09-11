@@ -149,8 +149,9 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         errors.push({ rule: "unknown-check", commit: commit.sha, ref, detail: label === "risk" ? "at-risk ref is denied, unknown, or unsafe" : "ref is denied, unknown, or unsafe" });
         return;
       }
-      const authoredNow = (parentScripts && target.kind === "script" && !Object.hasOwn(parentScripts, target.name))
-        || (target.kind !== "script" && !git(root, ["cat-file", "-e", `${parentSha}:${target.name}`]).ok);
+      const authoredNow = target.kind === "script"
+        ? (parentScripts !== null ? !Object.hasOwn(parentScripts, target.name) : git(root, ["rev-parse", "--git-dir"]).ok)
+        : !git(root, ["cat-file", "-e", `${parentSha}:${target.name}`]).ok;
       if (authoredNow) {
         errors.push({ rule: "self-authorized-check", commit: commit.sha, ref, detail: "the check did not exist before this commit" });
         return;

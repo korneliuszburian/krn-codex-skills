@@ -44,29 +44,34 @@ test("changed line parsers handle added and removed hunks", () => {
   assert.deepEqual([...removedLineNumbers("@@ -3 +2,0 @@\n")], [3]);
 });
 
-test("touchedSymbols maps changed lines to the symbol they fall inside", () => {
-  const git = (_root, args) => {
-    if (args[0] === "diff") return { ok: true, out: "--- a/scripts/lib/git-cli.mjs\n+++ b/scripts/lib/git-cli.mjs\n@@ -2,0 +3,1 @@\n" };
-    if (args[0] === "show") return { ok: true, out: "export function runGit(r) {\n  return 1;\n}\nexport const OTHER = 1;\n" };
+function strictGit(diffText, contents) {
+  return (_root, args) => {
+    if (args[0] === "diff") return { ok: true, out: diffText };
+    if (args[0] === "show") {
+      const spec = args[args.length - 1];
+      return { ok: Object.hasOwn(contents, spec), out: contents[spec] ?? "" };
+    }
     return { ok: false, out: "" };
   };
+}
+
+test("touchedSymbols maps changed lines to the symbol they fall inside", () => {
+  const git = strictGit("--- a/scripts/lib/git-cli.mjs\n+++ b/scripts/lib/git-cli.mjs\n@@ -2,0 +3,1 @@\n", {
+    "abc:scripts/lib/git-cli.mjs": "export function runGit(r) {\n  return 1;\n}\nexport const OTHER = 1;\n",
+  });
   assert.deepEqual(touchedSymbols({ root: ".", git, sha: "abc" }), ["runGit"]);
 });
 
 test("touchedSymbols reports a deleted symbol from the pre-image", () => {
-  const git = (_root, args) => {
-    if (args[0] === "diff") return { ok: true, out: "--- a/scripts/lib/git-cli.mjs\n+++ /dev/null\n@@ -1,3 +0,0 @@\n" };
-    if (args[0] === "show") return { ok: true, out: "export function runGit(r) {\n  return 1;\n}\n" };
-    return { ok: false, out: "" };
-  };
+  const git = strictGit("--- a/scripts/lib/git-cli.mjs\n+++ /dev/null\n@@ -1,3 +0,0 @@\n", {
+    "abc^:scripts/lib/git-cli.mjs": "export function runGit(r) {\n  return 1;\n}\n",
+  });
   assert.deepEqual(touchedSymbols({ root: ".", git, sha: "abc" }), ["runGit"]);
 });
 
 test("touchedSymbols handles a path with spaces", () => {
-  const git = (_root, args) => {
-    if (args[0] === "diff") return { ok: true, out: "--- a/sub/a file.mjs\n+++ b/sub/a file.mjs\n@@ -0,0 +1,2 @@\n" };
-    if (args[0] === "show") return { ok: true, out: "export function spaced() {\n  return 1;\n}\n" };
-    return { ok: false, out: "" };
-  };
+  const git = strictGit("--- a/sub/a file.mjs\n+++ b/sub/a file.mjs\n@@ -0,0 +1,2 @@\n", {
+    "abc:sub/a file.mjs": "export function spaced() {\n  return 1;\n}\n",
+  });
   assert.deepEqual(touchedSymbols({ root: ".", git, sha: "abc" }), ["spaced"]);
 });

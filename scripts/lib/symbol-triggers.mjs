@@ -109,7 +109,7 @@ export function removedLineNumbers(diffText) {
 function headerPath(line, prefix) {
   const value = line.slice(prefix.length).replace(/\t.*$/, "").trim();
   if (value === "/dev/null") return null;
-  return value.replace(/^"(.*)"$/, "$1");
+  return value.replace(/^"(.*)"$/, "$1").replace(/^[ab]\//, "");
 }
 
 function namesIn(symbols, lineNumbers) {

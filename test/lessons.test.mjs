@@ -294,6 +294,17 @@ test("retirement is invalid without a commit and budgets count only active rows"
   rmSync(root, { recursive: true, force: true });
 });
 
+test("glob metacharacters are literal and unknown trigger prefixes fail", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n";
+  assert.deepEqual(matchesTrigger("path:scripts/v?m.mjs", ["scripts/vm.mjs"]), [], "? is literal, not a wildcard");
+  assert.deepEqual(matchesTrigger("path:scripts/v?m.mjs", ["scripts/v?m.mjs"]), ["scripts/v?m.mjs"]);
+  writeFileSync(file, `${header}| A | probe | \`test:state\` | | | sym:runGit |\n`);
+  assert.ok(checkLessons({ root }).errors.some((error) => error.includes("unknown trigger")), JSON.stringify(checkLessons({ root }).errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

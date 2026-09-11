@@ -242,6 +242,27 @@ test("a recalled lesson with a testable gate must be exercised by the change", (
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a check whose parent manifest is unreadable is rejected as self-authored", () => {
+  const root = makeRoot();
+  const git = (_root, args) => {
+    if (args[0] === "log") return { ok: true, out: "a1\u001ffix\u001fChange-contract: test:lessons:red->green" };
+    if (args[0] === "show") {
+      const last = args[args.length - 1];
+      if (last.includes(":package.json")) return { ok: false, out: "" };
+      if (last.includes(":")) return { ok: true, out: "//\n" };
+      return { ok: true, out: "scripts/lib/x.mjs" };
+    }
+    if (args[0] === "rev-parse") return { ok: true, out: ".git" };
+    if (args[0] === "diff") return { ok: true, out: "--- /dev/null\n+++ b/scripts/lib/x.mjs\n@@ -0,0 +1,1 @@\n" };
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    if (args[0] === "rev-list") return { ok: true, out: "0" };
+    return { ok: false, out: "" };
+  };
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("the guard disables the CLI check when set in the environment", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-contract-"));
   const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "krn-codex.mjs"), "changes", "check", "--root", root, "--base", "HEAD", "--head", "HEAD", "--json"], {
