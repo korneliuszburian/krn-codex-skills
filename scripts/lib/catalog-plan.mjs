@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 
 import { ConfigReconcileError } from "./catalog-errors.mjs";
-import { MCP_SERVER_KEYS, PLUGIN_KEYS, SKILL_KEYS, applyOperations, appendPrefix, assertSingleBlock, indexNamedBlocks, parseDocument, parseSkillPath, quoteToml, removeBlock, setEnabled, skillPathContainsQuarantine } from "./catalog-document.mjs";
+import { applyOperations, appendPrefix, assertSingleBlock, indexNamedBlocks, parseSkillPath, quoteToml, removeBlock, setEnabled, skillPathContainsQuarantine, MCP_SERVER_KEYS, PLUGIN_KEYS, SKILL_KEYS } from "./catalog-document.mjs";
+import { parseDocument } from "./catalog-toml.mjs";
 import { normalizeDesired, normalizeFamilies, pluginIdFromCachedSkillPath } from "./catalog-desired.mjs";
 import { matchesQuarantined, pluginFamilyFromId } from "./plugin-identity.mjs";
 
