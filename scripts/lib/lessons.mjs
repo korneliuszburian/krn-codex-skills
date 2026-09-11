@@ -54,11 +54,19 @@ export function matchesTrigger(trigger, files) {
   return files.filter((file) => patterns.some((pattern) => pattern.test(file)));
 }
 
-export function recallLessons({ root, files }) {
+function triggerSymbols(trigger) {
+  return (trigger ?? "")
+    .split(/[;,]/)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.startsWith("symbol:"))
+    .map((entry) => entry.slice("symbol:".length));
+}
+
+export function recallLessons({ root, files = [], symbols = [] }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
   const hits = [];
   for (const row of parseLessons(file).rows) {
-    const matched = matchesTrigger(row.trigger, files);
+    const matched = [...matchesTrigger(row.trigger, files), ...triggerSymbols(row.trigger).filter((name) => symbols.includes(name))];
     if (matched.length > 0) hits.push({ lesson: row.lesson, trigger: row.trigger, gate: row.gate, falsifier: row.falsifier, matched });
   }
   return hits;

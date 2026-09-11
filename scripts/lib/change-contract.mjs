@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 
 import { runGit } from "./git-cli.mjs";
 import { parseLessons, recallLessons } from "./lessons.mjs";
+import { touchedSymbols } from "./symbol-triggers.mjs";
 
 const SURFACE = [
   /^scripts\//,
@@ -102,7 +103,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const contract = parseChangeContract(`${commit.subject}\n${commit.body}`);
     const surface = contractSurface(files);
     const recalled = [...`${commit.subject}\n${commit.body}`.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
-    for (const hit of recallLessons({ root, files })) {
+    for (const hit of recallLessons({ root, files, symbols: touchedSymbols({ root, git, sha: commit.sha }) })) {
       const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
       const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
       const named = [...ids, falsifierFile].filter(Boolean);

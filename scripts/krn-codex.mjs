@@ -29,7 +29,7 @@ const usage = `Usage:
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
   krn-codex lessons <check|verify> --root DIR [--json]
   krn-codex changes check --base REF [--head REF] --root DIR [--json]
-  krn-codex memory recall --root DIR --changed PATH[,PATH...] [--json]`;
+  krn-codex memory recall --root DIR [--changed PATH[,PATH...]] [--symbol NAME[,NAME...]] [--json]`;
 
 function fail(message, code = EXIT_CODES.USAGE) {
   const error = new Error(message);
@@ -57,6 +57,10 @@ function parseOptions(args) {
       const value = args[++index];
       if (!value) fail("--changed requires a path list");
       options.changed = [...(options.changed ?? []), ...value.split(",").map((entry) => entry.trim()).filter(Boolean)];
+    } else if (arg === "--symbol") {
+      const value = args[++index];
+      if (!value) fail("--symbol requires a name list");
+      options.symbols = [...(options.symbols ?? []), ...value.split(",").map((entry) => entry.trim()).filter(Boolean)];
     } else if (arg === "--head") {
       options.head = args[++index];
       if (!options.head) fail("--head requires a revision");
@@ -132,9 +136,9 @@ try {
     if (report.errors.length) process.exitCode = 1;
   } else if (raw[0] === "memory") {
     const { positional, options } = parseOptions(raw.slice(1));
-    if (positional[0] !== "recall" || positional.length > 1 || options.source || options.yes || !options.root || !options.changed?.length) fail(usage);
-    const hits = recallLessons({ root: options.root, files: options.changed });
-    print({ root: options.root, changed: options.changed, hits }, options.json);
+    if (positional[0] !== "recall" || positional.length > 1 || options.source || options.yes || !options.root || !(options.changed?.length || options.symbols?.length)) fail(usage);
+    const hits = recallLessons({ root: options.root, files: options.changed ?? [], symbols: options.symbols ?? [] });
+    print({ root: options.root, changed: options.changed ?? [], symbols: options.symbols ?? [], hits }, options.json);
     if (!options.json) for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));

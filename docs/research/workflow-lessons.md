@@ -22,11 +22,13 @@ a pattern that matches no test, fails the command. A recurrence recorded after
 the proof commit fails closed as a gate that did not stick: the friction came
 back, so the lesson is strengthened or split into a distinct class.
 
-A row may carry a sixth `Trigger` column of `path:<glob>` entries. Delivery is
-harness-evaluated, not left to the reader: `npm run memory recall --changed
-<paths>` returns every lesson whose trigger matches, and `changes check` requires
-a matching surface change to acknowledge it with a `Recall: <gate or falsifier>`
-trailer, so the lesson reaches the decision point instead of waiting to be read.
+A row may carry a sixth `Trigger` column of `path:<glob>` or `symbol:<name>`
+entries. Delivery is harness-evaluated, not left to the reader: `npm run memory
+recall --changed <paths>` and `--symbol <names>` return every lesson whose
+trigger matches (a `symbol:` trigger uses an AST-lite span match against the
+commit's changed line ranges), and `changes check` requires a matching surface
+change to acknowledge it with a `Recall: <gate or falsifier>` trailer, so the
+lesson reaches the decision point instead of waiting to be read.
 
 | Lesson | Evidence | Enforced by |
 |---|---|---|
@@ -43,7 +45,7 @@ trailer, so the lesson reaches the decision point instead of waiting to be read.
 | Verification lanes on this host cannot spawn git children, so state tests run only in the main session. | Two independent luna reviews reported `spawnSync git EPERM` and could not execute `test:state`; each stated the execution gap instead of claiming a regression. | `manual:review`; `scripts/lib/state-check.mjs`. |
 | A read-only review cannot prove runtime reachability; every extracted runtime module needs at least one executing test, and mechanical detection must back the class. | The extraction at `83101ae` left `derivedRolloutDay` calling an unexported `isValidDay`, and a later dedupe at `f40286d` removed `gitAvailable` from `state-brief` but left the call; luna reported no finding both times and only an executing test or the quality audit surfaced it. | `scripts/quality-audit.mjs`; `test/catalog-usage-scan.test.mjs`; `test/quality-audit.test.mjs`. | 2026-09-11@83101ae, 2026-09-11@f40286d | `test/quality-audit.test.mjs::the audit catches a cross-file call that is never imported@5dac423` |
 | Broadening executing coverage can expose silently lost records that a green suite hides. | The manifest-name quarantine passed `family@marketplace` as the id, so the collector filtered it: the plugin was skipped and `hardQuarantine` kept no record until the plugin-cache integration test exercised the branch. | `test/catalog-inventory-quarantine-branches.test.mjs`. |
-| Duplicated low-level adapters drift; centralize once and alias at call sites. | Four copies of a git wrapper with two different contracts lived across `state-check`, `state-brief`, `skills-export`, and `install-release`; one `git-cli` module with `runGit`/`gitText`/`gitAvailable` now backs all four. | `test/git-cli.test.mjs`; `test/module-surface.test.mjs`. | | | path:scripts/lib/git-cli.mjs |
+| Duplicated low-level adapters drift; centralize once and alias at call sites. | Four copies of a git wrapper with two different contracts lived across `state-check`, `state-brief`, `skills-export`, and `install-release`; one `git-cli` module with `runGit`/`gitText`/`gitAvailable` now backs all four. | `test/git-cli.test.mjs`; `test/module-surface.test.mjs`. | | | symbol:runGit |
 | Memory artifacts must fail closed, not warn, once staleness or contradiction is measured. | An `ACTIVE` capsule 25+ commits behind HEAD returned `clean`, and lesson-gate resolution claimed in `validate` ran only in a separate command; both are now blocking errors (`stale-fixed-point` for COMPLETE, `active-without-next`, unresolved gates in `validate`). | `npm run test:state`; `npm run validate`. |
 | A test that archives the committed HEAD can pass before the commit and fail after it. | `install-smoke` archives `HEAD`; the runtime-closure gate was uncommitted during the pre-commit run, so the suite was green, then failed on the committed tree. | `.github/workflows/validate.yml` runs the suites on the pushed commit; re-run `test:install`/`test:bootstrap` after committing shared-surface changes. |
 | A harness change must carry a falsifiable prediction at the commit that makes it. | The same friction class was re-fixed within 7–8 minutes three times with no recorded prediction, and a green pre-commit suite hid a post-commit failure. | The `Change-contract:` trailer and `npm run changes:check`. |

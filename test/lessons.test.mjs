@@ -229,6 +229,15 @@ test("a trigger delivers the matching lesson for changed paths", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a symbol trigger delivers the matching lesson", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  writeFileSync(file, "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `test:state` | | | symbol:runGit |\n");
+  assert.equal(recallLessons({ root, files: [], symbols: ["runGit"] }).length, 1);
+  assert.deepEqual(recallLessons({ root, files: [], symbols: ["other"] }), []);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

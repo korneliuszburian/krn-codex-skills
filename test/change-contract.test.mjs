@@ -158,6 +158,31 @@ test("a change that triggers a lesson requires a Recall trailer", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a symbol trigger requires a Recall trailer", () => {
+  const root = makeRoot();
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `test:lessons` | | | symbol:runGit |\n",
+  );
+  const gitFor = (body) => (_root, args) => {
+    if (args[0] === "log") return { ok: true, out: `a1\u001ffic: sym\u001f${body}` };
+    if (args[0] === "show") {
+      const last = args[args.length - 1];
+      if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x" } }) };
+      if (last.includes(":")) return { ok: true, out: "export function runGit(r) {\n  return 1;\n}\n" };
+      return { ok: true, out: "scripts/lib/git-cli.mjs" };
+    }
+    if (args[0] === "diff") return { ok: true, out: "+++ b/scripts/lib/git-cli.mjs\n@@ -0,0 +2,1 @@\n" };
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    return { ok: false, out: "" };
+  };
+  const bare = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green"), run: green });
+  assert.ok(bare.errors.some((error) => error.rule === "unrecalled-lesson"), JSON.stringify(bare.errors));
+  const recalled = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green\nRecall: test:lessons"), run: green });
+  assert.ok(!recalled.errors.some((error) => error.rule === "unrecalled-lesson"), JSON.stringify(recalled.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("the guard disables the CLI check when set in the environment", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-contract-"));
   const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "krn-codex.mjs"), "changes", "check", "--root", root, "--base", "HEAD", "--head", "HEAD", "--json"], {
