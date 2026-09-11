@@ -103,13 +103,14 @@ hosts own their mechanics and policy.
    page, and complete the native Goal when present as one terminal sequence.
    Record an absent tracker, Goal, run, or cleanup obligation explicitly; do not
    claim `COMPLETE` until every participant that exists is observed terminal.
-   Never complete a superseded or abandoned Goal: record its state and next
-   owner in the configured tracker when one exists, request the available
-   cancellation or other non-active transition, and keep the original run while
-   that Goal is active. Transfer a successor Goal only the condensed capsule and
-   pointers into its own run, and remove the original run only after the old
-   Goal's non-active state is read back; transfer alone is not completion. Keep
-   the capsule in the active Goal/thread state rather than changing ignore rules.
+   Never complete a superseded or abandoned Goal: record its state and next owner
+   in the tracker when one exists, request the available user/system cancellation,
+   deferral, or other non-active transition, and keep the original run while that
+   Goal is active. If a successor Goal needs continuity, transfer only the
+   condensed capsule and pointers into its own run, removing the original only
+   after the old Goal's non-active state is read back; transfer alone is not
+   completion. Keep the capsule in the active Goal/thread state, not by changing
+   ignore rules.
 
    **Done when:** repository, capsule, and every configured tracker, present
    Goal, restart file, or specialist cleanup obligation describe the same
