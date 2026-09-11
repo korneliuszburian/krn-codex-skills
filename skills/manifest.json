@@ -33,6 +33,8 @@
     "scripts/lib/catalog-inventory-quarantine.mjs",
     "scripts/lib/delivery-loop-rules.mjs",
     "scripts/lib/git-cli.mjs",
+    "scripts/lib/quality-audit.mjs",
+    "scripts/quality-audit.mjs",
     "scripts/lib/catalog-toml.mjs",
     "scripts/lib/content-rules.mjs",
     "scripts/lib/path-rules.mjs",
