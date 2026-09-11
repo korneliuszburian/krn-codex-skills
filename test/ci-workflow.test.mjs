@@ -19,6 +19,7 @@ test("every gate named in AGENTS.md runs in the workflow", () => {
   const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
   const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
   const gates = new Set([...agents.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
+  assert.ok(gates.size >= 15, `expected the AGENTS.md gate block to parse, found ${gates.size}`);
   const steps = new Set([...workflow.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
   if (/krn-codex\.mjs changes check/.test(workflow)) steps.add("changes:check");
   for (const gate of gates) assert.ok(steps.has(gate), `AGENTS.md gate ${gate} is missing from the workflow`);

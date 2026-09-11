@@ -107,7 +107,7 @@ contains the stable ownership boundary. Do not use a moving `npx skills add`
 result as the KRN source, and do not create a local fork without a named
 consumer and falsifier. The curated harness subset named by `harness_skills` in
 `skills/manifest.json` and the upstream `harness_paths` in
-`config/upstream-sources.json` is materialized into the
+`config/upstream-sources.json` are materialized into the
 generated, provenance-marked `.agents/skills/` by `krn-codex skills export`
 (the full pin stays in `config/upstream-sources.json`); regenerate instead of
 editing, and `npm run skills:check` fails on a foreign destination, a stale upstream pin (against `config/upstream-sources.json`), or an exported skill whose bytes differ from its source. `krn.commit` records the source HEAD when the export ran, so re-export on a clean tree to keep it reproducible.
