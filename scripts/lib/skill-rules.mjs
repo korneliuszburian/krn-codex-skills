@@ -1,4 +1,4 @@
-import { basename, join, relative } from "node:path";
+import { basename, join, relative, sep } from "node:path";
 
 const METADATA_SCHEMA =
   /^interface:\n  display_name: "([^"\n]+)"\n  short_description: "([^"\n]+)"\n  default_prompt: "([^"\n]+)"\npolicy:\n  allow_implicit_invocation: (true|false)\n?$/;
@@ -59,8 +59,9 @@ export function skillLayoutErrors(skill, { root, exists }) {
   const group = skill.path.split("/")[1];
   const operatorMirror = join(root, "docs", group, `${skill.name}.md`);
   if (exists(operatorMirror)) {
+    const mirrorLabel = relative(root, operatorMirror).split(sep).join("/");
     errors.push(
-      `${relative(root, operatorMirror)}: per-skill operator mirrors are forbidden; README must link to canonical SKILL.md`,
+      `${mirrorLabel}: per-skill operator mirrors are forbidden; README must link to canonical SKILL.md`,
     );
   }
   if (!exists(skillFile)) {
