@@ -7,6 +7,12 @@ pattern. Each row is a reusable process lesson with the evidence that earned it
 and the gate or owner that enforces it; case-specific findings stay in reviewed
 artifacts. Bounded at 24 rows: displace or condense before adding.
 
+Each row may carry a fourth `Occurrences` column of `YYYY-MM-DD@<7-hex>`
+tokens naming each witnessed instance. Two or more occurrences whose only gate
+is `manual:` fail `lessons:check` until the friction is consolidated into a
+structural gate or artifact, and a recurring class keeps one row that supersedes
+its duplicates.
+
 | Lesson | Evidence | Enforced by |
 |---|---|---|
 | Derive the installed runtime closure from the artifact being installed, never from the running installer version. | A release silently omitted `state-brief.mjs` and still reported `filesystem_installed`. | `runtime_paths` in `skills/manifest.json`, the post-switch CLI smoke, and `test/install-smoke.test.mjs`. |
@@ -20,9 +26,8 @@ artifacts. Bounded at 24 rows: displace or condense before adding.
 | A prose rule that no check enforces is ignored at low effort. | The explicit-only rule was ignored by a low-effort model until it was narrowed and behaviorally checked; per-slice and held-out rules now have a test/inspection gate. | `manual:review`; `scripts/lib/lessons.mjs`. |
 | Hand-written capsule fixed points must use full commit tokens. | A hand-filled capsule with short hashes failed `state check` with `invalid-fixed-point` until the full tokens were used. | `test/state-check.test.mjs`. |
 | Verification lanes on this host cannot spawn git children, so state tests run only in the main session. | Two independent luna reviews reported `spawnSync git EPERM` and could not execute `test:state`; each stated the execution gap instead of claiming a regression. | `manual:review`; `scripts/lib/state-check.mjs`. |
-| A read-only review cannot prove runtime reachability; every extracted runtime module needs at least one executing test. | The extraction at `83101ae` left `derivedRolloutDay` calling an unexported `isValidDay`; luna reported no finding and only an end-to-end scan test surfaced the `ReferenceError`. | `test/catalog-usage-scan.test.mjs`; `manual:review`. |
+| A read-only review cannot prove runtime reachability; every extracted runtime module needs at least one executing test, and mechanical detection must back the class. | The extraction at `83101ae` left `derivedRolloutDay` calling an unexported `isValidDay`, and a later dedupe at `f40286d` removed `gitAvailable` from `state-brief` but left the call; luna reported no finding both times and only an executing test or the quality audit surfaced it. | `scripts/quality-audit.mjs`; `test/catalog-usage-scan.test.mjs`; `test/quality-audit.test.mjs`. | 2026-09-11@83101ae, 2026-09-11@f40286d |
 | Broadening executing coverage can expose silently lost records that a green suite hides. | The manifest-name quarantine passed `family@marketplace` as the id, so the collector filtered it: the plugin was skipped and `hardQuarantine` kept no record until the plugin-cache integration test exercised the branch. | `test/catalog-inventory-quarantine-branches.test.mjs`. |
 | Duplicated low-level adapters drift; centralize once and alias at call sites. | Four copies of a git wrapper with two different contracts lived across `state-check`, `state-brief`, `skills-export`, and `install-release`; one `git-cli` module with `runGit`/`gitText`/`gitAvailable` now backs all four. | `test/git-cli.test.mjs`; `test/module-surface.test.mjs`. |
-| Detection must be mechanical; an eyeballed review missed a cross-file call with no import. | A dedupe removed `gitAvailable` from `state-brief` but left the call, and the commit shipped; the suite caught it, but only a `quality-audit` scan makes that class a standing gate. | `scripts/quality-audit.mjs`; `test/quality-audit.test.mjs`. |
 | Memory artifacts must fail closed, not warn, once staleness or contradiction is measured. | An `ACTIVE` capsule 25+ commits behind HEAD returned `clean`, and lesson-gate resolution claimed in `validate` ran only in a separate command; both are now blocking errors (`stale-fixed-point` for COMPLETE, `active-without-next`, unresolved gates in `validate`). | `npm run test:state`; `npm run validate`. |
 | A test that archives the committed HEAD can pass before the commit and fail after it. | `install-smoke` archives `HEAD`; the runtime-closure gate was uncommitted during the pre-commit run, so the suite was green, then failed on the committed tree. | `.github/workflows/validate.yml` runs the suites on the pushed commit; re-run `test:install`/`test:bootstrap` after committing shared-surface changes. |

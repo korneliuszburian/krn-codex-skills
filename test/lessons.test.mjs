@@ -65,3 +65,38 @@ test("a lesson without any gate candidate fails", () => {
   assert.ok(report.errors.some((error) => error.includes("no resolvable gate")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("recurring friction with only a manual gate must be consolidated", () => {
+  const root = makeRoot();
+  const row = (gate, occurrences) => `| A | probe | \`${gate}\` | ${occurrences} |`;
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    `| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n${row("manual:review", "2026-01-01@abcdef1, 2026-01-02@abcdef2")}\n`,
+  );
+  assert.ok(
+    checkLessons({ root }).errors.some((error) => error.includes("recurring friction")),
+    JSON.stringify(checkLessons({ root }).errors),
+  );
+
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    `| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n${row("test:state", "2026-01-01@abcdef1, 2026-01-02@abcdef2")}\n`,
+  );
+  assert.deepEqual(checkLessons({ root }).errors, []);
+
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    `| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n${row("manual:review", "2026-01-01@abcdef1")}\n`,
+  );
+  assert.deepEqual(checkLessons({ root }).errors, []);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("occurrence tokens must be a date and short commit", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  writeFileSync(file, "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n| A | probe | `test:state` | not-a-token |\n");
+  assert.equal(parseLessons(file).malformed.length, 1);
+  assert.equal(parseLessons(file).rows.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});

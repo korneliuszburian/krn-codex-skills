@@ -12,11 +12,16 @@ export function parseLessons(file) {
   for (const line of fs.readFileSync(file, "utf8").split("\n")) {
     if (!line.startsWith("|") || /^\|\s*-+/.test(line) || /^\|\s*Lesson\s*\|/.test(line)) continue;
     const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
-    if (cells.length !== 3 || cells.some((cell) => cell === "")) {
+    if (cells.length < 3 || cells.length > 4 || cells.slice(0, 3).some((cell) => cell === "")) {
       malformed.push(line);
       continue;
     }
-    rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2] });
+    const occurrences = (cells[3] ?? "").split(/[,\s]+/).filter(Boolean);
+    if (occurrences.some((token) => !/^\d{4}-\d{2}-\d{2}@[0-9a-f]{7}$/.test(token))) {
+      malformed.push(line);
+      continue;
+    }
+    rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences });
   }
   return { rows, malformed, budget: LESSON_BUDGET };
 }
@@ -67,7 +72,10 @@ export function checkLessons({ root }) {
       else errors.push(`lesson "${row.lesson}": ${result.reason}`);
     }
     if (resolved.length === 0) errors.push(`lesson "${row.lesson}": no resolvable gate reference`);
-    lessons.push({ lesson: row.lesson, resolved });
+    if (resolved.length > 0 && row.occurrences.length >= 2 && resolved.every((entry) => entry.kind === "manual")) {
+      errors.push(`lesson "${row.lesson}": recurring friction (${row.occurrences.length} occurrences) has only a manual gate; consolidate it into a structural gate or artifact, or supersede the row`);
+    }
+    lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences });
   }
   return { root, lessons, errors };
 }
