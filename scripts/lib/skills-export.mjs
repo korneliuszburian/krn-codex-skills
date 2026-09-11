@@ -144,8 +144,21 @@ export function checkSkills({ root }) {
   const sourceManifest = path.join(root, "skills", "manifest.json");
   const rootManifest = fs.existsSync(sourceManifest) ? readJson(sourceManifest) : null;
   for (const skill of rootManifest?.skills ?? []) {
-    sourceByName.set(skill.name, path.join(root, skill.path, "SKILL.md"));
+    sourceByName.set(skill.name, path.join(root, skill.path));
   }
+  const directoriesMatch = (sourceDir, exportDir) => {
+    const walk = (directory, base) =>
+      fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(directory, entry.name);
+        return entry.isDirectory() ? walk(full, base) : [path.relative(base, full)];
+      });
+    const sourceFiles = walk(sourceDir, sourceDir).sort();
+    const exportFiles = walk(exportDir, exportDir).sort();
+    if (JSON.stringify(sourceFiles) !== JSON.stringify(exportFiles)) return false;
+    return sourceFiles.every((relative) =>
+      fs.readFileSync(path.join(sourceDir, relative)).equals(fs.readFileSync(path.join(exportDir, relative))),
+    );
+  };
   let total = 0;
   let count = 0;
   const names = [];
@@ -165,9 +178,9 @@ export function checkSkills({ root }) {
       continue;
     }
     if (fields.name !== entry.name) errors.push(`${entry.name}: frontmatter name "${fields.name}" must equal the directory name`);
-    const sourceFile = sourceByName.get(entry.name);
-    if (sourceFile && fs.existsSync(sourceFile) && fs.readFileSync(sourceFile, "utf8") !== fs.readFileSync(skillFile, "utf8")) {
-      errors.push(`${entry.name}: exported SKILL.md differs from source; run \`krn-codex skills export\``);
+    const sourceDir = sourceByName.get(entry.name);
+    if (sourceDir && fs.existsSync(sourceDir) && !directoriesMatch(sourceDir, dir)) {
+      errors.push(`${entry.name}: exported files differ from source; run \`krn-codex skills export\``);
     }
     if (!fs.existsSync(path.join(dir, "agents", "openai.yaml"))) errors.push(`${entry.name}: missing agents/openai.yaml`);
     total += fields.name.length + fields.description.length;

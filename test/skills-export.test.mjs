@@ -176,13 +176,18 @@ test("check reports each structural failure in the export tree", () => {
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
-test("check reports source drift and a harness_skills mismatch", () => {
+test("check reports drift in any exported file and a harness_skills mismatch", () => {
   const f = fixture();
   exportSkills({ source: f.source, upstream: f.upstream, root: f.source });
 
-  const sourceSkill = path.join(f.source, "skills", "meta", "local", "SKILL.md");
-  fs.writeFileSync(sourceSkill, fs.readFileSync(sourceSkill, "utf8").replace("Local skill", "Drifted local skill"));
-  assert.ok(checkSkills({ root: f.source }).errors.some((e) => e.includes("differs from source")), "drift");
+  const yaml = path.join(f.source, "skills", "meta", "local", "agents", "openai.yaml");
+  fs.writeFileSync(yaml, `${fs.readFileSync(yaml, "utf8")}# drifted\n`);
+  assert.ok(checkSkills({ root: f.source }).errors.some((e) => e.includes("differ from source")), "non-SKILL.md drift");
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.source });
+
+  const skillFile = path.join(f.source, "skills", "meta", "local", "SKILL.md");
+  fs.writeFileSync(skillFile, fs.readFileSync(skillFile, "utf8").replace("Local skill", "Drifted local skill"));
+  assert.ok(checkSkills({ root: f.source }).errors.some((e) => e.includes("differ from source")), "SKILL.md drift");
 
   const manifestPath = path.join(f.source, "skills", "manifest.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
