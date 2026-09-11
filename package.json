@@ -18,7 +18,7 @@
     "lessons:check": "node scripts/krn-codex.mjs lessons check --root .",
     "test:lessons": "node --test test/lessons.test.mjs",
     "test:validate": "node --test test/durable-pages.test.mjs",
-    "test:lib": "node --test test/diagnostics.test.mjs test/skill-metadata.test.mjs test/plugin-identity.test.mjs test/catalog-plan.test.mjs test/catalog-usage-json.test.mjs test/catalog-usage-shell.test.mjs test/catalog-profiles.test.mjs test/catalog-inventory-roots.test.mjs test/content-rules.test.mjs",
+    "test:lib": "node --test test/diagnostics.test.mjs test/skill-metadata.test.mjs test/plugin-identity.test.mjs test/catalog-plan.test.mjs test/catalog-usage-json.test.mjs test/catalog-usage-shell.test.mjs test/catalog-profiles.test.mjs test/catalog-inventory-roots.test.mjs test/content-rules.test.mjs test/upstream-sources.test.mjs",
     "validate": "node scripts/validate.mjs",
     "install:check": "bash scripts/install.sh check"
   }

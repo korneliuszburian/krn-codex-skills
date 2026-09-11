@@ -27,6 +27,8 @@
     "scripts/lib/catalog-profiles.mjs",
     "scripts/lib/catalog-inventory-roots.mjs",
     "scripts/lib/content-rules.mjs",
+    "scripts/lib/path-rules.mjs",
+    "scripts/lib/upstream-sources.mjs",
     "scripts/lib/diagnostics.mjs",
     "scripts/lib/install-release.mjs",
     "scripts/lib/lessons.mjs",

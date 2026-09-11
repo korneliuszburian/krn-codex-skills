@@ -15,6 +15,11 @@ import {
   semanticXmlErrors,
   skillMarkdownErrors,
 } from "./lib/content-rules.mjs";
+import { isSafeRelativePath as safeRelativePath } from "./lib/path-rules.mjs";
+import {
+  upstreamSkillNamesFrom,
+  upstreamSourceErrors,
+} from "./lib/upstream-sources.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
@@ -27,11 +32,6 @@ const errors = [];
 const read = (file) => fs.readFileSync(file, "utf8");
 const json = (file) => JSON.parse(read(file));
 const relative = (file) => path.relative(root, file).split(path.sep).join("/");
-const safeRelativePath = (value) =>
-  typeof value === "string" &&
-  Boolean(value.trim()) &&
-  !path.isAbsolute(value) &&
-  !value.split("/").includes("..");
 
 function fail(message) {
   errors.push(message);
@@ -108,71 +108,13 @@ function lineCount(file) {
 }
 
 function validateUpstreamSources(document) {
-  if (document?.schema_version !== 1) {
-    fail("config/upstream-sources.json: schema_version must be 1");
-  }
-  if (!Array.isArray(document?.sources) || document.sources.length === 0) {
-    fail("config/upstream-sources.json: sources must be a non-empty array");
-    return;
-  }
-  const sourceIds = new Set();
-  for (const source of document.sources) {
-    if (!source || typeof source !== "object") {
-      fail("config/upstream-sources.json: every source must be an object");
-      continue;
-    }
-    if (!/^[A-Za-z0-9][A-Za-z0-9./_-]*$/.test(source.id ?? "")) {
-      fail(`config/upstream-sources.json: invalid source id ${source.id}`);
-    }
-    if (sourceIds.has(source.id)) {
-      fail(`config/upstream-sources.json: duplicate source id ${source.id}`);
-    }
-    sourceIds.add(source.id);
-    if (typeof source.repository !== "string" || !/^https:\/\//.test(source.repository)) {
-      fail(`config/upstream-sources.json: invalid repository for ${source.id}`);
-    }
-    if (!/^[0-9a-f]{40}$/i.test(source.commit ?? "")) {
-      fail(`config/upstream-sources.json: invalid commit for ${source.id}`);
-    }
-    if (!Array.isArray(source.required_paths) || source.required_paths.length === 0) {
-      fail(`config/upstream-sources.json: required_paths must be non-empty for ${source.id}`);
-      continue;
-    }
-    const paths = new Set();
-    for (const requiredPath of source.required_paths) {
-      if (!safeRelativePath(requiredPath) || !requiredPath.startsWith("skills/")) {
-        fail(`config/upstream-sources.json: unsafe required path ${requiredPath}`);
-      }
-      if (paths.has(requiredPath)) {
-        fail(`config/upstream-sources.json: duplicate required path ${requiredPath}`);
-      }
-      paths.add(requiredPath);
-    }
-    if (source.harness_paths !== undefined) {
-      if (!Array.isArray(source.harness_paths) || source.harness_paths.length === 0) {
-        fail(`config/upstream-sources.json: harness_paths must be non-empty for ${source.id}`);
-      } else {
-        for (const harnessPath of source.harness_paths) {
-          if (!paths.has(harnessPath)) {
-            fail(`config/upstream-sources.json: harness path ${harnessPath} is not in required_paths`);
-          }
-        }
-      }
-    }
-  }
-  if (!sourceIds.has("mattpocock/skills")) {
-    fail("config/upstream-sources.json: missing mattpocock/skills source");
-  }
+  for (const message of upstreamSourceErrors(document)) fail(message);
 }
 
 const manifest = json(manifestPath);
 const upstreamSources = json(upstreamSourcesPath);
 validateUpstreamSources(upstreamSources);
-const upstreamSkillNames = new Set(
-  upstreamSources.sources.flatMap((source) =>
-    source.required_paths.map((requiredPath) => path.basename(path.dirname(requiredPath))),
-  ),
-);
+const upstreamSkillNames = new Set(upstreamSkillNamesFrom(upstreamSources));
 const capabilityProfiles = await loadCapabilityProfiles(
   path.join(root, "config", "capability-profiles.json"),
 );
