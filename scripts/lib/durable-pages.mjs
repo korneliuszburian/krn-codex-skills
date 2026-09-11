@@ -34,12 +34,16 @@ export function checkDurablePages({ root }) {
 
   const adrDirectory = path.join(root, "docs", "adr");
   const contextFile = path.join(root, "CONTEXT.md");
-  if (fs.existsSync(adrDirectory) && fs.existsSync(contextFile)) {
-    const context = fs.readFileSync(contextFile, "utf8");
-    for (const entry of fs.readdirSync(adrDirectory, { withFileTypes: true })) {
-      if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
-      if (!context.includes(entry.name)) {
-        errors.push(`docs/adr/${entry.name}: accepted decision is not linked from CONTEXT.md`);
+  if (fs.existsSync(adrDirectory)) {
+    const adrEntries = fs.readdirSync(adrDirectory, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".md"));
+    if (adrEntries.length > 0 && !fs.existsSync(contextFile)) {
+      errors.push("CONTEXT.md is missing the knowledge map that must link every accepted ADR");
+    } else if (fs.existsSync(contextFile)) {
+      const context = fs.readFileSync(contextFile, "utf8");
+      for (const entry of adrEntries) {
+        if (!context.includes(`](docs/adr/${entry.name})`)) {
+          errors.push(`docs/adr/${entry.name}: accepted decision is not linked from CONTEXT.md`);
+        }
       }
     }
   }

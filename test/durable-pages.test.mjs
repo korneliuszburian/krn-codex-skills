@@ -29,8 +29,18 @@ test("an accepted ADR missing from the knowledge map is reported", () => {
   const root = makeRoot();
   mkdirSync(join(root, "docs", "adr"), { recursive: true });
   writeFileSync(join(root, "docs", "adr", "0001-record.md"), "# ADR\n");
-  const errors = checkDurablePages({ root }).errors;
-  assert.ok(errors.some((error) => error.includes("docs/adr/0001-record.md")), JSON.stringify(errors));
+
+  writeFileSync(join(root, "CONTEXT.md"), "# Context\nmentions 0001-record.md without a link\n");
+  assert.ok(
+    checkDurablePages({ root }).errors.some((error) => error.includes("docs/adr/0001-record.md")),
+    "a bare filename is not a link",
+  );
+
+  rmSync(join(root, "CONTEXT.md"));
+  assert.ok(
+    checkDurablePages({ root }).errors.some((error) => error.includes("knowledge map")),
+    "a missing CONTEXT.md with accepted ADRs must fail closed",
+  );
 
   writeFileSync(join(root, "CONTEXT.md"), "# Context\n- [ADR](docs/adr/0001-record.md)\n");
   assert.deepEqual(checkDurablePages({ root }).errors, []);
