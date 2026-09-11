@@ -5,7 +5,7 @@ function relativePath(root, from, specifier) {
   return relative(root, resolve(dirname(join(root, from)), specifier)).split(sep).join("/");
 }
 
-export function runtimeClosure({ root, manifest }) {
+function runtimeClosure({ root, manifest }) {
   const queue = (manifest.bins ?? []).map((bin) => bin.path).filter((path) => path.endsWith(".mjs"));
   const reachable = new Set();
   while (queue.length > 0) {

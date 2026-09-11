@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import test from "node:test";
 
 import { applyInstall, createInstallPlan, inspectInstall } from "../scripts/lib/install-release.mjs";
@@ -56,6 +56,35 @@ test("inspectInstall reports missing, broken, foreign, and masked states", () =>
     fs.rmSync(join(releaseRoot, "current"), { recursive: true });
     writeFileSync(join(home, "AGENTS.override.md"), "x\n");
     assert.equal(inspectInstall({ codexHome: home }).filesystem.status, "masked_by_override");
+  });
+});
+
+test("applyInstall rolls back reconciled targets when a later step fails", () => {
+  withHome(({ base, home }) => {
+    const source = cleanSource(base);
+    const first = createInstallPlan({ source, cwd: source, codexHome: home });
+    applyInstall(first);
+    const before = inspectInstall({ codexHome: home });
+    assert.equal(before.filesystem.status, "filesystem_installed");
+
+    const firstTarget = before.targets[0];
+    const itemRelative = relative(first.current, fs.readlinkSync(firstTarget.target));
+    fs.unlinkSync(firstTarget.target);
+    fs.symlinkSync(join(first.release, itemRelative), firstTarget.target);
+
+    execFileSync("git", ["-C", source, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "--allow-empty", "-m", "next"]);
+    const next = createInstallPlan({ source, cwd: source, codexHome: home });
+    process.env.KRN_TEST_FAIL_DURING_RECONCILE = "1";
+    try {
+      assert.throws(() => applyInstall(next), /injected reconciliation failure/);
+    } finally {
+      delete process.env.KRN_TEST_FAIL_DURING_RECONCILE;
+    }
+
+    const after = inspectInstall({ codexHome: home });
+    assert.equal(after.filesystem.status, "filesystem_installed");
+    assert.equal(after.commit, first.commit);
+    assert.ok(after.targets.every((target) => target.status === "filesystem_installed"));
   });
 });
 

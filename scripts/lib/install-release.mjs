@@ -312,6 +312,9 @@ function reconcileTargets(plan) {
       }
       fs.symlinkSync(expected, item.target);
       entry.created = true;
+      if (process.env.KRN_TEST_FAIL_DURING_RECONCILE === "1" && changed.length === 1) {
+        throw new Error("injected reconciliation failure");
+      }
     }
   } catch (error) {
     for (const entry of changed.reverse()) {

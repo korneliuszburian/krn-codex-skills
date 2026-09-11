@@ -56,8 +56,8 @@ const cases = [
   },
   {
     module: "../scripts/lib/runtime-closure.mjs",
-    present: ["runtimeClosure", "runtimeClosureErrors"],
-    absent: [],
+    present: ["runtimeClosureErrors"],
+    absent: ["runtimeClosure"],
   },
   {
     module: "../scripts/lib/skill-rules.mjs",
