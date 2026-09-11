@@ -19,6 +19,16 @@ function makeRoot({ topicHeader = HEADER, topicsRows = "| T | [topic.md](topic.m
   return root;
 }
 
+test("a contract referencing a missing repo path is reported", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "config"), { recursive: true });
+  writeFileSync(join(root, "config", "AGENTS.md"), "See `docs/research/missing.md`, `docs/research/topic.md`, `<placeholder>/x.md`, and `agent.md`.\n");
+  const errors = checkDurablePages({ root }).errors;
+  assert.ok(errors.some((error) => error.includes("docs/research/missing.md")), JSON.stringify(errors));
+  assert.ok(!errors.some((error) => error.includes("topic.md")), "an existing path is fine");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a complete durable surface reports no errors", () => {
   const root = makeRoot();
   assert.deepEqual(checkDurablePages({ root }).errors, []);

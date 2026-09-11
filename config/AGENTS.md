@@ -28,7 +28,7 @@ carries current vocabulary; skills own procedures. Do not restate them here.
 
 ## Routing
 
-Choose the smallest owner for the one unresolved uncertainty; installed descriptions are the admission router, and a companion sharpens the same slice without becoming a second owner. One workflow owns each repeated procedure, and `$delivery-loop` owns lifecycle transitions (`references/transitions.md`); upstream owners come from the pinned checkout, never a vendored copy. Select research, decision, diagnosis, decomposition, implementation, or review only for an unresolved gate, then return evidence to that owner; never manufacture a stage. A Goal's budget is a stopping condition to report, not a target to exceed.
+Choose the smallest owner for the one unresolved uncertainty; installed descriptions are the admission router, and a companion sharpens the same slice without becoming a second owner. One workflow owns each repeated procedure, and `$delivery-loop` owns lifecycle transitions (`skills/engineering/delivery-loop/references/transitions.md`); upstream owners come from the pinned checkout, never a vendored copy. Select research, decision, diagnosis, decomposition, implementation, or review only for an unresolved gate, then return evidence to that owner; never manufacture a stage. A Goal's budget is a stopping condition to report, not a target to exceed.
 
 ## Execution protocol
 

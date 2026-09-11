@@ -114,5 +114,14 @@ export function checkDurablePages({ root }) {
     }
   }
 
+  const contractFile = path.join(root, "config", "AGENTS.md");
+  if (fs.existsSync(contractFile)) {
+    for (const match of fs.readFileSync(contractFile, "utf8").matchAll(/`([^`]+)`/g)) {
+      const value = match[1].trim();
+      if (!value.includes("/") || !/\.(md|json|mjs|sh)$/.test(value) || /[<>*$]/.test(value)) continue;
+      if (!fs.existsSync(path.join(root, value))) errors.push(`config/AGENTS.md references a missing path: ${value}`);
+    }
+  }
+
   return { errors };
 }
