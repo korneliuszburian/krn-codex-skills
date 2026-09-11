@@ -44,8 +44,8 @@ an active row, or have no live gate left (its enforcement was removed); retired
 rows are excluded from trigger delivery and do not consume the 24-row active
 budget, so aging is explicit instead of a silent deletion.
 
-| Lesson | Evidence | Enforced by |
-|---|---|---|
+| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |
+|---|---|---|---|---|---|---|
 | Derive the installed runtime closure from the artifact being installed, never from the running installer version. | A release silently omitted `state-brief.mjs` and still reported `filesystem_installed`. | `runtime_paths` in `skills/manifest.json`, the post-switch CLI smoke, and `test/install-smoke.test.mjs`. |
 | Treat model-stated references as unverified; deterministic artifacts are authoritative. | A low-effort review misquoted a base commit SHA before self-correcting. | `config/AGENTS.md` proof rule; `manual:review` at the fixed point. |
 | Prefer proactive capsule rewrites at boundaries over window-limit autocompact. | Context-rot and compaction studies plus official harness guidance. | `skills/engineering/delivery-loop/SKILL.md` step 3; `test/state-check.test.mjs`. |

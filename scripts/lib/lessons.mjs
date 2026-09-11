@@ -10,11 +10,15 @@ const LESSON_BUDGET = 24;
 export function parseLessonText(text) {
   const rows = [];
   const malformed = [];
+  let headerColumns = null;
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed.startsWith("|")) continue;
     if (/^\|[\s:|-]*-{1,}[\s:|-]*\|?$/.test(trimmed)) continue;
-    if (/^\|\s*lesson\s*\|\s*evidence\s*\|/i.test(trimmed)) continue;
+    if (/^\|\s*lesson\s*\|\s*evidence\s*\|/i.test(trimmed)) {
+      headerColumns = trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|").length;
+      continue;
+    }
     const body = trimmed.startsWith("|") ? trimmed.slice(1) : trimmed;
     const inner = body.endsWith("|") ? body.slice(0, -1) : body;
     const cells = inner.split("|").map((cell) => cell.trim());
@@ -27,15 +31,15 @@ export function parseLessonText(text) {
       malformed.push(line);
       continue;
     }
-    rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences, falsifier: cells[4] ?? "", trigger: cells[5] ?? "", status: (cells[6] ?? "").trim() });
+    rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences, falsifier: cells[4] ?? "", trigger: cells[5] ?? "", status: (cells[6] ?? "").trim(), columns: cells.length });
   }
-  return { rows, malformed };
+  return { rows, malformed, headerColumns };
 }
 
 export function parseLessons(file) {
-  if (!fs.existsSync(file)) return { rows: [], malformed: [], budget: LESSON_BUDGET };
-  const { rows, malformed } = parseLessonText(fs.readFileSync(file, "utf8"));
-  return { rows, malformed, budget: LESSON_BUDGET };
+  if (!fs.existsSync(file)) return { rows: [], malformed: [], budget: LESSON_BUDGET, headerColumns: null };
+  const { rows, malformed, headerColumns } = parseLessonText(fs.readFileSync(file, "utf8"));
+  return { rows, malformed, budget: LESSON_BUDGET, headerColumns };
 }
 
 const FALSIFIER = /^(test\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
@@ -169,10 +173,14 @@ function resolveReference(root, scripts, reference) {
 
 export function checkLessons({ root, git = runGit }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
-  const { rows, malformed, budget } = parseLessons(file);
+  const { rows, malformed, budget, headerColumns } = parseLessons(file);
   const errors = malformed.map((row) => `malformed lesson row: ${row.trim()}`);
   const warnings = [];
   const lessons = [];
+  const maxColumns = rows.reduce((widest, row) => Math.max(widest, row.columns ?? 0), 0);
+  if (headerColumns !== null && maxColumns > headerColumns) {
+    errors.push(`workflow-lessons.md header declares ${headerColumns} columns but a row uses ${maxColumns}; widen the header`);
+  }
   const activeRows = rows.filter((row) => !row.status);
   const retiredRows = rows.filter((row) => row.status);
   if (activeRows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} active lesson rows; displace, condense, or retire`);

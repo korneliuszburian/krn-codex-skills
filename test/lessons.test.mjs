@@ -75,7 +75,7 @@ test("recurring friction with only a manual gate must be consolidated", () => {
   const row = (gate, occurrences) => `| A | probe | \`${gate}\` | ${occurrences} | ${FALSIFIER} |`;
   writeFileSync(
     join(root, "docs", "research", "workflow-lessons.md"),
-    `| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n${row("manual:review", "2026-01-01@abcdef1, 2026-01-02@abcdef2")}\n`,
+    `| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n${row("manual:review", "2026-01-01@abcdef1, 2026-01-02@abcdef2")}\n`,
   );
   assert.ok(
     checkLessons({ root }).errors.some((error) => error.includes("recurring friction")),
@@ -84,13 +84,13 @@ test("recurring friction with only a manual gate must be consolidated", () => {
 
   writeFileSync(
     join(root, "docs", "research", "workflow-lessons.md"),
-    `| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n${row("test:state", "2026-01-01@abcdef1, 2026-01-02@abcdef2")}\n`,
+    `| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n${row("test:state", "2026-01-01@abcdef1, 2026-01-02@abcdef2")}\n`,
   );
   assert.deepEqual(checkLessons({ root }).errors, []);
 
   writeFileSync(
     join(root, "docs", "research", "workflow-lessons.md"),
-    `| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n${row("manual:review", "2026-01-01@abcdef1")}\n`,
+    `| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n${row("manual:review", "2026-01-01@abcdef1")}\n`,
   );
   assert.deepEqual(checkLessons({ root }).errors, []);
   rmSync(root, { recursive: true, force: true });
@@ -99,7 +99,7 @@ test("recurring friction with only a manual gate must be consolidated", () => {
 test("recurrence bypasses are closed: no trailing pipe, doc-only gate, duplicate tokens", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");
-  const header = "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|---|\n";
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n";
 
   writeFileSync(
     file,
@@ -122,7 +122,7 @@ test("structural classification uses the resolved path, not the raw reference", 
   const root = makeRoot();
   mkdirSync(join(root, "scripts"), { recursive: true });
   writeFileSync(join(root, "scripts", "x.mjs"), "// gate\n");
-  const header = "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|---|\n";
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n";
   const file = join(root, "docs", "research", "workflow-lessons.md");
 
   writeFileSync(file, `${header}| A | probe | \`node ./scripts/x.mjs\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | ${FALSIFIER} |\n`);
@@ -143,7 +143,7 @@ test("prototype-chain names cannot masquerade as npm scripts", () => {
   const file = join(root, "docs", "research", "workflow-lessons.md");
   writeFileSync(
     file,
-    "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|---|\n| A | probe | `npm run constructor` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | `test/gate.test.mjs::probe@abcdef0` |\n",
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n| A | probe | `npm run constructor` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | `test/gate.test.mjs::probe@abcdef0` |\n",
   );
   assert.ok(checkLessons({ root }).errors.some((e) => e.includes("unknown npm script constructor")), JSON.stringify(checkLessons({ root }).errors));
   rmSync(root, { recursive: true, force: true });
@@ -330,10 +330,20 @@ test("a non-ancestor proof, a stale proof, and an unknown proof commit behave di
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a header narrower than a row fails closed", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  writeFileSync(file, "| Lesson | Evidence | Enforced by |\n|---|---|---|\n| A | probe | `test:state` | 2026-01-01@abcdef1 |\n");
+  assert.ok(checkLessons({ root }).errors.some((error) => error.includes("widen the header")), JSON.stringify(checkLessons({ root }).errors));
+  writeFileSync(file, "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n| A | probe | `test:state` | 2026-01-01@abcdef1 |\n");
+  assert.ok(!checkLessons({ root }).errors.some((error) => error.includes("widen the header")), "a matching header is fine");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");
-  writeFileSync(file, "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n| A | probe | `test:state` | not-a-token |\n");
+  writeFileSync(file, "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n| A | probe | `test:state` | not-a-token |\n");
   assert.equal(parseLessons(file).malformed.length, 1);
   assert.equal(parseLessons(file).rows.length, 0);
   rmSync(root, { recursive: true, force: true });
