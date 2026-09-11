@@ -73,7 +73,13 @@ function runCheck({ root, target }) {
   const result = target.kind === "script"
     ? spawnSync("npm", ["run", target.name], { cwd: root, timeout: 600000, encoding: "utf8", env })
     : spawnSync(process.execPath, target.kind === "test" ? ["--test", target.name] : [target.name], { cwd: root, timeout: 600000, encoding: "utf8", env });
-  return { ok: result.status === 0, status: result.status };
+  return { ok: result.status === 0, status: result.status, output: `${result.stdout ?? ""}${result.stderr ?? ""}` };
+}
+
+function outputTail(output) {
+  if (!output) return "";
+  const lines = output.trim().split("\n").slice(-6).join("\n");
+  return `; output: ${lines}`;
 }
 
 export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck } = {}) {
@@ -179,7 +185,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const outcome = run({ root, target: entry.target });
     results.push({ ref, after: label === "risk" ? "green" : entry.after, status: outcome.ok ? "green" : "red" });
     if (label === "risk" ? !outcome.ok : (entry.after === "green" ? !outcome.ok : outcome.ok)) {
-      errors.push({ rule: label === "risk" ? "regressed-at-risk" : "unmet-prediction", ref, detail: `predicted ${label === "risk" ? "green" : entry.after}, observed ${outcome.ok ? "green" : "red"}` });
+      errors.push({ rule: label === "risk" ? "regressed-at-risk" : "unmet-prediction", ref, detail: `predicted ${label === "risk" ? "green" : entry.after}, observed ${outcome.ok ? "green" : "red"}${outputTail(outcome.output)}` });
     }
   };
   for (const ref of targets.keys()) verify(ref, "contract");
