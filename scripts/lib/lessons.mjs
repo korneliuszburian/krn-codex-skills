@@ -35,7 +35,7 @@ export function parseLessons(file) {
 
 const FALSIFIER = /^(test\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
 
-function resolveFalsifier(root, cell) {
+function resolveFalsifier(root, cell, git = runGit) {
   const raw = (cell ?? "").replace(/`/g, "").trim();
   if (!raw) return { ok: false, reason: "no falsifier recorded" };
   const match = FALSIFIER.exec(raw);
@@ -51,27 +51,39 @@ function resolveFalsifier(root, cell) {
   if (!fs.readFileSync(absolute, "utf8").includes(caseName)) {
     return { ok: false, reason: `falsifier case "${caseName}" is not present in ${rel}` };
   }
-  if (runGit(root, ["rev-parse", "--git-dir"]).ok) {
-    const known = runGit(root, ["cat-file", "-e", `${sha}^{commit}`]).ok;
-    if (known && !runGit(root, ["merge-base", "--is-ancestor", sha, "HEAD"]).ok) {
+  if (git(root, ["rev-parse", "--git-dir"]).ok) {
+    const known = git(root, ["cat-file", "-e", `${sha}^{commit}`]).ok;
+    if (known && !git(root, ["merge-base", "--is-ancestor", sha, "HEAD"]).ok) {
       return { ok: false, reason: `falsifier commit ${sha} for ${spec} is not an ancestor of HEAD` };
     }
   }
   return { ok: true };
 }
 
-function proofWarnings(root, sha, rel, gates) {
-  if (!runGit(root, ["rev-parse", "--git-dir"]).ok) return [];
-  if (!runGit(root, ["cat-file", "-e", `${sha}^{commit}`]).ok) return [];
+function proofWarnings(root, sha, rel, gates, git = runGit) {
+  if (!git(root, ["rev-parse", "--git-dir"]).ok) return [];
+  if (!git(root, ["cat-file", "-e", `${sha}^{commit}`]).ok) return [];
   const warnings = [];
   for (const [target, label] of [[rel, rel], ...gates.filter((gate) => gate !== rel).map((gate) => [gate, gate])]) {
-    const newer = runGit(root, ["log", "--oneline", `${sha}..HEAD`, "--", target]);
+    const newer = git(root, ["log", "--oneline", `${sha}..HEAD`, "--", target]);
     if (newer.ok && newer.out) {
-      const since = runGit(root, ["rev-list", "--count", `${sha}..HEAD`, "--", target]);
+      const since = git(root, ["rev-list", "--count", `${sha}..HEAD`, "--", target]);
       warnings.push(`proof ${sha} predates later changes to ${label} (${since.ok ? since.out : "?"} commits since); re-run \`npm run lessons:verify\``);
     }
   }
   return warnings;
+}
+
+function recurrenceAfterProof(root, sha, occurrences, git = runGit) {
+  if (!git(root, ["rev-parse", "--git-dir"]).ok) return [];
+  if (!git(root, ["cat-file", "-e", `${sha}^{commit}`]).ok) return [];
+  const late = [];
+  for (const token of occurrences) {
+    const occurrence = token.split("@")[1];
+    if (occurrence === sha || !git(root, ["cat-file", "-e", `${occurrence}^{commit}`]).ok) continue;
+    if (git(root, ["merge-base", "--is-ancestor", sha, occurrence]).ok) late.push(token);
+  }
+  return late;
 }
 
 function resolveReference(root, scripts, reference) {
@@ -100,7 +112,7 @@ function resolveReference(root, scripts, reference) {
   return { ok: false, reason: `no npm script or owned path at ${reference}` };
 }
 
-export function checkLessons({ root }) {
+export function checkLessons({ root, git = runGit }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
   const { rows, malformed, budget } = parseLessons(file);
   const errors = malformed.map((row) => `malformed lesson row: ${row.trim()}`);
@@ -130,13 +142,16 @@ export function checkLessons({ root }) {
       errors.push(`lesson "${row.lesson}": recurring friction (${row.occurrences.length} occurrences) has no structural gate; consolidate it into a script or test, or supersede the row`);
     }
     if (row.occurrences.length >= 2 || row.falsifier) {
-      const falsifier = resolveFalsifier(root, row.falsifier);
+      const falsifier = resolveFalsifier(root, row.falsifier, git);
       if (!falsifier.ok) {
         errors.push(`lesson "${row.lesson}": recurring friction needs the falsifier that proved the gate; ${falsifier.reason}`);
       } else {
         const match = FALSIFIER.exec((row.falsifier ?? "").replace(/`/g, "").trim());
         const gates = resolved.map((entry) => entry.path).filter(Boolean);
-        for (const warning of proofWarnings(root, match[3], match[1], gates)) warnings.push(`lesson "${row.lesson}": ${warning}`);
+        for (const warning of proofWarnings(root, match[3], match[1], gates, git)) warnings.push(`lesson "${row.lesson}": ${warning}`);
+        for (const token of recurrenceAfterProof(root, match[3], row.occurrences, git)) {
+          errors.push(`lesson "${row.lesson}": friction recurred at ${token} after its consolidation proof @${match[3]}; the gate did not stick — strengthen it or open a distinct class`);
+        }
       }
     }
     lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences, falsifier: row.falsifier });

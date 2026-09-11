@@ -188,6 +188,29 @@ test("a falsifier cannot escape the repository through a symlink", () => {
   rmSync(outside, { recursive: true, force: true });
 });
 
+test("friction that recurs after its consolidation proof fails closed", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n";
+  const fakeGit = (_root, args) => {
+    if (args[0] === "rev-parse") return { ok: true, out: "" };
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    if (args[0] === "log") return { ok: true, out: "" };
+    if (args[0] === "merge-base") {
+      const descendant = args[3];
+      return { ok: descendant === "HEAD" || descendant === "aaaaaaa", out: "" };
+    }
+    return { ok: false, out: "" };
+  };
+
+  writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-02@bbbbbbb, 2026-01-03@aaaaaaa | \`test/gate.test.mjs::probe@ccccccc\` |\n`);
+  assert.ok(checkLessons({ root, git: fakeGit }).errors.some((error) => error.includes("recurred at 2026-01-03@aaaaaaa")), "a post-proof occurrence must fail");
+
+  writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-02@bbbbbbb | \`test/gate.test.mjs::probe@ccccccc\` |\n`);
+  assert.deepEqual(checkLessons({ root, git: fakeGit }).errors, [], "only pre-proof occurrences are allowed");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

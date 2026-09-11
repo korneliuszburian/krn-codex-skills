@@ -18,7 +18,9 @@ the file exists and, in a git checkout, that the commit is an ancestor of HEAD,
 so a gate whose proof is missing or unreachable fails closed.
 `lessons:check` also warns when the proof commit predates later changes to the
 falsifier file, and `lessons:verify` re-runs each named case: a failing case, or
-a pattern that matches no test, fails the command.
+a pattern that matches no test, fails the command. A recurrence recorded after
+the proof commit fails closed as a gate that did not stick: the friction came
+back, so the lesson is strengthened or split into a distinct class.
 
 | Lesson | Evidence | Enforced by |
 |---|---|---|
