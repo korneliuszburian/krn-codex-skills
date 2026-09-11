@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { validateManifestSkills } from "../scripts/lib/manifest-rules.mjs";
+import {
+  pretoolUseHookErrors,
+  retirementErrors,
+  validateManifestSkills,
+} from "../scripts/lib/manifest-rules.mjs";
 
 const base = () => ({
   skills: [{ implicit: true, name: "alpha", path: "skills/engineering/alpha" }],
@@ -71,4 +75,78 @@ test("validateManifestSkills checks harness and runtime invariants", () => {
       "manifest: runtime_paths must be a non-empty array",
     ),
   );
+});
+
+test("pretoolUseHookErrors accepts the canonical hook and rejects drift", () => {
+  const valid = {
+    hooks: {
+      PreToolUse: [
+        {
+          matcher: "^(Bash|apply_patch)$",
+          hooks: [{ type: "command", command: "python3 /hooks/krn_pretooluse.py" }],
+        },
+      ],
+    },
+  };
+  assert.deepEqual(pretoolUseHookErrors(valid, "hooks.json"), []);
+  assert.deepEqual(pretoolUseHookErrors({}, "hooks.json"), [
+    "hooks.json: expected one PreToolUse matcher group",
+  ]);
+  assert.deepEqual(
+    pretoolUseHookErrors(
+      { hooks: { PreToolUse: [{ matcher: ".*", hooks: [] }] } },
+      "hooks.json",
+    ),
+    ["hooks.json: expected one exact command and edit hook"],
+  );
+  assert.deepEqual(
+    pretoolUseHookErrors(
+      {
+        hooks: {
+          PreToolUse: [
+            { matcher: ".*", hooks: [{ type: "command", command: "python3 /hooks/krn_pretooluse.py" }] },
+          ],
+        },
+      },
+      "hooks.json",
+    ),
+    ["hooks.json: expected one exact command and edit hook"],
+  );
+  assert.deepEqual(
+    pretoolUseHookErrors(
+      { hooks: { PreToolUse: [{ matcher: "^(Bash|apply_patch)$", hooks: [{ type: "command", command: "echo" }] }] } },
+      "hooks.json",
+    ),
+    ["hooks.json: invalid global PreToolUse handler"],
+  );
+});
+
+test("retirementErrors validates retired skill metadata", () => {
+  const local = new Set(["current"]);
+  const base = { name: "old", owner: "me", replacement: "current" };
+  assert.deepEqual(retirementErrors([base], local), { errors: [], names: new Set(["old"]) });
+  assert.deepEqual(retirementErrors([{ ...base, replacement: null }], local).errors, []);
+  const cases = [
+    [(doc) => (doc.replacement = "ghost"), /has unknown replacement ghost/],
+    [(doc) => (doc.owner = ""), /must declare an owner/],
+    [(doc) => (doc.replacement = "old"), /cannot replace itself/],
+    [(doc) => (doc.name = "Bad"), /invalid retired skill name/],
+    [(doc) => (doc.extra = true), /must contain only name, owner, and replacement/],
+  ];
+  for (const [mutate, pattern] of cases) {
+    const retired = { ...base };
+    mutate(retired);
+    const { errors } = retirementErrors([retired], local);
+    assert.ok(errors.some((message) => pattern.test(message)), `${pattern} not in ${errors}`);
+  }
+  assert.deepEqual(
+    retirementErrors([{ ...base, name: "current", replacement: null }], local).errors,
+    ["manifest: retired skill current is still active"],
+  );
+  assert.deepEqual(retirementErrors([base, base], local).errors, [
+    "manifest: duplicate retired skill name old",
+  ]);
+  assert.deepEqual(retirementErrors(undefined, local).errors, [
+    "manifest: retired_skills must be an array",
+  ]);
 });

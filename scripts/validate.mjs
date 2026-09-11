@@ -20,7 +20,11 @@ import {
   skillMarkdownErrors,
 } from "./lib/content-rules.mjs";
 import { isSafeRelativePath as safeRelativePath } from "./lib/path-rules.mjs";
-import { validateManifestSkills } from "./lib/manifest-rules.mjs";
+import {
+  pretoolUseHookErrors,
+  retirementErrors,
+  validateManifestSkills,
+} from "./lib/manifest-rules.mjs";
 import {
   upstreamSkillNamesFrom,
   upstreamSourceErrors,
@@ -194,28 +198,8 @@ for (const legacyPath of manifestArray(manifest.legacy_global_hook_paths, "legac
 
 if (globalHooksPathSafe) {
   const hooks = json(path.join(root, manifest.global_hooks));
-  const preToolUse = hooks.hooks?.PreToolUse;
-  if (!Array.isArray(preToolUse) || preToolUse.length !== 1) {
-    fail(`${manifest.global_hooks}: expected one PreToolUse matcher group`);
-  } else {
-    const group = preToolUse[0];
-    const handlers = group?.hooks;
-    if (
-      group?.matcher !== "^(Bash|apply_patch)$" ||
-      !Array.isArray(handlers) ||
-      handlers.length !== 1
-    ) {
-      fail(`${manifest.global_hooks}: expected one exact command and edit hook`);
-    } else {
-      const handler = handlers[0];
-      if (
-        handler?.type !== "command" ||
-        typeof handler?.command !== "string" ||
-        !handler.command.includes("/hooks/krn_pretooluse.py")
-      ) {
-        fail(`${manifest.global_hooks}: invalid global PreToolUse handler`);
-      }
-    }
+  for (const message of pretoolUseHookErrors(hooks, manifest.global_hooks)) {
+    fail(message);
   }
 }
 
@@ -266,47 +250,12 @@ const validSourceOnlySkills = validLocalSkills.filter((skill) =>
   sourceOnlySkills.includes(skill),
 );
 
-if (!Array.isArray(manifest.retired_skills)) {
-  fail("manifest: retired_skills must be an array");
-}
-const retiredSkillNames = new Set();
-for (const retired of manifest.retired_skills ?? []) {
-  if (!retired || typeof retired !== "object" || Array.isArray(retired)) {
-    fail("manifest: retired skill metadata must be an object");
-    continue;
-  }
-  const keys = Object.keys(retired).sort();
-  if (keys.join(",") !== "name,owner,replacement") {
-    fail(
-      `manifest: retired skill ${retired.name ?? "<unknown>"} must contain only name, owner, and replacement`,
-    );
-  }
-  if (!/^[a-z0-9-]{1,63}$/.test(retired.name ?? "")) {
-    fail(`manifest: invalid retired skill name ${retired.name}`);
-    continue;
-  }
-  if (retiredSkillNames.has(retired.name)) {
-    fail(`manifest: duplicate retired skill name ${retired.name}`);
-  }
-  retiredSkillNames.add(retired.name);
-  if (localSkillNames.has(retired.name)) {
-    fail(`manifest: retired skill ${retired.name} is still active`);
-  }
-  if (typeof retired.owner !== "string" || !retired.owner.trim()) {
-    fail(`manifest: retired skill ${retired.name} must declare an owner`);
-  }
-  if (
-    retired.replacement !== null &&
-    (typeof retired.replacement !== "string" ||
-      !localSkillNames.has(retired.replacement))
-  ) {
-    fail(
-      `manifest: retired skill ${retired.name} has unknown replacement ${retired.replacement}`,
-    );
-  }
-  if (retired.replacement === retired.name) {
-    fail(`manifest: retired skill ${retired.name} cannot replace itself`);
-  }
+{
+  const { errors: retirementProblems } = retirementErrors(
+    manifest.retired_skills,
+    localSkillNames,
+  );
+  for (const message of retirementProblems) fail(message);
 }
 
 validateReadmeSkillsTable(readmePath, validInstallableSkills);

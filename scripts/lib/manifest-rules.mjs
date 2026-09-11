@@ -4,6 +4,81 @@ import { isSafeRelativePath } from "./path-rules.mjs";
 
 const SKILL_PATH_GROUPS = ["engineering", "advisory", "frontend", "meta"];
 
+export function pretoolUseHookErrors(hooks, label) {
+  const errors = [];
+  const preToolUse = hooks.hooks?.PreToolUse;
+  if (!Array.isArray(preToolUse) || preToolUse.length !== 1) {
+    errors.push(`${label}: expected one PreToolUse matcher group`);
+    return errors;
+  }
+  const group = preToolUse[0];
+  const handlers = group?.hooks;
+  if (
+    group?.matcher !== "^(Bash|apply_patch)$" ||
+    !Array.isArray(handlers) ||
+    handlers.length !== 1
+  ) {
+    errors.push(`${label}: expected one exact command and edit hook`);
+    return errors;
+  }
+  const handler = handlers[0];
+  if (
+    handler?.type !== "command" ||
+    typeof handler?.command !== "string" ||
+    !handler.command.includes("/hooks/krn_pretooluse.py")
+  ) {
+    errors.push(`${label}: invalid global PreToolUse handler`);
+  }
+  return errors;
+}
+
+export function retirementErrors(retiredSkills, localSkillNames) {
+  const errors = [];
+  if (!Array.isArray(retiredSkills)) {
+    errors.push("manifest: retired_skills must be an array");
+  }
+  const names = new Set();
+  for (const retired of retiredSkills ?? []) {
+    if (!retired || typeof retired !== "object" || Array.isArray(retired)) {
+      errors.push("manifest: retired skill metadata must be an object");
+      continue;
+    }
+    const keys = Object.keys(retired).sort();
+    if (keys.join(",") !== "name,owner,replacement") {
+      errors.push(
+        `manifest: retired skill ${retired.name ?? "<unknown>"} must contain only name, owner, and replacement`,
+      );
+    }
+    if (!/^[a-z0-9-]{1,63}$/.test(retired.name ?? "")) {
+      errors.push(`manifest: invalid retired skill name ${retired.name}`);
+      continue;
+    }
+    if (names.has(retired.name)) {
+      errors.push(`manifest: duplicate retired skill name ${retired.name}`);
+    }
+    names.add(retired.name);
+    if (localSkillNames.has(retired.name)) {
+      errors.push(`manifest: retired skill ${retired.name} is still active`);
+    }
+    if (typeof retired.owner !== "string" || !retired.owner.trim()) {
+      errors.push(`manifest: retired skill ${retired.name} must declare an owner`);
+    }
+    if (
+      retired.replacement !== null &&
+      (typeof retired.replacement !== "string" ||
+        !localSkillNames.has(retired.replacement))
+    ) {
+      errors.push(
+        `manifest: retired skill ${retired.name} has unknown replacement ${retired.replacement}`,
+      );
+    }
+    if (retired.replacement === retired.name) {
+      errors.push(`manifest: retired skill ${retired.name} cannot replace itself`);
+    }
+  }
+  return { errors, names };
+}
+
 export function validateManifestSkills(document) {
   const errors = [];
   if (!Array.isArray(document.skills)) {
