@@ -64,6 +64,11 @@ const cases = [
     present: ["resolveProfile"],
     absent: [],
   },
+  {
+    module: "../scripts/lib/catalog-config.mjs",
+    present: ["loadCatalogConfigPlan", "applyCatalogConfigPlan"],
+    absent: [],
+  },
 ];
 
 test("module surfaces expose only the intended interface", async () => {
