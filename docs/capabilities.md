@@ -6,7 +6,7 @@ reconciles named profiles into `config.toml` without rewriting unrelated
 configuration.
 
 Status: `accepted`. Consumer: operators selecting or auditing a KRN capability
-profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-10.
+profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-11.
 
 ## Trust model
 
@@ -27,6 +27,16 @@ profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-10.
 The permanent quarantine includes `superpowers`. The catalog may report its
 logical name as policy evidence, but it never stats, resolves, traverses, or
 reads its files.
+
+## Skill roots
+
+The inventory reads `$CODEX_HOME/skills` (`user`), `$CODEX_HOME/skills/.system`
+(`system`), `$AGENTS_HOME/skills` (`global-index`), and
+`~/.config/opencode/skills` (`vendor-global`, the OpenCode host that loads it).
+A symlinked skill counts only when its resolved `SKILL.md` exists, so a dangling
+symlink is not reported as a capability. The same skill name found in two roots
+is listed once per scope and is not deduplicated, because scope drives profile
+reconciliation; this double-counts a name that two roots share.
 
 ## Profiles
 
