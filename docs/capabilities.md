@@ -36,7 +36,9 @@ The inventory reads `$CODEX_HOME/skills` (`user`), `$CODEX_HOME/skills/.system`
 A symlinked skill counts only when its resolved `SKILL.md` exists, so a dangling
 symlink is not reported as a capability. The same skill name found in two roots
 is listed once per scope and is not deduplicated, because scope drives profile
-reconciliation; this double-counts a name that two roots share.
+reconciliation; this double-counts a name that two roots share. The always-loaded
+contract (`config/AGENTS.md`) is 55 lines and 5722 bytes, and `validate` caps it
+at 60 lines.
 
 ## Profiles
 
