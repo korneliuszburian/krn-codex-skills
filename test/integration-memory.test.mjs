@@ -22,27 +22,28 @@ test("the memory harness composes: a triggered lesson blocks an unreconstructed 
     git(root, ["init", "-q"]);
     mkdirSync(join(root, "docs", "research"), { recursive: true });
     mkdirSync(join(root, "scripts"), { recursive: true });
-    writeFileSync(join(root, "package.json"), `${JSON.stringify({ scripts: { "test:ok": "true" } })}\n`);
+    mkdirSync(join(root, "test"), { recursive: true });
     writeFileSync(join(root, "scripts", "x.mjs"), "export const x = 1;\n");
+    writeFileSync(join(root, "test", "gate.mjs"), 'import test from "node:test";\ntest("gate", () => {});\n');
     writeFileSync(
       join(root, "docs", "research", "workflow-lessons.md"),
-      "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Adapters | probe | `test:ok` | | | path:scripts/x.mjs |\n",
+      "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Adapters | probe | `test/gate.mjs` | | | path:scripts/x.mjs |\n",
     );
     const base = commit(root, "chore: init");
 
     writeFileSync(join(root, "scripts", "x.mjs"), "export const x = 2;\n");
-    const unreconstructed = commit(root, "feat: touch x\n\nChange-contract: test:ok:red->green");
+    const unreconstructed = commit(root, "feat: touch x\n\nChange-contract: test/gate.mjs:red->green");
     const blocked = run(["changes", "check", "--root", root, "--base", base, "--head", unreconstructed]);
     assert.ok(blocked.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(blocked.errors));
 
     writeFileSync(join(root, "scripts", "x.mjs"), "export const x = 3;\n");
-    const reconstructed = commit(root, "fix: touch x\n\nChange-contract: test:ok:red->green\nRecall: test:ok => scripts/x.mjs");
+    const reconstructed = commit(root, "fix: touch x\n\nChange-contract: test/gate.mjs:red->green\nRecall: test/gate.mjs => scripts/x.mjs");
     const allowed = run(["changes", "check", "--root", root, "--base", unreconstructed, "--head", reconstructed]);
     assert.ok(!allowed.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(allowed.errors));
 
     const lessons = run(["lessons", "check", "--root", root]);
     assert.deepEqual(lessons.errors, [], JSON.stringify(lessons.errors));
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
