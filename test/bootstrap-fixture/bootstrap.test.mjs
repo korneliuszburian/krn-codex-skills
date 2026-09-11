@@ -86,7 +86,7 @@ function fixtureCapsule({ outcome, cleanup }) {
     "Open unknowns and blockers with owners: none",
     "Workflow friction and lesson candidates: none",
     "Durable CONTEXT / ADR / research references: none",
-    "Next bounded owner and action: none",
+    "Next bounded owner and action: continue the fixture slice",
     "",
   ].join("\n");
 }

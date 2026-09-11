@@ -32,6 +32,18 @@ export function checkDurablePages({ root }) {
     }
   }
 
+  const adrDirectory = path.join(root, "docs", "adr");
+  const contextFile = path.join(root, "CONTEXT.md");
+  if (fs.existsSync(adrDirectory) && fs.existsSync(contextFile)) {
+    const context = fs.readFileSync(contextFile, "utf8");
+    for (const entry of fs.readdirSync(adrDirectory, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
+      if (!context.includes(entry.name)) {
+        errors.push(`docs/adr/${entry.name}: accepted decision is not linked from CONTEXT.md`);
+      }
+    }
+  }
+
   const lessonsFile = path.join(researchDirectory, "workflow-lessons.md");
   if (fs.existsSync(lessonsFile)) {
     const parsed = parseLessons(lessonsFile);

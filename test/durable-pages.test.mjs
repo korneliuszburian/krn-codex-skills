@@ -15,11 +15,24 @@ function makeRoot({ topicHeader = HEADER, topicsRows = "| T | [topic.md](topic.m
   writeFileSync(join(root, "docs", "research", "topic.md"), `# Topic\n\n${topicHeader}\nbody\n`);
   writeFileSync(join(root, "docs", "capabilities.md"), `# Caps\n\n${HEADER}\n`);
   writeFileSync(join(root, "docs", "migration.md"), `# Migration\n\n${HEADER}\n`);
+  writeFileSync(join(root, "CONTEXT.md"), "# Context\n");
   return root;
 }
 
 test("a complete durable surface reports no errors", () => {
   const root = makeRoot();
+  assert.deepEqual(checkDurablePages({ root }).errors, []);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an accepted ADR missing from the knowledge map is reported", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "docs", "adr"), { recursive: true });
+  writeFileSync(join(root, "docs", "adr", "0001-record.md"), "# ADR\n");
+  const errors = checkDurablePages({ root }).errors;
+  assert.ok(errors.some((error) => error.includes("docs/adr/0001-record.md")), JSON.stringify(errors));
+
+  writeFileSync(join(root, "CONTEXT.md"), "# Context\n- [ADR](docs/adr/0001-record.md)\n");
   assert.deepEqual(checkDurablePages({ root }).errors, []);
   rmSync(root, { recursive: true, force: true });
 });

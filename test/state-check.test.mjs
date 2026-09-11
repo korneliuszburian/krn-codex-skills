@@ -25,7 +25,7 @@ function makeRepo({ initialCommit = true } = {}) {
   return { root, head: initialCommit ? git(root, ["rev-parse", "HEAD"]) : null };
 }
 
-function capsule({ outcome = "ACTIVE", publication = "LOCAL_ONLY", restart = "ABSENT", cleanup = "none", fixedPoint, friction = "none" }) {
+function capsule({ outcome = "ACTIVE", publication = "LOCAL_ONLY", restart = "ABSENT", cleanup = "none", fixedPoint, friction = "none", next = "continue the bounded slice" }) {
   return [
     "Outcome and observable acceptance: test",
     "Current workflow owner and sole writer: $delivery-loop",
@@ -42,7 +42,7 @@ function capsule({ outcome = "ACTIVE", publication = "LOCAL_ONLY", restart = "AB
     "Open unknowns and blockers with owners: none",
     `Workflow friction and lesson candidates: ${friction}`,
     "Durable CONTEXT / ADR / research references: none",
-    "Next bounded owner and action: none",
+    `Next bounded owner and action: ${next}`,
     "",
   ].join("\n");
 }
@@ -177,6 +177,25 @@ test("a valid older fixed point warns instead of failing", () => {
   assert.equal(report.status, "clean");
   assert.deepEqual(report.errors, []);
   assert.ok(report.warnings.some((warning) => warning.rule === "stale-fixed-point"));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a stale COMPLETE capsule fails instead of warning", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }));
+  git(root, ["commit", "-q", "--allow-empty", "-m", "advance"]);
+  const report = inspectSpineState({ repo: root });
+  assert.equal(report.status, "divergent");
+  assert.ok(report.errors.some((error) => error.rule === "stale-fixed-point"), rules(report).join(","));
+  assert.equal(report.warnings.some((warning) => warning.rule === "stale-fixed-point"), false);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an ACTIVE capsule without a next action fails", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, capsule({ next: "none", fixedPoint: `HEAD=${head}` }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("active-without-next"), rules(report).join(","));
   rmSync(root, { recursive: true, force: true });
 });
 

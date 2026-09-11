@@ -190,12 +190,15 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       }
       const commits = [...fixedPoint.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
       if (commits.length > 0 && currentHead.ok && !commits.includes(currentHead.out.toLowerCase())) {
-        warnings.push({
-          id: entry.name,
-          rule: "stale-fixed-point",
-          detail: `capsule records ${commits.join(", ")} but HEAD is ${currentHead.out}`,
-        });
+        const stale = { id: entry.name, rule: "stale-fixed-point", detail: `capsule records ${commits.join(", ")} but HEAD is ${currentHead.out}` };
+        if (outcome && stripMarkup(outcome) === "COMPLETE") errors.push(stale);
+        else warnings.push(stale);
       }
+    }
+
+    const next = fields["Next bounded owner and action"];
+    if (outcome && stripMarkup(outcome) === "ACTIVE" && next && /^(none|n\/a|tbd)$/i.test(stripMarkup(next))) {
+      errors.push({ id: entry.name, rule: "active-without-next", detail: stripMarkup(next) });
     }
 
     if (outcome && stripMarkup(outcome) === "COMPLETE") {
