@@ -30,7 +30,7 @@ const usage = `Usage:
   krn-codex doctor [--json]
   krn-codex capability <inventory|usage|profile|plan|apply|check> [...args]
   krn-codex repo <inspect|apply> [...args]
-  krn-codex state <check|compile|resume> [PATH] [--json]
+  krn-codex state <check|compile|resume> [PATH|--root PATH] [--json]
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
   krn-codex lessons <check|verify> --root DIR [--json]
   krn-codex changes check --base REF [--head REF] --root DIR [--json]

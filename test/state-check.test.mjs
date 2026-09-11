@@ -15,6 +15,8 @@ test("state check honors --root instead of ignoring it", () => {
   const result = spawnSync(process.execPath, [cli, "state", "check", "--root", root, "--json"], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(JSON.parse(result.stdout).root, root);
+  const usage = spawnSync(process.execPath, [cli], { encoding: "utf8" });
+  assert.match(`${usage.stdout}${usage.stderr}`, /state <check\|compile\|resume> \[PATH\|--root PATH\]/, "usage must document the state --root form");
   rmSync(root, { recursive: true, force: true });
 });
 
