@@ -194,6 +194,7 @@ function managedBlock(tracker, domain, delivery) {
 - **Domain knowledge:** ${domainSummary(domain)}
 - **Delivery:** ${deliverySummary(delivery)}
 - **Transient runs:** Keep resumable workflow state under the ignored \`.krn/runs/<workflow>/<run-id>/\`. Delete it when its sole in-goal consumer finishes the accepted outcome or its owning Goal closes; cross-Goal continuation transfers condensed truth into the successor's own run first. For a superseded or abandoned delivery run, transfer alone is not consumer completion: retain the original until its Goal's non-active state is read back. When the installed \`krn-codex\` CLI is available, verify a file-backed outcome capsule with \`krn-codex state check\` from the repository root before resuming or completing.
+- **Repository memory:** Cross-run lessons live in \`docs/research/workflow-lessons.md\`. When the installed \`krn-codex\` CLI is available, verify them with \`krn-codex lessons check\` and re-run recorded proofs with \`krn-codex lessons verify\` from the repository root.
 
 Installed global skills own implementation, diagnosis, review, and reusable engineering procedure. Do not copy or rename them in this repository.
 ${END}`;
@@ -241,6 +242,39 @@ function thinAgentsTemplate(root) {
 `;
 }
 
+const LESSONS_PATH = join("docs", "research", "workflow-lessons.md");
+
+function lessonsTemplate() {
+  return [
+    "# Workflow lessons",
+    "",
+    "Repository-scoped cross-run lessons. Each row carries the evidence that earned",
+    "it and the gate that enforces it. Bounded at 24 active rows; `krn-codex lessons",
+    "check` verifies the schema and `krn-codex lessons verify` re-runs recorded proofs.",
+    "",
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |",
+    "|---|---|---|---|---|---|---|",
+    "",
+  ].join("\n");
+}
+
+// Memory is optional, so seed the page only when absent and never overwrite a
+// repository's own lessons.
+function bootstrapLessonsIfAbsent(root) {
+  const target = join(root, LESSONS_PATH);
+  if (lstatSync(target, { throwIfNoEntry: false })) return [];
+  const contents = lessonsTemplate();
+  assertManagedFileSafe(root, target, contents);
+  mkdirSync(dirname(target), { recursive: true });
+  try {
+    writeFileSync(target, contents, { flag: "wx" });
+  } catch (error) {
+    if (error.code === "EEXIST") return [];
+    throw error;
+  }
+  return [LESSONS_PATH];
+}
+
 // The skill owns the repo brief: when no instruction owner exists, seed a thin
 // AGENTS.md (specifics only), so a tracker's init (e.g. bd) never fills the
 // void with its own always-loaded reference bloat.
@@ -285,6 +319,7 @@ const managedFiles = new Map([
 for (const [path, contents] of managedFiles) assertManagedFileSafe(root, path, contents);
 
 const bootstrapped = bootstrapInstructionIfAbsent(root);
+const lessonsBootstrapped = bootstrapLessonsIfAbsent(root);
 const instructionPath = chooseInstruction(root, options.instruction);
 assertInstructionSafe(root, instructionPath);
 const current = readFileSync(instructionPath, "utf8");
@@ -295,6 +330,7 @@ for (const [path, contents] of managedFiles) writeOwned(path, contents);
 
 const written = [...new Set([
   ...bootstrapped,
+  ...lessonsBootstrapped,
   relative(root, instructionPath),
   ...[...managedFiles.keys()].map((path) => relative(root, path)),
 ])];

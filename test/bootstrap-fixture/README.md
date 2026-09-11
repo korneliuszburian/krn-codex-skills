@@ -11,7 +11,7 @@ checks:
 
 - the CLI resolves through the immutable release and `current` link;
 - `repo inspect` is read-only before setup;
-- `repo apply` writes only `AGENTS.md` and `.krn/runs/.gitignore`;
+- `repo apply` writes only `AGENTS.md`, `docs/research/workflow-lessons.md`, and `.krn/runs/.gitignore`;
 - a second apply is byte-idempotent;
 - foreign `LOCAL.md` prose is untouched;
 - an unowned managed-file collision fails closed without partial mutation;
