@@ -59,12 +59,17 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   const usableGit = gitRepo.ok && gitRepo.out === "true";
 
   const capsuleBase = join(root, ".krn", "runs", "delivery-loop");
+  const capsuleStore = statSync(capsuleBase, { throwIfNoEntry: false });
   let candidates = [];
-  if (existsSync(capsuleBase)) {
-    try {
-      candidates = readdirSync(capsuleBase, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name));
-    } catch {
-      errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop" });
+  if (capsuleStore) {
+    if (!capsuleStore.isDirectory()) {
+      errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop is not a directory" });
+    } else {
+      try {
+        candidates = readdirSync(capsuleBase, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name));
+      } catch {
+        errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop" });
+      }
     }
   }
 

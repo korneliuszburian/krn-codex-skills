@@ -44,11 +44,37 @@ export function checkDurablePages({ root }) {
     if (adrEntries.length > 0 && !fs.existsSync(contextFile)) {
       errors.push("CONTEXT.md is missing the knowledge map that must link every accepted ADR");
     } else if (fs.existsSync(contextFile)) {
-      const context = fs.readFileSync(contextFile, "utf8")
+      const stripComments = (text) => {
+        let out = "";
+        let index = 0;
+        let depth = 0;
+        while (index < text.length) {
+          const open = text.indexOf("<!--", index);
+          const close = text.indexOf("-->", index);
+          if (open === -1 && close === -1) {
+            if (depth === 0) out += text.slice(index);
+            break;
+          }
+          if (open !== -1 && (close === -1 || open < close)) {
+            if (depth === 0) out += text.slice(index, open);
+            depth += 1;
+            index = open + 4;
+          } else {
+            depth = Math.max(0, depth - 1);
+            index = close + 3;
+          }
+        }
+        return out;
+      };
+      const context = stripComments(fs.readFileSync(contextFile, "utf8"))
         .replace(/```[\s\S]*?```/g, "")
-        .replace(/<!--[\s\S]*?-->/g, "");
+        .split("\n")
+        .filter((line) => !/^(?: {4,}|\t)/.test(line))
+        .join("\n");
       for (const entry of adrEntries) {
-        if (!context.includes(`](docs/adr/${entry.name})`)) {
+        const escaped = entry.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const link = new RegExp(`(?<!\\\\)\\]\\(\\s*<?docs/adr/${escaped}(?:[#?][^)\\s]*)?\\s*(?:"[^"]*")?\\s*>?\\s*\\)`);
+        if (!link.test(context)) {
           errors.push(`docs/adr/${entry.name}: accepted decision is not linked from CONTEXT.md`);
         }
       }

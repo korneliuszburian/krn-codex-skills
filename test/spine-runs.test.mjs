@@ -34,6 +34,11 @@ test("runDirectories includes a symlinked run so it cannot hide from the orphan 
       runDirectories(root).map((run) => run.pointer),
       [".krn/runs/slice-work/run-link"],
     );
+
+    const file = join(root, "not-a-dir");
+    writeFileSync(file, "x");
+    symlinkSync(file, join(root, ".krn", "runs", "wf-file"));
+    assert.deepEqual(runDirectories(root).map((run) => run.pointer), [".krn/runs/slice-work/run-link"]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

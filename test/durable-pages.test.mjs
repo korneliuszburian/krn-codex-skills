@@ -42,6 +42,15 @@ test("an accepted ADR missing from the knowledge map is reported", () => {
     "a commented or fenced link is not a link",
   );
 
+  writeFileSync(join(root, "CONTEXT.md"), "# Context\n    ](docs/adr/0001-record.md)\n<!-- <!-- --> ](docs/adr/0001-record.md) -->\n");
+  assert.ok(
+    checkDurablePages({ root }).errors.some((error) => error.includes("docs/adr/0001-record.md")),
+    "an indented-code or nested-comment link is not a link",
+  );
+
+  writeFileSync(join(root, "CONTEXT.md"), '# Context\n- [ADR](docs/adr/0001-record.md "title")\n');
+  assert.deepEqual(checkDurablePages({ root }).errors, [], "a titled link is a link");
+
   rmSync(join(root, "CONTEXT.md"));
   assert.ok(
     checkDurablePages({ root }).errors.some((error) => error.includes("knowledge map")),

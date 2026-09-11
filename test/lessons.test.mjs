@@ -40,12 +40,21 @@ test("an unresolvable gate reference fails", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test("a gate must be an npm script or an owned path, not any root file", () => {
+test("a gate must be an owned path, not a traversal, escape, or directory", () => {
   const root = makeRoot();
-  writeFileSync(join(root, "README.md"), "x\n");
-  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by |\n|---|---|---|\n| A | probe | `README.md` |\n");
-  const report = checkLessons({ root });
-  assert.ok(report.errors.some((error) => error.includes("no npm script or owned path at README.md")), JSON.stringify(report.errors));
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  writeFileSync(join(root, "scripts", "validate.mjs"), "// gate\n");
+  mkdirSync(join(root, "docs", "fakedir.mjs"), { recursive: true });
+
+  const resolveLesson = (gate) => {
+    writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), `| Lesson | Evidence | Enforced by |\n|---|---|---|\n| A | probe | \`${gate}\` |\n`);
+    return checkLessons({ root }).errors;
+  };
+
+  assert.ok(resolveLesson("docs/../README.md").length > 0, "traversal to a root file must fail");
+  assert.ok(resolveLesson("docs/../../escape.mjs").length > 0, "escape outside the repo must fail");
+  assert.ok(resolveLesson("docs/fakedir.mjs").length > 0, "a directory is not a gate file");
+  assert.deepEqual(resolveLesson("node scripts/validate.mjs"), [], "an owned node script is a valid gate");
   rmSync(root, { recursive: true, force: true });
 });
 

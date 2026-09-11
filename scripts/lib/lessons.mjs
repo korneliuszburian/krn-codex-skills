@@ -28,8 +28,19 @@ function resolveReference(root, scripts, reference) {
     return scripts[name] ? { ok: true, kind: "script" } : { ok: false, reason: `unknown npm script ${name}` };
   }
   if (scripts[reference]) return { ok: true, kind: "script" };
-  if (/^(scripts|test|skills|config|docs|\.github)\//.test(reference) && fs.existsSync(path.join(root, reference))) {
-    return { ok: true, kind: "path" };
+  const candidate = reference.startsWith("node ") ? reference.slice("node ".length).trim() : reference;
+  if (/^(scripts|test|skills|config|docs|\.github)\//.test(candidate)) {
+    const absolute = path.resolve(root, candidate);
+    const rel = path.relative(root, absolute);
+    if (rel && !rel.startsWith("..") && !path.isAbsolute(rel)) {
+      const stat = fs.statSync(absolute, { throwIfNoEntry: false });
+      if (stat?.isFile()) {
+        const realRel = path.relative(fs.realpathSync(root), fs.realpathSync(absolute));
+        if (realRel && !realRel.startsWith("..") && !path.isAbsolute(realRel)) {
+          return { ok: true, kind: "path" };
+        }
+      }
+    }
   }
   return { ok: false, reason: `no npm script or owned path at ${reference}` };
 }
