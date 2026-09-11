@@ -16,6 +16,7 @@ import {
   skillMarkdownErrors,
 } from "./lib/content-rules.mjs";
 import { isSafeRelativePath as safeRelativePath } from "./lib/path-rules.mjs";
+import { validateManifestSkills } from "./lib/manifest-rules.mjs";
 import {
   upstreamSkillNamesFrom,
   upstreamSourceErrors,
@@ -243,88 +244,16 @@ for (const bin of manifestArray(manifest.bins, "bins")) {
   }
 }
 
-if (!Array.isArray(manifest.skills)) {
-  fail("manifest: skills must be an array");
-}
-if (!Array.isArray(manifest.source_only_skills)) {
-  fail("manifest: source_only_skills must be an array");
-}
-const installableSkills = Array.isArray(manifest.skills) ? manifest.skills : [];
-const sourceOnlySkills = Array.isArray(manifest.source_only_skills)
-  ? manifest.source_only_skills
-  : [];
-const allLocalSkills = [...installableSkills, ...sourceOnlySkills];
-const localSkillNames = new Set();
-const localSkillPaths = new Set();
-const validLocalSkills = [];
-for (const skill of allLocalSkills) {
-  if (!skill || typeof skill !== "object" || Array.isArray(skill)) {
-    fail("manifest: skill metadata must be an object");
-    continue;
-  }
-  const keys = Object.keys(skill).sort();
-  const keysAreValid = keys.join(",") === "implicit,name,path";
-  if (!keysAreValid) {
-    fail(`manifest: skill ${skill.name ?? "<unknown>"} must contain only implicit, name, and path`);
-  }
-  const nameIsValid = /^[a-z0-9-]{1,63}$/.test(skill.name ?? "");
-  if (!nameIsValid) {
-    fail(`manifest: invalid skill name ${skill.name}`);
-  }
-  if (localSkillNames.has(skill.name)) {
-    fail(`manifest: duplicate skill name ${skill.name}`);
-  }
-  localSkillNames.add(skill.name);
-  const pathIsUnsafe =
-    typeof skill.path !== "string" ||
-    path.isAbsolute(skill.path) ||
-    skill.path.split("/").includes("..");
-  if (pathIsUnsafe) {
-    fail(`manifest: unsafe path for ${skill.name}`);
-  } else if (localSkillPaths.has(skill.path)) {
-    fail(`manifest: duplicate skill path ${skill.path}`);
-  } else {
-    localSkillPaths.add(skill.path);
-  }
-  const implicitIsValid = typeof skill.implicit === "boolean";
-  if (!implicitIsValid) {
-    fail(`manifest: implicit must be boolean for ${skill.name}`);
-  }
+const {
+  errors: manifestSkillErrors,
+  names: localSkillNames,
+  paths: localSkillPaths,
+  valid: validLocalSkills,
+  installableSkills,
+  sourceOnlySkills,
+} = validateManifestSkills(manifest);
+for (const message of manifestSkillErrors) fail(message);
 
-  let pathShapeIsValid = false;
-  if (!pathIsUnsafe) {
-    const pathParts = skill.path.split("/");
-    pathShapeIsValid =
-      pathParts.length === 3 &&
-      pathParts[0] === "skills" &&
-      ["engineering", "advisory", "frontend", "meta"].includes(pathParts[1]) &&
-      pathParts[2] === skill.name;
-    if (!pathShapeIsValid) {
-      fail(`manifest: skill path must be skills/<group>/${skill.name}`);
-    }
-  }
-  if (keysAreValid && nameIsValid && !pathIsUnsafe && pathShapeIsValid && implicitIsValid) {
-    validLocalSkills.push(skill);
-  }
-}
-if (manifest.harness_skills !== undefined) {
-  if (!Array.isArray(manifest.harness_skills) || manifest.harness_skills.length === 0) {
-    fail("manifest: harness_skills must be a non-empty array");
-  } else {
-    for (const name of manifest.harness_skills) {
-      if (!localSkillNames.has(name)) {
-        fail(`manifest: harness skill ${name} is not a local installable skill`);
-      }
-    }
-  }
-}
-if (!Array.isArray(manifest.runtime_paths) || manifest.runtime_paths.length === 0) {
-  fail("manifest: runtime_paths must be a non-empty array");
-} else {
-  for (const relative of manifest.runtime_paths) {
-    if (!safeRelativePath(relative)) fail(`manifest: unsafe runtime path ${relative}`);
-  }
-}
 const knownSkillNames = new Set([...localSkillNames, ...upstreamSkillNames]);
 const validInstallableSkills = validLocalSkills.filter((skill) =>
   installableSkills.includes(skill),
