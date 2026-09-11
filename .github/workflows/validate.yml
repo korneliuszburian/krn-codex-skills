@@ -45,6 +45,8 @@ jobs:
         run: npm run test:catalog
       - name: Test the setup workflow
         run: npm run test:setup
+      - name: Test shipped skill scripts
+        run: npm run test:skill-scripts
       - name: Test shared libraries
         run: npm run test:lib
       - name: Check shell and diff hygiene
