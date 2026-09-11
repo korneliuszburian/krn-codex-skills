@@ -86,7 +86,15 @@ test("export generates a checked skill set from both pins", () => {
   assert.ok(fs.existsSync(path.join(f.root, ".agents", "skills", "UPSTREAM-LICENSE")));
   const check = checkSkills({ root: f.root });
   assert.deepEqual(check.errors, [], JSON.stringify(check));
-  assert.ok(check.budget > 0);
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
+test("check fails when the exported skill set exceeds the budget", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  const skillFile = path.join(f.root, ".agents", "skills", "local", "SKILL.md");
+  fs.writeFileSync(skillFile, `---\nname: local\ndescription: ${"x".repeat(9000)}\n---\n`);
+  assert.ok(checkSkills({ root: f.root }).errors.some((e) => e.includes("characters of")), JSON.stringify(checkSkills({ root: f.root }).errors));
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
