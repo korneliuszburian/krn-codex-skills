@@ -434,6 +434,24 @@ test("a triggered lesson that was never recalled warns", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a Recall in the commit subject counts as usage", () => {
+  const root = makeRoot();
+  const git = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  git(["init", "-q"]);
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  writeFileSync(join(root, "scripts", "x.mjs"), "// x\n");
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Subject recall | probe | `test:state` | | | path:scripts/x.mjs |\n");
+  git(["add", "-A"]);
+  git(["-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", "init"]);
+  writeFileSync(join(root, "scripts", "x.mjs"), "// x2\n");
+  git(["add", "-A"]);
+  git(["-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", "Recall: test:state => scripts/x.mjs"]);
+
+  const usage = lessonUsage({ root });
+  assert.equal(usage.usage.find((entry) => entry.lesson === "Subject recall").recalls, 1, JSON.stringify(usage));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

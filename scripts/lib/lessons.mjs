@@ -265,7 +265,7 @@ function recallUsage(root, git, rows) {
   const active = rows.filter((row) => !row.status && (row.trigger ?? "").trim());
   const counts = new Map();
   if (active.length === 0 || !git(root, ["rev-parse", "--git-dir"]).ok) return counts;
-  const log = git(root, ["log", "--format=%H%x1f%b%x1e"]);
+  const log = git(root, ["log", "--format=%H%x1f%s%x1f%b%x1e"]);
   if (!log.ok) return counts;
   const churnEnabled = rows.some((row) => (row.trigger ?? "").includes("churn:"));
   const records = log.out
@@ -273,11 +273,11 @@ function recallUsage(root, git, rows) {
     .map((record) => record.trim())
     .filter(Boolean)
     .map((record) => {
-      const [sha, body] = record.split("\u001f");
-      return { sha, body: body ?? "" };
+      const [sha, subject, body] = record.split("\u001f");
+      return { sha, text: `${subject ?? ""}\n${body ?? ""}` };
     });
   for (const record of records) {
-    const lines = [...record.body.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
+    const lines = [...record.text.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
     if (lines.length === 0) continue;
     const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", record.sha]);
     const files = changed.ok ? changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean) : [];
