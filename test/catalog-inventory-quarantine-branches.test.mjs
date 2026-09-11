@@ -124,3 +124,14 @@ test("inventoryCapabilities records quarantined configured roots and skips them"
     ]);
   });
 });
+
+test("a dangling skill symlink is not inventoried as a capability", async () => {
+  await withRoot("krn-inventory-dangling-", async (root) => {
+    symlinkSync(path.join(root, "does-not-exist"), path.join(root, "ghost"));
+    const inventory = await inventoryCapabilities({
+      skillRoots: [{ id: "root", path: root, scope: "user" }],
+      pluginCacheRoots: [],
+    });
+    assert.ok(!inventory.skills.some((skill) => skill.id === "ghost"), JSON.stringify(inventory.skills.map((skill) => skill.id)));
+  });
+});

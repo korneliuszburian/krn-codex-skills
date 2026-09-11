@@ -139,6 +139,9 @@ async function inventorySkillRoot(root, records, quarantine) {
         );
         continue;
       }
+      const resolvedSkill = join(resolvedTarget, "SKILL.md");
+      const resolvedFile = await safeLstat(resolvedSkill, quarantine);
+      if (!resolvedFile || (!resolvedFile.isFile() && !resolvedFile.isSymbolicLink())) continue;
       records.push(
         skillRecord({
           name: entry.name,
