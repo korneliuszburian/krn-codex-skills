@@ -1,26 +1,9 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { runGit as git } from "./git-cli.mjs";
 import { inspectSpineState } from "./state-check.mjs";
 import { commitTokens, fieldLine, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
 import { parseLessons } from "./lessons.mjs";
-
-function git(repo, args) {
-  try {
-    return { ok: true, out: execFileSync("git", ["-C", repo, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim() };
-  } catch {
-    return { ok: false, out: "" };
-  }
-}
-
-function gitAvailable() {
-  try {
-    execFileSync("git", ["--version"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function resolveRoot(repo) {
   const requested = resolve(repo);

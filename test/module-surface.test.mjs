@@ -44,6 +44,11 @@ const cases = [
     present: [],
     absent: ["LESSON_BUDGET"],
   },
+  {
+    module: "../scripts/lib/git-cli.mjs",
+    present: ["runGit", "gitText", "gitAvailable"],
+    absent: [],
+  },
 ];
 
 test("module surfaces expose only the intended interface", async () => {

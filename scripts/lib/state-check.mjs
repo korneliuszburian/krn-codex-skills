@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
 
@@ -11,30 +10,8 @@ import {
   parseCleanup,
   stripMarkup,
 } from "./capsule-abi.mjs";
+import { gitAvailable, runGit as git } from "./git-cli.mjs";
 import { parseLessons } from "./lessons.mjs";
-
-function git(repo, args) {
-  try {
-    return {
-      ok: true,
-      out: execFileSync("git", ["-C", repo, ...args], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-      }).trim(),
-    };
-  } catch {
-    return { ok: false, out: "" };
-  }
-}
-
-function gitAvailable() {
-  try {
-    execFileSync("git", ["--version"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function inside(root, candidate) {
   const target = resolve(root, candidate);

@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { gitText as git } from "./git-cli.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -9,14 +9,6 @@ const BUDGET = 8000;
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
-}
-
-function git(root, args) {
-  try {
-    return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
-  } catch {
-    return "";
-  }
 }
 
 function harnessCommit(source) {

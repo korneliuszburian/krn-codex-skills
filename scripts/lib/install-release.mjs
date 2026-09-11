@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
+import { gitText as git } from "./git-cli.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -12,17 +13,6 @@ function fail(message, exitCode = 1) {
   const error = new Error(message);
   error.exitCode = exitCode;
   throw error;
-}
-
-function git(directory, args) {
-  try {
-    return execFileSync("git", ["-C", directory, ...args], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    }).trim();
-  } catch {
-    return "";
-  }
 }
 
 function safeRelativePath(candidate) {
