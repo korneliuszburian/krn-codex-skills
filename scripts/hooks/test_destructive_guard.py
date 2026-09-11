@@ -48,6 +48,53 @@ class DestructiveGuardSmoke(unittest.TestCase):
                 reason("rm -rf build && rm -rf .") or "",
             )
 
+    def test_apply_patch_blocks_protected_targets_and_allows_disposable_edits(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary) / "repo"
+            repo.mkdir()
+            (repo / ".git").mkdir()
+
+            def patch_reason(patch: str) -> str | None:
+                payload = {
+                    "hook_event_name": "PreToolUse",
+                    "tool_name": "apply_patch",
+                    "cwd": str(repo),
+                    "tool_input": {"command": patch},
+                }
+                result = subprocess.run(
+                    [sys.executable, str(HOOK)],
+                    input=json.dumps(payload),
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                if not result.stdout.strip():
+                    return None
+                output = json.loads(result.stdout)
+                return output["hookSpecificOutput"]["permissionDecisionReason"]
+
+            self.assertIn("protected file deletion blocked", patch_reason("*** Delete File: .git/config") or "")
+            self.assertIn(
+                "protected file move blocked",
+                patch_reason("*** Update File: .git/config\n*** Move to: elsewhere\n*** End Patch") or "",
+            )
+            self.assertIn(
+                "quarantined capability",
+                patch_reason("*** Add File: superpowers/notes.md") or "",
+            )
+            self.assertIsNone(patch_reason("*** Add File: notes.md\n+hello"))
+
+            invalid = subprocess.run(
+                [sys.executable, str(HOOK)],
+                input="not json",
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(invalid.returncode, 0)
+            self.assertIn("could not parse hook input", invalid.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
