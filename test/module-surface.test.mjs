@@ -55,6 +55,11 @@ const cases = [
     absent: [],
   },
   {
+    module: "../scripts/lib/runtime-closure.mjs",
+    present: ["runtimeClosure", "runtimeClosureErrors"],
+    absent: [],
+  },
+  {
     module: "../scripts/lib/skill-rules.mjs",
     present: ["openaiYamlErrors", "skillContentErrors", "skillPointerErrors", "lineLimitErrors", "skillLayoutErrors", "skillIdentityErrors", "referenceLinkErrors", "skillPromotionErrors"],
     absent: [],

@@ -8,6 +8,7 @@ import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
 import { ABI_LABELS } from "./lib/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/durable-pages.mjs";
 import { checkLessons } from "./lib/lessons.mjs";
+import { runtimeClosureErrors } from "./lib/runtime-closure.mjs";
 import {
   lineLimitErrors,
   openaiYamlErrors,
@@ -311,6 +312,14 @@ for (const markdown of repositoryMarkdown) {
     for (const error of durable.errors) fail(error);
   } catch (error) {
     fail(`durable-pages check failed: ${error.message}`);
+  }
+}
+
+{
+  try {
+    for (const message of runtimeClosureErrors({ root, manifest })) fail(message);
+  } catch (error) {
+    fail(`runtime closure check failed: ${error.message}`);
   }
 }
 
