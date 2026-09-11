@@ -29,6 +29,21 @@ test("an imported file missing from runtime_paths is a closure gap", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("delegated and spawned scripts are part of the closure", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-closure-delegate-"));
+  mkdirSync(join(root, "scripts", "lib"), { recursive: true });
+  writeFileSync(join(root, "scripts", "a.mjs"), 'delegate("scripts/lib/c.mjs");\n');
+  writeFileSync(join(root, "scripts", "b.mjs"), 'spawnSync("node", ["scripts/lib/d.mjs"]);\n');
+  writeFileSync(join(root, "scripts", "lib", "c.mjs"), "export const c = 1;\n");
+  writeFileSync(join(root, "scripts", "lib", "d.mjs"), "export const d = 1;\n");
+  const manifest = { bins: [{ path: "scripts/a.mjs" }, { path: "scripts/b.mjs" }], runtime_paths: ["scripts/a.mjs", "scripts/b.mjs"] };
+  assert.deepEqual(runtimeClosureErrors({ root, manifest }), [
+    "runtime closure gap: scripts/lib/c.mjs is reachable from installed entrypoints but not declared",
+    "runtime closure gap: scripts/lib/d.mjs is reachable from installed entrypoints but not declared",
+  ]);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a declared but unreachable module is reported as dead weight", () => {
   const { root, manifest } = makeRepo(["scripts/a.mjs", "scripts/lib/b.mjs", "scripts/lib/dead.mjs"]);
   assert.deepEqual(runtimeClosureErrors({ root, manifest }), [

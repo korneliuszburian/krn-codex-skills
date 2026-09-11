@@ -122,6 +122,41 @@ test("extract-final-opinion writes the terminal answer and refuses bad input", (
     const escaped = run(extract, [leaky, output, target, "prose"]);
     assert.equal(escaped.status, 1);
     assert.match(escaped.stderr, /outside the target scope/);
+
+    const relativeLeak = join(root, "relative.jsonl");
+    writeFileSync(
+      relativeLeak,
+      [
+        JSON.stringify({ type: "text", part: { messageID: "m1", text: "see ../secret.txt:1" } }),
+        JSON.stringify({ type: "step_finish", part: { reason: "stop", messageID: "m1" } }),
+        "",
+      ].join("\n"),
+    );
+    assert.equal(run(extract, [relativeLeak, output, target, "prose"]).status, 1);
+
+    const jsonRaw = join(root, "json.jsonl");
+    writeFileSync(
+      jsonRaw,
+      [
+        JSON.stringify({ type: "text", part: { messageID: "m1", text: "verdict below\n```json\n{\"verdict\":\"ok\"}\n```" } }),
+        JSON.stringify({ type: "step_finish", part: { reason: "stop", messageID: "m1" } }),
+        "",
+      ].join("\n"),
+    );
+    const jsonOutput = join(root, "opinion.json");
+    assert.equal(run(extract, [jsonRaw, jsonOutput, target, "json"]).status, 0);
+    assert.deepEqual(JSON.parse(readFileSync(jsonOutput, "utf8")), { verdict: "ok" });
+
+    const multiRaw = join(root, "multi.jsonl");
+    writeFileSync(
+      multiRaw,
+      [
+        JSON.stringify({ type: "text", part: { messageID: "m1", text: '{"a":1} {"b":2}' } }),
+        JSON.stringify({ type: "step_finish", part: { reason: "stop", messageID: "m1" } }),
+        "",
+      ].join("\n"),
+    );
+    assert.equal(run(extract, [multiRaw, jsonOutput, target, "json"]).status, 1);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
