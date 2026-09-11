@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { scanCatalogUsage } from "../scripts/lib/catalog-usage.mjs";
+import { MAX_ROLLOUT_RECORD_BYTES, scanCatalogUsage } from "../scripts/lib/catalog-usage.mjs";
 
 const line = (value) => `${JSON.stringify(value)}\n`;
 
@@ -45,6 +45,87 @@ test("scanCatalogUsage reads dated rollout evidence end to end", async () => {
     );
     assert.equal(report.coverage.source, "since_day");
     assert.equal(report.coverage.absence_means_unused, false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+const call = (callId, name = "exec") =>
+  line({ type: "response_item", payload: { type: "function_call", call_id: callId, name } });
+const output = (callId) =>
+  line({ type: "response_item", payload: { type: "function_call_output", call_id: callId } });
+
+test("scanCatalogUsage reports window skips, undated files, and malformed candidate lines", async () => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-usage-branches-")));
+  try {
+    const before = path.join(root, "2026", "01", "02");
+    const after = path.join(root, "2026", "01", "12");
+    const inside = path.join(root, "2026", "01", "06");
+    mkdirSync(before, { recursive: true });
+    mkdirSync(after, { recursive: true });
+    mkdirSync(inside, { recursive: true });
+    writeFileSync(path.join(before, "rollout-2026-01-02T00-00-00.jsonl"), call("b1") + output("b1"));
+    writeFileSync(path.join(after, "rollout-2026-01-12T00-00-00.jsonl"), call("a1") + output("a1"));
+    writeFileSync(
+      path.join(inside, "rollout-2026-01-06T00-00-00.jsonl"),
+      line({
+        timestamp: "2026-01-06T00:00:00.000Z",
+        type: "response_item",
+        payload: { type: "function_call", call_id: "c1", name: "exec" },
+      }) +
+        line({
+          timestamp: "2026-01-06T00:00:01.000Z",
+          type: "response_item",
+          payload: { type: "function_call_output", call_id: "c1" },
+        }) +
+        '{"type":"function_call"\n',
+    );
+    writeFileSync(path.join(root, "rollout-undated.jsonl"), call("u1") + output("u1"));
+
+    const report = await scanCatalogUsage({
+      sessionsRoot: root,
+      canonicalSkillPaths: [],
+      sinceDay: "2026-01-05",
+      nowMs: Date.parse("2026-01-10T00:00:00.000Z"),
+    });
+
+    assert.equal(report.scanned_files, 2);
+    assert.equal(report.malformed_lines, 1);
+    assert.deepEqual(report.aggregates.map(({ id, confirmed_calls }) => ({ id, confirmed_calls })), [
+      { id: "exec", confirmed_calls: 1 },
+    ]);
+    assert.equal(report.coverage.skipped_files_before_window, 1);
+    assert.equal(report.coverage.skipped_files_after_window, 1);
+    assert.equal(report.coverage.undated_rollout_files_scanned, 1);
+    assert.equal(report.coverage.records_without_usable_date, 1);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("scanCatalogUsage counts oversized candidate records without parsing them", async () => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-usage-oversize-")));
+  try {
+    const dayDirectory = path.join(root, "2026", "01", "06");
+    mkdirSync(dayDirectory, { recursive: true });
+    writeFileSync(
+      path.join(dayDirectory, "rollout-2026-01-06T00-00-00.jsonl"),
+      Buffer.concat([
+        Buffer.alloc(MAX_ROLLOUT_RECORD_BYTES, 97),
+        Buffer.from('"type":"function_call"}\n'),
+      ]),
+    );
+
+    const report = await scanCatalogUsage({
+      sessionsRoot: root,
+      canonicalSkillPaths: [],
+      sinceDay: "2026-01-01",
+    });
+
+    assert.equal(report.scanned_files, 1);
+    assert.equal(report.coverage.oversized_lines, 1);
+    assert.equal(report.coverage.oversized_candidate_lines, 1);
+    assert.deepEqual(report.aggregates, []);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
