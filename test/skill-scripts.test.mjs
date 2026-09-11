@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -41,6 +41,42 @@ test("gate-check reads a ledger and reports met and unmet manual gates", () => {
     const duplicate = join(root, "dup.md");
     writeFileSync(duplicate, "- [x] a: one\n  EVIDENCE: x\n- [x] a: two\n  EVIDENCE: y\n");
     assert.equal(run(gateCheck, ["--status", duplicate]).status, 2);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("gate-check requires approval and rewrites the ledger on approve and reverify", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-gate-life-"));
+  try {
+    const ledger = join(root, "GATES.md");
+    const approvals = join(root, "approvals");
+    writeFileSync(
+      ledger,
+      ["- [ ] runnable: a command gate", "  CHECK: echo hello", "  EXPECT: hello", "  EVIDENCE: pending", ""].join("\n"),
+    );
+
+    const pending = run(gateCheck, [ledger, "--approval-dir", approvals]);
+    assert.equal(pending.status, 1, pending.stderr);
+    assert.match(pending.stdout, /UNMET runnable: approval pending/);
+
+    const approved = run(gateCheck, ["--approve", ledger, "--approval-dir", approvals]);
+    assert.equal(approved.status, 0, approved.stderr);
+    assert.match(approved.stdout, /PASS runnable/);
+    assert.match(readFileSync(ledger, "utf8"), /^- \[x\] runnable/m);
+    assert.match(readFileSync(ledger, "utf8"), /EVIDENCE: exit=0/);
+
+    const reverified = run(gateCheck, ["--reverify", ledger, "--approval-dir", approvals]);
+    assert.equal(reverified.status, 0, reverified.stderr);
+
+    const approval = readdirSync(approvals).find((name) => name.endsWith(".json"));
+    const approvalPath = join(approvals, approval);
+    const record = JSON.parse(readFileSync(approvalPath, "utf8"));
+    record.expect = "different";
+    writeFileSync(approvalPath, `${JSON.stringify(record, null, 2)}\n`);
+    const mismatch = run(gateCheck, ["--reverify", ledger, "--approval-dir", approvals]);
+    assert.equal(mismatch.status, 1);
+    assert.match(mismatch.stdout, /approval invalid: binding differs/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
