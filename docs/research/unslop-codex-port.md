@@ -1,7 +1,7 @@
 # Unslop port to Codex
 
 Status: `lab-test`. Consumer: `$source-to-decision` and the maintainer's
-publication loop. Owner: maintainer. Verified: 2026-08-24. This page records a
+publication loop. Owner: maintainer. Verified: 2026-09-11. This page records a
 bounded prose-quality mechanism; it does not claim that a rewrite is more
 truthful or that every technical response should be made conversational.
 
@@ -13,11 +13,13 @@ intended tone?
 
 ## Sources and mechanisms
 
-Sources pinned and retrieved on 2026-08-24:
+Sources pinned and retrieved on 2026-08-24; the Cursor/pstack pin was refreshed
+on 2026-09-11 to a density and mannered-prose pass (the mechanism and its
+checklist are unchanged):
 
 - Cursor/pstack `unslop` at commit
-  [`4612556`](https://github.com/cursor/plugins/commit/46125561306434d8a1d7745d540d8932ab0cd2a2),
-  file [`SKILL.md`](https://github.com/cursor/plugins/blob/46125561306434d8a1d7745d540d8932ab0cd2a2/pstack/skills/unslop/SKILL.md);
+  [`e8d856f`](https://github.com/cursor/plugins/commit/e8d856f0273b42ebafe0ec3546bd645709e7c1b0),
+  file [`SKILL.md`](https://github.com/cursor/plugins/blob/e8d856f0273b42ebafe0ec3546bd645709e7c1b0/pstack/skills/unslop/SKILL.md);
 - `mshumer/unslop` at commit
   [`edcb623`](https://github.com/mshumer/unslop/commit/edcb62386d129c65e4395f0cfcc9168eb1ba2148),
   file [`skills/unslop/SKILL.md`](https://github.com/mshumer/unslop/blob/edcb62386d129c65e4395f0cfcc9168eb1ba2148/skills/unslop/SKILL.md).
@@ -27,7 +29,7 @@ rewrite while preserving meaning and tone, add a specific voice, and self-audit
 for remaining tells. Its examples include puffery, vague attribution, filler,
 formulaic structure, chatbot phrases, and abstract jargon. The source is a
 useful checklist, not evidence that its English blacklist transfers to Polish
-or to code and evidence artifacts. [Pinned source](https://github.com/cursor/plugins/blob/46125561306434d8a1d7745d540d8932ab0cd2a2/pstack/skills/unslop/SKILL.md)
+or to code and evidence artifacts. [Pinned source](https://github.com/cursor/plugins/blob/e8d856f0273b42ebafe0ec3546bd645709e7c1b0/pstack/skills/unslop/SKILL.md)
 
 The separate `mshumer/unslop` project uses a different mechanism: generate many
 samples for a named domain, analyze repeated defaults, and review the generated
@@ -63,9 +65,13 @@ over baseline by the human reviewer. A preference win without semantic
 preservation is not adoption evidence.
 
 This pilot does not prove general human-likeness, detector evasion, factual
-quality, or usefulness for code, logs, schemas, or raw evidence. A later
-decision must report those non-proofs and may retain the skill as explicit-only
-even if the pilot is useful.
+quality, or usefulness for code, logs, schemas, or raw evidence. StoryScope
+(arXiv:2604.03136v6, preprint, 2026-08-10) finds discourse-level narrative
+features alone separate human from AI fiction at 93.2% macro-F1 while retaining
+over 97% of the performance of models that include stylistic cues, so surface
+tell-lists are the lower-transfer layer; `$unslop` claims neither human-likeness
+nor detector evasion. A later decision must report those non-proofs and may
+retain the skill as explicit-only even if the pilot is useful.
 
 ## Exploratory overlay result
 
