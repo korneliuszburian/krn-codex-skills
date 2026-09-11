@@ -82,8 +82,10 @@ export function checkDurablePages({ root }) {
       const context = stripCode(stripComments(fs.readFileSync(contextFile, "utf8")));
       for (const entry of adrEntries) {
         const escaped = entry.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const link = new RegExp(`(?<!\\\\)\\[[^\\]]*\\]\\(\\s*<?docs/adr/${escaped}(?:[#?][^)\\s]*)?\\s*(?:"[^"]*")?\\s*>?\\s*\\)`);
-        if (!link.test(context)) {
+        const target = `(?:\\./)?docs/adr/${escaped}`;
+        const inline = new RegExp(`(?<!\\\\)\\[[^\\]]*\\]\\(\\s*<?${target}(?:[#?][^)\\s]*)?\\s*(?:"[^"]*")?\\s*>?\\s*\\)`);
+        const reference = new RegExp(`^\\s*\\[[^\\]]+\\]:\\s*<?${target}(?:[#?][^\\s>]*)?>?\\s*$`, "m");
+        if (!inline.test(context) && !reference.test(context)) {
           errors.push(`docs/adr/${entry.name}: accepted decision is not linked from CONTEXT.md`);
         }
       }

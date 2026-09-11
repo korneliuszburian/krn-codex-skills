@@ -12,6 +12,7 @@
     "scripts/catalog.mjs",
     "scripts/install.sh",
     "scripts/krn-codex.mjs",
+    "scripts/krn-codex-catalog.mjs",
     "scripts/lib/capsule-abi.mjs",
     "scripts/lib/catalog-config.mjs",
     "scripts/lib/catalog-desired.mjs",

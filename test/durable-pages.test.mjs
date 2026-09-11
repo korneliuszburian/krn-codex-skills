@@ -57,6 +57,12 @@ test("an accepted ADR missing from the knowledge map is reported", () => {
   writeFileSync(join(root, "CONTEXT.md"), '# Context\n- [ADR](docs/adr/0001-record.md "title")\n');
   assert.deepEqual(checkDurablePages({ root }).errors, [], "a titled link is a link");
 
+  writeFileSync(join(root, "CONTEXT.md"), "# Context\n- [ADR](./docs/adr/0001-record.md)\n");
+  assert.deepEqual(checkDurablePages({ root }).errors, [], "a ./ link is a link");
+
+  writeFileSync(join(root, "CONTEXT.md"), "# Context\n[adr]: docs/adr/0001-record.md\n");
+  assert.deepEqual(checkDurablePages({ root }).errors, [], "a reference-style link is a link");
+
   rmSync(join(root, "CONTEXT.md"));
   assert.ok(
     checkDurablePages({ root }).errors.some((error) => error.includes("knowledge map")),
