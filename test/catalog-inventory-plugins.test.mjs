@@ -121,7 +121,8 @@ test("inventoryCapabilities skips a directory-valued or oversized manifest", asy
   );
   assert.equal(
     await manifestNameFor("krn-manifest-symlink-", (version) => {
-      symlinkSync("missing-target.json", path.join(version, "plugin.json"));
+      writeFileSync(path.join(version, "target.json"), JSON.stringify({ name: "ViaSymlink" }));
+      symlinkSync("target.json", path.join(version, "plugin.json"));
       writeFileSync(path.join(version, "manifest.json"), JSON.stringify({ name: "AfterSymlink" }));
     }),
     "AfterSymlink",
