@@ -22,10 +22,13 @@ function makeRoot({ topicHeader = HEADER, topicsRows = "| T | [topic.md](topic.m
 test("a contract referencing a missing repo path is reported", () => {
   const root = makeRoot();
   mkdirSync(join(root, "config"), { recursive: true });
-  writeFileSync(join(root, "config", "AGENTS.md"), "See `docs/research/missing.md`, `docs/research/topic.md`, `<placeholder>/x.md`, and `agent.md`.\n");
+  writeFileSync(join(root, "config", "AGENTS.md"), "See `docs/research/missing.md`, `config/missing.toml`, `docs/research/topic.md`, `docs/research/`, `<placeholder>/x.md`, `.codex/config.toml`, and `agent.md`.\n");
   const errors = checkDurablePages({ root }).errors;
   assert.ok(errors.some((error) => error.includes("docs/research/missing.md")), JSON.stringify(errors));
+  assert.ok(errors.some((error) => error.includes("config/missing.toml")), "any extension is checked");
   assert.ok(!errors.some((error) => error.includes("topic.md")), "an existing path is fine");
+  assert.ok(!errors.some((error) => error.includes("docs/research/ ")), "an existing directory is fine");
+  assert.ok(!errors.some((error) => error.includes(".codex/config.toml")), "an installed path is excluded");
   rmSync(root, { recursive: true, force: true });
 });
 
