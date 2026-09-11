@@ -59,7 +59,12 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   const usableGit = gitRepo.ok && gitRepo.out === "true";
 
   const capsuleBase = join(root, ".krn", "runs", "delivery-loop");
-  const capsuleStore = statSync(capsuleBase, { throwIfNoEntry: false });
+  let capsuleStore;
+  try {
+    capsuleStore = statSync(capsuleBase, { throwIfNoEntry: false });
+  } catch {
+    errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop" });
+  }
   let candidates = [];
   if (capsuleStore) {
     if (!capsuleStore.isDirectory()) {
@@ -100,16 +105,15 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     }
     const file = join(entryPath, "state.md");
     const relativePath = join(".krn", "runs", "delivery-loop", entry.name, "state.md");
-    if (!existsSync(file)) continue;
-    capsules.push({ id: entry.name, path: relativePath });
-
     let fileStat;
     try {
-      fileStat = statSync(file);
+      fileStat = statSync(file, { throwIfNoEntry: false });
     } catch {
       errors.push({ id: entry.name, rule: "unreadable-capsule", detail: relativePath });
       continue;
     }
+    if (!fileStat) continue;
+    capsules.push({ id: entry.name, path: relativePath });
     if (!fileStat.isFile()) {
       errors.push({ id: entry.name, rule: "unreadable-capsule", detail: `${relativePath} is not a regular file` });
       continue;

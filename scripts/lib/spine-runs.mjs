@@ -5,7 +5,13 @@ export function runDirectories(root) {
   const runsBase = join(root, ".krn", "runs");
   if (!existsSync(runsBase)) return [];
   const runs = [];
-  for (const workflow of readdirSync(runsBase, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+  let workflows;
+  try {
+    workflows = readdirSync(runsBase, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  for (const workflow of workflows.sort((a, b) => a.name.localeCompare(b.name))) {
     if ((!workflow.isDirectory() && !workflow.isSymbolicLink()) || workflow.name === "delivery-loop") continue;
     const workflowPath = join(runsBase, workflow.name);
     let entries;

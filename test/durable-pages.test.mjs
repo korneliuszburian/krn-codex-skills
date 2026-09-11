@@ -36,16 +36,22 @@ test("an accepted ADR missing from the knowledge map is reported", () => {
     "a bare filename is not a link",
   );
 
-  writeFileSync(join(root, "CONTEXT.md"), "# Context\n<!-- ](docs/adr/0001-record.md) -->\n```\n](docs/adr/0001-record.md)\n```\n");
+  writeFileSync(join(root, "CONTEXT.md"), "# Context\n<!-- [x](docs/adr/0001-record.md) -->\n```\n[x](docs/adr/0001-record.md)\n```\n");
   assert.ok(
     checkDurablePages({ root }).errors.some((error) => error.includes("docs/adr/0001-record.md")),
     "a commented or fenced link is not a link",
   );
 
-  writeFileSync(join(root, "CONTEXT.md"), "# Context\n    ](docs/adr/0001-record.md)\n<!-- <!-- --> ](docs/adr/0001-record.md) -->\n");
+  writeFileSync(join(root, "CONTEXT.md"), "# Context\n    [x](docs/adr/0001-record.md)\n<!-- <!-- --> [x](docs/adr/0001-record.md) -->\n");
   assert.ok(
     checkDurablePages({ root }).errors.some((error) => error.includes("docs/adr/0001-record.md")),
     "an indented-code or nested-comment link is not a link",
+  );
+
+  writeFileSync(join(root, "CONTEXT.md"), "# Context\n~~~\n[x](docs/adr/0001-record.md)\n~~~\n`[x](docs/adr/0001-record.md)`\n\\[x](docs/adr/0001-record.md)\n");
+  assert.ok(
+    checkDurablePages({ root }).errors.some((error) => error.includes("docs/adr/0001-record.md")),
+    "tilde-fenced, inline-code, or escaped links are not links",
   );
 
   writeFileSync(join(root, "CONTEXT.md"), '# Context\n- [ADR](docs/adr/0001-record.md "title")\n');

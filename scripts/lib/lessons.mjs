@@ -28,7 +28,7 @@ function resolveReference(root, scripts, reference) {
     return scripts[name] ? { ok: true, kind: "script" } : { ok: false, reason: `unknown npm script ${name}` };
   }
   if (scripts[reference]) return { ok: true, kind: "script" };
-  const candidate = reference.startsWith("node ") ? reference.slice("node ".length).trim() : reference;
+  const candidate = (reference.startsWith("node ") ? reference.slice("node ".length).trim() : reference).replace(/^\.\//, "");
   if (/^(scripts|test|skills|config|docs|\.github)\//.test(candidate)) {
     const absolute = path.resolve(root, candidate);
     const rel = path.relative(root, absolute);

@@ -55,6 +55,7 @@ test("a gate must be an owned path, not a traversal, escape, or directory", () =
   assert.ok(resolveLesson("docs/../../escape.mjs").length > 0, "escape outside the repo must fail");
   assert.ok(resolveLesson("docs/fakedir.mjs").length > 0, "a directory is not a gate file");
   assert.deepEqual(resolveLesson("node scripts/validate.mjs"), [], "an owned node script is a valid gate");
+  assert.deepEqual(resolveLesson("node ./scripts/validate.mjs"), [], "a ./ owned node script is a valid gate");
   rmSync(root, { recursive: true, force: true });
 });
 

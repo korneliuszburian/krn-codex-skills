@@ -66,14 +66,23 @@ export function checkDurablePages({ root }) {
         }
         return out;
       };
-      const context = stripComments(fs.readFileSync(contextFile, "utf8"))
-        .replace(/```[\s\S]*?```/g, "")
-        .split("\n")
-        .filter((line) => !/^(?: {4,}|\t)/.test(line))
-        .join("\n");
+      const stripCode = (text) => {
+        const kept = [];
+        let fenced = false;
+        for (const line of text.split("\n")) {
+          if (/^\s{0,3}(```|~~~)/.test(line)) {
+            fenced = !fenced;
+            continue;
+          }
+          if (fenced || /^(?: {4,}|\t)/.test(line)) continue;
+          kept.push(line.replace(/`[^`]*`/g, ""));
+        }
+        return kept.join("\n");
+      };
+      const context = stripCode(stripComments(fs.readFileSync(contextFile, "utf8")));
       for (const entry of adrEntries) {
         const escaped = entry.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const link = new RegExp(`(?<!\\\\)\\]\\(\\s*<?docs/adr/${escaped}(?:[#?][^)\\s]*)?\\s*(?:"[^"]*")?\\s*>?\\s*\\)`);
+        const link = new RegExp(`(?<!\\\\)\\[[^\\]]*\\]\\(\\s*<?docs/adr/${escaped}(?:[#?][^)\\s]*)?\\s*(?:"[^"]*")?\\s*>?\\s*\\)`);
         if (!link.test(context)) {
           errors.push(`docs/adr/${entry.name}: accepted decision is not linked from CONTEXT.md`);
         }
