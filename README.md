@@ -211,7 +211,7 @@ the operator entrypoints; it does not duplicate the execution policy.
 AGENTS.md             source-repository editing contract
 config/               installed global contract and hook configuration
 skills/               canonical workflow owners and direct resources
-test/                 the retained installed-release bootstrap smoke fixture
+test/                 validator, install, state, catalog, and skill suites plus the bootstrap fixture
 scripts/              deterministic validation, installation, hooks, and catalog
 CONTEXT.md            compact current vocabulary and knowledge index
 docs/research/        living source-backed synthesis

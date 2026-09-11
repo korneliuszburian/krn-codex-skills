@@ -1,7 +1,7 @@
 # Orchestration and compact context
 
 Status: `accepted`. Consumer: maintainer, `$delivery-loop`, and
-`$source-to-decision`. Owner: maintainer. Verified: 2026-09-10. Rework this page
+`$source-to-decision`. Owner: maintainer. Verified: 2026-09-11. Rework this page
 in place when a falsifier fires; do not append a parallel “v2” report.
 
 ## Decision question
