@@ -1,0 +1,87 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+const cli = fileURLToPath(new URL("../scripts/catalog.mjs", import.meta.url));
+
+const makeHome = () => {
+  const base = mkdtempSync(join(tmpdir(), "krn-catalog-cli-"));
+  mkdirSync(join(base, "codex"), { recursive: true });
+  return {
+    base,
+    env: { CODEX_HOME: join(base, "codex"), AGENTS_HOME: join(base, "agents") },
+    configPath: join(base, "config.toml"),
+  };
+};
+
+const run = (args, env) =>
+  spawnSync(process.execPath, [cli, ...args], {
+    encoding: "utf8",
+    env: { ...process.env, ...env },
+  });
+
+test("catalog profile list reports the installed profiles as JSON", () => {
+  const { base, env } = makeHome();
+  try {
+    const result = run(["profile", "list", "--json"], env);
+    assert.equal(result.status, 0, result.stderr);
+    const names = JSON.parse(result.stdout).map((profile) => profile.name);
+    assert.ok(names.includes("minimal"));
+    assert.ok(names.includes("full"));
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test("catalog plan, check, and apply converge a managed config with a backup", () => {
+  const { base, env, configPath } = makeHome();
+  try {
+    writeFileSync(configPath, '[plugins."remember@claude-plugins-official"]\nenabled = true\n');
+
+    const plan = run(["plan", "minimal", "--config", configPath, "--json"], env);
+    assert.equal(plan.status, 0, plan.stderr);
+    assert.equal(JSON.parse(plan.stdout).plan.changed, true);
+
+    const drift = run(["check", "minimal", "--config", configPath, "--json"], env);
+    assert.equal(drift.status, 3, drift.stderr);
+    assert.equal(JSON.parse(drift.stdout).converged, false);
+
+    const applied = run(["apply", "minimal", "--config", configPath, "--json"], env);
+    assert.equal(applied.status, 0, applied.stderr);
+    const applyReport = JSON.parse(applied.stdout);
+    assert.equal(applyReport.result.changed, true);
+    assert.ok(applyReport.result.backupPath);
+    assert.equal(readFileSync(applyReport.result.backupPath, "utf8"), '[plugins."remember@claude-plugins-official"]\nenabled = true\n');
+
+    const config = readFileSync(configPath, "utf8");
+    assert.match(config, /\[plugins\."remember@claude-plugins-official"\]\nenabled = false/);
+    assert.match(config, /\[plugins\."codex-cli-wakatime@wakatime"\]\nenabled = true/);
+
+    const converged = run(["check", "minimal", "--config", configPath, "--json"], env);
+    assert.equal(converged.status, 0, converged.stderr);
+    assert.equal(JSON.parse(converged.stdout).converged, true);
+
+    const replan = run(["plan", "minimal", "--config", configPath, "--json"], env);
+    assert.equal(JSON.parse(replan.stdout).plan.changed, false);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test("catalog inventory reads an empty temporary capability home", () => {
+  const { base, env } = makeHome();
+  try {
+    const result = run(["inventory", "--json"], env);
+    assert.equal(result.status, 0, result.stderr);
+    const inventory = JSON.parse(result.stdout);
+    assert.equal(inventory.schemaVersion, 1);
+    assert.deepEqual(inventory.skills, []);
+    assert.deepEqual(inventory.plugins, []);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});

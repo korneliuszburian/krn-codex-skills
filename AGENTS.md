@@ -47,6 +47,7 @@ npm run skills:check
 npm run lessons:check
 npm run test:lessons
 npm run test:durable-pages
+npm run test:catalog
 npm run test:lib
 bash -n scripts/install.sh
 git diff --check

@@ -41,6 +41,8 @@ jobs:
         run: npm run test:lessons
       - name: Test validator rule modules
         run: npm run test:durable-pages
+      - name: Test the capability CLI
+        run: npm run test:catalog
       - name: Test shared libraries
         run: npm run test:lib
       - name: Check shell and diff hygiene
