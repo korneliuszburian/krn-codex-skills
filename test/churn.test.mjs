@@ -3,17 +3,20 @@ import test from "node:test";
 
 import { churnHot } from "../scripts/lib/churn.mjs";
 
-test("churnHot marks files with enough commits inside the window", () => {
+test("churnHot counts matches in a single git pass", () => {
   const git = (_root, args) => {
-    if (args[0] === "rev-list") return { ok: true, out: args[args.length - 1] === "scripts/hot.mjs" ? "3" : "1" };
-    return { ok: false, out: "" };
+    if (args[0] !== "log") return { ok: false, out: "" };
+    return { ok: true, out: "scripts/hot.mjs\0scripts/cold.mjs\0scripts/hot.mjs\0" };
   };
   assert.deepEqual(churnHot({ root: ".", git, sha: "abc", files: ["scripts/hot.mjs", "scripts/cold.mjs"] }), ["scripts/hot.mjs"]);
-  const unavailable = () => ({ ok: false, out: "" });
-  assert.deepEqual(churnHot({ root: ".", git: unavailable, sha: "abc", files: ["scripts/hot.mjs"] }), []);
+});
+
+test("churnHot is empty without files, unavailable, or falls back for a root commit", () => {
+  assert.deepEqual(churnHot({ root: ".", git: () => ({ ok: false, out: "" }), sha: "abc", files: [] }), []);
+  assert.deepEqual(churnHot({ root: ".", git: () => ({ ok: false, out: "" }), sha: "abc", files: ["scripts/hot.mjs"] }), []);
   const rootCommit = (_root, args) => {
-    if (args[0] !== "rev-list") return { ok: false, out: "" };
-    return { ok: !args.includes("abc^"), out: "4" };
+    if (args[0] !== "log") return { ok: false, out: "" };
+    return args.includes("abc^") ? { ok: false, out: "" } : { ok: true, out: "scripts/hot.mjs\0scripts/hot.mjs\0" };
   };
   assert.deepEqual(churnHot({ root: ".", git: rootCommit, sha: "abc", files: ["scripts/hot.mjs"] }), ["scripts/hot.mjs"], "a root commit falls back to the commit itself");
 });

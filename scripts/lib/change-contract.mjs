@@ -96,6 +96,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   if (malformed.length > 0) {
     errors.push({ rule: "malformed-lessons", detail: `${malformed.length} row(s); trigger delivery is unreliable` });
   }
+  const churnEnabled = fs.existsSync(lessonsFile) && parseLessons(lessonsFile).rows.some((row) => (row.trigger ?? "").includes("churn:"));
   const targets = new Map();
   const atRiskTargets = new Map();
   for (const commit of commits) {
@@ -104,7 +105,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const contract = parseChangeContract(`${commit.subject}\n${commit.body}`);
     const surface = contractSurface(files);
     const symbols = touchedSymbols({ root, git, sha: commit.sha });
-    const hot = churnHot({ root, git, sha: commit.sha, files });
+    const hot = churnEnabled ? churnHot({ root, git, sha: commit.sha, files }) : [];
     const recallLines = [...`${commit.subject}\n${commit.body}`.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
     for (const hit of recallLessons({ root, files, symbols, hot })) {
       const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());

@@ -55,6 +55,13 @@ function strictGit(diffText, contents) {
   };
 }
 
+test("a C-quoted diff header path is unescaped", () => {
+  const git = strictGit('--- "a/we\\"ird.mjs"\n+++ "b/we\\"ird.mjs"\n@@ -0,0 +1,2 @@\n', {
+    'abc:we"ird.mjs': "export function q() {\n  return 1;\n}\n",
+  });
+  assert.deepEqual(touchedSymbols({ root: ".", git, sha: "abc" }), ["q"]);
+});
+
 test("the diff is read with core.quotePath disabled", () => {
   let seen = null;
   const git = (_root, args) => {

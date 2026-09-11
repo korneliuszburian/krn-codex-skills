@@ -106,10 +106,18 @@ export function removedLineNumbers(diffText) {
   return lines;
 }
 
+function unquote(value) {
+  if (!(value.startsWith('"') && value.endsWith('"'))) return value;
+  return value
+    .slice(1, -1)
+    .replace(/\\(?:([0-7]{1,3})|x([0-9a-fA-F]{2})|(.))/g, (_match, octal, hex, char) =>
+      octal ? String.fromCharCode(parseInt(octal, 8)) : hex ? String.fromCharCode(parseInt(hex, 16)) : { n: "\n", t: "\t", r: "\r", '"': '"', "\\": "\\" }[char] ?? char);
+}
+
 function headerPath(line, prefix) {
   const value = line.slice(prefix.length).replace(/\t.*$/, "").trim();
   if (value === "/dev/null") return null;
-  return value.replace(/^"(.*)"$/, "$1").replace(/^[ab]\//, "");
+  return unquote(value).replace(/^[ab]\//, "");
 }
 
 function namesIn(symbols, lineNumbers) {
@@ -127,7 +135,7 @@ function namesIn(symbols, lineNumbers) {
 
 export function touchedSymbols({ root, git, sha }) {
   let diff = git(root, ["-c", "core.quotePath=false", "diff", "--unified=0", "--no-color", "--no-renames", `${sha}^`, sha, "--"]);
-  if (!diff.ok) diff = git(root, ["-c", "core.quotePath=false", "diff", "--unified=0", "--no-color", "--no-renames", "--root", sha, "--"]);
+  if (!diff.ok) diff = git(root, ["-c", "core.quotePath=false", "show", "--format=", "--unified=0", "--no-color", "--no-renames", sha, "--"]);
   if (!diff.ok) return [];
   const names = new Set();
   let before = null;

@@ -1,9 +1,12 @@
 export function churnHot({ root, git, sha, files, days = 90, min = 2 }) {
-  const hot = [];
-  for (const file of files) {
-    let count = git(root, ["rev-list", "--count", `--since=${days} days ago`, `${sha}^`, "--", file]);
-    if (!count.ok) count = git(root, ["rev-list", "--count", `--since=${days} days ago`, sha, "--", file]);
-    if (count.ok && Number(count.out) >= min) hot.push(file);
+  if (files.length === 0) return [];
+  const args = ["log", `--since=${days} days ago`, "--name-only", "-z", "--format=", `${sha}^`, "--", ...files];
+  let out = git(root, args);
+  if (!out.ok) out = git(root, ["log", `--since=${days} days ago`, "--name-only", "-z", "--format=", sha, "--", ...files]);
+  if (!out.ok) return [];
+  const counts = new Map();
+  for (const entry of out.out.split("\0")) {
+    if (files.includes(entry)) counts.set(entry, (counts.get(entry) ?? 0) + 1);
   }
-  return hot;
+  return files.filter((file) => (counts.get(file) ?? 0) >= min);
 }

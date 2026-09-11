@@ -195,7 +195,10 @@ test("a churn trigger requires a Recall trailer for a hot file", () => {
     "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Fragile | probe | `test:lessons` | | | churn:scripts/lib/git-cli.mjs |\n",
   );
   const gitFor = (body) => (_root, args) => {
-    if (args[0] === "log") return { ok: true, out: `a1\u001ffic: churn\u001f${body}` };
+    if (args[0] === "log") {
+      if (args.includes("--name-only")) return { ok: true, out: "scripts/lib/git-cli.mjs\0scripts/lib/git-cli.mjs\0" };
+      return { ok: true, out: `a1\u001ffic: churn\u001f${body}` };
+    }
     if (args[0] === "show") {
       const last = args[args.length - 1];
       if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x" } }) };

@@ -8,10 +8,10 @@ and the gate or owner that enforces it; case-specific findings stay in reviewed
 artifacts. Bounded at 24 rows: displace or condense before adding.
 
 Each row may carry a fourth `Occurrences` column of `YYYY-MM-DD@<7-hex>`
-tokens naming each witnessed instance. Two or more occurrences whose only gate
-is `manual:` fail `lessons:check` until the friction is consolidated into a
-structural gate or artifact, and a recurring class keeps one row that supersedes
-its duplicates. A recurring row must also carry a fifth `Falsifier` column,
+tokens naming each witnessed instance. Two or more occurrences whose gate is not
+structural fail `lessons:check` until the friction is consolidated into a
+script or test path, and a recurring class keeps one row that supersedes its
+duplicates. A recurring row must also carry a fifth `Falsifier` column,
 `<test>/<file>.mjs::<case>@<7-hex>`: the check observed failing on the
 pre-change behavior and the commit that recorded it. `lessons:check` verifies
 the file exists and, in a git checkout, that the commit is an ancestor of HEAD,
@@ -58,7 +58,7 @@ budget, so aging is explicit instead of a silent deletion.
 | Broadening executing coverage can expose silently lost records that a green suite hides. | The manifest-name quarantine passed `family@marketplace` as the id, so the collector filtered it: the plugin was skipped and `hardQuarantine` kept no record until the plugin-cache integration test exercised the branch. | `test/catalog-inventory-quarantine-branches.test.mjs`. |
 | Duplicated low-level adapters drift; centralize once and alias at call sites. | Four copies of a git wrapper with two different contracts lived across `state-check`, `state-brief`, `skills-export`, and `install-release`; one `git-cli` module with `runGit`/`gitText`/`gitAvailable` now backs all four. | `test/git-cli.test.mjs`; `test/module-surface.test.mjs`. | | | symbol:runGit |
 | An AST or diff helper must be tested against real git output or the exact spec, because a lenient fake hides path-prefix bugs. | `symbol:` delivery returned `[]` for every real commit while the unit fakes passed, since `git show sha:b/<path>` was never asserted; normalizing the `a/`/`b/` header prefix fixed it. | `test/symbol-triggers.test.mjs` (strict `git show` specs) and `scripts/lib/symbol-triggers.mjs`. |
-| Machine-readable git output must be parsed NUL-safe (`-z`) or with `core.quotePath=false`, because git quotes non-ASCII and control paths and a text split then misses them. | A non-ASCII `scripts/lib/*.mjs` path was git-quoted, so `changes check` saw no surface change and returned `errors: []`, bypassing the whole change contract; `symbol:` delivery missed it too. | `test/change-contract.test.mjs` (quoted-path falsifier) and `test/symbol-triggers.test.mjs`. |
+| Machine-readable git output must be parsed NUL-safe (`-z`) or with `core.quotePath=false` plus C-unescaping, because git quotes non-ASCII, control, and `"`/`\` paths and a text split then misses them. | A non-ASCII `scripts/lib/*.mjs` path and a `we"ird.mjs` diff header both defeated `changes check` and `symbol:` delivery silently (`errors: []`), bypassing the change contract. | `test/change-contract.test.mjs` (quoted-path falsifier) and `test/symbol-triggers.test.mjs` (C-quoted header). |
 | Memory artifacts must fail closed, not warn, once staleness or contradiction is measured. | An `ACTIVE` capsule 25+ commits behind HEAD returned `clean`, and lesson-gate resolution claimed in `validate` ran only in a separate command; both are now blocking errors (`stale-fixed-point` for COMPLETE, `active-without-next`, unresolved gates in `validate`). | `npm run test:state`; `npm run validate`. |
 | A test that archives the committed HEAD can pass before the commit and fail after it. | `install-smoke` archives `HEAD`; the runtime-closure gate was uncommitted during the pre-commit run, so the suite was green, then failed on the committed tree. | `.github/workflows/validate.yml` runs the suites on the pushed commit; re-run `test:install`/`test:bootstrap` after committing shared-surface changes. |
 | A harness change must carry a falsifiable prediction at the commit that makes it. | The same friction class was re-fixed within 7–8 minutes three times with no recorded prediction, and a green pre-commit suite hid a post-commit failure. | The `Change-contract:` trailer and `npm run changes:check`. |
