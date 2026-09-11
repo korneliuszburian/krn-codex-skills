@@ -4,6 +4,41 @@ import { isSafeRelativePath } from "./path-rules.mjs";
 
 const SKILL_PATH_GROUPS = ["engineering", "advisory", "frontend", "meta"];
 
+export function binErrors(bins, { isSafeRelativePath, inspectTarget }) {
+  const errors = [];
+  const names = new Set();
+  if (!Array.isArray(bins)) {
+    errors.push("manifest: bins must be an array");
+    return { errors, names };
+  }
+  for (const bin of bins) {
+    if (!bin || typeof bin !== "object" || Array.isArray(bin)) {
+      errors.push("manifest: bins entries must be objects");
+      continue;
+    }
+    if (!/^[a-z0-9-]{1,63}$/.test(bin.name ?? "")) {
+      errors.push(`manifest: invalid bin name ${bin.name}`);
+    }
+    if (names.has(bin.name)) {
+      errors.push(`manifest: duplicate bin name ${bin.name}`);
+    }
+    names.add(bin.name);
+    if (!isSafeRelativePath(bin.path)) {
+      errors.push(`manifest: unsafe bin path for ${bin.name}`);
+      continue;
+    }
+    const target = inspectTarget(bin.path);
+    if (!target.exists || !target.isFile) {
+      errors.push(`manifest: missing bin target for ${bin.name}`);
+      continue;
+    }
+    if (!target.executable) {
+      errors.push(`manifest: bin target is not executable for ${bin.name}`);
+    }
+  }
+  return { errors, names };
+}
+
 export function pretoolUseHookErrors(hooks, label) {
   const errors = [];
   const preToolUse = hooks.hooks?.PreToolUse;

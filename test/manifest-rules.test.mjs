@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  binErrors,
   pretoolUseHookErrors,
   retirementErrors,
   validateManifestSkills,
@@ -74,6 +75,44 @@ test("validateManifestSkills checks harness and runtime invariants", () => {
     validateManifestSkills(noRuntime).errors.includes(
       "manifest: runtime_paths must be a non-empty array",
     ),
+  );
+});
+
+test("binErrors validates bins with an injected target inspector", () => {
+  const isSafeRelativePath = (value) => typeof value === "string" && !value.startsWith("/");
+  const valid = { isSafeRelativePath, inspectTarget: () => ({ exists: true, isFile: true, executable: true }) };
+  assert.deepEqual(binErrors([{ name: "krn", path: "bin/krn" }], valid).errors, []);
+  assert.deepEqual(binErrors("nope", valid).errors, ["manifest: bins must be an array"]);
+  assert.deepEqual(binErrors([null], valid).errors, ["manifest: bins entries must be objects"]);
+  assert.deepEqual(
+    binErrors([{ name: "Bad", path: "bin/krn" }], valid).errors,
+    ["manifest: invalid bin name Bad"],
+  );
+  assert.deepEqual(
+    binErrors([{ name: "krn", path: "bin/krn" }, { name: "krn", path: "bin/krn" }], valid).errors,
+    ["manifest: duplicate bin name krn"],
+  );
+
+  let inspected = 0;
+  const tracked = { isSafeRelativePath, inspectTarget: () => (inspected += 1, { exists: true, isFile: true, executable: true }) };
+  assert.deepEqual(binErrors([{ name: "krn", path: "/abs" }], tracked).errors, [
+    "manifest: unsafe bin path for krn",
+  ]);
+  assert.equal(inspected, 0);
+
+  assert.deepEqual(
+    binErrors([{ name: "krn", path: "bin/krn" }], {
+      isSafeRelativePath,
+      inspectTarget: () => ({ exists: false, isFile: false, executable: false }),
+    }).errors,
+    ["manifest: missing bin target for krn"],
+  );
+  assert.deepEqual(
+    binErrors([{ name: "krn", path: "bin/krn" }], {
+      isSafeRelativePath,
+      inspectTarget: () => ({ exists: true, isFile: true, executable: false }),
+    }).errors,
+    ["manifest: bin target is not executable for krn"],
   );
 });
 

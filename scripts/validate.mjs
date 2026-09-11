@@ -21,6 +21,7 @@ import {
 } from "./lib/content-rules.mjs";
 import { isSafeRelativePath as safeRelativePath } from "./lib/path-rules.mjs";
 import {
+  binErrors,
   pretoolUseHookErrors,
   retirementErrors,
   validateManifestSkills,
@@ -203,33 +204,33 @@ if (globalHooksPathSafe) {
   }
 }
 
-const binNames = new Set();
-for (const bin of manifestArray(manifest.bins, "bins")) {
-  if (!bin || typeof bin !== "object" || Array.isArray(bin)) {
-    fail("manifest: bins entries must be objects");
-    continue;
-  }
-  if (!/^[a-z0-9-]{1,63}$/.test(bin.name ?? "")) {
-    fail(`manifest: invalid bin name ${bin.name}`);
-  }
-  if (binNames.has(bin.name)) {
-    fail(`manifest: duplicate bin name ${bin.name}`);
-  }
-  binNames.add(bin.name);
-  if (!safeRelativePath(bin.path)) {
-    fail(`manifest: unsafe bin path for ${bin.name}`);
-    continue;
-  }
-  const binPath = path.join(root, bin.path);
-  if (!fs.existsSync(binPath) || !fs.statSync(binPath).isFile()) {
-    fail(`manifest: missing bin target for ${bin.name}`);
-    continue;
-  }
-  try {
-    fs.accessSync(binPath, fs.constants.X_OK);
-  } catch {
-    fail(`manifest: bin target is not executable for ${bin.name}`);
-  }
+{
+  const { errors: binProblems } = binErrors(manifest.bins, {
+    isSafeRelativePath: safeRelativePath,
+    inspectTarget: (relative) => {
+      const target = path.join(root, relative);
+      let exists = false;
+      let isFile = false;
+      let executable = false;
+      try {
+        const stat = fs.statSync(target);
+        exists = true;
+        isFile = stat.isFile();
+      } catch {
+        exists = false;
+      }
+      if (exists && isFile) {
+        try {
+          fs.accessSync(target, fs.constants.X_OK);
+          executable = true;
+        } catch {
+          executable = false;
+        }
+      }
+      return { exists, isFile, executable };
+    },
+  });
+  for (const message of binProblems) fail(message);
 }
 
 const {
