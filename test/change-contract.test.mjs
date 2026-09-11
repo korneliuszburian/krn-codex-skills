@@ -23,7 +23,7 @@ function fakeGit({ commits, files, baseScripts = {}, baseFiles = [] }) {
     if (args[0] === "show") {
       const last = args[args.length - 1];
       if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: baseScripts }) };
-      return { ok: true, out: (files[last] ?? []).join("\n") };
+      return { ok: true, out: (files[last] ?? []).join("\0") };
     }
     if (args[0] === "cat-file") {
       const rel = args[args.length - 1].split(":").slice(1).join(":");
@@ -177,7 +177,7 @@ test("a symbol trigger requires a Recall trailer", () => {
       if (last.includes(":")) return { ok: true, out: "export function runGit(r) {\n  return 1;\n}\n" };
       return { ok: true, out: "scripts/lib/git-cli.mjs" };
     }
-    if (args[0] === "diff") return { ok: true, out: "+++ b/scripts/lib/git-cli.mjs\n@@ -0,0 +2,1 @@\n" };
+    if (args[0] === "diff" || args[2] === "diff") return { ok: true, out: "+++ b/scripts/lib/git-cli.mjs\n@@ -0,0 +2,1 @@\n" };
     if (args[0] === "cat-file") return { ok: true, out: "" };
     return { ok: false, out: "" };
   };
@@ -202,7 +202,7 @@ test("a churn trigger requires a Recall trailer for a hot file", () => {
       if (last.includes(":")) return { ok: true, out: "export function runGit(r) {\n  return 1;\n}\n" };
       return { ok: true, out: "scripts/lib/git-cli.mjs" };
     }
-    if (args[0] === "diff") return { ok: true, out: "--- a/scripts/lib/git-cli.mjs\n+++ b/scripts/lib/git-cli.mjs\n@@ -0,0 +2,1 @@\n" };
+    if (args[0] === "diff" || args[2] === "diff") return { ok: true, out: "--- a/scripts/lib/git-cli.mjs\n+++ b/scripts/lib/git-cli.mjs\n@@ -0,0 +2,1 @@\n" };
     if (args[0] === "rev-list") return { ok: true, out: "2" };
     if (args[0] === "cat-file") return { ok: true, out: "" };
     return { ok: false, out: "" };
@@ -253,13 +253,33 @@ test("a check whose parent manifest is unreadable is rejected as self-authored",
       return { ok: true, out: "scripts/lib/x.mjs" };
     }
     if (args[0] === "rev-parse") return { ok: true, out: ".git" };
-    if (args[0] === "diff") return { ok: true, out: "--- /dev/null\n+++ b/scripts/lib/x.mjs\n@@ -0,0 +1,1 @@\n" };
+    if (args[0] === "diff" || args[2] === "diff") return { ok: true, out: "--- /dev/null\n+++ b/scripts/lib/x.mjs\n@@ -0,0 +1,1 @@\n" };
     if (args[0] === "cat-file") return { ok: true, out: "" };
     if (args[0] === "rev-list") return { ok: true, out: "0" };
     return { ok: false, out: "" };
   };
   const report = checkChangeContract({ root, base: "base", git, run: green });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a surface path that git would quote is still checked", () => {
+  const root = makeRoot();
+  const git = (_root, args) => {
+    if (args[0] === "log") return { ok: true, out: "a1\u001ffix\u001f" };
+    if (args[0] === "show") {
+      const last = args[args.length - 1];
+      if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x" } }) };
+      if (args.includes("--name-only")) return { ok: true, out: args.includes("-z") ? "scripts/lib/\u00fcber.mjs\0" : '"scripts/lib/\\303\\274ber.mjs"\n' };
+      return { ok: true, out: "//\n" };
+    }
+    if (args[0] === "diff" || args[2] === "diff") return { ok: true, out: "" };
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    if (args[0] === "rev-list") return { ok: true, out: "0" };
+    return { ok: false, out: "" };
+  };
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "missing-change-contract"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
 

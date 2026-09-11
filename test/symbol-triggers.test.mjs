@@ -46,7 +46,7 @@ test("changed line parsers handle added and removed hunks", () => {
 
 function strictGit(diffText, contents) {
   return (_root, args) => {
-    if (args[0] === "diff") return { ok: true, out: diffText };
+    if (args[0] === "diff" || args[2] === "diff") return { ok: true, out: diffText };
     if (args[0] === "show") {
       const spec = args[args.length - 1];
       return { ok: Object.hasOwn(contents, spec), out: contents[spec] ?? "" };
@@ -54,6 +54,17 @@ function strictGit(diffText, contents) {
     return { ok: false, out: "" };
   };
 }
+
+test("the diff is read with core.quotePath disabled", () => {
+  let seen = null;
+  const git = (_root, args) => {
+    seen = args;
+    if (args[2] === "diff") return { ok: true, out: "" };
+    return { ok: false, out: "" };
+  };
+  touchedSymbols({ root: ".", git, sha: "abc" });
+  assert.deepEqual(seen.slice(0, 2), ["-c", "core.quotePath=false"]);
+});
 
 test("touchedSymbols maps changed lines to the symbol they fall inside", () => {
   const git = strictGit("--- a/scripts/lib/git-cli.mjs\n+++ b/scripts/lib/git-cli.mjs\n@@ -2,0 +3,1 @@\n", {

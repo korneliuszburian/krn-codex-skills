@@ -88,8 +88,8 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const lessonsFile = path.join(root, "docs", "research", "workflow-lessons.md");
   const malformed = fs.existsSync(lessonsFile) ? parseLessons(lessonsFile).malformed : [];
   if (!fs.existsSync(lessonsFile) && commits.some((commit) => {
-    const changed = git(root, ["show", "--no-renames", "--name-only", "--format=", commit.sha]);
-    return changed.ok && contractSurface(changed.out.split("\n").map((entry) => entry.trim()).filter(Boolean));
+    const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", commit.sha]);
+    return changed.ok && contractSurface(changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean));
   })) {
     errors.push({ rule: "missing-lessons", detail: "a surface change requires the workflow-lessons page for trigger delivery" });
   }
@@ -99,8 +99,8 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const targets = new Map();
   const atRiskTargets = new Map();
   for (const commit of commits) {
-    const changed = git(root, ["show", "--no-renames", "--name-only", "--format=", commit.sha]);
-    const files = changed.ok ? changed.out.split("\n").map((entry) => entry.trim()).filter(Boolean) : [];
+    const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", commit.sha]);
+    const files = changed.ok ? changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean) : [];
     const contract = parseChangeContract(`${commit.subject}\n${commit.body}`);
     const surface = contractSurface(files);
     const symbols = touchedSymbols({ root, git, sha: commit.sha });

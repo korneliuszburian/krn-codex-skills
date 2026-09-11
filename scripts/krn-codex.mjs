@@ -9,6 +9,8 @@ import { inspectSpineState } from "./lib/state-check.mjs";
 import { compileCapsule, resumeBrief } from "./lib/state-brief.mjs";
 import { checkSkills, exportSkills } from "./lib/skills-export.mjs";
 import { checkLessons, recallLessons } from "./lib/lessons.mjs";
+import { churnHot } from "./lib/churn.mjs";
+import { runGit } from "./lib/git-cli.mjs";
 import { verifyLessons } from "./lib/lessons-verify.mjs";
 import { checkChangeContract } from "./lib/change-contract.mjs";
 import { EXIT_CODES, renderDiagnostics } from "./lib/diagnostics.mjs";
@@ -137,8 +139,10 @@ try {
   } else if (raw[0] === "memory") {
     const { positional, options } = parseOptions(raw.slice(1));
     if (positional[0] !== "recall" || positional.length > 1 || options.source || options.yes || !options.root || !(options.changed?.length || options.symbols?.length)) fail(usage);
-    const hits = recallLessons({ root: options.root, files: options.changed ?? [], symbols: options.symbols ?? [] });
-    print({ root: options.root, changed: options.changed ?? [], symbols: options.symbols ?? [], hits }, options.json);
+    const changed = options.changed ?? [];
+    const hot = changed.length > 0 ? churnHot({ root: options.root, git: runGit, sha: "HEAD", files: changed }) : [];
+    const hits = recallLessons({ root: options.root, files: changed, symbols: options.symbols ?? [], hot });
+    print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits }, options.json);
     if (!options.json) for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));

@@ -126,8 +126,8 @@ function namesIn(symbols, lineNumbers) {
 }
 
 export function touchedSymbols({ root, git, sha }) {
-  let diff = git(root, ["diff", "--unified=0", "--no-color", "--no-renames", `${sha}^`, sha, "--"]);
-  if (!diff.ok) diff = git(root, ["diff", "--unified=0", "--no-color", "--no-renames", "--root", sha, "--"]);
+  let diff = git(root, ["-c", "core.quotePath=false", "diff", "--unified=0", "--no-color", "--no-renames", `${sha}^`, sha, "--"]);
+  if (!diff.ok) diff = git(root, ["-c", "core.quotePath=false", "diff", "--unified=0", "--no-color", "--no-renames", "--root", sha, "--"]);
   if (!diff.ok) return [];
   const names = new Set();
   let before = null;
