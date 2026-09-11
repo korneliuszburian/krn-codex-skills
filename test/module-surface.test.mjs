@@ -59,6 +59,11 @@ const cases = [
     present: ["normalizeDesired", "normalizeFamilies", "pluginIdFromCachedSkillPath"],
     absent: ["normalizeStateRecord", "normalizePluginFamilies", "derivePluginOwners", "normalizePluginSkillAliases", "isTrustedPluginSkill"],
   },
+  {
+    module: "../scripts/lib/catalog-profile.mjs",
+    present: ["resolveProfile"],
+    absent: [],
+  },
 ];
 
 test("module surfaces expose only the intended interface", async () => {
