@@ -8,8 +8,11 @@ import { fileURLToPath } from "node:url";
 
 const gateCheck = fileURLToPath(new URL("../skills/meta/unlazy/scripts/gate-check.mjs", import.meta.url));
 const extract = fileURLToPath(new URL("../skills/advisory/opencode-second-opinion/scripts/extract-final-opinion.mjs", import.meta.url));
+const checkOpinion = fileURLToPath(new URL("../skills/advisory/opencode-second-opinion/scripts/check-opinion.sh", import.meta.url));
+const runOpinion = fileURLToPath(new URL("../skills/advisory/opencode-second-opinion/scripts/run-opinion.sh", import.meta.url));
 
 const run = (script, args) => spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
+const bash = (script, args, options = {}) => spawnSync("bash", [script, ...args], { encoding: "utf8", ...options });
 
 test("gate-check reads a ledger and reports met and unmet manual gates", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-gate-"));
@@ -77,6 +80,63 @@ test("gate-check requires approval and rewrites the ledger on approve and reveri
     const mismatch = run(gateCheck, ["--reverify", ledger, "--approval-dir", approvals]);
     assert.equal(mismatch.status, 1);
     assert.match(mismatch.stdout, /approval invalid: binding differs/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("check-opinion.sh classifies pending, completed, failed, and invalid runs", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-opinion-state-"));
+  try {
+    const runDir = join(root, ".krn", "runs", "opencode-second-opinion", "run-1");
+    mkdirSync(runDir, { recursive: true });
+    assert.equal(bash(checkOpinion, [runDir]).status, 2);
+    assert.match(bash(checkOpinion, [runDir]).stdout, /pending/);
+
+    writeFileSync(join(runDir, "opinion.md"), "opinion\n");
+    assert.equal(bash(checkOpinion, [runDir]).status, 64);
+
+    writeFileSync(join(runDir, "raw.jsonl"), "{}\n");
+    writeFileSync(join(runDir, "meta.json"), "{}\n");
+    const completed = bash(checkOpinion, [runDir]);
+    assert.equal(completed.status, 0, completed.stderr);
+    assert.match(completed.stdout, /completed/);
+
+    mkdirSync(join(root, ".krn", "runs", "opencode-second-opinion", "run-2"));
+    writeFileSync(join(root, ".krn", "runs", "opencode-second-opinion", "run-2", "failure.txt"), "boom\n");
+    assert.equal(bash(checkOpinion, [join(root, ".krn", "runs", "opencode-second-opinion", "run-2")]).status, 1);
+    assert.equal(bash(checkOpinion, [root]).status, 64);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("run-opinion.sh rejects invalid inputs before invoking opencode", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-opinion-run-"));
+  try {
+    const target = join(root, "target");
+    const runDir = join(target, ".krn", "runs", "opencode-second-opinion", "run-1");
+    mkdirSync(runDir, { recursive: true });
+    const prompt = join(root, "prompt.md");
+    writeFileSync(prompt, "advise\n");
+    const output = join(runDir, "opinion.md");
+
+    assert.equal(bash(runOpinion, []).status, 64);
+    assert.equal(bash(runOpinion, [join(root, "missing"), prompt, output]).status, 66);
+    assert.equal(bash(runOpinion, [target, join(root, "missing.md"), output]).status, 66);
+    assert.equal(bash(runOpinion, [target, prompt, "relative.md"]).status, 66);
+    assert.equal(bash(runOpinion, [target, prompt, join(target, "opinion.md")]).status, 65);
+
+    writeFileSync(output, "already\n");
+    assert.equal(bash(runOpinion, [target, prompt, output]).status, 65);
+    rmSync(output);
+    writeFileSync(join(runDir, "raw.jsonl"), "{}\n");
+    assert.equal(bash(runOpinion, [target, prompt, output]).status, 65);
+    rmSync(join(runDir, "raw.jsonl"));
+
+    const noOpencode = bash(runOpinion, [target, prompt, output], { env: { PATH: "/bin", HOME: root } });
+    assert.equal(noOpencode.status, 127, noOpencode.stderr || noOpencode.error?.message || "");
+    assert.match(noOpencode.stderr, /opencode CLI not found/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

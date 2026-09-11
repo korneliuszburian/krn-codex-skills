@@ -52,6 +52,8 @@ npm run test:setup
 npm run test:skill-scripts
 npm run test:lib
 bash -n scripts/install.sh
+bash -n skills/advisory/opencode-second-opinion/scripts/check-opinion.sh
+bash -n skills/advisory/opencode-second-opinion/scripts/run-opinion.sh
 git diff --check
 ```
 
