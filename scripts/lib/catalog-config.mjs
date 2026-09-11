@@ -5,15 +5,11 @@ import { basename, dirname, isAbsolute, normalize } from "node:path";
 
 import { requireRegularFileWithoutSymlinks } from "./catalog-path-safety.mjs";
 import { matchesQuarantined } from "./plugin-identity.mjs";
-import {
-  ConcurrentConfigChangeError,
-  ConfigReconcileError,
-  HARD_QUARANTINE_FAMILIES,
-  digest,
-  planCatalogConfig,
-} from "./catalog-plan.mjs";
+import { ConcurrentConfigChangeError, ConfigReconcileError, HARD_QUARANTINE_FAMILIES } from "./catalog-errors.mjs";
+import { digest, planCatalogConfig } from "./catalog-plan.mjs";
 
-export { ConcurrentConfigChangeError, ConfigReconcileError, QuarantineViolationError, planCatalogConfig } from "./catalog-plan.mjs";
+export { ConcurrentConfigChangeError, ConfigReconcileError, QuarantineViolationError } from "./catalog-errors.mjs";
+export { planCatalogConfig } from "./catalog-plan.mjs";
 
 export async function loadCatalogConfigPlan({
   configPath,
