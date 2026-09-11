@@ -28,9 +28,9 @@ A row may carry a sixth `Trigger` column of `path:<glob>`, `symbol:<name>`, or
 lesson whose trigger matches (a `symbol:` trigger uses an AST-lite span match
 against the commit's changed line ranges, and a `churn:` trigger fires when a
 changed file matching the glob was touched at least twice in the last 90 days),
-and `changes check` requires a matching surface change to acknowledge it with a
-`Recall: <gate or falsifier>` trailer, so the lesson reaches the decision point
-instead of waiting to be read.
+and `changes check` requires a matching surface change to reconstruct the lesson
+with a `Recall: <gate or falsifier> => <changed file or symbol>` trailer, so the
+lesson must be bound to the present change instead of replayed from the page.
 
 | Lesson | Evidence | Enforced by |
 |---|---|---|

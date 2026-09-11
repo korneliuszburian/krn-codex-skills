@@ -144,17 +144,22 @@ test("a change that triggers a lesson requires a Recall trailer", () => {
     files: { a1: ["scripts/lib/git-cli.mjs"] },
     baseScripts: { "test:lessons": "x" },
   };
-  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(base), run: green }).errors.some((error) => error.rule === "unrecalled-lesson"));
+  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(base), run: green }).errors.some((error) => error.rule === "unreconstructed-recall"));
   const junk = {
     ...base,
     commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: contest:scripts/lib/git-cli.mjs" }],
   };
-  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(junk), run: green }).errors.some((error) => error.rule === "unrecalled-lesson"), "a superstring must not satisfy the recall");
+  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(junk), run: green }).errors.some((error) => error.rule === "unreconstructed-recall"), "a superstring must not satisfy the recall");
+  const misbound = {
+    ...base,
+    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/git-cli.mjs => docs/other.md" }],
+  };
+  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(misbound), run: green }).errors.some((error) => error.rule === "unreconstructed-recall"), "the reconstruction target must be a changed file or symbol");
   const recalled = {
     ...base,
-    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/git-cli.mjs" }],
+    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/git-cli.mjs => scripts/lib/git-cli.mjs" }],
   };
-  assert.ok(!checkChangeContract({ root, base: "base", git: fakeGit(recalled), run: green }).errors.some((error) => error.rule === "unrecalled-lesson"));
+  assert.ok(!checkChangeContract({ root, base: "base", git: fakeGit(recalled), run: green }).errors.some((error) => error.rule === "unreconstructed-recall"));
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -177,9 +182,9 @@ test("a symbol trigger requires a Recall trailer", () => {
     return { ok: false, out: "" };
   };
   const bare = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green"), run: green });
-  assert.ok(bare.errors.some((error) => error.rule === "unrecalled-lesson"), JSON.stringify(bare.errors));
-  const recalled = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green\nRecall: test:lessons"), run: green });
-  assert.ok(!recalled.errors.some((error) => error.rule === "unrecalled-lesson"), JSON.stringify(recalled.errors));
+  assert.ok(bare.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(bare.errors));
+  const recalled = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green\nRecall: test:lessons => runGit"), run: green });
+  assert.ok(!recalled.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(recalled.errors));
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -203,9 +208,9 @@ test("a churn trigger requires a Recall trailer for a hot file", () => {
     return { ok: false, out: "" };
   };
   const bare = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green"), run: green });
-  assert.ok(bare.errors.some((error) => error.rule === "unrecalled-lesson"), JSON.stringify(bare.errors));
-  const recalled = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green\nRecall: test:lessons"), run: green });
-  assert.ok(!recalled.errors.some((error) => error.rule === "unrecalled-lesson"), JSON.stringify(recalled.errors));
+  assert.ok(bare.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(bare.errors));
+  const recalled = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green\nRecall: test:lessons => scripts/lib/git-cli.mjs"), run: green });
+  assert.ok(!recalled.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(recalled.errors));
   rmSync(root, { recursive: true, force: true });
 });
 

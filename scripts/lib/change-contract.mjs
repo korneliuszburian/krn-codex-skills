@@ -103,15 +103,22 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const files = changed.ok ? changed.out.split("\n").map((entry) => entry.trim()).filter(Boolean) : [];
     const contract = parseChangeContract(`${commit.subject}\n${commit.body}`);
     const surface = contractSurface(files);
-    const recalled = [...`${commit.subject}\n${commit.body}`.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
-    for (const hit of recallLessons({ root, files, symbols: touchedSymbols({ root, git, sha: commit.sha }), hot: churnHot({ root, git, sha: commit.sha, files }) })) {
+    const symbols = touchedSymbols({ root, git, sha: commit.sha });
+    const hot = churnHot({ root, git, sha: commit.sha, files });
+    const recallLines = [...`${commit.subject}\n${commit.body}`.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
+    for (const hit of recallLessons({ root, files, symbols, hot })) {
       const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
       const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
       const named = [...ids, falsifierFile].filter(Boolean);
-      const namesId = (line, id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(line);
-      const acknowledged = recalled.some((line) => named.some((id) => namesId(line, id)));
-      if (!acknowledged) {
-        errors.push({ rule: "unrecalled-lesson", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add a Recall: trailer naming ${named.join(" or ") || "the gate"}` });
+      const namesId = (text, id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(text);
+      const changedTargets = [...files, ...symbols];
+      const reconstructed = recallLines.some((line) => {
+        const [left, right] = line.split("=>").map((part) => part?.trim() ?? "");
+        if (!right || !named.some((id) => namesId(left, id))) return false;
+        return right.split(/[\s,;]+/).filter(Boolean).some((target) => changedTargets.includes(target));
+      });
+      if (!reconstructed) {
+        errors.push({ rule: "unreconstructed-recall", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add Recall: <${named.join(" or ") || "gate"}> => <changed file or symbol>` });
       }
     }
     const justified = Boolean(contract.noCheck) && contract.atRisk.length > 0;
