@@ -22,6 +22,8 @@ import {
 import { isSafeRelativePath as safeRelativePath } from "./lib/path-rules.mjs";
 import {
   binErrors,
+  hookFileErrors,
+  legacyHookPathErrors,
   pretoolUseHookErrors,
   retirementErrors,
   validateManifestSkills,
@@ -140,61 +142,40 @@ if (!globalHooksPathSafe) {
   fail("manifest: unsafe global_hooks path");
 }
 
-function manifestArray(value, key) {
-  if (!Array.isArray(value)) {
-    fail(`manifest: ${key} must be an array`);
-    return [];
+const inspectCatalogTarget = (relative) => {
+  const target = path.join(root, relative);
+  let exists = false;
+  let isFile = false;
+  let executable = false;
+  try {
+    const stat = fs.statSync(target);
+    exists = true;
+    isFile = stat.isFile();
+  } catch {
+    exists = false;
   }
-  return value;
-}
-
-const hookFileNames = new Set();
-for (const hookFile of manifestArray(manifest.global_hook_files, "global_hook_files")) {
-  if (!hookFile || typeof hookFile !== "object" || Array.isArray(hookFile)) {
-    fail("manifest: global_hook_files entries must be objects");
-    continue;
-  }
-  if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}$/.test(hookFile.name ?? "")) {
-    fail(`manifest: invalid global hook file name ${hookFile.name}`);
-  }
-  if (hookFileNames.has(hookFile.name)) {
-    fail(`manifest: duplicate global hook file name ${hookFile.name}`);
-  }
-  hookFileNames.add(hookFile.name);
-  if (!safeRelativePath(hookFile.path)) {
-    fail(`manifest: unsafe global hook path for ${hookFile.name}`);
-    continue;
-  }
-  if (typeof hookFile.executable !== "boolean") {
-    fail(`manifest: executable must be boolean for global hook ${hookFile.name}`);
-  }
-  const hookPath = path.join(root, hookFile.path);
-  if (!fs.existsSync(hookPath) || !fs.statSync(hookPath).isFile()) {
-    fail(`manifest: missing global hook target for ${hookFile.name}`);
-    continue;
-  }
-  if (hookFile.executable) {
+  if (exists && isFile) {
     try {
-      fs.accessSync(hookPath, fs.constants.X_OK);
+      fs.accessSync(target, fs.constants.X_OK);
+      executable = true;
     } catch {
-      fail(`manifest: global hook target is not executable for ${hookFile.name}`);
+      executable = false;
     }
   }
-}
+  return { exists, isFile, executable };
+};
 
-const legacyGlobalHookPaths = new Set();
-for (const legacyPath of manifestArray(manifest.legacy_global_hook_paths, "legacy_global_hook_paths")) {
-  if (!safeRelativePath(legacyPath)) {
-    fail(`manifest: unsafe legacy global hook path ${legacyPath}`);
-  }
-  if (legacyGlobalHookPaths.has(legacyPath)) {
-    fail(`manifest: duplicate legacy global hook path ${legacyPath}`);
-  }
-  legacyGlobalHookPaths.add(legacyPath);
-  const legacyName = legacyPath.split("/").at(-1);
-  if (hookFileNames.has(legacyName)) {
-    fail(`manifest: legacy global hook path overlaps installed hook ${legacyPath}`);
-  }
+{
+  const { errors: hookProblems, names: hookFileNames } = hookFileErrors(
+    manifest.global_hook_files,
+    { isSafeRelativePath: safeRelativePath, inspectTarget: inspectCatalogTarget },
+  );
+  for (const message of hookProblems) fail(message);
+  const { errors: legacyProblems } = legacyHookPathErrors(
+    manifest.legacy_global_hook_paths,
+    { isSafeRelativePath: safeRelativePath, hookNames: hookFileNames },
+  );
+  for (const message of legacyProblems) fail(message);
 }
 
 if (globalHooksPathSafe) {
@@ -207,28 +188,7 @@ if (globalHooksPathSafe) {
 {
   const { errors: binProblems } = binErrors(manifest.bins, {
     isSafeRelativePath: safeRelativePath,
-    inspectTarget: (relative) => {
-      const target = path.join(root, relative);
-      let exists = false;
-      let isFile = false;
-      let executable = false;
-      try {
-        const stat = fs.statSync(target);
-        exists = true;
-        isFile = stat.isFile();
-      } catch {
-        exists = false;
-      }
-      if (exists && isFile) {
-        try {
-          fs.accessSync(target, fs.constants.X_OK);
-          executable = true;
-        } catch {
-          executable = false;
-        }
-      }
-      return { exists, isFile, executable };
-    },
+    inspectTarget: inspectCatalogTarget,
   });
   for (const message of binProblems) fail(message);
 }

@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   binErrors,
+  hookFileErrors,
+  legacyHookPathErrors,
   pretoolUseHookErrors,
   retirementErrors,
   validateManifestSkills,
@@ -75,6 +77,77 @@ test("validateManifestSkills checks harness and runtime invariants", () => {
     validateManifestSkills(noRuntime).errors.includes(
       "manifest: runtime_paths must be a non-empty array",
     ),
+  );
+});
+
+test("hookFileErrors validates hook files with an injected inspector", () => {
+  const isSafeRelativePath = (value) => typeof value === "string" && !value.startsWith("/");
+  const ok = { isSafeRelativePath, inspectTarget: () => ({ exists: true, isFile: true, executable: false }) };
+  assert.deepEqual(hookFileErrors([{ name: "hook.py", path: "hooks/hook.py", executable: false }], ok).errors, []);
+  assert.deepEqual(hookFileErrors("nope", ok).errors, ["manifest: global_hook_files must be an array"]);
+  assert.deepEqual(hookFileErrors([null], ok).errors, ["manifest: global_hook_files entries must be objects"]);
+  assert.deepEqual(
+    hookFileErrors([{ name: "bad name", path: "hooks/hook.py", executable: false }], ok).errors,
+    ["manifest: invalid global hook file name bad name"],
+  );
+  assert.deepEqual(
+    hookFileErrors(
+      [
+        { name: "hook.py", path: "hooks/hook.py", executable: false },
+        { name: "hook.py", path: "hooks/hook.py", executable: false },
+      ],
+      ok,
+    ).errors,
+    ["manifest: duplicate global hook file name hook.py"],
+  );
+
+  let inspected = 0;
+  assert.deepEqual(
+    hookFileErrors([{ name: "hook.py", path: "/abs", executable: false }], {
+      isSafeRelativePath,
+      inspectTarget: () => (inspected += 1, { exists: true, isFile: true, executable: true }),
+    }).errors,
+    ["manifest: unsafe global hook path for hook.py"],
+  );
+  assert.equal(inspected, 0);
+
+  assert.deepEqual(
+    hookFileErrors([{ name: "hook.py", path: "hooks/hook.py" }], ok).errors,
+    ["manifest: executable must be boolean for global hook hook.py"],
+  );
+  assert.deepEqual(
+    hookFileErrors([{ name: "hook.py", path: "hooks/hook.py", executable: false }], {
+      isSafeRelativePath,
+      inspectTarget: () => ({ exists: false, isFile: false, executable: false }),
+    }).errors,
+    ["manifest: missing global hook target for hook.py"],
+  );
+  assert.deepEqual(
+    hookFileErrors([{ name: "hook.py", path: "hooks/hook.py", executable: true }], {
+      isSafeRelativePath,
+      inspectTarget: () => ({ exists: true, isFile: true, executable: false }),
+    }).errors,
+    ["manifest: global hook target is not executable for hook.py"],
+  );
+});
+
+test("legacyHookPathErrors validates legacy paths and overlaps", () => {
+  const isSafeRelativePath = (value) => typeof value === "string" && !value.startsWith("/");
+  assert.deepEqual(legacyHookPathErrors([], { isSafeRelativePath, hookNames: new Set() }).errors, []);
+  assert.deepEqual(legacyHookPathErrors("nope", { isSafeRelativePath, hookNames: new Set() }).errors, [
+    "manifest: legacy_global_hook_paths must be an array",
+  ]);
+  assert.deepEqual(
+    legacyHookPathErrors(["/abs", "/abs"], { isSafeRelativePath, hookNames: new Set() }).errors,
+    [
+      "manifest: unsafe legacy global hook path /abs",
+      "manifest: unsafe legacy global hook path /abs",
+      "manifest: duplicate legacy global hook path /abs",
+    ],
+  );
+  assert.deepEqual(
+    legacyHookPathErrors(["legacy/hook.py"], { isSafeRelativePath, hookNames: new Set(["hook.py"]) }).errors,
+    ["manifest: legacy global hook path overlaps installed hook legacy/hook.py"],
   );
 });
 

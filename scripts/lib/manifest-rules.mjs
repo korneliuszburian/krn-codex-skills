@@ -4,6 +4,67 @@ import { isSafeRelativePath } from "./path-rules.mjs";
 
 const SKILL_PATH_GROUPS = ["engineering", "advisory", "frontend", "meta"];
 
+export function hookFileErrors(hookFiles, { isSafeRelativePath, inspectTarget }) {
+  const errors = [];
+  const names = new Set();
+  if (!Array.isArray(hookFiles)) {
+    errors.push("manifest: global_hook_files must be an array");
+    return { errors, names };
+  }
+  for (const hookFile of hookFiles) {
+    if (!hookFile || typeof hookFile !== "object" || Array.isArray(hookFile)) {
+      errors.push("manifest: global_hook_files entries must be objects");
+      continue;
+    }
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}$/.test(hookFile.name ?? "")) {
+      errors.push(`manifest: invalid global hook file name ${hookFile.name}`);
+    }
+    if (names.has(hookFile.name)) {
+      errors.push(`manifest: duplicate global hook file name ${hookFile.name}`);
+    }
+    names.add(hookFile.name);
+    if (!isSafeRelativePath(hookFile.path)) {
+      errors.push(`manifest: unsafe global hook path for ${hookFile.name}`);
+      continue;
+    }
+    if (typeof hookFile.executable !== "boolean") {
+      errors.push(`manifest: executable must be boolean for global hook ${hookFile.name}`);
+    }
+    const target = inspectTarget(hookFile.path);
+    if (!target.exists || !target.isFile) {
+      errors.push(`manifest: missing global hook target for ${hookFile.name}`);
+      continue;
+    }
+    if (hookFile.executable && !target.executable) {
+      errors.push(`manifest: global hook target is not executable for ${hookFile.name}`);
+    }
+  }
+  return { errors, names };
+}
+
+export function legacyHookPathErrors(legacyPaths, { isSafeRelativePath, hookNames }) {
+  const errors = [];
+  const names = new Set();
+  if (!Array.isArray(legacyPaths)) {
+    errors.push("manifest: legacy_global_hook_paths must be an array");
+    return { errors, names };
+  }
+  for (const legacyPath of legacyPaths) {
+    if (!isSafeRelativePath(legacyPath)) {
+      errors.push(`manifest: unsafe legacy global hook path ${legacyPath}`);
+    }
+    if (names.has(legacyPath)) {
+      errors.push(`manifest: duplicate legacy global hook path ${legacyPath}`);
+    }
+    names.add(legacyPath);
+    const legacyName = legacyPath.split("/").at(-1);
+    if (hookNames.has(legacyName)) {
+      errors.push(`manifest: legacy global hook path overlaps installed hook ${legacyPath}`);
+    }
+  }
+  return { errors, names };
+}
+
 export function binErrors(bins, { isSafeRelativePath, inspectTarget }) {
   const errors = [];
   const names = new Set();
