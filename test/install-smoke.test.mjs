@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -9,6 +9,15 @@ import { fileURLToPath } from "node:url";
 import { applyInstall, createInstallPlan, installExitCodes } from "../scripts/lib/install-release.mjs";
 
 const sourceRoot = fileURLToPath(new URL("..", import.meta.url));
+
+test("the install shim dispatches check and rejects an unknown mode", () => {
+  const shim = path.join(sourceRoot, "scripts", "install.sh");
+  const bad = spawnSync("bash", [shim, "bogus"], { encoding: "utf8" });
+  assert.equal(bad.status, 64);
+  assert.match(bad.stderr, /usage: install\.sh/);
+  const check = spawnSync("bash", [shim, "check"], { encoding: "utf8" });
+  assert.equal(check.status, 0, check.stderr);
+});
 
 test("apply fails closed and restores current when the installed CLI cannot start", () => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-smoke-"));
