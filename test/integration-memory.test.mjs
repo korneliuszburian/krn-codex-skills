@@ -14,7 +14,11 @@ const commit = (root, message) => {
   git(root, ["-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", message]);
   return git(root, ["rev-parse", "HEAD"]);
 };
-const run = (args) => JSON.parse(spawnSync(process.execPath, [cli, ...args, "--json"], { encoding: "utf8" }).stdout);
+const run = (args) => {
+  const env = { ...process.env };
+  delete env.KRN_CHANGE_CONTRACT;
+  return JSON.parse(spawnSync(process.execPath, [cli, ...args, "--json"], { encoding: "utf8", env }).stdout);
+};
 
 test("the memory harness composes: a triggered lesson blocks an unreconstructed change", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-int-memory-"));
