@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
+import { checkLessons } from "../scripts/lib/lessons.mjs";
 import { verifyLessons } from "../scripts/lib/lessons-verify.mjs";
 
 function makeRoot(proofSource) {
@@ -74,7 +75,7 @@ test("the executor does not recurse when the guard is set", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test("a non-test proof file is skipped, not executed", () => {
+test("a proof outside test/ is rejected and never executed", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-verify-"));
   mkdirSync(join(root, "docs", "research"), { recursive: true });
   mkdirSync(join(root, "scripts"), { recursive: true });
@@ -84,8 +85,7 @@ test("a non-test proof file is skipped, not executed", () => {
     join(root, "docs", "research", "workflow-lessons.md"),
     "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n| A | probe | `test:state` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | `scripts/x.mjs::probe@abcdef0` |\n",
   );
-  const report = verifyLessons({ root });
-  assert.equal(report.results[0].status, "skipped");
-  assert.deepEqual(report.failures, []);
+  assert.ok(checkLessons({ root }).errors.some((error) => error.includes("executable")), "a non-executable proof is a blocking error");
+  assert.equal(verifyLessons({ root }).results[0].status, "skipped");
   rmSync(root, { recursive: true, force: true });
 });

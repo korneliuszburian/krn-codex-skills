@@ -33,13 +33,13 @@ export function parseLessons(file) {
   return { rows, malformed, budget: LESSON_BUDGET };
 }
 
-const FALSIFIER = /^((?:test|scripts)\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
+const FALSIFIER = /^(test\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
 
 function resolveFalsifier(root, cell) {
   const raw = (cell ?? "").replace(/`/g, "").trim();
   if (!raw) return { ok: false, reason: "no falsifier recorded" };
   const match = FALSIFIER.exec(raw);
-  if (!match) return { ok: false, reason: `falsifier must be <test|scripts>/file.mjs::<case>@<7-hex>, got "${raw}"` };
+  if (!match) return { ok: false, reason: `falsifier must be an executable <test>/file.mjs::<case>@<7-hex>, got "${raw}"` };
   const [, rel, caseName, sha] = match;
   const spec = `${rel}::${caseName}`;
   const absolute = path.resolve(root, rel);

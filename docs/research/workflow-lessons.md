@@ -12,7 +12,7 @@ tokens naming each witnessed instance. Two or more occurrences whose only gate
 is `manual:` fail `lessons:check` until the friction is consolidated into a
 structural gate or artifact, and a recurring class keeps one row that supersedes
 its duplicates. A recurring row must also carry a fifth `Falsifier` column,
-`<test|scripts>/<file>.mjs::<case>@<7-hex>`: the check observed failing on the
+`<test>/<file>.mjs::<case>@<7-hex>`: the check observed failing on the
 pre-change behavior and the commit that recorded it. `lessons:check` verifies
 the file exists and, in a git checkout, that the commit is an ancestor of HEAD,
 so a gate whose proof is missing or unreachable fails closed.
