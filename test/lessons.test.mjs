@@ -92,6 +92,28 @@ test("recurring friction with only a manual gate must be consolidated", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("recurrence bypasses are closed: no trailing pipe, doc-only gate, duplicate tokens", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  const header = "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n";
+
+  writeFileSync(
+    file,
+    `${header}| A | probe | \`manual:review\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2`,
+  );
+  assert.ok(checkLessons({ root }).errors.some((e) => e.includes("no structural gate")), "missing trailing pipe");
+
+  writeFileSync(
+    file,
+    `${header}| A | probe | \`manual:review\`, \`docs/research/orchestration.md\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n`,
+  );
+  assert.ok(checkLessons({ root }).errors.some((e) => e.includes("no structural gate")), "a doc path is not structural");
+
+  writeFileSync(file, `${header}| A | probe | \`manual:review\` | 2026-01-01@abcdef1, 2026-01-01@abcdef1 |\n`);
+  assert.deepEqual(checkLessons({ root }).errors, [], "duplicate tokens collapse to one occurrence");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

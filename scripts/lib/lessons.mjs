@@ -10,13 +10,18 @@ export function parseLessons(file) {
   const rows = [];
   const malformed = [];
   for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-    if (!line.startsWith("|") || /^\|\s*-+/.test(line) || /^\|\s*Lesson\s*\|/.test(line)) continue;
-    const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("|")) continue;
+    if (/^\|[\s:|-]*-{1,}[\s:|-]*\|?$/.test(trimmed)) continue;
+    if (/^\|\s*lesson\s*\|/i.test(trimmed)) continue;
+    const body = trimmed.startsWith("|") ? trimmed.slice(1) : trimmed;
+    const inner = body.endsWith("|") ? body.slice(0, -1) : body;
+    const cells = inner.split("|").map((cell) => cell.trim());
     if (cells.length < 3 || cells.length > 4 || cells.slice(0, 3).some((cell) => cell === "")) {
       malformed.push(line);
       continue;
     }
-    const occurrences = (cells[3] ?? "").split(/[,\s]+/).filter(Boolean);
+    const occurrences = [...new Set((cells[3] ?? "").split(/[,\s]+/).filter(Boolean))];
     if (occurrences.some((token) => !/^\d{4}-\d{2}-\d{2}@[0-9a-f]{7}$/.test(token))) {
       malformed.push(line);
       continue;
@@ -72,8 +77,11 @@ export function checkLessons({ root }) {
       else errors.push(`lesson "${row.lesson}": ${result.reason}`);
     }
     if (resolved.length === 0) errors.push(`lesson "${row.lesson}": no resolvable gate reference`);
-    if (resolved.length > 0 && row.occurrences.length >= 2 && resolved.every((entry) => entry.kind === "manual")) {
-      errors.push(`lesson "${row.lesson}": recurring friction (${row.occurrences.length} occurrences) has only a manual gate; consolidate it into a structural gate or artifact, or supersede the row`);
+    const structural = resolved.filter(
+      (entry) => entry.kind === "script" || (entry.kind === "path" && /^(scripts|test|\.github)\//.test(entry.reference)),
+    );
+    if (row.occurrences.length >= 2 && structural.length === 0) {
+      errors.push(`lesson "${row.lesson}": recurring friction (${row.occurrences.length} occurrences) has no structural gate; consolidate it into a script or test, or supersede the row`);
     }
     lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences });
   }
