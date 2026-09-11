@@ -9,9 +9,13 @@ import { checkLessons, parseLessons } from "../scripts/lib/lessons.mjs";
 function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "krn-lessons-"));
   mkdirSync(join(root, "docs", "research"), { recursive: true });
+  mkdirSync(join(root, "test"), { recursive: true });
+  writeFileSync(join(root, "test", "gate.test.mjs"), "// falsifier case\n");
   writeFileSync(join(root, "package.json"), '{\n  "scripts": { "test:state": "x" }\n}\n');
   return root;
 }
+
+const FALSIFIER = `\`test/gate.test.mjs::probe@abcdef0\``;
 
 test("parseLessons owns the row schema and reports malformed rows", () => {
   const root = makeRoot();
@@ -68,7 +72,7 @@ test("a lesson without any gate candidate fails", () => {
 
 test("recurring friction with only a manual gate must be consolidated", () => {
   const root = makeRoot();
-  const row = (gate, occurrences) => `| A | probe | \`${gate}\` | ${occurrences} |`;
+  const row = (gate, occurrences) => `| A | probe | \`${gate}\` | ${occurrences} | ${FALSIFIER} |`;
   writeFileSync(
     join(root, "docs", "research", "workflow-lessons.md"),
     `| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n${row("manual:review", "2026-01-01@abcdef1, 2026-01-02@abcdef2")}\n`,
@@ -95,17 +99,17 @@ test("recurring friction with only a manual gate must be consolidated", () => {
 test("recurrence bypasses are closed: no trailing pipe, doc-only gate, duplicate tokens", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");
-  const header = "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n";
+  const header = "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|---|\n";
 
   writeFileSync(
     file,
-    `${header}| A | probe | \`manual:review\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2`,
+    `${header}| A | probe | \`manual:review\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | ${FALSIFIER}`,
   );
   assert.ok(checkLessons({ root }).errors.some((e) => e.includes("no structural gate")), "missing trailing pipe");
 
   writeFileSync(
     file,
-    `${header}| A | probe | \`manual:review\`, \`docs/research/orchestration.md\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n`,
+    `${header}| A | probe | \`manual:review\`, \`docs/research/orchestration.md\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | ${FALSIFIER} |\n`,
   );
   assert.ok(checkLessons({ root }).errors.some((e) => e.includes("no structural gate")), "a doc path is not structural");
 
@@ -118,16 +122,16 @@ test("structural classification uses the resolved path, not the raw reference", 
   const root = makeRoot();
   mkdirSync(join(root, "scripts"), { recursive: true });
   writeFileSync(join(root, "scripts", "x.mjs"), "// gate\n");
-  const header = "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n";
+  const header = "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|---|\n";
   const file = join(root, "docs", "research", "workflow-lessons.md");
 
-  writeFileSync(file, `${header}| A | probe | \`node ./scripts/x.mjs\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n`);
+  writeFileSync(file, `${header}| A | probe | \`node ./scripts/x.mjs\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | ${FALSIFIER} |\n`);
   assert.deepEqual(checkLessons({ root }).errors, [], "a normalized node script is structural");
 
-  writeFileSync(file, `${header}| A | probe | \`scripts/../docs/research/workflow-lessons.md\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n`);
+  writeFileSync(file, `${header}| A | probe | \`scripts/../docs/research/workflow-lessons.md\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | ${FALSIFIER} |\n`);
   assert.ok(checkLessons({ root }).errors.some((e) => e.includes("no structural gate")), "a traversal to docs is not structural");
 
-  writeFileSync(file, `${header}| A | probe | \`node --test test/x.test.mjs\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n`);
+  writeFileSync(file, `${header}| A | probe | \`node --test test/x.test.mjs\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | ${FALSIFIER} |\n`);
   mkdirSync(join(root, "test"), { recursive: true });
   writeFileSync(join(root, "test", "x.test.mjs"), "// test\n");
   assert.deepEqual(checkLessons({ root }).errors, [], "a node --test invocation is structural");
@@ -139,9 +143,31 @@ test("prototype-chain names cannot masquerade as npm scripts", () => {
   const file = join(root, "docs", "research", "workflow-lessons.md");
   writeFileSync(
     file,
-    "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|\n| A | probe | `npm run constructor` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n",
+    "| Lesson | Evidence | Enforced by | Occurrences |\n|---|---|---|---|---|\n| A | probe | `npm run constructor` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | `test/gate.test.mjs::probe@abcdef0` |\n",
   );
   assert.ok(checkLessons({ root }).errors.some((e) => e.includes("unknown npm script constructor")), JSON.stringify(checkLessons({ root }).errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("recurring rows must carry the falsifier that proved the gate", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n";
+
+  writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 |\n`);
+  assert.ok(checkLessons({ root }).errors.some((e) => e.includes("no falsifier recorded")), "a recurring row without a proof fails");
+
+  writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | \`test/missing.test.mjs::probe@abcdef0\` |\n`);
+  assert.ok(checkLessons({ root }).errors.some((e) => e.includes("falsifier file not found")), "a proof file must exist");
+
+  writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | \`probe@abcdef0\` |\n`);
+  assert.ok(checkLessons({ root }).errors.some((e) => e.includes("falsifier must be")), "a proof must name a file, case, and commit");
+
+  writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | ${FALSIFIER} |\n`);
+  assert.deepEqual(checkLessons({ root }).errors, [], "a resolvable proof passes");
+
+  writeFileSync(file, `${header}| A | probe | \`test:state\` | 2026-01-01@abcdef1 | ${FALSIFIER} |\n`);
+  assert.deepEqual(checkLessons({ root }).errors, [], "a single occurrence may still record its proof");
   rmSync(root, { recursive: true, force: true });
 });
 

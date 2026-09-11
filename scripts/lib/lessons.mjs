@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { runGit } from "./git-cli.mjs";
+
 const CANDIDATE = /^(npm run |test:|manual:)|[.][a-z0-9]{2,4}$/i;
 
 const LESSON_BUDGET = 24;
@@ -17,7 +19,7 @@ export function parseLessons(file) {
     const body = trimmed.startsWith("|") ? trimmed.slice(1) : trimmed;
     const inner = body.endsWith("|") ? body.slice(0, -1) : body;
     const cells = inner.split("|").map((cell) => cell.trim());
-    if (cells.length < 3 || cells.length > 4 || cells.slice(0, 3).some((cell) => cell === "")) {
+    if (cells.length < 3 || cells.length > 5 || cells.slice(0, 3).some((cell) => cell === "")) {
       malformed.push(line);
       continue;
     }
@@ -26,9 +28,31 @@ export function parseLessons(file) {
       malformed.push(line);
       continue;
     }
-    rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences });
+    rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences, falsifier: cells[4] ?? "" });
   }
   return { rows, malformed, budget: LESSON_BUDGET };
+}
+
+const FALSIFIER = /^((?:test|scripts)\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
+
+function resolveFalsifier(root, cell) {
+  const raw = (cell ?? "").replace(/`/g, "").trim();
+  if (!raw) return { ok: false, reason: "no falsifier recorded" };
+  const match = FALSIFIER.exec(raw);
+  if (!match) return { ok: false, reason: `falsifier must be <test|scripts>/file.mjs::<case>@<7-hex>, got "${raw}"` };
+  const [, rel, , sha] = match;
+  const spec = `${rel}::${match[2]}`;
+  const absolute = path.resolve(root, rel);
+  const relCheck = path.relative(root, absolute);
+  if (!relCheck || relCheck.startsWith("..") || path.isAbsolute(relCheck)) return { ok: false, reason: `falsifier path escapes the repository: ${rel}` };
+  if (!fs.statSync(absolute, { throwIfNoEntry: false })?.isFile()) return { ok: false, reason: `falsifier file not found: ${rel}` };
+  if (runGit(root, ["rev-parse", "--git-dir"]).ok) {
+    const known = runGit(root, ["cat-file", "-e", `${sha}^{commit}`]).ok;
+    if (known && !runGit(root, ["merge-base", "--is-ancestor", sha, "HEAD"]).ok) {
+      return { ok: false, reason: `falsifier commit ${sha} for ${spec} is not an ancestor of HEAD` };
+    }
+  }
+  return { ok: true };
 }
 
 function resolveReference(root, scripts, reference) {
@@ -85,7 +109,13 @@ export function checkLessons({ root }) {
     if (row.occurrences.length >= 2 && structural.length === 0) {
       errors.push(`lesson "${row.lesson}": recurring friction (${row.occurrences.length} occurrences) has no structural gate; consolidate it into a script or test, or supersede the row`);
     }
-    lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences });
+    if (row.occurrences.length >= 2 || row.falsifier) {
+      const falsifier = resolveFalsifier(root, row.falsifier);
+      if (!falsifier.ok) {
+        errors.push(`lesson "${row.lesson}": recurring friction needs the falsifier that proved the gate; ${falsifier.reason}`);
+      }
+    }
+    lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences, falsifier: row.falsifier });
   }
   return { root, lessons, errors };
 }

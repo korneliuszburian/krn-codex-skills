@@ -1,6 +1,6 @@
 # Workflow lessons
 
-Status: `accepted`. Consumer: `$delivery-loop` at outcome bind. Owner: the lifecycle writer. Verified: 2026-09-10.
+Status: `accepted`. Consumer: `$delivery-loop` at outcome bind. Owner: the lifecycle writer. Verified: 2026-09-11.
 
 Cross-run workflow memory: the file-backed port of the Agents SDK `Memory()`
 pattern. Each row is a reusable process lesson with the evidence that earned it
@@ -11,7 +11,11 @@ Each row may carry a fourth `Occurrences` column of `YYYY-MM-DD@<7-hex>`
 tokens naming each witnessed instance. Two or more occurrences whose only gate
 is `manual:` fail `lessons:check` until the friction is consolidated into a
 structural gate or artifact, and a recurring class keeps one row that supersedes
-its duplicates.
+its duplicates. A recurring row must also carry a fifth `Falsifier` column,
+`<test|scripts>/<file>.mjs::<case>@<7-hex>`: the check observed failing on the
+pre-change behavior and the commit that recorded it. `lessons:check` verifies
+the file exists and, in a git checkout, that the commit is an ancestor of HEAD,
+so a gate whose proof is missing or unreachable fails closed.
 
 | Lesson | Evidence | Enforced by |
 |---|---|---|
@@ -26,7 +30,7 @@ its duplicates.
 | A prose rule that no check enforces is ignored at low effort. | The explicit-only rule was ignored by a low-effort model until it was narrowed and behaviorally checked; per-slice and held-out rules now have a test/inspection gate. | `manual:review`; `scripts/lib/lessons.mjs`. |
 | Hand-written capsule fixed points must use full commit tokens. | A hand-filled capsule with short hashes failed `state check` with `invalid-fixed-point` until the full tokens were used. | `test/state-check.test.mjs`. |
 | Verification lanes on this host cannot spawn git children, so state tests run only in the main session. | Two independent luna reviews reported `spawnSync git EPERM` and could not execute `test:state`; each stated the execution gap instead of claiming a regression. | `manual:review`; `scripts/lib/state-check.mjs`. |
-| A read-only review cannot prove runtime reachability; every extracted runtime module needs at least one executing test, and mechanical detection must back the class. | The extraction at `83101ae` left `derivedRolloutDay` calling an unexported `isValidDay`, and a later dedupe at `f40286d` removed `gitAvailable` from `state-brief` but left the call; luna reported no finding both times and only an executing test or the quality audit surfaced it. | `scripts/quality-audit.mjs`; `test/catalog-usage-scan.test.mjs`; `test/quality-audit.test.mjs`. | 2026-09-11@83101ae, 2026-09-11@f40286d |
+| A read-only review cannot prove runtime reachability; every extracted runtime module needs at least one executing test, and mechanical detection must back the class. | The extraction at `83101ae` left `derivedRolloutDay` calling an unexported `isValidDay`, and a later dedupe at `f40286d` removed `gitAvailable` from `state-brief` but left the call; luna reported no finding both times and only an executing test or the quality audit surfaced it. | `scripts/quality-audit.mjs`; `test/catalog-usage-scan.test.mjs`; `test/quality-audit.test.mjs`. | 2026-09-11@83101ae, 2026-09-11@f40286d | `test/quality-audit.test.mjs::the audit catches a cross-file call that is never imported@428d8fa` |
 | Broadening executing coverage can expose silently lost records that a green suite hides. | The manifest-name quarantine passed `family@marketplace` as the id, so the collector filtered it: the plugin was skipped and `hardQuarantine` kept no record until the plugin-cache integration test exercised the branch. | `test/catalog-inventory-quarantine-branches.test.mjs`. |
 | Duplicated low-level adapters drift; centralize once and alias at call sites. | Four copies of a git wrapper with two different contracts lived across `state-check`, `state-brief`, `skills-export`, and `install-release`; one `git-cli` module with `runGit`/`gitText`/`gitAvailable` now backs all four. | `test/git-cli.test.mjs`; `test/module-surface.test.mjs`. |
 | Memory artifacts must fail closed, not warn, once staleness or contradiction is measured. | An `ACTIVE` capsule 25+ commits behind HEAD returned `clean`, and lesson-gate resolution claimed in `validate` ran only in a separate command; both are now blocking errors (`stale-fixed-point` for COMPLETE, `active-without-next`, unresolved gates in `validate`). | `npm run test:state`; `npm run validate`. |
