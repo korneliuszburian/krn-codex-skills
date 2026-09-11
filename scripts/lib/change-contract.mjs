@@ -78,8 +78,10 @@ function runCheck({ root, target }) {
 
 function outputTail(output) {
   if (!output) return "";
-  const lines = output.trim().split("\n").slice(-6).join("\n");
-  return `; output: ${lines}`;
+  const lines = output.trim().split("\n");
+  const failing = lines.filter((line) => /^not ok /.test(line)).slice(0, 3);
+  const tail = lines.slice(-4);
+  return `; output: ${[...new Set([...failing, ...tail])].join("\n")}`;
 }
 
 export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck } = {}) {
