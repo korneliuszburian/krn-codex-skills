@@ -250,8 +250,9 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   const lessonsFile = join(root, "docs", "research", "workflow-lessons.md");
   if (existsSync(lessonsFile)) {
     const parsedLessons = parseLessons(lessonsFile);
-    if (parsedLessons.rows.length > parsedLessons.budget) {
-      errors.push({ id: "workflow-lessons", rule: "lessons-over-budget", detail: `${parsedLessons.rows.length} rows` });
+    const activeLessons = parsedLessons.rows.filter((row) => !row.status).length;
+    if (activeLessons > parsedLessons.budget) {
+      errors.push({ id: "workflow-lessons", rule: "lessons-over-budget", detail: `${activeLessons} rows` });
     }
     for (const row of parsedLessons.malformed) {
       errors.push({ id: "workflow-lessons", rule: "malformed-lesson", detail: row.trim() });

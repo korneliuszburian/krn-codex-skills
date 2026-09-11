@@ -248,6 +248,52 @@ test("a churn trigger delivers the lesson for a hot changed file", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("retirement needs a supersession or a removed gate, and is excluded from recall", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n";
+  const git = (_root, args) => {
+    if (["rev-parse", "cat-file", "merge-base", "log"].includes(args[0])) return { ok: true, out: "" };
+    return { ok: false, out: "" };
+  };
+
+  writeFileSync(file, `${header}| Old | probe | \`test:state\` | | | | retired@abcdef0; superseded-by:New |\n| New | probe | \`test:state\` | | | | |\n`);
+  assert.deepEqual(checkLessons({ root, git }).errors, [], "a superseded retirement is valid");
+
+  writeFileSync(file, `${header}| Old | probe | \`test:state\` | | | | retired@abcdef0 |\n`);
+  assert.ok(checkLessons({ root, git }).errors.some((error) => error.includes("live gate")), "retiring with a live gate must fail");
+
+  writeFileSync(file, `${header}| Old | probe | \`scripts/gone.mjs\` | | | | retired@abcdef0 |\n`);
+  assert.deepEqual(checkLessons({ root, git }).errors, [], "a retirement whose enforcement is gone is valid");
+
+  writeFileSync(file, `${header}| Old | probe | \`test:state\` | | | symbol:runGit | retired@abcdef0; superseded-by:test:state |\n`);
+  assert.deepEqual(recallLessons({ root, files: [], symbols: ["runGit"] }), [], "a retired lesson is not delivered");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("retirement is invalid without a commit and budgets count only active rows", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n";
+  const git = (_root, args) => {
+    if (["rev-parse", "cat-file", "merge-base", "log"].includes(args[0])) return { ok: true, out: "" };
+    return { ok: false, out: "" };
+  };
+  const row = (name, status) => `| ${name} | probe | \`test:state\` | | | | ${status} |`;
+
+  writeFileSync(file, `${header}${row("Old", "retired")}\n`);
+  assert.ok(checkLessons({ root, git }).errors.some((error) => error.includes("invalid Status")), "a retirement needs a commit token");
+
+  const active = Array.from({ length: 24 }, (_value, index) => row(`L${index}`, "")).join("\n");
+  writeFileSync(file, `${header}${active}\n${row("Old", "retired@abcdef0; superseded-by:test:state")}\n`);
+  assert.deepEqual(checkLessons({ root, git }).errors, [], "retired rows do not consume the active budget");
+
+  const overflow = Array.from({ length: 25 }, (_value, index) => row(`L${index}`, "")).join("\n");
+  writeFileSync(file, `${header}${overflow}\n`);
+  assert.ok(checkLessons({ root, git }).errors.some((error) => error.includes("active lesson rows")), "the active budget still applies");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

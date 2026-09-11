@@ -95,8 +95,9 @@ export function checkDurablePages({ root }) {
   const lessonsFile = path.join(researchDirectory, "workflow-lessons.md");
   if (fs.existsSync(lessonsFile)) {
     const parsed = parseLessons(lessonsFile);
-    if (parsed.rows.length > parsed.budget) {
-      errors.push(`docs/research/workflow-lessons.md exceeds ${parsed.budget} lesson rows; displace or condense`);
+    const active = parsed.rows.filter((row) => !row.status).length;
+    if (active > parsed.budget) {
+      errors.push(`docs/research/workflow-lessons.md exceeds ${parsed.budget} active lesson rows; displace, condense, or retire`);
     }
     for (const row of parsed.malformed) {
       errors.push(`docs/research/workflow-lessons.md: a lesson row needs non-empty Lesson, Evidence, and Enforced by cells: ${row.trim()}`);

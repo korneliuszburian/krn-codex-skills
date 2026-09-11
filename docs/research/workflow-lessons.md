@@ -32,6 +32,12 @@ and `changes check` requires a matching surface change to reconstruct the lesson
 with a `Recall: <gate or falsifier> => <changed file or symbol>` trailer, so the
 lesson must be bound to the present change instead of replayed from the page.
 
+A row may carry a seventh `Status` column. A retired row is archived as
+`retired@<7-hex>` and must either name `superseded-by:<anchor>` that resolves to
+an active row, or have no live gate left (its enforcement was removed); retired
+rows are excluded from trigger delivery and do not consume the 24-row active
+budget, so aging is explicit instead of a silent deletion.
+
 | Lesson | Evidence | Enforced by |
 |---|---|---|
 | Derive the installed runtime closure from the artifact being installed, never from the running installer version. | A release silently omitted `state-brief.mjs` and still reported `filesystem_installed`. | `runtime_paths` in `skills/manifest.json`, the post-switch CLI smoke, and `test/install-smoke.test.mjs`. |

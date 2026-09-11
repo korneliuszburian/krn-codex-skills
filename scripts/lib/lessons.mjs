@@ -19,7 +19,7 @@ export function parseLessons(file) {
     const body = trimmed.startsWith("|") ? trimmed.slice(1) : trimmed;
     const inner = body.endsWith("|") ? body.slice(0, -1) : body;
     const cells = inner.split("|").map((cell) => cell.trim());
-    if (cells.length < 3 || cells.length > 6 || cells.slice(0, 3).some((cell) => cell === "")) {
+    if (cells.length < 3 || cells.length > 7 || cells.slice(0, 3).some((cell) => cell === "")) {
       malformed.push(line);
       continue;
     }
@@ -28,12 +28,14 @@ export function parseLessons(file) {
       malformed.push(line);
       continue;
     }
-    rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences, falsifier: cells[4] ?? "", trigger: cells[5] ?? "" });
+    rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences, falsifier: cells[4] ?? "", trigger: cells[5] ?? "", status: (cells[6] ?? "").trim() });
   }
   return { rows, malformed, budget: LESSON_BUDGET };
 }
 
 const FALSIFIER = /^(test\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
+
+const RETIRE = /^retired@([0-9a-f]{7})(?:;\s*superseded-by:\s*(\S.*?))?$/i;
 
 function triggerGlobs(trigger) {
   return (trigger ?? "")
@@ -69,7 +71,7 @@ function triggerEntries(trigger, prefix) {
 export function recallLessons({ root, files = [], symbols = [], hot = [] }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
   const hits = [];
-  for (const row of parseLessons(file).rows) {
+  for (const row of parseLessons(file).rows.filter((candidate) => !candidate.status)) {
     const globs = triggerEntries(row.trigger, "path:");
     const symbolMatches = triggerEntries(row.trigger, "symbol:").filter((name) => symbols.includes(name));
     const churnMatches = hot.filter((candidate) => triggerEntries(row.trigger, "churn:").some((glob) => globToRegex(glob).test(candidate)));
@@ -166,13 +168,35 @@ export function checkLessons({ root, git = runGit }) {
   const errors = malformed.map((row) => `malformed lesson row: ${row.trim()}`);
   const warnings = [];
   const lessons = [];
-  if (rows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} lesson rows; displace or condense`);
+  const activeRows = rows.filter((row) => !row.status);
+  if (activeRows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} active lesson rows; displace, condense, or retire`);
   if (!fs.existsSync(file)) return { root, lessons, errors, warnings, skipped: true };
   const packageFile = path.join(root, "package.json");
   const scripts = fs.existsSync(packageFile)
     ? JSON.parse(fs.readFileSync(packageFile, "utf8")).scripts ?? {}
     : {};
   for (const row of rows) {
+    if (row.status) {
+      const retirement = RETIRE.exec(row.status);
+      if (!retirement) {
+        errors.push(`lesson "${row.lesson}": invalid Status "${row.status}"; use retired@<7-hex>[; superseded-by:<anchor>]`);
+        continue;
+      }
+      const sha = retirement[1];
+      if (git(root, ["rev-parse", "--git-dir"]).ok && git(root, ["cat-file", "-e", `${sha}^{commit}`]).ok && !git(root, ["merge-base", "--is-ancestor", sha, "HEAD"]).ok) {
+        errors.push(`lesson "${row.lesson}": retirement commit ${sha} is not an ancestor of HEAD`);
+      }
+      const anchor = retirement[2];
+      if (anchor) {
+        const target = activeRows.find((candidate) => `${candidate.gate} ${candidate.falsifier} ${candidate.lesson}`.includes(anchor));
+        if (!target) errors.push(`lesson "${row.lesson}": superseded-by "${anchor}" resolves to no active row`);
+      } else {
+        const live = [...row.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim()).filter((reference) => CANDIDATE.test(reference)).filter((reference) => resolveReference(root, scripts, reference).ok);
+        if (live.length > 0) errors.push(`lesson "${row.lesson}": retired with a live gate (${live.join(", ")}); remove the enforcement or name superseded-by`);
+      }
+      lessons.push({ lesson: row.lesson, resolved: [], occurrences: row.occurrences, falsifier: row.falsifier, trigger: row.trigger, status: row.status });
+      continue;
+    }
     const candidates = [...row.gate.matchAll(/`([^`]+)`/g)]
       .map((match) => match[1].trim())
       .filter((reference) => CANDIDATE.test(reference));
@@ -202,7 +226,7 @@ export function checkLessons({ root, git = runGit }) {
         }
       }
     }
-    lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences, falsifier: row.falsifier, trigger: row.trigger });
+    lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences, falsifier: row.falsifier, trigger: row.trigger, status: "" });
   }
   return { root, lessons, errors, warnings };
 }
