@@ -13,7 +13,7 @@ const makeHome = () => {
   mkdirSync(join(base, "codex"), { recursive: true });
   return {
     base,
-    env: { CODEX_HOME: join(base, "codex"), AGENTS_HOME: join(base, "agents") },
+    env: { HOME: base, CODEX_HOME: join(base, "codex"), AGENTS_HOME: join(base, "agents") },
     configPath: join(base, "config.toml"),
   };
 };

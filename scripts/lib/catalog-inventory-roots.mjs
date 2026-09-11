@@ -1,4 +1,5 @@
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { homedir } from "node:os";
 
 const ALLOWED_ROOT_SCOPES = new Set([
   "global-index",
@@ -8,7 +9,7 @@ const ALLOWED_ROOT_SCOPES = new Set([
   "vendor-global",
 ]);
 
-function defaultSkillRoots({ codexHome, agentsHome }) {
+function defaultSkillRoots({ codexHome, agentsHome, opencodeHome }) {
   return [
     {
       id: "codex-user-skills",
@@ -26,6 +27,12 @@ function defaultSkillRoots({ codexHome, agentsHome }) {
       id: "agent-global-index",
       path: join(agentsHome, "skills"),
       scope: "global-index",
+      readFrontmatter: false,
+    },
+    {
+      id: "opencode-skills",
+      path: join(opencodeHome, "skills"),
+      scope: "vendor-global",
       readFrontmatter: false,
     },
   ];
@@ -63,10 +70,11 @@ export function resolveInventoryRoots({
   pluginCacheRoots,
   codexHome,
   agentsHome,
+  opencodeHome = join(dirname(agentsHome ?? join(homedir(), ".agents")), ".config", "opencode"),
 } = {}) {
   if (skillRoots !== undefined) validateSkillRoots(skillRoots);
   if (pluginCacheRoots !== undefined) validateCacheRoots(pluginCacheRoots);
-  const resolvedSkillRoots = skillRoots ?? defaultSkillRoots({ codexHome, agentsHome });
+  const resolvedSkillRoots = skillRoots ?? defaultSkillRoots({ codexHome, agentsHome, opencodeHome });
   const resolvedPluginCacheRoots = pluginCacheRoots ?? [
     {
       id: "codex-plugin-cache",

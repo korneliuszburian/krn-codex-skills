@@ -15,6 +15,7 @@ test("resolveInventoryRoots derives the default codex and agent roots", () => {
       ["codex-user-skills", join("/home/u/.codex", "skills"), "user"],
       ["codex-system-skills", join("/home/u/.codex", "skills", ".system"), "system"],
       ["agent-global-index", join("/home/u/.agents", "skills"), "global-index"],
+      ["opencode-skills", join("/home/u/.config/opencode", "skills"), "vendor-global"],
     ],
   );
   assert.deepEqual(pluginCacheRoots, [

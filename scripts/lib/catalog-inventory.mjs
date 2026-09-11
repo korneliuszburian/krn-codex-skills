@@ -64,6 +64,7 @@ export async function inventoryCapabilities(options = {}) {
     pluginCacheRoots: options.pluginCacheRoots,
     codexHome,
     agentsHome,
+    opencodeHome: options.opencodeHome ?? join(homeDirectory, ".config", "opencode"),
   });
   const quarantine = createQuarantineCollector(
     options.quarantineEvidence ?? [],
