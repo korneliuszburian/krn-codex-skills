@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkLessons, matchesTrigger, parseLessons, recallLessons } from "../scripts/lib/lessons.mjs";
+import { checkLessons, lessonUsage, matchesTrigger, parseLessons, recallLessons } from "../scripts/lib/lessons.mjs";
 
 function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "krn-lessons-"));
@@ -346,6 +347,31 @@ test("a root without a memory page warns instead of a silent skip", () => {
   const report = checkLessons({ root });
   assert.equal(report.skipped, true);
   assert.ok(report.warnings.some((warning) => warning.includes("memory is not adopted")), JSON.stringify(report.warnings));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("lessonUsage counts Recall usage from history and flags never-recalled triggers", () => {
+  const root = makeRoot();
+  const git = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  git(["init", "-q"]);
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  writeFileSync(join(root, "scripts", "x.mjs"), "// x\n");
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Used | probe | `test:state` | | | path:scripts/x.mjs |\n| Dead | probe | `test:state` | | | path:scripts/y.mjs |\n",
+  );
+  const commit = (message) => {
+    git(["add", "-A"]);
+    git(["-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", message]);
+  };
+  commit("init");
+  writeFileSync(join(root, "scripts", "x.mjs"), "// x2\n");
+  commit("feat: touch x\n\nRecall: test:state => scripts/x.mjs");
+
+  const usage = lessonUsage({ root });
+  assert.equal(usage.usage.find((entry) => entry.lesson === "Used").recalls, 1);
+  assert.ok(usage.neverRecalled.includes("Dead"), JSON.stringify(usage));
+  assert.ok(!usage.neverRecalled.includes("Used"));
   rmSync(root, { recursive: true, force: true });
 });
 

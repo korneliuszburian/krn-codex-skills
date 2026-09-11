@@ -8,7 +8,7 @@ import { applyInstall, createInstallPlan, inspectInstall } from "./lib/install-r
 import { inspectSpineState } from "./lib/state-check.mjs";
 import { compileCapsule, resumeBrief } from "./lib/state-brief.mjs";
 import { checkSkills, exportSkills } from "./lib/skills-export.mjs";
-import { checkLessons, recallLessons } from "./lib/lessons.mjs";
+import { checkLessons, lessonUsage, recallLessons } from "./lib/lessons.mjs";
 import { churnHot } from "./lib/churn.mjs";
 import { runGit } from "./lib/git-cli.mjs";
 import { verifyLessons } from "./lib/lessons-verify.mjs";
@@ -34,7 +34,7 @@ const usage = `Usage:
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
   krn-codex lessons <check|verify> --root DIR [--json]
   krn-codex changes check --base REF [--head REF] --root DIR [--json]
-  krn-codex memory recall --root DIR [--changed PATH[,PATH...]] [--symbol NAME[,NAME...]] [--json]`;
+  krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...]] [--symbol NAME[,NAME...]] [--json]`;
 
 function fail(message, code = EXIT_CODES.USAGE) {
   const error = new Error(message);
@@ -141,12 +141,17 @@ try {
     if (report.errors.length) process.exitCode = 1;
   } else if (raw[0] === "memory") {
     const { positional, options } = parseOptions(raw.slice(1));
-    if (positional[0] !== "recall" || positional.length > 1 || options.source || options.yes || !options.root || !(options.changed?.length || options.symbols?.length)) fail(usage);
-    const changed = options.changed ?? [];
-    const hot = changed.length > 0 ? churnHot({ root: options.root, git: runGit, sha: "HEAD", files: changed }) : [];
-    const hits = recallLessons({ root: options.root, files: changed, symbols: options.symbols ?? [], hot });
-    print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits }, options.json);
-    if (!options.json) for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
+    if (!["recall", "usage"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
+    if (positional[0] === "usage") {
+      print(lessonUsage({ root: options.root }), options.json);
+    } else {
+      if (!(options.changed?.length || options.symbols?.length)) fail(usage);
+      const changed = options.changed ?? [];
+      const hot = changed.length > 0 ? churnHot({ root: options.root, git: runGit, sha: "HEAD", files: changed }) : [];
+      const hits = recallLessons({ root: options.root, files: changed, symbols: options.symbols ?? [], hot });
+      print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits }, options.json);
+      if (!options.json) for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
+    }
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));
     const command = positional[0];

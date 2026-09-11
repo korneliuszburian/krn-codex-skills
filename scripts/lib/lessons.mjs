@@ -251,3 +251,45 @@ export function checkLessons({ root, git = runGit }) {
   }
   return { root, lessons, errors, warnings };
 }
+
+export function lessonUsage({ root, git = runGit } = {}) {
+  const report = checkLessons({ root, git });
+  const active = report.lessons.filter((entry) => !entry.status);
+  const named = new Map();
+  for (const entry of active) {
+    const names = new Set();
+    for (const resolved of entry.resolved) {
+      if (resolved.reference) names.add(resolved.reference);
+      if (resolved.path) names.add(resolved.path);
+    }
+    const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(entry.falsifier) ?? [])[1];
+    if (falsifierFile) names.add(falsifierFile);
+    named.set(entry, [...names]);
+  }
+  if (!git(root, ["rev-parse", "--git-dir"]).ok) return { root, usage: [], neverRecalled: [], skipped: true };
+  const log = git(root, ["log", "--format=%H%x1f%b%x1e"]);
+  if (!log.ok) return { root, usage: [], neverRecalled: [], skipped: true };
+  const records = log.out
+    .split("\u001e")
+    .map((record) => record.trim())
+    .filter(Boolean)
+    .map((record) => {
+      const [sha, body] = record.split("\u001f");
+      return { sha, body: body ?? "" };
+    });
+  const counts = new Map();
+  for (const record of records) {
+    const lines = [...record.body.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
+    if (lines.length === 0) continue;
+    const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", record.sha]);
+    const files = changed.ok ? changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean) : [];
+    for (const [entry, names] of named) {
+      if (entry.trigger && matchesTrigger(entry.trigger, files).length === 0) continue;
+      const hit = lines.some((line) => names.some((name) => new RegExp(`(^|[\\s,;])${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(line)));
+      if (hit) counts.set(entry.lesson, (counts.get(entry.lesson) ?? 0) + 1);
+    }
+  }
+  const usage = active.map((entry) => ({ lesson: entry.lesson, recalls: counts.get(entry.lesson) ?? 0 }));
+  const neverRecalled = active.filter((entry) => entry.trigger && (counts.get(entry.lesson) ?? 0) === 0).map((entry) => entry.lesson);
+  return { root, usage, neverRecalled };
+}
