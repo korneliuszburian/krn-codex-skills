@@ -223,6 +223,16 @@ test("a COMPLETE capsule needs a commit anchor, not just a fingerprint", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a regular file where the capsule store belongs is an unreadable store", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "delivery-loop"), { recursive: true });
+  rmSync(join(root, ".krn", "runs", "delivery-loop"), { recursive: true, force: true });
+  writeFileSync(join(root, ".krn", "runs", "delivery-loop"), "not a directory\n");
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("unreadable-capsule-store"), rules(report).join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a non-hex working-tree fingerprint is accepted without commit validation", () => {
   const { root } = makeRepo();
   writeCapsule(root, capsule({ fixedPoint: "fingerprint=working-tree" }));

@@ -85,3 +85,15 @@ test("catalog inventory reads an empty temporary capability home", () => {
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+test("the legacy catalog bin delegates to the capability CLI", () => {
+  const bin = fileURLToPath(new URL("../scripts/krn-codex-catalog.mjs", import.meta.url));
+  const { base, env } = makeHome();
+  try {
+    const result = spawnSync(process.execPath, [bin, "profile", "list", "--json"], { encoding: "utf8", env: { ...process.env, ...env } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(JSON.parse(result.stdout).some((profile) => profile.name === "minimal"));
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});

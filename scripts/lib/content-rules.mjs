@@ -15,7 +15,7 @@ export function markdownLinkErrors(content, { label, resolveTarget }) {
   const errors = [];
   for (const { line, number } of unfencedLines(content)) {
     for (const match of line.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
-      let       target = match[1].trim().split(/\s+"/)[0];
+      let target = match[1].trim().split(/\s+"/)[0];
       if (/^<.*>$/.test(target)) target = target.slice(1, -1);
       if (!target || target.startsWith("#") || /^[a-z][a-z+.-]*:/i.test(target)) {
         continue;

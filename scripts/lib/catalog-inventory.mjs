@@ -24,7 +24,6 @@ import {
 export {
   HARD_QUARANTINE_FAMILIES,
   getCapabilityProfile,
-  isHardQuarantined,
 } from "./catalog-profiles.mjs";
 
 const DEFAULT_PROFILES_PATH = fileURLToPath(

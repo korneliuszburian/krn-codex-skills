@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { basename, join, relative, sep } from "node:path";
 
 const SELF = "scripts/lib/quality-audit.mjs";
 
@@ -15,14 +15,23 @@ const walk = (directory) => {
 const functionDeclarations = (source) =>
   [...source.matchAll(/(?:export\s+)?(?:async\s+)?function\*?\s+([A-Za-z0-9_$]+)\s*\(/g)].map((m) => m[1]);
 
-const exportedNames = (source) => [
-  ...[...source.matchAll(/export\s+(?:async\s+)?(?:function|class)\s+([A-Za-z0-9_$]+)/g)].map((m) => m[1]),
-  ...[...source.matchAll(/export\s+const\s+([A-Za-z0-9_$]+)/g)].map((m) => m[1]),
-];
+const exportedNames = (source) => {
+  const names = new Set([
+    ...[...source.matchAll(/export\s+(?:async\s+)?(?:function|class)\s+([A-Za-z0-9_$]+)/g)].map((m) => m[1]),
+    ...[...source.matchAll(/export\s+const\s+([A-Za-z0-9_$]+)/g)].map((m) => m[1]),
+  ]);
+  for (const match of source.matchAll(/export\s*\{([^}]*)\}/g)) {
+    for (const part of match[1].split(",")) {
+      const name = part.split(/\s+as\s+/).pop().trim();
+      if (/^[A-Za-z0-9_$]+$/.test(name)) names.add(name);
+    }
+  }
+  return [...names];
+};
 
 const importedNames = (source) => {
   const names = new Set();
-  for (const match of source.matchAll(/import\s+([\s\S]*?)\s+from\s+["'][^"']+["']/g)) {
+  for (const match of source.matchAll(/import\s+([^;]*?)\s+from\s+["'][^"']+["']/g)) {
     const clause = match[1];
     const named = clause.match(/\{([\s\S]*?)\}/);
     if (named) {
@@ -109,6 +118,29 @@ export function auditRepository(root) {
   }
 
   const bodies = new Map();
+  for (const file of runtime.filter((candidate) => label(candidate).startsWith(`scripts${sep}lib${sep}`))) {
+    if (isSelf(file)) continue;
+    const source = sources.get(file);
+    const base = basename(file);
+    for (const match of source.matchAll(/export\s*\{([^}]*)\}\s*from\s*["'](\.[^"']+)["']/g)) {
+      const names = match[1].split(",").map((part) => part.split(/\s+as\s+/).pop().trim()).filter(Boolean);
+      for (const name of names) {
+        const imported = [...sources.entries()].some(([other, otherSource]) => {
+          if (other === file) return false;
+          for (const spec of otherSource.matchAll(/import\s+([^;]*?)\s+from\s+["'](\.[^"']+)["']/g)) {
+            if (basename(spec[2]) !== base) continue;
+            const braces = spec[1].match(/\{([\s\S]*?)\}/);
+            if (!braces) continue;
+            const locals = braces[1].split(",").map((part) => part.split(/\s+as\s+/).pop().trim());
+            if (locals.includes(name)) return true;
+          }
+          return false;
+        });
+        if (!imported) errors.push(`${label(file)}: dead re-export ${name}`);
+      }
+    }
+  }
+
   for (const [file, source] of sources) {
     if (isSelf(file)) continue;
     for (const match of source.matchAll(/(?:export\s+)?(?:async\s+)?function\*?\s+([A-Za-z0-9_$]+)\s*\(/g)) {

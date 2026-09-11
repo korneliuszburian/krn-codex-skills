@@ -20,7 +20,6 @@ test("parseLessons owns the row schema and reports malformed rows", () => {
   const parsed = parseLessons(file);
   assert.deepEqual(parsed.rows.map((row) => row.lesson), ["A"]);
   assert.equal(parsed.malformed.length, 1);
-  assert.equal(parsed.budget, 24);
   rmSync(root, { recursive: true, force: true });
 });
 

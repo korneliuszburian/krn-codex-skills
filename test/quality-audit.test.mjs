@@ -68,6 +68,20 @@ test("the audit flags smells, unused lib files, and duplicate bodies", () => {
   );
 });
 
+test("the audit catches a dead re-export", () => {
+  withRepo(
+    {
+      "scripts/lib/origin.mjs": "export const a = 1;\nexport const b = 2;\n",
+      "scripts/lib/barrel.mjs": 'export { a } from "./origin.mjs";\n',
+      "scripts/lib/consumer.mjs": 'import { b } from "./origin.mjs";\nexport const c = b;\n',
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("barrel.mjs: dead re-export a")), JSON.stringify(errors));
+    },
+  );
+});
+
 test("the audit catches a dead export and an unreferenced function", () => {
   withRepo(
     {
