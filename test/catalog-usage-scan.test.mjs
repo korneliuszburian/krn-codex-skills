@@ -143,51 +143,86 @@ test("scanCatalogUsage skips symlinked and forbidden rollout entries", async () 
 });
 
 test("scanCatalogUsage reports skill reads from canonical paths", async () => {
-  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-usage-skills-")));
+  const run = async (build) => {
+    const root = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-usage-skills-")));
+    try {
+      const skillPath = path.join(root, "skills", "alpha", "SKILL.md");
+      const dayDirectory = path.join(root, "2026", "01", "06");
+      mkdirSync(dayDirectory, { recursive: true });
+      writeFileSync(
+        path.join(dayDirectory, "rollout-2026-01-06T00-00-00.jsonl"),
+        build(skillPath).map((record) => line(record)).join(""),
+      );
+      const report = await scanCatalogUsage({
+        sessionsRoot: root,
+        canonicalSkillPaths: [{ id: "alpha", path: skillPath }],
+        sinceDay: "2026-01-01",
+      });
+      return report.aggregates
+        .filter(({ kind }) => kind === "skill")
+        .map(({ id, observed_reads, confidence }) => ({ id, observed_reads, confidence }));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  };
+
+  const payload = (callId, extra) => ({
+    timestamp: "2026-01-06T00:00:00.000Z",
+    type: "response_item",
+    payload: { call_id: callId, ...extra },
+  });
+  const output = (callId, type) =>
+    payload(callId, { type, call_id: callId });
+
+  assert.deepEqual(
+    await run((skillPath) => [
+      payload("c1", {
+        type: "function_call",
+        name: "exec_command",
+        arguments: JSON.stringify({ cmd: `cat ${skillPath}` }),
+      }),
+      output("c1", "function_call_output"),
+    ]),
+    [{ id: "alpha", observed_reads: 1, confidence: "confirmed_input" }],
+  );
+
+  assert.deepEqual(
+    await run((skillPath) => [
+      payload("c2", {
+        type: "custom_tool_call",
+        name: "exec",
+        input: `tools.exec_command({"cmd":"cat ${skillPath}"})`,
+      }),
+      output("c2", "custom_tool_call_output"),
+    ]),
+    [{ id: "alpha", observed_reads: 1, confidence: "syntactic_only" }],
+  );
+
+  const mergedRoot = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-usage-skills-")));
   try {
-    const skillPath = path.join(root, "skills", "alpha", "SKILL.md");
-    const dayDirectory = path.join(root, "2026", "01", "06");
+    const skillPath = path.join(mergedRoot, "skills", "alpha", "SKILL.md");
+    const dayDirectory = path.join(mergedRoot, "2026", "01", "06");
     mkdirSync(dayDirectory, { recursive: true });
     writeFileSync(
       path.join(dayDirectory, "rollout-2026-01-06T00-00-00.jsonl"),
-      line({
-        timestamp: "2026-01-06T00:00:00.000Z",
-        type: "response_item",
-        payload: {
-          type: "function_call",
-          call_id: "c1",
-          name: "exec_command",
-          arguments: JSON.stringify({ cmd: `cat ${skillPath}` }),
-        },
-      }) +
-        line({
-          timestamp: "2026-01-06T00:00:01.000Z",
-          type: "response_item",
-          payload: { type: "function_call_output", call_id: "c1" },
-        }) +
-        line({
-          timestamp: "2026-01-06T00:00:02.000Z",
-          type: "response_item",
-          payload: {
-            type: "custom_tool_call",
-            call_id: "c2",
-            name: "exec",
-            input: `tools.exec_command({"cmd":"cat ${skillPath}"})`,
-          },
-        }) +
-        line({
-          timestamp: "2026-01-06T00:00:03.000Z",
-          type: "response_item",
-          payload: { type: "custom_tool_call_output", call_id: "c2" },
-        }),
+      line(payload("c3", {
+        type: "function_call",
+        name: "exec_command",
+        arguments: JSON.stringify({ cmd: `cat ${skillPath}` }),
+      })) +
+        line(output("c3", "function_call_output")) +
+        line(payload("c4", {
+          type: "custom_tool_call",
+          name: "exec",
+          input: `tools.exec_command({"cmd":"cat ${skillPath}"})`,
+        })) +
+        line(output("c4", "custom_tool_call_output")),
     );
-
     const report = await scanCatalogUsage({
-      sessionsRoot: root,
+      sessionsRoot: mergedRoot,
       canonicalSkillPaths: [{ id: "alpha", path: skillPath }],
       sinceDay: "2026-01-01",
     });
-
     assert.deepEqual(
       report.aggregates
         .filter(({ kind }) => kind === "skill")
@@ -195,7 +230,7 @@ test("scanCatalogUsage reports skill reads from canonical paths", async () => {
       [{ id: "alpha", observed_reads: 2, confidence: "confirmed_input" }],
     );
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(mergedRoot, { recursive: true, force: true });
   }
 });
 
