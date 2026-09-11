@@ -185,7 +185,7 @@ export function checkLessons({ root, git = runGit }) {
   const retiredRows = rows.filter((row) => row.status);
   if (activeRows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} active lesson rows; displace, condense, or retire`);
   if (retiredRows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} archived rows; consolidate the archive`);
-  if (!fs.existsSync(file)) return { root, lessons, errors, warnings, skipped: true };
+  if (!fs.existsSync(file)) return { root, lessons, errors, warnings: ["no workflow-lessons page; memory is not adopted at this root"], skipped: true };
   const packageFile = path.join(root, "package.json");
   const scripts = fs.existsSync(packageFile)
     ? JSON.parse(fs.readFileSync(packageFile, "utf8")).scripts ?? {}

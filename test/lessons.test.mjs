@@ -340,6 +340,15 @@ test("a header narrower than a row fails closed", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a root without a memory page warns instead of a silent skip", () => {
+  const root = makeRoot();
+  rmSync(join(root, "docs", "research", "workflow-lessons.md"), { force: true });
+  const report = checkLessons({ root });
+  assert.equal(report.skipped, true);
+  assert.ok(report.warnings.some((warning) => warning.includes("memory is not adopted")), JSON.stringify(report.warnings));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");
