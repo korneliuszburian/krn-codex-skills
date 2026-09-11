@@ -169,7 +169,9 @@ export function checkLessons({ root, git = runGit }) {
   const warnings = [];
   const lessons = [];
   const activeRows = rows.filter((row) => !row.status);
+  const retiredRows = rows.filter((row) => row.status);
   if (activeRows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} active lesson rows; displace, condense, or retire`);
+  if (retiredRows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} archived rows; consolidate the archive`);
   if (!fs.existsSync(file)) return { root, lessons, errors, warnings, skipped: true };
   const packageFile = path.join(root, "package.json");
   const scripts = fs.existsSync(packageFile)
@@ -187,6 +189,7 @@ export function checkLessons({ root, git = runGit }) {
         errors.push(`lesson "${row.lesson}": invalid Status "${row.status}"; use retired@<7-hex>[; superseded-by:<anchor>]`);
         continue;
       }
+      if ((row.trigger ?? "").trim()) errors.push(`lesson "${row.lesson}": a retired row cannot carry a Trigger`);
       const sha = retirement[1];
       if (git(root, ["rev-parse", "--git-dir"]).ok && git(root, ["cat-file", "-e", `${sha}^{commit}`]).ok && !git(root, ["merge-base", "--is-ancestor", sha, "HEAD"]).ok) {
         errors.push(`lesson "${row.lesson}": retirement commit ${sha} is not an ancestor of HEAD`);

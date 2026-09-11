@@ -267,6 +267,7 @@ test("retirement needs a supersession or a removed gate, and is excluded from re
   assert.deepEqual(checkLessons({ root, git }).errors, [], "a retirement whose enforcement is gone is valid");
 
   writeFileSync(file, `${header}| Old | probe | \`test:state\` | | | symbol:runGit | retired@abcdef0; superseded-by:test:state |\n`);
+  assert.ok(checkLessons({ root, git }).errors.some((error) => error.includes("retired row cannot carry a Trigger")), "a retired row must not be delivered");
   assert.deepEqual(recallLessons({ root, files: [], symbols: ["runGit"] }), [], "a retired lesson is not delivered");
   rmSync(root, { recursive: true, force: true });
 });
@@ -291,6 +292,10 @@ test("retirement is invalid without a commit and budgets count only active rows"
   const overflow = Array.from({ length: 25 }, (_value, index) => row(`L${index}`, "")).join("\n");
   writeFileSync(file, `${header}${overflow}\n`);
   assert.ok(checkLessons({ root, git }).errors.some((error) => error.includes("active lesson rows")), "the active budget still applies");
+
+  const archived = Array.from({ length: 25 }, (_value, index) => `| A${index} | probe | \`scripts/gone.mjs\` | | | | retired@abcdef0 |`).join("\n");
+  writeFileSync(file, `${header}${archived}\n`);
+  assert.ok(checkLessons({ root, git }).errors.some((error) => error.includes("archived rows")), "the archive is bounded too");
   rmSync(root, { recursive: true, force: true });
 });
 

@@ -121,7 +121,7 @@ hosts own their mechanics and policy.
 4. **Require returned proof and commission fixed-point review.** Require the
    focused observer and repository gates earned by changed risk; a harness-surface
    commit carries a `Change-contract:` prediction and `npm run changes:check`
-   reverts or repairs an unmet one at the fixed point. Then give composed upstream
+   blocks an unmet one at the fixed point, naming the commit to revert or repair. Then give composed upstream
    `code-review` the outcome/spec, bounded diff, instructions, proof and gaps,
    non-goals, and authority state.
 

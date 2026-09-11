@@ -18,6 +18,9 @@ import { EXIT_CODES, renderDiagnostics } from "./lib/diagnostics.mjs";
 process.stdout.on("error", (error) => {
   if (error.code === "EPIPE") process.exit(0);
 });
+process.stderr.on("error", (error) => {
+  if (error.code === "EPIPE") process.exit(0);
+});
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const usage = `Usage:

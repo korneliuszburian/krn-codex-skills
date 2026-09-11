@@ -59,26 +59,31 @@ test("a surface commit without a contract fails closed", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test("a non-falsifiable prediction needs a No-check reason plus an At-risk check", () => {
+test("a surface commit cannot be excused by No-check or a green->green contract", () => {
   const root = makeRoot();
-  const git = fakeGit({
+  const nonFalsifiable = fakeGit({
     commits: [{ sha: "a1", subject: "chore: tidy", body: "Change-contract: test:lessons:green->green" }],
     files: { a1: ["scripts/lib/lessons.mjs"] },
     baseScripts: { "test:lessons": "x" },
   });
-  assert.ok(checkChangeContract({ root, base: "base", git, run: green }).errors.some((error) => error.rule === "non-falsifiable-prediction"));
-  const bare = fakeGit({
-    commits: [{ sha: "a1", subject: "chore: tidy", body: "No-check: whatever" }],
-    files: { a1: ["scripts/lib/lessons.mjs"] },
-    baseScripts: { "test:lessons": "x" },
-  });
-  assert.ok(checkChangeContract({ root, base: "base", git: bare, run: green }).errors.some((error) => error.rule === "missing-change-contract"), "a bare No-check is not enough");
-  const warned = fakeGit({
-    commits: [{ sha: "a1", subject: "chore: tidy", body: "Change-contract: test:lessons:green->green\nNo-check: comment-only\nAt-risk: test:lib" }],
+  assert.ok(checkChangeContract({ root, base: "base", git: nonFalsifiable, run: green }).errors.some((error) => error.rule === "non-falsifiable-prediction"));
+  const escaped = fakeGit({
+    commits: [{ sha: "a1", subject: "chore: tidy", body: "No-check: whatever\nAt-risk: test:lib" }],
     files: { a1: ["scripts/lib/lessons.mjs"] },
     baseScripts: { "test:lessons": "x", "test:lib": "x" },
   });
-  assert.deepEqual(checkChangeContract({ root, base: "base", git: warned, run: green }).errors, []);
+  assert.ok(checkChangeContract({ root, base: "base", git: escaped, run: green }).errors.some((error) => error.rule === "missing-change-contract"), "No-check plus At-risk must not excuse a surface change");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a check added earlier in the same range is self-authored", () => {
+  const root = makeRoot();
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "feat: gate", body: "Change-contract: test:lessons:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: {},
+  });
+  assert.ok(checkChangeContract({ root, base: "base", git, run: green }).errors.some((error) => error.rule === "self-authorized-check"));
   rmSync(root, { recursive: true, force: true });
 });
 

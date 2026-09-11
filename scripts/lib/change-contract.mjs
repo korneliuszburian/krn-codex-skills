@@ -85,6 +85,15 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     });
   const packageFile = path.join(root, "package.json");
   const scripts = fs.existsSync(packageFile) ? JSON.parse(fs.readFileSync(packageFile, "utf8")).scripts ?? {} : {};
+  const basePackage = git(root, ["show", `${base}:package.json`]);
+  let baseScripts = null;
+  if (basePackage.ok) {
+    try {
+      baseScripts = JSON.parse(basePackage.out).scripts ?? {};
+    } catch {
+      baseScripts = null;
+    }
+  }
   const lessonsFile = path.join(root, "docs", "research", "workflow-lessons.md");
   const malformed = fs.existsSync(lessonsFile) ? parseLessons(lessonsFile).malformed : [];
   if (!fs.existsSync(lessonsFile) && commits.some((commit) => {
@@ -128,39 +137,29 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         }
       }
     }
-    const justified = Boolean(contract.noCheck) && contract.atRisk.length > 0;
-    if (surface && contract.contracts.length === 0 && !justified) {
-      errors.push({ rule: "missing-change-contract", commit: commit.sha, detail: files.filter((file) => SURFACE.some((pattern) => pattern.test(file))).join(", ") });
-    } else if (surface && contract.contracts.length > 0 && !contract.contracts.some((entry) => entry.before !== entry.after) && !justified) {
-      errors.push({ rule: "non-falsifiable-prediction", commit: commit.sha, detail: "declare a red->green flip, or a No-check reason plus an At-risk check" });
+    const falsifiable = contract.contracts.some((entry) => entry.before !== entry.after);
+    if (surface && !falsifiable) {
+      errors.push(contract.contracts.length === 0
+        ? { rule: "missing-change-contract", commit: commit.sha, detail: files.filter((file) => SURFACE.some((pattern) => pattern.test(file))).join(", ") }
+        : { rule: "non-falsifiable-prediction", commit: commit.sha, detail: "declare a red->green flip" });
     }
-    const parentSha = `${commit.sha}^`;
-    const parentPackage = git(root, ["show", `${parentSha}:package.json`]);
-    let parentScripts = null;
-    if (parentPackage.ok) {
-      try {
-        parentScripts = JSON.parse(parentPackage.out).scripts ?? {};
-      } catch {
-        parentScripts = null;
-      }
-    }
-    const admit = (ref, label) => {
-      const target = resolveCheck(root, scripts, ref);
+    const admit = (entry, label) => {
+      const target = resolveCheck(root, scripts, entry.ref);
       if (!target) {
-        errors.push({ rule: "unknown-check", commit: commit.sha, ref, detail: label === "risk" ? "at-risk ref is denied, unknown, or unsafe" : "ref is denied, unknown, or unsafe" });
+        errors.push({ rule: "unknown-check", commit: commit.sha, ref: entry.ref, detail: label === "risk" ? "at-risk ref is denied, unknown, or unsafe" : "ref is denied, unknown, or unsafe" });
         return;
       }
       const authoredNow = target.kind === "script"
-        ? (parentScripts !== null ? !Object.hasOwn(parentScripts, target.name) : git(root, ["rev-parse", "--git-dir"]).ok)
-        : !git(root, ["cat-file", "-e", `${parentSha}:${target.name}`]).ok;
+        ? (baseScripts !== null ? !Object.hasOwn(baseScripts, target.name) : git(root, ["rev-parse", "--git-dir"]).ok)
+        : !git(root, ["cat-file", "-e", `${base}:${target.name}`]).ok;
       if (authoredNow) {
-        errors.push({ rule: "self-authorized-check", commit: commit.sha, ref, detail: "the check did not exist before this commit" });
+        errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail: "the check did not exist before this range" });
         return;
       }
-      (label === "risk" ? atRiskTargets : targets).set(ref, { target, after: label === "risk" ? "green" : contract.contracts.find((entry) => entry.ref === ref)?.after ?? "green" });
+      (label === "risk" ? atRiskTargets : targets).set(entry.ref, { target, after: label === "risk" ? "green" : entry.after });
     };
-    for (const entry of contract.contracts) admit(entry.ref, "contract");
-    for (const ref of contract.atRisk) admit(ref, "risk");
+    for (const entry of contract.contracts) admit(entry, "contract");
+    for (const ref of contract.atRisk) admit({ ref, before: "green", after: "green" }, "risk");
   }
   const results = [];
   const verify = (ref, label) => {
