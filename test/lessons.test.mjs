@@ -375,6 +375,30 @@ test("lessonUsage counts Recall usage from history and flags never-recalled trig
   rmSync(root, { recursive: true, force: true });
 });
 
+test("lessonUsage credits a symbol-triggered lesson", () => {
+  const root = makeRoot();
+  const git = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  git(["init", "-q"]);
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  writeFileSync(join(root, "scripts", "x.mjs"), "export const gitSymbol = 1;\n");
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Symbolic | probe | `test:state` | | | symbol:gitSymbol |\n",
+  );
+  const commit = (message) => {
+    git(["add", "-A"]);
+    git(["-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", message]);
+  };
+  commit("init");
+  writeFileSync(join(root, "scripts", "x.mjs"), "export const gitSymbol = 2;\n");
+  commit("feat: change gitSymbol\n\nRecall: test:state => scripts/x.mjs");
+
+  const usage = lessonUsage({ root });
+  assert.equal(usage.usage.find((entry) => entry.lesson === "Symbolic").recalls, 1, JSON.stringify(usage));
+  assert.deepEqual(usage.neverRecalled, []);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

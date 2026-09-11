@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runGit } from "./git-cli.mjs";
+import { touchedSymbols } from "./symbol-triggers.mjs";
+import { churnHot } from "./churn.mjs";
 
 const CANDIDATE = /^(npm run |test:|manual:)|[.][a-z0-9]{2,4}$/i;
 
@@ -253,19 +255,9 @@ export function checkLessons({ root, git = runGit }) {
 }
 
 export function lessonUsage({ root, git = runGit } = {}) {
-  const report = checkLessons({ root, git });
-  const active = report.lessons.filter((entry) => !entry.status);
-  const named = new Map();
-  for (const entry of active) {
-    const names = new Set();
-    for (const resolved of entry.resolved) {
-      if (resolved.reference) names.add(resolved.reference);
-      if (resolved.path) names.add(resolved.path);
-    }
-    const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(entry.falsifier) ?? [])[1];
-    if (falsifierFile) names.add(falsifierFile);
-    named.set(entry, [...names]);
-  }
+  const file = path.join(root, "docs", "research", "workflow-lessons.md");
+  const { rows } = parseLessons(file);
+  const triggered = rows.filter((row) => !row.status && (row.trigger ?? "").trim());
   if (!git(root, ["rev-parse", "--git-dir"]).ok) return { root, usage: [], neverRecalled: [], skipped: true };
   const log = git(root, ["log", "--format=%H%x1f%b%x1e"]);
   if (!log.ok) return { root, usage: [], neverRecalled: [], skipped: true };
@@ -277,19 +269,28 @@ export function lessonUsage({ root, git = runGit } = {}) {
       const [sha, body] = record.split("\u001f");
       return { sha, body: body ?? "" };
     });
+  const churnEnabled = rows.some((row) => (row.trigger ?? "").includes("churn:"));
   const counts = new Map();
   for (const record of records) {
     const lines = [...record.body.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
     if (lines.length === 0) continue;
     const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", record.sha]);
     const files = changed.ok ? changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean) : [];
-    for (const [entry, names] of named) {
-      if (entry.trigger && matchesTrigger(entry.trigger, files).length === 0) continue;
-      const hit = lines.some((line) => names.some((name) => new RegExp(`(^|[\\s,;])${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(line)));
-      if (hit) counts.set(entry.lesson, (counts.get(entry.lesson) ?? 0) + 1);
+    const symbols = touchedSymbols({ root, git, sha: record.sha });
+    const hot = churnEnabled ? churnHot({ root, git, sha: record.sha, files }) : [];
+    for (const hit of recallLessons({ root, files, symbols, hot })) {
+      const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
+      const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
+      const named = [...ids, falsifierFile].filter(Boolean);
+      const credited = lines.some((line) => {
+        const [left, right] = line.split("=>").map((part) => part?.trim() ?? "");
+        if (!right) return false;
+        if (!named.some((id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(left))) return false;
+        return right.split(/[\s,;]+/).filter(Boolean).some((target) => files.includes(target) || symbols.includes(target));
+      });
+      if (credited) counts.set(hit.lesson, (counts.get(hit.lesson) ?? 0) + 1);
     }
   }
-  const usage = active.map((entry) => ({ lesson: entry.lesson, recalls: counts.get(entry.lesson) ?? 0 }));
-  const neverRecalled = active.filter((entry) => entry.trigger && (counts.get(entry.lesson) ?? 0) === 0).map((entry) => entry.lesson);
-  return { root, usage, neverRecalled };
+  const usage = triggered.map((row) => ({ lesson: row.lesson, recalls: counts.get(row.lesson) ?? 0 }));
+  return { root, usage, neverRecalled: usage.filter((entry) => entry.recalls === 0).map((entry) => entry.lesson) };
 }

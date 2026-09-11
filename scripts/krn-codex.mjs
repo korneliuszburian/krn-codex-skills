@@ -143,7 +143,12 @@ try {
     const { positional, options } = parseOptions(raw.slice(1));
     if (!["recall", "usage"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
     if (positional[0] === "usage") {
-      print(lessonUsage({ root: options.root }), options.json);
+      const report = lessonUsage({ root: options.root });
+      print(report, options.json);
+      if (!options.json) {
+        for (const entry of report.usage) process.stdout.write(`${entry.recalls}\t${entry.lesson}\n`);
+        if (report.neverRecalled?.length) process.stdout.write(`never recalled: ${report.neverRecalled.length}\n`);
+      }
     } else {
       if (!(options.changed?.length || options.symbols?.length)) fail(usage);
       const changed = options.changed ?? [];
