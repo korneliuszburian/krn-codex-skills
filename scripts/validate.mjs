@@ -8,6 +8,10 @@ import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
 import { ABI_LABELS } from "./lib/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/durable-pages.mjs";
 import {
+  capsuleAbiErrors,
+  transitionErrors,
+} from "./lib/delivery-loop-rules.mjs";
+import {
   markdownLinkErrors,
   parseFrontmatterFields,
   readmeSkillsTableErrors,
@@ -432,35 +436,13 @@ for (const markdown of repositoryMarkdown) {
 
 {
   const capsuleSkill = path.join(root, "skills", "engineering", "delivery-loop", "SKILL.md");
-  const capsuleBlock = read(capsuleSkill).match(/<outcome-capsule>\n([\s\S]*?)<\/outcome-capsule>/);
-  if (!capsuleBlock) {
-    fail("delivery-loop SKILL.md is missing the outcome-capsule block");
-  } else {
-    const labels = capsuleBlock[1]
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => line.split(":")[0].trim());
-    if (labels.length !== ABI_LABELS.length || labels.some((label, index) => label !== ABI_LABELS[index])) {
-      fail("delivery-loop capsule ABI labels must match scripts/lib/capsule-abi.mjs ABI_LABELS");
-    }
-  }
+  for (const error of capsuleAbiErrors(read(capsuleSkill), ABI_LABELS)) fail(error);
 }
 
 {
   const transitions = read(
     path.join(root, "skills", "engineering", "delivery-loop", "references", "transitions.md"),
   );
-  const handlers = transitions
-    .split("\n")
-    .filter((line) => /^\|\s*[^|]+\|\s*`[^`]+`\s*\|/.test(line))
-    .map((line) => line.split("|")[2].trim().replace(/^`|`$/g, ""));
-  const knownHandlers = new Set([...localSkillNames, ...upstreamSkillNames]);
-  for (const handler of handlers) {
-    if (!knownHandlers.has(handler)) fail(`transitions: unknown handler ${handler}`);
-  }
-  const duplicates = handlers.filter((handler, index) => handlers.indexOf(handler) !== index);
-  if (duplicates.length > 0) fail(`transitions: duplicate handler ${duplicates[0]}`);
   const baseline = new Set([
     ...(Array.isArray(manifest.harness_skills) ? manifest.harness_skills : []),
     ...upstreamSources.sources.flatMap((source) => {
@@ -468,12 +450,8 @@ for (const markdown of repositoryMarkdown) {
       return paths.map((requiredPath) => path.basename(path.dirname(requiredPath)));
     }),
   ]);
-  for (const handler of handlers) {
-    if (!baseline.has(handler)) fail(`transitions: handler ${handler} is not in the harness baseline`);
-  }
-  for (const name of baseline) {
-    if (!handlers.includes(name)) fail(`transitions: baseline skill ${name} is not named by any transition`);
-  }
+  const knownHandlers = new Set([...localSkillNames, ...upstreamSkillNames]);
+  for (const error of transitionErrors(transitions, { knownHandlers, baseline })) fail(error);
 }
 
 if (lineCount(path.join(root, "AGENTS.md")) > 90) {
