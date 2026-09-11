@@ -35,17 +35,16 @@ test("setup scaffolds a repository memory page and preserves an existing one", (
     assert.equal(first.status, 0, first.output);
     const page = join(root, "docs", "research", "workflow-lessons.md");
     assert.ok(existsSync(page), "the memory page is scaffolded");
+    const check = spawnSync(process.execPath, [krnCodex, "lessons", "check", "--root", root, "--json"], { encoding: "utf8" });
+    const report = JSON.parse(check.stdout);
+    assert.equal(report.skipped, undefined, "the scaffolded page is adopted memory");
+    assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
     const original = readFileSync(page, "utf8");
     assert.equal(apply(root).status, 0);
     assert.equal(readFileSync(page, "utf8"), original, "re-apply is idempotent");
     writeFileSync(page, "# custom lessons\n");
     assert.equal(apply(root).status, 0);
     assert.equal(readFileSync(page, "utf8"), "# custom lessons\n", "an existing page is preserved");
-
-    const check = spawnSync(process.execPath, [krnCodex, "lessons", "check", "--root", root, "--json"], { encoding: "utf8" });
-    const report = JSON.parse(check.stdout);
-    assert.equal(report.skipped, undefined, "the harness sees adopted memory, not a skip");
-    assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
   });
 });
 

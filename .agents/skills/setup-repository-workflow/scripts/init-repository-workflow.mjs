@@ -258,11 +258,19 @@ function lessonsTemplate() {
   ].join("\n");
 }
 
+function safeLstat(path) {
+  try {
+    return lstatSync(path, { throwIfNoEntry: false });
+  } catch {
+    return undefined;
+  }
+}
+
 // Memory is optional, so seed the page only when absent and never overwrite a
 // repository's own lessons.
 function bootstrapLessonsIfAbsent(root) {
   const target = join(root, LESSONS_PATH);
-  if (lstatSync(target, { throwIfNoEntry: false })) return [];
+  if (safeLstat(target)) return [];
   const contents = lessonsTemplate();
   assertManagedFileSafe(root, target, contents);
   mkdirSync(dirname(target), { recursive: true });
@@ -318,6 +326,8 @@ const managedFiles = new Map([
 ]);
 for (const [path, contents] of managedFiles) assertManagedFileSafe(root, path, contents);
 
+const lessonsTarget = join(root, LESSONS_PATH);
+if (!safeLstat(lessonsTarget)) assertManagedFileSafe(root, lessonsTarget, lessonsTemplate());
 const bootstrapped = bootstrapInstructionIfAbsent(root);
 const lessonsBootstrapped = bootstrapLessonsIfAbsent(root);
 const instructionPath = chooseInstruction(root, options.instruction);

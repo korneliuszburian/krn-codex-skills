@@ -49,9 +49,9 @@ workflow prose, agents, or checkers are identified before replacement.
    `none`; never invent a tracker to satisfy setup. Recommend the single-context
    domain layout by default; offer multi-context only when the repository
    actually has monorepo/domain signals. Resolve whether delivery is local or
-   strict PR-gated, and show the exact managed instruction block plus
-   `.krn/runs/.gitignore` before writing when the user has not already approved
-   those choices.
+   strict PR-gated, and show the exact managed instruction block, the scaffolded
+   `docs/research/workflow-lessons.md`, and `.krn/runs/.gitignore` before writing
+   when the user has not already approved those choices.
 
    **Done when:** tracker state (`none` or a named backend), domain mode,
    delivery profile, and instruction owner are explicit inputs rather than
@@ -109,17 +109,20 @@ plans remain ephemeral.
    core, and why Beads initialization is isolated from instruction ownership.
 
    Normalize resumable working state under
-   `.krn/runs/<workflow>/<run-id>/`. The initializer installs only the thin
-   managed block and this ignored boundary; each creating workflow owns cleanup
+   `.krn/runs/<workflow>/<run-id>/`. The initializer installs the thin managed
+   block, the ignored `.krn/runs/` boundary, and a `docs/research/workflow-lessons.md`
+   page for cross-run lessons (created only when absent, never overwritten); each
+   creating workflow owns cleanup
    when its named sole in-goal consumer finishes the accepted outcome or the
    owning Goal closes. A short-lived result returns to its active outcome owner;
    when another session must resume it, the owning workflow keeps only its
    workflow-specific artifact in that run and returns condensed continuation
    through the native Goal or configured tracker. Only `$delivery-loop` may
    persist the outcome capsule, at
-   `.krn/runs/delivery-loop/<outcome-id>/state.md`. `CONTEXT.md`, `docs/adr/`,
-   and `docs/research/` remain absent until active vocabulary, an earned
-   consequential decision, or a named research consumer requires them.
+   `.krn/runs/delivery-loop/<outcome-id>/state.md`. `docs/research/workflow-lessons.md`
+   is the only `docs/research/` page scaffolded; `CONTEXT.md`, `docs/adr/`, and
+   any other `docs/research/` page remain absent until active vocabulary, an
+   earned consequential decision, or a named research consumer requires them.
 
    **Done when:** a new session can locate the current outcome and the right
    commands without loading history or a copied global workflow, and a second

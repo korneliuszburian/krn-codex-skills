@@ -110,7 +110,7 @@ consumer and falsifier. The curated harness subset named by `harness_skills` in
 `config/upstream-sources.json` are materialized into the
 generated, provenance-marked `.agents/skills/` by `krn-codex skills export`
 (the full pin stays in `config/upstream-sources.json`); regenerate instead of
-editing, and `npm run skills:check` fails on a foreign destination, a stale upstream pin (against `config/upstream-sources.json`), or an exported skill whose bytes differ from its source. `krn.commit` records the source HEAD when the export ran, so re-export on a clean tree to keep it reproducible.
+editing, and `npm run skills:check` fails on a foreign destination, a stale upstream pin (against `config/upstream-sources.json`), or an exported skill whose bytes differ from its source. `krn.commit` records the source HEAD when the export ran, which is the parent when the export accompanies a source change, so treat it as provenance, not a reproducible revision.
 
 ### Source-only packs
 
@@ -181,9 +181,10 @@ rollback guarantees.
 ## Repository setup and working state
 
 `$setup-repository-workflow` writes one managed block into an existing root
-instruction owner plus `.krn/runs/.gitignore`. In an empty repository it first
-bootstraps a thin `AGENTS.md`, and reports the two managed paths. It names tracker state — including `none` — and
-the context layout directly; `CONTEXT.md`, ADRs, and research pages appear later
+instruction owner, `.krn/runs/.gitignore`, and a `docs/research/workflow-lessons.md`
+memory page (created only when absent). In an empty repository it first
+bootstraps a thin `AGENTS.md`, and reports the three managed paths. It names tracker state — including `none` — and
+the context layout directly; `CONTEXT.md`, ADRs, and other research pages appear later
 only when a real decision earns them.
 
 `$opencode-second-opinion` stores its transient brief and response at
