@@ -28,7 +28,7 @@ export function parseChangeContract(message) {
       contracts.push({ ref: contract[1].trim(), after: contract[3].toLowerCase() });
       continue;
     }
-    const risk = /^At-risk:\s*(.+?)\s*$/i.exec(line);
+    const risk = /^At-risk:\s*(.+?)(?::\s*(?:red|green)\s*->\s*(?:red|green))?\s*$/i.exec(line);
     if (risk) atRisk.push(risk[1].trim());
     const falsifier = /^Falsifier:\s*(.+?@[0-9a-f]{7})\s*$/i.exec(line);
     if (falsifier) falsifiers.push(falsifier[1].trim());
@@ -50,7 +50,7 @@ function resolveCheck(root, scripts, ref) {
   return null;
 }
 
-function runCheck(root, target) {
+function runCheck({ root, target }) {
   const env = { ...process.env, KRN_CHANGE_CONTRACT: "0" };
   const result = target.kind === "script"
     ? spawnSync("npm", ["run", target.name], { cwd: root, timeout: 600000, encoding: "utf8", env })
@@ -59,7 +59,6 @@ function runCheck(root, target) {
 }
 
 export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck } = {}) {
-  if (process.env.KRN_CHANGE_CONTRACT === "0") return { root, commits: [], errors: [], skipped: true };
   const errors = [];
   const log = git(root, ["log", "--format=%H%x1f%s%x1f%b%x1e", `${base}..${head}`]);
   if (!log.ok) return { root, commits: [], errors: [{ rule: "unreadable-range", detail: `${base}..${head}` }] };

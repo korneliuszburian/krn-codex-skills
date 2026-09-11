@@ -112,7 +112,9 @@ try {
   } else if (raw[0] === "changes") {
     const { positional, options } = parseOptions(raw.slice(1));
     if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root || !options.base) fail(usage);
-    const report = checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD" });
+    const report = process.env.KRN_CHANGE_CONTRACT === "0"
+      ? { root: options.root, commits: [], results: [], errors: [], skipped: true }
+      : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD" });
     print(report, options.json);
     if (!options.json) {
       for (const failure of report.errors) process.stderr.write(`error: ${failure.rule}${failure.ref ? ` ${failure.ref}` : ""}${failure.commit ? ` ${failure.commit}` : ""}${failure.detail ? `: ${failure.detail}` : ""}\n`);

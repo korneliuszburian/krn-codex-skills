@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "krn": {
-    "commit": "356f172af9fdf434d91c61433e4a8afe0d94fba1"
+    "commit": "4cf156fd01474b9c07993e1d2d5579e92994573d"
   },
   "upstream": {
     "id": "mattpocock/skills",
@@ -23,7 +23,7 @@
     "wayfinder"
   ],
   "digests": {
-    "delivery-loop": "57450f86cdeec2908f9d6608f93d80f2f5666a3e5f1b7dbd02b5f5f629485afb",
+    "delivery-loop": "d6e4a6d21e00bcfab98ba1e1271bdd8c7e0ab3bcba3dfa24a98223e039060e95",
     "source-to-decision": "5bd95f3844e5f436d6e0658de98cd653d847c21653bbc89fc96eecedc102001f",
     "slice-work": "f934a1745cf279f54933073281e343bcec65dbf3c6f6e208abd8b42c8be5785f",
     "setup-repository-workflow": "00c00704edea02485b19d5a0b6bd048c0d3ab2398affe661f8e2552f1a068ab6",

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -34,6 +35,7 @@ test("parseChangeContract reads contract, at-risk, and falsifier trailers", () =
   assert.deepEqual(parsed.contracts, [{ ref: "test:lessons", after: "green" }]);
   assert.deepEqual(parsed.atRisk, ["test:lib"]);
   assert.deepEqual(parsed.falsifiers, ["test/x.test.mjs::probe@abcdef0"]);
+  assert.deepEqual(parseChangeContract("At-risk: test:lib:green->green\n").atRisk, ["test:lib"]);
 });
 
 test("a surface commit without a contract fails closed", () => {
@@ -75,14 +77,13 @@ test("an at-risk regression and an unknown check both block", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test("the guard disables the check when set in the environment", () => {
-  const root = makeRoot();
-  process.env.KRN_CHANGE_CONTRACT = "0";
-  try {
-    const report = checkChangeContract({ root, base: "base", git: () => ({ ok: true, out: "" }), run: () => ({ ok: true, status: 0 }) });
-    assert.equal(report.skipped, true);
-  } finally {
-    delete process.env.KRN_CHANGE_CONTRACT;
-  }
+test("the guard disables the CLI check when set in the environment", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-contract-"));
+  const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "krn-codex.mjs"), "changes", "check", "--root", root, "--base", "HEAD", "--head", "HEAD", "--json"], {
+    encoding: "utf8",
+    env: { ...process.env, KRN_CHANGE_CONTRACT: "0" },
+  });
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).skipped, true);
   rmSync(root, { recursive: true, force: true });
 });
