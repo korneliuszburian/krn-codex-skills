@@ -1,3 +1,5 @@
+import { basename, join, relative } from "node:path";
+
 const METADATA_SCHEMA =
   /^interface:\n  display_name: "([^"\n]+)"\n  short_description: "([^"\n]+)"\n  default_prompt: "([^"\n]+)"\npolicy:\n  allow_implicit_invocation: (true|false)\n?$/;
 
@@ -47,4 +49,51 @@ export function skillPointerErrors(content, { skillPath, resolveTarget }) {
 
 export function lineLimitErrors({ label, lineCount, max, suffix = "" }) {
   return lineCount > max ? [`${label} exceeds ${max} lines${suffix}`] : [];
+}
+
+export function skillLayoutErrors(skill, { root, exists }) {
+  const errors = [];
+  const skillDir = join(root, skill.path);
+  const skillFile = join(skillDir, "SKILL.md");
+  const metadataFile = join(skillDir, "agents", "openai.yaml");
+  const group = skill.path.split("/")[1];
+  const operatorMirror = join(root, "docs", group, `${skill.name}.md`);
+  if (exists(operatorMirror)) {
+    errors.push(
+      `${relative(root, operatorMirror)}: per-skill operator mirrors are forbidden; README must link to canonical SKILL.md`,
+    );
+  }
+  if (!exists(skillFile)) {
+    errors.push(`${skill.path}: missing SKILL.md`);
+    return { errors, present: false };
+  }
+  if (!exists(metadataFile)) {
+    errors.push(`${skill.path}: missing agents/openai.yaml`);
+    return { errors, present: false };
+  }
+  return { errors, present: true, skillDir, skillFile, metadataFile };
+}
+
+export function skillIdentityErrors(fields, skill) {
+  const errors = [];
+  if (fields.name !== skill.name) {
+    errors.push(`${skill.path}: frontmatter name does not match manifest`);
+  }
+  if (basename(skill.path) !== skill.name) {
+    errors.push(`${skill.path}: folder name does not match skill name`);
+  }
+  if (!fields.description || fields.description.length > 280) {
+    errors.push(`${skill.path}: description must be 1-280 characters`);
+  }
+  return errors;
+}
+
+export function referenceLinkErrors(content, { skillPath, references }) {
+  const errors = [];
+  for (const pointer of references) {
+    if (!content.includes(`(${pointer})`)) {
+      errors.push(`${skillPath}: ${pointer} is not linked directly from SKILL.md`);
+    }
+  }
+  return errors;
 }

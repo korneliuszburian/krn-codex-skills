@@ -51,7 +51,7 @@ const cases = [
   },
   {
     module: "../scripts/lib/skill-rules.mjs",
-    present: ["openaiYamlErrors", "skillContentErrors", "skillPointerErrors", "lineLimitErrors"],
+    present: ["openaiYamlErrors", "skillContentErrors", "skillPointerErrors", "lineLimitErrors", "skillLayoutErrors", "skillIdentityErrors", "referenceLinkErrors"],
     absent: [],
   },
 ];

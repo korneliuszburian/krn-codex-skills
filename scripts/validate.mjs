@@ -10,7 +10,10 @@ import { checkDurablePages } from "./lib/durable-pages.mjs";
 import {
   lineLimitErrors,
   openaiYamlErrors,
+  referenceLinkErrors,
   skillContentErrors,
+  skillIdentityErrors,
+  skillLayoutErrors,
   skillPointerErrors,
 } from "./lib/skill-rules.mjs";
 import {
@@ -237,35 +240,13 @@ const discoveredPaths = new Set(
   skillFiles.map((file) => relative(path.dirname(file))),
 );
 for (const skill of validLocalSkills) {
-  const skillDir = path.join(root, skill.path);
-  const skillFile = path.join(skillDir, "SKILL.md");
-  const metadataFile = path.join(skillDir, "agents", "openai.yaml");
-  const group = skill.path.split("/")[1];
-  const operatorMirror = path.join(root, "docs", group, `${skill.name}.md`);
-  if (fs.existsSync(operatorMirror)) {
-    fail(
-      `${relative(operatorMirror)}: per-skill operator mirrors are forbidden; README must link to canonical SKILL.md`,
-    );
-  }
-  if (!fs.existsSync(skillFile)) {
-    fail(`${skill.path}: missing SKILL.md`);
-    continue;
-  }
-  if (!fs.existsSync(metadataFile)) {
-    fail(`${skill.path}: missing agents/openai.yaml`);
-    continue;
-  }
+  const layout = skillLayoutErrors(skill, { root, exists: fs.existsSync });
+  for (const message of layout.errors) fail(message);
+  if (!layout.present) continue;
+  const { skillDir, skillFile, metadataFile } = layout;
 
   const fields = parseFrontmatter(skillFile);
-  if (fields.name !== skill.name) {
-    fail(`${skill.path}: frontmatter name does not match manifest`);
-  }
-  if (path.basename(skillDir) !== skill.name) {
-    fail(`${skill.path}: folder name does not match skill name`);
-  }
-  if (!fields.description || fields.description.length > 280) {
-    fail(`${skill.path}: description must be 1-280 characters`);
-  }
+  for (const message of skillIdentityErrors(fields, skill)) fail(message);
   for (const message of lineLimitErrors({
     label: `${skill.path}: SKILL.md`,
     lineCount: lineCount(skillFile),
@@ -294,11 +275,11 @@ for (const skill of validLocalSkills) {
   }
 
   const referenceRoot = path.join(skillDir, "references");
-  for (const reference of filesUnder(referenceRoot)) {
-    const pointer = relative(reference).slice(`${skill.path}/`.length);
-    if (!content.includes(`(${pointer})`)) {
-      fail(`${skill.path}: ${pointer} is not linked directly from SKILL.md`);
-    }
+  const references = filesUnder(referenceRoot).map((reference) =>
+    relative(reference).slice(`${skill.path}/`.length),
+  );
+  for (const message of referenceLinkErrors(content, { skillPath: skill.path, references })) {
+    fail(message);
   }
 
   for (const markdown of filesUnder(skillDir, (file) => file.endsWith(".md"))) {
