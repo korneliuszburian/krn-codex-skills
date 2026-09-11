@@ -43,6 +43,12 @@ jobs:
         run: npm run test:lessons
       - name: Test lesson proof executor
         run: npm run test:lessons-verify
+      - name: Check change contracts
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/krn-codex.mjs changes check --root . --base "$BASE_SHA" --head HEAD
+      - name: Test change-contract gate
+        run: npm run test:change-contract
       - name: Test validator rule modules
         run: npm run test:durable-pages
       - name: Test the capability CLI

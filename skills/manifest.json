@@ -40,6 +40,7 @@
     "scripts/lib/install-release.mjs",
     "scripts/lib/lessons.mjs",
     "scripts/lib/lessons-verify.mjs",
+    "scripts/lib/change-contract.mjs",
     "scripts/lib/plugin-identity.mjs",
     "scripts/lib/skills-export.mjs",
     "scripts/lib/skill-metadata.mjs",

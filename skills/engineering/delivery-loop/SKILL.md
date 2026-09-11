@@ -119,23 +119,22 @@ hosts own their mechanics and policy.
    consumer and cleanup trigger.
 
 4. **Require returned proof and commission fixed-point review.** Require the
-   focused observer and repository gates earned by changed risk. Then give
-   composed upstream `code-review` the accepted outcome or spec, bounded diff,
-   applicable instructions, exact proof and gaps, non-goals, and authority state.
+   focused observer and repository gates earned by changed risk; a harness-surface
+   commit carries a `Change-contract:` prediction and `npm run changes:check`
+   reverts or repairs an unmet one at the fixed point. Then give composed upstream
+   `code-review` the outcome/spec, bounded diff, instructions, proof and gaps,
+   non-goals, and authority state.
 
-   A mechanical, low-risk 0-budget slice records its cheapest evidence and
-   skips fixed-point review, including inside an active lifecycle envelope, only
-   when it changes no behavior, authority, security, or spec/acceptance surface.
-   Every other slice, and every explicitly requested review, requires review.
+   A mechanical, low-risk 0-budget slice records its cheapest evidence and skips
+   fixed-point review only when it changes no behavior, authority, security, or
+   spec/acceptance surface; every other slice and explicit review requires it.
 
    Any change to reviewed code, base, acceptance/spec, or applicable standards
    creates a new fixed point and invalidates the old review. An accepted finding
-   returns as a bounded composed-upstream `implement` repair only when repair
-   and mutation are
-   authorized, followed by focused proof and a fresh review of the new
-   fingerprints. Otherwise set `NEEDS_REVIEW` and name the authority blocker in
-   the capsule. Reviewer prose never substitutes for the initiating workflow's
-   disposition.
+   returns as a bounded composed-upstream `implement` repair only when repair and
+   mutation are authorized, followed by focused proof and a fresh review of the
+   new fingerprints. Otherwise set `NEEDS_REVIEW` and name the authority blocker
+   in the capsule. Reviewer prose never substitutes for the owning disposition.
 
    When a lane emits machine-readable evidence, record it against the current
    fixed point (base, head or fingerprint, Spec, Standards) with reviewer

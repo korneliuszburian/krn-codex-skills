@@ -10,6 +10,7 @@ import { compileCapsule, resumeBrief } from "./lib/state-brief.mjs";
 import { checkSkills, exportSkills } from "./lib/skills-export.mjs";
 import { checkLessons } from "./lib/lessons.mjs";
 import { verifyLessons } from "./lib/lessons-verify.mjs";
+import { checkChangeContract } from "./lib/change-contract.mjs";
 import { EXIT_CODES, renderDiagnostics } from "./lib/diagnostics.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -22,7 +23,8 @@ const usage = `Usage:
   krn-codex repo <inspect|apply> [...args]
   krn-codex state <check|compile|resume> [PATH] [--json]
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
-  krn-codex lessons <check|verify> --root DIR [--json]`;
+  krn-codex lessons <check|verify> --root DIR [--json]
+  krn-codex changes check --base REF [--head REF] --root DIR [--json]`;
 
 function fail(message, code = EXIT_CODES.USAGE) {
   const error = new Error(message);
@@ -43,6 +45,12 @@ function parseOptions(args) {
     } else if (arg === "--root") {
       options.root = args[++index];
       if (!options.root) fail("--root requires a path");
+    } else if (arg === "--base") {
+      options.base = args[++index];
+      if (!options.base) fail("--base requires a revision");
+    } else if (arg === "--head") {
+      options.head = args[++index];
+      if (!options.head) fail("--head requires a revision");
     } else if (arg === "--upstream") {
       options.upstream = args[++index];
       if (!options.upstream) fail("--upstream requires a path");
@@ -101,6 +109,16 @@ try {
       }
       if (report.failures.length) process.exitCode = 1;
     }
+  } else if (raw[0] === "changes") {
+    const { positional, options } = parseOptions(raw.slice(1));
+    if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root || !options.base) fail(usage);
+    const report = checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD" });
+    print(report, options.json);
+    if (!options.json) {
+      for (const failure of report.errors) process.stderr.write(`error: ${failure.rule}${failure.ref ? ` ${failure.ref}` : ""}${failure.commit ? ` ${failure.commit}` : ""}${failure.detail ? `: ${failure.detail}` : ""}\n`);
+      if (report.errors.some((failure) => failure.commit)) process.stderr.write("revert or repair the offending commit(s) before proceeding\n");
+    }
+    if (report.errors.length) process.exitCode = 1;
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));
     const command = positional[0];

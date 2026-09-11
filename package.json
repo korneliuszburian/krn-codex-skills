@@ -17,6 +17,8 @@
     "skills:check": "node scripts/krn-codex.mjs skills check --root .",
     "lessons:check": "node scripts/krn-codex.mjs lessons check --root .",
     "lessons:verify": "node scripts/krn-codex.mjs lessons verify --root .",
+    "changes:check": "node scripts/krn-codex.mjs changes check --root . --base \"$(git merge-base origin/main HEAD)\" --head HEAD",
+    "test:change-contract": "node --test test/change-contract.test.mjs",
     "test:lessons": "node --test test/lessons.test.mjs",
     "test:lessons-verify": "node --test test/lessons-verify.test.mjs",
     "test:catalog": "node --test test/catalog-cli.test.mjs",
