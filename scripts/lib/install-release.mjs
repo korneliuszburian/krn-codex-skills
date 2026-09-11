@@ -312,9 +312,6 @@ function reconcileTargets(plan) {
       }
       fs.symlinkSync(expected, item.target);
       entry.created = true;
-      if (process.env.KRN_TEST_FAIL_DURING_RECONCILE === "1" && changed.length === 1) {
-        throw new Error("injected reconciliation failure");
-      }
     }
   } catch (error) {
     for (const entry of changed.reverse()) {
@@ -354,7 +351,6 @@ export function applyInstall(plan) {
   const previous = resolvedLink(plan.current);
   replaceCurrent(plan, plan.release);
   try {
-    if (process.env.KRN_TEST_FAIL_AFTER_CURRENT === "1") throw new Error("injected post-current failure");
     verifyInstalledCli(plan);
     const backup = reconcileTargets(plan);
     return { ...plan, backup, idempotent: Boolean(previous === plan.release) };
