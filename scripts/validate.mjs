@@ -15,6 +15,7 @@ import {
   skillIdentityErrors,
   skillLayoutErrors,
   skillPointerErrors,
+  skillPromotionErrors,
 } from "./lib/skill-rules.mjs";
 import {
   capsuleAbiErrors,
@@ -289,16 +290,7 @@ for (const skill of validLocalSkills) {
   }
 }
 
-for (const discovered of discoveredPaths) {
-  if (!localSkillPaths.has(discovered)) {
-    fail(`${discovered}: SKILL.md is not promoted in the manifest`);
-  }
-}
-for (const promoted of localSkillPaths) {
-  if (!discoveredPaths.has(promoted)) {
-    fail(`${promoted}: manifest path has no SKILL.md`);
-  }
-}
+for (const message of skillPromotionErrors(discoveredPaths, localSkillPaths)) fail(message);
 
 const repositoryMarkdown = new Set([
   path.join(root, "AGENTS.md"),

@@ -10,6 +10,7 @@ import {
   skillIdentityErrors,
   skillLayoutErrors,
   skillPointerErrors,
+  skillPromotionErrors,
 } from "../scripts/lib/skill-rules.mjs";
 
 const metadata = [
@@ -120,6 +121,20 @@ test("referenceLinkErrors requires each reference to be linked", () => {
   assert.deepEqual(
     referenceLinkErrors("(references/a.md) and (references/b.md)", { skillPath: "s", references }),
     [],
+  );
+});
+
+test("skillPromotionErrors reconciles discovered and promoted paths", () => {
+  assert.deepEqual(
+    skillPromotionErrors(new Set(["skills/engineering/alpha"]), new Set(["skills/engineering/alpha"])),
+    [],
+  );
+  assert.deepEqual(
+    skillPromotionErrors(new Set(["skills/engineering/ghost"]), new Set(["skills/engineering/alpha"])),
+    [
+      "skills/engineering/ghost: SKILL.md is not promoted in the manifest",
+      "skills/engineering/alpha: manifest path has no SKILL.md",
+    ],
   );
 });
 

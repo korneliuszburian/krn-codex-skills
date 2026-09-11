@@ -98,3 +98,18 @@ export function referenceLinkErrors(content, { skillPath, references }) {
   }
   return errors;
 }
+
+export function skillPromotionErrors(discoveredPaths, promotedPaths) {
+  const errors = [];
+  for (const discovered of discoveredPaths) {
+    if (!promotedPaths.has(discovered)) {
+      errors.push(`${discovered}: SKILL.md is not promoted in the manifest`);
+    }
+  }
+  for (const promoted of promotedPaths) {
+    if (!discoveredPaths.has(promoted)) {
+      errors.push(`${promoted}: manifest path has no SKILL.md`);
+    }
+  }
+  return errors;
+}
