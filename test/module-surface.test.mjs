@@ -50,6 +50,11 @@ const cases = [
     absent: [],
   },
   {
+    module: "../scripts/lib/spine-runs.mjs",
+    present: ["runDirectories", "capsuleIds"],
+    absent: [],
+  },
+  {
     module: "../scripts/lib/skill-rules.mjs",
     present: ["openaiYamlErrors", "skillContentErrors", "skillPointerErrors", "lineLimitErrors", "skillLayoutErrors", "skillIdentityErrors", "referenceLinkErrors", "skillPromotionErrors"],
     absent: [],

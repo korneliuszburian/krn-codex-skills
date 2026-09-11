@@ -33,6 +33,7 @@
     "scripts/lib/catalog-inventory-quarantine.mjs",
     "scripts/lib/delivery-loop-rules.mjs",
     "scripts/lib/git-cli.mjs",
+    "scripts/lib/spine-runs.mjs",
     "scripts/lib/quality-audit.mjs",
     "scripts/lib/skill-rules.mjs",
     "scripts/quality-audit.mjs",

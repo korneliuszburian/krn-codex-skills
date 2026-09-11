@@ -199,6 +199,22 @@ test("an ACTIVE capsule without a next action fails", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("an unlisted workflow run is an orphaned error while a listed run passes", () => {
+  const { root, head } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "slice-work", "run-1"), { recursive: true });
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}`, cleanup: "none" }));
+  let report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("orphaned-run"), rules(report).join(","));
+
+  writeCapsule(root, capsule({
+    fixedPoint: `HEAD=${head}`,
+    cleanup: "[.krn/runs/slice-work/run-1; slice-work; $delivery-loop; closes; ACTIVE]",
+  }));
+  report = inspectSpineState({ repo: root });
+  assert.equal(report.status, "clean", JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a non-hex working-tree fingerprint is accepted without commit validation", () => {
   const { root } = makeRepo();
   writeCapsule(root, capsule({ fixedPoint: "fingerprint=working-tree" }));

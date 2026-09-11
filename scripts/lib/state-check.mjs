@@ -12,6 +12,7 @@ import {
 } from "./capsule-abi.mjs";
 import { gitAvailable, runGit as git } from "./git-cli.mjs";
 import { parseLessons } from "./lessons.mjs";
+import { runDirectories } from "./spine-runs.mjs";
 
 function inside(root, candidate) {
   const target = resolve(root, candidate);
@@ -48,6 +49,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   const errors = [];
   const warnings = [];
   const capsules = [];
+  const listedRunPointers = new Set();
   const ignored = { checked: 0, ignored: 0 };
   const gitRepo = hasGit ? git(root, ["rev-parse", "--is-inside-work-tree"]) : { ok: false, out: "" };
   const usableGit = gitRepo.ok && gitRepo.out === "true";
@@ -176,6 +178,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         errors.push({ id: entry.name, rule: "malformed-cleanup", detail: entryText });
       }
       for (const parsedEntry of parsed.entries) {
+        listedRunPointers.add(parsedEntry.pointer);
         if (!inside(root, parsedEntry.pointer)) {
           errors.push({ id: entry.name, rule: "cleanup-pointer-outside-repo", detail: parsedEntry.pointer });
         } else if ((parsedEntry.state === "ACTIVE" || parsedEntry.state === "BLOCKED") && !existsSync(resolve(root, parsedEntry.pointer))) {
@@ -211,6 +214,14 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       const friction = fields["Workflow friction and lesson candidates"];
       if (friction && stripMarkup(friction) !== "none") {
         errors.push({ id: entry.name, rule: "complete-with-friction", detail: stripMarkup(friction) });
+      }
+    }
+  }
+
+  if (capsules.length > 0) {
+    for (const run of runDirectories(root)) {
+      if (!listedRunPointers.has(run.pointer)) {
+        errors.push({ id: run.workflow, rule: "orphaned-run", detail: run.pointer });
       }
     }
   }
