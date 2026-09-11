@@ -12,7 +12,7 @@ Routing truth was duplicated across the README workflow graph, the research
 admission table, `$delivery-loop` step 2, and individual skill descriptions.
 The three audits found nine of twelve natural requests ambiguous between
 descriptions and two disposition drifts caused by the same duplication. The
-repository-scoped export had also copied the whole upstream pin (35 skills)
+repository-scoped export had also copied the whole upstream pin
 because no artifact defined which owners the lifecycle actually uses.
 
 ## Decision
