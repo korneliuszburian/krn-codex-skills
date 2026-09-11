@@ -36,7 +36,7 @@ const withHome = (body) => {
     else process.env.KRN_SKILLS_DEST = previousSkills;
     if (previousBins === undefined) delete process.env.KRN_BIN_DEST;
     else process.env.KRN_BIN_DEST = previousBins;
-    rmSync(base, { recursive: true, force: true });
+    rmSync(base, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 };
 
@@ -53,7 +53,7 @@ test("inspectInstall reports missing, broken, foreign, and masked states", () =>
     mkdirSync(join(releaseRoot, "current"));
     assert.equal(inspectInstall({ codexHome: home }).filesystem.status, "foreign_collision");
 
-    fs.rmSync(join(releaseRoot, "current"), { recursive: true });
+    fs.rmSync(join(releaseRoot, "current"), { recursive: true, maxRetries: 10, retryDelay: 50 });
     writeFileSync(join(home, "AGENTS.override.md"), "x\n");
     assert.equal(inspectInstall({ codexHome: home }).filesystem.status, "masked_by_override");
   });
