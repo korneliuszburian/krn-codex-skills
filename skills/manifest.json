@@ -28,6 +28,7 @@
     "scripts/lib/catalog-usage-paths.mjs",
     "scripts/lib/catalog-profiles.mjs",
     "scripts/lib/catalog-inventory-roots.mjs",
+    "scripts/lib/catalog-inventory-frontmatter.mjs",
     "scripts/lib/content-rules.mjs",
     "scripts/lib/path-rules.mjs",
     "scripts/lib/upstream-sources.mjs",
