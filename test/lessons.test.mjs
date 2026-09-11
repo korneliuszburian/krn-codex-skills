@@ -310,6 +310,26 @@ test("glob metacharacters are literal and unknown trigger prefixes fail", () => 
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a non-ancestor proof, a stale proof, and an unknown proof commit behave distinctly", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  writeFileSync(file, "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n"
+    + "| A | probe | `test:state` | 2026-01-02@bbbbbbb | `test/gate.test.mjs::probe@ccccccc` |\n");
+  const gitFor = ({ ancestor = true, known = true, stale = false } = {}) => (_root, args) => {
+    if (args[0] === "rev-parse") return { ok: true, out: "" };
+    if (args[0] === "cat-file") return { ok: known, out: "" };
+    if (args[0] === "merge-base") return { ok: ancestor, out: "" };
+    if (args[0] === "log") return { ok: true, out: stale ? "abc later edit" : "" };
+    if (args[0] === "rev-list") return { ok: true, out: "1" };
+    return { ok: false, out: "" };
+  };
+  assert.ok(checkLessons({ root, git: gitFor({ ancestor: false }) }).errors.some((error) => error.includes("not an ancestor of HEAD")), "a non-ancestor proof fails");
+  assert.ok(checkLessons({ root, git: gitFor({ stale: true }) }).warnings.some((warning) => warning.includes("predates later changes")), "a stale proof warns");
+  const unknown = checkLessons({ root, git: gitFor({ known: false }) });
+  assert.deepEqual(unknown.errors, [], "an unknown proof commit is provenance, not an error");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");
