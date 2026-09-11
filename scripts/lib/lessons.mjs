@@ -56,13 +56,22 @@ function resolveFalsifier(root, cell) {
     if (known && !runGit(root, ["merge-base", "--is-ancestor", sha, "HEAD"]).ok) {
       return { ok: false, reason: `falsifier commit ${sha} for ${spec} is not an ancestor of HEAD` };
     }
-    const newer = known ? runGit(root, ["log", "--oneline", `${sha}..HEAD`, "--", rel]) : { ok: false, out: "" };
-    if (newer.ok && newer.out) {
-      const since = runGit(root, ["rev-list", "--count", `${sha}..HEAD`]);
-      return { ok: true, warning: `proof ${sha} predates later changes to ${rel} (${since.ok ? since.out : "?"} commits since HEAD); re-run \`npm run lessons:verify\`` };
-    }
   }
   return { ok: true };
+}
+
+function proofWarnings(root, sha, rel, gates) {
+  if (!runGit(root, ["rev-parse", "--git-dir"]).ok) return [];
+  if (!runGit(root, ["cat-file", "-e", `${sha}^{commit}`]).ok) return [];
+  const warnings = [];
+  for (const [target, label] of [[rel, rel], ...gates.filter((gate) => gate !== rel).map((gate) => [gate, gate])]) {
+    const newer = runGit(root, ["log", "--oneline", `${sha}..HEAD`, "--", target]);
+    if (newer.ok && newer.out) {
+      const since = runGit(root, ["rev-list", "--count", `${sha}..HEAD`, "--", target]);
+      warnings.push(`proof ${sha} predates later changes to ${label} (${since.ok ? since.out : "?"} commits since); re-run \`npm run lessons:verify\``);
+    }
+  }
+  return warnings;
 }
 
 function resolveReference(root, scripts, reference) {
@@ -124,8 +133,10 @@ export function checkLessons({ root }) {
       const falsifier = resolveFalsifier(root, row.falsifier);
       if (!falsifier.ok) {
         errors.push(`lesson "${row.lesson}": recurring friction needs the falsifier that proved the gate; ${falsifier.reason}`);
-      } else if (falsifier.warning) {
-        warnings.push(`lesson "${row.lesson}": ${falsifier.warning}`);
+      } else {
+        const match = FALSIFIER.exec((row.falsifier ?? "").replace(/`/g, "").trim());
+        const gates = resolved.map((entry) => entry.path).filter(Boolean);
+        for (const warning of proofWarnings(root, match[3], match[1], gates)) warnings.push(`lesson "${row.lesson}": ${warning}`);
       }
     }
     lessons.push({ lesson: row.lesson, resolved, occurrences: row.occurrences, falsifier: row.falsifier });
