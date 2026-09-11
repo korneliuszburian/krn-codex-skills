@@ -25,4 +25,3 @@ export class QuarantineViolationError extends ConfigReconcileError {
     this.name = "QuarantineViolationError";
   }
 }
-

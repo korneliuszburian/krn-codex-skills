@@ -261,4 +261,3 @@ export function planCatalogConfig({
     actions: Object.freeze(actions.map((action) => Object.freeze(action))),
   });
 }
-
