@@ -7,11 +7,10 @@ const CANDIDATE = /^(npm run |test:|manual:)|[.][a-z0-9]{2,4}$/i;
 
 const LESSON_BUDGET = 24;
 
-export function parseLessons(file) {
-  if (!fs.existsSync(file)) return { rows: [], malformed: [], budget: LESSON_BUDGET };
+export function parseLessonText(text) {
   const rows = [];
   const malformed = [];
-  for (const line of fs.readFileSync(file, "utf8").split("\n")) {
+  for (const line of text.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed.startsWith("|")) continue;
     if (/^\|[\s:|-]*-{1,}[\s:|-]*\|?$/.test(trimmed)) continue;
@@ -30,6 +29,12 @@ export function parseLessons(file) {
     }
     rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences, falsifier: cells[4] ?? "", trigger: cells[5] ?? "", status: (cells[6] ?? "").trim() });
   }
+  return { rows, malformed };
+}
+
+export function parseLessons(file) {
+  if (!fs.existsSync(file)) return { rows: [], malformed: [], budget: LESSON_BUDGET };
+  const { rows, malformed } = parseLessonText(fs.readFileSync(file, "utf8"));
   return { rows, malformed, budget: LESSON_BUDGET };
 }
 

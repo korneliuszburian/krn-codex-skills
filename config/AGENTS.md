@@ -52,4 +52,4 @@ Choose the smallest owner for the one unresolved uncertainty; installed descript
   in parallel. Parallel writers require isolated worktrees and one integrator.
 - Every update states owner, evidence, paths, unknowns, and next action; never claim completion without observed evidence or readback;
   a deterministic falsifier outranks a model review, same-model self-assessment is never proof, and each new falsifier must be shown failing on the pre-change or mutated behavior, or it is proof theater.
-- A commit that changes a harness surface (runtime lib, gate, workflow, or package manifest) carries a falsifiable `Change-contract:` prediction, `red->green`, of the check it flips; `npm run changes:check` blocks an unmet prediction and names the commit to revert or repair.
+- A commit that changes a harness surface (runtime lib, gate, workflow, or package manifest) carries a declared `Change-contract: <check>:red->green` prediction of the check it flips (the before-state is declared, not executed); `npm run changes:check` blocks an unmet prediction and names the commit to revert or repair.

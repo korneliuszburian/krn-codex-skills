@@ -12,7 +12,7 @@ import { checkLessons, recallLessons } from "./lib/lessons.mjs";
 import { churnHot } from "./lib/churn.mjs";
 import { runGit } from "./lib/git-cli.mjs";
 import { verifyLessons } from "./lib/lessons-verify.mjs";
-import { checkChangeContract } from "./lib/change-contract.mjs";
+import { checkChangeContract, contractGuardActive } from "./lib/change-contract.mjs";
 import { EXIT_CODES, renderDiagnostics } from "./lib/diagnostics.mjs";
 
 process.stdout.on("error", (error) => {
@@ -130,7 +130,7 @@ try {
   } else if (raw[0] === "changes") {
     const { positional, options } = parseOptions(raw.slice(1));
     if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root || !options.base) fail(usage);
-    const report = process.env.KRN_CHANGE_CONTRACT === "0"
+    const report = contractGuardActive()
       ? { root: options.root, commits: [], results: [], errors: [], skipped: true }
       : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD" });
     print(report, options.json);

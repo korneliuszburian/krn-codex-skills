@@ -3,7 +3,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { runGit } from "./git-cli.mjs";
-import { parseLessons, recallLessons } from "./lessons.mjs";
+import { parseLessons, parseLessonText, recallLessons } from "./lessons.mjs";
 import { touchedSymbols } from "./symbol-triggers.mjs";
 import { churnHot } from "./churn.mjs";
 
@@ -13,6 +13,7 @@ const SURFACE = [
   /^package\.json$/,
   /^config\//,
   /^skills\/manifest\.json$/,
+  /^docs\/research\/workflow-lessons\.md$/,
   /^\.github\/workflows\//,
 ];
 const DENY = new Set(["changes:check"]);
@@ -21,6 +22,10 @@ const NO_CHECK = /^No-check:\s*(.+?)\s*$/i;
 
 export function contractSurface(files) {
   return files.some((file) => SURFACE.some((pattern) => pattern.test(file)));
+}
+
+export function contractGuardActive(env = process.env) {
+  return env.KRN_CHANGE_CONTRACT === "0";
 }
 
 export function parseChangeContract(message) {
@@ -106,6 +111,13 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     errors.push({ rule: "malformed-lessons", detail: `${malformed.length} row(s); trigger delivery is unreliable` });
   }
   const churnEnabled = fs.existsSync(lessonsFile) && parseLessons(lessonsFile).rows.some((row) => (row.trigger ?? "").includes("churn:"));
+  const basePage = git(root, ["show", `${base}:docs/research/workflow-lessons.md`]);
+  if (basePage.ok && fs.existsSync(lessonsFile)) {
+    const headTexts = new Set(parseLessonText(fs.readFileSync(lessonsFile, "utf8")).rows.map((row) => row.lesson));
+    for (const row of parseLessonText(basePage.out).rows.filter((entry) => !entry.status)) {
+      if (!headTexts.has(row.lesson)) errors.push({ rule: "lesson-shrinkage", detail: row.lesson.slice(0, 60) });
+    }
+  }
   const targets = new Map();
   const atRiskTargets = new Map();
   for (const commit of commits) {

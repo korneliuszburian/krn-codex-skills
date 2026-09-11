@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkChangeContract, contractSurface, parseChangeContract } from "../scripts/lib/change-contract.mjs";
+import { checkChangeContract, contractGuardActive, contractSurface, parseChangeContract } from "../scripts/lib/change-contract.mjs";
 
 function makeRoot(scripts = { "test:lessons": "x", "test:lib": "x" }) {
   const root = mkdtempSync(join(tmpdir(), "krn-contract-"));
@@ -40,7 +39,8 @@ test("contractSurface scopes the harness surfaces", () => {
   assert.equal(contractSurface(["test/change-contract.test.mjs"]), true);
   assert.equal(contractSurface(["skills/manifest.json"]), true);
   assert.equal(contractSurface(["config/AGENTS.md"]), true);
-  assert.equal(contractSurface(["docs/research/workflow-lessons.md"]), false);
+  assert.equal(contractSurface(["docs/research/workflow-lessons.md"]), true);
+  assert.equal(contractSurface(["docs/research/orchestration.md"]), false);
 });
 
 test("parseChangeContract reads contract direction, at-risk, falsifier, and No-check", () => {
@@ -291,13 +291,28 @@ test("a surface path that git would quote is still checked", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test("the guard disables the CLI check when set in the environment", () => {
-  const root = mkdtempSync(join(tmpdir(), "krn-contract-"));
-  const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "krn-codex.mjs"), "changes", "check", "--root", root, "--base", "HEAD", "--head", "HEAD", "--json"], {
-    encoding: "utf8",
-    env: { ...process.env, KRN_CHANGE_CONTRACT: "0" },
-  });
-  assert.equal(result.status, 0);
-  assert.equal(JSON.parse(result.stdout).skipped, true);
+test("deleting an active lesson row is detected as shrinkage", () => {
+  const root = makeRoot();
+  const git = (_root, args) => {
+    if (args[0] === "log") return { ok: true, out: "a1\u001fdocs\u001f" };
+    if (args[0] === "show") {
+      const last = args[args.length - 1];
+      if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x" } }) };
+      if (last.includes(":docs/research/workflow-lessons.md")) return { ok: true, out: "| Lesson | Evidence | Enforced by |\n|---|---|---|\n| Remove me | probe | `test:lessons` |\n" };
+      if (args.includes("--name-only")) return { ok: true, out: "docs/research/workflow-lessons.md\0" };
+      return { ok: true, out: "" };
+    }
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    if (args[0] === "rev-list") return { ok: true, out: "0" };
+    return { ok: false, out: "" };
+  };
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "lesson-shrinkage"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
+});
+
+test("the contract guard reads only the environment flag", () => {
+  assert.equal(contractGuardActive({ KRN_CHANGE_CONTRACT: "0" }), true);
+  assert.equal(contractGuardActive({}), false);
+  assert.equal(contractGuardActive({ KRN_CHANGE_CONTRACT: "1" }), false);
 });
