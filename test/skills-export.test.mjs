@@ -147,3 +147,48 @@ test("re-export regenerates a previous export", () => {
   assert.deepEqual(check.errors, [], JSON.stringify(check));
   fs.rmSync(f.base, { recursive: true, force: true });
 });
+
+test("check reports each structural failure in the export tree", () => {
+  const f = fixture();
+  const skillsDir = path.join(f.root, ".agents", "skills");
+  const local = path.join(skillsDir, "local");
+  const refresh = () => exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+
+  refresh();
+  fs.renameSync(path.join(local, "agents", "openai.yaml"), path.join(local, "agents", "openai.bak"));
+  assert.ok(checkSkills({ root: f.root }).errors.some((e) => e.includes("missing agents/openai.yaml")));
+  refresh();
+
+  fs.rmSync(path.join(local, "SKILL.md"));
+  assert.ok(checkSkills({ root: f.root }).errors.some((e) => e.includes("missing SKILL.md")));
+  refresh();
+
+  fs.rmSync(path.join(skillsDir, "README.md"));
+  assert.ok(checkSkills({ root: f.root }).errors.some((e) => e.includes("README.md is missing")));
+  refresh();
+
+  fs.rmSync(path.join(skillsDir, "UPSTREAM-LICENSE"));
+  assert.ok(checkSkills({ root: f.root }).errors.some((e) => e.includes("UPSTREAM-LICENSE is missing")));
+  refresh();
+
+  fs.rmSync(path.join(skillsDir, ".krn-export.json"));
+  assert.ok(checkSkills({ root: f.root }).errors.some((e) => e.includes("is not a generated export")));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
+test("check reports source drift and a harness_skills mismatch", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.source });
+
+  const sourceSkill = path.join(f.source, "skills", "meta", "local", "SKILL.md");
+  fs.writeFileSync(sourceSkill, fs.readFileSync(sourceSkill, "utf8").replace("Local skill", "Drifted local skill"));
+  assert.ok(checkSkills({ root: f.source }).errors.some((e) => e.includes("differs from source")), "drift");
+
+  const manifestPath = path.join(f.source, "skills", "manifest.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  manifest.harness_skills = ["local", "extra"];
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  assert.ok(checkSkills({ root: f.source }).errors.some((e) => e.includes("must equal manifest.harness_skills")), "subset");
+
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
