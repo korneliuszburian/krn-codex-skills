@@ -14,8 +14,10 @@ intended tone?
 ## Sources and mechanisms
 
 Sources pinned and retrieved on 2026-08-24; the Cursor/pstack pin was refreshed
-on 2026-09-11 to a density and mannered-prose pass (the mechanism and its
-checklist are unchanged):
+on 2026-09-11 because the 2026-09-07 density pass changed the checklist (it
+dropped the "add voice" stage and the trim/promotional rules and added
+mannered-prose and over-compression rules), so the description below follows the
+new pin:
 
 - Cursor/pstack `unslop` at commit
   [`e8d856f`](https://github.com/cursor/plugins/commit/e8d856f0273b42ebafe0ec3546bd645709e7c1b0),
@@ -24,12 +26,14 @@ checklist are unchanged):
   [`edcb623`](https://github.com/mshumer/unslop/commit/edcb62386d129c65e4395f0cfcc9168eb1ba2148),
   file [`skills/unslop/SKILL.md`](https://github.com/mshumer/unslop/blob/edcb62386d129c65e4395f0cfcc9168eb1ba2148/skills/unslop/SKILL.md).
 
-The Cursor/pstack `unslop` skill describes a four-part loop: scan for patterns,
-rewrite while preserving meaning and tone, add a specific voice, and self-audit
-for remaining tells. Its examples include puffery, vague attribution, filler,
-formulaic structure, chatbot phrases, and abstract jargon. The source is a
-useful checklist, not evidence that its English blacklist transfers to Polish
-or to code and evidence artifacts. [Pinned source](https://github.com/cursor/plugins/blob/e8d856f0273b42ebafe0ec3546bd645709e7c1b0/pstack/skills/unslop/SKILL.md)
+The Cursor/pstack `unslop` skill at this pin describes a three-step loop: scan
+for patterns, rewrite while preserving meaning and tone, then self-audit for
+remaining tells. Its numbered rules cover content (superficial -ing phrases,
+vague attribution), language (AI vocabulary, false ranges), style (em-dash,
+boldface, and title-case overuse), communication artifacts, filler, abstract
+jargon, and plain speech (active voice, exact numbers, whole sentences). The
+source is a useful checklist, not evidence that its English blacklist transfers
+to Polish or to code and evidence artifacts. [Pinned source](https://github.com/cursor/plugins/blob/e8d856f0273b42ebafe0ec3546bd645709e7c1b0/pstack/skills/unslop/SKILL.md)
 
 The separate `mshumer/unslop` project uses a different mechanism: generate many
 samples for a named domain, analyze repeated defaults, and review the generated
