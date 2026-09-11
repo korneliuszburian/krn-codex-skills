@@ -3,7 +3,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { runGit } from "./git-cli.mjs";
-import { recallLessons } from "./lessons.mjs";
+import { parseLessons, recallLessons } from "./lessons.mjs";
 
 const SURFACE = [
   /^scripts\//,
@@ -83,6 +83,17 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     });
   const packageFile = path.join(root, "package.json");
   const scripts = fs.existsSync(packageFile) ? JSON.parse(fs.readFileSync(packageFile, "utf8")).scripts ?? {} : {};
+  const lessonsFile = path.join(root, "docs", "research", "workflow-lessons.md");
+  const malformed = fs.existsSync(lessonsFile) ? parseLessons(lessonsFile).malformed : [];
+  if (!fs.existsSync(lessonsFile) && commits.some((commit) => {
+    const changed = git(root, ["show", "--no-renames", "--name-only", "--format=", commit.sha]);
+    return changed.ok && contractSurface(changed.out.split("\n").map((entry) => entry.trim()).filter(Boolean));
+  })) {
+    errors.push({ rule: "missing-lessons", detail: "a surface change requires the workflow-lessons page for trigger delivery" });
+  }
+  if (malformed.length > 0) {
+    errors.push({ rule: "malformed-lessons", detail: `${malformed.length} row(s); trigger delivery is unreliable` });
+  }
   const targets = new Map();
   const atRiskTargets = new Map();
   for (const commit of commits) {
@@ -95,7 +106,8 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
       const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
       const named = [...ids, falsifierFile].filter(Boolean);
-      const acknowledged = recalled.some((line) => named.some((id) => line.includes(id)));
+      const namesId = (line, id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(line);
+      const acknowledged = recalled.some((line) => named.some((id) => namesId(line, id)));
       if (!acknowledged) {
         errors.push({ rule: "unrecalled-lesson", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add a Recall: trailer naming ${named.join(" or ") || "the gate"}` });
       }

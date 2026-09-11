@@ -225,6 +225,7 @@ test("a trigger delivers the matching lesson for changed paths", () => {
   assert.deepEqual(recallLessons({ root, files: ["docs/x.md"] }), []);
   assert.deepEqual(matchesTrigger("path:scripts/**", ["scripts/a/b.mjs", "docs/x.md"]), ["scripts/a/b.mjs"]);
   assert.deepEqual(matchesTrigger("path:scripts/*.mjs", ["scripts/a.mjs", "scripts/a/b.mjs"]), ["scripts/a.mjs"]);
+  assert.deepEqual(matchesTrigger("path:./scripts/**", ["scripts/a.mjs"]), ["scripts/a.mjs"], "a leading ./ is normalized away");
   rmSync(root, { recursive: true, force: true });
 });
 

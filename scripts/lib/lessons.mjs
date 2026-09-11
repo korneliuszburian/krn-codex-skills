@@ -40,7 +40,7 @@ function triggerGlobs(trigger) {
     .split(/[;,]/)
     .map((entry) => entry.trim())
     .filter((entry) => entry.startsWith("path:"))
-    .map((entry) => entry.slice("path:".length));
+    .map((entry) => entry.slice("path:".length).replace(/^\.\//, ""));
 }
 
 export function matchesTrigger(trigger, files) {

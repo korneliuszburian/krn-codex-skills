@@ -10,6 +10,8 @@ import { checkChangeContract, contractSurface, parseChangeContract } from "../sc
 function makeRoot(scripts = { "test:lessons": "x", "test:lib": "x" }) {
   const root = mkdtempSync(join(tmpdir(), "krn-contract-"));
   writeFileSync(join(root, "package.json"), `${JSON.stringify({ scripts })}\n`);
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by |\n|---|---|---|\n");
   return root;
 }
 
@@ -143,6 +145,11 @@ test("a change that triggers a lesson requires a Recall trailer", () => {
     baseScripts: { "test:lessons": "x" },
   };
   assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(base), run: green }).errors.some((error) => error.rule === "unrecalled-lesson"));
+  const junk = {
+    ...base,
+    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: contest:scripts/lib/git-cli.mjs" }],
+  };
+  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(junk), run: green }).errors.some((error) => error.rule === "unrecalled-lesson"), "a superstring must not satisfy the recall");
   const recalled = {
     ...base,
     commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/git-cli.mjs" }],
