@@ -103,16 +103,17 @@ export function exportSkills({ source, upstream, root }) {
     ? upstreamPin.harness_paths
     : upstreamPin.required_paths;
   const harnessDirs = [...new Set(harnessPaths.map((required) => path.dirname(required)))];
-  const upstreamStatus = git(resolvedUpstream, ["status", "--porcelain", "--untracked-files=all"]);
+  const upstreamStatus = git(resolvedUpstream, ["status", "--porcelain", "--untracked-files=all", "--ignored=matching"]);
   const untracked = upstreamStatus
     .split("\n")
-    .filter((line) => line.startsWith("?? "))
+    .filter((line) => line.startsWith("?? ") || line.startsWith("!! "))
     .map((line) => line.slice(3).replace(/^"(.*)"$/, "$1"));
   const stray = untracked.find((file) => harnessDirs.some((dir) => file === dir || file.startsWith(`${dir}/`)));
   if (stray) {
     throw new Error(`upstream harness path contains an untracked file (${stray}); the pinned revision cannot reproduce exported bytes`);
   }
   const krnCommit = harnessCommit(source);
+  const sourceDirty = git(source, ["status", "--porcelain"]).length > 0;
 
   const skillsDir = `${finalDir}.staging-${process.pid}-${Date.now()}`;
   let preserved = null;
@@ -158,7 +159,7 @@ export function exportSkills({ source, upstream, root }) {
       `${JSON.stringify(
         {
           schemaVersion: 1,
-          krn: { commit: krnCommit },
+          krn: { commit: krnCommit, dirty: sourceDirty },
           upstream: { id: upstreamPin.id, commit: upstreamPin.commit },
           skills: skills.map((skill) => skill.name).sort(),
           digests,
