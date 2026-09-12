@@ -14,7 +14,7 @@ function makeRoot(scripts = { "test:lessons": "x", "test:lib": "x" }) {
   return root;
 }
 
-function fakeGit({ commits, files, baseScripts = {}, baseFiles = [], blobs = {} }) {
+function fakeGit({ commits, files, baseScripts = {}, baseFiles = [], blobs = {}, trees = {} }) {
   return (_root, args) => {
     if (args[0] === "log") {
       return { ok: true, out: commits.map((commit) => `${commit.sha}\u001f${commit.subject}\u001f${commit.body ?? ""}`).join("\u001e") };
@@ -35,6 +35,12 @@ function fakeGit({ commits, files, baseScripts = {}, baseFiles = [], blobs = {} 
     if (args[0] === "hash-object") {
       const key = `head:${args[args.length - 1]}`;
       return Object.hasOwn(blobs, key) ? { ok: true, out: blobs[key] } : { ok: false, out: "" };
+    }
+    if (args[0] === "ls-tree") {
+      const pattern = args[args.length - 1];
+      const ref = args[args.length - 3];
+      const key = `${ref}:${pattern}`;
+      return Object.hasOwn(trees, key) ? { ok: true, out: trees[key].join("\n") } : { ok: true, out: "" };
     }
     return { ok: false, out: "" };
   };
@@ -140,6 +146,33 @@ test("gutting a test file a declared script runs is self-authorized", () => {
     files: { a1: ["scripts/lib/x.mjs"] },
     baseScripts: { "test:lessons": "node --test test/lessons.test.mjs" },
     blobs: { "base:test/lessons.test.mjs": "aaa", "head:test/lessons.test.mjs": "bbb" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("gutting a test reached by a glob the declared script runs is self-authorized", () => {
+  const root = makeRoot({ "test:g": "node --test test/*.test.mjs" });
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:g:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:g": "node --test test/*.test.mjs" },
+    trees: { "base:test/*.test.mjs": ["test/a.test.mjs"], "HEAD:test/*.test.mjs": ["test/a.test.mjs"] },
+    blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("gutting a non-ASCII test the declared script runs is self-authorized", () => {
+  const root = makeRoot({ "test:u": "node --test test/über.test.mjs" });
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:u:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:u": "node --test test/über.test.mjs" },
+    blobs: { "base:test/über.test.mjs": "aaa", "head:test/über.test.mjs": "bbb" },
   });
   const report = checkChangeContract({ root, base: "base", git, run: green });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));

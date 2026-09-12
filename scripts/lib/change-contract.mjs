@@ -82,6 +82,23 @@ function checkFileRedefined(root, base, git, rel) {
   return before.ok && now.ok && before.out.trim() !== now.out.trim();
 }
 
+function scriptTestFilesRedefined(root, base, git, command) {
+  for (const token of [...command.matchAll(/(test\/[^\s"']+\.mjs)/g)].map((match) => match[1])) {
+    if (!/[*?\[]/.test(token)) {
+      if (checkFileRedefined(root, base, git, token)) return true;
+      continue;
+    }
+    const listing = (ref) => {
+      const result = git(root, ["ls-tree", "-r", "--name-only", ref, "--", token]);
+      return result.ok ? result.out.split("\n").map((line) => line.trim()).filter(Boolean) : [];
+    };
+    for (const rel of new Set([...listing(base), ...listing("HEAD")])) {
+      if (checkFileRedefined(root, base, git, rel)) return true;
+    }
+  }
+  return false;
+}
+
 function outputTail(output) {
   if (!output) return "";
   const lines = output.trim().split("\n");
@@ -175,7 +192,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       }
       const redefined = target.kind === "script"
         ? (baseScripts !== null && Object.hasOwn(baseScripts, target.name) && baseScripts[target.name] !== scripts[target.name])
-          || [...(scripts[target.name] ?? "").matchAll(/(test\/[A-Za-z0-9_./-]+\.mjs)/g)].some((match) => checkFileRedefined(root, base, git, match[1]))
+          || scriptTestFilesRedefined(root, base, git, scripts[target.name] ?? "")
         : checkFileRedefined(root, base, git, target.name);
       if (redefined) {
         errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail: "the check was redefined in this range" });
