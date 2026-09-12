@@ -44,4 +44,3 @@ stage. A Goal's budget is a stopping condition to report, not a target to exceed
 - One outcome has one writer; independent read-only work may run in parallel. Parallel writers require isolated worktrees and one integrator.
 - Every update states owner, evidence, paths, unknowns, and next action; never claim completion without observed evidence or readback; a deterministic falsifier outranks a model review, same-model self-assessment is never proof, and each new falsifier must be shown failing before it counts.
 - A harness-surface commit (runtime lib, gate, workflow, or package manifest) carries a declared `Change-contract: <check>:red->green` prediction (the before-state is declared, not executed); `npm run changes:check` blocks an unmet prediction and names the commit to revert.
-
