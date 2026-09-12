@@ -306,6 +306,19 @@ test("shell nesting, variables, and env prefixes fail closed", () => {
   }
 });
 
+test("an unreadable changed-file listing fails closed", () => {
+  const root = makeRoot();
+  const git = (_root, args) => {
+    if (args[0] === "log") return { ok: true, out: "a1\u001ffix\u001fChange-contract: test:lessons:red->green" };
+    if (args[0] === "show" && args.includes("--name-only")) return { ok: false, out: "" };
+    if (args[0] === "show") return { ok: true, out: "//\n" };
+    return { ok: false, out: "" };
+  };
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "unreadable-changed-files"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });

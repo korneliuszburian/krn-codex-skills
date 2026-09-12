@@ -161,7 +161,11 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const atRiskTargets = new Map();
   for (const commit of commits) {
     const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", commit.sha]);
-    const files = changed.ok ? changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean) : [];
+    if (!changed.ok) {
+      errors.push({ rule: "unreadable-changed-files", commit: commit.sha, detail: "git could not list the commit's files; the contract cannot be evaluated" });
+      continue;
+    }
+    const files = changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean);
     const contract = parseChangeContract(`${commit.subject}\n${commit.body}`);
     const surface = contractSurface(files);
     const symbols = touchedSymbols({ root, git, sha: commit.sha });

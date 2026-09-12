@@ -45,9 +45,13 @@ jobs:
         run: npm run test:lessons-verify
       - name: Check change contracts
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE: ${{ github.event.before }}
         run: |
-          base="${BASE_SHA:-HEAD~1}"
+          base="${PR_BASE:-$PUSH_BASE}"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            base="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
+          fi
           node scripts/krn-codex.mjs changes check --root . --base "$base" --head HEAD
       - name: Test change-contract gate
         run: npm run test:change-contract
@@ -63,9 +67,14 @@ jobs:
         run: npm run test:lib
       - name: Check shell and diff hygiene
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE: ${{ github.event.before }}
         run: |
           bash -n scripts/install.sh
           bash -n skills/advisory/opencode-second-opinion/scripts/check-opinion.sh
           bash -n skills/advisory/opencode-second-opinion/scripts/run-opinion.sh
-          git diff --check "${BASE_SHA:-HEAD~1}...HEAD"
+          base="${PR_BASE:-$PUSH_BASE}"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            base="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
+          fi
+          git diff --check "${base}...HEAD"
