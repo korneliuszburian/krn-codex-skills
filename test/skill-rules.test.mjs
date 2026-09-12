@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-import { contractBudgetErrors } from "../scripts/lib/contract-budget.mjs";
 import {
+  contractBudgetErrors,
   lineLimitErrors,
   openaiYamlErrors,
   referenceLinkErrors,

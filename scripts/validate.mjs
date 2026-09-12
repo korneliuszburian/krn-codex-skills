@@ -8,9 +8,9 @@ import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
 import { ABI_LABELS } from "./lib/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/durable-pages.mjs";
 import { checkLessons } from "./lib/lessons.mjs";
-import { contractBudgetErrors } from "./lib/contract-budget.mjs";
 import { runtimeClosureErrors } from "./lib/runtime-closure.mjs";
 import {
+  contractBudgetErrors,
   lineLimitErrors,
   openaiYamlErrors,
   referenceLinkErrors,

@@ -51,12 +51,10 @@ test("contractSurface scopes the harness surfaces", () => {
   assert.equal(contractSurface(["docs/research/orchestration.md"]), false);
 });
 
-test("parseChangeContract reads contract direction, at-risk, falsifier, and No-check", () => {
-  const parsed = parseChangeContract("feat: x\n\nChange-contract: test:lessons:red->green\nAt-risk: test:lib:green->green\nFalsifier: test/x.test.mjs::probe@abcdef0\n");
+test("parseChangeContract reads contract direction and at-risk", () => {
+  const parsed = parseChangeContract("feat: x\n\nChange-contract: test:lessons:red->green\nAt-risk: test:lib:green->green\n");
   assert.deepEqual(parsed.contracts, [{ ref: "test:lessons", before: "red", after: "green" }]);
   assert.deepEqual(parsed.atRisk, ["test:lib"]);
-  assert.deepEqual(parsed.falsifiers, ["test/x.test.mjs::probe@abcdef0"]);
-  assert.equal(parseChangeContract("No-check: docs only\n").noCheck, "docs only");
 });
 
 test("parseChangeContract accepts comma-separated refs and rejects malformed parts", () => {

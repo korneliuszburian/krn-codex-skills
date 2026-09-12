@@ -265,6 +265,23 @@ export function checkLessons({ root, git = runGit }) {
   return { root, lessons, errors, warnings };
 }
 
+export function recallLines(text) {
+  return [...text.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
+}
+
+export function recallBindings({ hit, lines, targets }) {
+  const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
+  const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
+  const named = [...ids, falsifierFile].filter(Boolean);
+  const namesId = (text, id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(text);
+  const reconstructed = lines.some((line) => {
+    const [left, right] = line.split("=>").map((part) => part?.trim() ?? "");
+    if (!right || !named.some((id) => namesId(left, id))) return false;
+    return right.split(/[\s,;]+/).filter(Boolean).some((target) => targets.includes(target));
+  });
+  return { ids, falsifierFile, named, reconstructed };
+}
+
 function recallUsage(root, git, rows) {
   const active = rows.filter((row) => !row.status && (row.trigger ?? "").trim());
   const counts = new Map();
@@ -281,23 +298,16 @@ function recallUsage(root, git, rows) {
       return { sha, text: `${subject ?? ""}\n${body ?? ""}` };
     });
   for (const record of records) {
-    const lines = [...record.text.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
+    const lines = recallLines(record.text);
     if (lines.length === 0) continue;
     const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", record.sha]);
     const files = changed.ok ? changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean) : [];
     const symbols = touchedSymbols({ root, git, sha: record.sha });
     const hot = churnEnabled ? churnHot({ root, git, sha: record.sha, files }) : [];
     for (const hit of recallLessons({ root, files, symbols, hot })) {
-      const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
-      const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
-      const names = [...ids, falsifierFile].filter(Boolean);
-      const credited = lines.some((line) => {
-        const [left, right] = line.split("=>").map((part) => part?.trim() ?? "");
-        if (!right) return false;
-        if (!names.some((id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(left))) return false;
-        return right.split(/[\s,;]+/).filter(Boolean).some((target) => files.includes(target) || symbols.includes(target));
-      });
-      if (credited) counts.set(hit.lesson, (counts.get(hit.lesson) ?? 0) + 1);
+      if (recallBindings({ hit, lines, targets: [...files, ...symbols] }).reconstructed) {
+        counts.set(hit.lesson, (counts.get(hit.lesson) ?? 0) + 1);
+      }
     }
   }
   return counts;

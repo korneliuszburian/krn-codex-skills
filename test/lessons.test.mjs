@@ -6,7 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { checkLessons, lessonUsage, matchesTrigger, parseLessons, recallLessons } from "../scripts/lib/lessons.mjs";
+import { checkLessons, lessonUsage, matchesTrigger, parseLessons, recallBindings, recallLessons, recallLines } from "../scripts/lib/lessons.mjs";
 
 function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "krn-lessons-"));
@@ -450,6 +450,17 @@ test("a Recall in the commit subject counts as usage", () => {
   const usage = lessonUsage({ root });
   assert.equal(usage.usage.find((entry) => entry.lesson === "Subject recall").recalls, 1, JSON.stringify(usage));
   rmSync(root, { recursive: true, force: true });
+});
+
+test("recallBindings binds a recall to a changed target by gate or falsifier", () => {
+  const hit = { gate: "`npm run test`", falsifier: "test/greet.test.mjs::greets the supplied name@10aa55c" };
+  const targets = ["greet.mjs"];
+  assert.deepEqual(recallLines("x\nRecall: npm run test => greet.mjs\ny\nRecall: test/greet.test.mjs => greet.mjs"), ["npm run test => greet.mjs", "test/greet.test.mjs => greet.mjs"]);
+  assert.equal(recallBindings({ hit, lines: ["npm run test => greet.mjs"], targets }).reconstructed, true);
+  assert.equal(recallBindings({ hit, lines: ["test/greet.test.mjs => greet.mjs"], targets }).reconstructed, true);
+  assert.equal(recallBindings({ hit, lines: ["npm run test => other.mjs"], targets }).reconstructed, false);
+  assert.equal(recallBindings({ hit, lines: ["coolnpm run test => greet.mjs"], targets }).reconstructed, false);
+  assert.equal(recallBindings({ hit, lines: ["npm run test"], targets }).reconstructed, false);
 });
 
 test("retirement supersession requires an exact anchor", () => {

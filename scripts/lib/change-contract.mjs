@@ -3,7 +3,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { runGit } from "./git-cli.mjs";
-import { parseLessons, parseLessonText, recallLessons } from "./lessons.mjs";
+import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings } from "./lessons.mjs";
 import { touchedSymbols } from "./symbol-triggers.mjs";
 import { churnHot } from "./churn.mjs";
 
@@ -19,7 +19,6 @@ const SURFACE = [
 const DENY = new Set(["changes:check"]);
 const CONTRACT = /^(?:Change-contract|Prediction):\s*(.+?)\s*$/i;
 const CONTRACT_PART = /^(.+?):\s*(red|green)\s*->\s*(red|green)\s*$/i;
-const NO_CHECK = /^No-check:\s*(.+?)\s*$/i;
 
 export function contractSurface(files) {
   return files.some((file) => SURFACE.some((pattern) => pattern.test(file)));
@@ -32,8 +31,6 @@ export function contractGuardActive(env = process.env) {
 export function parseChangeContract(message) {
   const contracts = [];
   const atRisk = [];
-  const falsifiers = [];
-  let noCheck = "";
   for (const line of message.split("\n").map((entry) => entry.trim())) {
     const contract = CONTRACT.exec(line);
     if (contract) {
@@ -48,12 +45,8 @@ export function parseChangeContract(message) {
     }
     const risk = /^At-risk:\s*(.+?)(?::\s*(?:red|green)\s*->\s*(?:red|green))?\s*$/i.exec(line);
     if (risk) atRisk.push(...risk[1].split(",").map((ref) => ref.trim()).filter(Boolean));
-    const falsifier = /^Falsifier:\s*(.+?@[0-9a-f]{7})\s*$/i.exec(line);
-    if (falsifier) falsifiers.push(falsifier[1].trim());
-    const skip = NO_CHECK.exec(line);
-    if (skip) noCheck = skip[1].trim();
   }
-  return { contracts, atRisk, falsifiers, noCheck };
+  return { contracts, atRisk };
 }
 
 function resolveCheck(root, scripts, ref) {
@@ -142,18 +135,9 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const surface = contractSurface(files);
     const symbols = touchedSymbols({ root, git, sha: commit.sha });
     const hot = churnEnabled ? churnHot({ root, git, sha: commit.sha, files }) : [];
-    const recallLines = [...`${commit.subject}\n${commit.body}`.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
+    const recallTrailers = recallLines(`${commit.subject}\n${commit.body}`);
     for (const hit of recallLessons({ root, files, symbols, hot })) {
-      const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
-      const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
-      const named = [...ids, falsifierFile].filter(Boolean);
-      const namesId = (text, id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(text);
-      const changedTargets = [...files, ...symbols];
-      const reconstructed = recallLines.some((line) => {
-        const [left, right] = line.split("=>").map((part) => part?.trim() ?? "");
-        if (!right || !named.some((id) => namesId(left, id))) return false;
-        return right.split(/[\s,;]+/).filter(Boolean).some((target) => changedTargets.includes(target));
-      });
+      const { ids, falsifierFile, named, reconstructed } = recallBindings({ hit, lines: recallTrailers, targets: [...files, ...symbols] });
       if (!reconstructed) {
         errors.push({ rule: "unreconstructed-recall", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add Recall: <${named.join(" or ") || "gate"}> => <changed file or symbol>` });
       } else {
