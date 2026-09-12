@@ -113,7 +113,20 @@ export function exportSkills({ source, upstream, root }) {
     throw new Error(`upstream harness path contains an untracked file (${stray}); the pinned revision cannot reproduce exported bytes`);
   }
   const krnCommit = harnessCommit(source);
-  const sourceDirty = git(source, ["status", "--porcelain"]).length > 0;
+  const manifestSkills = Array.isArray(manifest.harness_skills) && manifest.harness_skills.length > 0
+    ? manifest.skills.filter((skill) => manifest.harness_skills.includes(skill.name))
+    : manifest.skills;
+  const sourceSkillDirs = manifestSkills.map((skill) => skill.path);
+  const sourceStatus = git(source, ["status", "--porcelain", "--untracked-files=all", "--ignored=matching"]);
+  const sourceDirty = sourceStatus.length > 0;
+  const sourceStray = sourceStatus
+    .split("\n")
+    .filter((line) => line.startsWith("?? ") || line.startsWith("!! "))
+    .map((line) => line.slice(3).replace(/^"(.*)"$/, "$1"))
+    .find((file) => sourceSkillDirs.some((dir) => file.startsWith(`${dir}/`)));
+  if (sourceStray) {
+    throw new Error(`source skill path contains an untracked or ignored file (${sourceStray}); it would be exported without provenance`);
+  }
 
   const skillsDir = `${finalDir}.staging-${process.pid}-${Date.now()}`;
   let preserved = null;
@@ -129,9 +142,6 @@ export function exportSkills({ source, upstream, root }) {
 
   const skills = [];
   try {
-  const manifestSkills = Array.isArray(manifest.harness_skills) && manifest.harness_skills.length > 0
-    ? manifest.skills.filter((skill) => manifest.harness_skills.includes(skill.name))
-    : manifest.skills;
   for (const skill of manifestSkills) {
     const relative = skill.path;
     fs.cpSync(path.join(source, relative), path.join(skillsDir, skill.name), { recursive: true, dereference: true });

@@ -213,6 +213,14 @@ test("a failed export leaves the previous export intact", () => {
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
+test("an ignored file inside a source skill path is refused", () => {
+  const f = fixture();
+  fs.appendFileSync(path.join(f.source, ".git", "info", "exclude"), "stray-source.txt\n");
+  fs.writeFileSync(path.join(f.source, "skills", "meta", "local", "stray-source.txt"), "hidden\n");
+  assert.throws(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }), /without provenance/);
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
 test("a gitignored file inside a pinned harness path is refused", () => {
   const f = fixture();
   fs.appendFileSync(path.join(f.upstream, ".git", "info", "exclude"), "stray-ignored.txt\n");
