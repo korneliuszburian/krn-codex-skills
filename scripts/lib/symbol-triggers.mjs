@@ -223,4 +223,3 @@ export function touchedSymbolFiles({ root, git, sha }) {
   flush();
   return files;
 }
-
