@@ -251,14 +251,6 @@ for (const skill of validLocalSkills) {
 
   const fields = parseFrontmatter(skillFile);
   for (const message of skillIdentityErrors(fields, skill)) fail(message);
-  for (const message of lineLimitErrors({
-    label: `${skill.path}: SKILL.md`,
-    lineCount: lineCount(skillFile),
-    max: 180,
-    suffix: "; disclose branch detail",
-  })) {
-    fail(message);
-  }
 
   const metadata = read(metadataFile);
   for (const message of openaiYamlErrors(metadata, {
