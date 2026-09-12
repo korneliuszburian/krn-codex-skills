@@ -58,11 +58,31 @@ export function extractSymbols(source) {
   for (let line = 0; line < lines.length; line += 1) {
     const match = DECL.exec(lines[line]);
     if (!match) continue;
+    let scanOffset = lineStart[line];
+    if (match[1] === "function") {
+      let cursor = lineStart[line] + match[0].length;
+      while (cursor < source.length && !(mask[cursor] && source[cursor] === "(")) cursor += 1;
+      if (cursor < source.length) {
+        let parens = 0;
+        for (; cursor < source.length; cursor += 1) {
+          if (!mask[cursor]) continue;
+          if (source[cursor] === "(") parens += 1;
+          else if (source[cursor] === ")") {
+            parens -= 1;
+            if (parens === 0) {
+              cursor += 1;
+              break;
+            }
+          }
+        }
+        scanOffset = cursor;
+      }
+    }
     let depth = 0;
     let opened = false;
     let endLine = line;
     let terminated = false;
-    for (let offset = lineStart[line]; offset < source.length; offset += 1) {
+    for (let offset = scanOffset; offset < source.length; offset += 1) {
       if (!mask[offset]) continue;
       const char = source[offset];
       if (char === "{") {
@@ -82,6 +102,16 @@ export function extractSymbols(source) {
       }
     }
     symbols.push({ name: match[2], kind: match[1], start: line + 1, end: (terminated ? endLine : lines.length - 1) + 1 });
+  }
+  for (const match of source.matchAll(/export\s*\{([^}]+)\}/g)) {
+    if (!mask[match.index]) continue;
+    for (const part of match[1].split(",")) {
+      const name = part.trim().split(/\s+as\s+/).pop().trim();
+      if (/^[A-Za-z_$][\w$]*$/.test(name)) {
+        const declared = symbols.find((symbol) => symbol.name === name);
+        if (!declared) symbols.push({ name, kind: "export", start: lineOf(match.index) + 1, end: lineOf(match.index) + 1 });
+      }
+    }
   }
   return symbols;
 }

@@ -21,6 +21,11 @@ test("extractSymbols finds exported declarations with spans", () => {
   assert.deepEqual(symbols[1], { name: "VALUE", kind: "const", start: 6, end: 6 });
 });
 
+test("extractSymbols scopes a destructured parameter and reads an export list", () => {
+  assert.deepEqual(extractSymbols("export function f({ x }) {\n  return x;\n}\n"), [{ name: "f", kind: "function", start: 1, end: 3 }]);
+  assert.deepEqual(extractSymbols("function g() { return 1; }\nexport { g };\n").map((symbol) => symbol.name), ["g"]);
+});
+
 test("extractSymbols ignores braces inside strings and comments", () => {
   const tricky = [
     "export function a() {",
