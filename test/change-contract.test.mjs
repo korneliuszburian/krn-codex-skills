@@ -38,7 +38,9 @@ function fakeGit({ commits, files, baseScripts = {}, baseFiles = [], blobs = {},
     }
     if (args[0] === "ls-tree") {
       const ref = args[args.length - 1];
-      return Object.hasOwn(trees, ref) ? { ok: true, out: trees[ref].join("\n") } : { ok: true, out: "" };
+      const names = trees[ref] ?? [];
+      if (args.includes("-z")) return { ok: true, out: names.join("\0") };
+      return { ok: true, out: names.map((name) => (/[^\x00-\x7F]/.test(name) ? `"${name}"` : name)).join("\n") };
     }
     return { ok: false, out: "" };
   };
@@ -183,6 +185,7 @@ test("globs with **, ?, and [] resolve against the real tree listing", () => {
     { script: "node --test test/**/*.test.mjs", file: "test/nested/b.test.mjs" },
     { script: "node --test test/a?.test.mjs", file: "test/ab.test.mjs" },
     { script: "node --test test/[ab].test.mjs", file: "test/a.test.mjs" },
+    { script: "node --test test/*.test.mjs", file: "test/über.test.mjs" },
   ];
   for (const { script, file } of cases) {
     const root = makeRoot({ "test:g": script });

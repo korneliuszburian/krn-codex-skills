@@ -90,8 +90,8 @@ function scriptTestFilesRedefined(root, base, git, command) {
     }
     const pattern = globToRegex(token);
     const listing = (ref) => {
-      const result = git(root, ["ls-tree", "-r", "--name-only", ref]);
-      return result.ok ? result.out.split("\n").map((line) => line.trim()).filter(Boolean).filter((file) => pattern.test(file)) : [];
+      const result = git(root, ["ls-tree", "-r", "-z", "--name-only", ref]);
+      return result.ok ? result.out.split("\0").map((line) => line.trim()).filter(Boolean).filter((file) => pattern.test(file)) : [];
     };
     for (const rel of new Set([...listing(base), ...listing("HEAD")])) {
       if (checkFileRedefined(root, base, git, rel)) return true;
