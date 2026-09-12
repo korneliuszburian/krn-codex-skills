@@ -3,7 +3,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { runGit } from "./git-cli.mjs";
-import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings } from "./lessons.mjs";
+import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings, globToRegex } from "./lessons.mjs";
 import { touchedSymbols } from "./symbol-triggers.mjs";
 import { churnHot } from "./churn.mjs";
 
@@ -88,9 +88,10 @@ function scriptTestFilesRedefined(root, base, git, command) {
       if (checkFileRedefined(root, base, git, token)) return true;
       continue;
     }
+    const pattern = globToRegex(token);
     const listing = (ref) => {
-      const result = git(root, ["ls-tree", "-r", "--name-only", ref, "--", token]);
-      return result.ok ? result.out.split("\n").map((line) => line.trim()).filter(Boolean) : [];
+      const result = git(root, ["ls-tree", "-r", "--name-only", ref]);
+      return result.ok ? result.out.split("\n").map((line) => line.trim()).filter(Boolean).filter((file) => pattern.test(file)) : [];
     };
     for (const rel of new Set([...listing(base), ...listing("HEAD")])) {
       if (checkFileRedefined(root, base, git, rel)) return true;

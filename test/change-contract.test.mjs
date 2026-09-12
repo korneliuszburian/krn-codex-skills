@@ -37,10 +37,8 @@ function fakeGit({ commits, files, baseScripts = {}, baseFiles = [], blobs = {},
       return Object.hasOwn(blobs, key) ? { ok: true, out: blobs[key] } : { ok: false, out: "" };
     }
     if (args[0] === "ls-tree") {
-      const pattern = args[args.length - 1];
-      const ref = args[args.length - 3];
-      const key = `${ref}:${pattern}`;
-      return Object.hasOwn(trees, key) ? { ok: true, out: trees[key].join("\n") } : { ok: true, out: "" };
+      const ref = args[args.length - 1];
+      return Object.hasOwn(trees, ref) ? { ok: true, out: trees[ref].join("\n") } : { ok: true, out: "" };
     }
     return { ok: false, out: "" };
   };
@@ -158,7 +156,7 @@ test("gutting a test reached by a glob the declared script runs is self-authoriz
     commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:g:red->green" }],
     files: { a1: ["scripts/lib/x.mjs"] },
     baseScripts: { "test:g": "node --test test/*.test.mjs" },
-    trees: { "base:test/*.test.mjs": ["test/a.test.mjs"], "HEAD:test/*.test.mjs": ["test/a.test.mjs"] },
+    trees: { base: ["test/a.test.mjs"], HEAD: ["test/a.test.mjs"] },
     blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" },
   });
   const report = checkChangeContract({ root, base: "base", git, run: green });

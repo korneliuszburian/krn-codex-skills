@@ -56,7 +56,7 @@ function triggerGlobs(trigger) {
     .map((entry) => entry.slice("path:".length).replace(/^\.\//, ""));
 }
 
-function globToRegex(glob) {
+export function globToRegex(glob) {
   return new RegExp(`^${glob
     .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
     .replace(/\*\*/g, "\u0000")
