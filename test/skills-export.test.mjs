@@ -213,6 +213,13 @@ test("a failed export leaves the previous export intact", () => {
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
+test("an untracked file inside a pinned harness path is refused", () => {
+  const f = fixture();
+  fs.writeFileSync(path.join(f.upstream, "skills", "eng", "one", "stray.txt"), "local\n");
+  assert.throws(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }), /untracked/);
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
 test("a dirty upstream checkout is refused", () => {
   const f = fixture();
   const tracked = path.join(f.upstream, "skills", "eng", "two", "SKILL.md");

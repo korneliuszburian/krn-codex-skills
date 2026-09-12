@@ -145,10 +145,6 @@ test("lineLimitErrors reports only over-limit content", () => {
   assert.deepEqual(lineLimitErrors({ label: "a.md", lineCount: 11, max: 10 }), [
     "a.md exceeds 10 lines",
   ]);
-  assert.deepEqual(
-    lineLimitErrors({ label: "s/SKILL.md", lineCount: 181, max: 180, suffix: "; disclose branch detail" }),
-    ["s/SKILL.md exceeds 180 lines; disclose branch detail"],
-  );
 });
 
 test("contractBudgetErrors reports over-long lines and words", () => {

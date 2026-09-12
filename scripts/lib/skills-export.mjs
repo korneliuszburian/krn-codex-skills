@@ -99,6 +99,19 @@ export function exportSkills({ source, upstream, root }) {
   if (upstreamDirty) {
     throw new Error(`upstream checkout has uncommitted changes; export from the pinned revision`);
   }
+  const harnessPaths = Array.isArray(upstreamPin.harness_paths) && upstreamPin.harness_paths.length > 0
+    ? upstreamPin.harness_paths
+    : upstreamPin.required_paths;
+  const harnessDirs = [...new Set(harnessPaths.map((required) => path.dirname(required)))];
+  const upstreamStatus = git(resolvedUpstream, ["status", "--porcelain", "--untracked-files=all"]);
+  const untracked = upstreamStatus
+    .split("\n")
+    .filter((line) => line.startsWith("?? "))
+    .map((line) => line.slice(3).replace(/^"(.*)"$/, "$1"));
+  const stray = untracked.find((file) => harnessDirs.some((dir) => file === dir || file.startsWith(`${dir}/`)));
+  if (stray) {
+    throw new Error(`upstream harness path contains an untracked file (${stray}); the pinned revision cannot reproduce exported bytes`);
+  }
   const krnCommit = harnessCommit(source);
 
   const skillsDir = `${finalDir}.staging-${process.pid}-${Date.now()}`;
@@ -123,10 +136,8 @@ export function exportSkills({ source, upstream, root }) {
     fs.cpSync(path.join(source, relative), path.join(skillsDir, skill.name), { recursive: true, dereference: true });
     skills.push({ name: skill.name, origin: "krn", description: skillMetadata(path.join(source, relative, "SKILL.md"))?.description ?? "" });
   }
-  const harnessPaths = Array.isArray(upstreamPin.harness_paths) && upstreamPin.harness_paths.length > 0
-    ? upstreamPin.harness_paths
-    : upstreamPin.required_paths;
-  for (const required of harnessPaths) {
+  const harnessPathsUsed = harnessPaths;
+  for (const required of harnessPathsUsed) {
     const relative = path.dirname(required);
     const name = path.basename(relative);
     fs.cpSync(path.join(resolvedUpstream, relative), path.join(skillsDir, name), { recursive: true, dereference: true });
@@ -164,7 +175,10 @@ export function exportSkills({ source, upstream, root }) {
     if (preserved) fs.renameSync(finalDir, preserved);
     fs.renameSync(skillsDir, finalDir);
   } catch (error) {
-    if (preserved && !fs.existsSync(finalDir)) fs.renameSync(preserved, finalDir);
+    if (preserved) {
+      if (!fs.existsSync(finalDir)) fs.renameSync(preserved, finalDir);
+      else fs.rmSync(preserved, { recursive: true, force: true });
+    }
     fs.rmSync(skillsDir, { recursive: true, force: true });
     throw error;
   }

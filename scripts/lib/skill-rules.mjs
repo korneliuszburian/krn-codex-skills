@@ -47,8 +47,8 @@ export function skillPointerErrors(content, { skillPath, resolveTarget }) {
   return errors;
 }
 
-export function lineLimitErrors({ label, lineCount, max, suffix = "" }) {
-  return lineCount > max ? [`${label} exceeds ${max} lines${suffix}`] : [];
+export function lineLimitErrors({ label, lineCount, max }) {
+  return lineCount > max ? [`${label} exceeds ${max} lines`] : [];
 }
 
 export function skillLayoutErrors(skill, { root, exists }) {
