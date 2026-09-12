@@ -1,4 +1,4 @@
-# Research index
+# Research index| Agent memory serving cost | [Total Recall at What Cost?](https://arxiv.org/abs/2608.11879) | memory serving cost is not predictable from conversation length and can beat or lose to a full-transcript baseline depending on the system and backbone; measure cost paired with accuracy, never infer it | 2026-09-12 |
 
 This directory is compiled decision memory. It is not a notebook, transcript
 archive, or chronological log. Each topic page is rewritten as evidence changes;
