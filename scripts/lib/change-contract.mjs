@@ -92,6 +92,7 @@ function scriptTestFilesRedefined(root, base, git, command, scripts = {}, seen =
   }
   const tokens = new Set([
     ...[...command.matchAll(/test[\\/][^\s"']+\.mjs/g)].map((match) => match[0]),
+    ...[...command.matchAll(/[^\s"']*\.test\.mjs/g)].map((match) => match[0]),
     ...[...command.matchAll(/"([^"]+\.mjs)"/g)].map((match) => match[1]),
     ...[...command.matchAll(/'([^']+\.mjs)'/g)].map((match) => match[1]),
   ]);
@@ -106,15 +107,18 @@ function scriptTestFilesRedefined(root, base, git, command, scripts = {}, seen =
   };
   for (const raw of tokens) {
     const token = raw.replace(/\\/g, "/");
-    if (!/[*?\[]/.test(token) || git(root, ["rev-parse", `${base}:${token}`]).ok) {
+    if (!/[*?\[]/.test(token) || git(root, ["cat-file", "-e", `${base}:${token}`]).ok) {
       if (checkFileRedefined(root, base, git, token)) return true;
       continue;
     }
     for (const rel of list(token)) if (checkFileRedefined(root, base, git, rel)) return true;
   }
-  const testArgs = command.replace(/^.*?--test\b/, "").split(/\s+/).filter((arg) => arg && !arg.startsWith("-"));
-  for (const arg of testArgs) {
-    const dir = arg.replace(/^["']|["']$/g, "").replace(/\\/g, "/").replace(/\/+$/, "");
+  const afterTest = command.replace(/^.*?--test\b/, "");
+  const args = [];
+  for (const match of afterTest.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)) args.push(match[1] ?? match[2] ?? match[3]);
+  for (const arg of args) {
+    if (!arg || arg.startsWith("-")) continue;
+    const dir = arg.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+$/, "");
     if (!dir || dir.endsWith(".mjs")) continue;
     for (const rel of list(`${dir}/**/*.mjs`)) if (checkFileRedefined(root, base, git, rel)) return true;
   }

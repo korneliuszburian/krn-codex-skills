@@ -25,8 +25,9 @@ function fakeGit({ commits, files, baseScripts = {}, baseFiles = [], blobs = {},
       return { ok: true, out: (files[last] ?? []).join("\0") };
     }
     if (args[0] === "cat-file") {
-      const rel = args[args.length - 1].split(":").slice(1).join(":");
-      return { ok: baseFiles.includes(rel), out: "" };
+      const spec = args[args.length - 1];
+      const rel = spec.split(":").slice(1).join(":");
+      return { ok: baseFiles.includes(rel) || Object.hasOwn(blobs, spec), out: "" };
     }
     if (args[0] === "rev-parse") {
       const key = args[args.length - 1];
