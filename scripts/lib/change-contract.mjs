@@ -37,9 +37,12 @@ export function parseChangeContract(message) {
   for (const line of message.split("\n").map((entry) => entry.trim())) {
     const contract = CONTRACT.exec(line);
     if (contract) {
-      for (const part of contract[1].split(",")) {
-        const entry = CONTRACT_PART.exec(part.trim());
-        if (entry) contracts.push({ ref: entry[1].trim(), before: entry[2].toLowerCase(), after: entry[3].toLowerCase() });
+      const parts = contract[1].split(",").map((part) => part.trim()).filter(Boolean);
+      const entries = parts.map((part) => CONTRACT_PART.exec(part));
+      if (entries.length > 0 && entries.every(Boolean)) {
+        for (const entry of entries) {
+          contracts.push({ ref: entry[1].trim(), before: entry[2].toLowerCase(), after: entry[3].toLowerCase() });
+        }
       }
       continue;
     }
@@ -178,6 +181,17 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         : !git(root, ["cat-file", "-e", `${base}:${target.name}`]).ok;
       if (authoredNow) {
         errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail: "the check did not exist before this range" });
+        return;
+      }
+      const redefined = target.kind === "script"
+        ? baseScripts !== null && Object.hasOwn(baseScripts, target.name) && baseScripts[target.name] !== scripts[target.name]
+        : (() => {
+            const before = git(root, ["rev-parse", `${base}:${target.name}`]);
+            const now = git(root, ["hash-object", target.name]);
+            return before.ok && now.ok && before.out.trim() !== now.out.trim();
+          })();
+      if (redefined) {
+        errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail: "the check was redefined in this range" });
         return;
       }
       (label === "risk" ? atRiskTargets : targets).set(entry.ref, { target, after: label === "risk" ? "green" : entry.after });

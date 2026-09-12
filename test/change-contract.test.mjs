@@ -14,7 +14,7 @@ function makeRoot(scripts = { "test:lessons": "x", "test:lib": "x" }) {
   return root;
 }
 
-function fakeGit({ commits, files, baseScripts = {}, baseFiles = [] }) {
+function fakeGit({ commits, files, baseScripts = {}, baseFiles = [], blobs = {} }) {
   return (_root, args) => {
     if (args[0] === "log") {
       return { ok: true, out: commits.map((commit) => `${commit.sha}\u001f${commit.subject}\u001f${commit.body ?? ""}`).join("\u001e") };
@@ -27,6 +27,14 @@ function fakeGit({ commits, files, baseScripts = {}, baseFiles = [] }) {
     if (args[0] === "cat-file") {
       const rel = args[args.length - 1].split(":").slice(1).join(":");
       return { ok: baseFiles.includes(rel), out: "" };
+    }
+    if (args[0] === "rev-parse") {
+      const key = args[args.length - 1];
+      return Object.hasOwn(blobs, key) ? { ok: true, out: blobs[key] } : { ok: false, out: "" };
+    }
+    if (args[0] === "hash-object") {
+      const key = `head:${args[args.length - 1]}`;
+      return Object.hasOwn(blobs, key) ? { ok: true, out: blobs[key] } : { ok: false, out: "" };
     }
     return { ok: false, out: "" };
   };
@@ -70,6 +78,60 @@ test("multiple comma-separated contract refs are all admitted and run", () => {
   const report = checkChangeContract({ root, base: "base", git, run: green });
   assert.equal(report.errors.length, 0, JSON.stringify(report.errors));
   assert.equal(report.results.length, 2);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a malformed part fails the whole contract line closed", () => {
+  const root = makeRoot();
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lib:red->green, changes:check" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:lib": "x" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "missing-change-contract"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("redefining the declared script in the same range is self-authorized", () => {
+  const root = makeRoot({ "test:lessons": "true", "test:lib": "x" });
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lessons:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:lessons": "node --test test/lessons.test.mjs" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("redefining the declared test file in the same range is self-authorized", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "test"), { recursive: true });
+  writeFileSync(join(root, "test", "gate.test.mjs"), "// gate\n");
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test/gate.test.mjs:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseFiles: ["test/gate.test.mjs"],
+    blobs: { "base:test/gate.test.mjs": "aaa", "head:test/gate.test.mjs": "bbb" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an unchanged declared test file is admitted", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "test"), { recursive: true });
+  writeFileSync(join(root, "test", "gate.test.mjs"), "// gate\n");
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test/gate.test.mjs:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseFiles: ["test/gate.test.mjs"],
+    blobs: { "base:test/gate.test.mjs": "aaa", "head:test/gate.test.mjs": "aaa" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.equal(report.errors.length, 0, JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
 
