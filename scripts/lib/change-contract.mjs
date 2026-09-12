@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 
 import { runGit } from "./git-cli.mjs";
 import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings } from "./lessons.mjs";
-import { touchedSymbols } from "./symbol-triggers.mjs";
+import { touchedSymbolFiles } from "./symbol-triggers.mjs";
 import { churnHot } from "./churn.mjs";
 
 const SURFACE = [
@@ -183,10 +183,11 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const files = changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean);
     const contract = parseChangeContract(`${commit.subject}\n${commit.body}`);
     const surface = contractSurface(files);
-    const symbols = touchedSymbols({ root, git, sha: commit.sha });
+    const symbolFiles = touchedSymbolFiles({ root, git, sha: commit.sha });
+    const symbols = [...symbolFiles.keys()];
     const hot = churnEnabled ? churnHot({ root, git, sha: commit.sha, files }) : [];
     const recallTrailers = recallLines(`${commit.subject}\n${commit.body}`);
-    for (const hit of recallLessons({ root, files, symbols, hot })) {
+    for (const hit of recallLessons({ root, files, symbols, hot, symbolFiles })) {
       const { ids, falsifierFile, named, reconstructed } = recallBindings({ hit, lines: recallTrailers, targets: [...files, ...symbols] });
       if (!reconstructed) {
         errors.push({ rule: "unreconstructed-recall", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add Recall: <${named.join(" or ") || "gate"}> => <changed file or symbol>` });

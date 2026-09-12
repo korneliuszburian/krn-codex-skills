@@ -133,11 +133,15 @@ function namesIn(symbols, lineNumbers) {
   return names;
 }
 
-export function touchedSymbols({ root, git, sha }) {
+export function touchedSymbolFiles({ root, git, sha }) {
   let diff = git(root, ["-c", "core.quotePath=false", "diff", "--unified=0", "--no-color", "--no-renames", `${sha}^`, sha, "--"]);
   if (!diff.ok) diff = git(root, ["-c", "core.quotePath=false", "show", "--format=", "--unified=0", "--no-color", "--no-renames", sha, "--"]);
-  if (!diff.ok) return [];
-  const names = new Set();
+  if (!diff.ok) return new Map();
+  const files = new Map();
+  const add = (name, file) => {
+    if (!files.has(name)) files.set(name, new Set());
+    if (file) files.get(name).add(file);
+  };
   let before = null;
   let after = null;
   let hunks = [];
@@ -147,9 +151,9 @@ export function touchedSymbols({ root, git, sha }) {
     const added = changedLineNumbers(hunk);
     const removed = removedLineNumbers(hunk);
     const post = after && git(root, ["show", `${sha}:${after}`]);
-    if (post?.ok) for (const name of namesIn(extractSymbols(post.out), added)) names.add(name);
+    if (post?.ok) for (const name of namesIn(extractSymbols(post.out), added)) add(name, after);
     const pre = before && git(root, ["show", `${sha}^:${before}`]);
-    if (pre?.ok) for (const name of namesIn(extractSymbols(pre.out), removed)) names.add(name);
+    if (pre?.ok) for (const name of namesIn(extractSymbols(pre.out), removed)) add(name, before);
     before = null;
     after = null;
     hunks = [];
@@ -165,5 +169,9 @@ export function touchedSymbols({ root, git, sha }) {
     }
   }
   flush();
-  return [...names];
+  return files;
+}
+
+export function touchedSymbols({ root, git, sha }) {
+  return [...touchedSymbolFiles({ root, git, sha }).keys()];
 }

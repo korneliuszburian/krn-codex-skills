@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runGit } from "./git-cli.mjs";
-import { touchedSymbols } from "./symbol-triggers.mjs";
+import { touchedSymbolFiles } from "./symbol-triggers.mjs";
 import { churnHot } from "./churn.mjs";
 
 const CANDIDATE = /^(npm run |test:|manual:)|[.][a-z0-9]{2,4}$/i;
@@ -93,16 +93,18 @@ function triggerEntries(trigger, prefix) {
     .map((entry) => entry.slice(prefix.length).replace(/^\.\//, ""));
 }
 
-export function recallLessons({ root, files = [], symbols = [], hot = [] }) {
+export function recallLessons({ root, files = [], symbols = [], hot = [], symbolFiles = new Map() }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
   const hits = [];
   for (const row of parseLessons(file).rows.filter((candidate) => !candidate.status)) {
     const globs = triggerEntries(row.trigger, "path:");
     const symbolMatches = triggerEntries(row.trigger, "symbol:").filter((name) => symbols.includes(name));
+    const symbolMatchedFiles = symbolMatches.flatMap((name) => [...(symbolFiles.get(name) ?? [])]);
     const churnMatches = hot.filter((candidate) => triggerEntries(row.trigger, "churn:").some((glob) => globToRegex(glob).test(candidate)));
     const matched = [
       ...files.filter((candidate) => globs.map(globToRegex).some((pattern) => pattern.test(candidate))),
       ...symbolMatches,
+      ...symbolMatchedFiles,
       ...churnMatches,
     ];
     if (matched.length > 0) hits.push({ lesson: row.lesson, trigger: row.trigger, gate: row.gate, falsifier: row.falsifier, matched });
@@ -292,10 +294,11 @@ export function recallBindings({ hit, lines, targets }) {
   const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
   const named = [...ids, falsifierFile].filter(Boolean);
   const namesId = (text, id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(text);
+  const relevant = hit.matched && hit.matched.length > 0 ? hit.matched : targets;
   const reconstructed = lines.some((line) => {
     const [left, right] = line.split("=>").map((part) => part?.trim() ?? "");
     if (!right || !named.some((id) => namesId(left, id))) return false;
-    return right.split(/[\s,;]+/).filter(Boolean).some((target) => targets.includes(target));
+    return right.split(/[\s,;]+/).filter(Boolean).some((target) => relevant.includes(target));
   });
   return { ids, falsifierFile, named, reconstructed };
 }
@@ -320,9 +323,10 @@ function recallUsage(root, git, rows) {
     if (lines.length === 0) continue;
     const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", record.sha]);
     const files = changed.ok ? changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean) : [];
-    const symbols = touchedSymbols({ root, git, sha: record.sha });
+    const symbolFiles = touchedSymbolFiles({ root, git, sha: record.sha });
+    const symbols = [...symbolFiles.keys()];
     const hot = churnEnabled ? churnHot({ root, git, sha: record.sha, files }) : [];
-    for (const hit of recallLessons({ root, files, symbols, hot })) {
+    for (const hit of recallLessons({ root, files, symbols, hot, symbolFiles })) {
       if (recallBindings({ hit, lines, targets: [...files, ...symbols] }).reconstructed) {
         counts.set(hit.lesson, (counts.get(hit.lesson) ?? 0) + 1);
       }
