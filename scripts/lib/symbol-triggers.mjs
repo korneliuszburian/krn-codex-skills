@@ -1,4 +1,5 @@
-const DECL = /^\s*export\s+(?:default\s+)?(?:async\s+)?(function|class|const|let|var)\s+([A-Za-z_$][\w$]*)/;
+const DECL = /^\s*export\s+(?:default\s+)?(?:async\s+)?(function\*?|class|const|let|var)\s+([A-Za-z_$][\w$]*)/;
+const DECL_DESTRUCT = /^\s*export\s+(?:const|let|var)\s+([\[{][^\]}]*[\]}])\s*=/;
 
 function codeMask(source) {
   const mask = new Array(source.length).fill(true);
@@ -56,35 +57,32 @@ export function extractSymbols(source) {
   };
   const symbols = [];
   for (let line = 0; line < lines.length; line += 1) {
+    const destructured = DECL_DESTRUCT.exec(lines[line]);
+    if (destructured) {
+      for (const name of destructured[1].match(/[A-Za-z_$][\w$]*/g) ?? []) {
+        symbols.push({ name, kind: "const", start: line + 1, end: line + 1 });
+      }
+      continue;
+    }
     const match = DECL.exec(lines[line]);
     if (!match) continue;
-    let scanOffset = lineStart[line];
-    if (match[1] === "function") {
-      let cursor = lineStart[line] + match[0].length;
-      while (cursor < source.length && !(mask[cursor] && source[cursor] === "(")) cursor += 1;
-      if (cursor < source.length) {
-        let parens = 0;
-        for (; cursor < source.length; cursor += 1) {
-          if (!mask[cursor]) continue;
-          if (source[cursor] === "(") parens += 1;
-          else if (source[cursor] === ")") {
-            parens -= 1;
-            if (parens === 0) {
-              cursor += 1;
-              break;
-            }
-          }
-        }
-        scanOffset = cursor;
-      }
-    }
     let depth = 0;
+    let parens = 0;
     let opened = false;
     let endLine = line;
     let terminated = false;
-    for (let offset = scanOffset; offset < source.length; offset += 1) {
+    for (let offset = lineStart[line]; offset < source.length; offset += 1) {
       if (!mask[offset]) continue;
       const char = source[offset];
+      if (char === "(") {
+        parens += 1;
+        continue;
+      }
+      if (char === ")") {
+        if (parens > 0) parens -= 1;
+        continue;
+      }
+      if (parens > 0) continue;
       if (char === "{") {
         depth += 1;
         opened = true;
