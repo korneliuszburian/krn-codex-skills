@@ -290,7 +290,7 @@ test("a bare node --test resolves to the default test glob", () => {
 });
 
 test("shell nesting, variables, and env prefixes fail closed", () => {
-  const cases = ['sh -c "node --test test/a.test.mjs"', "bash -c 'node --test test/a.test.mjs'", "TEST=test/a.test.mjs node --test $TEST", "node --test $PWD/test/a.test.mjs"];
+  const cases = ['sh -c "node --test test/a.test.mjs"', "bash -c 'node --test test/a.test.mjs'", '/bin/sh -c "node --test test/a.test.mjs"', '/usr/bin/bash -c "node --test test/a.test.mjs"', "sh -e -c \"node --test test/a.test.mjs\"", "dash -c \"node --test test/a.test.mjs\"", "'sh' -c \"node --test test/a.test.mjs\"", "TEST=test/a.test.mjs node --test $TEST", "node --test $PWD/test/a.test.mjs"];
   for (const script of cases) {
     const root = makeRoot({ "test:g": script });
     const git = fakeGit({

@@ -92,7 +92,7 @@ function listTestFiles(root, base, git) {
 }
 
 function scriptRedefinition(root, base, git, command) {
-  if (/[*?\[]/.test(command) || /[$`|;&<>]/.test(command) || /(^|\s)(sh|bash|zsh)\s+-c(\s|$)/.test(command) || /(^|\s)npm\s+run(\s|$)/.test(command)) {
+  if (/[*?\[]/.test(command) || /[$`|;&<>]/.test(command) || /(^|[\s/'"])(?:[^\s/]*\/)*(?:sh|bash|zsh|dash|ash|ksh|busybox)\b[^\n]*?\s-c(\s|$)/.test(command) || /(^|\s)npm\s+run(\s|$)/.test(command)) {
     return "non-literal";
   }
   const files = [];
