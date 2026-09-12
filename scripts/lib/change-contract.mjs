@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -107,6 +108,21 @@ function scriptRedefinition(root, base, git, command) {
   return "clean";
 }
 
+function runCheckAtBase({ root, base, target, git = runGit }) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "krn-base-"));
+  const added = git(root, ["worktree", "add", "--detach", dir, base]);
+  if (!added.ok) {
+    fs.rmSync(dir, { recursive: true, force: true });
+    return { unavailable: true };
+  }
+  try {
+    return { outcome: runCheck({ root: dir, target }) };
+  } finally {
+    git(root, ["worktree", "remove", "--force", dir]);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 function outputTail(output) {
   if (!output) return "";
   const lines = output.trim().split("\n");
@@ -115,7 +131,7 @@ function outputTail(output) {
   return `; output: ${[...new Set([...failing, ...tail])].join("\n")}`;
 }
 
-export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck } = {}) {
+export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null } = {}) {
   const errors = [];
   const log = git(root, ["log", "--format=%H%x1f%s%x1f%b%x1e", `${base}..${head}`]);
   if (!log.ok) return { root, commits: [], results: [], errors: [{ rule: "unreadable-range", detail: `${base}..${head}` }] };
@@ -219,13 +235,14 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         errors.push({ rule: "conflicting-obligations", commit: commit.sha, ref: entry.ref, detail: `the same check (${key}) is predicted both ${seen.join(" and ")} across the range` });
         return;
       }
-      record.obligations.push({ commit: commit.sha, after, label, ref: entry.ref });
+      record.obligations.push({ commit: commit.sha, after, label, before: label === "risk" ? "green" : entry.before, ref: entry.ref });
       targets.set(key, record);
     };
     for (const entry of contract.contracts) admit(entry, "contract");
     for (const ref of contract.atRisk) admit({ ref, before: "green", after: "green" }, "risk");
   }
   const results = [];
+  const baseRunner = runAtBase ?? ((args) => runCheckAtBase({ ...args, git }));
   for (const record of targets.values()) {
     const outcome = run({ root, target: record.target });
     for (const obligation of record.obligations) {
@@ -238,6 +255,17 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
           ref: obligation.ref,
           detail: `predicted ${obligation.after}, observed ${outcome.ok ? "green" : "red"}${outputTail(outcome.output)}`,
         });
+      }
+      if (verifyBefore && obligation.label === "contract" && obligation.before === "red" && obligation.after === "green" && outcome.ok) {
+        const baseRun = baseRunner({ root, base, target: record.target });
+        if (baseRun.unavailable) {
+          errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base revision could not be materialized to prove the before-state" });
+        } else {
+          results.push({ ref: obligation.ref, commit: obligation.commit, phase: "base", after: "red", status: baseRun.outcome.ok ? "green" : "red" });
+          if (baseRun.outcome.ok) {
+            errors.push({ rule: "before-state-not-red", commit: obligation.commit, ref: obligation.ref, detail: "the check already passed at base; the declared red->green is not a real flip" });
+          }
+        }
       }
     }
   }

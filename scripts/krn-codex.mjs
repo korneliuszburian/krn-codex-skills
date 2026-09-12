@@ -33,7 +33,7 @@ const usage = `Usage:
   krn-codex state <check|compile|resume> [PATH|--root PATH] [--json]
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
   krn-codex lessons <check|verify> --root DIR [--json]
-  krn-codex changes check --base REF [--head REF] --root DIR [--json]
+  krn-codex changes check --base REF [--head REF] --root DIR [--before] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...]] [--symbol NAME[,NAME...]] [--json]`;
 
 function fail(message, code = EXIT_CODES.USAGE) {
@@ -49,6 +49,7 @@ function parseOptions(args) {
     const arg = args[index];
     if (arg === "--json") options.json = true;
     else if (arg === "--yes") options.yes = true;
+    else if (arg === "--before") options.before = true;
     else if (arg === "--source") {
       options.source = args[++index];
       if (!options.source) fail("--source requires REF or PATH");
@@ -133,7 +134,7 @@ try {
     if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root || !options.base) fail(usage);
     const report = contractGuardActive()
       ? { root: options.root, commits: [], results: [], errors: [], skipped: true }
-      : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD" });
+      : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD", verifyBefore: options.before === true });
     print(report, options.json);
     if (!options.json) {
       for (const failure of report.errors) process.stderr.write(`error: ${failure.rule}${failure.ref ? ` ${failure.ref}` : ""}${failure.commit ? ` ${failure.commit}` : ""}${failure.detail ? `: ${failure.detail}` : ""}\n`);

@@ -373,6 +373,22 @@ test("aliases of one check cannot dodge conflict detection", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("verifyBefore requires the declared check to be red at base", () => {
+  const root = makeRoot();
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lessons:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:lessons": "x" },
+  });
+  const greenBase = checkChangeContract({ root, base: "base", git, run: green, verifyBefore: true, runAtBase: () => ({ outcome: { ok: true } }) });
+  assert.ok(greenBase.errors.some((error) => error.rule === "before-state-not-red"), JSON.stringify(greenBase.errors));
+  const redBase = checkChangeContract({ root, base: "base", git, run: green, verifyBefore: true, runAtBase: () => ({ outcome: { ok: false } }) });
+  assert.ok(!redBase.errors.some((error) => error.rule === "before-state-not-red"), JSON.stringify(redBase.errors));
+  const unavailable = checkChangeContract({ root, base: "base", git, run: green, verifyBefore: true, runAtBase: () => ({ unavailable: true }) });
+  assert.ok(unavailable.errors.some((error) => error.rule === "before-state-unverified"), JSON.stringify(unavailable.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });
