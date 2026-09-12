@@ -39,6 +39,6 @@ are durable.
 
 `$source-to-decision` reads this page before promoting a behavioral mechanism.
 `LT-3` is a deterministic check with a documented residual; `LT-4` is a
-bounded deterministic differential still to run; `LT-1` and `LT-2` are blinded
+bounded deterministic differential whose proof-drift surrogate now runs (record supersession still unrun); `LT-1` and `LT-2` are blinded
 pilots that must run before the memory harness or cross-repo transfer is
 described as effective rather than defensive.
