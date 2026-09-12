@@ -221,6 +221,14 @@ test("an ignored file inside a source skill path is refused", () => {
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
+test("a gitignored non-ASCII file inside a pinned harness path is refused", () => {
+  const f = fixture();
+  fs.appendFileSync(path.join(f.upstream, ".git", "info", "exclude"), "stray-über.txt\n");
+  fs.writeFileSync(path.join(f.upstream, "skills", "eng", "one", "stray-über.txt"), "hidden\n");
+  assert.throws(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }), /untracked/);
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
 test("a gitignored file inside a pinned harness path is refused", () => {
   const f = fixture();
   fs.appendFileSync(path.join(f.upstream, ".git", "info", "exclude"), "stray-ignored.txt\n");

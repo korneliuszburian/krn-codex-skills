@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { changedLineNumbers, extractSymbols, removedLineNumbers, touchedSymbols } from "../scripts/lib/symbol-triggers.mjs";
+import { changedLineNumbers, extractSymbols, removedLineNumbers, touchedSymbolFiles } from "../scripts/lib/symbol-triggers.mjs";
+
+const touchedSymbols = (args) => [...touchedSymbolFiles(args).keys()];
 
 const source = [
   "import x from 'y';",
@@ -27,6 +29,7 @@ test("extractSymbols scopes destructured parameters and reads export lists", () 
   assert.deepEqual(extractSymbols("export const f = ({ x }) => {\n  return x;\n};\n"), [{ name: "f", kind: "const", start: 1, end: 3 }]);
   assert.deepEqual(extractSymbols("export function* gen() {\n  yield 1;\n}\n"), [{ name: "gen", kind: "function*", start: 1, end: 3 }]);
   assert.deepEqual(extractSymbols("export const { a, b } = obj;\n").map((symbol) => symbol.name), ["a", "b"]);
+  assert.deepEqual(extractSymbols("export const {\n  widget,\n  other,\n} = source;\n").map((symbol) => symbol.name), ["widget", "other"]);
   assert.deepEqual(extractSymbols("function local() {\n  return 1;\n}\nexport { local };\n"), [{ name: "local", kind: "local", start: 1, end: 3 }]);
 });
 

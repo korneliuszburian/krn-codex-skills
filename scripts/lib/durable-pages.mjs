@@ -32,6 +32,17 @@ export function checkDurablePages({ root }) {
     if (!entry.isFile() || !entry.name.endsWith(".md") || entry.name === "README.md") continue;
     const topic = path.join(researchDirectory, entry.name);
     header(topic);
+    const topicText = fs.readFileSync(topic, "utf8");
+    let fenced = false;
+    topicText.split("\n").forEach((line, index) => {
+      if (/^\s*```/.test(line)) {
+        fenced = !fenced;
+        return;
+      }
+      if (!fenced && line.length > 3600) {
+        errors.push(`${relative(topic)}:${index + 1}: a non-fenced line is ${line.length} characters; keep run ledgers out of durable pages`);
+      }
+    });
     if (!topicsSection.includes(`](${entry.name})`)) {
       errors.push(`${relative(topic)}: topic is missing from docs/research/README.md Topics`);
     }

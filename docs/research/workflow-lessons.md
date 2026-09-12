@@ -33,7 +33,7 @@ lesson whose trigger matches (a `symbol:` trigger is evaluated against the
 commit's changed line ranges by `changes check`, while `memory recall --symbol`
 matches names you pass explicitly, and a `churn:` trigger fires when a
 changed file matching the glob was touched at least twice before this commit),
-and `changes check` requires a matching surface change to reconstruct the lesson
+and `changes check` reports a matching surface change that does not reconstruct the lesson (advisory by default; `--strict-recall` makes it blocking)
 with a `Recall: <gate or falsifier> => <changed file or symbol>` trailer, so the
 lesson must be bound to the present change instead of replayed from the page.
 When the recalled lesson's gate or falsifier is an executable test, that test

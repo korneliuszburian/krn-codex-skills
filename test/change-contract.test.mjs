@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkChangeContract, contractGuardActive, contractSurface, parseChangeContract } from "../scripts/lib/change-contract.mjs";
+import { checkChangeContract, contractGuardActive, contractSurface, parseChangeContract, runCheckAtBase } from "../scripts/lib/change-contract.mjs";
 
 function makeRoot(scripts = { "test:lessons": "x", "test:lib": "x" }) {
   const root = mkdtempSync(join(tmpdir(), "krn-contract-"));
@@ -388,6 +389,27 @@ test("verifyBefore requires the declared check to be red at base", () => {
   assert.ok(unavailable.errors.some((error) => error.rule === "before-state-unverified"), JSON.stringify(unavailable.errors));
   const spawnFailed = checkChangeContract({ root, base: "base", git, run: green, verifyBefore: true, runAtBase: () => ({ outcome: { ok: false, spawnFailed: true } }) });
   assert.ok(spawnFailed.errors.some((error) => error.rule === "before-state-unverified"), JSON.stringify(spawnFailed.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("runCheckAtBase executes the declared check in a base worktree", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-runcb-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  writeFileSync(join(root, "test", "g.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("g", () => assert.equal(value, 2));\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "lib.mjs"), "export const value = 2;\n");
+  commit("fix");
+  const target = { kind: "test", name: "test/g.test.mjs" };
+  const atBase = runCheckAtBase({ root, base, target });
+  assert.equal(atBase.unavailable, undefined, "the worktree must materialize");
+  assert.equal(atBase.outcome.ok, false, "the check is red at base");
+  const atHead = runCheckAtBase({ root, base: "HEAD", target });
+  assert.equal(atHead.outcome.ok, true, "the check is green at head");
+  assert.equal(git("worktree", "list").trim().split("\n").length, 1, "no worktree should leak");
   rmSync(root, { recursive: true, force: true });
 });
 

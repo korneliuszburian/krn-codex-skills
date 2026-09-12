@@ -289,18 +289,18 @@ export function recallLines(text) {
   return [...text.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
 }
 
-export function recallBindings({ hit, lines, targets }) {
+export function recallBindings({ hit, lines }) {
   const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
   const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
   const named = [...ids, falsifierFile].filter(Boolean);
   const namesId = (text, id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(text);
-  const relevant = hit.matched && hit.matched.length > 0 ? hit.matched : targets;
+  const relevant = hit.matched ?? [];
   const reconstructed = lines.some((line) => {
     const [left, right] = line.split("=>").map((part) => part?.trim() ?? "");
     if (!right || !named.some((id) => namesId(left, id))) return false;
     return right.split(/[\s,;]+/).filter(Boolean).some((target) => relevant.includes(target));
   });
-  return { ids, falsifierFile, named, reconstructed };
+  return { falsifierFile, named, reconstructed };
 }
 
 function recallUsage(root, git, rows) {
@@ -327,7 +327,7 @@ function recallUsage(root, git, rows) {
     const symbols = [...symbolFiles.keys()];
     const hot = churnEnabled ? churnHot({ root, git, sha: record.sha, files }) : [];
     for (const hit of recallLessons({ root, files, symbols, hot, symbolFiles })) {
-      if (recallBindings({ hit, lines, targets: [...files, ...symbols] }).reconstructed) {
+      if (recallBindings({ hit, lines }).reconstructed) {
         counts.set(hit.lesson, (counts.get(hit.lesson) ?? 0) + 1);
       }
     }

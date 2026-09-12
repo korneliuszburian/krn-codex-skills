@@ -71,6 +71,7 @@ function resolveCheck(root, scripts, ref) {
 
 function runCheck({ root, target }) {
   const env = { ...process.env, KRN_CHANGE_CONTRACT: "0" };
+  delete env.NODE_TEST_CONTEXT;
   const result = target.kind === "script"
     ? spawnSync("npm", ["run", target.name], { cwd: root, timeout: 600000, encoding: "utf8", env })
     : spawnSync(process.execPath, target.kind === "test" ? ["--test", target.name] : [target.name], { cwd: root, timeout: 600000, encoding: "utf8", env });
@@ -109,7 +110,7 @@ function scriptRedefinition(root, base, git, command) {
   return "clean";
 }
 
-function runCheckAtBase({ root, base, target, git = runGit }) {
+export function runCheckAtBase({ root, base, target, git = runGit }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "krn-base-"));
   const added = git(root, ["worktree", "add", "--detach", dir, base]);
   if (!added.ok) {
@@ -191,7 +192,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const hot = churnEnabled ? churnHot({ root, git, sha: commit.sha, files }) : [];
     const recallTrailers = recallLines(`${commit.subject}\n${commit.body}`);
     for (const hit of recallLessons({ root, files, symbols, hot, symbolFiles })) {
-      const { ids, falsifierFile, named, reconstructed } = recallBindings({ hit, lines: recallTrailers, targets: [...files, ...symbols] });
+      const { falsifierFile, named, reconstructed } = recallBindings({ hit, lines: recallTrailers });
       const record = strictRecall ? errors : warnings;
       if (!reconstructed) {
         record.push({ rule: "unreconstructed-recall", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add Recall: <${named.join(" or ") || "gate"}> => <changed file or symbol>` });

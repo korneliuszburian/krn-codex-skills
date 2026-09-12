@@ -489,17 +489,16 @@ test("a Recall in the commit subject counts as usage", () => {
 });
 
 test("recallBindings binds a recall to a changed target by gate or falsifier", () => {
-  const hit = { gate: "`npm run test`", falsifier: "test/greet.test.mjs::greets the supplied name@10aa55c" };
-  const targets = ["greet.mjs"];
+  const hit = { gate: "`npm run test`", falsifier: "test/greet.test.mjs::greets the supplied name@10aa55c", matched: ["greet.mjs"] };
   assert.deepEqual(recallLines("x\nRecall: npm run test => greet.mjs\ny\nRecall: test/greet.test.mjs => greet.mjs"), ["npm run test => greet.mjs", "test/greet.test.mjs => greet.mjs"]);
-  assert.equal(recallBindings({ hit, lines: ["npm run test => greet.mjs"], targets }).reconstructed, true);
-  assert.equal(recallBindings({ hit, lines: ["test/greet.test.mjs => greet.mjs"], targets }).reconstructed, true);
+  assert.equal(recallBindings({ hit, lines: ["npm run test => greet.mjs"] }).reconstructed, true);
+  assert.equal(recallBindings({ hit, lines: ["test/greet.test.mjs => greet.mjs"] }).reconstructed, true);
   const symbolHit = { gate: "`test:state`", falsifier: "", matched: ["gitSymbol", "scripts/x.mjs"] };
-  assert.equal(recallBindings({ hit: symbolHit, lines: ["test:state => scripts/x.mjs"], targets: ["scripts/x.mjs", "README.md"] }).reconstructed, true, "the file carrying the symbol satisfies the hit");
-  assert.equal(recallBindings({ hit: symbolHit, lines: ["test:state => README.md"], targets: ["scripts/x.mjs", "README.md"] }).reconstructed, false, "an unrelated changed target does not satisfy the matched hit");
-  assert.equal(recallBindings({ hit, lines: ["npm run test => other.mjs"], targets }).reconstructed, false);
-  assert.equal(recallBindings({ hit, lines: ["coolnpm run test => greet.mjs"], targets }).reconstructed, false);
-  assert.equal(recallBindings({ hit, lines: ["npm run test"], targets }).reconstructed, false);
+  assert.equal(recallBindings({ hit: symbolHit, lines: ["test:state => scripts/x.mjs"] }).reconstructed, true, "the file carrying the symbol satisfies the hit");
+  assert.equal(recallBindings({ hit: symbolHit, lines: ["test:state => README.md"] }).reconstructed, false, "an unrelated changed target does not satisfy the matched hit");
+  assert.equal(recallBindings({ hit, lines: ["npm run test => other.mjs"] }).reconstructed, false);
+  assert.equal(recallBindings({ hit, lines: ["coolnpm run test => greet.mjs"] }).reconstructed, false);
+  assert.equal(recallBindings({ hit, lines: ["npm run test"] }).reconstructed, false);
 });
 
 test("retirement supersession requires an exact anchor", () => {

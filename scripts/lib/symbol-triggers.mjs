@@ -1,5 +1,5 @@
 const DECL = /^\s*export\s+(?:default\s+)?(?:async\s+)?(function\*?|class|const|let|var)\s+([A-Za-z_$][\w$]*)/;
-const DECL_DESTRUCT = /^\s*export\s+(?:const|let|var)\s+([\[{][^\]}]*[\]}])\s*=/;
+const DESTRUCT_START = /^\s*export\s+(?:const|let|var)\s+([\[{])/;
 
 function codeMask(source) {
   const mask = new Array(source.length).fill(true);
@@ -93,11 +93,30 @@ export function extractSymbols(source) {
   };
   const symbols = [];
   for (let line = 0; line < lines.length; line += 1) {
-    const destructured = DECL_DESTRUCT.exec(lines[line]);
-    if (destructured) {
-      for (const name of destructured[1].match(/[A-Za-z_$][\w$]*/g) ?? []) {
-        symbols.push({ name, kind: "const", start: line + 1, end: scanSpan(line) });
+    const start = DESTRUCT_START.exec(lines[line]);
+    if (start) {
+      const openChar = start[1];
+      const closeChar = openChar === "{" ? "}" : "]";
+      const openOffset = lineStart[line] + start[0].length - 1;
+      let depth = 0;
+      let endOffset = openOffset;
+      for (let offset = openOffset; offset < source.length; offset += 1) {
+        if (!mask[offset]) continue;
+        const char = source[offset];
+        if (char === openChar) depth += 1;
+        else if (char === closeChar) {
+          depth -= 1;
+          if (depth === 0) {
+            endOffset = offset;
+            break;
+          }
+        }
       }
+      const endLine = lineOf(endOffset);
+      for (const name of (source.slice(openOffset + 1, endOffset).match(/[A-Za-z_$][\w$]*/g) ?? [])) {
+        symbols.push({ name, kind: "const", start: line + 1, end: endLine + 1 });
+      }
+      line = endLine;
       continue;
     }
     const match = DECL.exec(lines[line]);
@@ -205,6 +224,3 @@ export function touchedSymbolFiles({ root, git, sha }) {
   return files;
 }
 
-export function touchedSymbols({ root, git, sha }) {
-  return [...touchedSymbolFiles({ root, git, sha }).keys()];
-}
