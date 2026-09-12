@@ -6,7 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { checkLessons, lessonUsage, matchesTrigger, parseLessons, recallBindings, recallLessons, recallLines } from "../scripts/lib/lessons.mjs";
+import { checkLessons, lessonUsage, parseLessons, recallBindings, recallLessons, recallLines } from "../scripts/lib/lessons.mjs";
 
 function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "krn-lessons-"));
@@ -225,9 +225,17 @@ test("a trigger delivers the matching lesson for changed paths", () => {
   assert.equal(all.length, 1);
   assert.deepEqual(all[0].matched, ["scripts/lib/git-cli.mjs"]);
   assert.deepEqual(recallLessons({ root, files: ["docs/x.md"] }), []);
-  assert.deepEqual(matchesTrigger("path:scripts/**", ["scripts/a/b.mjs", "docs/x.md"]), ["scripts/a/b.mjs"]);
-  assert.deepEqual(matchesTrigger("path:scripts/*.mjs", ["scripts/a.mjs", "scripts/a/b.mjs"]), ["scripts/a.mjs"]);
-  assert.deepEqual(matchesTrigger("path:./scripts/**", ["scripts/a.mjs"]), ["scripts/a.mjs"], "a leading ./ is normalized away");
+  const matchedFor = (trigger, files) => {
+    writeFileSync(
+      file,
+      "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n"
+      + `| Guards | probe | \`test:state\` | | | ${trigger} |\n`,
+    );
+    return recallLessons({ root, files }).flatMap((hit) => hit.matched);
+  };
+  assert.deepEqual(matchedFor("path:scripts/**", ["scripts/a/b.mjs", "docs/x.md"]), ["scripts/a/b.mjs"]);
+  assert.deepEqual(matchedFor("path:scripts/*.mjs", ["scripts/a.mjs", "scripts/a/b.mjs"]), ["scripts/a.mjs"]);
+  assert.deepEqual(matchedFor("path:./scripts/**", ["scripts/a.mjs"]), ["scripts/a.mjs"], "a leading ./ is normalized away");
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -305,9 +313,13 @@ test("glob ? matches one character and unknown trigger prefixes fail", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");
   const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n";
-  assert.deepEqual(matchesTrigger("path:scripts/v?m.mjs", ["scripts/vxm.mjs"]), ["scripts/vxm.mjs"], "? matches exactly one character");
-  assert.deepEqual(matchesTrigger("path:scripts/v?m.mjs", ["scripts/vm.mjs"]), [], "? requires one character");
-  assert.deepEqual(matchesTrigger("path:scripts/v?m.mjs", ["scripts/vxxm.mjs"]), [], "? matches only one character");
+  const matchedFor = (files) => {
+    writeFileSync(file, `${header}| Guards | probe | \`test:state\` | | | path:scripts/v?m.mjs |\n`);
+    return recallLessons({ root, files }).flatMap((hit) => hit.matched);
+  };
+  assert.deepEqual(matchedFor(["scripts/vxm.mjs"]), ["scripts/vxm.mjs"], "? matches exactly one character");
+  assert.deepEqual(matchedFor(["scripts/vm.mjs"]), [], "? requires one character");
+  assert.deepEqual(matchedFor(["scripts/vxxm.mjs"]), [], "? matches only one character");
   writeFileSync(file, `${header}| A | probe | \`test:state\` | | | sym:runGit |\n`);
   assert.ok(checkLessons({ root }).errors.some((error) => error.includes("unknown trigger")), JSON.stringify(checkLessons({ root }).errors));
   rmSync(root, { recursive: true, force: true });

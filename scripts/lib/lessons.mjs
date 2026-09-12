@@ -48,14 +48,6 @@ const FALSIFIER = /^(test\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
 
 const RETIRE = /^retired@([0-9a-f]{7})(?:;\s*superseded-by:\s*(\S.*?))?$/i;
 
-function triggerGlobs(trigger) {
-  return (trigger ?? "")
-    .split(/[;,]/)
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.startsWith("path:"))
-    .map((entry) => entry.slice("path:".length).replace(/^\.\//, ""));
-}
-
 function globToRegex(glob) {
   let out = "^";
   for (let index = 0; index < glob.length; index += 1) {
@@ -93,19 +85,12 @@ function globToRegex(glob) {
   return new RegExp(`${out}$`);
 }
 
-export function matchesTrigger(trigger, files) {
-  const globs = triggerGlobs(trigger);
-  if (globs.length === 0) return [];
-  const patterns = globs.map(globToRegex);
-  return files.filter((file) => patterns.some((pattern) => pattern.test(file)));
-}
-
 function triggerEntries(trigger, prefix) {
   return (trigger ?? "")
     .split(/[;,]/)
     .map((entry) => entry.trim())
     .filter((entry) => entry.startsWith(prefix))
-    .map((entry) => entry.slice(prefix.length));
+    .map((entry) => entry.slice(prefix.length).replace(/^\.\//, ""));
 }
 
 export function recallLessons({ root, files = [], symbols = [], hot = [] }) {
