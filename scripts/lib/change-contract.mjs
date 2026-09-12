@@ -82,47 +82,35 @@ function checkFileRedefined(root, base, git, rel) {
   return before.ok && (!now.ok || before.out.trim() !== now.out.trim());
 }
 
-function scriptTestFilesRedefined(root, base, git, command, scripts = {}, seen = new Set()) {
-  for (const match of command.matchAll(/npm run ([\w:-]+)/g)) {
-    const inner = match[1];
-    if (!seen.has(inner) && Object.hasOwn(scripts, inner)) {
-      seen.add(inner);
-      if (scriptTestFilesRedefined(root, base, git, scripts[inner], scripts, seen)) return true;
-    }
+function listFiles(root, base, git, pattern) {
+  const regex = globToRegex(pattern);
+  const names = new Set();
+  for (const ref of [base, "HEAD"]) {
+    const result = git(root, ["ls-tree", "-r", "-z", "--name-only", ref]);
+    if (result.ok) for (const name of result.out.split("\0")) if (name.trim()) names.add(name.trim());
   }
-  const tokens = new Set([
-    ...[...command.matchAll(/test[\\/][^\s"']+\.mjs/g)].map((match) => match[0]),
-    ...[...command.matchAll(/[^\s"']*\.test\.mjs/g)].map((match) => match[0]),
-    ...[...command.matchAll(/"([^"]+\.mjs)"/g)].map((match) => match[1]),
-    ...[...command.matchAll(/'([^']+\.mjs)'/g)].map((match) => match[1]),
-  ]);
-  const list = (pattern) => {
-    const regex = globToRegex(pattern);
-    const names = new Set();
-    for (const ref of [base, "HEAD"]) {
-      const result = git(root, ["ls-tree", "-r", "-z", "--name-only", ref]);
-      if (result.ok) for (const name of result.out.split("\0")) if (name.trim()) names.add(name.trim());
-    }
-    return [...names].filter((name) => regex.test(name));
-  };
-  for (const raw of tokens) {
-    const token = raw.replace(/\\/g, "/");
-    if (!/[*?\[]/.test(token) || git(root, ["cat-file", "-e", `${base}:${token}`]).ok) {
-      if (checkFileRedefined(root, base, git, token)) return true;
+  return [...names].filter((name) => regex.test(name));
+}
+
+function scriptRedefinition(root, base, git, command) {
+  const files = [];
+  let nonLiteral = /(^|\s)npm\s+run(\s|$)/.test(command);
+  for (const match of command.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)) {
+    const quoted = match[1] !== undefined || match[2] !== undefined;
+    const token = (match[1] ?? match[2] ?? match[3]).replace(/\\/g, "/").replace(/^\.\//, "");
+    if (!quoted && /[*?\[]/.test(token)) {
+      nonLiteral = true;
       continue;
     }
-    for (const rel of list(token)) if (checkFileRedefined(root, base, git, rel)) return true;
+    if (/\.(mjs|js|cjs|sh)$/.test(token) && !token.startsWith("-")) files.push(token);
   }
-  const afterTest = command.replace(/^.*?--test\b/, "");
-  const args = [];
-  for (const match of afterTest.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)) args.push(match[1] ?? match[2] ?? match[3]);
-  for (const arg of args) {
-    if (!arg || arg.startsWith("-")) continue;
-    const dir = arg.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+$/, "");
-    if (!dir || dir.endsWith(".mjs")) continue;
-    for (const rel of list(`${dir}/**/*.mjs`)) if (checkFileRedefined(root, base, git, rel)) return true;
+  if (nonLiteral) return "non-literal";
+  if (files.length === 0 && /(^|\s)--test(\s|$)/.test(command)) files.push("test/**/*.test.mjs");
+  for (const rel of files) {
+    const matches = rel.includes("*") ? listFiles(root, base, git, rel) : [rel];
+    for (const match of matches) if (checkFileRedefined(root, base, git, match)) return "redefined";
   }
-  return false;
+  return "clean";
 }
 
 function outputTail(output) {
@@ -190,7 +178,8 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       if (!reconstructed) {
         errors.push({ rule: "unreconstructed-recall", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add Recall: <${named.join(" or ") || "gate"}> => <changed file or symbol>` });
       } else {
-        const requiredTests = [...new Set([falsifierFile, ...ids.filter((id) => /^test\/.*\.mjs$/.test(id))].filter(Boolean))];
+        const testRefs = named.flatMap((value) => [...value.matchAll(/\.?\/?[A-Za-z0-9_./-]*\.mjs/g)].map((match) => match[0].replace(/^\.\//, "")));
+        const requiredTests = [...new Set([falsifierFile, ...testRefs].filter(Boolean))];
         const declaredRefs = [...contract.contracts.map((entry) => entry.ref), ...contract.atRisk];
         if (requiredTests.length > 0 && !requiredTests.some((test) => declaredRefs.includes(test))) {
           errors.push({ rule: "unused-recall", commit: commit.sha, ref: hit.lesson, detail: `declare At-risk: ${requiredTests.join(" or ")} so the recalled lesson's test is exercised` });
@@ -216,12 +205,13 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail: "the check did not exist before this range" });
         return;
       }
-      const redefined = target.kind === "script"
-        ? (baseScripts !== null && Object.hasOwn(baseScripts, target.name) && baseScripts[target.name] !== scripts[target.name])
-          || scriptTestFilesRedefined(root, base, git, scripts[target.name] ?? "", scripts)
-        : checkFileRedefined(root, base, git, target.name);
+      const commandChanged = target.kind === "script"
+        && baseScripts !== null && Object.hasOwn(baseScripts, target.name) && baseScripts[target.name] !== scripts[target.name];
+      const scriptState = target.kind === "script" ? scriptRedefinition(root, base, git, scripts[target.name] ?? "") : null;
+      const redefined = target.kind === "script" ? commandChanged || scriptState !== "clean" : checkFileRedefined(root, base, git, target.name);
       if (redefined) {
-        errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail: "the check was redefined in this range" });
+        const detail = scriptState === "non-literal" && !commandChanged ? "the declared check is not a literal invocation" : "the check was redefined in this range";
+        errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail });
         return;
       }
       (label === "risk" ? atRiskTargets : targets).set(entry.ref, { target, after: label === "risk" ? "green" : entry.after });

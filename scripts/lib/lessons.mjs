@@ -28,8 +28,8 @@ export function parseLessonText(text) {
       malformed.push(line);
       continue;
     }
-    const occurrences = [...new Set((cells[3] ?? "").split(/[,\s]+/).filter(Boolean))];
-    if (occurrences.some((token) => !/^\d{4}-\d{2}-\d{2}@[0-9a-f]{7}$/.test(token))) {
+    const occurrences = (cells[3] ?? "").split(/[,\s]+/).filter(Boolean);
+    if (occurrences.some((token) => !/^\d{4}-\d{2}-\d{2}@[0-9a-f]{7}$/.test(token)) || new Set(occurrences).size !== occurrences.length) {
       malformed.push(line);
       continue;
     }

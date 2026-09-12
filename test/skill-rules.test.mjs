@@ -155,9 +155,11 @@ test("contractBudgetErrors reports over-long lines and words", () => {
   assert.deepEqual(contractBudgetErrors({ label: "x", text: "short line\n", maxLineChars: 10, maxWords: 10 }), []);
   assert.ok(contractBudgetErrors({ label: "x", text: "a".repeat(11), maxLineChars: 10, maxWords: 10 }).some((error) => error.includes("characters")));
   assert.ok(contractBudgetErrors({ label: "x", text: "a b c", maxLineChars: 100, maxWords: 2 }).some((error) => error.includes("words")));
+  assert.ok(contractBudgetErrors({ label: "x", text: "a​b​c", maxLineChars: 100, maxWords: 2 }).some((error) => error.includes("words")), "zero-width separators count as boundaries");
+  assert.ok(contractBudgetErrors({ label: "x", text: "abcdef", maxLineChars: 100, maxWords: 10, maxChars: 5 }).some((error) => error.includes("characters")), "the character cap fires");
 });
 
 test("the always-loaded contract stays within its information budget", () => {
   const text = readFileSync(join("config", "AGENTS.md"), "utf8");
-  assert.deepEqual(contractBudgetErrors({ label: "config/AGENTS.md", text, maxLineChars: 320, maxWords: 620 }), []);
+  assert.deepEqual(contractBudgetErrors({ label: "config/AGENTS.md", text, maxLineChars: 320, maxWords: 620, maxChars: 5200 }), []);
 });

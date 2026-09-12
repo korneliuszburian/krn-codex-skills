@@ -116,7 +116,7 @@ test("recurrence bypasses are closed: no trailing pipe, doc-only gate, duplicate
   assert.ok(checkLessons({ root }).errors.some((e) => e.includes("no structural gate")), "a doc path is not structural");
 
   writeFileSync(file, `${header}| A | probe | \`manual:review\` | 2026-01-01@abcdef1, 2026-01-01@abcdef1 |\n`);
-  assert.deepEqual(checkLessons({ root }).errors, [], "duplicate tokens collapse to one occurrence");
+  assert.ok(checkLessons({ root }).errors.some((e) => e.includes("malformed lesson row")), "duplicate tokens are malformed, not collapsed");
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -301,12 +301,13 @@ test("retirement is invalid without a commit and budgets count only active rows"
   rmSync(root, { recursive: true, force: true });
 });
 
-test("glob metacharacters are literal and unknown trigger prefixes fail", () => {
+test("glob ? matches one character and unknown trigger prefixes fail", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");
   const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n";
-  assert.deepEqual(matchesTrigger("path:scripts/v?m.mjs", ["scripts/vm.mjs"]), [], "? is literal, not a wildcard");
-  assert.deepEqual(matchesTrigger("path:scripts/v?m.mjs", ["scripts/v?m.mjs"]), ["scripts/v?m.mjs"]);
+  assert.deepEqual(matchesTrigger("path:scripts/v?m.mjs", ["scripts/vxm.mjs"]), ["scripts/vxm.mjs"], "? matches exactly one character");
+  assert.deepEqual(matchesTrigger("path:scripts/v?m.mjs", ["scripts/vm.mjs"]), [], "? requires one character");
+  assert.deepEqual(matchesTrigger("path:scripts/v?m.mjs", ["scripts/vxxm.mjs"]), [], "? matches only one character");
   writeFileSync(file, `${header}| A | probe | \`test:state\` | | | sym:runGit |\n`);
   assert.ok(checkLessons({ root }).errors.some((error) => error.includes("unknown trigger")), JSON.stringify(checkLessons({ root }).errors));
   rmSync(root, { recursive: true, force: true });

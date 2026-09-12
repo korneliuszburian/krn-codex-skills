@@ -153,7 +153,7 @@ test("gutting a test file a declared script runs is self-authorized", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test("gutting a test reached by a glob the declared script runs is self-authorized", () => {
+test("gutting a test reached by an unverifiable glob fails closed", () => {
   const root = makeRoot({ "test:g": "node --test test/*.test.mjs" });
   const git = fakeGit({
     commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:g:red->green" }],
@@ -163,7 +163,7 @@ test("gutting a test reached by a glob the declared script runs is self-authoriz
     blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" },
   });
   const report = checkChangeContract({ root, base: "base", git, run: green });
-  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("not a literal")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -180,25 +180,19 @@ test("gutting a non-ASCII test the declared script runs is self-authorized", () 
   rmSync(root, { recursive: true, force: true });
 });
 
-test("globs with **, ?, and [] resolve against the real tree listing", () => {
-  const cases = [
-    { script: "node --test test/**/*.test.mjs", file: "test/top.test.mjs" },
-    { script: "node --test test/**/*.test.mjs", file: "test/nested/b.test.mjs" },
-    { script: "node --test test/a?.test.mjs", file: "test/ab.test.mjs" },
-    { script: "node --test test/[ab].test.mjs", file: "test/a.test.mjs" },
-    { script: "node --test test/*.test.mjs", file: "test/über.test.mjs" },
-  ];
-  for (const { script, file } of cases) {
+test("globs with **, ?, and [] fail closed as unverifiable", () => {
+  const cases = ["node --test test/**/*.test.mjs", "node --test test/a?.test.mjs", "node --test test/[ab].test.mjs"];
+  for (const script of cases) {
     const root = makeRoot({ "test:g": script });
     const git = fakeGit({
       commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:g:red->green" }],
       files: { a1: ["scripts/lib/x.mjs"] },
       baseScripts: { "test:g": script },
-      trees: { base: [file], HEAD: [file] },
-      blobs: { [`base:${file}`]: "aaa", [`head:${file}`]: "bbb" },
+      trees: { base: ["test/top.test.mjs"], HEAD: ["test/top.test.mjs"] },
+      blobs: { "base:test/top.test.mjs": "aaa", "head:test/top.test.mjs": "bbb" },
     });
     const report = checkChangeContract({ root, base: "base", git, run: green });
-    assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), `${script} ${file}: ${JSON.stringify(report.errors)}`);
+    assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("not a literal")), `${script}: ${JSON.stringify(report.errors)}`);
     rmSync(root, { recursive: true, force: true });
   }
 });
@@ -206,7 +200,7 @@ test("globs with **, ?, and [] resolve against the real tree listing", () => {
 test("quoted spaced and deleted test files a declared script runs are self-authorized", () => {
   const cases = [
     { script: 'node --test "test/has space.test.mjs"', file: "test/has space.test.mjs", blobs: { "base:test/has space.test.mjs": "aaa", "head:test/has space.test.mjs": "bbb" } },
-    { script: "node --test test/*.test.mjs", file: "test/a.test.mjs", blobs: { "base:test/a.test.mjs": "aaa" } },
+    { script: "node --test test/a.test.mjs", file: "test/a.test.mjs", blobs: { "base:test/a.test.mjs": "aaa" } },
     { script: "node --test test\\a.test.mjs", file: "test/a.test.mjs", blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" } },
   ];
   for (const { script, file, blobs } of cases) {
@@ -246,13 +240,40 @@ test("quoted names with the other quote and literal metachar names are caught", 
   }
 });
 
-test("an npm run chain that reaches a gutted test is self-authorized", () => {
+test("gutting the entry script a declared check runs is self-authorized", () => {
+  const root = makeRoot({ "test:check": "node scripts/check.mjs" });
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:check:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:check": "node scripts/check.mjs" },
+    blobs: { "base:scripts/check.mjs": "aaa", "head:scripts/check.mjs": "bbb" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an npm run chain that reaches a gutted test fails closed as non-literal", () => {
   const scripts = { "test:g": "npm run test:inner", "test:inner": "node --test test/a.test.mjs" };
   const root = makeRoot(scripts);
   const git = fakeGit({
     commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:g:red->green" }],
     files: { a1: ["scripts/lib/x.mjs"] },
     baseScripts: scripts,
+    trees: { base: ["test/a.test.mjs"], HEAD: ["test/a.test.mjs"] },
+    blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("not a literal")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a bare node --test resolves to the default test glob", () => {
+  const root = makeRoot({ "test:all": "node --test" });
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:all:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:all": "node --test" },
     trees: { base: ["test/a.test.mjs"], HEAD: ["test/a.test.mjs"] },
     blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" },
   });
@@ -453,6 +474,34 @@ test("a recalled lesson with a testable gate must be exercised by the change", (
     return { ok: false, out: "" };
   };
   const recalled = "Change-contract: test:lessons:red->green\nRecall: test/gate.test.mjs => scripts/lib/git-cli.mjs";
+  const used = checkChangeContract({ root, base: "base", git: gitFor(recalled), run: green });
+  assert.ok(used.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(used.errors));
+  const exercised = checkChangeContract({ root, base: "base", git: gitFor(`${recalled}\nAt-risk: test/gate.test.mjs`), run: green });
+  assert.ok(!exercised.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(exercised.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a recalled lesson whose gate is a command still requires its test at-risk", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "test"), { recursive: true });
+  writeFileSync(join(root, "test", "gate.test.mjs"), "// probe\n");
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `node --test test/gate.test.mjs` | | | path:scripts/lib/git-cli.mjs |\n",
+  );
+  const gitFor = (body) => (_root, args) => {
+    if (args[0] === "log") return { ok: true, out: `a1\u001ffic: use\u001f${body}` };
+    if (args[0] === "show") {
+      const last = args[args.length - 1];
+      if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x", "test:lib": "x" } }) };
+      if (last.includes(":")) return { ok: true, out: "export const x = 1;\n" };
+      return { ok: true, out: "scripts/lib/git-cli.mjs" };
+    }
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    if (args[0] === "rev-list") return { ok: true, out: "0" };
+    return { ok: false, out: "" };
+  };
+  const recalled = "Change-contract: test:lessons:red->green\nRecall: node --test test/gate.test.mjs => scripts/lib/git-cli.mjs";
   const used = checkChangeContract({ root, base: "base", git: gitFor(recalled), run: green });
   assert.ok(used.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(used.errors));
   const exercised = checkChangeContract({ root, base: "base", git: gitFor(`${recalled}\nAt-risk: test/gate.test.mjs`), run: green });

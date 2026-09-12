@@ -374,6 +374,7 @@ if (globalAgentsPathSafe) {
     text: globalAgentsText,
     maxLineChars: 320,
     maxWords: 620,
+    maxChars: 5200,
   })) {
     fail(message);
   }
