@@ -202,6 +202,27 @@ test("globs with **, ?, and [] resolve against the real tree listing", () => {
   }
 });
 
+test("quoted spaced and deleted test files a declared script runs are self-authorized", () => {
+  const cases = [
+    { script: 'node --test "test/has space.test.mjs"', file: "test/has space.test.mjs", blobs: { "base:test/has space.test.mjs": "aaa", "head:test/has space.test.mjs": "bbb" } },
+    { script: "node --test test/*.test.mjs", file: "test/a.test.mjs", blobs: { "base:test/a.test.mjs": "aaa" } },
+    { script: "node --test test\\a.test.mjs", file: "test/a.test.mjs", blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" } },
+  ];
+  for (const { script, file, blobs } of cases) {
+    const root = makeRoot({ "test:g": script });
+    const git = fakeGit({
+      commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:g:red->green" }],
+      files: { a1: ["scripts/lib/x.mjs"] },
+      baseScripts: { "test:g": script },
+      trees: { base: [file], HEAD: [file] },
+      blobs,
+    });
+    const report = checkChangeContract({ root, base: "base", git, run: green });
+    assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), `${script}: ${JSON.stringify(report.errors)}`);
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });

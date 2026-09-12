@@ -79,11 +79,15 @@ function runCheck({ root, target }) {
 function checkFileRedefined(root, base, git, rel) {
   const before = git(root, ["rev-parse", `${base}:${rel}`]);
   const now = git(root, ["hash-object", rel]);
-  return before.ok && now.ok && before.out.trim() !== now.out.trim();
+  return before.ok && (!now.ok || before.out.trim() !== now.out.trim());
 }
 
 function scriptTestFilesRedefined(root, base, git, command) {
-  for (const token of [...command.matchAll(/(test\/[^\s"']+\.mjs)/g)].map((match) => match[1])) {
+  const tokens = new Set([
+    ...[...command.matchAll(/test[\\/][^\s"']+\.mjs/g)].map((match) => match[0]),
+    ...[...command.matchAll(/["']([^"']*test[\\/][^"']+\.mjs)["']/g)].map((match) => match[1]),
+  ]);
+  for (const token of [...tokens].map((value) => value.replace(/\\/g, "/"))) {
     if (!/[*?\[]/.test(token)) {
       if (checkFileRedefined(root, base, git, token)) return true;
       continue;
