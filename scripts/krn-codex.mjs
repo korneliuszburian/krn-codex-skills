@@ -124,8 +124,9 @@ try {
       if (!options.json) {
         for (const result of report.results) process.stdout.write(`${result.status}\t${result.file}::${result.case}\n`);
         for (const result of report.failures) process.stderr.write(`error: lesson "${result.lesson}" proof failed: ${result.file}::${result.case}\n`);
+        for (const message of report.errors ?? []) process.stderr.write(`error: ${message}\n`);
       }
-      if (report.failures.length) process.exitCode = 1;
+      if (report.failures.length || (report.errors?.length ?? 0) > 0) process.exitCode = 1;
     }
   } else if (raw[0] === "changes") {
     const { positional, options } = parseOptions(raw.slice(1));

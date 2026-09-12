@@ -35,8 +35,9 @@ function runCase({ root, file, name, timeout }) {
 }
 
 export function verifyLessons({ root, timeout = 120000, runner = runCase, force = false } = {}) {
-  if (!force && process.env.KRN_LESSONS_VERIFY === "0") return { root, results: [], failures: [], skipped: true };
+  if (!force && process.env.KRN_LESSONS_VERIFY === "0") return { root, results: [], failures: [], errors: [], skipped: true };
   const report = checkLessons({ root });
+  const errors = report.errors ?? [];
   const results = [];
   for (const lesson of report.lessons.filter((entry) => !entry.status)) {
     const match = TOKEN.exec((lesson.falsifier ?? "").replace(/`/g, "").trim());
@@ -49,5 +50,5 @@ export function verifyLessons({ root, timeout = 120000, runner = runCase, force 
     const outcome = runner({ root, file: path.join(root, file), name, timeout });
     results.push({ lesson: lesson.lesson, file, case: name, status: outcome.ok ? "pass" : "fail", code: outcome.status });
   }
-  return { root, results, failures: results.filter((result) => result.status === "fail") };
+  return { root, results, failures: results.filter((result) => result.status === "fail"), errors };
 }

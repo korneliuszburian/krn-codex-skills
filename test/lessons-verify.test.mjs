@@ -19,6 +19,15 @@ function makeRoot(proofSource) {
   return root;
 }
 
+test("a malformed lesson page fails verification instead of reporting proof verified", () => {
+  const root = makeRoot('import test from "node:test";\ntest("probe", () => {});\n');
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n| broken\n");
+  const report = verifyLessons({ root });
+  assert.ok(report.errors.length > 0, JSON.stringify(report));
+  assert.deepEqual(report.results, []);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a passing proof case is executed and reported as pass", () => {
   const root = makeRoot('import test from "node:test";\ntest("probe", () => {});\n');
   const report = verifyLessons({ root });

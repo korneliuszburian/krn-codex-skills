@@ -97,6 +97,22 @@ test("resume loads the repository workflow lessons", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("resume does not resurrect a retired lesson", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(
+    join(root, "docs/research/workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n"
+    + "| Keep the active rule. | probe | `test:state` | | | | |\n"
+    + "| Old advice. | probe | `manual:review` | | | | retired@abcdef0 |\n",
+  );
+  const report = resumeBrief({ repo: root });
+  assert.equal(report.lessons.count, 1);
+  assert.deepEqual(report.lessons.items, ["Keep the active rule."]);
+  assert.doesNotMatch(report.text, /Old advice/);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("resume surfaces blocking errors in the brief", () => {
   const { root } = makeRepo();
   mkdirSync(join(root, "docs", "research"), { recursive: true });

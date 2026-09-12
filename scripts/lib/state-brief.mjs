@@ -27,7 +27,8 @@ function workflowLessons(root) {
   const file = join(root, relative);
   if (!existsSync(file)) return { path: null, count: 0, items: [] };
   const { rows } = parseLessons(file);
-  return { path: relative, count: rows.length, items: rows.map((row) => row.lesson) };
+  const active = rows.filter((row) => !(row.status ?? "").trim());
+  return { path: relative, count: active.length, items: active.map((row) => row.lesson) };
 }
 
 function renderLessons(lessons) {
