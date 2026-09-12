@@ -12,6 +12,7 @@ test("the validation workflow runs on every main push as well as pull requests",
   assert.match(workflow, /^\s{2}push:\s*$/m, "must run on push");
   assert.match(workflow, /^\s{4}branches:\s*\[main\]\s*$/m, "the push trigger must target main");
   assert.match(workflow, /group:\s*validate-\$\{\{\s*github\.ref\s*\}\}/, "concurrency must key on the ref so pushes and PRs do not collide");
+  assert.match(workflow, /cancel-in-progress:\s*\$\{\{\s*github\.ref\s*!=\s*'refs\/heads\/main'\s*\}\}/, "main runs must not cancel each other, so every main commit keeps a completed check");
   assert.match(workflow, /BASE_SHA:-HEAD~1/, "push runs have no pull_request base, so base-dependent steps must fall back");
 });
 
