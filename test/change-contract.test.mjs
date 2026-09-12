@@ -319,6 +319,35 @@ test("an unreadable changed-file listing fails closed", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a check predicted red and at-risk green in the same range is a conflict", () => {
+  const root = makeRoot();
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lessons:green->red\nAt-risk: test:lessons" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:lessons": "x" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "conflicting-obligations"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("conflicting predictions across commits do not overwrite each other", () => {
+  const root = makeRoot();
+  const git = fakeGit({
+    commits: [
+      { sha: "a1", subject: "fix", body: "Change-contract: test:lessons:green->red" },
+      { sha: "a2", subject: "fix again", body: "Change-contract: test:lessons:red->green" },
+    ],
+    files: { a1: ["scripts/lib/x.mjs"], a2: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:lessons": "x" },
+    blobs: {},
+  });
+  // both commits must list files; fakeGit show returns files for the sha key
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "conflicting-obligations"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });

@@ -158,7 +158,6 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     }
   }
   const targets = new Map();
-  const atRiskTargets = new Map();
   for (const commit of commits) {
     const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", commit.sha]);
     if (!changed.ok) {
@@ -212,21 +211,34 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail });
         return;
       }
-      (label === "risk" ? atRiskTargets : targets).set(entry.ref, { target, after: label === "risk" ? "green" : entry.after });
+      const record = targets.get(entry.ref) ?? { target, obligations: [] };
+      const after = label === "risk" ? "green" : entry.after;
+      if (record.obligations.some((obligation) => obligation.after !== after)) {
+        const seen = [...new Set([...record.obligations.map((obligation) => obligation.after), after])];
+        errors.push({ rule: "conflicting-obligations", commit: commit.sha, ref: entry.ref, detail: `the same check is predicted both ${seen.join(" and ")} across the range` });
+        return;
+      }
+      record.obligations.push({ commit: commit.sha, after, label });
+      targets.set(entry.ref, record);
     };
     for (const entry of contract.contracts) admit(entry, "contract");
     for (const ref of contract.atRisk) admit({ ref, before: "green", after: "green" }, "risk");
   }
   const results = [];
-  const verify = (ref, label) => {
-    const entry = label === "risk" ? atRiskTargets.get(ref) : targets.get(ref);
-    const outcome = run({ root, target: entry.target });
-    results.push({ ref, after: label === "risk" ? "green" : entry.after, status: outcome.ok ? "green" : "red" });
-    if (label === "risk" ? !outcome.ok : (entry.after === "green" ? !outcome.ok : outcome.ok)) {
-      errors.push({ rule: label === "risk" ? "regressed-at-risk" : "unmet-prediction", ref, detail: `predicted ${label === "risk" ? "green" : entry.after}, observed ${outcome.ok ? "green" : "red"}${outputTail(outcome.output)}` });
+  for (const [ref, record] of targets) {
+    const outcome = run({ root, target: record.target });
+    for (const obligation of record.obligations) {
+      results.push({ ref, commit: obligation.commit, after: obligation.after, status: outcome.ok ? "green" : "red" });
+      const failed = obligation.after === "green" ? !outcome.ok : outcome.ok;
+      if (failed) {
+        errors.push({
+          rule: obligation.label === "risk" ? "regressed-at-risk" : "unmet-prediction",
+          commit: obligation.commit,
+          ref,
+          detail: `predicted ${obligation.after}, observed ${outcome.ok ? "green" : "red"}${outputTail(outcome.output)}`,
+        });
+      }
     }
-  };
-  for (const ref of targets.keys()) verify(ref, "contract");
-  for (const ref of atRiskTargets.keys()) if (!targets.has(ref)) verify(ref, "risk");
+  }
   return { root, commits: commits.map((commit) => commit.sha), results, errors };
 }
