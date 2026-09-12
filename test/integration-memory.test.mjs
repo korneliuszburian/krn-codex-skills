@@ -42,7 +42,7 @@ test("the memory harness composes: a triggered lesson blocks an unreconstructed 
 
     writeFileSync(join(root, "scripts", "x.mjs"), "export const x = 2;\n");
     const unreconstructed = commit(root, "feat: touch x\n\nChange-contract: test/gate.mjs:red->green");
-    const advisory = run(["changes", "check", "--root", root, "--base", base, "--head", unreconstructed]);
+    const advisory = run(["changes", "check", "--root", root, "--base", base, "--head", unreconstructed, "--advisory-recall"]);
     assert.ok(advisory.warnings.some((warning) => warning.rule === "unreconstructed-recall"), JSON.stringify(advisory.warnings));
     assert.ok(!advisory.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(advisory.errors));
     const blocked = run(["changes", "check", "--root", root, "--base", base, "--head", unreconstructed, "--strict-recall"]);

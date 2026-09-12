@@ -133,7 +133,7 @@ function outputTail(output) {
   return `; output: ${[...new Set([...failing, ...tail])].join("\n")}`;
 }
 
-export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = false } = {}) {
+export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = true } = {}) {
   const errors = [];
   const warnings = [];
   const log = git(root, ["log", "--format=%H%x1f%s%x1f%b%x1e", `${base}..${head}`]);

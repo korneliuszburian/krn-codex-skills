@@ -51,6 +51,7 @@ function parseOptions(args) {
     else if (arg === "--yes") options.yes = true;
     else if (arg === "--before") options.before = true;
     else if (arg === "--strict-recall") options.strictRecall = true;
+    else if (arg === "--advisory-recall") options.strictRecall = false;
     else if (arg === "--source") {
       options.source = args[++index];
       if (!options.source) fail("--source requires REF or PATH");
