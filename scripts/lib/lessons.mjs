@@ -261,7 +261,11 @@ export function checkLessons({ root, git = runGit }) {
       } else {
         const match = FALSIFIER.exec((row.falsifier ?? "").replace(/`/g, "").trim());
         const gates = resolved.map((entry) => entry.path).filter(Boolean);
-        for (const warning of proofWarnings(root, match[3], match[1], gates, git)) warnings.push(`lesson "${row.lesson}": ${warning}`);
+        const triggered = (row.trigger ?? "").trim().length > 0;
+        for (const warning of proofWarnings(root, match[3], match[1], gates, git)) {
+          if (triggered) errors.push(`lesson "${row.lesson}": stale-anchor: ${warning}`);
+          else warnings.push(`lesson "${row.lesson}": ${warning}`);
+        }
         for (const token of recurrenceAfterProof(root, match[3], row.occurrences, git)) {
           errors.push(`lesson "${row.lesson}": friction recurred at ${token} after its consolidation proof @${match[3]}; the gate did not stick — strengthen it or open a distinct class`);
         }

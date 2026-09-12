@@ -33,7 +33,7 @@ prompt/thread, global instruction, repository instruction, project config,
 skill, deterministic guard, CI, or host administration.
 
    Run
-   `node ~/.agents/skills/setup-repository-workflow/scripts/init-repository-workflow.mjs inspect --root <repo>`
+   `krn-codex repo inspect --root <repo>`
    for the repeatable topology pass. As in Matt Pocock's setup, do not assume
    the issue tracker, instruction owner, domain layout, or monorepo shape from
    a generic template.
@@ -97,7 +97,7 @@ plans remain ephemeral.
    repository contract with:
 
    ```text
-   node ~/.agents/skills/setup-repository-workflow/scripts/init-repository-workflow.mjs apply --root <repo> \
+   krn-codex repo apply --root <repo> \
      --tracker <none|beads|github|gitlab|local> \
      --domain <single|multi> --delivery <local|strict>
    ```

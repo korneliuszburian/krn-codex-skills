@@ -345,6 +345,29 @@ test("a non-ancestor proof, a stale proof, and an unknown proof commit behave di
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a triggered lesson with a stale proof fails closed as stale-anchor", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n";
+  const body = "| A | probe | `test:state` | | `test/gate.test.mjs::probe@ccccccc` | %TRIGGER% |\n";
+  const gitFor = (stale) => (_root, args) => {
+    if (args[0] === "rev-parse") return { ok: true, out: "" };
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    if (args[0] === "merge-base") return { ok: true, out: "" };
+    if (args[0] === "log") return { ok: true, out: stale ? "abc later edit" : "" };
+    if (args[0] === "rev-list") return { ok: true, out: "1" };
+    return { ok: false, out: "" };
+  };
+  writeFileSync(file, header + body.replace("%TRIGGER%", "path:scripts/lib/x.mjs"));
+  const stale = checkLessons({ root, git: gitFor(true) });
+  assert.ok(stale.errors.some((error) => error.includes("stale-anchor")), JSON.stringify(stale.errors));
+  writeFileSync(file, header + body.replace("%TRIGGER%", ""));
+  const untriggered = checkLessons({ root, git: gitFor(true) });
+  assert.ok(!untriggered.errors.some((error) => error.includes("stale-anchor")), JSON.stringify(untriggered.errors));
+  assert.ok(untriggered.warnings.some((warning) => warning.includes("predates later changes")), JSON.stringify(untriggered.warnings));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a header narrower than a row fails closed", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");
