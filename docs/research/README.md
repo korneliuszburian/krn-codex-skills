@@ -1,4 +1,4 @@
-# Research index| Agent memory serving cost | [Total Recall at What Cost?](https://arxiv.org/abs/2608.11879) | memory serving cost is not predictable from conversation length and can beat or lose to a full-transcript baseline depending on the system and backbone; measure cost paired with accuracy, never infer it | 2026-09-12 |
+# Research index
 
 This directory is compiled decision memory. It is not a notebook, transcript
 archive, or chronological log. Each topic page is rewritten as evidence changes;
@@ -96,6 +96,7 @@ freshness, not permanence.
 
 | Family | Primary source and fixed point | Retained mechanism | Verified |
 |---|---|---|---|
+| Agent memory serving cost | [Total Recall at What Cost?](https://arxiv.org/abs/2608.11879) | memory serving cost is not predictable from conversation length and can beat or lose to a full-transcript baseline depending on the system and backbone; measure cost paired with accuracy, never infer it | 2026-09-12 |
 | Matt Pocock skills | [`mattpocock/skills` at `6654f6b`](https://github.com/mattpocock/skills/commit/6654f6b60cd9d5be8b54c6fafe44346dabeb3b76), compared with current [`main`](https://github.com/mattpocock/skills/tree/3cca18b368ae95cdbdebbff572ccafa662551015) | small composable owners, progressive disclosure, leading words, shared language, destination/spec/ticket distinctions; the 2026-09-10 audit confirms the promoted set is unchanged at the pin and records open candidates separately | 2026-09-10 |
 | Matt on global instructions | [AGENTS.md guide](https://www.aihero.dev/a-complete-guide-to-agents-md), [Never Run `/init`](https://www.aihero.dev/never-run-claude-init) | minimal always-loaded context; discoverable facts do not earn permanent prompt space | 2026-07-30 |
 | Commit history contract | [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) | a typed, optionally scoped commit header carries machine-readable intent; automation and history queries depend on consistent conformance, while an unstructured history is missed by tooling | 2026-09-10 |

@@ -19,6 +19,14 @@ function makeRoot({ topicHeader = HEADER, topicsRows = "| T | [topic.md](topic.m
   return root;
 }
 
+test("a corrupted research index title is reported", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "README.md");
+  writeFileSync(file, `# Research index| Row | [x](x) | y | 2026-01-01 |\n\n## Topics\n${"| T | [topic.md](topic.md) | state | reopen |\n| C | [capabilities.md](../capabilities.md) | state | reopen |\n| M | [migration.md](../migration.md) | state | reopen |\n"}\n`);
+  assert.ok(checkDurablePages({ root }).errors.some((error) => error.includes("plain heading")), JSON.stringify(checkDurablePages({ root }).errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a long non-fenced line is rejected but a fenced one is allowed", () => {
   const root = makeRoot();
   writeFileSync(join(root, "docs", "research", "topic.md"), `# Topic\n\n${HEADER}\n${"x".repeat(3601)}\n`);

@@ -27,6 +27,10 @@ export function checkDurablePages({ root }) {
     return { errors };
   }
   const researchIndex = fs.readFileSync(researchIndexFile, "utf8");
+  const firstLine = researchIndex.split("\n")[0];
+  if (!/^#\s+[^|]+$/.test(firstLine)) {
+    errors.push("docs/research/README.md must start with a plain heading; a ledger row must not be appended to the title");
+  }
   const topicsSection = (researchIndex.split("\n## Topics\n")[1] ?? "").split("\n## ")[0];
   for (const entry of fs.readdirSync(researchDirectory, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith(".md") || entry.name === "README.md") continue;
