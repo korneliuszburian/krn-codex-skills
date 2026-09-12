@@ -183,7 +183,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         }
       }
     }
-    const falsifiable = contract.contracts.some((entry) => entry.before !== entry.after);
+    const falsifiable = contract.contracts.some((entry) => entry.before === "red" && entry.after === "green");
     if (surface && !falsifiable) {
       errors.push(contract.contracts.length === 0
         ? { rule: "missing-change-contract", commit: commit.sha, detail: files.filter((file) => SURFACE.some((pattern) => pattern.test(file))).join(", ") }
@@ -211,30 +211,31 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail });
         return;
       }
-      const record = targets.get(entry.ref) ?? { target, obligations: [] };
+      const key = `${target.kind}:${target.name}`;
+      const record = targets.get(key) ?? { target, obligations: [] };
       const after = label === "risk" ? "green" : entry.after;
       if (record.obligations.some((obligation) => obligation.after !== after)) {
         const seen = [...new Set([...record.obligations.map((obligation) => obligation.after), after])];
-        errors.push({ rule: "conflicting-obligations", commit: commit.sha, ref: entry.ref, detail: `the same check is predicted both ${seen.join(" and ")} across the range` });
+        errors.push({ rule: "conflicting-obligations", commit: commit.sha, ref: entry.ref, detail: `the same check (${key}) is predicted both ${seen.join(" and ")} across the range` });
         return;
       }
-      record.obligations.push({ commit: commit.sha, after, label });
-      targets.set(entry.ref, record);
+      record.obligations.push({ commit: commit.sha, after, label, ref: entry.ref });
+      targets.set(key, record);
     };
     for (const entry of contract.contracts) admit(entry, "contract");
     for (const ref of contract.atRisk) admit({ ref, before: "green", after: "green" }, "risk");
   }
   const results = [];
-  for (const [ref, record] of targets) {
+  for (const record of targets.values()) {
     const outcome = run({ root, target: record.target });
     for (const obligation of record.obligations) {
-      results.push({ ref, commit: obligation.commit, after: obligation.after, status: outcome.ok ? "green" : "red" });
+      results.push({ ref: obligation.ref, commit: obligation.commit, after: obligation.after, status: outcome.ok ? "green" : "red" });
       const failed = obligation.after === "green" ? !outcome.ok : outcome.ok;
       if (failed) {
         errors.push({
           rule: obligation.label === "risk" ? "regressed-at-risk" : "unmet-prediction",
           commit: obligation.commit,
-          ref,
+          ref: obligation.ref,
           detail: `predicted ${obligation.after}, observed ${outcome.ok ? "green" : "red"}${outputTail(outcome.output)}`,
         });
       }

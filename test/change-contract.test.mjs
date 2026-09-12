@@ -348,6 +348,31 @@ test("conflicting predictions across commits do not overwrite each other", () =>
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a lone green->red contract is not falsifiable compliance", () => {
+  const root = makeRoot();
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lessons:green->red" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:lessons": "x" },
+  });
+  const failing = () => ({ ok: false, status: 1 });
+  const report = checkChangeContract({ root, base: "base", git, run: failing });
+  assert.ok(report.errors.some((error) => error.rule === "non-falsifiable-prediction"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("aliases of one check cannot dodge conflict detection", () => {
+  const root = makeRoot();
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lessons:red->green, npm run test:lessons:green->red" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:lessons": "x" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "conflicting-obligations"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });

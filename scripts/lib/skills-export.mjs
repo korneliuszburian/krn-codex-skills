@@ -183,7 +183,9 @@ export function exportSkills({ source, upstream, root }) {
     fs.rmSync(skillsDir, { recursive: true, force: true });
     throw error;
   }
-  if (preserved) fs.rmSync(preserved, { recursive: true, force: true });
+  if (preserved) {
+    try { fs.rmSync(preserved, { recursive: true, force: true }); } catch { /* the new export is already installed; a cleanup failure must not fail the call */ }
+  }
 
   return { root, skillsDir: finalDir, skills: skills.length, krnCommit, upstreamCommit: upstreamPin.commit };
 }
