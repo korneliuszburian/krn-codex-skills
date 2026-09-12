@@ -177,6 +177,28 @@ test("gutting a non-ASCII test the declared script runs is self-authorized", () 
   rmSync(root, { recursive: true, force: true });
 });
 
+test("globs with **, ?, and [] resolve against the real tree listing", () => {
+  const cases = [
+    { script: "node --test test/**/*.test.mjs", file: "test/top.test.mjs" },
+    { script: "node --test test/**/*.test.mjs", file: "test/nested/b.test.mjs" },
+    { script: "node --test test/a?.test.mjs", file: "test/ab.test.mjs" },
+    { script: "node --test test/[ab].test.mjs", file: "test/a.test.mjs" },
+  ];
+  for (const { script, file } of cases) {
+    const root = makeRoot({ "test:g": script });
+    const git = fakeGit({
+      commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:g:red->green" }],
+      files: { a1: ["scripts/lib/x.mjs"] },
+      baseScripts: { "test:g": script },
+      trees: { base: [file], HEAD: [file] },
+      blobs: { [`base:${file}`]: "aaa", [`head:${file}`]: "bbb" },
+    });
+    const report = checkChangeContract({ root, base: "base", git, run: green });
+    assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), `${script} ${file}: ${JSON.stringify(report.errors)}`);
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });
