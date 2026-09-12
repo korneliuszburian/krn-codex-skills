@@ -133,6 +133,19 @@ test("an unchanged declared test file is admitted", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("gutting a test file a declared script runs is self-authorized", () => {
+  const root = makeRoot({ "test:lessons": "node --test test/lessons.test.mjs", "test:lib": "x" });
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lessons:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:lessons": "node --test test/lessons.test.mjs" },
+    blobs: { "base:test/lessons.test.mjs": "aaa", "head:test/lessons.test.mjs": "bbb" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });
