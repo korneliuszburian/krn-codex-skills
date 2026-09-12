@@ -452,6 +452,20 @@ test("a Recall in the commit subject counts as usage", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("retirement supersession requires an exact anchor", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n";
+  const active = "| NewGate | probe | `test:state` | | | | |\n";
+
+  writeFileSync(file, `${header}${active}| Old | probe | \`scripts/gone.mjs\` | | | | retired@abcdef0; superseded-by:e |\n`);
+  assert.ok(checkLessons({ root }).errors.some((error) => error.includes("resolves to no active row")), "a substring anchor must not resolve");
+
+  writeFileSync(file, `${header}${active}| Old | probe | \`scripts/gone.mjs\` | | | | retired@abcdef0; superseded-by:test:state |\n`);
+  assert.ok(!checkLessons({ root }).errors.some((error) => error.includes("resolves to no active row")), "an exact gate anchor resolves");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("occurrence tokens must be a date and short commit", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

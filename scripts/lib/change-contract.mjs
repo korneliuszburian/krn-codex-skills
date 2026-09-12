@@ -50,8 +50,8 @@ export function parseChangeContract(message) {
 }
 
 function resolveCheck(root, scripts, ref) {
-  if (DENY.has(ref)) return null;
   const name = ref.startsWith("npm run ") ? ref.slice("npm run ".length).trim() : ref;
+  if (DENY.has(ref) || DENY.has(name)) return null;
   if (Object.hasOwn(scripts, name)) return { kind: "script", name };
   const rel = name.replace(/^\.\//, "");
   if (/^(test|scripts)\/.+\.mjs$/.test(rel) && !rel.includes("..")) {

@@ -211,7 +211,11 @@ export function checkLessons({ root, git = runGit }) {
       }
       const anchor = retirement[2];
       if (anchor) {
-        const target = activeRows.find((candidate) => `${candidate.gate} ${candidate.falsifier} ${candidate.lesson}`.includes(anchor));
+        const target = activeRows.find((candidate) => {
+          const tokens = [...candidate.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
+          const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(candidate.falsifier) ?? [])[1];
+          return [...tokens, falsifierFile, candidate.lesson].filter(Boolean).some((value) => value === anchor);
+        });
         if (!target) errors.push(`lesson "${row.lesson}": superseded-by "${anchor}" resolves to no active row`);
       } else {
         const live = [...row.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim()).filter((reference) => CANDIDATE.test(reference)).filter((reference) => resolveReference(root, scripts, reference).ok);

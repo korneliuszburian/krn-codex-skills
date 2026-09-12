@@ -311,6 +311,18 @@ test("deleting an active lesson row is detected as shrinkage", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a denied check cannot be referenced through an npm run prefix", () => {
+  const root = makeRoot({ "test:lessons": "x", "test:lib": "x", "changes:check": "x" });
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "chore", body: "Change-contract: npm run changes:check:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "changes:check": "x" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "unknown-check"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("the contract guard reads only the environment flag", () => {
   assert.equal(contractGuardActive({ KRN_CHANGE_CONTRACT: "0" }), true);
   assert.equal(contractGuardActive({}), false);
