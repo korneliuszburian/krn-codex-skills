@@ -52,7 +52,7 @@ jobs:
           if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
             base="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
           fi
-          node scripts/krn-codex.mjs changes check --root . --base "$base" --head HEAD
+          node scripts/krn-codex.mjs changes check --root . --base "$base" --head HEAD --strict-recall
       - name: Test change-contract gate
         run: npm run test:change-contract
       - name: Test validator rule modules

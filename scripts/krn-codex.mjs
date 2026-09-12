@@ -50,6 +50,7 @@ function parseOptions(args) {
     if (arg === "--json") options.json = true;
     else if (arg === "--yes") options.yes = true;
     else if (arg === "--before") options.before = true;
+    else if (arg === "--strict-recall") options.strictRecall = true;
     else if (arg === "--source") {
       options.source = args[++index];
       if (!options.source) fail("--source requires REF or PATH");
@@ -133,10 +134,11 @@ try {
     const { positional, options } = parseOptions(raw.slice(1));
     if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root || !options.base) fail(usage);
     const report = contractGuardActive()
-      ? { root: options.root, commits: [], results: [], errors: [], skipped: true }
-      : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD", verifyBefore: options.before === true });
+      ? { root: options.root, commits: [], results: [], errors: [], warnings: [], skipped: true }
+      : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD", verifyBefore: options.before === true, strictRecall: options.strictRecall === true });
     print(report, options.json);
     if (!options.json) {
+      for (const warning of report.warnings ?? []) process.stderr.write(`warning: ${warning.rule}${warning.ref ? ` ${warning.ref}` : ""}${warning.commit ? ` ${warning.commit}` : ""}${warning.detail ? `: ${warning.detail}` : ""}\n`);
       for (const failure of report.errors) process.stderr.write(`error: ${failure.rule}${failure.ref ? ` ${failure.ref}` : ""}${failure.commit ? ` ${failure.commit}` : ""}${failure.detail ? `: ${failure.detail}` : ""}\n`);
       if (report.errors.some((failure) => failure.commit)) process.stderr.write("revert or repair the offending commit(s) before proceeding\n");
     }

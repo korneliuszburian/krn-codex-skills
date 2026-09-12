@@ -80,7 +80,7 @@ test("multiple comma-separated contract refs are all admitted and run", () => {
     files: { a1: ["scripts/lib/x.mjs"] },
     baseScripts: { "test:lessons": "x", "test:lib": "x" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.equal(report.errors.length, 0, JSON.stringify(report.errors));
   assert.equal(report.results.length, 2);
   rmSync(root, { recursive: true, force: true });
@@ -93,7 +93,7 @@ test("a malformed part fails the whole contract line closed", () => {
     files: { a1: ["scripts/lib/x.mjs"] },
     baseScripts: { "test:lib": "x" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "missing-change-contract"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -105,7 +105,7 @@ test("redefining the declared script in the same range is self-authorized", () =
     files: { a1: ["scripts/lib/x.mjs"] },
     baseScripts: { "test:lessons": "node --test test/lessons.test.mjs" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -120,7 +120,7 @@ test("redefining the declared test file in the same range is self-authorized", (
     baseFiles: ["test/gate.test.mjs"],
     blobs: { "base:test/gate.test.mjs": "aaa", "head:test/gate.test.mjs": "bbb" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -135,7 +135,7 @@ test("an unchanged declared test file is admitted", () => {
     baseFiles: ["test/gate.test.mjs"],
     blobs: { "base:test/gate.test.mjs": "aaa", "head:test/gate.test.mjs": "aaa" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.equal(report.errors.length, 0, JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -148,7 +148,7 @@ test("gutting a test file a declared script runs is self-authorized", () => {
     baseScripts: { "test:lessons": "node --test test/lessons.test.mjs" },
     blobs: { "base:test/lessons.test.mjs": "aaa", "head:test/lessons.test.mjs": "bbb" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -162,7 +162,7 @@ test("gutting a test reached by an unverifiable glob fails closed", () => {
     trees: { base: ["test/a.test.mjs"], HEAD: ["test/a.test.mjs"] },
     blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("not a literal")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -175,7 +175,7 @@ test("gutting a non-ASCII test the declared script runs is self-authorized", () 
     baseScripts: { "test:u": "node --test test/über.test.mjs" },
     blobs: { "base:test/über.test.mjs": "aaa", "head:test/über.test.mjs": "bbb" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -191,7 +191,7 @@ test("globs with **, ?, and [] fail closed as unverifiable", () => {
       trees: { base: ["test/top.test.mjs"], HEAD: ["test/top.test.mjs"] },
       blobs: { "base:test/top.test.mjs": "aaa", "head:test/top.test.mjs": "bbb" },
     });
-    const report = checkChangeContract({ root, base: "base", git, run: green });
+    const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
     assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("not a literal")), `${script}: ${JSON.stringify(report.errors)}`);
     rmSync(root, { recursive: true, force: true });
   }
@@ -212,7 +212,7 @@ test("quoted spaced and deleted test files a declared script runs are self-autho
       trees: { base: [file], HEAD: [file] },
       blobs,
     });
-    const report = checkChangeContract({ root, base: "base", git, run: green });
+    const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
     assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), `${script}: ${JSON.stringify(report.errors)}`);
     rmSync(root, { recursive: true, force: true });
   }
@@ -233,7 +233,7 @@ test("quoted names with the other quote are caught and metachar names fail close
       trees: { base: [file], HEAD: [file] },
       blobs: { [`base:${file}`]: "aaa", [`head:${file}`]: "bbb" },
     });
-    const report = checkChangeContract({ root, base: "base", git, run: green });
+    const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
     assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), `${script}: ${JSON.stringify(report.errors)}`);
     rmSync(root, { recursive: true, force: true });
   }
@@ -243,7 +243,7 @@ test("quoted names with the other quote are caught and metachar names fail close
     files: { a1: ["scripts/lib/x.mjs"] },
     baseScripts: { "test:g": `node --test "test/[ab].test.mjs"` },
   });
-  assert.ok(checkChangeContract({ root, base: "base", git, run: green }).errors.some((error) => error.detail.includes("not a literal")), "metachar tokens fail closed");
+  assert.ok(checkChangeContract({ root, base: "base", git, run: green, strictRecall: true }).errors.some((error) => error.detail.includes("not a literal")), "metachar tokens fail closed");
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -255,7 +255,7 @@ test("gutting the entry script a declared check runs is self-authorized", () => 
     baseScripts: { "test:check": "node scripts/check.mjs" },
     blobs: { "base:scripts/check.mjs": "aaa", "head:scripts/check.mjs": "bbb" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -270,7 +270,7 @@ test("an npm run chain that reaches a gutted test fails closed as non-literal", 
     trees: { base: ["test/a.test.mjs"], HEAD: ["test/a.test.mjs"] },
     blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("not a literal")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -284,7 +284,7 @@ test("a bare node --test resolves to the default test glob", () => {
     trees: { base: ["test/a.test.mjs"], HEAD: ["test/a.test.mjs"] },
     blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -300,7 +300,7 @@ test("shell nesting, variables, and env prefixes fail closed", () => {
       trees: { base: ["test/a.test.mjs"], HEAD: ["test/a.test.mjs"] },
       blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" },
     });
-    const report = checkChangeContract({ root, base: "base", git, run: green });
+    const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
     assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("not a literal")), `${script}: ${JSON.stringify(report.errors)}`);
     rmSync(root, { recursive: true, force: true });
   }
@@ -314,7 +314,7 @@ test("an unreadable changed-file listing fails closed", () => {
     if (args[0] === "show") return { ok: true, out: "//\n" };
     return { ok: false, out: "" };
   };
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "unreadable-changed-files"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -326,7 +326,7 @@ test("a check predicted red and at-risk green in the same range is a conflict", 
     files: { a1: ["scripts/lib/x.mjs"] },
     baseScripts: { "test:lessons": "x" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "conflicting-obligations"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -343,7 +343,7 @@ test("conflicting predictions across commits do not overwrite each other", () =>
     blobs: {},
   });
   // both commits must list files; fakeGit show returns files for the sha key
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "conflicting-obligations"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -368,7 +368,7 @@ test("aliases of one check cannot dodge conflict detection", () => {
     files: { a1: ["scripts/lib/x.mjs"] },
     baseScripts: { "test:lessons": "x" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "conflicting-obligations"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -394,7 +394,7 @@ test("verifyBefore requires the declared check to be red at base", () => {
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "missing-change-contract"));
   rmSync(root, { recursive: true, force: true });
 });
@@ -406,13 +406,13 @@ test("a surface commit cannot be excused by No-check or a green->green contract"
     files: { a1: ["scripts/lib/lessons.mjs"] },
     baseScripts: { "test:lessons": "x" },
   });
-  assert.ok(checkChangeContract({ root, base: "base", git: nonFalsifiable, run: green }).errors.some((error) => error.rule === "non-falsifiable-prediction"));
+  assert.ok(checkChangeContract({ root, base: "base", git: nonFalsifiable, run: green, strictRecall: true }).errors.some((error) => error.rule === "non-falsifiable-prediction"));
   const escaped = fakeGit({
     commits: [{ sha: "a1", subject: "chore: tidy", body: "No-check: whatever\nAt-risk: test:lib" }],
     files: { a1: ["scripts/lib/lessons.mjs"] },
     baseScripts: { "test:lessons": "x", "test:lib": "x" },
   });
-  assert.ok(checkChangeContract({ root, base: "base", git: escaped, run: green }).errors.some((error) => error.rule === "missing-change-contract"), "No-check plus At-risk must not excuse a surface change");
+  assert.ok(checkChangeContract({ root, base: "base", git: escaped, run: green, strictRecall: true }).errors.some((error) => error.rule === "missing-change-contract"), "No-check plus At-risk must not excuse a surface change");
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -423,7 +423,7 @@ test("a check added earlier in the same range is self-authored", () => {
     files: { a1: ["scripts/lib/x.mjs"] },
     baseScripts: {},
   });
-  assert.ok(checkChangeContract({ root, base: "base", git, run: green }).errors.some((error) => error.rule === "self-authorized-check"));
+  assert.ok(checkChangeContract({ root, base: "base", git, run: green, strictRecall: true }).errors.some((error) => error.rule === "self-authorized-check"));
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -434,14 +434,14 @@ test("a met prediction passes and an unmet or self-authored one blocks", () => {
     files: { a1: ["scripts/lib/lessons.mjs"] },
     baseScripts: { "test:lessons": "x" },
   });
-  assert.deepEqual(checkChangeContract({ root, base: "base", git, run: green }).errors, []);
+  assert.deepEqual(checkChangeContract({ root, base: "base", git, run: green, strictRecall: true }).errors, []);
   assert.ok(checkChangeContract({ root, base: "base", git, run: () => ({ ok: false, status: 1 }) }).errors.some((error) => error.rule === "unmet-prediction"));
   const selfAuthored = fakeGit({
     commits: [{ sha: "a1", subject: "fix: gate", body: "Change-contract: test:lessons:red->green" }],
     files: { a1: ["scripts/lib/lessons.mjs"] },
     baseScripts: {},
   });
-  assert.ok(checkChangeContract({ root, base: "base", git: selfAuthored, run: green }).errors.some((error) => error.rule === "self-authorized-check"));
+  assert.ok(checkChangeContract({ root, base: "base", git: selfAuthored, run: green, strictRecall: true }).errors.some((error) => error.rule === "self-authorized-check"));
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -455,13 +455,13 @@ test("a self-authored test file and a denied ref both block", () => {
     baseScripts: {},
     baseFiles: [],
   });
-  assert.ok(checkChangeContract({ root, base: "base", git: added, run: green }).errors.some((error) => error.rule === "self-authorized-check"));
+  assert.ok(checkChangeContract({ root, base: "base", git: added, run: green, strictRecall: true }).errors.some((error) => error.rule === "self-authorized-check"));
   const denied = fakeGit({
     commits: [{ sha: "a1", subject: "fix: gate", body: "Change-contract: changes:check:red->green" }],
     files: { a1: ["scripts/lib/lessons.mjs"] },
     baseScripts: { "changes:check": "x" },
   });
-  assert.ok(checkChangeContract({ root, base: "base", git: denied, run: green }).errors.some((error) => error.rule === "unknown-check"));
+  assert.ok(checkChangeContract({ root, base: "base", git: denied, run: green, strictRecall: true }).errors.some((error) => error.rule === "unknown-check"));
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -477,6 +477,19 @@ test("an at-risk regression blocks", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("recall enforcement is advisory unless strictRecall is set", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | \`test:state\` | | | path:scripts/lib/x.mjs |\n");
+  const git = fakeGit({ commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lessons:red->green" }], files: { a1: ["scripts/lib/x.mjs"] }, baseScripts: { "test:lessons": "x" }, blobs: { "base:test/lessons.test.mjs": "aaa", "head:test/lessons.test.mjs": "aaa" } });
+  const advisory = checkChangeContract({ root, base: "base", git, run: green, strictRecall: false });
+  assert.ok(advisory.warnings.some((entry) => entry.rule === "unreconstructed-recall"), JSON.stringify(advisory.warnings));
+  assert.ok(!advisory.errors.some((entry) => entry.rule === "unreconstructed-recall"), JSON.stringify(advisory.errors));
+  const strict = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
+  assert.ok(strict.errors.some((entry) => entry.rule === "unreconstructed-recall"), JSON.stringify(strict.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a change that triggers a lesson requires a Recall trailer", () => {
   const root = makeRoot();
   mkdirSync(join(root, "docs", "research"), { recursive: true });
@@ -489,22 +502,22 @@ test("a change that triggers a lesson requires a Recall trailer", () => {
     files: { a1: ["scripts/lib/git-cli.mjs"] },
     baseScripts: { "test:lessons": "x" },
   };
-  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(base), run: green }).errors.some((error) => error.rule === "unreconstructed-recall"));
+  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(base), run: green, strictRecall: true }).errors.some((error) => error.rule === "unreconstructed-recall"));
   const junk = {
     ...base,
     commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: contest:scripts/lib/git-cli.mjs" }],
   };
-  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(junk), run: green }).errors.some((error) => error.rule === "unreconstructed-recall"), "a superstring must not satisfy the recall");
+  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(junk), run: green, strictRecall: true }).errors.some((error) => error.rule === "unreconstructed-recall"), "a superstring must not satisfy the recall");
   const misbound = {
     ...base,
     commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/git-cli.mjs => docs/other.md" }],
   };
-  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(misbound), run: green }).errors.some((error) => error.rule === "unreconstructed-recall"), "the reconstruction target must be a changed file or symbol");
+  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(misbound), run: green, strictRecall: true }).errors.some((error) => error.rule === "unreconstructed-recall"), "the reconstruction target must be a changed file or symbol");
   const recalled = {
     ...base,
     commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/git-cli.mjs => scripts/lib/git-cli.mjs" }],
   };
-  assert.ok(!checkChangeContract({ root, base: "base", git: fakeGit(recalled), run: green }).errors.some((error) => error.rule === "unreconstructed-recall"));
+  assert.ok(!checkChangeContract({ root, base: "base", git: fakeGit(recalled), run: green, strictRecall: true }).errors.some((error) => error.rule === "unreconstructed-recall"));
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -526,9 +539,9 @@ test("a symbol trigger requires a Recall trailer", () => {
     if (args[0] === "cat-file") return { ok: true, out: "" };
     return { ok: false, out: "" };
   };
-  const bare = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green"), run: green });
+  const bare = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green"), run: green, strictRecall: true });
   assert.ok(bare.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(bare.errors));
-  const recalled = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green\nRecall: test:lessons => runGit"), run: green });
+  const recalled = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green\nRecall: test:lessons => runGit"), run: green, strictRecall: true });
   assert.ok(!recalled.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(recalled.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -555,9 +568,9 @@ test("a churn trigger requires a Recall trailer for a hot file", () => {
     if (args[0] === "cat-file") return { ok: true, out: "" };
     return { ok: false, out: "" };
   };
-  const bare = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green"), run: green });
+  const bare = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green"), run: green, strictRecall: true });
   assert.ok(bare.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(bare.errors));
-  const recalled = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green\nRecall: test:lessons => scripts/lib/git-cli.mjs"), run: green });
+  const recalled = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green\nRecall: test:lessons => scripts/lib/git-cli.mjs"), run: green, strictRecall: true });
   assert.ok(!recalled.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(recalled.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -583,9 +596,9 @@ test("a recalled lesson with a testable gate must be exercised by the change", (
     return { ok: false, out: "" };
   };
   const recalled = "Change-contract: test:lessons:red->green\nRecall: test/gate.test.mjs => scripts/lib/git-cli.mjs";
-  const used = checkChangeContract({ root, base: "base", git: gitFor(recalled), run: green });
+  const used = checkChangeContract({ root, base: "base", git: gitFor(recalled), run: green, strictRecall: true });
   assert.ok(used.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(used.errors));
-  const exercised = checkChangeContract({ root, base: "base", git: gitFor(`${recalled}\nAt-risk: test/gate.test.mjs`), run: green });
+  const exercised = checkChangeContract({ root, base: "base", git: gitFor(`${recalled}\nAt-risk: test/gate.test.mjs`), run: green, strictRecall: true });
   assert.ok(!exercised.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(exercised.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -611,9 +624,9 @@ test("a recalled lesson whose gate is a command still requires its test at-risk"
     return { ok: false, out: "" };
   };
   const recalled = "Change-contract: test:lessons:red->green\nRecall: node --test test/gate.test.mjs => scripts/lib/git-cli.mjs";
-  const used = checkChangeContract({ root, base: "base", git: gitFor(recalled), run: green });
+  const used = checkChangeContract({ root, base: "base", git: gitFor(recalled), run: green, strictRecall: true });
   assert.ok(used.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(used.errors));
-  const exercised = checkChangeContract({ root, base: "base", git: gitFor(`${recalled}\nAt-risk: test/gate.test.mjs`), run: green });
+  const exercised = checkChangeContract({ root, base: "base", git: gitFor(`${recalled}\nAt-risk: test/gate.test.mjs`), run: green, strictRecall: true });
   assert.ok(!exercised.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(exercised.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -634,7 +647,7 @@ test("a check whose parent manifest is unreadable is rejected as self-authored",
     if (args[0] === "rev-list") return { ok: true, out: "0" };
     return { ok: false, out: "" };
   };
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -654,7 +667,7 @@ test("a surface path that git would quote is still checked", () => {
     if (args[0] === "rev-list") return { ok: true, out: "0" };
     return { ok: false, out: "" };
   };
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "missing-change-contract"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -674,7 +687,7 @@ test("deleting an active lesson row is detected as shrinkage", () => {
     if (args[0] === "rev-list") return { ok: true, out: "0" };
     return { ok: false, out: "" };
   };
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "lesson-shrinkage"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -686,7 +699,7 @@ test("a denied check cannot be referenced through an npm run prefix", () => {
     files: { a1: ["scripts/lib/x.mjs"] },
     baseScripts: { "changes:check": "x" },
   });
-  const report = checkChangeContract({ root, base: "base", git, run: green });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "unknown-check"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });

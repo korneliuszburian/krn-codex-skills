@@ -133,8 +133,9 @@ function outputTail(output) {
   return `; output: ${[...new Set([...failing, ...tail])].join("\n")}`;
 }
 
-export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null } = {}) {
+export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = false } = {}) {
   const errors = [];
+  const warnings = [];
   const log = git(root, ["log", "--format=%H%x1f%s%x1f%b%x1e", `${base}..${head}`]);
   if (!log.ok) return { root, commits: [], results: [], errors: [{ rule: "unreadable-range", detail: `${base}..${head}` }] };
   const commits = log.out
@@ -191,14 +192,15 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const recallTrailers = recallLines(`${commit.subject}\n${commit.body}`);
     for (const hit of recallLessons({ root, files, symbols, hot, symbolFiles })) {
       const { ids, falsifierFile, named, reconstructed } = recallBindings({ hit, lines: recallTrailers, targets: [...files, ...symbols] });
+      const record = strictRecall ? errors : warnings;
       if (!reconstructed) {
-        errors.push({ rule: "unreconstructed-recall", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add Recall: <${named.join(" or ") || "gate"}> => <changed file or symbol>` });
+        record.push({ rule: "unreconstructed-recall", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add Recall: <${named.join(" or ") || "gate"}> => <changed file or symbol>` });
       } else {
         const testRefs = named.flatMap((value) => [...value.matchAll(/\.?\/?[A-Za-z0-9_./-]*\.mjs/g)].map((match) => match[0].replace(/^\.\//, "")));
         const requiredTests = [...new Set([falsifierFile, ...testRefs].filter(Boolean))];
         const declaredRefs = [...contract.contracts.map((entry) => entry.ref), ...contract.atRisk];
         if (requiredTests.length > 0 && !requiredTests.some((test) => declaredRefs.includes(test))) {
-          errors.push({ rule: "unused-recall", commit: commit.sha, ref: hit.lesson, detail: `declare At-risk: ${requiredTests.join(" or ")} so the recalled lesson's test is exercised` });
+          record.push({ rule: "unused-recall", commit: commit.sha, ref: hit.lesson, detail: `declare At-risk: ${requiredTests.join(" or ")} so the recalled lesson's test is exercised` });
         }
       }
     }
@@ -274,5 +276,5 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       }
     }
   }
-  return { root, commits: commits.map((commit) => commit.sha), results, errors };
+  return { root, commits: commits.map((commit) => commit.sha), results, errors, warnings };
 }
