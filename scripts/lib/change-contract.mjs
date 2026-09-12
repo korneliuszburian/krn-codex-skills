@@ -17,7 +17,8 @@ const SURFACE = [
   /^\.github\/workflows\//,
 ];
 const DENY = new Set(["changes:check"]);
-const CONTRACT = /^(?:Change-contract|Prediction):\s*(.+?):\s*(red|green)\s*->\s*(red|green)\s*$/i;
+const CONTRACT = /^(?:Change-contract|Prediction):\s*(.+?)\s*$/i;
+const CONTRACT_PART = /^(.+?):\s*(red|green)\s*->\s*(red|green)\s*$/i;
 const NO_CHECK = /^No-check:\s*(.+?)\s*$/i;
 
 export function contractSurface(files) {
@@ -36,11 +37,14 @@ export function parseChangeContract(message) {
   for (const line of message.split("\n").map((entry) => entry.trim())) {
     const contract = CONTRACT.exec(line);
     if (contract) {
-      contracts.push({ ref: contract[1].trim(), before: contract[2].toLowerCase(), after: contract[3].toLowerCase() });
+      for (const part of contract[1].split(",")) {
+        const entry = CONTRACT_PART.exec(part.trim());
+        if (entry) contracts.push({ ref: entry[1].trim(), before: entry[2].toLowerCase(), after: entry[3].toLowerCase() });
+      }
       continue;
     }
     const risk = /^At-risk:\s*(.+?)(?::\s*(?:red|green)\s*->\s*(?:red|green))?\s*$/i.exec(line);
-    if (risk) atRisk.push(risk[1].trim());
+    if (risk) atRisk.push(...risk[1].split(",").map((ref) => ref.trim()).filter(Boolean));
     const falsifier = /^Falsifier:\s*(.+?@[0-9a-f]{7})\s*$/i.exec(line);
     if (falsifier) falsifiers.push(falsifier[1].trim());
     const skip = NO_CHECK.exec(line);

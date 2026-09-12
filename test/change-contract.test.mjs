@@ -51,6 +51,28 @@ test("parseChangeContract reads contract direction, at-risk, falsifier, and No-c
   assert.equal(parseChangeContract("No-check: docs only\n").noCheck, "docs only");
 });
 
+test("parseChangeContract accepts comma-separated refs and rejects malformed parts", () => {
+  const parsed = parseChangeContract("fix: x\n\nChange-contract: test:lessons:red->green, test:lib:red->green\n");
+  assert.deepEqual(parsed.contracts, [
+    { ref: "test:lessons", before: "red", after: "green" },
+    { ref: "test:lib", before: "red", after: "green" },
+  ]);
+  assert.equal(parseChangeContract("fix: x\n\nChange-contract: bogus\n").contracts.length, 0);
+});
+
+test("multiple comma-separated contract refs are all admitted and run", () => {
+  const root = makeRoot();
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lessons:red->green, test:lib:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:lessons": "x", "test:lib": "x" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.equal(report.errors.length, 0, JSON.stringify(report.errors));
+  assert.equal(report.results.length, 2);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });

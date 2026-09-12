@@ -26,7 +26,7 @@ back, so the lesson is strengthened or split into a distinct class.
 
 A row may carry a sixth `Trigger` column of `path:<glob>`, `symbol:<name>`, or
 `churn:<glob>` entries. Delivery is harness-evaluated, not left to the reader:
-`npm run memory recall --changed <paths>` and `--symbol <names>` return every
+`krn-codex memory recall --changed <paths>` and `--symbol <names>` return every
 lesson whose trigger matches (a `symbol:` trigger is evaluated against the
 commit's changed line ranges by `changes check`, while `memory recall --symbol`
 matches names you pass explicitly, and a `churn:` trigger fires when a
