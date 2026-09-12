@@ -386,6 +386,8 @@ test("verifyBefore requires the declared check to be red at base", () => {
   assert.ok(!redBase.errors.some((error) => error.rule === "before-state-not-red"), JSON.stringify(redBase.errors));
   const unavailable = checkChangeContract({ root, base: "base", git, run: green, verifyBefore: true, runAtBase: () => ({ unavailable: true }) });
   assert.ok(unavailable.errors.some((error) => error.rule === "before-state-unverified"), JSON.stringify(unavailable.errors));
+  const spawnFailed = checkChangeContract({ root, base: "base", git, run: green, verifyBefore: true, runAtBase: () => ({ outcome: { ok: false, spawnFailed: true } }) });
+  assert.ok(spawnFailed.errors.some((error) => error.rule === "before-state-unverified"), JSON.stringify(spawnFailed.errors));
   rmSync(root, { recursive: true, force: true });
 });
 

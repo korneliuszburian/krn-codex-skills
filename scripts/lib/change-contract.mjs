@@ -74,7 +74,8 @@ function runCheck({ root, target }) {
   const result = target.kind === "script"
     ? spawnSync("npm", ["run", target.name], { cwd: root, timeout: 600000, encoding: "utf8", env })
     : spawnSync(process.execPath, target.kind === "test" ? ["--test", target.name] : [target.name], { cwd: root, timeout: 600000, encoding: "utf8", env });
-  return { ok: result.status === 0, status: result.status, output: `${result.stdout ?? ""}${result.stderr ?? ""}` };
+  const spawnFailed = result.error !== undefined && result.error !== null || result.status === null;
+  return { ok: result.status === 0, status: result.status, spawnFailed, output: `${result.stdout ?? ""}${result.stderr ?? ""}` };
 }
 
 function checkFileRedefined(root, base, git, rel) {
@@ -119,6 +120,7 @@ function runCheckAtBase({ root, base, target, git = runGit }) {
     return { outcome: runCheck({ root: dir, target }) };
   } finally {
     git(root, ["worktree", "remove", "--force", dir]);
+    git(root, ["worktree", "prune"]);
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }
@@ -261,6 +263,8 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         const baseRun = baseRunner({ root, base, target: record.target });
         if (baseRun.unavailable) {
           errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base revision could not be materialized to prove the before-state" });
+        } else if (baseRun.outcome.spawnFailed) {
+          errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete (timeout or spawn failure), so its before-state is unproven" });
         } else {
           results.push({ ref: obligation.ref, commit: obligation.commit, phase: "base", after: "red", status: baseRun.outcome.ok ? "green" : "red" });
           if (baseRun.outcome.ok) {

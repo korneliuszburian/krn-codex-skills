@@ -27,6 +27,7 @@ test("extractSymbols scopes destructured parameters and reads export lists", () 
   assert.deepEqual(extractSymbols("export const f = ({ x }) => {\n  return x;\n};\n"), [{ name: "f", kind: "const", start: 1, end: 3 }]);
   assert.deepEqual(extractSymbols("export function* gen() {\n  yield 1;\n}\n"), [{ name: "gen", kind: "function*", start: 1, end: 3 }]);
   assert.deepEqual(extractSymbols("export const { a, b } = obj;\n").map((symbol) => symbol.name), ["a", "b"]);
+  assert.deepEqual(extractSymbols("function local() {\n  return 1;\n}\nexport { local };\n"), [{ name: "local", kind: "local", start: 1, end: 3 }]);
 });
 
 test("extractSymbols ignores braces inside strings and comments", () => {

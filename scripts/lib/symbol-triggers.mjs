@@ -55,23 +55,13 @@ export function extractSymbols(source) {
     }
     return low;
   };
-  const symbols = [];
-  for (let line = 0; line < lines.length; line += 1) {
-    const destructured = DECL_DESTRUCT.exec(lines[line]);
-    if (destructured) {
-      for (const name of destructured[1].match(/[A-Za-z_$][\w$]*/g) ?? []) {
-        symbols.push({ name, kind: "const", start: line + 1, end: line + 1 });
-      }
-      continue;
-    }
-    const match = DECL.exec(lines[line]);
-    if (!match) continue;
+  const scanSpan = (startLine) => {
     let depth = 0;
     let parens = 0;
     let opened = false;
-    let endLine = line;
+    let endLine = startLine;
     let terminated = false;
-    for (let offset = lineStart[line]; offset < source.length; offset += 1) {
+    for (let offset = lineStart[startLine]; offset < source.length; offset += 1) {
       if (!mask[offset]) continue;
       const char = source[offset];
       if (char === "(") {
@@ -99,16 +89,31 @@ export function extractSymbols(source) {
         break;
       }
     }
-    symbols.push({ name: match[2], kind: match[1], start: line + 1, end: (terminated ? endLine : lines.length - 1) + 1 });
+    return (terminated ? endLine : lines.length - 1) + 1;
+  };
+  const symbols = [];
+  for (let line = 0; line < lines.length; line += 1) {
+    const destructured = DECL_DESTRUCT.exec(lines[line]);
+    if (destructured) {
+      for (const name of destructured[1].match(/[A-Za-z_$][\w$]*/g) ?? []) {
+        symbols.push({ name, kind: "const", start: line + 1, end: scanSpan(line) });
+      }
+      continue;
+    }
+    const match = DECL.exec(lines[line]);
+    if (!match) continue;
+    symbols.push({ name: match[2], kind: match[1], start: line + 1, end: scanSpan(line) });
   }
   for (const match of source.matchAll(/export\s*\{([^}]+)\}/g)) {
     if (!mask[match.index]) continue;
+    const exportLine = lineOf(match.index);
     for (const part of match[1].split(",")) {
       const name = part.trim().split(/\s+as\s+/).pop().trim();
-      if (/^[A-Za-z_$][\w$]*$/.test(name)) {
-        const declared = symbols.find((symbol) => symbol.name === name);
-        if (!declared) symbols.push({ name, kind: "export", start: lineOf(match.index) + 1, end: lineOf(match.index) + 1 });
-      }
+      if (!/^[A-Za-z_$][\w$]*$/.test(name) || symbols.some((symbol) => symbol.name === name)) continue;
+      const escaped = name.replace(/\$/g, "\\$");
+      const localLine = lines.findIndex((text, index) => new RegExp(`(?:function\\*?|const|let|var)\\s+${escaped}\\b`).test(text) && mask[lineStart[index]]);
+      if (localLine >= 0) symbols.push({ name, kind: "local", start: localLine + 1, end: scanSpan(localLine) });
+      else symbols.push({ name, kind: "export", start: exportLine + 1, end: exportLine + 1 });
     }
   }
   return symbols;
