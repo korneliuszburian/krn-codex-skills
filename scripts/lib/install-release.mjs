@@ -340,13 +340,13 @@ export function applyInstall(plan) {
       if (existing.digest !== expected.digest || JSON.stringify(existing.runtimePaths) !== JSON.stringify(expected.runtimePaths)) {
         fail(`existing release does not match the resolved source: ${plan.release}`, EXIT_CORRUPT);
       }
-      fs.rmSync(staging, { recursive: true, force: true });
+      fs.rmSync(staging, { recursive: true, force: true, maxRetries: 50, retryDelay: 100 });
     } else {
       fs.renameSync(staging, plan.release);
     }
   } catch (error) {
     if (fs.lstatSync(staging, { throwIfNoEntry: false })) {
-      fs.rmSync(staging, { recursive: true, force: true });
+      fs.rmSync(staging, { recursive: true, force: true, maxRetries: 50, retryDelay: 100 });
     }
     throw error;
   }

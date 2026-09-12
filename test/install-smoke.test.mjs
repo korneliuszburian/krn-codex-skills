@@ -52,6 +52,6 @@ test("apply fails closed and restores current when the installed CLI cannot star
     else process.env.KRN_SKILLS_DEST = previousSkills;
     if (previousBins === undefined) delete process.env.KRN_BIN_DEST;
     else process.env.KRN_BIN_DEST = previousBins;
-    fs.rmSync(base, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    fs.rmSync(base, { recursive: true, force: true, maxRetries: 50, retryDelay: 100 });
   }
 });
