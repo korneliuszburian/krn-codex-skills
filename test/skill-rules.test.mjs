@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
+import { contractBudgetErrors } from "../scripts/lib/contract-budget.mjs";
 import {
   lineLimitErrors,
   openaiYamlErrors,
@@ -147,4 +149,15 @@ test("lineLimitErrors reports only over-limit content", () => {
     lineLimitErrors({ label: "s/SKILL.md", lineCount: 181, max: 180, suffix: "; disclose branch detail" }),
     ["s/SKILL.md exceeds 180 lines; disclose branch detail"],
   );
+});
+
+test("contractBudgetErrors reports over-long lines and words", () => {
+  assert.deepEqual(contractBudgetErrors({ label: "x", text: "short line\n", maxLineChars: 10, maxWords: 10 }), []);
+  assert.ok(contractBudgetErrors({ label: "x", text: "a".repeat(11), maxLineChars: 10, maxWords: 10 }).some((error) => error.includes("characters")));
+  assert.ok(contractBudgetErrors({ label: "x", text: "a b c", maxLineChars: 100, maxWords: 2 }).some((error) => error.includes("words")));
+});
+
+test("the always-loaded contract stays within its information budget", () => {
+  const text = readFileSync(join("config", "AGENTS.md"), "utf8");
+  assert.deepEqual(contractBudgetErrors({ label: "config/AGENTS.md", text, maxLineChars: 320, maxWords: 620 }), []);
 });

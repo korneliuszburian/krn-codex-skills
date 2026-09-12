@@ -37,8 +37,9 @@ A symlinked skill counts only when its resolved `SKILL.md` exists, so a dangling
 symlink is not reported as a capability. The same skill name found in two roots
 is listed once per scope and is not deduplicated, because scope drives profile
 reconciliation; this double-counts a name that two roots share. The always-loaded
-contract (`config/AGENTS.md`) is 55 lines and 5722 bytes, and `validate` caps it
-at 60 lines.
+contract (`config/AGENTS.md`) is bounded by an information budget, not only a
+line count: `validate` caps it at 60 lines, 620 words, and 320 characters per
+line, so the always-loaded file cannot regrow through unwrapped prose.
 
 ## Profiles
 

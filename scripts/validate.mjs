@@ -8,6 +8,7 @@ import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
 import { ABI_LABELS } from "./lib/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/durable-pages.mjs";
 import { checkLessons } from "./lib/lessons.mjs";
+import { contractBudgetErrors } from "./lib/contract-budget.mjs";
 import { runtimeClosureErrors } from "./lib/runtime-closure.mjs";
 import {
   lineLimitErrors,
@@ -364,6 +365,15 @@ if (globalAgentsPathSafe) {
     label: manifest.global_agents,
     lineCount: lineCount(path.join(root, manifest.global_agents)),
     max: 60,
+  })) {
+    fail(message);
+  }
+  const globalAgentsText = fs.readFileSync(path.join(root, manifest.global_agents), "utf8");
+  for (const message of contractBudgetErrors({
+    label: manifest.global_agents,
+    text: globalAgentsText,
+    maxLineChars: 320,
+    maxWords: 620,
   })) {
     fail(message);
   }
