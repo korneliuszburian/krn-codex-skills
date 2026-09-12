@@ -223,6 +223,43 @@ test("quoted spaced and deleted test files a declared script runs are self-autho
   }
 });
 
+test("quoted names with the other quote and literal metachar names are caught", () => {
+  const cases = [
+    { script: `node --test "test/a'b.test.mjs"`, file: "test/a'b.test.mjs" },
+    { script: `node --test 'test/a"b.test.mjs'`, file: 'test/a"b.test.mjs' },
+    { script: `node --test "test/[ab].test.mjs"`, file: "test/[ab].test.mjs" },
+    { script: "node --test test/", file: "test/a.test.mjs" },
+  ];
+  for (const { script, file } of cases) {
+    const root = makeRoot({ "test:g": script });
+    const git = fakeGit({
+      commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:g:red->green" }],
+      files: { a1: ["scripts/lib/x.mjs"] },
+      baseScripts: { "test:g": script },
+      trees: { base: [file], HEAD: [file] },
+      blobs: { [`base:${file}`]: "aaa", [`head:${file}`]: "bbb" },
+    });
+    const report = checkChangeContract({ root, base: "base", git, run: green });
+    assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), `${script}: ${JSON.stringify(report.errors)}`);
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("an npm run chain that reaches a gutted test is self-authorized", () => {
+  const scripts = { "test:g": "npm run test:inner", "test:inner": "node --test test/a.test.mjs" };
+  const root = makeRoot(scripts);
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:g:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: scripts,
+    trees: { base: ["test/a.test.mjs"], HEAD: ["test/a.test.mjs"] },
+    blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });
