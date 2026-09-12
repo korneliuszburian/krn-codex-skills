@@ -218,11 +218,10 @@ test("quoted spaced and deleted test files a declared script runs are self-autho
   }
 });
 
-test("quoted names with the other quote and literal metachar names are caught", () => {
+test("quoted names with the other quote are caught and metachar names fail closed", () => {
   const cases = [
     { script: `node --test "test/a'b.test.mjs"`, file: "test/a'b.test.mjs" },
     { script: `node --test 'test/a"b.test.mjs'`, file: 'test/a"b.test.mjs' },
-    { script: `node --test "test/[ab].test.mjs"`, file: "test/[ab].test.mjs" },
     { script: "node --test test/", file: "test/a.test.mjs" },
   ];
   for (const { script, file } of cases) {
@@ -238,6 +237,14 @@ test("quoted names with the other quote and literal metachar names are caught", 
     assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), `${script}: ${JSON.stringify(report.errors)}`);
     rmSync(root, { recursive: true, force: true });
   }
+  const root = makeRoot({ "test:g": `node --test "test/[ab].test.mjs"` });
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:g:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:g": `node --test "test/[ab].test.mjs"` },
+  });
+  assert.ok(checkChangeContract({ root, base: "base", git, run: green }).errors.some((error) => error.detail.includes("not a literal")), "metachar tokens fail closed");
+  rmSync(root, { recursive: true, force: true });
 });
 
 test("gutting the entry script a declared check runs is self-authorized", () => {
@@ -280,6 +287,23 @@ test("a bare node --test resolves to the default test glob", () => {
   const report = checkChangeContract({ root, base: "base", git, run: green });
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("redefined")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
+});
+
+test("shell nesting, variables, and env prefixes fail closed", () => {
+  const cases = ['sh -c "node --test test/a.test.mjs"', "bash -c 'node --test test/a.test.mjs'", "TEST=test/a.test.mjs node --test $TEST", "node --test $PWD/test/a.test.mjs"];
+  for (const script of cases) {
+    const root = makeRoot({ "test:g": script });
+    const git = fakeGit({
+      commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:g:red->green" }],
+      files: { a1: ["scripts/lib/x.mjs"] },
+      baseScripts: { "test:g": script },
+      trees: { base: ["test/a.test.mjs"], HEAD: ["test/a.test.mjs"] },
+      blobs: { "base:test/a.test.mjs": "aaa", "head:test/a.test.mjs": "bbb" },
+    });
+    const report = checkChangeContract({ root, base: "base", git, run: green });
+    assert.ok(report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("not a literal")), `${script}: ${JSON.stringify(report.errors)}`);
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("a surface commit without a contract fails closed", () => {

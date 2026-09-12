@@ -56,7 +56,7 @@ function triggerGlobs(trigger) {
     .map((entry) => entry.slice("path:".length).replace(/^\.\//, ""));
 }
 
-export function globToRegex(glob) {
+function globToRegex(glob) {
   let out = "^";
   for (let index = 0; index < glob.length; index += 1) {
     const char = glob[index];

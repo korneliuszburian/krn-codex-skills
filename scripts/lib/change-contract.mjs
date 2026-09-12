@@ -3,7 +3,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { runGit } from "./git-cli.mjs";
-import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings, globToRegex } from "./lessons.mjs";
+import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings } from "./lessons.mjs";
 import { touchedSymbols } from "./symbol-triggers.mjs";
 import { churnHot } from "./churn.mjs";
 
@@ -82,34 +82,28 @@ function checkFileRedefined(root, base, git, rel) {
   return before.ok && (!now.ok || before.out.trim() !== now.out.trim());
 }
 
-function listFiles(root, base, git, pattern) {
-  const regex = globToRegex(pattern);
+function listTestFiles(root, base, git) {
   const names = new Set();
   for (const ref of [base, "HEAD"]) {
     const result = git(root, ["ls-tree", "-r", "-z", "--name-only", ref]);
     if (result.ok) for (const name of result.out.split("\0")) if (name.trim()) names.add(name.trim());
   }
-  return [...names].filter((name) => regex.test(name));
+  return [...names].filter((name) => name.startsWith("test/") && name.endsWith(".test.mjs"));
 }
 
 function scriptRedefinition(root, base, git, command) {
+  if (/[*?\[]/.test(command) || /[$`|;&<>]/.test(command) || /(^|\s)(sh|bash|zsh)\s+-c(\s|$)/.test(command) || /(^|\s)npm\s+run(\s|$)/.test(command)) {
+    return "non-literal";
+  }
   const files = [];
-  let nonLiteral = /(^|\s)npm\s+run(\s|$)/.test(command);
-  for (const match of command.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)) {
-    const quoted = match[1] !== undefined || match[2] !== undefined;
-    const token = (match[1] ?? match[2] ?? match[3]).replace(/\\/g, "/").replace(/^\.\//, "");
-    if (!quoted && /[*?\[]/.test(token)) {
-      nonLiteral = true;
-      continue;
-    }
-    if (/\.(mjs|js|cjs|sh)$/.test(token) && !token.startsWith("-")) files.push(token);
+  for (const match of command.matchAll(/"([^"]+\.(?:mjs|js|cjs|sh))"|'([^']+\.(?:mjs|js|cjs|sh))'/g)) {
+    files.push((match[1] ?? match[2]).replace(/^\.\//, ""));
   }
-  if (nonLiteral) return "non-literal";
-  if (files.length === 0 && /(^|\s)--test(\s|$)/.test(command)) files.push("test/**/*.test.mjs");
-  for (const rel of files) {
-    const matches = rel.includes("*") ? listFiles(root, base, git, rel) : [rel];
-    for (const match of matches) if (checkFileRedefined(root, base, git, match)) return "redefined";
+  for (const match of command.matchAll(/(?:^|[\s=])([^\s=]+\.(?:mjs|js|cjs|sh))(?=$|[\s])/g)) {
+    files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
   }
+  if (files.length === 0 && /(^|\s)--test(\s|$)/.test(command)) files.push(...listTestFiles(root, base, git));
+  for (const rel of files) if (checkFileRedefined(root, base, git, rel)) return "redefined";
   return "clean";
 }
 
