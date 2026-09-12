@@ -80,7 +80,7 @@ Gate: \`krn-codex skills check --root .\`
 
 export function exportSkills({ source, upstream, root }) {
   if (!source || !root) throw new Error("skills export requires the harness source and the destination root");
-  const skillsDir = path.join(root, ".agents", "skills");
+  const finalDir = path.join(root, ".agents", "skills");
   const manifest = readJson(path.join(source, "skills", "manifest.json"));
   const lock = readJson(path.join(source, "config", "upstream-sources.json"));
   const upstreamPin = upstreamSource(lock);
@@ -95,18 +95,26 @@ export function exportSkills({ source, upstream, root }) {
   if (upstreamHead !== upstreamPin.commit) {
     throw new Error(`upstream checkout is at ${upstreamHead || "unknown"}, expected ${upstreamPin.commit}`);
   }
+  const upstreamDirty = git(resolvedUpstream, ["status", "--porcelain", "--untracked-files=no"]);
+  if (upstreamDirty) {
+    throw new Error(`upstream checkout has uncommitted changes; export from the pinned revision`);
+  }
   const krnCommit = harnessCommit(source);
 
-  if (fs.existsSync(skillsDir)) {
-    const marker = path.join(skillsDir, MARKER);
+  const skillsDir = `${finalDir}.staging-${process.pid}-${Date.now()}`;
+  let preserved = null;
+  if (fs.existsSync(finalDir)) {
+    const marker = path.join(finalDir, MARKER);
     if (!fs.existsSync(marker)) {
-      throw new Error(`${skillsDir} exists without ${MARKER}; refusing to overwrite foreign content`);
+      throw new Error(`${finalDir} exists without ${MARKER}; refusing to overwrite foreign content`);
     }
-    fs.rmSync(skillsDir, { recursive: true, force: true });
+    preserved = `${finalDir}.backup-${process.pid}-${Date.now()}`;
   }
+  fs.rmSync(skillsDir, { recursive: true, force: true });
   fs.mkdirSync(skillsDir, { recursive: true });
 
   const skills = [];
+  try {
   const manifestSkills = Array.isArray(manifest.harness_skills) && manifest.harness_skills.length > 0
     ? manifest.skills.filter((skill) => manifest.harness_skills.includes(skill.name))
     : manifest.skills;
@@ -127,29 +135,42 @@ export function exportSkills({ source, upstream, root }) {
   const license = path.join(resolvedUpstream, "LICENSE");
   if (fs.existsSync(license)) fs.copyFileSync(license, path.join(skillsDir, "UPSTREAM-LICENSE"));
   const digests = Object.fromEntries(
-    skills.map((skill) => [skill.name, directoryDigest(path.join(skillsDir, skill.name))]),
-  );
+      skills.map((skill) => [skill.name, directoryDigest(path.join(skillsDir, skill.name))]),
+    );
 
-  fs.writeFileSync(
-    path.join(skillsDir, "README.md"),
-    renderCatalog({ skills, krnCommit, upstream: { id: upstreamPin.id, commit: upstreamPin.commit } }),
-  );
-  fs.writeFileSync(
-    path.join(skillsDir, MARKER),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        krn: { commit: krnCommit },
-        upstream: { id: upstreamPin.id, commit: upstreamPin.commit },
-        skills: skills.map((skill) => skill.name).sort(),
-        digests,
-      },
-      null,
-      2,
-    )}\n`,
-  );
+    fs.writeFileSync(
+      path.join(skillsDir, "README.md"),
+      renderCatalog({ skills, krnCommit, upstream: { id: upstreamPin.id, commit: upstreamPin.commit } }),
+    );
+    fs.writeFileSync(
+      path.join(skillsDir, MARKER),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          krn: { commit: krnCommit },
+          upstream: { id: upstreamPin.id, commit: upstreamPin.commit },
+          skills: skills.map((skill) => skill.name).sort(),
+          digests,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  } catch (error) {
+    fs.rmSync(skillsDir, { recursive: true, force: true });
+    throw error;
+  }
+  try {
+    if (preserved) fs.renameSync(finalDir, preserved);
+    fs.renameSync(skillsDir, finalDir);
+  } catch (error) {
+    if (preserved && !fs.existsSync(finalDir)) fs.renameSync(preserved, finalDir);
+    fs.rmSync(skillsDir, { recursive: true, force: true });
+    throw error;
+  }
+  if (preserved) fs.rmSync(preserved, { recursive: true, force: true });
 
-  return { root, skillsDir, skills: skills.length, krnCommit, upstreamCommit: upstreamPin.commit };
+  return { root, skillsDir: finalDir, skills: skills.length, krnCommit, upstreamCommit: upstreamPin.commit };
 }
 
 export function checkSkills({ root }) {

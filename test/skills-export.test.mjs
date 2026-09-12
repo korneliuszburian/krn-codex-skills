@@ -195,6 +195,32 @@ test("re-export regenerates a previous export", () => {
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
+test("a failed export leaves the previous export intact", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  const skillsDir = path.join(f.root, ".agents", "skills");
+  const markerBefore = fs.readFileSync(path.join(skillsDir, ".krn-export.json"), "utf8");
+  // Point a KRN harness skill at a missing path so the build fails mid-copy (upstream stays clean and pinned).
+  fs.writeFileSync(
+    path.join(f.source, "skills", "manifest.json"),
+    `${JSON.stringify({ schema_version: 1, harness_skills: ["local", "ghost"], skills: [{ name: "local", path: "skills/meta/local", implicit: true }, { name: "extra", path: "skills/meta/extra", implicit: false }, { name: "ghost", path: "skills/meta/ghost", implicit: false }] }, null, 2)}\n`,
+  );
+  assert.throws(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }));
+  assert.equal(fs.readFileSync(path.join(skillsDir, ".krn-export.json"), "utf8"), markerBefore, "the previous export marker survives a failed build");
+  assert.ok(fs.existsSync(path.join(skillsDir, "one", "SKILL.md")), "the previous export bytes survive a failed build");
+  const leftovers = fs.readdirSync(path.join(f.root, ".agents")).filter((name) => name.startsWith("skills."));
+  assert.deepEqual(leftovers, [], `no staging/backup dirs should remain: ${leftovers}`);
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
+test("a dirty upstream checkout is refused", () => {
+  const f = fixture();
+  const tracked = path.join(f.upstream, "skills", "eng", "two", "SKILL.md");
+  fs.appendFileSync(tracked, "\nlocal edit\n");
+  assert.throws(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }), /uncommitted changes/);
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
 test("check reports each structural failure in the export tree", () => {
   const f = fixture();
   const skillsDir = path.join(f.root, ".agents", "skills");
