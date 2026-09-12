@@ -17,6 +17,15 @@ function contained(root, file) {
   }
 }
 
+export function tapCasePassed(output, name) {
+  return output.split("\n").some((line) => {
+    const tap = /^\s*ok \d+ - (.+?)\s*$/.exec(line);
+    if (!tap) return false;
+    const label = tap[1].trim();
+    return label === name || label.endsWith(`> ${name}`) || label.endsWith(`::${name}`) || label.endsWith(`:: ${name}`);
+  });
+}
+
 function runCase({ root, file, name, timeout }) {
   const env = { ...process.env, KRN_LESSONS_VERIFY: "0" };
   delete env.NODE_TEST_CONTEXT;
@@ -27,11 +36,7 @@ function runCase({ root, file, name, timeout }) {
     env,
   });
   const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
-  const matched = output.split("\n").some((line) => {
-    const tap = /^ok \d+ - (.*)$/.exec(line);
-    return tap && tap[1].trim() === name;
-  });
-  return { ok: result.status === 0 && matched, status: result.status, output };
+  return { ok: result.status === 0 && tapCasePassed(output, name), status: result.status, output };
 }
 
 export function verifyLessons({ root, timeout = 120000, runner = runCase, force = false } = {}) {
@@ -40,11 +45,16 @@ export function verifyLessons({ root, timeout = 120000, runner = runCase, force 
   const errors = report.errors ?? [];
   const results = [];
   for (const lesson of report.lessons.filter((entry) => !entry.status)) {
-    const match = TOKEN.exec((lesson.falsifier ?? "").replace(/`/g, "").trim());
-    if (!match) continue;
+    const raw = (lesson.falsifier ?? "").replace(/`/g, "").trim();
+    if (!raw) continue;
+    const match = TOKEN.exec(raw);
+    if (!match) {
+      results.push({ lesson: lesson.lesson, status: "fail", reason: "falsifier does not parse as <file>::<case>@<sha>" });
+      continue;
+    }
     const [, file, name] = match;
     if (/[\u0000-\u001f\u007f]/.test(name) || !contained(root, file)) {
-      results.push({ lesson: lesson.lesson, file, case: name, status: "skipped", reason: "unsafe or uncontained proof target" });
+      results.push({ lesson: lesson.lesson, file, case: name, status: "fail", reason: "unsafe or uncontained proof target" });
       continue;
     }
     const outcome = runner({ root, file: path.join(root, file), name, timeout });

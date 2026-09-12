@@ -5,7 +5,16 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { checkLessons } from "../scripts/lib/lessons.mjs";
-import { verifyLessons } from "../scripts/lib/lessons-verify.mjs";
+import { verifyLessons, tapCasePassed } from "../scripts/lib/lessons-verify.mjs";
+
+test("tapCasePassed accepts plain and nested reporter labels and rejects missing cases", () => {
+  assert.equal(tapCasePassed("ok 1 - probe\n", "probe"), true);
+  assert.equal(tapCasePassed("    ok 1 - test/x.test.mjs > probe\n", "probe"), true);
+  assert.equal(tapCasePassed("ok 1 - test/x.test.mjs::probe\n", "probe"), true);
+  assert.equal(tapCasePassed("ok 1 - other\n", "probe"), false);
+  assert.equal(tapCasePassed("not ok 1 - probe\n", "probe"), false);
+  assert.equal(tapCasePassed("", "probe"), false);
+});
 
 function makeRoot(proofSource) {
   const root = mkdtempSync(join(tmpdir(), "krn-verify-"));
@@ -59,7 +68,7 @@ test("a case name is matched exactly, not as a substring", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test("a traversal out of the test directory is skipped, not executed", () => {
+test("a traversal out of the test directory fails closed", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-verify-"));
   mkdirSync(join(root, "docs", "research"), { recursive: true });
   mkdirSync(join(root, "scripts"), { recursive: true });
@@ -69,7 +78,7 @@ test("a traversal out of the test directory is skipped, not executed", () => {
     join(root, "docs", "research", "workflow-lessons.md"),
     "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n| A | probe | `test:state` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | `test/../scripts/x.mjs::probe@abcdef0` |\n",
   );
-  assert.equal(verifyLessons({ root }).results[0].status, "skipped");
+  assert.equal(verifyLessons({ root }).results[0].status, "fail");
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -96,7 +105,7 @@ test("a proof outside test/ is rejected and never executed", () => {
     "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n| A | probe | `test:state` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | `scripts/x.mjs::probe@abcdef0` |\n",
   );
   assert.ok(checkLessons({ root }).errors.some((error) => error.includes("executable")), "a non-executable proof is a blocking error");
-  assert.equal(verifyLessons({ root }).results[0].status, "skipped");
+  assert.equal(verifyLessons({ root }).results[0].status, "fail");
   rmSync(root, { recursive: true, force: true });
 });
 

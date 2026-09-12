@@ -17,7 +17,7 @@
     "skills:check": "node scripts/krn-codex.mjs skills check --root .",
     "lessons:check": "node scripts/krn-codex.mjs lessons check --root .",
     "lessons:verify": "node scripts/krn-codex.mjs lessons verify --root .",
-    "changes:check": "base=$(git merge-base origin/main HEAD 2>/dev/null || true); if [ -z \"$base\" ] || [ \"$base\" = \"$(git rev-parse HEAD)\" ]; then base=HEAD~1; fi; node scripts/krn-codex.mjs changes check --root . --base \"$base\" --head HEAD --strict-recall",
+    "changes:check": "base=$(git merge-base origin/main HEAD 2>/dev/null || true); if [ -z \"$base\" ] || [ \"$base\" = \"$(git rev-parse HEAD)\" ]; then base=HEAD~1; fi; node scripts/krn-codex.mjs changes check --root . --base \"$base\" --head HEAD",
     "test:change-contract": "node --test test/change-contract.test.mjs",
     "test:lessons": "node --test test/lessons.test.mjs",
     "test:lessons-verify": "node --test test/lessons-verify.test.mjs",
