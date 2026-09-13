@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-import re
 import stat
 
 
@@ -323,9 +322,6 @@ def redirection_denial_reason(command: str, cwd: Path) -> str | None:
         if reason is not None:
             return f"overwrite of a protected path is blocked: {reason}"
     return None
-
-
-WRITER_COMMANDS = {"cp", "install", "mv", "truncate"}
 
 
 def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:

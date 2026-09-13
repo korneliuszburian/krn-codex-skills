@@ -24,6 +24,11 @@ test("validSkillName accepts only lowercase dash names", () => {
   assert.equal(validSkillName("a_b"), false);
   assert.equal(validSkillName(""), false);
   assert.equal(validSkillName(undefined), false);
+  assert.equal(validSkillName("foo-bar"), true);
+  assert.equal(validSkillName("foo--bar"), false);
+  assert.equal(validSkillName("foo-"), false);
+  assert.equal(validSkillName("-foo"), false);
+  assert.equal(validSkillName("a".repeat(65)), false);
 });
 
 test("parseSkillFrontmatter reads name and description up to the closer", () => {

@@ -4,7 +4,11 @@ export function sanitizeMetadataValue(value) {
 }
 
 export function validSkillName(value) {
-  return typeof value === "string" && /^[a-z0-9][a-z0-9-]*$/.test(value);
+  return (
+    typeof value === "string" &&
+    value.length <= 64 &&
+    /^[a-z0-9](?:-?[a-z0-9])*$/.test(value)
+  );
 }
 
 export function parseSkillFrontmatter(prefix) {

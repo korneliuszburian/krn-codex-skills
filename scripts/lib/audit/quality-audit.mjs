@@ -2,7 +2,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join, relative, sep } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
-import { maskLiterals, maskTemplates, stripComments } from "../support/source-mask.mjs";
+import { maskLiterals, stripComments } from "../support/source-mask.mjs";
 
 const SELF = "scripts/lib/audit/quality-audit.mjs";
 
