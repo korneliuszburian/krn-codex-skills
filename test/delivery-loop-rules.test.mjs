@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   capsuleAbiErrors,
@@ -56,4 +58,12 @@ test("transitionErrors checks known handlers, duplicates, and baseline coverage"
     transitionErrors(row("alpha"), { knownHandlers: known, baseline: new Set() }),
     ["transitions: handler alpha is not in the harness baseline"],
   );
+});
+
+test("delivery-loop names the composed-review handoff scope and tracker state", () => {
+  const skillFile = fileURLToPath(new URL("../skills/engineering/delivery-loop/SKILL.md", import.meta.url));
+  const text = readFileSync(skillFile, "utf8");
+  for (const token of ["`<fixed-point>...HEAD`", "tracker=none", "working tree"]) {
+    assert.ok(text.includes(token), `delivery-loop must name ${token} in the review handoff`);
+  }
 });

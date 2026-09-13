@@ -124,6 +124,13 @@ hosts own their mechanics and policy.
    `code-review` the outcome/spec, bounded diff, instructions, proof and gaps,
    non-goals, and authority state.
 
+   The composed reviewer defaults to `<fixed-point>...HEAD`, which excludes the
+   working tree, and expects a tracker document. Supply the review scope
+   explicitly (a base that contains the intended work, or the fingerprinted
+   working tree), the acceptance/spec, and `tracker=none` when no tracker is
+   configured; a working-tree review must say so rather than rely on the
+   default. Do not fork the upstream procedure in this repository.
+
    A mechanical, low-risk 0-budget slice records its cheapest evidence and skips
    fixed-point review only when it changes no behavior, authority, security, or
    spec/acceptance surface; every other slice and explicit review requires it.
