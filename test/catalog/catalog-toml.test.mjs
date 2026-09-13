@@ -76,6 +76,15 @@ test("parseDocument builds blocks and rejects managed root assignments", () => {
   assert.throws(() => parseDocument("mcp_servers = 1\n"), /Managed TOML owners must use supported table syntax/);
 });
 
+test("parseDocument ignores managed-looking headers inside multi-line strings", () => {
+  const basic = 'developer_instructions = """\n[plugins."remember@x"]\nenabled = true\n"""\n\n[plugins.real]\nenabled = true\n';
+  assert.deepEqual(parseDocument(basic).blocks.map(({ kind, id }) => ({ kind, id })), [{ kind: "plugin", id: "real" }]);
+  const literal = "notes = '''\n[mcp_servers.demo]\nenabled = true\n'''\n";
+  assert.deepEqual(parseDocument(literal).blocks, []);
+  const sameLineOpenClose = 'help = """[skills.config]\npath = "x" """\n[mcp_servers.after]\n';
+  assert.deepEqual(parseDocument(sameLineOpenClose).blocks.map(({ kind, id }) => ({ kind, id })), [{ kind: "mcp", id: "after" }]);
+});
+
 test("parseAssignment reads key, prefix, and value", () => {
   assert.deepEqual(parseAssignment("  enabled = true # note"), {
     key: "enabled",

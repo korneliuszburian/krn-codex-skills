@@ -192,24 +192,68 @@ export function parseHeader(content) {
   return { kind: "other" };
 }
 
+function advanceMultilineState(content, mode) {
+  let index = 0;
+  let current = mode;
+  while (index < content.length) {
+    if (current === "'''") {
+      const close = content.indexOf("'''", index);
+      if (close === -1) return current;
+      index = close + 3;
+      current = null;
+      continue;
+    }
+    if (current === "\"\"\"") {
+      if (content[index] === "\\") index += 2;
+      else if (content.startsWith("\"\"\"", index)) { index += 3; current = null; }
+      else index += 1;
+      continue;
+    }
+    const character = content[index];
+    if (character === "#") return null;
+    if (character === "\"") {
+      if (content.startsWith("\"\"\"", index)) { current = "\"\"\""; index += 3; continue; }
+      index += 1;
+      while (index < content.length) {
+        if (content[index] === "\\") index += 2;
+        else if (content[index] === "\"") { index += 1; break; }
+        else index += 1;
+      }
+      continue;
+    }
+    if (character === "'") {
+      if (content.startsWith("'''", index)) { current = "'''"; index += 3; continue; }
+      index += 1;
+      while (index < content.length && content[index] !== "'") index += 1;
+      if (index < content.length) index += 1;
+      continue;
+    }
+    index += 1;
+  }
+  return current;
+}
+
 export function parseDocument(source) {
   const lines = splitLines(source);
   const headers = [];
   let insideTable = false;
+  let multiline = null;
 
   for (let index = 0; index < lines.length; index += 1) {
-    const header = parseHeader(lines[index].content);
-    if (header) {
-      insideTable = true;
-      headers.push({ ...header, lineIndex: index });
-      continue;
+    const content = lines[index].content;
+    if (multiline === null) {
+      const header = parseHeader(content);
+      if (header) {
+        insideTable = true;
+        headers.push({ ...header, lineIndex: index });
+      } else if (!insideTable && looksLikeManagedRootAssignment(content)) {
+        throw new ConfigReconcileError(
+          "Managed TOML owners must use supported table syntax",
+          { code: "CONFIG_AMBIGUOUS_MANAGED_ASSIGNMENT" },
+        );
+      }
     }
-    if (!insideTable && looksLikeManagedRootAssignment(lines[index].content)) {
-      throw new ConfigReconcileError(
-        "Managed TOML owners must use supported table syntax",
-        { code: "CONFIG_AMBIGUOUS_MANAGED_ASSIGNMENT" },
-      );
-    }
+    multiline = advanceMultilineState(content, multiline);
   }
 
   const blocks = headers.map((header, index) => {
