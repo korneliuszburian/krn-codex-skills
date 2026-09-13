@@ -72,6 +72,20 @@ test("rejects a symlinked leaf or parent with CATALOG_PATH_SYMLINK", async () =>
   });
 });
 
+test("rejects a configured root that hides a symlink behind .. traversal", async () => {
+  await withRoot(async (root) => {
+    mkdirSync(path.join(root, "skills"));
+    mkdirSync(path.join(root, "elsewhere", "skills", "hidden"), { recursive: true });
+    writeFileSync(path.join(root, "elsewhere", "skills", "hidden", "SKILL.md"), "---\nname: hidden\ndescription: demo\n---\n");
+    symlinkSync(path.join(root, "elsewhere"), path.join(root, "bridge"));
+    const masked = `${root}/bridge/../skills`;
+    await assert.rejects(
+      requireDirectoryWithoutSymlinks(masked, { label: "root" }),
+      (error) => error.code === "CATALOG_PATH_TRAVERSAL",
+    );
+  });
+});
+
 test("covers the file helper's missing, allowMissing, and symlink behavior", async () => {
   await withRoot(async (root) => {
     const missing = path.join(root, "nope.txt");

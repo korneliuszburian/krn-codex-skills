@@ -47,6 +47,25 @@ test("state check and spine discovery keep their distinct capsule diagnostics", 
   }
 });
 
+test("the store-error id is preserved on both consumers", () => {
+  const { root } = makeRepo();
+  try {
+    const base = join(root, ".krn", "runs");
+    rmSync(join(base, "delivery-loop"), { recursive: true, force: true });
+    writeFileSync(join(base, "delivery-loop"), "not a directory\n");
+    const state = inspectSpineState({ repo: root });
+    assert.deepEqual(
+      state.errors.filter((error) => error.rule === "unreadable-capsule-store"),
+      [{ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop is not a directory" }],
+    );
+    assert.deepEqual(capsuleIdsDetailed(root).errors, [
+      { rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop is not a directory" },
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("state check honors --root instead of ignoring it", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-state-root-"));
   const result = spawnSync(process.execPath, [cli, "state", "check", "--root", root, "--json"], { encoding: "utf8" });
