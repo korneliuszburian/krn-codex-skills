@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import test from "node:test";
 
-import { applyInstall, createInstallPlan, inspectInstall } from "../scripts/lib/install-release.mjs";
+import { applyInstall, createInstallPlan, inspectInstall, pruneReleases } from "../scripts/lib/install-release.mjs";
 
 const sourceRoot = process.cwd();
 
@@ -128,4 +128,21 @@ test("applyInstall refuses a symlinked managed destination root", () => {
       /symlinked managed destination root/,
     );
   });
+});
+
+test("pruneReleases keeps the newest N plus the current target", () => {
+  const base = fs.realpathSync(mkdtempSync(join(tmpdir(), "krn-prune-")));
+  const releaseRoot = join(base, "krn");
+  const releases = join(releaseRoot, "releases");
+  for (const [index, name] of ["old1", "old2", "new1"].entries()) {
+    mkdirSync(join(releases, name), { recursive: true });
+    fs.utimesSync(join(releases, name), new Date(index * 1000), new Date(index * 1000));
+  }
+  mkdirSync(releaseRoot, { recursive: true });
+  symlinkSync(join("releases", "new1"), join(releaseRoot, "current"));
+  const report = pruneReleases({ codexHome: base, keep: 1 });
+  assert.deepEqual(report.removed.sort(), ["old1", "old2"], JSON.stringify(report));
+  assert.ok(fs.existsSync(join(releases, "new1")));
+  assert.ok(!fs.existsSync(join(releases, "old1")));
+  rmSync(base, { recursive: true, force: true });
 });

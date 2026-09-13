@@ -122,6 +122,12 @@ Skill frontmatter descriptions route admission; `agents/openai.yaml` owns the
 interface and invocation policy. README is the only human skill catalog; there
 are no hand-maintained per-skill mirror pages.
 
+## Requirements
+
+Linux or macOS with Node.js >= 20 (`.nvmrc` pins 22), `git`, `bash`, `tar`,
+`python3` (hook tests), and POSIX symlink support. Windows is unsupported: the
+installer and hooks rely on symlinks, `bash`, and `tar`.
+
 ## Install
 
 ```bash
@@ -159,7 +165,7 @@ links while it reconciles them through `current`. `scripts/install.sh` remains
 a one-release `check`/`install` compatibility shim; it invokes the same CLI, and
 `npm run install:check` runs `check`.
 
-Use `krn-codex install check` for filesystem state and `krn-codex doctor` when
+`krn-codex install prune --keep N` removes superseded releases while keeping the current one and the N newest, and never removes a release a managed link still resolves into. Use `krn-codex install check` for filesystem state and `krn-codex doctor` when
 you need the distinction between an installed filesystem snapshot, a broken or
 foreign link, a legacy mutable source link, and unknown/stale session loading.
 Start a fresh Codex session after installation. Discovery is session-scoped.
@@ -215,8 +221,10 @@ the operator entrypoints; it does not duplicate the execution policy.
 AGENTS.md             source-repository editing contract
 config/               installed global contract and hook configuration
 skills/               canonical workflow owners and direct resources
-test/                 validator, install, state, catalog, and skill suites plus the bootstrap fixture
+.agents/skills/       generated skill export, verified by skills:check
 scripts/              deterministic validation, installation, hooks, and catalog
+test/                 validator, install, state, catalog, and skill suites plus the bootstrap fixture
+.github/              CI workflow that runs the change-contract and gate suites
 CONTEXT.md            compact current vocabulary and knowledge index
 docs/research/        living source-backed synthesis
 docs/adr/             earned durable decisions

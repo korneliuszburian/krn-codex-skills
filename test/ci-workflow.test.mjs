@@ -25,7 +25,12 @@ test("every gate named in AGENTS.md runs in the workflow", () => {
   assert.ok(gates.size >= 15, `expected the AGENTS.md gate block to parse, found ${gates.size}`);
   const steps = new Set([...workflow.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
   if (/krn-codex\.mjs changes check/.test(workflow)) steps.add("changes:check");
-  for (const gate of gates) assert.ok(steps.has(gate), `AGENTS.md gate ${gate} is missing from the workflow`);
+  const aggregates = new Set(["gate", "test"]);
+  for (const gate of gates) {
+    if (aggregates.has(gate)) continue;
+    assert.ok(steps.has(gate), `AGENTS.md gate ${gate} is missing from the workflow`);
+  }
+  assert.match(fs.readFileSync(path.join(root, "package.json"), "utf8"), /"gate":/, "the aggregate gate script must exist");
 });
 
 test("the gate list does not duplicate a check that validate already runs", () => {

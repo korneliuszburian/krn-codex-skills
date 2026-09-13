@@ -371,6 +371,19 @@ if (globalAgentsPathSafe) {
     fail(message);
   }
 }
+{
+  const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  const declared = new Set();
+  for (const [name, command] of Object.entries(packageJson.scripts ?? {})) {
+    if (name === "test") continue;
+    for (const match of String(command).matchAll(/test\/[A-Za-z0-9_./-]+\.test\.mjs/g)) declared.add(match[0]);
+  }
+  const actual = fs.readdirSync(path.join(root, "test"))
+    .filter((name) => name.endsWith(".test.mjs"))
+    .map((name) => `test/${name}`);
+  for (const file of actual) if (!declared.has(file)) fail(`${file} is not referenced by any npm script`);
+}
+
 if (errors.length) {
   for (const error of errors) console.error(`ERROR ${error}`);
   process.exit(1);

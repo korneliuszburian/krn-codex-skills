@@ -1,0 +1,8 @@
+Copyright (c) 2026 KRN. All rights reserved.
+
+This repository is private and unpublished. No part of it may be copied,
+distributed, or used outside KRN's own systems without written permission.
+
+It composes material from a pinned MIT-licensed upstream named in
+`config/upstream-sources.json`; that license text is retained at
+`.agents/skills/UPSTREAM-LICENSE`. See `NOTICE`.

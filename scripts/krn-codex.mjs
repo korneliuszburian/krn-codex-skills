@@ -4,7 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { applyInstall, createInstallPlan, inspectInstall } from "./lib/install-release.mjs";
+import { applyInstall, createInstallPlan, inspectInstall, pruneReleases } from "./lib/install-release.mjs";
 import { inspectSpineState } from "./lib/state-check.mjs";
 import { compileCapsule, resumeBrief } from "./lib/state-brief.mjs";
 import { checkSkills, exportSkills } from "./lib/skills-export.mjs";
@@ -27,6 +27,7 @@ const usage = `Usage:
   krn-codex install plan [--source REF|PATH] [--json]
   krn-codex install apply [--source REF|PATH] --yes [--json]
   krn-codex install check [--json]
+  krn-codex install prune [--keep N] [--json]
   krn-codex doctor [--json]
   krn-codex capability <inventory|usage|profile|plan|apply|check> [...args]
   krn-codex repo <inspect|apply> [...args]
@@ -68,6 +69,10 @@ function parseOptions(args) {
       const value = args[++index];
       if (!value) fail("--symbol requires a name list");
       options.symbols = [...(options.symbols ?? []), ...value.split(",").map((entry) => entry.trim()).filter(Boolean)];
+    } else if (arg === "--keep") {
+      const value = args[++index];
+      if (!value) fail("--keep requires a count");
+      options.keep = value;
     } else if (arg === "--head") {
       options.head = args[++index];
       if (!options.head) fail("--head requires a revision");
@@ -193,6 +198,10 @@ try {
       const report = inspectInstall();
       print(report, options.json);
       if (report.filesystem.status !== "filesystem_installed") process.exitCode = 3;
+    } else if (command === "prune") {
+      const keep = options.keep ? Number(options.keep) : 3;
+      if (!Number.isInteger(keep) || keep < 1) fail("install prune --keep must be a positive integer");
+      print(pruneReleases({ keep }), options.json);
     } else if (command === "plan" || command === "apply") {
       const plan = createInstallPlan({ source: options.source, cwd: process.cwd() });
       if (command === "plan") {

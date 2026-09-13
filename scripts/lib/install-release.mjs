@@ -472,4 +472,42 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   };
 }
 
+export function pruneReleases({ codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex"), keep = 3 } = {}) {
+  const releaseRoot = path.join(canonicalPath(codexHome), "krn");
+  const releasesDir = path.join(releaseRoot, "releases");
+  if (!fs.existsSync(releasesDir)) return { removed: [], kept: [] };
+  const currentTarget = resolvedLink(path.join(releaseRoot, "current"));
+  const candidates = fs.readdirSync(releasesDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => ({ name: entry.name, path: path.join(releasesDir, entry.name), mtime: fs.statSync(path.join(releasesDir, entry.name)).mtimeMs }))
+    .sort((left, right) => right.mtime - left.mtime);
+  const referenced = new Set();
+  const linkRoots = [
+    process.env.KRN_SKILLS_DEST || path.join(os.homedir(), ".agents", "skills"),
+    process.env.KRN_BIN_DEST || path.join(os.homedir(), ".local", "bin"),
+    path.join(codexHome, "hooks"),
+  ];
+  const noteLink = (target) => {
+    const resolved = resolvedLink(target) ?? resolvedPath(target);
+    if (resolved) referenced.add(resolved);
+  };
+  for (const root of linkRoots) {
+    const stat = fs.lstatSync(root, { throwIfNoEntry: false });
+    if (!stat) continue;
+    if (stat.isDirectory()) for (const entry of fs.readdirSync(root)) noteLink(path.join(root, entry));
+    else noteLink(root);
+  }
+  for (const file of ["AGENTS.md", "hooks.json"]) noteLink(path.join(codexHome, file));
+  const keepNames = new Set(candidates.slice(0, Math.max(keep, 1)).map((entry) => entry.name));
+  if (currentTarget) keepNames.add(path.basename(currentTarget));
+  const removed = [];
+  for (const candidate of candidates) {
+    if (keepNames.has(candidate.name)) continue;
+    if ([...referenced].some((resolved) => isInside(candidate.path, resolved))) continue;
+    fs.rmSync(candidate.path, { recursive: true, force: true });
+    removed.push(candidate.name);
+  }
+  return { removed, kept: [...keepNames].sort() };
+}
+
 export const installExitCodes = { EXIT_USAGE, EXIT_SOURCE, EXIT_CORRUPT, EXIT_COLLISION };

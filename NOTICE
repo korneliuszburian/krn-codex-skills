@@ -1,0 +1,8 @@
+NOTICE
+
+This product composes material from:
+
+- mattpocock/skills (MIT), pinned in `config/upstream-sources.json`; the
+  retained license text is at `.agents/skills/UPSTREAM-LICENSE`.
+
+All other content is KRN's own.

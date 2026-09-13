@@ -59,6 +59,9 @@ Select a verified prior release by atomically repointing `current`, restore a
 timestamped KRN-link backup only into an absent path or over its still-managed
 replacement, then restart Codex. Never overwrite a new foreign occupant. Do
 not delete a release while an installed link or session may still depend on it.
+`krn-codex install prune --keep N` automates retention: it keeps the current
+release and the N most recent, and never removes a release that a managed link
+still resolves into.
 
 If `install apply` exits 66 (`existing release is corrupt`) or `doctor` reports
 `broken_link`, `current` selects an unverified release; a dangling or foreign
