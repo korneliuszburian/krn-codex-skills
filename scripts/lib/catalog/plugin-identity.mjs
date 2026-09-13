@@ -9,7 +9,11 @@ export function pluginFamilyFromId(id) {
   return TOKEN.test(family) && TOKEN.test(marketplace) ? family : undefined;
 }
 
-export function matchesQuarantined(value, families = []) {
+export function quarantinedFamily(value, families = []) {
   const candidate = String(value ?? "").toLowerCase();
-  return families.some((family) => candidate.includes(String(family).toLowerCase()));
+  return families.find((family) => candidate.includes(String(family).toLowerCase()));
+}
+
+export function matchesQuarantined(value, families = []) {
+  return quarantinedFamily(value, families) !== undefined;
 }

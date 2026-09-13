@@ -1,4 +1,5 @@
 import { HARD_QUARANTINE_FAMILIES, isHardQuarantined } from "./catalog-profiles.mjs";
+import { quarantinedFamily } from "./plugin-identity.mjs";
 
 function sanitizeLabel(value) {
   return String(value ?? "unknown")
@@ -30,10 +31,7 @@ export function createQuarantineCollector(evidence, additionalFamilies) {
     ]),
   ];
   const matches = (value) => isHardQuarantined(value, families);
-  const familyFor = (value) => {
-    const candidate = String(value ?? "").toLowerCase();
-    return families.find((family) => candidate.includes(family));
-  };
+  const familyFor = (value) => quarantinedFamily(value, families);
   const records = new Map();
   const add = (kind, id, evidenceType, sourceId, lexicalPath) => {
     if (!matches(id) && !matches(lexicalPath)) return;

@@ -384,3 +384,14 @@ test("a decorated HEAD anchor still counts for a COMPLETE capsule", () => {
   assert.ok(!report.errors.some((error) => error.rule === "complete-without-commit-anchor"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a hex fingerprint is not a commit anchor for a COMPLETE capsule", () => {
+  const { root, head } = makeRepo();
+  writeFileSync(join(root, "blob.txt"), "content\n");
+  git(root, ["add", "blob.txt"]);
+  const blob = git(root, ["hash-object", "blob.txt"]);
+  writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `fingerprint=${blob}; dirty=clean`, friction: "none", next: "done" }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "complete-without-commit-anchor"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

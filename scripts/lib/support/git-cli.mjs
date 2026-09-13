@@ -1,18 +1,8 @@
 import { execFileSync } from "node:child_process";
 
 export function runGit(repo, args) {
-  try {
-    return {
-      ok: true,
-      out: execFileSync("git", ["-C", repo, ...args], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        maxBuffer: 512 * 1024 * 1024,
-      }).trim(),
-    };
-  } catch (error) {
-    return { ok: false, out: "", status: error?.status ?? null, signal: error?.signal ?? null, errorCode: error?.code ?? null };
-  }
+  const raw = runGitRaw(repo, args);
+  return raw.ok ? { ...raw, out: raw.out.trim() } : raw;
 }
 
 export function runGitRaw(repo, args) {

@@ -204,7 +204,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       for (const finding of fixedPointErrors(root, fixedPoint, usableGit)) {
         errors.push({ id: entry.name, ...finding });
       }
-      const commits = [...fixedPoint.replace(/[<>`]/g, "").matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
+      const commits = [...fixedPoint.replace(/[<>`]/g, "").matchAll(/\b(base|HEAD)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
       const anchorHead = fixedPointAnchors(fixedPoint).head;
       if (outcome && stripMarkup(outcome) === "COMPLETE" && commits.length === 0) {
         errors.push({ id: entry.name, rule: "complete-without-commit-anchor", detail: stripMarkup(fixedPoint) });
