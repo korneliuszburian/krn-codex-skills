@@ -25,12 +25,12 @@ untriggered row, and `lessons:verify` re-runs each named case: a failing case, o
 a pattern that matches no test, fails the command. A recurrence recorded after
 the proof commit fails closed as a gate that did not stick: the friction came
 back, so the lesson is strengthened or split into a distinct class.
-`krn-codex lessons reanchor` re-runs each stale case and bumps an anchor only
+`krn-codex lessons reanchor --root .` re-runs each stale case and bumps an anchor only
 when the named case stays green, so drift is confirmed rather than blessed.
 
 A row may carry a sixth `Trigger` column of `path:<glob>`, `symbol:<name>`, or
 `churn:<glob>` entries. Delivery is harness-evaluated, not left to the reader:
-`krn-codex memory recall --changed <paths>` and `--symbol <names>` return every
+`krn-codex memory recall --root . --changed <paths>` and `--symbol <names>` return every
 lesson whose trigger matches (a `symbol:` trigger is evaluated against the
 commit's changed line ranges by `changes check`, while `memory recall --symbol`
 matches names you pass explicitly, and a `churn:` trigger fires when a
@@ -53,8 +53,8 @@ budget, so aging is explicit instead of a silent deletion.
 |---|---|---|---|---|---|---|
 | Derive the installed runtime closure from the artifact being installed, never from the running installer version. | A release silently omitted `state-brief.mjs` and still reported `filesystem_installed`. | `runtime_paths` in `skills/manifest.json`, the post-switch CLI smoke, and `test/install/install-smoke.test.mjs`. |
 | Treat model-stated references as unverified; deterministic artifacts are authoritative. | A low-effort review misquoted a base commit SHA before self-correcting. | `config/AGENTS.md` proof rule; `manual:review` at the fixed point. |
-| Prefer proactive capsule rewrites at boundaries over window-limit autocompact. | Context-rot and compaction studies plus official harness guidance. | `skills/engineering/delivery-loop/SKILL.md` step 3; `test/state/state-check.test.mjs`. |
-| Commission review from a context that did not produce the change. | Self-preference and self-correction research, and the low-effort imitation probe. | `manual:review`; `test/state/composition.test.mjs`. |
+| Prefer proactive capsule rewrites at boundaries over window-limit autocompact. | Context-rot and compaction studies plus official harness guidance. | `skills/engineering/delivery-loop/SKILL.md` step 3. |
+| Commission review from a context that did not produce the change. | Self-preference and self-correction research, and the low-effort imitation probe. | `manual:review` at the fixed point. |
 | A budgeted surface accepts a new rule only after displacing or condensing existing text. | `config/AGENTS.md` carries a 620-word / 320-char information budget; an earlier `delivery-loop/SKILL.md` overshot its then line budget and passed only after condensing to 179. | `scripts/validate.mjs` (the contract budget). |
 | Render CLI diagnostics as text, never raw objects. | `krn-codex state check` printed `warning: [object Object]` for the first structured warning. | The readable-warning test in `test/state/state-check.test.mjs`. |
 | A new falsifier must be shown failing on the pre-change or mutated behavior before it counts. | Mutation-testing benchmarks show LLM-authored suites detect a minority of mutants, and the first structured CLI warning broke only after a probe. | The proof rule in `config/AGENTS.md` and the fixed-point review gate. |

@@ -67,6 +67,12 @@ design:
   workspace `.git` can leak a prior cell's lesson or answer to an ablation arm
   (Anthropic, demystifying evals for AI agents, 2026-01-09).
 
+- Report cost as provider-billed cost per successful task, decomposed into
+  prompt-cache write/read versus uncached input/output, not raw token counts;
+  token count and billed cost diverge when cache traffic dominates
+  (arXiv:2607.12161). Restate the gate cost result as "tokens did not separate
+  the arms", not "cost did not".
+
 Falsifiers: re-run each contrast both ways; if significance is identical under
 unadjusted McNemar and under Holm, the adjustment is unnecessary. Score one
 packet set once and 11 times; if single-pass matches the majority at >=95% and
@@ -79,7 +85,9 @@ arm-A pass count does not exceed the first, the history scrub is unnecessary.
 Run one cell at the allocation floor and at the kill ceiling; if the infra-error
 rate is 0 and the success count is identical, the resource pair is inert.
 Decompose the gate's paired variance; if data noise dominates prediction noise,
-rep-averaging cannot raise power and the reallocation is unnecessary.
+rep-averaging cannot raise power and the reallocation is unnecessary. Derive
+billed cost from the usage record and compare arm ordering under tokens versus
+cost; if they agree, the metric change is unnecessary.
 
 - bwrap floor is now available: 0.12.0 built from the official tag tarball (meson and
   ninja in a venv, libcap 2.78) and staged outside the repo; it passes a functional probe
