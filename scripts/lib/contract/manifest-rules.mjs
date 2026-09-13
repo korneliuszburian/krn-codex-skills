@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { isSafeRelativePath } from "../support/path-rules.mjs";
 
-const SKILL_PATH_GROUPS = ["engineering", "advisory", "frontend", "meta"];
+const SKILL_PATH_GROUPS = ["engineering", "advisory", "meta"];
 
 export function hookFileErrors(hookFiles, { isSafeRelativePath, inspectTarget }) {
   const errors = [];
