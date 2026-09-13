@@ -624,6 +624,25 @@ test("a self-authored test file and a denied ref both block", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a plausible but unregistered gate ref is rejected while a registered script passes", () => {
+  const root = makeRoot();
+  const baseScripts = { "test:lessons": "x", "test:lib": "x" };
+  const bad = fakeGit({
+    commits: [{ sha: "a1", subject: "fix: state", body: "Change-contract: test:contract:red->green" }],
+    files: { a1: ["scripts/lib/state/state-check.mjs"] },
+    baseScripts,
+  });
+  assert.ok(checkChangeContract({ root, base: "base", git: bad, run: green, strictRecall: true }).errors.some((error) => error.rule === "unknown-check"));
+  const ok = fakeGit({
+    commits: [{ sha: "a1", subject: "fix: state", body: "Change-contract: test:lib:red->green" }],
+    files: { a1: ["scripts/lib/state/state-check.mjs"] },
+    baseScripts,
+  });
+  const report = checkChangeContract({ root, base: "base", git: ok, run: green, strictRecall: true });
+  assert.ok(!report.errors.some((error) => error.rule === "unknown-check"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("an at-risk regression blocks", () => {
   const root = makeRoot();
   const git = fakeGit({
