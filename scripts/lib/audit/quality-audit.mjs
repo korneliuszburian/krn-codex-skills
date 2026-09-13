@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join, relative, sep } from "node:path";
+import { posixRelative } from "../support/path-rules.mjs";
 
 import { maskLiterals, maskTemplates, stripComments } from "../support/source-mask.mjs";
 
@@ -91,7 +92,7 @@ export function auditRepository(root) {
   const allFiles = [...walk(join(root, "scripts")), ...walk(join(root, "test")), ...walk(join(root, "skills"))];
   const sources = new Map(allFiles.map((file) => [file, readFileSync(file, "utf8")]));
   const runtime = [...sources.keys()].filter((file) => relative(root, file).startsWith(`scripts${sep}`));
-  const label = (file) => relative(root, file).split(sep).join("/");
+  const label = (file) => posixRelative(root, file);
   const isSelf = (file) => label(file) === SELF;
 
   const errors = [];

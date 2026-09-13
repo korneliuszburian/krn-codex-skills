@@ -1,4 +1,5 @@
-import { basename, join, relative, sep } from "node:path";
+import { basename, join, relative } from "node:path";
+import { posixRelative } from "../support/path-rules.mjs";
 
 const METADATA_SCHEMA =
   /^interface:\n  display_name: "([^"\n]+)"\n  short_description: "([^"\n]+)"\n  default_prompt: "([^"\n]+)"\npolicy:\n  allow_implicit_invocation: (true|false)\n?$/;
@@ -59,7 +60,7 @@ export function skillLayoutErrors(skill, { root, exists }) {
   const group = skill.path.split("/")[1];
   const operatorMirror = join(root, "docs", group, `${skill.name}.md`);
   if (exists(operatorMirror)) {
-    const mirrorLabel = relative(root, operatorMirror).split(sep).join("/");
+    const mirrorLabel = posixRelative(root, operatorMirror);
     errors.push(
       `${mirrorLabel}: per-skill operator mirrors are forbidden; README must link to canonical SKILL.md`,
     );

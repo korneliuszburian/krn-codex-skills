@@ -1,5 +1,6 @@
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
+import { join, resolve } from "node:path";
+import { posixRelative } from "../support/path-rules.mjs";
 
 import {
   ABI_LABELS,
@@ -19,7 +20,7 @@ import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
 
 export function normalizeRunPointer(root, pointer) {
-  return relative(root, resolve(root, pointer)).split(sep).join("/");
+  return posixRelative(root, resolve(root, pointer));
 }
 
 function fixedPointErrors(root, fixedPoint, canCheckCommits) {

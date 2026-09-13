@@ -3,6 +3,7 @@ import { GIT_LOG_FORMAT, parseGitLogRecords } from "../support/git-cli.mjs";
 import { tapName } from "../support/tap.mjs";
 import os from "node:os";
 import path from "node:path";
+import { posixRelative } from "../support/path-rules.mjs";
 import { spawnSync } from "node:child_process";
 
 import { runGit } from "../support/git-cli.mjs";
@@ -61,7 +62,7 @@ function resolveCheck(root, scripts, ref) {
   if (/^(test|scripts)\/.+\.mjs$/.test(rel) && !rel.includes("..")) {
     let real;
     try {
-      real = path.relative(fs.realpathSync(root), fs.realpathSync(path.resolve(root, rel))).split(path.sep).join("/");
+      real = posixRelative(fs.realpathSync(root), fs.realpathSync(path.resolve(root, rel)));
     } catch {
       return null;
     }

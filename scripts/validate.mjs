@@ -383,7 +383,7 @@ if (globalAgentsPathSafe) {
   const walkTests = (directory) => fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(directory, entry.name);
     if (entry.isDirectory()) return walkTests(full);
-    return entry.name.endsWith(".test.mjs") ? [path.relative(root, full).split(path.sep).join("/")] : [];
+    return entry.name.endsWith(".test.mjs") ? [posixRelative(root, full)] : [];
   });
   const actual = walkTests(path.join(root, "test"));
   for (const file of actual) if (!declared.has(file)) fail(`${file} is not referenced by any npm script`);

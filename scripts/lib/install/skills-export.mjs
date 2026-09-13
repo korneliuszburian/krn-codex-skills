@@ -3,6 +3,7 @@ import { readJson } from "../support/read-json.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { posixRelative } from "../support/path-rules.mjs";
 
 import { skillMetadata } from "./skill-metadata.mjs";
 
@@ -17,7 +18,7 @@ function directoryDigest(directory) {
       .sort((left, right) => left.name.localeCompare(right.name))
       .flatMap((entry) => {
         const full = path.join(dir, entry.name);
-        return entry.isDirectory() ? walk(full) : [[path.relative(directory, full).split(path.sep).join("/"), full]];
+        return entry.isDirectory() ? walk(full) : [[posixRelative(directory, full), full]];
       });
   for (const [relativePath, file] of walk(directory)) {
     hash.update(relativePath);
@@ -242,7 +243,7 @@ export function checkSkills({ root }) {
     const walk = (dir) =>
       fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
         const full = path.join(dir, entry.name);
-        return entry.isDirectory() ? walk(full) : [path.relative(directory, full).split(path.sep).join("/")];
+        return entry.isDirectory() ? walk(full) : [posixRelative(directory, full)];
       });
     return walk(directory).every((relative) => {
       const recorded = git(root, ["rev-parse", `${commit}:${relativeDir}/${relative}`]);
@@ -274,7 +275,7 @@ export function checkSkills({ root }) {
       if (!directoriesMatch(sourceDir, dir)) {
         errors.push(`${entry.name}: exported files differ from source; run \`krn-codex skills export\``);
       }
-      const relativeDir = path.relative(root, sourceDir).split(path.sep).join("/");
+      const relativeDir = posixRelative(root, sourceDir);
       if (marker?.krn?.commit && !marker.krn.dirty && relativeDir && !relativeDir.startsWith("..")
         && git(root, ["rev-parse", "--verify", `${marker.krn.commit}^{commit}`]) !== ""
         && !reproducesFromCommit(relativeDir, marker.krn.commit, dir)) {

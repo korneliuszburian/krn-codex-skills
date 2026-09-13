@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import path from "node:path";
+import { posixRelative } from "./lib/support/path-rules.mjs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -180,7 +181,7 @@ try {
     } else {
       if (!(options.changed?.length || options.symbols?.length)) fail(usage);
       const changed = (options.changed ?? [])
-        .map((entry) => path.relative(path.resolve(options.root), path.resolve(options.root, entry)).split(path.sep).join("/"))
+        .map((entry) => posixRelative(path.resolve(options.root), path.resolve(options.root, entry)))
         .filter((entry) => entry && !entry.startsWith(".."));
       const hot = changed.length > 0 ? churnHot({ root: options.root, git: runGit, sha: "HEAD", files: changed }) : [];
       const hits = recallLessons({ root: options.root, files: changed, symbols: options.symbols ?? [], hot });

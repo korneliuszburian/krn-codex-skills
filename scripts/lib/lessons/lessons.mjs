@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { GIT_LOG_FORMAT, parseGitLogRecords } from "../support/git-cli.mjs";
 import path from "node:path";
+import { posixRelative } from "../support/path-rules.mjs";
 
 import { runGit } from "../support/git-cli.mjs";
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
@@ -124,7 +125,7 @@ function resolveFalsifier(root, cell, git = runGit) {
   const relCheck = path.relative(root, absolute);
   if (!relCheck || relCheck.startsWith("..") || path.isAbsolute(relCheck)) return { ok: false, reason: `falsifier path escapes the repository: ${rel}` };
   if (!fs.statSync(absolute, { throwIfNoEntry: false })?.isFile()) return { ok: false, reason: `falsifier file not found: ${rel}` };
-  const realRel = path.relative(fs.realpathSync(root), fs.realpathSync(absolute)).split(path.sep).join("/");
+  const realRel = posixRelative(fs.realpathSync(root), fs.realpathSync(absolute));
   if (!realRel || realRel.startsWith("..") || path.isAbsolute(realRel)) return { ok: false, reason: `falsifier path escapes the repository through a link: ${rel}` };
   if (!fs.readFileSync(absolute, "utf8").includes(caseName)) {
     return { ok: false, reason: `falsifier case "${caseName}" is not present in ${rel}` };
@@ -180,7 +181,7 @@ function resolveReference(root, scripts, reference) {
     if (rel && !rel.startsWith("..") && !path.isAbsolute(rel)) {
       const stat = fs.statSync(absolute, { throwIfNoEntry: false });
       if (stat?.isFile()) {
-        const realRel = path.relative(fs.realpathSync(root), fs.realpathSync(absolute)).split(path.sep).join("/");
+        const realRel = posixRelative(fs.realpathSync(root), fs.realpathSync(absolute));
         if (realRel && !realRel.startsWith("..") && !path.isAbsolute(realRel)) {
           return { ok: true, kind: "path", path: realRel };
         }

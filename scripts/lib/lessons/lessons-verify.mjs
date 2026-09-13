@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { posixRelative } from "../support/path-rules.mjs";
 import { spawnSync } from "node:child_process";
 
 import { checkLessons } from "./lessons.mjs";
@@ -12,7 +13,7 @@ const TOKEN = /^((?:test|scripts)\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/
 function contained(root, file) {
   if (!ALLOWED.test(file) || file.includes("..")) return false;
   try {
-    const real = path.relative(fs.realpathSync(root), fs.realpathSync(path.resolve(root, file))).split(path.sep).join("/");
+    const real = posixRelative(fs.realpathSync(root), fs.realpathSync(path.resolve(root, file)));
     return ALLOWED.test(real) && !real.startsWith("..") && !path.isAbsolute(real);
   } catch {
     return false;
