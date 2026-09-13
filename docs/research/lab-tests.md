@@ -53,11 +53,25 @@ design:
   integrity is mechanically checkable in addition to the salted hash manifest
   (arXiv:2607.13707).
 
+- Report resource and transient failures (OOM, preemption, provider
+  `UnknownError`) as a per-arm infra-error metric separate from task failure,
+  stagger the reps across times/days, and record the sandbox resource
+  multiplier, so the paired contrast counts only agent-caused failures
+  (arXiv:2602.07150).
+- Start every cell from a fresh, history-free tree (git-init single commit or a
+  git-stripped copy) and record the commit count seen at agent start, because a
+  workspace `.git` can leak a prior cell's lesson or answer to an ablation arm
+  (Anthropic, demystifying evals for AI agents, 2026-01-09).
+
 Falsifiers: re-run each contrast both ways; if significance is identical under
 unadjusted McNemar and under Holm, the adjustment is unnecessary. Score one
 packet set once and 11 times; if single-pass matches the majority at >=95% and
 the within-item flip rate is <5%, repetition is unnecessary. If every placebo
 item is string-distinguishable from its gold, the oracle changes nothing.
+Repeat one cell on the pinned resource config at three times; if the per-arm
+infra-error rate is 0 and the success count is identical, the infra factor is
+inert. Run two consecutive same-condition cells in one tree; if the second
+arm-A pass count does not exceed the first, the history scrub is unnecessary.
 
 - bwrap floor is now available: 0.12.0 built from the official tag tarball (meson and
   ninja in a venv, libcap 2.78) and staged outside the repo; it passes a functional probe
