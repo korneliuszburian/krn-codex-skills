@@ -344,8 +344,10 @@ function outputTail(output) {
 export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = false, requireCleanHead = false } = {}) {
   const errors = [];
   const warnings = [];
-  if (requireCleanHead) {
-    const status = git(root, ["status", "--porcelain"]);
+  const requestedHead = git(root, ["rev-parse", head]);
+  const checkoutHead = git(root, ["rev-parse", "HEAD"]);
+  if (requireCleanHead && requestedHead.ok && checkoutHead.ok && requestedHead.out === checkoutHead.out) {
+    const status = git(root, ["status", "--porcelain", "--untracked-files=no"]);
     if (status.ok && status.out !== "") {
       return {
         root,
@@ -404,8 +406,6 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       if (!headTexts.has(row.lesson)) errors.push({ rule: "lesson-shrinkage", detail: row.lesson.slice(0, 60) });
     }
   }
-  const requestedHead = git(root, ["rev-parse", head]);
-  const checkoutHead = git(root, ["rev-parse", "HEAD"]);
   if (head !== "HEAD" && requestedHead.ok && checkoutHead.ok && requestedHead.out !== checkoutHead.out) {
     errors.push({ rule: "head-mismatch", detail: `requested ${head} (${requestedHead.out}) but the checkout is at ${checkoutHead.out}` });
     return { root, commits: [], results: [], errors, warnings: [], skipped: false };

@@ -110,10 +110,13 @@ test("requireCleanHead refuses a dirty working tree", () => {
   const base = fakeGit({
     commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lessons:red->green" }],
     files: { a1: ["test/gate.test.mjs"] },
+    blobs: { HEAD: "same", alias: "same" },
   });
   const git = (repo, args) => (args[0] === "status" ? { ok: true, out: " M test/gate.test.mjs" } : base(repo, args));
   const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true, requireCleanHead: true });
   assert.ok(report.errors.some((error) => error.rule === "dirty-tree"), JSON.stringify(report.errors));
+  const aliased = checkChangeContract({ root, base: "base", head: "alias", git, run: green, strictRecall: true, requireCleanHead: true });
+  assert.ok(aliased.errors.some((error) => error.rule === "dirty-tree"), JSON.stringify(aliased.errors));
   rmSync(root, { recursive: true, force: true });
 });
 

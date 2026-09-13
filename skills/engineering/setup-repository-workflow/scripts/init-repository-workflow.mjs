@@ -16,7 +16,8 @@ function fail(message) {
 }
 
 function parseArgs(argv) {
-  const [command = "inspect", ...rest] = argv;
+  const command = argv[0] !== undefined && !argv[0].startsWith("--") ? argv[0] : "inspect";
+  const rest = command === argv[0] ? argv.slice(1) : argv;
   const options = {};
   for (let index = 0; index < rest.length; index += 1) {
     const flag = rest[index];

@@ -57,7 +57,7 @@ export function verifyLessons({ root, timeout = 120000, runner = runCase, force 
       continue;
     }
     const [, file, name] = match;
-    if (name === file || name === path.basename(file)) {
+    if (name === file || name === path.basename(file) || name === path.join(root, file) || name === path.resolve(root, file)) {
       results.push({ lesson: lesson.lesson, file, case: name, status: "fail", reason: "falsifier must name a test case, not the file path" });
       continue;
     }
@@ -96,7 +96,7 @@ export function reanchorLessons({ root, timeout = 120000, runner = runCase, gitI
       continue;
     }
     const [, file, name, sha] = match;
-    if (name === file || name === path.basename(file)) {
+    if (name === file || name === path.basename(file) || name === path.join(root, file) || name === path.resolve(root, file)) {
       skipped.push({ lesson: lesson.lesson, reason: "falsifier must name a test case, not the file path", blocking: true });
       continue;
     }

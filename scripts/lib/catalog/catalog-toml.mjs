@@ -319,15 +319,14 @@ function looksLikeManagedRootAssignment(content) {
 export function parseAssignment(content) {
   if (content.trimStart().startsWith("#")) return undefined;
   const match = content.match(
-    /^(\s*)((?:"(?:[^"\\]|\\.)*")|(?:'[^']*')|(?:[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*))(\s*=\s*)(.*)$/,
+    /^(\s*)((?:"(?:[^"\\]|\\.)*"|'[^']*'|[A-Za-z0-9_-]+)(?:\s*\.\s*(?:"(?:[^"\\]|\\.)*"|'[^']*'|[A-Za-z0-9_-]+))*)(\s*=\s*)(.*)$/,
   );
   if (!match) return undefined;
   const keyToken = match[2];
-  const key = keyToken.startsWith("\"") || keyToken.startsWith("'")
-    ? parseTomlString(keyToken, "assignment key")
-    : keyToken;
+  const segments = parseDottedHeaderKey(keyToken);
+  if (!segments) return undefined;
   return {
-    key,
+    key: segments.join("."),
     prefix: `${match[1]}${keyToken}${match[3]}`,
     value: match[4],
   };

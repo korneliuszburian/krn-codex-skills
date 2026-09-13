@@ -164,7 +164,7 @@ try {
     if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root || !options.base) fail(usage);
     const report = contractGuardActive()
       ? { root: options.root, commits: [], results: [], errors: [], warnings: [{ rule: "change-contract-skipped", detail: "KRN_CHANGE_CONTRACT=0" }], skipped: true }
-      : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD", verifyBefore: options.before === true, strictRecall: options.strictRecall === true, requireCleanHead: (options.head ?? "HEAD") === "HEAD" });
+      : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD", verifyBefore: options.before === true, strictRecall: options.strictRecall === true, requireCleanHead: true });
     print(report, options.json);
     if (!options.json) {
       for (const warning of report.warnings ?? []) process.stderr.write(`warning: ${warning.rule}${warning.ref ? ` ${warning.ref}` : ""}${warning.commit ? ` ${warning.commit}` : ""}${warning.detail ? `: ${warning.detail}` : ""}\n`);
