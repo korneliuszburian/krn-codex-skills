@@ -306,6 +306,15 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
             if (missing.length > 0) {
               errors.push({ rule: "frozen-observer-mismatch", commit: obligation.commit, ref: obligation.ref, detail: `cases failing at base do not pass at head: ${missing.join(", ")}` });
             }
+            const baseObserver = baseRunner({ root, base, target: record.target, overlay: null });
+            if (!baseObserver.unavailable && !baseObserver.outcome?.spawnFailed) {
+              const baseSummary = tapSummary(baseObserver.outcome.output);
+              const baseCases = [...new Set([...baseSummary.passing, ...baseSummary.failing])].filter(Boolean);
+              const lost = baseCases.filter((name) => !headPass.has(name));
+              if (lost.length > 0) {
+                errors.push({ rule: "observer-shrinkage", commit: obligation.commit, ref: obligation.ref, detail: `the observer dropped previously existing cases: ${lost.join(", ")}` });
+              }
+            }
           }
         }
       }
