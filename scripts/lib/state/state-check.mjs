@@ -262,13 +262,20 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
 
   const lessonsFile = join(root, "docs", "research", "workflow-lessons.md");
   if (existsSync(lessonsFile)) {
-    const parsedLessons = parseLessons(lessonsFile);
-    const activeLessons = parsedLessons.rows.filter((row) => !row.status).length;
-    if (activeLessons > parsedLessons.budget) {
-      errors.push({ id: "workflow-lessons", rule: "lessons-over-budget", detail: `${activeLessons} rows` });
+    let parsedLessons;
+    try {
+      parsedLessons = parseLessons(lessonsFile);
+    } catch {
+      errors.push({ id: "workflow-lessons", rule: "unreadable-lessons", detail: "docs/research/workflow-lessons.md" });
     }
-    for (const row of parsedLessons.malformed) {
-      errors.push({ id: "workflow-lessons", rule: "malformed-lesson", detail: row.trim() });
+    if (parsedLessons) {
+      const activeLessons = parsedLessons.rows.filter((row) => !row.status).length;
+      if (activeLessons > parsedLessons.budget) {
+        errors.push({ id: "workflow-lessons", rule: "lessons-over-budget", detail: `${activeLessons} rows` });
+      }
+      for (const row of parsedLessons.malformed) {
+        errors.push({ id: "workflow-lessons", rule: "malformed-lesson", detail: row.trim() });
+      }
     }
   }
 

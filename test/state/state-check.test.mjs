@@ -481,3 +481,12 @@ test("a non-directory runs path reports an unreadable store instead of throwing"
   assert.ok(report.errors.some((error) => error.rule === "unreadable-capsule-store"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("an unreadable lessons file is reported, not thrown", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, "docs", "research", "workflow-lessons.md"), { recursive: true });
+  let report;
+  assert.doesNotThrow(() => { report = inspectSpineState({ repo: root }); });
+  assert.ok(report.errors.some((error) => error.rule === "unreadable-lessons"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

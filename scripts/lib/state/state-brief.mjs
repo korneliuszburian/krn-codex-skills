@@ -18,12 +18,14 @@ function workflowLessons(root) {
   const relative = join("docs", "research", "workflow-lessons.md");
   const file = join(root, relative);
   if (!existsSync(file)) return { path: null, count: 0, items: [] };
-  const { rows } = parseLessons(file);
+  let rows;
+  try { ({ rows } = parseLessons(file)); } catch { return { path: relative, count: 0, items: [], error: "unreadable" }; }
   const active = rows.filter((row) => !(row.status ?? "").trim());
   return { path: relative, count: active.length, items: active.map((row) => row.lesson) };
 }
 
 function renderLessons(lessons) {
+  if (lessons.error) return `workflow lessons: unreadable (${lessons.path})`;
   if (lessons.count === 0) return "workflow lessons: none";
   return `workflow lessons (${lessons.count} from ${lessons.path}):\n${lessons.items.map((item) => `- ${item}`).join("\n")}`;
 }
@@ -46,7 +48,7 @@ export function compileCapsule({ repo = process.cwd() } = {}) {
   const { runs, errors: inventoryErrors } = runDirectoriesDetailed(root);
   for (const detail of inventoryErrors) if (!errors.some((error) => error.rule === "unreadable-run-inventory" && error.detail === detail)) errors.push({ rule: "unreadable-run-inventory", detail });
   const { ids: capsules, errors: capsuleErrors } = capsuleIdsDetailed(root);
-  for (const detail of capsuleErrors) errors.push({ rule: "unreadable-capsule-store", detail });
+  for (const error of capsuleErrors) errors.push({ rule: error.rule, detail: error.detail });
   const runsIgnored = usableGit ? git(root, ["check-ignore", "-q", join(".krn", "runs", ".krn-probe")]).ok : false;
 
   if (!hasGit) warnings.push("git is not on PATH; head and dirty scope are placeholders");

@@ -312,3 +312,23 @@ test("resume does not crash on a directory state.md", () => {
   assert.ok(report.errors.some((error) => error.rule === "unreadable-capsule"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("compile surfaces a dangling capsule state.md and excludes it as live", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "delivery-loop", "out-1"), { recursive: true });
+  symlinkSync(join(root, "missing-state"), join(root, ".krn", "runs", "delivery-loop", "out-1", "state.md"));
+  const report = compileCapsule({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "unreadable-capsule"), JSON.stringify(report.errors));
+  assert.ok(!report.capsules.includes("out-1"), JSON.stringify(report.capsules));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("resume reports a dangling capsule state.md once and does not throw", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "delivery-loop", "out-1"), { recursive: true });
+  symlinkSync(join(root, "missing-state"), join(root, ".krn", "runs", "delivery-loop", "out-1", "state.md"));
+  let report;
+  assert.doesNotThrow(() => { report = resumeBrief({ repo: root }); });
+  assert.equal(report.errors.filter((error) => error.rule === "unreadable-capsule").length, 1, JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

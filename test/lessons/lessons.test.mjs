@@ -361,6 +361,7 @@ test("a triggered lesson with a stale proof fails closed as stale-anchor", () =>
   writeFileSync(file, header + body.replace("%TRIGGER%", "path:scripts/lib/x.mjs"));
   const stale = checkLessons({ root, git: gitFor(true) });
   assert.ok(stale.errors.some((error) => error.includes("stale-anchor")), JSON.stringify(stale.errors));
+  assert.ok(stale.errors.some((error) => error.includes("lessons reanchor")), JSON.stringify(stale.errors));
   writeFileSync(file, header + body.replace("%TRIGGER%", ""));
   const untriggered = checkLessons({ root, git: gitFor(true) });
   assert.ok(!untriggered.errors.some((error) => error.includes("stale-anchor")), JSON.stringify(untriggered.errors));
