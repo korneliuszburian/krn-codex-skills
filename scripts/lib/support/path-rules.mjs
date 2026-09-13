@@ -9,3 +9,9 @@ export function isSafeRelativePath(value) {
     !value.split("/").includes("..")
   );
 }
+
+export function isInside(parent, candidate) {
+  const root = path.resolve(parent);
+  const rel = path.relative(root, path.resolve(root, candidate));
+  return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== "..");
+}

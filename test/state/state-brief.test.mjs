@@ -203,3 +203,33 @@ test("a failed git status reports an unknown dirty scope, not clean", () => {
   assert.ok(report.errors.some((error) => error.rule === "dirty-state-unavailable"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("resume reports a failed git status as an error, not a warning", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, `HEAD=${head}`);
+  writeFileSync(join(root, ".git", "index"), "corrupt\n");
+  const report = resumeBrief({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "dirty-state-unavailable"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an empty projected field renders as none and JSON null", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, `HEAD=${head}`);
+  const file = join(root, ".krn", "runs", "delivery-loop", "out-1", "state.md");
+  writeFileSync(file, readFileSync(file, "utf8").replace(/^Authority: .*$/m, "Authority: "));
+  const report = resumeBrief({ repo: root });
+  assert.equal(report.capsules[0].authority, null);
+  assert.match(report.text, /authority: none/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("compile marks the dirty scope unknown outside a git worktree", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-nogit-brief-"));
+  try {
+    const report = compileCapsule({ repo: root });
+    assert.match(report.capsule, /dirty=unknown \(not a git worktree\)/, report.capsule);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

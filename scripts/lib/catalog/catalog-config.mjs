@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, open, rename, unlink } from "node:fs/promises";
-import { basename, dirname, isAbsolute, normalize } from "node:path";
+import { basename, dirname } from "node:path";
 
 import { requireRegularFileWithoutSymlinks } from "./catalog-path-safety.mjs";
 import { matchesQuarantined } from "./plugin-identity.mjs";

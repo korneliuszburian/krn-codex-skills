@@ -8,7 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { EXIT_CODES } from "../support/diagnostics.mjs";
-import { isSafeRelativePath as safeRelativePath } from "../support/path-rules.mjs";
+import { isInside, isSafeRelativePath as safeRelativePath } from "../support/path-rules.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
@@ -240,11 +240,6 @@ function resolvedLink(target) {
 
 function resolvedPath(target) {
   try { return fs.realpathSync(target); } catch { return null; }
-}
-
-function isInside(parent, candidate) {
-  const relative = path.relative(parent, candidate);
-  return relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== "..");
 }
 
 function stableTarget(plan, item) {

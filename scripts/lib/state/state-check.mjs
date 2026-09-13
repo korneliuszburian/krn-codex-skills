@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 
 import {
   ABI_LABELS,
@@ -13,12 +13,9 @@ import {
 import { gitAvailable, runGit as git } from "../support/git-cli.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
 import { runDirectories } from "./spine-runs.mjs";
+import { isInside } from "./../support/path-rules.mjs";
 
-function inside(root, candidate) {
-  const target = resolve(root, candidate);
-  const rel = relative(root, target);
-  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
-}
+
 
 export function normalizeRunPointer(root, pointer) {
   return relative(root, resolve(root, pointer)).split(sep).join("/");
@@ -98,7 +95,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       continue;
     }
     if (!directoryStat.isDirectory()) continue;
-    if (!inside(root, resolvedDirectory)) {
+    if (!isInside(root, resolvedDirectory)) {
       capsules.push({ id: entry.name, path: join(".krn", "runs", "delivery-loop", entry.name) });
       errors.push({ id: entry.name, rule: "capsule-outside-repo", detail: resolvedDirectory });
       continue;
@@ -183,7 +180,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
 
     if (restart && stripMarkup(restart) !== "ABSENT") {
       const restartPath = stripMarkup(restart);
-      if (!inside(root, restartPath)) {
+      if (!isInside(root, restartPath)) {
         errors.push({ id: entry.name, rule: "restart-path-outside-repo", detail: restartPath });
       } else if (!existsSync(resolve(root, restartPath))) {
         errors.push({ id: entry.name, rule: "restart-path-missing", detail: restartPath });
@@ -197,7 +194,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       }
       for (const parsedEntry of parsed.entries) {
         listedRunPointers.add(normalizeRunPointer(root, parsedEntry.pointer));
-        if (!inside(root, parsedEntry.pointer)) {
+        if (!isInside(root, parsedEntry.pointer)) {
           errors.push({ id: entry.name, rule: "cleanup-pointer-outside-repo", detail: parsedEntry.pointer });
         } else if ((parsedEntry.state === "ACTIVE" || parsedEntry.state === "BLOCKED") && !existsSync(resolve(root, parsedEntry.pointer))) {
           errors.push({ id: entry.name, rule: "ghost-cleanup-entry", detail: `${parsedEntry.pointer} (${parsedEntry.state})` });

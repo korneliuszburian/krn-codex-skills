@@ -51,19 +51,19 @@ export function compileCapsule({ repo = process.cwd() } = {}) {
 
   const head = usableGit ? git(root, ["rev-parse", "HEAD"]) : { ok: false, out: "" };
   const branch = usableGit ? git(root, ["rev-parse", "--abbrev-ref", "HEAD"]) : { ok: false, out: "" };
-  const dirty = usableGit ? porcelain(root) : [];
+  const dirty = usableGit ? porcelain(root) : null;
   const runs = runDirectories(root);
   const capsules = capsuleIds(root);
   const runsIgnored = usableGit ? git(root, ["check-ignore", "-q", join(".krn", "runs", ".krn-probe")]).ok : false;
 
   if (!hasGit) warnings.push("git is not on PATH; head and dirty scope are placeholders");
   else if (!usableGit) warnings.push("not a git worktree; head and dirty scope are placeholders");
-  if (dirty === null) errors.push({ rule: "dirty-state-unavailable", detail: "git status failed; the dirty scope is unknown, not clean" });
+  if (usableGit && dirty === null) errors.push({ rule: "dirty-state-unavailable", detail: "git status failed; the dirty scope is unknown, not clean" });
   if (capsules.length > 0) warnings.push(`an outcome capsule already exists (${capsules.join(", ")}); resume it instead of opening a second writer`);
   if (usableGit && !runsIgnored) warnings.push("`.krn/runs` is not git-ignored; a capsule here would be tracked");
 
   const headField = head.ok && head.out ? `HEAD=${head.out}` : "fingerprint=<fill: working-tree fingerprint>";
-  const dirtyField = dirty === null ? "unknown (git status failed)" : dirty.length === 0 ? "clean" : `${dirty.length} paths: ${dirty.slice(0, 8).join(", ")}${dirty.length > 8 ? ", ..." : ""}`;
+  const dirtyField = dirty === null ? (usableGit ? "unknown (git status failed)" : "unknown (not a git worktree)") : dirty.length === 0 ? "clean" : `${dirty.length} paths: ${dirty.slice(0, 8).join(", ")}${dirty.length > 8 ? ", ..." : ""}`;
   const cleanup = runs.length
     ? `[${runs
         .map((run) => `${run.pointer}; ${run.workflow}; <fill: sole in-goal consumer>; <fill: cleanup trigger>; ACTIVE`)
@@ -125,7 +125,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
 
   const liveHead = git(report.root, ["rev-parse", "HEAD"]);
   const liveDirty = porcelain(report.root);
-  if (liveDirty === null) warnings.push("git status failed; the live dirty scope is unknown, not clean");
+  if (liveDirty === null) errors.push({ rule: "dirty-state-unavailable", detail: "git status failed; the live dirty scope is unknown, not clean" });
   const liveRuns = new Set(runDirectories(report.root).map((run) => run.pointer));
   const briefs = [];
 
@@ -152,11 +152,11 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
       owner: fieldLine(text, "Current workflow owner and sole writer"),
       nextAction: fieldLine(text, "Next bounded owner and action"),
       friction: fieldLine(text, "Workflow friction and lesson candidates"),
-      authority: fieldLine(text, "Authority"),
-      blockers: fieldLine(text, "Open unknowns and blockers with owners"),
-      evidence: fieldLine(text, "Evidence observed"),
-      nonProofs: fieldLine(text, "Explicit non-proofs"),
-      reviewDisposition: fieldLine(text, "Review fixed point and Standards / Spec disposition"),
+      authority: fieldLine(text, "Authority") || null,
+      blockers: fieldLine(text, "Open unknowns and blockers with owners") || null,
+      evidence: fieldLine(text, "Evidence observed") || null,
+      nonProofs: fieldLine(text, "Explicit non-proofs") || null,
+      reviewDisposition: fieldLine(text, "Review fixed point and Standards / Spec disposition") || null,
       recordedCommits: recorded,
       liveHead: liveHead.ok ? liveHead.out : null,
       headMoved,
