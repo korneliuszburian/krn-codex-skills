@@ -64,6 +64,17 @@ the installed release and stable links themselves are intact.
 It reports session loading as `session_loaded_unknown` and post-install loading
 as `stale_session_likely` until a fresh Codex session provides stronger evidence.
 
+`doctor` also reports `hookPolicy` read from the managed requirements file
+(`/etc/codex/requirements.toml` on Unix, `%ProgramData%\OpenAI\Codex\requirements.toml`
+on Windows; override with `KRN_REQUIREMENTS_PATH`). A top-level
+`allow_managed_hooks_only = true` yields `hook_inert_by_managed_policy` and a
+managed `[features] hooks = false` yields `hook_inert_features_disabled`: both
+make the non-managed `$CODEX_HOME/hooks.json` guard inert even after the operator
+trusts it, so `install check` exits 3. Otherwise the status is `hooks_active`,
+or `no_managed_requirements` / `requirements_unreadable` when the file is absent
+or cannot be parsed. Cloud-managed and macOS MDM requirements are not readable
+from the filesystem and remain outside this observer.
+
 ## Rollback
 
 Select a verified prior release by atomically repointing `current`, restore a

@@ -96,6 +96,7 @@ function delegate(script, args) {
 
 function renderInstallReport(report) {
   const lines = [`filesystem: ${report.filesystem.status}${report.filesystem.detail ? ` (${report.filesystem.detail})` : ""}`];
+  if (report.hookPolicy) lines.push(`hook policy: ${report.hookPolicy.status}${report.hookPolicy.detail ? ` (${report.hookPolicy.detail})` : ""}`);
   if (report.commit) lines.push(`release: ${report.commit.slice(0, 12)}`);
   if (report.session) lines.push(`session: ${report.session.status}`);
   if (report.legacyHooks?.length) lines.push(`legacy hooks: ${report.legacyHooks.join(", ")}`);
@@ -228,7 +229,7 @@ try {
       rejectForeignOptions(options, []);
       const report = inspectInstall();
       print(report, options.json);
-      if (report.filesystem.status !== "filesystem_installed") process.exitCode = 3;
+      if (report.filesystem.status !== "filesystem_installed" || report.hookPolicy?.status?.startsWith("hook_inert_")) process.exitCode = 3;
     } else if (command === "prune") {
       rejectForeignOptions(options, ["keep"]);
       const keep = options.keep ? Number(options.keep) : 3;

@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { isInside, isSafeRelativePath as safeRelativePath } from "../support/path-rules.mjs";
 import { readJson } from "../support/read-json.mjs";
+import { parseAssignment, parseDocument, parseDottedHeaderKey, splitHeader } from "../catalog/catalog-toml.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
@@ -459,7 +460,62 @@ function itemStatus(plan, item) {
   return { target: item.target, status };
 }
 
-export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex") } = {}) {
+function defaultRequirementsPath(env = process.env) {
+  if (process.platform === "win32") {
+    return path.join(env.ProgramData || "C:\\ProgramData", "OpenAI", "Codex", "requirements.toml");
+  }
+  return "/etc/codex/requirements.toml";
+}
+
+function tomlBoolean(value) {
+  const token = String(value ?? "").replace(/\s+#.*$/, "").trim();
+  if (token === "true") return true;
+  if (token === "false") return false;
+  return null;
+}
+
+export function managedHookPolicy({
+  requirementsPath = process.env.KRN_REQUIREMENTS_PATH || defaultRequirementsPath(),
+} = {}) {
+  const stat = fs.lstatSync(requirementsPath, { throwIfNoEntry: false });
+  if (!stat || !stat.isFile()) return { status: "no_managed_requirements", path: requirementsPath };
+  let document;
+  try {
+    document = parseDocument(fs.readFileSync(requirementsPath, "utf8"));
+  } catch (error) {
+    return { status: "requirements_unreadable", path: requirementsPath, detail: error.message };
+  }
+  let table = null;
+  for (let index = 0; index < document.lines.length; index += 1) {
+    const content = document.lines[index].content;
+    const header = splitHeader(content);
+    if (header) {
+      table = header.validTail ? (parseDottedHeaderKey(header.inner)?.join(".") ?? null) : null;
+      continue;
+    }
+    if (document.insideMultiline?.[index]) continue;
+    const assignment = parseAssignment(content);
+    if (!assignment) continue;
+    const enabled = tomlBoolean(assignment.value);
+    if (table === null && assignment.key === "allow_managed_hooks_only" && enabled === true) {
+      return {
+        status: "hook_inert_by_managed_policy",
+        path: requirementsPath,
+        detail: "top-level allow_managed_hooks_only = true",
+      };
+    }
+    if (table === "features" && assignment.key === "hooks" && enabled === false) {
+      return {
+        status: "hook_inert_features_disabled",
+        path: requirementsPath,
+        detail: "[features] hooks = false",
+      };
+    }
+  }
+  return { status: "hooks_active", path: requirementsPath };
+}
+
+export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex"), requirementsPath } = {}) {
   const releaseRoot = path.join(canonicalPath(codexHome), "krn");
   const current = path.join(releaseRoot, "current");
   const override = path.join(path.dirname(releaseRoot), "AGENTS.override.md");
@@ -474,6 +530,7 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     releaseRoot,
     current,
     legacyHooks,
+    hookPolicy: managedHookPolicy({ requirementsPath }),
     session: { status: "session_loaded_unknown" },
     sessionAfterApply: { status: "stale_session_likely" },
   };
