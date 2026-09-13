@@ -90,6 +90,16 @@ function checkFileRedefined(root, base, git, rel) {
 const TEST_FLAG = /(^|\s)--test(\s|$)/;
 const testFlagPresent = (command) => TEST_FLAG.test(command.replace(/['\"\\]/g, ""));
 
+const BOOLEAN_TEST_FLAGS = new Set(["--test", "--test-only", "--test-force-exit", "--test-randomize", "--test-update-snapshots", "--test-coverage", "--test-watch"]);
+function normalizeRel(rel) {
+  const parts = [];
+  for (const segment of rel.split("/")) {
+    if (segment === "" || segment === ".") continue;
+    if (segment === "..") parts.pop();
+    else parts.push(segment);
+  }
+  return parts.join("/");
+}
 const VALUE_FLAGS = new Set(["-r", "--import", "--require", "--loader", "--experimental-loader", "--test-name-pattern", "--test-reporter", "-e", "--eval"]);
 function explicitTestOperands(command) {
   const tokens = command.replace(/\\[ \t]/g, "\u0000").split(/\s+/).filter(Boolean).map((token) => token.replace(/\u0000/g, " "));
@@ -97,13 +107,14 @@ function explicitTestOperands(command) {
   let hasDirectory = false;
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
+    if (token === "node") continue;
     if (VALUE_FLAGS.has(token)) { index += 1; continue; }
-    if (token.startsWith("--test") && token !== "--test" && token !== "--test-only") { index += 1; continue; }
+    if (token.startsWith("--test") && !BOOLEAN_TEST_FLAGS.has(token)) { index += 1; continue; }
     if (token.startsWith("--") && token.includes("=")) continue;
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(token)) continue;
-    const cleaned = token.replace(/^['"]|['"]$/g, "").replace(/\\(["'])/g, "$1").replace(/\\/g, "/").replace(/\/{2,}/g, "/");
+    const cleaned = normalizeRel(token.replace(/^['"]|['"]$/g, "").replace(/\\(["'])/g, "$1").replace(/\\/g, "/"));
     if (new RegExp(`\\.(?:${CODE_EXT})$`).test(cleaned)) files.push(cleaned.replace(/^\.\//, ""));
-    else if (!cleaned.startsWith("-") && (cleaned === "test" || cleaned.endsWith("/") || /^\.{0,2}\//.test(cleaned))) hasDirectory = true;
+    else if (!cleaned.startsWith("-")) hasDirectory = true;
   }
   return { files, hasDirectory };
 }
@@ -114,7 +125,7 @@ const isTestFile = (rel) => TEST_FILE_RE.test(rel);
 function literalCommandFiles(command, { positionalOnly = false } = {}) {
   const files = [];
   const safe = command.replace(/\\[ \t]/g, "\u0000");
-  const clean = (value) => value.replace(/\u0000/g, " ").replace(/\\(["'])/g, "$1").replace(/\\/g, "/").replace(/\/{2,}/g, "/").replace(/^\.\//, "");
+  const clean = (value) => normalizeRel(value.replace(/\u0000/g, " ").replace(/\\(["'])/g, "$1").replace(/\\/g, "/"));
   const quoted = new RegExp(`"((?:\\\\.|[^"\\\\])+\\.(?:${CODE_EXT}))"|'((?:\\\\.|[^'\\\\])+\\.(?:${CODE_EXT}))'`, "g");
   for (const match of safe.matchAll(quoted)) files.push(clean(match[1] ?? match[2]));
   const prefix = positionalOnly ? "" : "(?:[A-Za-z_][A-Za-z0-9_]*=|--?[^\\s=]+=)?";
@@ -147,7 +158,7 @@ function shimCommand(root, command) {
 function scriptNonLiteral(root, command) {
   return /[*?\[]/.test(command)
     || /[$`|;&<>]/.test(command)
-    || /(^|[\s/'"])(?:[^\s/]*\/)*(?:sh|bash|zsh|dash|ash|ksh|busybox)\b[^\n]*?\s-c(\s|$)/.test(command)
+    || /(^|[\s/'"])(?:[^\s/]*\/)*(?:sh|bash|zsh|dash|ash|ksh|busybox)\b[^\n]*?\s-[a-z]*c[a-z]*(\s|$)/.test(command)
     || /\b(?:npm|pnpm|yarn|bun)\s+(?:(?:-{1,2}\S+)(?:\s+\S+)?\s+)*(?:run|exec|test|start|dlx|x)\b/.test(command)
     || /(^|\s)node(?:\s+-{1,2}\S+)*\s+--run(\s|$)/.test(command)
     || /(^|\s)(?:bun|deno)\s+(?:test|bench)(\s|$)/.test(command)

@@ -285,13 +285,15 @@ def has_static_destructive_reference(words: tuple[str, ...] | None) -> bool:
     if remaining[0] != "git":
         return False
     args = remaining[1:]
-    value_options = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"}
+    value_options = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--attr-source", "--config-env"}
     index = 0
     while index < len(args):
         token = args[index]
         if token in value_options:
-            if token == "-c" and index + 1 < len(args) and "=clean" in args[index + 1].replace(" ", ""):
-                return True
+            if token == "-c" and index + 1 < len(args):
+                assignment = args[index + 1].split("=", 1)
+                if len(assignment) == 2 and assignment[0].startswith("alias.") and assignment[1] == "clean":
+                    return True
             index += 2
         elif token.startswith("-"):
             index += 1

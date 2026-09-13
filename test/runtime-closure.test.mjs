@@ -72,3 +72,10 @@ test("a // inside a string literal does not erase a following import", () => {
   assert.deepEqual(runtimeClosureErrors({ root, manifest }), []);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a regex literal containing // does not erase a following import", () => {
+  const { root, manifest } = makeRepo(["scripts/a.mjs", "scripts/lib/b.mjs"]);
+  writeFileSync(join(root, "scripts", "a.mjs"), 'const r = /[//]/;\nimport "./lib/b.mjs";\nexport const a = r;\n');
+  assert.deepEqual(runtimeClosureErrors({ root, manifest }), []);
+  rmSync(root, { recursive: true, force: true });
+});

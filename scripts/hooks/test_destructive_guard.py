@@ -47,6 +47,8 @@ class DestructiveGuardSmoke(unittest.TestCase):
             self.assertIsNone(reason("git -C . commit -m clean"))
             self.assertIsNone(reason("git --work-tree=. status clean"))
             self.assertIsNone(reason("git -c foo=bar log --grep clean"))
+            self.assertIsNotNone(reason("git --attr-source HEAD clean -fd"))
+            self.assertIsNone(reason("git -c core.clean=clean status"))
             self.assertIsNotNone(reason("git -C . clean"))
             self.assertIsNotNone(reason("git -c alias.wipe=clean wipe -fd"))
             self.assertIn("non-dry-run git clean", reason("git clean -fd") or "")

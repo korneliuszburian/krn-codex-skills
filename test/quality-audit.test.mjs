@@ -164,3 +164,16 @@ test("dynamic imports and re-export chains count as consumers", () => {
     },
   );
 });
+
+test("a const token inside a string does not mask a missing import", () => {
+  withRepo(
+    {
+      "scripts/lib/a.mjs": 'const note = "const leaky";\nexport function run() {\n  return leaky();\n}\nexport const n = note;\n',
+      "scripts/lib/b.mjs": "export function leaky() {\n  return 1;\n}\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("calls leaky() but never imports it")), JSON.stringify(errors));
+    },
+  );
+});

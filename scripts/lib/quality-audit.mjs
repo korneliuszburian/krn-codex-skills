@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join, relative, sep } from "node:path";
 
-import { stripComments } from "./source-mask.mjs";
+import { maskLiterals, stripComments } from "./source-mask.mjs";
 
 const SELF = "scripts/lib/quality-audit.mjs";
 
@@ -121,8 +121,8 @@ export function auditRepository(root) {
   }
 
   for (const file of runtime) {
-    const source = stripComments(sources.get(file));
-    const local = new Set([...functionDeclarations(source), ...importedNames(source), ...[...source.matchAll(/(?:const|let|var)\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1])]);
+    const source = maskLiterals(sources.get(file));
+    const local = new Set([...functionDeclarations(source), ...importedNames(sources.get(file)), ...[...source.matchAll(/(?:const|let|var)\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1])]);
     for (const match of source.matchAll(/(?<![.\w$])([A-Za-z0-9_$]+)\s*\(/g)) {
       const name = match[1];
       if (local.has(name)) continue;
