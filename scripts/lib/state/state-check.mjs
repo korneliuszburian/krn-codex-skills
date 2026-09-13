@@ -70,7 +70,11 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop is not a directory" });
     } else {
       try {
-        candidates = readdirSync(capsuleBase, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name));
+        candidates = readdirSync(capsuleBase, { withFileTypes: true }).sort(
+          (left, right) =>
+            Number(left.isSymbolicLink()) - Number(right.isSymbolicLink()) ||
+            left.name.localeCompare(right.name),
+        );
       } catch {
         errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop could not be listed" });
       }
@@ -78,6 +82,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   }
 
   const currentHead = usableGit ? git(root, ["rev-parse", "HEAD"]) : { ok: false, out: "" };
+  const seenDirectories = new Set();
 
   for (const entry of candidates) {
     const entryPath = join(capsuleBase, entry.name);
@@ -95,8 +100,9 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       continue;
     }
     if (!directoryStat.isDirectory()) continue;
+    if (seenDirectories.has(resolvedDirectory)) continue;
+    seenDirectories.add(resolvedDirectory);
     if (!isInside(realRoot, resolvedDirectory)) {
-      capsules.push({ id: entry.name, path: join(".krn", "runs", "delivery-loop", entry.name) });
       errors.push({ id: entry.name, rule: "capsule-outside-repo", detail: resolvedDirectory });
       continue;
     }
@@ -113,6 +119,17 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     }
     if (!fileStat.isFile()) {
       errors.push({ id: entry.name, rule: "unreadable-capsule", detail: `${relativePath} is not a regular file` });
+      continue;
+    }
+    let resolvedState;
+    try {
+      resolvedState = realpathSync(file);
+    } catch {
+      errors.push({ id: entry.name, rule: "unreadable-capsule", detail: relativePath });
+      continue;
+    }
+    if (!isInside(realRoot, resolvedState)) {
+      errors.push({ id: entry.name, rule: "capsule-outside-repo", detail: resolvedState });
       continue;
     }
     let text;

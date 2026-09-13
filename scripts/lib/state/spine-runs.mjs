@@ -73,6 +73,9 @@ export function capsuleIdsDetailed(root) {
     try { stateStat = statSync(join(directory, "state.md"), { throwIfNoEntry: false }); } catch { errors.push({ rule: "unreadable-capsule", detail: relativePath }); continue; }
     if (!stateStat) { errors.push({ rule: "unreadable-capsule", detail: `${relativePath} is a broken symlink` }); continue; }
     if (!stateStat.isFile()) { errors.push({ rule: "unreadable-capsule", detail: `${relativePath} is not a regular file` }); continue; }
+    let resolvedState;
+    try { resolvedState = realpathSync(join(directory, "state.md")); } catch { errors.push({ rule: "unreadable-capsule", detail: relativePath }); continue; }
+    if (!isInside(realRoot, resolvedState)) { errors.push({ rule: "capsule-outside-repo", detail: resolvedState }); continue; }
     try { readFileSync(join(directory, "state.md")); } catch { errors.push({ rule: "unreadable-capsule", detail: relativePath }); continue; }
     const link = entry.isSymbolicLink();
     const previous = seen.get(real);

@@ -206,6 +206,34 @@ test("an in-repo capsule is accepted when the root is reached through a symlink"
   rmSync(base, { recursive: true, force: true });
 });
 
+test("a state.md symlinked outside the repo is rejected, not read", () => {
+  const { root } = makeRepo();
+  const outside = mkdtempSync(join(tmpdir(), "krn-state-outfile-"));
+  writeFileSync(join(outside, "state.md"), capsule({ fixedPoint: "fingerprint=working-tree" }));
+  mkdirSync(join(root, ".krn", "runs", "delivery-loop", "cap"), { recursive: true });
+  symlinkSync(join(outside, "state.md"), join(root, ".krn", "runs", "delivery-loop", "cap", "state.md"));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("capsule-outside-repo"), rules(report).join(","));
+  assert.equal(report.capsules.length, 0, JSON.stringify(report.capsules));
+  const compile = capsuleIdsDetailed(root);
+  assert.ok(compile.errors.some((error) => error.rule === "capsule-outside-repo"), JSON.stringify(compile.errors));
+  assert.deepEqual(compile.ids, []);
+  rmSync(root, { recursive: true, force: true });
+  rmSync(outside, { recursive: true, force: true });
+});
+
+test("two names for one capsule directory are deduplicated", () => {
+  const { root, head } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "delivery-loop", "real"), { recursive: true });
+  writeFileSync(join(root, ".krn", "runs", "delivery-loop", "real", "state.md"), capsule({ outcome: "DONE", fixedPoint: `HEAD=${head}` }));
+  symlinkSync("real", join(root, ".krn", "runs", "delivery-loop", "alias"));
+  const report = inspectSpineState({ repo: root });
+  assert.equal(report.capsules.length, 1, JSON.stringify(report.capsules));
+  assert.equal(report.capsules[0].id, "real");
+  assert.deepEqual(capsuleIdsDetailed(root).ids, ["real"]);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("compile and check skip a symlink to a regular file in the capsule store", () => {
   const { root } = makeRepo();
   mkdirSync(join(root, ".krn", "runs", "delivery-loop"), { recursive: true });
