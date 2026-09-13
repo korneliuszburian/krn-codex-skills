@@ -71,7 +71,7 @@ export function parseCleanup(value) {
       malformed.push(entry);
       continue;
     }
-    entries.push({ pointer: parts[0], state: parts[4] });
+    entries.push({ pointer: parts[0], workflow: parts[1], consumer: parts[2], trigger: parts[3], state: parts[4] });
   }
   if (entries.length === 0 && malformed.length === 0) malformed.push(value);
   return { entries, malformed };

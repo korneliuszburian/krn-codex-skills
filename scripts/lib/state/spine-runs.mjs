@@ -1,15 +1,16 @@
 import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 
-export function runDirectories(root) {
+export function runDirectoriesDetailed(root) {
   const runsBase = join(root, ".krn", "runs");
-  if (!existsSync(runsBase)) return [];
+  if (!existsSync(runsBase)) return { runs: [], errors: [] };
   const runs = [];
+  const errors = [];
   let workflows;
   try {
     workflows = readdirSync(runsBase, { withFileTypes: true });
   } catch {
-    return [];
+    return { runs: [], errors: [".krn/runs could not be listed"] };
   }
   for (const workflow of workflows.sort((a, b) => a.name.localeCompare(b.name))) {
     if ((!workflow.isDirectory() && !workflow.isSymbolicLink()) || workflow.name === "delivery-loop") continue;
@@ -18,6 +19,7 @@ export function runDirectories(root) {
     try {
       entries = readdirSync(workflowPath, { withFileTypes: true });
     } catch {
+      errors.push(`${workflowPath} could not be listed`);
       continue;
     }
     for (const run of entries.sort((a, b) => a.name.localeCompare(b.name))) {
@@ -25,7 +27,11 @@ export function runDirectories(root) {
       runs.push({ workflow: workflow.name, pointer: join(".krn", "runs", workflow.name, run.name) });
     }
   }
-  return runs;
+  return { runs, errors };
+}
+
+export function runDirectories(root) {
+  return runDirectoriesDetailed(root).runs;
 }
 
 export function capsuleIds(root) {

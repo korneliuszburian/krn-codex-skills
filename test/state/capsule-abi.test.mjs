@@ -12,7 +12,7 @@ test("renderCapsule refuses to emit a capsule with a missing label", () => {
 
 test("parseCleanup parses well-formed entries and reports malformed ones", () => {
   const parsed = parseCleanup("[.krn/runs/slice-work/one; slice-work; owner; trigger; ACTIVE]");
-  assert.deepEqual(parsed, { entries: [{ pointer: ".krn/runs/slice-work/one", state: "ACTIVE" }], malformed: [] });
+  assert.deepEqual(parsed, { entries: [{ pointer: ".krn/runs/slice-work/one", workflow: "slice-work", consumer: "owner", trigger: "trigger", state: "ACTIVE" }], malformed: [] });
   const broken = parseCleanup("[pointer; workflow; owner; trigger; DONE]");
   assert.equal(broken.entries.length, 0);
   assert.equal(broken.malformed.length, 1);

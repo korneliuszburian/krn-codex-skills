@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { runGit as git, runGitRaw } from "../support/git-cli.mjs";
-import { capsuleIds, runDirectories } from "./spine-runs.mjs";
+import { capsuleIds, runDirectoriesDetailed } from "./spine-runs.mjs";
 import { inspectSpineState, normalizeRunPointer } from "./state-check.mjs";
 import { fieldLine, fixedPointAnchors, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
@@ -43,7 +43,8 @@ export function compileCapsule({ repo = process.cwd() } = {}) {
   const head = usableGit ? git(root, ["rev-parse", "HEAD"]) : { ok: false, out: "" };
   const branch = usableGit ? git(root, ["rev-parse", "--abbrev-ref", "HEAD"]) : { ok: false, out: "" };
   const dirty = usableGit ? porcelain(root) : null;
-  const runs = runDirectories(root);
+  const { runs, errors: inventoryErrors } = runDirectoriesDetailed(root);
+  for (const detail of inventoryErrors) errors.push({ rule: "inventory-unreadable", detail });
   const capsules = capsuleIds(root);
   const runsIgnored = usableGit ? git(root, ["check-ignore", "-q", join(".krn", "runs", ".krn-probe")]).ok : false;
 
@@ -117,7 +118,9 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
   const liveHead = git(report.root, ["rev-parse", "HEAD"]);
   const liveDirty = porcelain(report.root);
   if (liveDirty === null) errors.push({ rule: "dirty-state-unavailable", detail: "git status failed; the live dirty scope is unknown, not clean" });
-  const liveRuns = new Set(runDirectories(report.root).map((run) => run.pointer));
+  const { runs: liveRunList, errors: liveRunErrors } = runDirectoriesDetailed(report.root);
+  for (const detail of liveRunErrors) errors.push({ rule: "inventory-unreadable", detail });
+  const liveRuns = new Set(liveRunList.map((run) => run.pointer));
   const briefs = [];
 
   for (const capsule of report.capsules) {
@@ -154,6 +157,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
       liveHead: liveHead.ok ? liveHead.out : null,
       headMoved,
       liveDirty,
+      cleanupEntries: listed.map((entry) => ({ pointer: entry.pointer, workflow: entry.workflow, consumer: entry.consumer, trigger: entry.trigger, state: entry.state })),
       listedRuns: [...listedPointers],
       missingRuns,
       unlistedRuns,
@@ -177,6 +181,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
       `friction: ${brief.friction}`,
       repoLine,
       cleanupLine,
+      brief.cleanupEntries.length ? `cleanup entries: ${brief.cleanupEntries.map((entry) => `${entry.pointer} [${entry.workflow}; ${entry.consumer}; ${entry.trigger}; ${entry.state}]`).join(", ")}` : "cleanup entries: none",
     ].join("\n");
   });
 

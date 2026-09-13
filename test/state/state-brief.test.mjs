@@ -259,3 +259,17 @@ test("a fingerprint is not reported as a recorded HEAD", () => {
   assert.ok(!report.capsules[0].recordedCommits.includes(blob), JSON.stringify(report.capsules[0].recordedCommits));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("resume preserves every cleanup obligation field", () => {
+  const { root, head } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "slice-work", "one"), { recursive: true });
+  writeCapsule(root, `HEAD=${head}`, "[.krn/runs/slice-work/one; slice-work; alice; closes; ACTIVE]");
+  const report = resumeBrief({ repo: root });
+  const entry = report.capsules[0].cleanupEntries[0];
+  assert.equal(entry.workflow, "slice-work");
+  assert.equal(entry.consumer, "alice");
+  assert.equal(entry.trigger, "closes");
+  assert.equal(entry.state, "ACTIVE");
+  assert.match(report.text, /alice/);
+  rmSync(root, { recursive: true, force: true });
+});

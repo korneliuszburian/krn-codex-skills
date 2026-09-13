@@ -12,7 +12,7 @@ import {
 } from "./capsule-abi.mjs";
 import { runGit as git } from "../support/git-cli.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
-import { runDirectories } from "./spine-runs.mjs";
+import { runDirectoriesDetailed } from "./spine-runs.mjs";
 import { isInside } from "../support/path-rules.mjs";
 import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
@@ -46,6 +46,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   const warnings = [];
   const capsules = [];
   const listedRunPointers = new Set();
+  const runOwners = new Map();
   const ignored = { checked: 0, ignored: 0 };
   const gitRepo = hasGit ? git(root, ["rev-parse", "--is-inside-work-tree"]) : { ok: false, out: "" };
   const usableGit = gitRepo.ok && gitRepo.out === "true";
@@ -135,6 +136,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     const fields = Object.fromEntries(ABI_LABELS.map((label) => [label, fieldLine(text, label)]));
     for (const [label, value] of Object.entries(fields)) {
       if (value === null || stripMarkup(value) === "") errors.push({ id: entry.name, rule: "missing-field", detail: label });
+      else if (/<fill:/.test(value)) errors.push({ id: entry.name, rule: "unresolved-placeholder", detail: label });
     }
     for (const label of ABI_LABELS) {
       const occurrences = text.split("\n").filter((line) => line.trimStart().startsWith(`${label}:`)).length;
@@ -191,7 +193,14 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         errors.push({ id: entry.name, rule: "malformed-cleanup", detail: entryText });
       }
       for (const parsedEntry of parsed.entries) {
-        listedRunPointers.add(normalizeRunPointer(root, parsedEntry.pointer));
+        const normalizedPointer = normalizeRunPointer(root, parsedEntry.pointer);
+        const owner = runOwners.get(normalizedPointer);
+        if (owner && owner !== entry.name) {
+          errors.push({ id: entry.name, rule: "duplicate-run-consumer", detail: `${parsedEntry.pointer} already owned by ${owner}` });
+        } else {
+          runOwners.set(normalizedPointer, entry.name);
+        }
+        listedRunPointers.add(normalizedPointer);
         if (!isInside(root, parsedEntry.pointer)) {
           errors.push({ id: entry.name, rule: "cleanup-pointer-outside-repo", detail: parsedEntry.pointer });
         } else if ((parsedEntry.state === "ACTIVE" || parsedEntry.state === "BLOCKED") && !existsSync(resolve(root, parsedEntry.pointer))) {
@@ -236,7 +245,9 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   }
 
   if (capsules.length > 0) {
-    for (const run of runDirectories(root)) {
+    const inventory = runDirectoriesDetailed(root);
+    for (const detail of inventory.errors) errors.push({ id: "runs", rule: "unreadable-run-inventory", detail });
+    for (const run of inventory.runs) {
       if (!listedRunPointers.has(normalizeRunPointer(root, run.pointer))) {
         errors.push({ id: run.workflow, rule: "orphaned-run", detail: run.pointer });
       }

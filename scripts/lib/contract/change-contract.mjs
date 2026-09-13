@@ -377,6 +377,12 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       if (!headTexts.has(row.lesson)) errors.push({ rule: "lesson-shrinkage", detail: row.lesson.slice(0, 60) });
     }
   }
+  const requestedHead = git(root, ["rev-parse", head]);
+  const checkoutHead = git(root, ["rev-parse", "HEAD"]);
+  if (head !== "HEAD" && requestedHead.ok && checkoutHead.ok && requestedHead.out !== checkoutHead.out) {
+    errors.push({ rule: "head-mismatch", detail: `requested ${head} (${requestedHead.out}) but the checkout is at ${checkoutHead.out}` });
+    return { root, commits: [], results: [], errors, warnings: [], skipped: false };
+  }
   const targets = new Map();
   for (const commit of commits) {
     const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", commit.sha]);

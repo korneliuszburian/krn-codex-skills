@@ -395,3 +395,32 @@ test("a hex fingerprint is not a commit anchor for a COMPLETE capsule", () => {
   assert.ok(report.errors.some((error) => error.rule === "complete-without-commit-anchor"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("an unresolved compiler placeholder is rejected", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}` }).replace("Outcome and observable acceptance: test", "Outcome and observable acceptance: <fill: outcome>"));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "unresolved-placeholder"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("two capsules cannot own the same specialist run", () => {
+  const { root, head } = makeRepo();
+  const cleanup = "[.krn/runs/slice-work/one; slice-work; x; closes; ACTIVE]";
+  mkdirSync(join(root, ".krn", "runs", "slice-work", "one"), { recursive: true });
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}`, cleanup }), "out-1");
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}`, cleanup }), "out-2");
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "duplicate-run-consumer"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an unreadable run inventory is an error, not an empty inventory", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}` }));
+  mkdirSync(join(root, ".krn", "runs"), { recursive: true });
+  symlinkSync(join(root, ".krn", "runs", "missing-target"), join(root, ".krn", "runs", "slice-work"));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "unreadable-run-inventory"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
