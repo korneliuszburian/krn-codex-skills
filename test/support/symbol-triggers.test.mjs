@@ -33,6 +33,15 @@ test("extractSymbols scopes destructured parameters and reads export lists", () 
   assert.deepEqual(extractSymbols("function local() {\n  return 1;\n}\nexport { local };\n"), [{ name: "local", kind: "local", start: 1, end: 3 }]);
 });
 
+test("extractSymbols reads every declarator and ignores default-expression identifiers", () => {
+  assert.deepEqual(extractSymbols("export const a = 1, b = 2;\n").map((symbol) => symbol.name), ["a", "b"]);
+  assert.deepEqual(
+    extractSymbols('export const { a = foo, b = "phoney" } = src;\n').map((symbol) => symbol.name),
+    ["a", "b"],
+  );
+  assert.deepEqual(extractSymbols("export const { a: c, d = 1 } = src;\n").map((symbol) => symbol.name), ["c", "d"]);
+});
+
 test("extractSymbols ignores braces inside strings and comments", () => {
   const tricky = [
     "export function a() {",

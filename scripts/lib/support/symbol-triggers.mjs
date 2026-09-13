@@ -1,5 +1,52 @@
+// Lexical approximation, not a full parser. Known gaps (documented bounds):
+// a regex literal in a declaration body can still mis-scope a span, a
+// destructuring identifier inside a default expression is still reported,
+// class/object methods and getters/setters are not extracted, and an
+// export alias (`local as exported`) maps to the exported name's span.
 const DECL = /^\s*export\s+(?:default\s+)?(?:async\s+)?(function\*?|class|const|let|var)\s+([A-Za-z_$][\w$]*)/;
 const DESTRUCT_START = /^\s*export\s+(?:const|let|var)\s+([\[{])/;
+
+function destructuredNames(text) {
+  const names = [];
+  let depth = 0;
+  let current = "";
+  const flush = () => {
+    const part = current.trim();
+    current = "";
+    if (!part) return;
+    const withoutDefault = part.split("=")[0].trim();
+    const renamed = /:\s*([A-Za-z_$][\w$]*)$/.exec(withoutDefault);
+    const match = renamed ?? /^(?:\.\.\.)?([A-Za-z_$][\w$]*)/.exec(withoutDefault);
+    if (match) names.push(match[1]);
+  };
+  for (const char of text) {
+    if (char === "(" || char === "{" || char === "[") depth += 1;
+    else if (char === ")" || char === "}" || char === "]") depth -= 1;
+    if (char === "," && depth === 0) {
+      flush();
+      continue;
+    }
+    current += char;
+  }
+  flush();
+  return names;
+}
+
+function additionalDeclarators(text) {
+  const names = [];
+  let depth = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === "(" || char === "{" || char === "[") depth += 1;
+    else if (char === ")" || char === "}" || char === "]") depth -= 1;
+    else if (char === ";" && depth === 0) break;
+    else if (char === "," && depth === 0) {
+      const match = /^\s*([A-Za-z_$][\w$]*)/.exec(text.slice(index + 1));
+      if (match) names.push(match[1]);
+    }
+  }
+  return names;
+}
 
 function codeMask(source) {
   const mask = new Array(source.length).fill(true);
@@ -113,7 +160,12 @@ export function extractSymbols(source) {
         }
       }
       const endLine = lineOf(endOffset);
-      for (const name of (source.slice(openOffset + 1, endOffset).match(/[A-Za-z_$][\w$]*/g) ?? [])) {
+      const inner = source
+        .slice(openOffset + 1, endOffset)
+        .split("")
+        .map((char, offset) => (mask[openOffset + 1 + offset] ? char : " "))
+        .join("");
+      for (const name of destructuredNames(inner)) {
         symbols.push({ name, kind: "const", start: line + 1, end: endLine + 1 });
       }
       line = endLine;
@@ -121,7 +173,16 @@ export function extractSymbols(source) {
     }
     const match = DECL.exec(lines[line]);
     if (!match) continue;
-    symbols.push({ name: match[2], kind: match[1], start: line + 1, end: scanSpan(line) });
+    const end = scanSpan(line);
+    symbols.push({ name: match[2], kind: match[1], start: line + 1, end });
+    const rest = source
+      .slice(lineStart[line] + match[0].length, lineStart[end - 1] + lines[end - 1].length)
+      .split("")
+      .map((char, offset) => (mask[lineStart[line] + match[0].length + offset] ? char : " "))
+      .join("");
+    for (const name of additionalDeclarators(rest)) {
+      symbols.push({ name, kind: match[1], start: line + 1, end });
+    }
   }
   for (const match of source.matchAll(/export\s*\{([^}]+)\}/g)) {
     if (!mask[match.index]) continue;
