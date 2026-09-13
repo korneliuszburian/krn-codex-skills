@@ -12,3 +12,9 @@ export function renderDiagnostics(report = {}) {
     warnings: (report.warnings ?? []).map(toLine),
   };
 }
+
+export function fail(message, code = 1) {
+  const error = new Error(message);
+  error.exitCode = code;
+  throw error;
+}

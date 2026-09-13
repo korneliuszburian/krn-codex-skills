@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { posixRelative } from "../support/path-rules.mjs";
 import path from "node:path";
 
 import { parseLessons } from "../lessons/lessons.mjs";
@@ -12,7 +13,7 @@ const HEADER_RULES = [
 
 export function checkDurablePages({ root }) {
   const errors = [];
-  const relative = (file) => path.relative(root, file).split(path.sep).join("/");
+  const relative = (file) => posixRelative(root, file);
   const header = (file) => {
     const text = fs.readFileSync(file, "utf8").split("\n## ")[0];
     for (const [pattern, message] of HEADER_RULES) {

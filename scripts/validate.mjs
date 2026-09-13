@@ -5,6 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCapabilityProfiles } from "./lib/catalog/catalog-inventory.mjs";
+import { readJson } from "./lib/support/read-json.mjs";
+import { posixRelative } from "./lib/support/path-rules.mjs";
 import { ABI_LABELS } from "./lib/state/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/rules/durable-pages.mjs";
 import { checkLessons } from "./lib/lessons/lessons.mjs";
@@ -55,8 +57,8 @@ const upstreamSourcesPath = path.resolve(
 const errors = [];
 
 const read = (file) => fs.readFileSync(file, "utf8");
-const json = (file) => JSON.parse(read(file));
-const relative = (file) => path.relative(root, file).split(path.sep).join("/");
+const json = readJson;
+const relative = (file) => posixRelative(root, file);
 
 function fail(message) {
   errors.push(message);

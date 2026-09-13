@@ -13,7 +13,7 @@ import { churnHot } from "./lib/contract/churn.mjs";
 import { runGit } from "./lib/support/git-cli.mjs";
 import { verifyLessons } from "./lib/lessons/lessons-verify.mjs";
 import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
-import { EXIT_CODES, renderDiagnostics } from "./lib/support/diagnostics.mjs";
+import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
 
 process.stdout.on("error", (error) => {
   if (error.code === "EPIPE") process.exit(0);
@@ -37,11 +37,7 @@ const usage = `Usage:
   krn-codex changes check --base REF [--head REF] --root DIR [--before] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]`;
 
-function fail(message, code = EXIT_CODES.USAGE) {
-  const error = new Error(message);
-  error.exitCode = code;
-  throw error;
-}
+const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
 
 function parseOptions(args) {
   const positional = [];

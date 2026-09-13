@@ -7,19 +7,13 @@ import path from "node:path";
 
 import { fileURLToPath } from "node:url";
 
-import { EXIT_CODES } from "../support/diagnostics.mjs";
+import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { isInside, isSafeRelativePath as safeRelativePath } from "../support/path-rules.mjs";
 import { readJson } from "../support/read-json.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
 const OWN_MANIFEST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "skills", "manifest.json");
-
-function fail(message, exitCode = 1) {
-  const error = new Error(message);
-  error.exitCode = exitCode;
-  throw error;
-}
 
 function canonicalPath(candidate) {
   const suffix = [];

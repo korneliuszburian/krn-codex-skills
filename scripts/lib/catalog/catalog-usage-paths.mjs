@@ -1,6 +1,8 @@
 import path from "node:path";
 
 import { isValidDay } from "./catalog-usage-normalize.mjs";
+import { HARD_QUARANTINE_FAMILIES } from "./catalog-errors.mjs";
+import { matchesQuarantined } from "./plugin-identity.mjs";
 
 const FORBIDDEN_DIRECTORY_NAMES = new Set([
   "db",
@@ -17,7 +19,7 @@ const FORBIDDEN_FILE_NAMES = new Set(["history.jsonl"]);
 export function forbiddenName(name) {
   const lower = name.toLowerCase();
   return (
-    lower.includes("superpowers") ||
+    matchesQuarantined(lower, HARD_QUARANTINE_FAMILIES) ||
     FORBIDDEN_DIRECTORY_NAMES.has(lower) ||
     FORBIDDEN_FILE_NAMES.has(lower) ||
     /\.(?:db|sqlite|sqlite3)(?:-(?:shm|wal))?$/.test(lower)

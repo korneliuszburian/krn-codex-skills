@@ -19,7 +19,7 @@ import {
 import { resolveProfile } from "./lib/catalog/catalog-profile.mjs";
 import { scanCatalogUsage } from "./lib/catalog/catalog-usage.mjs";
 
-import { EXIT_CODES } from "./lib/support/diagnostics.mjs";
+import { EXIT_CODES, fail } from "./lib/support/diagnostics.mjs";
 
 const EXIT_USAGE = EXIT_CODES.USAGE;
 const EXIT_DRIFT = 3;
@@ -62,12 +62,6 @@ Options:
 
 Mutations happen only through the explicit apply command. A new Codex session
 is required before changed plugin, MCP, or skill exposure is observable.`;
-
-function fail(message, exitCode = 1) {
-  const error = new Error(message);
-  error.exitCode = exitCode;
-  throw error;
-}
 
 function parseArguments(argv) {
   const options = { json: false, days: 30 };

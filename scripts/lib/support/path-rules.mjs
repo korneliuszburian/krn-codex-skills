@@ -15,3 +15,7 @@ export function isInside(parent, candidate) {
   const rel = path.relative(root, path.resolve(root, candidate));
   return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== "..");
 }
+
+export function posixRelative(base, file) {
+  return path.relative(base, file).split(path.sep).join("/");
+}
