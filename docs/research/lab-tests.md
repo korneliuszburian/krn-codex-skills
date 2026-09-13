@@ -35,7 +35,7 @@ are durable.
 | LT-3 | The change-contract gate blocks self-authored, redefined, and unmet checks before publication. | Deterministic: a self-authored/unmet lane vs the satisfied lane (a changed, pre-existing check). | The gate blocks a check introduced or redefined in the range and an unmet prediction, and passes the satisfied lane. | A self-authored or redefined check passes the gate. | lab-test | Run as a deterministic check, not a human pilot. It does not block a change paired with an unrelated pre-existing green check: the before-state is declared, not executed, so a determined author can still pair a change with an unrelated green check. That residual is recorded in `orchestration.md`. The frozen observer compares TAP case names, so a same-name replacement that weakens the body can still mask a dropped assertion. It also does not follow a declared script's imports, so a changed `test/**` file reached through an unchanged launcher is not flagged as self-authorized. |
 | LT-4 | A lesson whose evidence record was superseded is stale even when its own gate still passes, so recall should re-resolve the anchor against current records. | Deterministic differential. Control: a lesson whose referenced record is current. Treatment: a byte-identical lesson row whose referenced record was superseded, differing only by a marker-free supersession link. | The treatment lane is blocked or flagged while the control lane stays green. | The lanes are indistinguishable, or the control blocks. | retired | Retired 2026-09-12 without a differential. The proposed rule (Evidence cell names a path whose `git log <Falsifier-sha>..HEAD -- <path>` is non-empty, fired only for triggered rows) is rejected: Evidence is free prose naming symbols, module basenames, commits, and error strings, not owned paths, so parsing is inert or coincidental; only one row carries a Trigger, so fail-closed coverage is ~1; parsed Evidence paths nearly always coincide with the already-resolved enforcing gate, duplicating `stale-anchor`; and a later commit to a file is proof drift, not the ranked-record supersession StaleBench measures. Git history is not a ranked store and `recallLessons` is unranked, so a fixture would pass for the wrong reason. What is proven: `stale-anchor` fails a triggered row whose Falsifier or enforcing gate changed after the proof. What is not: that a superseded evidence record invalidates an otherwise green lesson. Grounded in StaleBench (ACL ARR 2026 August, OpenReview `1zCrxCUNtW`, unverified preprint), whose lower-rank mechanism stays unobservable here. Residual: KRN has no ranked retrieval consumer; reopen only when a ranked store and a historical-query consumer exist, with a real pairwise supersession fixture. |
 
-| LT-5 | The content-vs-enforcement memory effect survives a neutral stratum, repeats, and a third model family. | Registered 2026-09-13. Start with a one-decisive plus one-neutral separation gate (six runs) before scaling to eight frozen tasks in two strata (decisive where a lesson applies implicitly, neutral of equal shape where none does), three arms (A ablation, B content, C forced reconstruction), at least three reps for A as well as B/C to estimate variance and a minimum detectable effect, and a length-matched irrelevant (placebo) row as an arm-B control. A third family (opencode-go/glm-5.3) runs all arms, but it shares a provider/SDK with the decider, so decider independence is a stated non-proof; the single blinded decider sees anonymized, left/right-randomized, trailer-stripped packets. Explicit bwrap binds only, fixture and answer key outside every bind with a committed salted hash manifest for retention, held-out check copied in only after the agent exits, per-run sentinel; host-root exposure is defined as access to `/` or host `$HOME` outside the declared binds. bwrap must be >= 0.12.0 (CVE-2026-87766, GHSA-pxhw-h44j-8pfx: setup-time creation follows a parent symlink onto /oldroot and writes on the host outside every bind); the pre-run assertion must check `bwrap --version` and run a setup-write probe, and the 0.11.2 host is a stated confound. The MDE must come from the paired-binary required-N (McNemar) with a cluster design effect over the 8 tasks and 2 strata; three reps are repeated measures. `/run` exposes only name resolution (a static resolv.conf or the resolved subpath) with a private `/run/user`, and a pre-run probe must show `busctl --user` and `flatpak-spawn --host` fail inside the sandbox. Arm C runs the harness read-only via --root with a git shim that fires only on `unreconstructed-recall` and holds the change-contract obligation constant across B/C, so a C effect is attributable to recall enforcement. A mechanical pre-run assertion requires `memory recall` to return zero hits for every neutral changed path, and arm A's neutral pass rate strictly between 0 and 1. | Held-out pass by arm and stratum, wall time, tokens in/out, delivered context (not nominal budget; arXiv:2608.31057), diff size, decider score, sentinel leak, host-root exposure. | Content is generic priming, not memory: the decisive difference-in-differences over the neutral stratum does not clear the estimated minimum detectable effect (not a fixed 0.25). Enforcement is unattributable if pass(C) beats pass(B) only with material extra cost or if the shim fires on a neutral task. Promotion kill: sentinel leak, declared host-root or answer-key read, held-out reachability during execution, or a neutral path that matches a trigger. | lab-test | Protocol registered 2026-09-13; isolation dry-run validated and the separation gate was run (N=1, non-promoting; see below). Non-proofs: no result; arms and strata are designed but no run has produced evidence, so no mechanism is promoted on this row. The codex lane is not hermetic here (npx/mise wrapper) and is a stated non-proof unless pinned by hash; the decider shares a provider with the third family; and a definitional ablation without a placebo cannot separate content from added context on its own. Dry-run findings: `opencode --version` runs under explicit binds only with `/run` and `/sys` bound (omitting `/run` gives an API connect error), a fresh share dir without an auth seed fails (`UnknownError`), and with those fixed a one-prompt run exited 0 with token usage captured from `events.jsonl` (9,427 in / 2 out) while a `$HOME` canary and `/mnt` stayed invisible. Seed only the auth file into the isolated share, never the whole 31 GB host share. The dry-run used the host's 0.11.2; a locally built 0.12.0 is now staged and probe-validated, so the dry-run alone still does not evidence isolation. |
+| LT-5 | The content-vs-enforcement memory effect survives a neutral stratum, repeats, and a third model family. | Registered 2026-09-13. Start with a one-decisive plus one-neutral separation gate (six runs) before scaling to eight frozen tasks in two strata (decisive where a lesson applies implicitly, neutral of equal shape where none does), three arms (A ablation, B content, C forced reconstruction), at least three reps for A as well as B/C to estimate variance and a minimum detectable effect, and a length-matched irrelevant (placebo) row as an arm-B control. A third family (opencode-go/glm-5.3) runs all arms, but it shares a provider/SDK with the decider, so decider independence is a stated non-proof; the single blinded decider sees anonymized, left/right-randomized, trailer-stripped packets. Explicit bwrap binds only, fixture and answer key outside every bind with a committed salted hash manifest for retention, held-out check copied in only after the agent exits, per-run sentinel; host-root exposure is defined as access to `/` or host `$HOME` outside the declared binds. bwrap must be >= 0.12.0 (CVE-2026-87766, GHSA-pxhw-h44j-8pfx: setup-time creation follows a parent symlink onto /oldroot and writes on the host outside every bind); the pre-run assertion must check `bwrap --version` and run a setup-write probe, and the 0.11.2 host is a stated confound. The MDE must come from the paired-binary required-N (McNemar) with a cluster design effect over the 8 tasks and 2 strata; three reps are repeated measures. `/run` exposes only name resolution (a static resolv.conf or the resolved subpath) with a private `/run/user`, and a pre-run probe must show `busctl --user` and `flatpak-spawn --host` fail inside the sandbox. Arm C runs the harness read-only via --root with a git shim that fires only on `unreconstructed-recall` and holds the change-contract obligation constant across B/C, so a C effect is attributable to recall enforcement. A mechanical pre-run assertion requires `memory recall` to return zero hits for every neutral changed path, and arm A's neutral pass rate strictly between 0 and 1. | Held-out pass by arm and stratum, wall time, tokens in/out, delivered context (not nominal budget; arXiv:2608.31057), diff size, decider score, sentinel leak, host-root exposure. | Content is generic priming, not memory: the decisive difference-in-differences over the neutral stratum does not clear the estimated minimum detectable effect (not a fixed 0.25). Enforcement is unattributable if pass(C) beats pass(B) only with material extra cost or if the shim fires on a neutral task. Promotion kill: sentinel leak, declared host-root or answer-key read, held-out reachability during execution, or a neutral path that matches a trigger. | lab-test | Protocol registered 2026-09-13; isolation dry-run validated and the separation gate was run (N=3, a content effect but non-promoting; see below). Non-proofs: no result; arms and strata are designed but no run has produced evidence, so no mechanism is promoted on this row. The codex lane is not hermetic here (npx/mise wrapper) and is a stated non-proof unless pinned by hash; the decider shares a provider with the third family; and a definitional ablation without a placebo cannot separate content from added context on its own. Dry-run findings: `opencode --version` runs under explicit binds only with `/run` and `/sys` bound (omitting `/run` gives an API connect error), a fresh share dir without an auth seed fails (`UnknownError`), and with those fixed a one-prompt run exited 0 with token usage captured from `events.jsonl` (9,427 in / 2 out) while a `$HOME` canary and `/mnt` stayed invisible. Seed only the auth file into the isolated share, never the whole 31 GB host share. The dry-run used the host's 0.11.2; a locally built 0.12.0 is now staged and probe-validated, so the dry-run alone still does not evidence isolation. |
 
 ## LT-5 design additions (2026-09-13)
 
@@ -67,29 +67,39 @@ item is string-distinguishable from its gold, the oracle changes nothing.
 ## LT-5 separation gate (2026-09-13)
 
 One decisive plus one neutral task, arms A (lesson row removed), B (lesson
-content), C (forced recall via the harness CLI), one run each, under the staged
-bwrap 0.12.0 with a fresh share seeded only with `auth.json` and the host
-`opencode.db` never copied. Fixture: a banner string coupled to
+content), C (forced recall via the harness CLI), three runs per cell, under the
+staged bwrap 0.12.0 with a fresh share seeded only with `auth.json` and the host
+`opencode.db` never copied. The harness is copied inside the working tree so the
+agent needs no external-directory permission. Fixture: a banner string coupled to
 `BANNER_VERSION`; the decisive lesson's `path:src/greeting.mjs` trigger matched
 (1 hit) and the neutral `README.md` path matched none (0 hits). Held-out check
-copied in only after the agent exited; pre-run isolation probes showed `/mnt`
-and `$HOME` hidden.
+copied in only after the agent exited; pre-run isolation probes showed `/mnt` and
+`$HOME` hidden and `node` available.
 
-| Cell | decisive | neutral | wall (s) | tokens (in/out) |
+| Cell | decisive | neutral | median wall (s) | median tokens in/out |
 |---|---|---|---|---|
-| A (ablate) | fail, version kept 1 | pass | 24 / 11 | 12139 / 8669 |
-| B (content) | fail, banner unchanged | pass | 29 / 14 | 13928 / 9717 |
-| C (forced recall) | pass | pass | 14 / 13 | 9608 / 8992 |
+| A (ablate) | 0/3 | 3/3 | 16 / 14 | 10876 / 8914 |
+| B (content) | 2/3 | 3/3 | 17 / 16 | 10384 / 10149 |
+| C (forced recall) | 3/3 | 3/3 | 20 / 14 | 11481 / 9398 |
 
-Disposition: **non-promoting; no mechanism promoted.** The decisive stratum does
-not separate content from ablation because B failed by not attempting the change
-at all (`greeting` stayed `Hello`), not by misapplying the lesson, so the B-vs-C
-gap is a no-op confound rather than evidence that enforcement beats content. The
-neutral stratum has no variance (1/1 in every arm), so no generic-priming
-separation exists to measure. Cost does not favour enforcement here (C used fewer
-tokens than B), and with N=1 the paired-binary MDE cannot attribute anything.
-Reopen with >=3 reps per cell, a B prompt that reliably attempts the task, the
-placebo arm, and the registered MDE; do not scale on this gate alone.
+Disposition: **content effect present, still non-promoting.** Content (B) beats
+ablation (A) on the decisive task (2/3 vs 0/3); the arms differ only by the
+lesson row, so delivering the coupled-version lesson changed the outcome. Forced
+recall (C) is at ceiling (3/3) and does not beat content at this N, and cost does
+not separate them. The neutral stratum is at ceiling for every arm (3/3), so it
+provides no contrast and the registered difference-in-differences cannot separate
+the content effect from generic priming; N=3 is below the registered MDE; and the
+placebo arm and the exact git-shim `--strict-recall` mechanism (C is a
+CLI-forced proxy) are not yet run. No mechanism is promoted on this gate. Reopen
+with a neutral task that has variance, the length-matched placebo, the registered
+tasks x reps, and the exact git-shim mechanism.
+
+Confounds recorded honestly: an earlier pass was confounded by an
+external-directory permission rejection when the harness lived outside the working
+tree (arm B no-op), and an intermediate pass aborted on transient provider
+`UnknownError`s; both were fixed for the final run (harness copied inside `/work`,
+retry on transient errors). The final dataset has zero retries and zero provider
+errors.
 
 Retention manifest (salt `46bd785538ad43e1`, first 16 hex of
 sha256(salt || file)): `greeting.mjs=eaa6f61223c4be17`,
@@ -99,7 +109,8 @@ sha256(salt || file)): `greeting.mjs=eaa6f61223c4be17`,
 keys are staged outside the repo (in the lab dir, not committed here), so the
 manifest verifies only a retained copy; arm C's forced-reconstruction prompt is a
 proxy for the registered git-shim `--strict-recall` path, not that exact
-mechanism; and the runs are one model family with N=1.
+mechanism; the neutral stratum is at ceiling and uninformative; and the runs are
+one model family with N=3.
 
 ## Decision
 
@@ -107,4 +118,4 @@ mechanism; and the runs are one model family with N=1.
 `LT-3` is a deterministic check with a documented residual; `LT-4` is retired (its lower-rank mechanism needs a ranked store KRN forbids); the shipped proof-drift surrogate is `stale-anchor`; `LT-1` and `LT-2` are blinded
 pilots that must run before the memory harness or cross-repo transfer is
 described as effective rather than defensive; the `LT-1` content-vs-enforcement
-question is reopened by the registered `LT-5` scale-up, which has no result yet.
+question is probed by the `LT-5` gate: content beats ablation on the decisive task (2/3 vs 0/3) while the neutral stratum is at ceiling, so no mechanism is promoted yet.
