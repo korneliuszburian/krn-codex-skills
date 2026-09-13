@@ -377,7 +377,7 @@ if (globalAgentsPathSafe) {
   }
 }
 {
-  const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  const packageJson = json(path.join(root, "package.json"));
   const declared = new Set();
   for (const [name, command] of Object.entries(packageJson.scripts ?? {})) {
     if (name === "test") continue;

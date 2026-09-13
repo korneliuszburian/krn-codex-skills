@@ -1,4 +1,4 @@
-import { basename, join, relative } from "node:path";
+import { basename, join } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
 const INTERFACE_REQUIRED = ["display_name", "short_description", "default_prompt"];
