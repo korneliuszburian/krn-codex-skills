@@ -354,3 +354,13 @@ test("check reports a malformed upstream lock instead of throwing", () => {
   assert.ok(Array.isArray(check.errors));
   fs.rmSync(f.base, { recursive: true, force: true });
 });
+
+test("check reports invalid JSON in the lock or manifest instead of throwing", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.source });
+  fs.writeFileSync(path.join(f.source, "config", "upstream-sources.json"), "{ \"sources\": [\n");
+  let check;
+  assert.doesNotThrow(() => { check = checkSkills({ root: f.source }); });
+  assert.ok(check.errors.some((error) => error.includes("not valid JSON")), JSON.stringify(check.errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});

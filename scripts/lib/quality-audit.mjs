@@ -132,12 +132,24 @@ export function auditRepository(root) {
     }
   }
 
+  const consumedNames = (source) => {
+    const names = importedNames(source);
+    for (const match of source.matchAll(/export\s*\{([^}]*)\}\s*from\s*["'][^"']+["']/g)) {
+      for (const part of match[1].split(",")) {
+        const name = part.split(/\s+as\s+/).pop().trim();
+        if (/^[A-Za-z0-9_$]+$/.test(name)) names.add(name);
+      }
+    }
+    return names;
+  };
+  const consumed = new Map([...sources.entries()].map(([file, source]) => [file, consumedNames(source)]));
+
   for (const file of runtime.filter((candidate) => label(candidate).startsWith(`scripts${sep}lib${sep}`))) {
     if (isSelf(file)) continue;
     const source = sources.get(file);
     for (const name of exportedNames(source)) {
-      const usedElsewhere = [...sources.entries()].some(
-        ([other, otherSource]) => other !== file && new RegExp(`\\b${name}\\b`).test(otherSource),
+      const usedElsewhere = [...sources.keys()].some(
+        (other) => other !== file && consumed.get(other)?.has(name),
       );
       if (!usedElsewhere) errors.push(`${label(file)}: dead export ${name}`);
     }

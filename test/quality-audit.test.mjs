@@ -133,3 +133,17 @@ test("the audit scans the generated export and only script env dumps", () => {
     },
   );
 });
+
+test("a comment mention does not count as a consumer of an export", () => {
+  withRepo(
+    {
+      "scripts/lib/a.mjs": "export function orphan() { return 1; }\nexport function used() { return 2; }\n",
+      "scripts/lib/b.mjs": "import { used } from \"./a.mjs\";\n// orphan was removed here\nexport const v = used();\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("dead export orphan")), JSON.stringify(errors));
+      assert.ok(!errors.some((message) => message.includes("dead export used")), JSON.stringify(errors));
+    },
+  );
+});

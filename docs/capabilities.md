@@ -18,6 +18,9 @@ profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-11.
 - `check` returns non-zero when a profile has drifted;
 - quarantined families can never be enabled and their paths are rejected
   lexically before any file operation;
+- third-party and vendor skill/MCP descriptors and bodies are an untrusted
+  instruction channel: re-review their content on update instead of trusting
+  the enablement tombstone (arXiv:2605.11418, 2602.20156);
 - inventory and usage reject configured roots with a symlink in any path
   component before traversal;
 - app and connector requests are report-only because their account connection

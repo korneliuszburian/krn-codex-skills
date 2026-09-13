@@ -218,7 +218,10 @@ export function checkSkills({ root }) {
   const marker = fs.existsSync(markerFile) ? readJson(markerFile) : null;
   const sourceByName = new Map();
   const sourceManifest = path.join(root, "skills", "manifest.json");
-  const rootManifest = fs.existsSync(sourceManifest) ? readJson(sourceManifest) : null;
+  const rootManifest = (() => {
+    if (!fs.existsSync(sourceManifest)) return null;
+    try { return readJson(sourceManifest); } catch { errors.push("skills/manifest.json is not valid JSON"); return null; }
+  })();
   for (const skill of rootManifest?.skills ?? []) {
     sourceByName.set(skill.name, path.join(root, skill.path));
   }
@@ -300,7 +303,10 @@ export function checkSkills({ root }) {
     }
   }
   const lockFile = path.join(root, "config", "upstream-sources.json");
-  const lock = fs.existsSync(lockFile) ? readJson(lockFile) : null;
+  const lock = (() => {
+    if (!fs.existsSync(lockFile)) return null;
+    try { return readJson(lockFile); } catch { errors.push("config/upstream-sources.json is not valid JSON"); return null; }
+  })();
   if (lock) {
     const sources = Array.isArray(lock.sources) ? lock.sources : [];
     const upstreamPin = sources.find((source) => source && (marker?.upstream?.id ? source.id === marker.upstream.id : source.id === "mattpocock/skills"))

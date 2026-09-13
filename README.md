@@ -176,8 +176,9 @@ applies path-aware policy to recognized direct `rm`, denies recognized literal
 non-dry-run `git clean`, blocks exact literal quarantine references and patch
 targets, and denies unsupported shell composition only when it contains the
 same literal risk. It does not interpret shell execution; runtime-built,
-sourced, or obfuscated behavior remains governed by the global contract. Only
-bare, uncomposed `echo` and `printf` are treated as inert risk text. The
+sourced, or obfuscated behavior remains governed by the global contract. Bare,
+uncomposed `echo`/`printf` and literal-risk words inside simple read-only
+inspection commands (for example `grep rm file`) are treated as inert text. The
 installer refuses foreign collisions and archives only its previous managed
 links while it reconciles them through `current`. `scripts/install.sh` remains
 a one-release `check`/`install` compatibility shim; it invokes the same CLI, and
@@ -185,7 +186,9 @@ a one-release `check`/`install` compatibility shim; it invokes the same CLI, and
 
 `krn-codex install prune --keep N` removes superseded releases while keeping the current one and the N newest, and never removes a release a managed link still resolves into. Use `krn-codex install check` for filesystem state and `krn-codex doctor` when
 you need the distinction between an installed filesystem snapshot, a broken or
-foreign link, a legacy mutable source link, and unknown/stale session loading.
+foreign link (a legacy mutable-source link is reported as foreign because
+doctor does not know the source root; `install apply` migrates it), and
+unknown/stale session loading.
 Start a fresh Codex session after installation. Discovery is session-scoped.
 `setup-repository-workflow`, `opencode-second-opinion`, `unlazy`, and `unslop`
 require an explicit `$skill-name` attachment. Descriptions route the task;
