@@ -182,6 +182,34 @@ test("reanchor bumps a stale proof anchor after the case re-runs green", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("reanchor refuses to bump to a red candidate commit", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-reanchor-red-"));
+  const run = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  const commit = (message) => {
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"]);
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message]);
+    return run(["rev-parse", "HEAD"]).slice(0, 7);
+  };
+  const proof = 'import test from "node:test";\nimport { readFileSync } from "node:fs";\ntest("probe", () => { if (readFileSync(new URL("../flag.txt", import.meta.url), "utf8") !== "green") throw new Error("red"); });\n';
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "package.json"), JSON.stringify({ scripts: { "test:state": "x" } }));
+  writeFileSync(join(root, "flag.txt"), "red");
+  writeFileSync(join(root, "test", "proof.test.mjs"), proof);
+  run(["init", "-q"]);
+  const first = commit("one");
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), `| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| A | probe | \`test:state\` | | \`test/proof.test.mjs::probe@${first}\` | | |\n`);
+  commit("two");
+  writeFileSync(join(root, "test", "proof.test.mjs"), `${proof}// touched\n`);
+  commit("three");
+  writeFileSync(join(root, "flag.txt"), "green");
+  commit("four");
+  const report = reanchorLessons({ root });
+  assert.equal(report.updated.length, 0, JSON.stringify(report));
+  assert.ok(report.skipped.some((entry) => /candidate anchor/.test(entry.reason)), JSON.stringify(report.skipped));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("reanchor fixes a gate-file staleness and refuses a dirty tree", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-reanchor-gate-"));
   const run = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();

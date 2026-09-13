@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 import { escapeRegExp } from "../support/regexp.mjs";
@@ -110,6 +111,21 @@ export function reanchorLessons({ root, timeout = 120000, runner = runCase, gitI
     const outcome = runner({ root, file: path.join(root, file), name, timeout });
     if (!outcome.ok) {
       skipped.push({ lesson: lesson.lesson, reason: "proof did not re-run green", blocking: true });
+      continue;
+    }
+    const candidateDir = fs.mkdtempSync(path.join(os.tmpdir(), "krn-reanchor-"));
+    let candidateOk = false;
+    try {
+      gitImpl(root, ["worktree", "add", "--detach", candidateDir, latest]);
+      if (fs.existsSync(path.join(candidateDir, file))) {
+        candidateOk = runner({ root: candidateDir, file: path.join(candidateDir, file), name, timeout }).ok;
+      }
+    } finally {
+      gitImpl(root, ["worktree", "remove", "--force", candidateDir]);
+      fs.rmSync(candidateDir, { recursive: true, force: true });
+    }
+    if (!candidateOk) {
+      skipped.push({ lesson: lesson.lesson, reason: `proof is not green at the candidate anchor ${latest}`, blocking: true });
       continue;
     }
     const from = `${file}::${name}@${sha}`;
