@@ -69,12 +69,14 @@ function resolveCheck(root, scripts, ref) {
   return null;
 }
 
-function runCheck({ root, target }) {
+function runCheck({ root, target, frozenTests = null }) {
   const env = { ...process.env, KRN_CHANGE_CONTRACT: "0" };
   delete env.NODE_TEST_CONTEXT;
-  const result = target.kind === "script"
-    ? spawnSync("npm", ["run", target.name], { cwd: root, timeout: 600000, encoding: "utf8", env })
-    : spawnSync(process.execPath, target.kind === "test" ? ["--test", "--test-reporter=tap", target.name] : [target.name], { cwd: root, timeout: 600000, encoding: "utf8", env });
+  const result = target.kind === "script" && frozenTests?.length
+    ? spawnSync(process.execPath, ["--test", "--test-reporter=tap", ...frozenTests], { cwd: root, timeout: 600000, encoding: "utf8", env })
+    : target.kind === "script"
+      ? spawnSync("npm", ["run", target.name], { cwd: root, timeout: 600000, encoding: "utf8", env })
+      : spawnSync(process.execPath, target.kind === "test" ? ["--test", "--test-reporter=tap", target.name] : [target.name], { cwd: root, timeout: 600000, encoding: "utf8", env });
   const spawnFailed = result.error !== undefined && result.error !== null || result.status === null;
   return { ok: result.status === 0, status: result.status, spawnFailed, output: `${result.stdout ?? ""}${result.stderr ?? ""}` };
 }
@@ -110,6 +112,37 @@ function scriptRedefinition(root, base, git, command) {
   return "clean";
 }
 
+function scriptChangedFiles(root, base, git, command) {
+  const files = [];
+  for (const match of command.matchAll(/"([^"]+\.(?:mjs|js|cjs|sh))"|'([^']+\.(?:mjs|js|cjs|sh))'/g)) {
+    files.push((match[1] ?? match[2]).replace(/^\.\//, ""));
+  }
+  for (const match of command.matchAll(/(?:^|[\s=])([^\s=]+\.(?:mjs|js|cjs|sh))(?=$|[\s])/g)) {
+    files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
+  }
+  if (files.length === 0 && /(^|\s)--test(\s|$)/.test(command)) files.push(...listTestFiles(root, base, git));
+  return files.filter((rel) => checkFileRedefined(root, base, git, rel));
+}
+
+const isTestFile = (rel) => /^test\/.+\.test\.mjs$/.test(rel);
+
+function literalTestFiles(root, target) {
+  if (target.kind !== "script") return null;
+  let command;
+  try {
+    command = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts?.[target.name];
+  } catch {
+    return null;
+  }
+  if (typeof command !== "string" || /[*?\[]/.test(command) || /[$`|;&<>]/.test(command)) return null;
+  const files = [];
+  for (const match of command.matchAll(/(?:^|[\s=])([^\s=]+\.(?:mjs|js|cjs))(?=$|[\s])/g)) {
+    files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
+  }
+  const tests = files.filter(isTestFile);
+  return tests.length > 0 ? tests : null;
+}
+
 function tapSummary(output) {
   const text = output ?? "";
   const tests = Number((/^# tests (\d+)\s*$/m.exec(text)?.[1] ?? "0"));
@@ -134,14 +167,16 @@ export function runCheckAtBase({ root, base, target, git = runGit, overlay = nul
     return { unavailable: true };
   }
   try {
-    if (overlay) {
-      const from = path.join(root, overlay);
-      const to = path.join(dir, overlay);
+    const overlays = Array.isArray(overlay) ? overlay : overlay ? [overlay] : [];
+    for (const rel of overlays) {
+      const from = path.join(root, rel);
+      const to = path.join(dir, rel);
       if (!fs.existsSync(from)) return { unavailable: true };
       fs.mkdirSync(path.dirname(to), { recursive: true });
       fs.copyFileSync(from, to);
     }
-    return { outcome: runCheck({ root: dir, target }) };
+    const frozenTests = target.kind === "script" ? (overlays.filter(isTestFile).length > 0 ? overlays.filter(isTestFile) : literalTestFiles(root, target)) : null;
+    return { outcome: runCheck({ root: dir, target, frozenTests }) };
   } finally {
     git(root, ["worktree", "remove", "--force", dir]);
     git(root, ["worktree", "prune"]);
@@ -246,14 +281,25 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       const commandChanged = target.kind === "script"
         && baseScripts !== null && Object.hasOwn(baseScripts, target.name) && baseScripts[target.name] !== scripts[target.name];
       const scriptState = target.kind === "script" ? scriptRedefinition(root, base, git, scripts[target.name] ?? "") : null;
-      const redefined = target.kind === "script" ? commandChanged || scriptState !== "clean" : checkFileRedefined(root, base, git, target.name);
-      const frozenObserver = verifyBefore && target.kind === "test" && (authoredNow || redefined);
+      const fileChanged = target.kind === "test" ? checkFileRedefined(root, base, git, target.name) : false;
+      const changedScriptFiles = target.kind === "script" && scriptState !== "non-literal" ? scriptChangedFiles(root, base, git, scripts[target.name] ?? "") : [];
+      const changedTests = changedScriptFiles.filter(isTestFile);
+      const changedOther = changedScriptFiles.filter((rel) => !isTestFile(rel));
+      let frozenObserver = false;
+      let overlays = [];
+      if (target.kind === "test" && verifyBefore && (authoredNow || fileChanged)) {
+        frozenObserver = true;
+        overlays = [target.name];
+      } else if (target.kind === "script" && verifyBefore && !commandChanged && scriptState !== "non-literal" && changedOther.length === 0 && changedTests.length > 0) {
+        frozenObserver = true;
+        overlays = changedTests;
+      }
       if (!frozenObserver) {
         if (authoredNow) {
           errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail: "the check did not exist before this range" });
           return;
         }
-        if (redefined) {
+        if (commandChanged || fileChanged || changedTests.length > 0 || changedOther.length > 0 || scriptState === "non-literal") {
           const detail = scriptState === "non-literal" && !commandChanged ? "the declared check is not a literal invocation" : "the check was redefined in this range";
           errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail });
           return;
@@ -268,6 +314,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         return;
       }
       record.obligations.push({ commit: commit.sha, after, label, before: label === "risk" ? "green" : entry.before, ref: entry.ref, frozenObserver });
+      record.overlays = frozenObserver ? overlays : (record.overlays ?? []);
       targets.set(key, record);
     };
     for (const entry of contract.contracts) admit(entry, "contract");
@@ -276,12 +323,13 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const results = [];
   const baseRunner = runAtBase ?? ((args) => runCheckAtBase({ ...args, git }));
   for (const record of targets.values()) {
-    const outcome = run({ root, target: record.target });
-    const frozen = record.obligations.some((obligation) => obligation.frozenObserver);
+    const overlays = record.overlays ?? [];
+    const headFrozen = record.target.kind === "script" && overlays.length > 0 ? overlays.filter(isTestFile) : null;
+    const outcome = run({ root, target: record.target, frozenTests: headFrozen });
     const baseCache = new Map();
-    const baseOnce = (overlay) => {
-      const key = overlay ?? "\u0000";
-      if (!baseCache.has(key)) baseCache.set(key, baseRunner({ root, base, target: record.target, overlay }));
+    const baseOnce = (value) => {
+      const key = value && value.length ? value.join(",") : "\u0000";
+      if (!baseCache.has(key)) baseCache.set(key, baseRunner({ root, base, target: record.target, overlay: value }));
       return baseCache.get(key);
     };
     for (const obligation of record.obligations) {
@@ -296,7 +344,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         });
       }
       if (verifyBefore && obligation.label === "contract" && obligation.before === "red" && obligation.after === "green" && outcome.ok) {
-        const baseRun = baseOnce(frozen ? record.target.name : null);
+        const baseRun = baseOnce(overlays.length ? overlays : null);
         const baseOutput = baseRun.outcome?.output ?? "";
         if (baseRun.unavailable || baseRun.outcome?.spawnFailed) {
           errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete; its before-state is unproven" });

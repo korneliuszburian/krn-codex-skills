@@ -528,6 +528,28 @@ test("a shared frozen check executes each overlay once", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("--before freezes a changed test reached through an unchanged literal script", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-scriptfreeze-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), "{\"scripts\":{\"test:t\":\"node --test test/t.test.mjs\"}}\n");
+  writeFileSync(join(root, "test", "t.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("value is two", () => assert.equal(value, 2));\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "test", "t.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("value is two", () => assert.equal(value, 2));\ntest("extra", () => assert.equal(typeof value, "number"));\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 2;\n");
+  commit("fix\n\nChange-contract: test:t:red->green");
+  const frozen = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+  assert.deepEqual(frozen.errors, [], JSON.stringify(frozen.errors));
+  const strictAuth = checkChangeContract({ root, base, head: "HEAD", verifyBefore: false });
+  assert.ok(strictAuth.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(strictAuth.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });
