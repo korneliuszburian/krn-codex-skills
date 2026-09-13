@@ -11,7 +11,7 @@ import { checkSkills, exportSkills } from "./lib/install/skills-export.mjs";
 import { checkLessons, lessonUsage, recallLessons } from "./lib/lessons/lessons.mjs";
 import { churnHot } from "./lib/contract/churn.mjs";
 import { runGit } from "./lib/support/git-cli.mjs";
-import { verifyLessons } from "./lib/lessons/lessons-verify.mjs";
+import { reanchorLessons, verifyLessons } from "./lib/lessons/lessons-verify.mjs";
 import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
 import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
 
@@ -33,7 +33,7 @@ const usage = `Usage:
   krn-codex repo <inspect|apply> [...args]
   krn-codex state <check|compile|resume> [PATH|--root PATH] [--json]
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
-  krn-codex lessons <check|verify> --root DIR [--json]
+  krn-codex lessons <check|verify|reanchor> --root DIR [--json]
   krn-codex changes check --base REF [--head REF] --root DIR [--before] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]`;
 
@@ -128,12 +128,16 @@ try {
     }
   } else if (raw[0] === "lessons") {
     const { positional, options } = parseOptions(raw.slice(1));
-    if (!["check", "verify"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
+    if (!["check", "verify", "reanchor"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
     if (positional[0] === "check") {
       const report = checkLessons({ root: options.root });
       print(report, options.json);
       for (const warning of report.warnings ?? []) process.stderr.write(`warning: ${warning}\n`);
       if (report.errors.length) process.exitCode = 1;
+    } else if (positional[0] === "reanchor") {
+      const report = reanchorLessons({ root: options.root });
+      print(report, options.json);
+      if (!options.json) for (const entry of report.updated) process.stdout.write(`reanchored ${entry.lesson}: ${entry.file} ${entry.from} -> ${entry.to}\n`);
     } else {
       const report = verifyLessons({ root: options.root, force: true });
       print(report, options.json);

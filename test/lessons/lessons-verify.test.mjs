@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
 import { checkLessons } from "../../scripts/lib/lessons/lessons.mjs";
-import { verifyLessons, tapCasePassed } from "../../scripts/lib/lessons/lessons-verify.mjs";
+import { reanchorLessons, verifyLessons, tapCasePassed } from "../../scripts/lib/lessons/lessons-verify.mjs";
 
 test("tapCasePassed accepts the exact reporter label and rejects impersonation", () => {
   assert.equal(tapCasePassed("ok 1 - probe\n", "probe"), true);
@@ -139,5 +140,30 @@ test("a failing proof reports the cause", () => {
   const report = verifyLessons({ root });
   assert.equal(report.results[0].status, "fail");
   assert.match(report.results[0].detail ?? "", /boom-marker/, JSON.stringify(report.results[0]));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("reanchor bumps a stale proof anchor after the case re-runs green", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-reanchor-"));
+  const run = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  const commit = (message) => {
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"]);
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message]);
+    return run(["rev-parse", "HEAD"]).slice(0, 7);
+  };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "package.json"), JSON.stringify({ scripts: { "test:state": "x" } }));
+  writeFileSync(join(root, "test", "proof.test.mjs"), 'import test from "node:test";\ntest("probe", () => {});\n');
+  run(["init", "-q"]);
+  const first = commit("one");
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), `| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| A | probe | \`test:state\` | | \`test/proof.test.mjs::probe@${first}\` | | |\n`);
+  commit("two");
+  writeFileSync(join(root, "test", "proof.test.mjs"), 'import test from "node:test";\ntest("probe", () => {});\n// touched\n');
+  const latest = commit("three");
+  const report = reanchorLessons({ root });
+  assert.equal(report.updated.length, 1, JSON.stringify(report));
+  assert.equal(report.updated[0].to, latest);
+  assert.ok(readFileSync(join(root, "docs", "research", "workflow-lessons.md"), "utf8").includes(`probe@${latest}`));
   rmSync(root, { recursive: true, force: true });
 });
