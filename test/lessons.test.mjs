@@ -523,3 +523,12 @@ test("occurrence tokens must be a date and short commit", () => {
   assert.equal(parseLessons(file).rows.length, 0);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a retired row cannot keep an unbackticked live gate", () => {
+  const root = makeRoot();
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n";
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), `${header}| Old | probe | test:state | | | | retired@abcdef0 |\n`);
+  const report = checkLessons({ root });
+  assert.ok(report.errors.some((error) => error.includes("retired with a live gate")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

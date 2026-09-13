@@ -10,6 +10,7 @@ import { verifyLessons, tapCasePassed } from "../scripts/lib/lessons-verify.mjs"
 test("tapCasePassed accepts the exact reporter label and rejects impersonation", () => {
   assert.equal(tapCasePassed("ok 1 - probe\n", "probe"), true);
   assert.equal(tapCasePassed("    ok 1 - probe\n", "probe"), true);
+  assert.equal(tapCasePassed("ok 1 - probe\\#tag\n", "probe#tag"), true);
   assert.equal(tapCasePassed("ok 1 - other > probe\n", "probe"), false);
   assert.equal(tapCasePassed("ok 1 - test/x.test.mjs::probe\n", "probe"), false);
   assert.equal(tapCasePassed("ok 1 - other\n", "probe"), false);

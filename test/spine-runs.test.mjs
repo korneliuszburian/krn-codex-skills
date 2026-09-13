@@ -14,12 +14,25 @@ test("runDirectories lists non-delivery runs and skips delivery-loop, files, and
     mkdirSync(join(root, ".krn", "runs", "delivery-loop", "out-1"), { recursive: true });
     writeFileSync(join(root, ".krn", "runs", "slice-work", "notes.txt"), "x");
     mkdirSync(join(root, ".krn", "runs", ".cache", "run-1"), { recursive: true });
-    mkdirSync(join(root, ".krn", "runs", "slice-work", ".hidden"), { recursive: true });
     assert.deepEqual(
       runDirectories(root).map((run) => run.pointer),
       [".krn/runs/slice-work/run-1", ".krn/runs/slice-work/run-2"],
     );
     assert.deepEqual(runDirectories(join(root, "missing")), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("runDirectories still lists a hidden run so it cannot hide from the orphan gate", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-spine-hiddenrun-"));
+  try {
+    mkdirSync(join(root, ".krn", "runs", "slice-work", ".hidden-run"), { recursive: true });
+    mkdirSync(join(root, ".krn", "runs", ".cache", "run-1"), { recursive: true });
+    assert.deepEqual(
+      runDirectories(root).map((run) => run.pointer),
+      [".krn/runs/slice-work/.hidden-run"],
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

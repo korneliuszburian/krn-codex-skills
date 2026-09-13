@@ -234,7 +234,9 @@ export function checkLessons({ root, git = runGit }) {
         });
         if (!target) errors.push(`lesson "${row.lesson}": superseded-by "${anchor}" resolves to no active row`);
       } else {
-        const live = [...row.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim()).filter((reference) => CANDIDATE.test(reference)).filter((reference) => resolveReference(root, scripts, reference).ok);
+        const tokens = [...row.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
+        for (const token of row.gate.replace(/`/g, " ").split(/\s+/)) tokens.push(token.trim());
+        const live = [...new Set(tokens)].filter((reference) => reference && CANDIDATE.test(reference)).filter((reference) => resolveReference(root, scripts, reference).ok);
         if (live.length > 0) errors.push(`lesson "${row.lesson}": retired with a live gate (${live.join(", ")}); remove the enforcement or name superseded-by`);
       }
       lessons.push({ lesson: row.lesson, resolved: [], occurrences: row.occurrences, falsifier: row.falsifier, trigger: row.trigger, status: row.status });

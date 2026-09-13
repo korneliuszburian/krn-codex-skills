@@ -21,7 +21,7 @@ export function tapCasePassed(output, name) {
   return output.split("\n").some((line) => {
     const tap = /^\s*ok \d+ - (.+?)\s*$/.exec(line);
     if (!tap) return false;
-    return tap[1].trim() === name;
+    return tap[1].trim().replace(/\\([#\\])/g, "$1") === name;
   });
 }
 

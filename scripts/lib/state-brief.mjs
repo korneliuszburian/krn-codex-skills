@@ -136,9 +136,9 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     const cleanupValue = fieldLine(text, "Outstanding workflow-run cleanup");
     const listed = parseCleanup(cleanupValue).entries;
     const listedPointers = new Set(listed.map((entry) => normalizeRunPointer(report.root, entry.pointer)));
-    const missingRuns = listed
+    const missingRuns = [...new Set(listed
       .filter((entry) => (entry.state === "ACTIVE" || entry.state === "BLOCKED") && !liveRuns.has(normalizeRunPointer(report.root, entry.pointer)))
-      .map((entry) => entry.pointer);
+      .map((entry) => normalizeRunPointer(report.root, entry.pointer)))];
     const unlistedRuns = [...liveRuns].filter((pointer) => !listedPointers.has(pointer));
     briefs.push({
       id: capsule.id,
