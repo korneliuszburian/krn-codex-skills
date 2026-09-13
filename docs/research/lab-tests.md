@@ -55,9 +55,13 @@ design:
 
 - Report resource and transient failures (OOM, preemption, provider
   `UnknownError`) as a per-arm infra-error metric separate from task failure,
-  stagger the reps across times/days, and record the sandbox resource
-  multiplier, so the paired contrast counts only agent-caused failures
-  (arXiv:2602.07150).
+  stagger the reps across times/days, and record the sandbox's guaranteed
+  allocation and a separate hard-kill threshold (not one multiplier), so the
+  paired contrast counts only agent-caused failures (arXiv:2602.07150).
+- Before scaling, decompose the separation-gate paired variance into prediction
+  and data components and allocate the budget to reps vs tasks by whichever
+  dominates, rather than fixing 8 tasks and treating reps as mere repeats
+  (arXiv:2512.21326).
 - Start every cell from a fresh, history-free tree (git-init single commit or a
   git-stripped copy) and record the commit count seen at agent start, because a
   workspace `.git` can leak a prior cell's lesson or answer to an ablation arm
@@ -72,6 +76,10 @@ Repeat one cell on the pinned resource config at three times; if the per-arm
 infra-error rate is 0 and the success count is identical, the infra factor is
 inert. Run two consecutive same-condition cells in one tree; if the second
 arm-A pass count does not exceed the first, the history scrub is unnecessary.
+Run one cell at the allocation floor and at the kill ceiling; if the infra-error
+rate is 0 and the success count is identical, the resource pair is inert.
+Decompose the gate's paired variance; if data noise dominates prediction noise,
+rep-averaging cannot raise power and the reallocation is unnecessary.
 
 - bwrap floor is now available: 0.12.0 built from the official tag tarball (meson and
   ninja in a venv, libcap 2.78) and staged outside the repo; it passes a functional probe
