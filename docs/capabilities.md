@@ -37,7 +37,12 @@ The inventory reads `$CODEX_HOME/skills` (`user`), `$CODEX_HOME/skills/.system`
 (`system`), `$AGENTS_HOME/skills` (`global-index`), and
 `~/.config/opencode/skills` (`vendor-global`, the OpenCode host that loads it).
 A symlinked skill counts only when its resolved `SKILL.md` exists, so a dangling
-symlink is not reported as a capability. The same skill name found in two roots
+symlink is not reported as a capability; the chain is walked hop-by-hop and each
+hop is screened against the hard quarantine before any `stat`, so a chain
+through a quarantined family is refused without traversing it. A resolved target
+that is not named `SKILL.md` (or lives under a forbidden path family such as
+`logs`) is still inventoried, but it is not a usage-canonical path, so reads of
+that target are not attributed to the skill. The same skill name found in two roots
 is listed once per scope and is not deduplicated, because scope drives profile
 reconciliation; this double-counts a name that two roots share. The always-loaded
 contract (`config/AGENTS.md`) is bounded by an information budget, not only a
