@@ -1,4 +1,4 @@
-import { constants } from "node:fs";
+import { constants, realpathSync } from "node:fs";
 import { open, readdir, readlink, lstat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
@@ -135,9 +135,24 @@ async function inventorySkillRoot(root, records, quarantine) {
         );
         continue;
       }
-      const resolvedSkill = join(resolvedTarget, "SKILL.md");
-      const resolvedFile = await safeLstat(resolvedSkill, quarantine);
-      if (!resolvedFile || (!resolvedFile.isFile() && !resolvedFile.isSymbolicLink())) continue;
+      let realSkill;
+      try {
+        realSkill = realpathSync(join(resolvedTarget, "SKILL.md"));
+      } catch {
+        continue;
+      }
+      if (quarantine.matches(realSkill)) {
+        quarantine.add(
+          "skill",
+          quarantine.familyFor(realSkill) ?? entry.name,
+          "symlink-target",
+          root.id,
+          resolve(entryPath, "SKILL.md"),
+        );
+        continue;
+      }
+      const resolvedFile = await safeLstat(realSkill, quarantine);
+      if (!resolvedFile || !resolvedFile.isFile()) continue;
       records.push(
         skillRecord({
           name: entry.name,
@@ -145,7 +160,7 @@ async function inventorySkillRoot(root, records, quarantine) {
           root,
           source: "symlink",
           path: join(entryPath, "SKILL.md"),
-          targetPath: join(resolvedTarget, "SKILL.md"),
+          targetPath: realSkill,
         }),
       );
       continue;
@@ -170,9 +185,25 @@ async function inventorySkillRoot(root, records, quarantine) {
         );
         continue;
       }
-      const resolvedFile = await safeLstat(resolvedTarget, quarantine);
-      if (!resolvedFile || (!resolvedFile.isFile() && !resolvedFile.isSymbolicLink())) continue;
-      fileLinkTarget = resolvedTarget;
+      let realTarget;
+      try {
+        realTarget = realpathSync(resolvedTarget);
+      } catch {
+        continue;
+      }
+      if (quarantine.matches(realTarget)) {
+        quarantine.add(
+          "skill",
+          quarantine.familyFor(realTarget) ?? entry.name,
+          "symlink-target",
+          root.id,
+          resolve(skillPath),
+        );
+        continue;
+      }
+      const resolvedFile = await safeLstat(realTarget, quarantine);
+      if (!resolvedFile || !resolvedFile.isFile()) continue;
+      fileLinkTarget = realTarget;
     }
 
     records.push(

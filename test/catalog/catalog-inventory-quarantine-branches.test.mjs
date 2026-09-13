@@ -165,6 +165,24 @@ test("a skill directory whose SKILL.md is a valid file symlink is inventoried", 
     });
     const record = inventory.skills.find((skill) => skill.id === "linked");
     assert.equal(record?.source, "file-symlink");
-    assert.equal(record?.targetPath, target);
+    assert.equal(record?.targetPath, realpathSync(target));
+  });
+});
+
+test("a chained file symlink whose final target is missing is not inventoried", async () => {
+  await withRoot("krn-inventory-chain-dangling-", async (root) => {
+    const intermediate = path.join(root, "intermediate.md");
+    symlinkSync(path.join(root, "missing-skill.md"), intermediate);
+    const directory = path.join(root, "chained");
+    mkdirSync(directory, { recursive: true });
+    symlinkSync(intermediate, path.join(directory, "SKILL.md"));
+    const inventory = await inventoryCapabilities({
+      skillRoots: [{ id: "root", path: root, scope: "user" }],
+      pluginCacheRoots: [],
+    });
+    assert.ok(
+      !inventory.skills.some((skill) => skill.id === "chained"),
+      JSON.stringify(inventory.skills.map((skill) => skill.id)),
+    );
   });
 });

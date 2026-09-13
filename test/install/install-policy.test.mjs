@@ -46,3 +46,21 @@ test("managedHookPolicy honours the top-level-only rule for allow_managed_hooks_
     assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active");
   });
 });
+
+test("managedHookPolicy reads dotted and inline features tables", () => {
+  withRequirements("features.hooks = false\n", (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
+  });
+  withRequirements("features = { hooks = false }\n", (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
+  });
+});
+
+test("managedHookPolicy parses booleans with a trailing comment and ignores array tables", () => {
+  withRequirements("allow_managed_hooks_only = true# managed\n", (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_by_managed_policy");
+  });
+  withRequirements("[[features]]\nhooks = false\n", (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active");
+  });
+});

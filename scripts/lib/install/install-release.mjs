@@ -468,10 +468,20 @@ function defaultRequirementsPath(env = process.env) {
 }
 
 function tomlBoolean(value) {
-  const token = String(value ?? "").replace(/\s+#.*$/, "").trim();
+  const token = String(value ?? "").replace(/#.*$/, "").trim();
   if (token === "true") return true;
   if (token === "false") return false;
   return null;
+}
+
+function featuresHooksDisabled(key, value) {
+  if (key === "features.hooks") return tomlBoolean(value) === false;
+  if (key === "features") {
+    const inline = /\{[^}]*\}/.exec(String(value ?? ""));
+    if (!inline) return false;
+    return /(?:^|[,{\s])hooks\s*=\s*false(?=[,}\s#]|$)/.test(inline[0]);
+  }
+  return false;
 }
 
 export function managedHookPolicy({
@@ -490,7 +500,7 @@ export function managedHookPolicy({
     const content = document.lines[index].content;
     const header = splitHeader(content);
     if (header) {
-      table = header.validTail ? (parseDottedHeaderKey(header.inner)?.join(".") ?? null) : null;
+      table = header.validTail && !header.array ? (parseDottedHeaderKey(header.inner)?.join(".") ?? null) : null;
       continue;
     }
     if (document.insideMultiline?.[index]) continue;
@@ -504,7 +514,8 @@ export function managedHookPolicy({
         detail: "top-level allow_managed_hooks_only = true",
       };
     }
-    if (table === "features" && assignment.key === "hooks" && enabled === false) {
+    const featuresDisabled = table === "features" && assignment.key === "hooks" && enabled === false;
+    if (featuresDisabled || (table === null && featuresHooksDisabled(assignment.key, assignment.value))) {
       return {
         status: "hook_inert_features_disabled",
         path: requirementsPath,
