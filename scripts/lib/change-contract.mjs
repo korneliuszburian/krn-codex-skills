@@ -172,6 +172,15 @@ function literalTestFiles(root, target) {
   return tests.length > 0 ? tests : null;
 }
 
+function frozenTestsFor(root, target, overlays, enumerate) {
+  if (target.kind !== "script") return null;
+  const named = overlays.filter(isTestFile);
+  if (named.length > 0) return named;
+  const command = scriptCommand(root, target);
+  if (command && testFlagPresent(command)) return literalTestFiles(root, target) ?? enumerate();
+  return null;
+}
+
 function scriptCommand(root, target) {
   if (target.kind !== "script") return null;
   try {
@@ -200,10 +209,11 @@ function listTestFilesIn(dir) {
 
 function tapSummary(output) {
   const text = output ?? "";
+  const unescape = (name) => name.replace(/\\([#\\])/g, "$1");
   const tests = Number((/^# tests (\d+)\s*$/m.exec(text)?.[1] ?? "0"));
   const fail = Number((/^#\s*fail[^0-9]*(\d+)\s*$/m.exec(text)?.[1] ?? "0"));
-  const passing = [...text.matchAll(/^\s*ok \d+ - (.+?)\s*$/gm)].map((match) => match[1].trim());
-  const failing = [...text.matchAll(/^\s*not ok \d+ - (.+?)\s*$/gm)].map((match) => match[1].trim()).filter((name) => !/\.(mjs|js|cjs|ts)$/.test(name));
+  const passing = [...text.matchAll(/^\s*ok \d+ - (.+?)\s*$/gm)].map((match) => unescape(match[1].trim()));
+  const failing = [...text.matchAll(/^\s*not ok \d+ - (.+?)\s*$/gm)].map((match) => unescape(match[1].trim())).filter((name) => !/\.(mjs|js|cjs|ts)$/.test(name));
   const setup = /ERR_MODULE_NOT_FOUND|SyntaxError|Cannot find module|Could not find|MODULE_NOT_FOUND/.test(text);
   return { tests, fail, passing, failing, setup };
 }
@@ -238,13 +248,7 @@ export function runCheckAtBase({ root, base, target, git = runGit, overlay = nul
         return { unavailable: true };
       }
     }
-    let frozenTests = null;
-    if (target.kind === "script") {
-      const named = overlays.filter(isTestFile);
-      const command = scriptCommand(root, target);
-      if (named.length > 0) frozenTests = named;
-      else if (command && /(^|\s)--test(\s|$)/.test(command)) frozenTests = literalTestFiles(root, target) ?? listTestFilesIn(dir);
-    }
+    const frozenTests = frozenTestsFor(root, target, overlays, () => listTestFilesIn(dir));
     return { outcome: runCheck({ root: dir, target, frozenTests }) };
   } finally {
     git(root, ["worktree", "remove", "--force", dir]);
@@ -394,13 +398,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const baseRunner = runAtBase ?? ((args) => runCheckAtBase({ ...args, git }));
   for (const record of targets.values()) {
     const overlays = record.overlays ?? [];
-    let headFrozen = null;
-    if (record.target.kind === "script") {
-      const named = overlays.filter(isTestFile);
-      const command = scriptCommand(root, record.target);
-      if (named.length > 0) headFrozen = named;
-      else if (command && /(^|\s)--test(\s|$)/.test(command)) headFrozen = literalTestFiles(root, record.target) ?? listTestFiles(root, "HEAD", git);
-    }
+    const headFrozen = frozenTestsFor(root, record.target, overlays, () => listTestFiles(root, "HEAD", git));
     const outcome = run({ root, target: record.target, frozenTests: headFrozen });
     const baseCache = new Map();
     const baseOnce = (value) => {
