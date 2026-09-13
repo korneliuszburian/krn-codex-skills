@@ -948,3 +948,41 @@ test("a script introduced in the range is self-authored even under --before", ()
   assert.ok(report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+function assertSelfAuthorized({ scripts, changedFile, shim = false }) {
+  const root = mkdtempSync(join(tmpdir(), "krn-tok-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), `${JSON.stringify({ scripts })}\n`);
+  const red = 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("x", () => assert.equal(value, 2));\n';
+  for (const name of ["test/a.test.mjs", "test/a.test.ts", "scripts/foo.test.mjs"]) writeFileSync(join(root, name), red);
+  writeFileSync(join(root, "test", "register.mjs"), "export {};\n");
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  if (shim) { mkdirSync(join(root, "node_modules", ".bin"), { recursive: true }); writeFileSync(join(root, "node_modules", ".bin", "gate"), "#!/bin/sh\nexit 0\n"); }
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, changedFile), 'import test from "node:test";\ntest("gutted", () => {});\n');
+  commit("gut\n\nChange-contract: test:t:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD" });
+  assert.ok(report.errors.some((e) => e.rule === "self-authorized-check"), `${JSON.stringify(scripts)} => ${JSON.stringify(report.errors)}`);
+  rmSync(root, { recursive: true, force: true });
+}
+
+test("assignment and flag tokens still track the named test", () => {
+  assertSelfAuthorized({ scripts: { "test:t": "TESTFILE=test/a.test.mjs node --test" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --import=./test/a.test.mjs -e \"\"" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --import ./test/register.mjs --test" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --test" }, changedFile: "scripts/foo.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --test test/a.test.ts" }, changedFile: "test/a.test.ts" });
+});
+
+test("runner subcommands and node_modules shims fail closed as non-literal", () => {
+  assertSelfAuthorized({ scripts: { "test:t": "bun test" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "deno test" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "npx mocha" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "gate" }, changedFile: "test/a.test.mjs", shim: true });
+});

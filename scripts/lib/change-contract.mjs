@@ -87,59 +87,65 @@ function checkFileRedefined(root, base, git, rel) {
   return before.ok && (!now.ok || before.out.trim() !== now.out.trim());
 }
 
+const TEST_FLAG = /(^|\s)--test(\s|$)/;
+const CODE_EXT = "mjs|js|cjs|sh|ts|mts|cts";
+const TEST_FILE_RE = /(^|\/)[^/]+\.test\.(?:mjs|js|cjs|ts|mts|cts)$/;
+const isTestFile = (rel) => TEST_FILE_RE.test(rel);
+
+function literalCommandFiles(command) {
+  const files = [];
+  const quoted = new RegExp(`"([^"]+\\.(?:${CODE_EXT}))"|'([^']+\\.(?:${CODE_EXT}))'`, "g");
+  for (const match of command.matchAll(quoted)) files.push((match[1] ?? match[2]).replace(/^\.\//, ""));
+  const bare = new RegExp(`(?:^|\\s)(?:[A-Za-z_][A-Za-z0-9_]*=|--?[^\\s=]+=)?([^\\s]+\\.(?:${CODE_EXT}))(?=$|\\s)`, "g");
+  for (const match of command.matchAll(bare)) files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
+  return files;
+}
+
 function listTestFiles(root, base, git) {
   const names = new Set();
   for (const ref of [base, "HEAD"]) {
     const result = git(root, ["ls-tree", "-r", "-z", "--name-only", ref]);
     if (result.ok) for (const name of result.out.split("\0")) if (name.trim()) names.add(name.trim());
   }
-  return [...names].filter((name) => name.startsWith("test/") && name.endsWith(".test.mjs"));
+  return [...names].filter((name) => TEST_FILE_RE.test(name));
+}
+
+function shimCommand(root, command) {
+  const first = command.trim().split(/\s+/)[0];
+  if (!first || first === "node" || first.includes("/")) return false;
+  return fs.existsSync(path.join(root, "node_modules", ".bin", first));
+}
+
+function scriptNonLiteral(root, command) {
+  return /[*?\[]/.test(command)
+    || /[$`|;&<>]/.test(command)
+    || /(^|[\s/'"])(?:[^\s/]*\/)*(?:sh|bash|zsh|dash|ash|ksh|busybox)\b[^\n]*?\s-c(\s|$)/.test(command)
+    || /(^|\s)(?:npm|pnpm|yarn|bun)\s+(?:run|exec)(\s|$)/.test(command)
+    || /(^|\s)node\s+--run(\s|$)/.test(command)
+    || /(^|\s)(?:bun|deno)\s+(?:test|bench)(\s|$)/.test(command)
+    || /(^|\s)(?:npx|bunx)(\s|$)/.test(command)
+    || shimCommand(root, command);
 }
 
 function scriptRedefinition(root, base, git, command) {
-  if (/[*?\[]/.test(command) || /[$`|;&<>]/.test(command) || /(^|[\s/'"])(?:[^\s/]*\/)*(?:sh|bash|zsh|dash|ash|ksh|busybox)\b[^\n]*?\s-c(\s|$)/.test(command) || /(^|\s)(?:npm|pnpm|yarn|bun)\s+run(\s|$)/.test(command) || /(^|\s)node\s+--run(\s|$)/.test(command)) {
-    return "non-literal";
-  }
-  const files = [];
-  for (const match of command.matchAll(/"([^"]+\.(?:mjs|js|cjs|sh))"|'([^']+\.(?:mjs|js|cjs|sh))'/g)) {
-    files.push((match[1] ?? match[2]).replace(/^\.\//, ""));
-  }
-  for (const match of command.matchAll(/(?:^|\s)([^\s]+\.(?:mjs|js|cjs|sh))(?=$|\s)/g)) {
-    files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
-  }
-  if (files.length === 0 && /(^|\s)--test(\s|$)/.test(command)) files.push(...listTestFiles(root, base, git));
+  if (scriptNonLiteral(root, command)) return "non-literal";
+  const files = literalCommandFiles(command);
+  if (TEST_FLAG.test(command) && files.filter(isTestFile).length === 0) files.push(...listTestFiles(root, base, git));
   for (const rel of files) if (checkFileRedefined(root, base, git, rel)) return "redefined";
   return "clean";
 }
 
 function scriptChangedFiles(root, base, git, command) {
-  const files = [];
-  for (const match of command.matchAll(/"([^"]+\.(?:mjs|js|cjs|sh))"|'([^']+\.(?:mjs|js|cjs|sh))'/g)) {
-    files.push((match[1] ?? match[2]).replace(/^\.\//, ""));
-  }
-  for (const match of command.matchAll(/(?:^|\s)([^\s]+\.(?:mjs|js|cjs|sh))(?=$|\s)/g)) {
-    files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
-  }
-  if (files.length === 0 && /(^|\s)--test(\s|$)/.test(command)) files.push(...listTestFiles(root, base, git));
+  const files = literalCommandFiles(command);
+  if (TEST_FLAG.test(command) && files.filter(isTestFile).length === 0) files.push(...listTestFiles(root, base, git));
   return files.filter((rel) => checkFileRedefined(root, base, git, rel));
 }
 
-const isTestFile = (rel) => /^test\/.+\.test\.mjs$/.test(rel);
-
 function literalTestFiles(root, target) {
   if (target.kind !== "script") return null;
-  let command;
-  try {
-    command = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts?.[target.name];
-  } catch {
-    return null;
-  }
-  if (typeof command !== "string" || /[*?\[]/.test(command) || /[$`|;&<>]/.test(command)) return null;
-  const files = [];
-  for (const match of command.matchAll(/(?:^|\s)([^\s]+\.(?:mjs|js|cjs))(?=$|\s)/g)) {
-    files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
-  }
-  const tests = files.filter(isTestFile);
+  const command = scriptCommand(root, target);
+  if (typeof command !== "string" || scriptNonLiteral(root, command)) return null;
+  const tests = literalCommandFiles(command).filter(isTestFile);
   return tests.length > 0 ? tests : null;
 }
 
