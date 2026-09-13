@@ -101,3 +101,17 @@ test("the audit catches a dead export and an unreferenced function", () => {
     },
   );
 });
+
+test("the audit flags a credential and an environment dump in a skill", () => {
+  withRepo(
+    {
+      "skills/x/SKILL.md": "key: AKIAIOSFODNN7EXAMPLE\n",
+      "skills/x/scripts/run.mjs": "console.log(process.env);\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("possible credential (AWS access key id)")), JSON.stringify(errors));
+      assert.ok(errors.some((message) => message.includes("dumps environment variables")), JSON.stringify(errors));
+    },
+  );
+});

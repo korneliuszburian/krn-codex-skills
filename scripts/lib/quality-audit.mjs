@@ -62,6 +62,25 @@ const normalizedBody = (source, start) => {
   return "";
 };
 
+const CREDENTIALS = [
+  [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, "private key block"],
+  [/\bAKIA[0-9A-Z]{16}\b/, "AWS access key id"],
+  [/\bgh[pousr]_[A-Za-z0-9]{36,}\b/, "GitHub token"],
+  [/\bgithub_pat_[A-Za-z0-9_]{22,}\b/, "GitHub fine-grained token"],
+  [/\bxox[baprs]-[A-Za-z0-9-]{10,}\b/, "Slack token"],
+  [/\bAIza[0-9A-Za-z_-]{35}\b/, "Google API key"],
+];
+const ENV_DUMP = /\b(?:console\.log|process\.stdout\.write)\s*\([^)]*process\.env\b|\bprintenv\b|\benv\s*\|/;
+
+const walkAll = (directory) => {
+  if (!existsSync(directory)) return [];
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) return walkAll(path);
+    return entry.isFile() ? [path] : [];
+  });
+};
+
 export function auditRepository(root) {
   const allFiles = [...walk(join(root, "scripts")), ...walk(join(root, "test")), ...walk(join(root, "skills"))];
   const sources = new Map(allFiles.map((file) => [file, readFileSync(file, "utf8")]));
@@ -71,6 +90,18 @@ export function auditRepository(root) {
 
   const errors = [];
   const info = [];
+
+  const credentialFiles = [...walkAll(join(root, "skills")), ...walkAll(join(root, "scripts")), ...walkAll(join(root, "config"))];
+  for (const file of credentialFiles) {
+    let text;
+    try { text = readFileSync(file, "utf8"); } catch { continue; }
+    for (const [pattern, kind] of CREDENTIALS) {
+      if (pattern.test(text)) errors.push(`${label(file)}: possible credential (${kind})`);
+    }
+    if (label(file).startsWith(`skills${sep}`) && ENV_DUMP.test(text)) {
+      errors.push(`${label(file)}: skill dumps environment variables into captured output`);
+    }
+  }
 
   const declarationOwners = new Map();
   for (const file of runtime) {
