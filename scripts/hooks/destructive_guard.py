@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import re
 import stat
 
 
@@ -211,16 +212,90 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
     return None
 
 
+def redirection_targets(command: str) -> list[str]:
+    """Return files named by ``>``/``>>``/``&>`` operators, ignoring quoted text."""
+
+    targets: list[str] = []
+    quote: str | None = None
+    index = 0
+    while index < len(command):
+        character = command[index]
+        if quote:
+            if quote == '"' and character == "\\" and index + 1 < len(command):
+                index += 2
+                continue
+            if character == quote:
+                quote = None
+            index += 1
+            continue
+        if character in {"'", '"'}:
+            quote = character
+            index += 1
+            continue
+        if character == "\\" and index + 1 < len(command):
+            index += 2
+            continue
+        if character == ">":
+            index += 1
+            if index < len(command) and command[index] == ">":
+                index += 1
+            while index < len(command) and command[index] in " \t":
+                index += 1
+            target = ""
+            target_quote: str | None = None
+            while index < len(command):
+                current = command[index]
+                if target_quote:
+                    if target_quote == '"' and current == "\\" and index + 1 < len(command):
+                        target += command[index + 1]
+                        index += 2
+                        continue
+                    if current == target_quote:
+                        target_quote = None
+                        index += 1
+                        continue
+                    target += current
+                    index += 1
+                    continue
+                if current in {"'", '"'}:
+                    target_quote = current
+                    index += 1
+                    continue
+                if current in " \t;&|<>":
+                    break
+                if current == "\\" and index + 1 < len(command):
+                    target += command[index + 1]
+                    index += 2
+                    continue
+                target += current
+                index += 1
+            if target:
+                targets.append(target)
+            continue
+        index += 1
+    return targets
+
+
+def redirection_denial_reason(command: str, cwd: Path) -> str | None:
+    for raw_target in redirection_targets(command):
+        target = resolve_target(raw_target, cwd)
+        if target is None:
+            continue
+        reason = protected_path_reason(target, cwd, recursive=False)
+        if reason is not None:
+            return f"overwrite of a protected path is blocked: {reason}"
+    return None
+
+
 def rm_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
-    try:
-        rm_index = words.index("rm")
-    except ValueError:
+    offset = 1 if words and words[0] == "rtk" else 0
+    if offset >= len(words) or os.path.basename(words[offset]) != "rm":
         return None
 
     recursive = False
     targets: list[str] = []
     options_done = False
-    for word in words[rm_index + 1 :]:
+    for word in words[offset + 1 :]:
         if not options_done and word == "--":
             options_done = True
             continue
@@ -248,8 +323,10 @@ def rm_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
 
 
 def git_clean_denial_reason(words: tuple[str, ...]) -> str | None:
+    git_index = 1 if words and words[0] == "rtk" else 0
+    if git_index >= len(words) or os.path.basename(words[git_index]) != "git":
+        return None
     try:
-        git_index = words.index("git")
         clean_index = words.index("clean", git_index + 1)
     except ValueError:
         return None

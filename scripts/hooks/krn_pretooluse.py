@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import re
 import shlex
@@ -15,6 +16,7 @@ sys.dont_write_bytecode = True
 from destructive_guard import (
     direct_destructive_denial_reason,
     protected_path_reason,
+    redirection_denial_reason,
     resolve_target,
 )
 
@@ -49,6 +51,20 @@ DESTRUCTIVE_LITERAL = re.compile(
     r"\brm\b|\bgit\b[^\n;|&]*\bclean\b",
     re.IGNORECASE,
 )
+SYSTEM_DESTRUCTIVE = re.compile(
+    r"\bmkfs(?:\.[a-z0-9]+)?\b"
+    r"|\bwipefs\b"
+    r"|\bshred\b"
+    r"|\bdd\b[^\n;|&]*\bof="
+    r"|\brmtree\b"
+    r"|\btruncate\b[^\n;|&]*\s-s\s*0\b"
+    r"|\|\s*(?:env\s+|sudo\s+)*(?:ba|d|z|a|k)?sh(?:\s|$)",
+    re.IGNORECASE,
+)
+
+
+def executable_name(token: str) -> str:
+    return os.path.basename(token)
 SHELL_COMPOSITION = frozenset(";&|<>(){}\n\r$`*?[")
 
 
@@ -214,7 +230,7 @@ def split_safe_and_chain(command: str) -> tuple[str, ...] | None:
 
 
 def is_safe_text(words: tuple[str, ...] | None) -> bool:
-    return bool(words and words[0] in SAFE_TEXT_COMMANDS)
+    return bool(words and executable_name(words[0]) in SAFE_TEXT_COMMANDS)
 
 
 def is_safe_inspection(words: tuple[str, ...] | None) -> bool:
@@ -231,7 +247,7 @@ def is_safe_inspection(words: tuple[str, ...] | None) -> bool:
     remaining = words[1:] if words[0] == "rtk" else words
     if not remaining:
         return False
-    executable = remaining[0]
+    executable = executable_name(remaining[0])
     arguments = remaining[1:]
     if executable in SAFE_INSPECTION_COMMANDS:
         if executable == "rg" and any(
@@ -266,12 +282,49 @@ def direct_destructive_kind(words: tuple[str, ...]) -> str | None:
     remaining = words[1:] if words[0] == "rtk" else words
     if not remaining:
         return None
-    executable = remaining[0]
+    executable = executable_name(remaining[0])
     if executable == "rm":
         return "rm"
     if executable == "git" and len(remaining) > 1 and remaining[1] == "clean":
         return "git-clean"
     return None
+
+
+def git_static_risk(args: tuple[str, ...]) -> bool:
+    value_options = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--attr-source", "--config-env"}
+    index = 0
+    while index < len(args):
+        token = args[index]
+        if token in value_options:
+            if token == "-c" and index + 1 < len(args):
+                assignment = args[index + 1].split("=", 1)
+                if len(assignment) == 2 and assignment[0].startswith("alias."):
+                    value = assignment[1].lstrip()
+                    if value.startswith("!") or value.split(" ", 1)[0].strip() == "clean":
+                        return True
+            index += 2
+            continue
+        if token.startswith("-"):
+            index += 1
+            continue
+        rest = args[index + 1 :]
+        if token == "clean":
+            return True
+        if token == "reset" and "--hard" in rest:
+            return True
+        if token == "checkout" and ("--" in rest or "-f" in rest or "--force" in rest):
+            return True
+        if token == "restore" and not (
+            any(option in {"--staged", "-S"} for option in rest)
+            and not any(option in {"--worktree", "-W"} for option in rest)
+        ):
+            return True
+        if token == "push" and any(
+            option in {"--force", "-f"} or option.startswith("--force") for option in rest
+        ):
+            return True
+        return False
+    return False
 
 
 def has_static_destructive_reference(words: tuple[str, ...] | None) -> bool:
@@ -280,26 +333,18 @@ def has_static_destructive_reference(words: tuple[str, ...] | None) -> bool:
     remaining = words[1:] if words[0] == "rtk" else words
     if not remaining:
         return False
-    if remaining[0] == "rm":
+    executable = executable_name(remaining[0])
+    if executable == "rm":
         return True
-    if remaining[0] != "git":
+    if executable == "find":
+        return any(
+            argument in {"-delete", "-exec", "-execdir", "-ok", "-okdir", "-fls"}
+            or argument.startswith(("-exec=", "-execdir=", "-ok=", "-okdir=", "-fls", "-fprint", "-fprintf"))
+            for argument in remaining[1:]
+        )
+    if executable != "git":
         return False
-    args = remaining[1:]
-    value_options = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--attr-source", "--config-env"}
-    index = 0
-    while index < len(args):
-        token = args[index]
-        if token in value_options:
-            if token == "-c" and index + 1 < len(args):
-                assignment = args[index + 1].split("=", 1)
-                if len(assignment) == 2 and assignment[0].startswith("alias.") and assignment[1].split(" ", 1)[0].strip() == "clean":
-                    return True
-            index += 2
-        elif token.startswith("-"):
-            index += 1
-        else:
-            return token == "clean"
-    return False
+    return git_static_risk(remaining[1:])
 
 
 def bash_denial_reason(command: str, cwd: Path) -> str | None:
@@ -314,8 +359,11 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
         return None
     words = static_simple_words(literal_text)
     forbidden = references_forbidden_capability(lexical_text)
-    literal_risk = DESTRUCTIVE_LITERAL.search(lexical_text) is not None
-    if words is not None and words and words[0] == "git":
+    literal_risk = (
+        DESTRUCTIVE_LITERAL.search(lexical_text) is not None
+        or SYSTEM_DESTRUCTIVE.search(lexical_text) is not None
+    )
+    if words is not None and words and executable_name(words[0]) == "git":
         # A commit message may contain words such as "clean" or "rm". The
         # parsed git argv, not arbitrary message text, decides whether this is
         # the destructive `git clean` command.
@@ -325,7 +373,7 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
         or has_static_destructive_reference(words)
     )
     if not forbidden and not destructive:
-        return None
+        return redirection_denial_reason(lexical_text, cwd)
     if is_safe_text(words):
         return None
     if forbidden:
