@@ -33,7 +33,7 @@ const exportedNames = (source) => {
 };
 
 const importedNames = (rawSource) => {
-  const source = maskTemplates(stripComments(rawSource));
+  const source = maskLiterals(stripComments(rawSource));
   const names = new Set();
   for (const match of source.matchAll(/(?:^|[;\n}])\s*import\s+([^;]*?)\s+from\s+["'][^"']+["']/g)) {
     const clause = match[1];
@@ -137,7 +137,7 @@ export function auditRepository(root) {
   }
 
   const consumedNames = (rawSource) => {
-    const source = stripComments(rawSource);
+    const source = maskLiterals(stripComments(rawSource));
     const names = importedNames(source);
     for (const match of source.matchAll(/export\s*\{([^}]*)\}\s*from\s*["'][^"']+["']/g)) {
       for (const part of match[1].split(",")) {
@@ -149,7 +149,13 @@ export function auditRepository(root) {
   };
   const dynamicallyImports = (rawSource, moduleFile) => {
     const base = basename(moduleFile);
-    return new RegExp(`import\\s*\\(\\s*["'][^"']*${base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']`).test(stripComments(rawSource));
+    const code = stripComments(rawSource);
+    const masked = maskLiterals(code);
+    for (const match of masked.matchAll(/import\s*\(/g)) {
+      const specifier = /^import\s*\(\s*["']([^"']+)["']/.exec(code.slice(match.index))?.[1];
+      if (specifier && specifier.endsWith(base)) return true;
+    }
+    return false;
   };
   const consumed = new Map([...sources.entries()].map(([file, source]) => [file, consumedNames(source)]));
 

@@ -75,6 +75,19 @@ test("the audit flags smells, unused lib files, and duplicate bodies", () => {
   );
 });
 
+test("a string-embedded import does not suppress a dead export", () => {
+  withRepo(
+    {
+      "scripts/lib/origin.mjs": "export function orphan() {\n  return 1;\n}\n",
+      "scripts/lib/consumer.mjs": "const s = '; import { orphan } from \"./origin.mjs\"';\nexport const v = s;\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("dead export orphan")), JSON.stringify(errors));
+    },
+  );
+});
+
 test("the audit catches a dead re-export", () => {
   withRepo(
     {
