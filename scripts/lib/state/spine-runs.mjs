@@ -36,8 +36,11 @@ export function runDirectories(root) {
 
 export function capsuleIdsDetailed(root) {
   const base = join(root, ".krn", "runs", "delivery-loop");
-  if (!lstatSync(base, { throwIfNoEntry: false })) return { ids: [], errors: [] };
-  const target = statSync(base, { throwIfNoEntry: false });
+  let storePresent;
+  try { storePresent = lstatSync(base, { throwIfNoEntry: false }); } catch { return { ids: [], errors: [".krn/runs/delivery-loop could not be listed"] }; }
+  if (!storePresent) return { ids: [], errors: [] };
+  let target;
+  try { target = statSync(base, { throwIfNoEntry: false }); } catch { return { ids: [], errors: [".krn/runs/delivery-loop could not be listed"] }; }
   if (!target) return { ids: [], errors: [".krn/runs/delivery-loop is a broken symlink"] };
   if (!target.isDirectory()) return { ids: [], errors: [".krn/runs/delivery-loop is not a directory"] };
   let entries;
@@ -50,7 +53,9 @@ export function capsuleIdsDetailed(root) {
   for (const entry of entries) {
     if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
     const directory = join(base, entry.name);
-    if (!existsSync(join(directory, "state.md"))) continue;
+    let statePresent;
+    try { statePresent = lstatSync(join(directory, "state.md"), { throwIfNoEntry: false }); } catch { continue; }
+    if (!statePresent) continue;
     let real;
     try { real = realpathSync(directory); } catch { continue; }
     const link = entry.isSymbolicLink();

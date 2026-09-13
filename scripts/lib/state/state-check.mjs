@@ -53,9 +53,15 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
 
   const capsuleBase = join(root, ".krn", "runs", "delivery-loop");
   let candidates = [];
-  if (lstatSync(capsuleBase, { throwIfNoEntry: false })) {
-    const storeTarget = statSync(capsuleBase, { throwIfNoEntry: false });
-    if (!storeTarget) {
+  let storePresent;
+  try { storePresent = lstatSync(capsuleBase, { throwIfNoEntry: false }); } catch { errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop could not be listed" }); }
+  if (storePresent) {
+    let storeTarget;
+    let storeError = false;
+    try { storeTarget = statSync(capsuleBase, { throwIfNoEntry: false }); } catch { storeError = true; }
+    if (storeError) {
+      errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop could not be listed" });
+    } else if (!storeTarget) {
       errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop is a broken symlink" });
     } else if (!storeTarget.isDirectory()) {
       errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop is not a directory" });
@@ -95,13 +101,15 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     }
     const file = join(entryPath, "state.md");
     const relativePath = join(".krn", "runs", "delivery-loop", entry.name, "state.md");
-    if (!lstatSync(file, { throwIfNoEntry: false })) continue;
-    const fileStat = statSync(file, { throwIfNoEntry: false });
+    let linkPresent;
+    try { linkPresent = lstatSync(file, { throwIfNoEntry: false }); } catch { errors.push({ id: entry.name, rule: "unreadable-capsule", detail: relativePath }); continue; }
+    if (!linkPresent) continue;
+    let fileStat;
+    try { fileStat = statSync(file, { throwIfNoEntry: false }); } catch { errors.push({ id: entry.name, rule: "unreadable-capsule", detail: relativePath }); continue; }
     if (!fileStat) {
       errors.push({ id: entry.name, rule: "unreadable-capsule", detail: `${relativePath} is a broken symlink` });
       continue;
     }
-    capsules.push({ id: entry.name, path: relativePath });
     if (!fileStat.isFile()) {
       errors.push({ id: entry.name, rule: "unreadable-capsule", detail: `${relativePath} is not a regular file` });
       continue;
@@ -113,6 +121,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       errors.push({ id: entry.name, rule: "unreadable-capsule", detail: relativePath });
       continue;
     }
+    capsules.push({ id: entry.name, path: relativePath });
 
     if (hasGit && !usableGit) {
       errors.push({ id: entry.name, rule: "not-a-git-worktree", detail: root });

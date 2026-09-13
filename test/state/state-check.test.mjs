@@ -471,3 +471,13 @@ test("a dangling state.md symlink fails closed", () => {
   assert.ok(report.errors.some((error) => error.rule === "unreadable-capsule"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a non-directory runs path reports an unreadable store instead of throwing", () => {
+  const { root } = makeRepo();
+  rmSync(join(root, ".krn", "runs"), { recursive: true, force: true });
+  writeFileSync(join(root, ".krn", "runs"), "not a directory\n");
+  let report;
+  assert.doesNotThrow(() => { report = inspectSpineState({ repo: root }); });
+  assert.ok(report.errors.some((error) => error.rule === "unreadable-capsule-store"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
