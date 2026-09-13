@@ -80,7 +80,7 @@ export function skillContentErrors(content, { skillPath }) {
   if (/TODO|\[TODO|Structuring This Skill/i.test(content)) {
     errors.push(`${skillPath}: unresolved scaffold text`);
   }
-  if (/\]\(\.\.\//.test(content)) {
+  if (/\]\(\.\.\//.test(content) || /^\[[^\]]+\]:\s*\.\.\//m.test(content)) {
     errors.push(`${skillPath}: cross-skill relative pointers are not allowed`);
   }
   return errors;

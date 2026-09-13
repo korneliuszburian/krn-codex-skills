@@ -89,6 +89,9 @@ test("skillContentErrors flags forbidden content", () => {
     "p: Claude-only invocation frontmatter is not canonical",
   ]);
   assert.deepEqual(skillContentErrors("TODO: finish", { skillPath: "p" }), ["p: unresolved scaffold text"]);
+  assert.deepEqual(skillContentErrors("[g]: ../grilling/SKILL.md", { skillPath: "p" }), [
+    "p: cross-skill relative pointers are not allowed",
+  ]);
   assert.deepEqual(skillContentErrors("[x](../other/SKILL.md)", { skillPath: "p" }), [
     "p: cross-skill relative pointers are not allowed",
   ]);

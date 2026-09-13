@@ -310,6 +310,11 @@ for (const markdown of repositoryMarkdown) {
 
 {
   try {
+    for (const relative of manifest.runtime_paths ?? []) {
+      if (!fs.existsSync(path.join(root, relative))) {
+        fail(`manifest: runtime path ${relative} does not exist`);
+      }
+    }
     for (const message of runtimeClosureErrors({ root, manifest })) fail(message);
   } catch (error) {
     fail(`runtime closure check failed: ${error.message}`);

@@ -203,6 +203,17 @@ export function checkLessons({ root, git = runGit }) {
   }
   const activeRows = rows.filter((row) => !row.status);
   const retiredRows = rows.filter((row) => row.status);
+  const triggerOwners = new Map();
+  for (const row of activeRows) {
+    for (const entry of (row.trigger ?? "").split(/[;,]/).map((value) => value.trim()).filter(Boolean)) {
+      triggerOwners.set(entry, [...(triggerOwners.get(entry) ?? []), row.lesson]);
+    }
+  }
+  for (const [trigger, owners] of triggerOwners) {
+    if (owners.length > 1) {
+      errors.push(`lessons ${owners.map((owner) => `"${owner}"`).join(" and ")} share trigger ${trigger}`);
+    }
+  }
   if (activeRows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} active lesson rows; displace, condense, or retire`);
   if (retiredRows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} archived rows; consolidate the archive`);
   if (!fs.existsSync(file)) return { root, lessons, errors, warnings: ["no workflow-lessons page; memory is not adopted at this root"], skipped: true };

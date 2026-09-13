@@ -19,6 +19,18 @@ function makeRoot() {
 
 const FALSIFIER = `\`test/gate.test.mjs::probe@abcdef0\``;
 
+test("duplicate triggers across active rows are rejected", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  writeFileSync(
+    file,
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| A | probe | `test:state` | | | path:src/a.mjs |\n| B | probe | `test:state` | | | path:src/a.mjs |\n",
+  );
+  const { errors } = checkLessons({ root });
+  assert.ok(errors.some((error) => error.includes("share trigger path:src/a.mjs")), JSON.stringify(errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("parseLessons owns the row schema and reports malformed rows", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");
