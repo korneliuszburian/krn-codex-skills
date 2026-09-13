@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
-import { maskTemplates, stripComments } from "../support/source-mask.mjs";
+import { maskLiterals, stripComments } from "../support/source-mask.mjs";
 
 function relativePath(root, from, specifier) {
   return posixRelative(root, resolve(dirname(join(root, from)), specifier));
@@ -26,14 +26,19 @@ function runtimeClosure({ root, manifest }) {
       continue;
     }
     reachable.add(file);
-    const code = maskTemplates(stripComments(source));
+    const code = stripComments(source);
+    const masked = maskLiterals(code);
+    const survives = (match, keyword) => new RegExp(keyword).test(masked.slice(match.index, match.index + match[0].length));
     for (const match of code.matchAll(/(?:from|import)\s*\(?\s*["'](\.[^"']+)["']/g)) {
+      if (!survives(match, "from|import")) continue;
       queue.push([file, relativePath(root, file, match[1])]);
     }
     for (const match of code.matchAll(/delegate\(\s*["']([^"']+\.mjs)["']/g)) {
+      if (!survives(match, "delegate")) continue;
       queue.push([file, match[1]]);
     }
     for (const match of code.matchAll(/spawnSync\([^,]+,\s*\[[^\]]*["']([^"']+\.mjs)["']/g)) {
+      if (!survives(match, "spawnSync")) continue;
       queue.push([file, match[1]]);
     }
   }

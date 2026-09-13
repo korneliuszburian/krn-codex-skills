@@ -66,6 +66,14 @@ test("a template-literal mention does not mark a declared path reachable", () =>
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a string-literal mention does not make a declared path reachable", () => {
+  const { root, manifest } = makeRepo(["scripts/a.mjs", "scripts/lib/b.mjs", "scripts/lib/dead.mjs"]);
+  writeFileSync(join(root, "scripts", "lib", "dead.mjs"), "export const dead = 1;\n");
+  writeFileSync(join(root, "scripts", "a.mjs"), 'import "./lib/b.mjs";\nconst hint = \'import "./lib/dead.mjs"\';\nexport const h = hint;\n');
+  assert.ok(runtimeClosureErrors({ root, manifest }).some((error) => error.includes("scripts/lib/dead.mjs")), JSON.stringify(runtimeClosureErrors({ root, manifest })));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a // inside a string literal does not erase a following import", () => {
   const { root, manifest } = makeRepo(["scripts/a.mjs", "scripts/lib/b.mjs"]);
   writeFileSync(join(root, "scripts", "a.mjs"), 'const u = "a//b";\nimport "./lib/b.mjs";\nexport const a = u;\n');
