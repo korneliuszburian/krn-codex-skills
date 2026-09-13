@@ -77,6 +77,11 @@ export function normalizeWindow({ sinceDay, sinceMs, sinceDays, nowMs }) {
   if (fromMs > throughMs) {
     throw new RangeError("usage window cannot begin after nowMs");
   }
+  for (const value of [fromMs, throughMs]) {
+    if (Math.abs(value) > 8.64e15) {
+      throw new RangeError("usage window is outside the representable date range");
+    }
+  }
 
   return {
     fromMs,

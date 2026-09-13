@@ -48,7 +48,10 @@ test("catalog plan, check, and apply converge a managed config with a backup", (
 
     const drift = run(["check", "minimal", "--config", configPath, "--json"], env);
     assert.equal(drift.status, 3, drift.stderr);
+    assert.equal(JSON.parse(drift.stdout).status, "drift");
     assert.equal(JSON.parse(drift.stdout).converged, false);
+    const driftText = run(["check", "minimal", "--config", configPath], env);
+    assert.match(driftText.stdout, /DRIFT:/);
 
     const applied = run(["apply", "minimal", "--config", configPath, "--json"], env);
     assert.equal(applied.status, 0, applied.stderr);
@@ -63,6 +66,7 @@ test("catalog plan, check, and apply converge a managed config with a backup", (
 
     const converged = run(["check", "minimal", "--config", configPath, "--json"], env);
     assert.equal(converged.status, 0, converged.stderr);
+    assert.equal(JSON.parse(converged.stdout).status, "converged");
     assert.equal(JSON.parse(converged.stdout).converged, true);
 
     const replan = run(["plan", "minimal", "--config", configPath, "--json"], env);

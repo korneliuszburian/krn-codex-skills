@@ -94,7 +94,10 @@ export function auditRepository(root) {
   const errors = [];
   const info = [];
 
-  const credentialFiles = [...walkAll(join(root, "skills")), ...walkAll(join(root, ".agents", "skills")), ...walkAll(join(root, "scripts")), ...walkAll(join(root, "config"))];
+  const rootMarkdown = (() => {
+    try { return readdirSync(root, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".md")).map((entry) => join(root, entry.name)); } catch { return []; }
+  })();
+  const credentialFiles = [...rootMarkdown, ...walkAll(join(root, "skills")), ...walkAll(join(root, ".agents", "skills")), ...walkAll(join(root, "scripts")), ...walkAll(join(root, "config")), ...walkAll(join(root, "docs"))];
   for (const file of credentialFiles) {
     let text;
     try { text = readFileSync(file, "utf8"); } catch { continue; }

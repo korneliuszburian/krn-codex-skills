@@ -302,10 +302,12 @@ export function checkSkills({ root }) {
   const lockFile = path.join(root, "config", "upstream-sources.json");
   const lock = fs.existsSync(lockFile) ? readJson(lockFile) : null;
   if (lock) {
-    const upstreamPin = (lock.sources ?? []).find((source) => (marker?.upstream?.id ? source.id === marker.upstream.id : source.id === "mattpocock/skills"))
-      ?? (lock.sources ?? [])[0];
+    const sources = Array.isArray(lock.sources) ? lock.sources : [];
+    const upstreamPin = sources.find((source) => source && (marker?.upstream?.id ? source.id === marker.upstream.id : source.id === "mattpocock/skills"))
+      ?? sources[0] ?? null;
     const upstreamExpected = [...new Set(
-      (upstreamPin?.harness_paths?.length > 0 ? upstreamPin.harness_paths : upstreamPin?.required_paths ?? [])
+      (Array.isArray(upstreamPin?.harness_paths) && upstreamPin.harness_paths.length > 0 ? upstreamPin.harness_paths : Array.isArray(upstreamPin?.required_paths) ? upstreamPin.required_paths : [])
+        .filter((requiredPath) => typeof requiredPath === "string")
         .map((requiredPath) => path.basename(path.dirname(requiredPath))),
     )].sort();
     const upstreamExported = names.filter((name) => !sourceByName.has(name)).sort();
@@ -329,7 +331,7 @@ export function checkSkills({ root }) {
       errors.push(`marker lists [${expected.join(", ")}] but the directory holds [${actual.join(", ")}]`);
     }
     if (marker.upstream && lock) {
-      const pin = lock.sources?.find((source) => source.id === marker.upstream.id);
+      const pin = (Array.isArray(lock.sources) ? lock.sources : []).find((source) => source && source.id === marker.upstream.id);
       if (pin && pin.commit !== marker.upstream.commit) {
         errors.push(`export marker records ${marker.upstream.id}@${marker.upstream.commit} but config/upstream-sources.json pins @${pin.commit}; run \`krn-codex skills export\``);
       }

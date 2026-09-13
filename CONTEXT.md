@@ -12,7 +12,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/adr/0002-lifecycle-transition-table.md](docs/adr/0002-lifecycle-transition-table.md) — accepted condition → handler → return transition table.
 - [docs/research/workflow-lessons.md](docs/research/workflow-lessons.md) — bounded cross-run workflow memory read at `$delivery-loop` bind.
 - The Matt Pocock skills audit and the unlazy/unslop lab-test pages are indexed under [docs/research/README.md](docs/research/README.md).
-- [scripts/quality-audit.mjs](scripts/quality-audit.mjs) — mechanical slop and dead-code audit gated in `npm run test:lib`.
+- [scripts/quality-audit.mjs](scripts/quality-audit.mjs) — mechanical slop, dead-code, and credential/env-dump audit gated in `npm run test:lib`.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
 - [skills/meta/unlazy/SKILL.md](skills/meta/unlazy/SKILL.md) — explicit completion ledger with approved checks and re-verification; it does not own lifecycle state or sandbox commands.

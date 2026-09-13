@@ -25,7 +25,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "gate": "npm run validate && npm run test:bootstrap && npm run test:install && npm run test:hooks && npm run test:state && npm run test:skills && npm run skills:check && npm run lessons:check && npm run lessons:verify && npm run changes:check && npm run test:lessons && npm run test:lessons-verify && npm run test:change-contract && npm run test:durable-pages && npm run test:catalog && npm run test:setup && npm run test:skill-scripts && npm run test:lib && bash -n scripts/install.sh && bash -n skills/advisory/opencode-second-opinion/scripts/check-opinion.sh && bash -n skills/advisory/opencode-second-opinion/scripts/run-opinion.sh && git diff --check",
+    "gate": "npm run validate && npm run test:bootstrap && npm run test:install && npm run test:hooks && npm run test:state && npm run test:skills && npm run skills:check && npm run lessons:verify && npm run changes:check && npm run test:lessons && npm run test:lessons-verify && npm run test:change-contract && npm run test:durable-pages && npm run test:catalog && npm run test:setup && npm run test:skill-scripts && npm run test:lib && bash -n scripts/install.sh && bash -n skills/advisory/opencode-second-opinion/scripts/check-opinion.sh && bash -n skills/advisory/opencode-second-opinion/scripts/run-opinion.sh && git diff --check",
     "catalog": "node scripts/catalog.mjs",
     "test:bootstrap": "node --test test/bootstrap-fixture/bootstrap.test.mjs",
     "test:hooks": "python3 -B -m unittest scripts/hooks/test_destructive_guard.py",

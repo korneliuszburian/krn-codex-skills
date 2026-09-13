@@ -52,3 +52,15 @@ test("compile, check, and resume compose into one usable restart path", () => {
   assert.match(resumed.stdout, /Compose the restart path\./);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("doctor renders a human summary by default and JSON with --json", () => {
+  const base = mkdtempSync(join(tmpdir(), "krn-doctor-"));
+  const env = { ...process.env, CODEX_HOME: join(base, "codex"), KRN_SKILLS_DEST: join(base, "skills"), KRN_BIN_DEST: join(base, "bin") };
+  const text = spawnSync(process.execPath, [cli, "doctor"], { encoding: "utf8", env });
+  assert.equal(text.status, 0, text.stderr);
+  assert.match(text.stdout, /^filesystem: /);
+  const json = spawnSync(process.execPath, [cli, "doctor", "--json"], { encoding: "utf8", env });
+  assert.equal(json.status, 0, json.stderr);
+  assert.equal(typeof JSON.parse(json.stdout).filesystem.status, "string");
+  rmSync(base, { recursive: true, force: true });
+});

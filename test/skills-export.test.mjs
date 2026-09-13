@@ -344,3 +344,13 @@ test("dirty scope follows the exported skill paths, not the whole repo", () => {
   assert.ok(!checkSkills({ root: f.root }).errors.some((e) => e.includes("do not reproduce")), "a recorded dirty export warns instead of failing reproducibility");
   fs.rmSync(f.base, { recursive: true, force: true });
 });
+
+test("check reports a malformed upstream lock instead of throwing", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.source });
+  fs.writeFileSync(path.join(f.source, "config", "upstream-sources.json"), "{\"sources\":[null]}\n");
+  let check;
+  assert.doesNotThrow(() => { check = checkSkills({ root: f.source }); });
+  assert.ok(Array.isArray(check.errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
