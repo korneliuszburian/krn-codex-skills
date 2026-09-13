@@ -97,14 +97,14 @@ function listTestFiles(root, base, git) {
 }
 
 function scriptRedefinition(root, base, git, command) {
-  if (/[*?\[]/.test(command) || /[$`|;&<>]/.test(command) || /(^|[\s/'"])(?:[^\s/]*\/)*(?:sh|bash|zsh|dash|ash|ksh|busybox)\b[^\n]*?\s-c(\s|$)/.test(command) || /(^|\s)npm\s+run(\s|$)/.test(command)) {
+  if (/[*?\[]/.test(command) || /[$`|;&<>]/.test(command) || /(^|[\s/'"])(?:[^\s/]*\/)*(?:sh|bash|zsh|dash|ash|ksh|busybox)\b[^\n]*?\s-c(\s|$)/.test(command) || /(^|\s)(?:npm|pnpm|yarn|bun)\s+run(\s|$)/.test(command) || /(^|\s)node\s+--run(\s|$)/.test(command)) {
     return "non-literal";
   }
   const files = [];
   for (const match of command.matchAll(/"([^"]+\.(?:mjs|js|cjs|sh))"|'([^']+\.(?:mjs|js|cjs|sh))'/g)) {
     files.push((match[1] ?? match[2]).replace(/^\.\//, ""));
   }
-  for (const match of command.matchAll(/(?:^|[\s=])([^\s=]+\.(?:mjs|js|cjs|sh))(?=$|[\s])/g)) {
+  for (const match of command.matchAll(/(?:^|\s)([^\s]+\.(?:mjs|js|cjs|sh))(?=$|\s)/g)) {
     files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
   }
   if (files.length === 0 && /(^|\s)--test(\s|$)/.test(command)) files.push(...listTestFiles(root, base, git));
@@ -117,7 +117,7 @@ function scriptChangedFiles(root, base, git, command) {
   for (const match of command.matchAll(/"([^"]+\.(?:mjs|js|cjs|sh))"|'([^']+\.(?:mjs|js|cjs|sh))'/g)) {
     files.push((match[1] ?? match[2]).replace(/^\.\//, ""));
   }
-  for (const match of command.matchAll(/(?:^|[\s=])([^\s=]+\.(?:mjs|js|cjs|sh))(?=$|[\s])/g)) {
+  for (const match of command.matchAll(/(?:^|\s)([^\s]+\.(?:mjs|js|cjs|sh))(?=$|\s)/g)) {
     files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
   }
   if (files.length === 0 && /(^|\s)--test(\s|$)/.test(command)) files.push(...listTestFiles(root, base, git));
@@ -136,11 +136,37 @@ function literalTestFiles(root, target) {
   }
   if (typeof command !== "string" || /[*?\[]/.test(command) || /[$`|;&<>]/.test(command)) return null;
   const files = [];
-  for (const match of command.matchAll(/(?:^|[\s=])([^\s=]+\.(?:mjs|js|cjs))(?=$|[\s])/g)) {
+  for (const match of command.matchAll(/(?:^|\s)([^\s]+\.(?:mjs|js|cjs))(?=$|\s)/g)) {
     files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
   }
   const tests = files.filter(isTestFile);
   return tests.length > 0 ? tests : null;
+}
+
+function scriptCommand(root, target) {
+  if (target.kind !== "script") return null;
+  try {
+    return JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts?.[target.name] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function listTestFilesIn(dir) {
+  const found = [];
+  const walk = (rel) => {
+    for (const entry of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
+      const next = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) walk(next);
+      else if (isTestFile(next)) found.push(next);
+    }
+  };
+  try {
+    walk("");
+  } catch {
+    return [];
+  }
+  return found.sort();
 }
 
 function tapSummary(output) {
@@ -175,7 +201,13 @@ export function runCheckAtBase({ root, base, target, git = runGit, overlay = nul
       fs.mkdirSync(path.dirname(to), { recursive: true });
       fs.copyFileSync(from, to);
     }
-    const frozenTests = target.kind === "script" ? (overlays.filter(isTestFile).length > 0 ? overlays.filter(isTestFile) : literalTestFiles(root, target)) : null;
+    let frozenTests = null;
+    if (target.kind === "script") {
+      const named = overlays.filter(isTestFile);
+      const command = scriptCommand(root, target);
+      if (named.length > 0) frozenTests = named;
+      else if (command && /(^|\s)--test(\s|$)/.test(command)) frozenTests = literalTestFiles(root, target) ?? listTestFilesIn(dir);
+    }
     return { outcome: runCheck({ root: dir, target, frozenTests }) };
   } finally {
     git(root, ["worktree", "remove", "--force", dir]);
@@ -290,7 +322,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       if (target.kind === "test" && verifyBefore && (authoredNow || fileChanged)) {
         frozenObserver = true;
         overlays = [target.name];
-      } else if (target.kind === "script" && verifyBefore && !commandChanged && scriptState !== "non-literal" && changedOther.length === 0 && changedTests.length > 0) {
+      } else if (target.kind === "script" && verifyBefore && !authoredNow && !commandChanged && scriptState !== "non-literal" && changedOther.length === 0 && changedTests.length > 0) {
         frozenObserver = true;
         overlays = changedTests;
       }
@@ -324,7 +356,13 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const baseRunner = runAtBase ?? ((args) => runCheckAtBase({ ...args, git }));
   for (const record of targets.values()) {
     const overlays = record.overlays ?? [];
-    const headFrozen = record.target.kind === "script" && overlays.length > 0 ? overlays.filter(isTestFile) : null;
+    let headFrozen = null;
+    if (record.target.kind === "script") {
+      const named = overlays.filter(isTestFile);
+      const command = scriptCommand(root, record.target);
+      if (named.length > 0) headFrozen = named;
+      else if (command && /(^|\s)--test(\s|$)/.test(command)) headFrozen = literalTestFiles(root, record.target) ?? listTestFilesIn(root);
+    }
     const outcome = run({ root, target: record.target, frozenTests: headFrozen });
     const baseCache = new Map();
     const baseOnce = (value) => {

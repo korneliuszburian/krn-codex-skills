@@ -868,3 +868,83 @@ test("the contract guard reads only the environment flag", () => {
   assert.equal(contractGuardActive({}), false);
   assert.equal(contractGuardActive({ KRN_CHANGE_CONTRACT: "1" }), false);
 });
+
+test("a node --run chain that reaches a gutted test fails closed as non-literal", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-noderun-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), "{\"scripts\":{\"test:inner\":\"node --test test/t.test.mjs\",\"test:t\":\"node --run test:inner\"}}\n");
+  writeFileSync(join(root, "test", "t.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("value is two", () => assert.equal(value, 2));\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "test", "t.test.mjs"), 'import test from "node:test";\ntest("trivial", () => {});\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 2;\n");
+  commit("gut\n\nChange-contract: test:t:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD" });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a test filename containing = is still tracked for redefinition", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-eqname-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), "{\"scripts\":{\"test:t\":\"node test/a=b.test.mjs\"}}\n");
+  writeFileSync(join(root, "test", "a=b.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("value is two", () => assert.equal(value, 2));\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "test", "a=b.test.mjs"), 'import test from "node:test";\ntest("trivial", () => {});\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 2;\n");
+  commit("gut\n\nChange-contract: test:t:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD" });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a bare node --test script still detects a dropped case under --before", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-bareshrink-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), "{\"scripts\":{\"test:t\":\"node --test\"}}\n");
+  writeFileSync(join(root, "test", "o.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("keep", () => assert.equal(typeof value, "number"));\ntest("flip", () => assert.equal(value, 2));\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "test", "o.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("flip", () => assert.equal(value, 2));\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 2;\n");
+  commit("fix\n\nChange-contract: test:t:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+  assert.ok(report.errors.some((error) => error.rule === "observer-shrinkage"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a script introduced in the range is self-authored even under --before", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-newscript-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), "{\"scripts\":{}}\n");
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "test", "t.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("value is two", () => assert.equal(value, 2));\n');
+  writeFileSync(join(root, "package.json"), "{\"scripts\":{\"test:t\":\"node --test test/t.test.mjs\"}}\n");
+  writeFileSync(join(root, "lib.mjs"), "export const value = 2;\n");
+  commit("add check\n\nChange-contract: test:t:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
