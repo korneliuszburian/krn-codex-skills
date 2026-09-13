@@ -488,13 +488,18 @@ async function main() {
     if (options.json) {
       printJson({
         profile: profileName,
+        status: plan.changed ? "drift" : "converged",
         converged: !plan.changed,
         capability_states: configurationStateContract(),
         resolved,
         plan: publicPlan(plan),
       });
+    } else {
+      printPlan(profileName, resolved, plan);
+      console.log(plan.changed
+        ? `DRIFT: ${profileName} differs from the desired state; run \`krn-codex capability apply ${profileName}\``
+        : `converged: ${profileName} matches the desired state`);
     }
-    else printPlan(profileName, resolved, plan);
     if (plan.changed) process.exitCode = EXIT_DRIFT;
     return;
   }

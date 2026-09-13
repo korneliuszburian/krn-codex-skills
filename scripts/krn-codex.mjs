@@ -96,8 +96,21 @@ function delegate(script, args) {
   process.exitCode = result.status ?? 1;
 }
 
+function renderInstallReport(report) {
+  const lines = [`filesystem: ${report.filesystem.status}${report.filesystem.detail ? ` (${report.filesystem.detail})` : ""}`];
+  if (report.commit) lines.push(`release: ${report.commit.slice(0, 12)}`);
+  if (report.session) lines.push(`session: ${report.session.status}`);
+  if (report.legacyHooks?.length) lines.push(`legacy hooks: ${report.legacyHooks.join(", ")}`);
+  for (const target of report.targets ?? []) lines.push(`  ${String(target.status).padEnd(22)} ${target.target}`);
+  return lines.join("\n");
+}
+
 try {
   const raw = process.argv.slice(2);
+  if (raw.length === 0 || ["-h", "--help", "help"].includes(raw[0])) {
+    process.stdout.write(`${usage}\n`);
+    process.exit(0);
+  }
   if (raw[0] === "capability") {
     delegate("scripts/catalog.mjs", raw.slice(1));
   } else if (raw[0] === "repo") {
@@ -214,7 +227,8 @@ try {
     } else fail(usage);
   } else if (positional[0] === "doctor") {
     if (positional.length !== 1 || options.source || options.yes) fail(usage);
-    print(inspectInstall(), options.json);
+    const report = inspectInstall();
+    print(options.json ? report : renderInstallReport(report), options.json);
   } else {
     print(usage, false);
     process.exitCode = EXIT_CODES.USAGE;

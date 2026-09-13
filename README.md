@@ -1,5 +1,23 @@
 # KRN Skills
 
+[![validate](https://github.com/korneliuszburian/krn-codex-skills/actions/workflows/validate.yml/badge.svg)](https://github.com/korneliuszburian/krn-codex-skills/actions/workflows/validate.yml)
+
+**What this is** — KRN's universal Codex workflows: one owner per repeated
+process, a small compiled context spine, and deterministic gates that keep
+agent work honest across long, multi-session outcomes.
+
+**Who it's for** — KRN engineers and their coding agents in any repository,
+plus anyone maintaining the global skill set.
+
+**Start here**
+
+```bash
+npm run gate                    # validate this checkout (all gates)
+krn-codex doctor                # inspect the installed release (text)
+krn-codex state compile         # compile a restart capsule for an outcome
+node scripts/krn-codex.mjs ...  # every command before `krn-codex` is installed
+```
+
 Production-first Codex workflows with one owner per repeated process. Global
 policy stays small; product language stays with the product; working context is
 compiled into a few semantic artifacts instead of accumulated as reports.

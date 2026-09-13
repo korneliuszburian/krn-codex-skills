@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Audit or rewrite explicitly requested prose to remove robotic AI patterns while preserving meaning, facts, citations, code, and the author's intended voice.
+description: Audit or rewrite explicitly requested prose to remove robotic AI patterns while preserving meaning, facts, citations, code, and the author's intended voice. Use for prose cleanup; skip fact-checking, publication, or code changes.
 ---
 
 # Unslop
