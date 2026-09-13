@@ -135,3 +135,36 @@ test("a dangling skill symlink is not inventoried as a capability", async () => 
     assert.ok(!inventory.skills.some((skill) => skill.id === "ghost"), JSON.stringify(inventory.skills.map((skill) => skill.id)));
   });
 });
+
+test("a skill directory whose SKILL.md is a dangling file symlink is not inventoried", async () => {
+  await withRoot("krn-inventory-dangling-file-", async (root) => {
+    const directory = path.join(root, "ghost-file");
+    mkdirSync(directory, { recursive: true });
+    symlinkSync(path.join(root, "missing-skill.md"), path.join(directory, "SKILL.md"));
+    const inventory = await inventoryCapabilities({
+      skillRoots: [{ id: "root", path: root, scope: "user" }],
+      pluginCacheRoots: [],
+    });
+    assert.ok(
+      !inventory.skills.some((skill) => skill.id === "ghost-file"),
+      JSON.stringify(inventory.skills.map((skill) => skill.id)),
+    );
+  });
+});
+
+test("a skill directory whose SKILL.md is a valid file symlink is inventoried", async () => {
+  await withRoot("krn-inventory-file-link-", async (root) => {
+    const target = path.join(root, "shared-skill.md");
+    writeFileSync(target, "---\nname: linked\ndescription: demo\n---\n");
+    const directory = path.join(root, "linked");
+    mkdirSync(directory, { recursive: true });
+    symlinkSync(target, path.join(directory, "SKILL.md"));
+    const inventory = await inventoryCapabilities({
+      skillRoots: [{ id: "root", path: root, scope: "user" }],
+      pluginCacheRoots: [],
+    });
+    const record = inventory.skills.find((skill) => skill.id === "linked");
+    assert.equal(record?.source, "file-symlink");
+    assert.equal(record?.targetPath, target);
+  });
+});

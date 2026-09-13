@@ -155,6 +155,7 @@ async function inventorySkillRoot(root, records, quarantine) {
     const skillFile = await safeLstat(skillPath, quarantine);
     if (!skillFile || (!skillFile.isFile() && !skillFile.isSymbolicLink())) continue;
 
+    let fileLinkTarget;
     if (skillFile.isSymbolicLink()) {
       const target = await safeReadlink(skillPath, quarantine);
       if (target === null) continue;
@@ -169,6 +170,9 @@ async function inventorySkillRoot(root, records, quarantine) {
         );
         continue;
       }
+      const resolvedFile = await safeLstat(resolvedTarget, quarantine);
+      if (!resolvedFile || (!resolvedFile.isFile() && !resolvedFile.isSymbolicLink())) continue;
+      fileLinkTarget = resolvedTarget;
     }
 
     records.push(
@@ -177,6 +181,7 @@ async function inventorySkillRoot(root, records, quarantine) {
         root,
         source: skillFile.isSymbolicLink() ? "file-symlink" : "directory",
         path: skillPath,
+        ...(fileLinkTarget ? { targetPath: fileLinkTarget } : {}),
       }),
     );
   }
