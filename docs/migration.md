@@ -46,7 +46,7 @@ Verified: 2026-09-11.
 
 `krn-codex doctor --json` is a filesystem observer, not a discovery or
 execution test. Its filesystem state is one of `filesystem_installed`,
-`legacy_mutable_source`, `stable_link_bypasses_current`, `foreign_collision`,
+`legacy_mutable_source`, `stable_link_bypasses_current`, `foreign_collision`, `legacy_hook_conflict`,
 `broken_link`, `missing`, or `masked_by_override`. The last state means a
 present `$CODEX_HOME/AGENTS.override.md` would block `install apply`, even if
 the installed release and stable links themselves are intact.
@@ -62,11 +62,12 @@ not delete a release while an installed link or session may still depend on it.
 
 If `install apply` exits 66 (`existing release is corrupt`) or `doctor` reports
 `broken_link`, `current` selects an unverified release; a dangling or foreign
-`current` exits 73 (`refusing foreign current binding`). Recover by re-running
-`krn-codex install apply` from the clean source checkout at that commit, which
-re-verifies or rebuilds the release; when a verified sibling already exists,
-repointing `current` to it through an atomic relative-symlink rename is
-equivalent. Never edit a release in place;
+`current` exits 73 (`refusing foreign current binding`). Re-running apply does
+not rebuild a corrupt release (it fails closed again) and cannot repair a
+foreign `current`; recover by repointing `current` to a verified sibling
+release through an atomic relative-symlink rename, or, when no sibling is
+verified, delete the corrupt release directory and re-run apply from the clean
+checkout at that commit. Never edit a release in place;
 delete a corrupt or superseded release only after no installed link or session
 references it.
 
