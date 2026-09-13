@@ -61,7 +61,15 @@ export function verifyLessons({ root, timeout = 120000, runner = runCase, force 
       continue;
     }
     const outcome = runner({ root, file: path.join(root, file), name, timeout });
-    results.push({ lesson: lesson.lesson, file, case: name, status: outcome.ok ? "pass" : "fail", code: outcome.status });
+    const result = { lesson: lesson.lesson, file, case: name, status: outcome.ok ? "pass" : "fail", code: outcome.status };
+    if (!outcome.ok) result.detail = failureExcerpt(outcome.output);
+    results.push(result);
   }
   return { root, results, failures: results.filter((result) => result.status === "fail"), errors };
+}
+
+function failureExcerpt(output) {
+  const lines = String(output ?? "").split("\n").map((line) => line.trim()).filter(Boolean);
+  const assertion = lines.find((line) => /(AssertionError|Error:|expected|boom)/.test(line)) ?? lines[0] ?? "";
+  return assertion.slice(0, 300);
 }

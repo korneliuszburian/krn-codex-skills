@@ -1129,3 +1129,9 @@ test("a bare node --test script does not report shrinkage for an untouched passi
   assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("skill scripts are part of the change-contract surface", () => {
+  assert.equal(contractSurface(["skills/meta/unlazy/scripts/gate-check.mjs"]), true);
+  assert.equal(contractSurface(["skills/advisory/opencode-second-opinion/scripts/run-opinion.sh"]), true);
+  assert.equal(contractSurface(["skills/meta/unlazy/SKILL.md"]), false);
+});

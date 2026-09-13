@@ -14,6 +14,7 @@ const SURFACE = [
   /^package\.json$/,
   /^config\//,
   /^skills\/manifest\.json$/,
+  /^skills\/.*\/scripts\//,
   /^docs\/research\/workflow-lessons\.md$/,
   /^\.github\/workflows\//,
 ];

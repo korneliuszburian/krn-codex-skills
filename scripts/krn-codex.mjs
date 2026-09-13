@@ -143,7 +143,7 @@ try {
       print(report, options.json);
       if (!options.json) {
         for (const result of report.results) process.stdout.write(`${result.status}\t${result.file}::${result.case}\n`);
-        for (const result of report.failures) process.stderr.write(`error: lesson "${result.lesson}" proof failed: ${result.file}::${result.case}\n`);
+        for (const result of report.failures) process.stderr.write(`error: lesson "${result.lesson}" proof failed: ${result.file}::${result.case}${result.detail ? ` (${result.detail})` : ""}\n`);
         for (const message of report.errors ?? []) process.stderr.write(`error: ${message}\n`);
       }
       if (report.failures.length || (report.errors?.length ?? 0) > 0) process.exitCode = 1;

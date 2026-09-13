@@ -133,3 +133,11 @@ test("a retired row's proof is not executed", () => {
   assert.deepEqual(report.results, [], "a retired row is archival and not re-run");
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a failing proof reports the cause", () => {
+  const root = makeRoot('import test from "node:test";\ntest("probe", () => { throw new Error("boom-marker"); });\n');
+  const report = verifyLessons({ root });
+  assert.equal(report.results[0].status, "fail");
+  assert.match(report.results[0].detail ?? "", /boom-marker/, JSON.stringify(report.results[0]));
+  rmSync(root, { recursive: true, force: true });
+});
