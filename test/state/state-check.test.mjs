@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { runGit } from "../../scripts/lib/support/git-cli.mjs";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -13,6 +13,39 @@ import { capsuleIdsDetailed } from "../../scripts/lib/state/spine-runs.mjs";
 const git = (root, args) => runGit(root, args).out;
 
 const cli = fileURLToPath(new URL("../../scripts/krn-codex.mjs", import.meta.url));
+
+test("state check and spine discovery keep their distinct capsule diagnostics", () => {
+  const { root } = makeRepo();
+  try {
+    const base = join(root, ".krn", "runs", "delivery-loop");
+    mkdirSync(join(base, "real", "state.md"), { recursive: true });
+    symlinkSync("real", join(base, "alias"));
+    symlinkSync("loop", join(base, "loop"));
+    const state = inspectSpineState({ repo: root });
+    assert.deepEqual(
+      state.errors.filter((error) => error.rule === "unreadable-capsule"),
+      [
+        { id: "real", rule: "unreadable-capsule", detail: ".krn/runs/delivery-loop/real/state.md is not a regular file" },
+        { id: "loop", rule: "unreadable-capsule", detail: "loop cannot be resolved" },
+      ],
+    );
+    assert.deepEqual(state.capsules, []);
+    const discovered = capsuleIdsDetailed(root);
+    assert.deepEqual(discovered.ids, []);
+    const detailFor = {
+      real: ".krn/runs/delivery-loop/real/state.md is not a regular file",
+      alias: ".krn/runs/delivery-loop/alias/state.md is not a regular file",
+      loop: ".krn/runs/delivery-loop/loop/state.md cannot be resolved",
+    };
+    const order = readdirSync(base, { withFileTypes: true }).map((entry) => entry.name);
+    assert.deepEqual(
+      discovered.errors,
+      order.map((name) => ({ rule: "unreadable-capsule", detail: detailFor[name] })),
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("state check honors --root instead of ignoring it", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-state-root-"));
