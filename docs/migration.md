@@ -69,3 +69,8 @@ repointing `current` to it through an atomic relative-symlink rename is
 equivalent. Never edit a release in place;
 delete a corrupt or superseded release only after no installed link or session
 references it.
+
+The release digest lives in `.krn-release.json` inside the release tree and
+excludes itself, so it detects content corruption but not a writer who rewrites
+both the tree and that metadata; a separate trust anchor is out of scope for a
+single-user cooperative install.
