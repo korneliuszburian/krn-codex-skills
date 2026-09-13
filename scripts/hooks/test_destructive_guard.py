@@ -44,6 +44,11 @@ class DestructiveGuardSmoke(unittest.TestCase):
             self.assertIsNone(reason("git commit -m 'clean runtime residue'"))
             self.assertIsNone(reason("git commit -m clean"))
             self.assertIsNone(reason("git branch clean"))
+            self.assertIsNone(reason("git -C . commit -m clean"))
+            self.assertIsNone(reason("git --work-tree=. status clean"))
+            self.assertIsNone(reason("git -c foo=bar log --grep clean"))
+            self.assertIsNotNone(reason("git -C . clean"))
+            self.assertIsNotNone(reason("git -c alias.wipe=clean wipe -fd"))
             self.assertIn("non-dry-run git clean", reason("git clean -fd") or "")
             self.assertIn(
                 "destructive removal blocked",

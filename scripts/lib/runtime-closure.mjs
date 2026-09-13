@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
+import { maskTemplates, stripComments } from "./source-mask.mjs";
+
 function relativePath(root, from, specifier) {
   return relative(root, resolve(dirname(join(root, from)), specifier)).split(sep).join("/");
 }
@@ -18,10 +20,7 @@ function runtimeClosure({ root, manifest }) {
       continue;
     }
     reachable.add(file);
-    const code = source
-      .replace(/\/\*[\s\S]*?\*\//g, " ")
-      .replace(/(^|\s)\/\/[^\n]*/g, "$1 ")
-      .replace(/`(?:\\.|[^`])*`/g, " ");
+    const code = maskTemplates(stripComments(source));
     for (const match of code.matchAll(/(?:from|import)\s*\(?\s*["'](\.[^"']+)["']/g)) {
       queue.push(relativePath(root, file, match[1]));
     }

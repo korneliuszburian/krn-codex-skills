@@ -282,12 +282,22 @@ def has_static_destructive_reference(words: tuple[str, ...] | None) -> bool:
         return False
     if remaining[0] == "rm":
         return True
-    if remaining[0] != "git" or len(remaining) < 2:
+    if remaining[0] != "git":
         return False
-    if remaining[1] == "clean":
-        return True
-    # Global options such as `git -C dir clean` place the subcommand later.
-    return remaining[1].startswith("-") and "clean" in remaining[2:]
+    args = remaining[1:]
+    value_options = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"}
+    index = 0
+    while index < len(args):
+        token = args[index]
+        if token in value_options:
+            if token == "-c" and index + 1 < len(args) and "=clean" in args[index + 1].replace(" ", ""):
+                return True
+            index += 2
+        elif token.startswith("-"):
+            index += 1
+        else:
+            return token == "clean"
+    return False
 
 
 def bash_denial_reason(command: str, cwd: Path) -> str | None:

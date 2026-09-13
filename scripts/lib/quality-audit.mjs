@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join, relative, sep } from "node:path";
 
+import { stripComments } from "./source-mask.mjs";
+
 const SELF = "scripts/lib/quality-audit.mjs";
 
 const walk = (directory) => {
@@ -29,7 +31,8 @@ const exportedNames = (source) => {
   return [...names];
 };
 
-const importedNames = (source) => {
+const importedNames = (rawSource) => {
+  const source = stripComments(rawSource);
   const names = new Set();
   for (const match of source.matchAll(/import\s+([^;]*?)\s+from\s+["'][^"']+["']/g)) {
     const clause = match[1];
@@ -118,8 +121,8 @@ export function auditRepository(root) {
   }
 
   for (const file of runtime) {
-    const source = sources.get(file);
-    const local = new Set([...functionDeclarations(source), ...importedNames(source)]);
+    const source = stripComments(sources.get(file));
+    const local = new Set([...functionDeclarations(source), ...importedNames(source), ...[...source.matchAll(/(?:const|let|var)\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1])]);
     for (const match of source.matchAll(/(?<![.\w$])([A-Za-z0-9_$]+)\s*\(/g)) {
       const name = match[1];
       if (local.has(name)) continue;
@@ -132,7 +135,8 @@ export function auditRepository(root) {
     }
   }
 
-  const consumedNames = (source) => {
+  const consumedNames = (rawSource) => {
+    const source = stripComments(rawSource);
     const names = importedNames(source);
     for (const match of source.matchAll(/export\s*\{([^}]*)\}\s*from\s*["'][^"']+["']/g)) {
       for (const part of match[1].split(",")) {
@@ -142,9 +146,9 @@ export function auditRepository(root) {
     }
     return names;
   };
-  const dynamicallyImports = (source, moduleFile) => {
+  const dynamicallyImports = (rawSource, moduleFile) => {
     const base = basename(moduleFile);
-    return new RegExp(`import\\s*\\(\\s*["'][^"']*${base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']`).test(source);
+    return new RegExp(`import\\s*\\(\\s*["'][^"']*${base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']`).test(stripComments(rawSource));
   };
   const consumed = new Map([...sources.entries()].map(([file, source]) => [file, consumedNames(source)]));
 
@@ -180,7 +184,7 @@ export function auditRepository(root) {
       for (const name of names) {
         const imported = [...sources.entries()].some(([other, otherSource]) => {
           if (other === file) return false;
-          for (const spec of otherSource.matchAll(/(?:import|export)\s+([^;]*?)\s+from\s+["'](\.[^"']+)["']/g)) {
+          for (const spec of stripComments(otherSource).matchAll(/(?:import|export)\s+([^;]*?)\s+from\s+["'](\.[^"']+)["']/g)) {
             if (basename(spec[2]) !== base) continue;
             const braces = spec[1].match(/\{([\s\S]*?)\}/);
             if (!braces) continue;

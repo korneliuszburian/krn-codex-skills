@@ -59,7 +59,7 @@ export function checkDurablePages({ root }) {
     if (adrEntries.length > 0 && !fs.existsSync(contextFile)) {
       errors.push("CONTEXT.md is missing the knowledge map that must link every accepted ADR");
     } else if (fs.existsSync(contextFile)) {
-      const stripComments = (text) => {
+      const stripHtmlComments = (text) => {
         let out = "";
         let index = 0;
         let depth = 0;
@@ -94,7 +94,7 @@ export function checkDurablePages({ root }) {
         }
         return kept.join("\n");
       };
-      const context = stripCode(stripComments(fs.readFileSync(contextFile, "utf8")));
+      const context = stripCode(stripHtmlComments(fs.readFileSync(contextFile, "utf8")));
       for (const entry of adrEntries) {
         const escaped = entry.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const target = `(?:\\./)?docs/adr/${escaped}`;
