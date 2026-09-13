@@ -260,11 +260,8 @@ export function checkLessons({ root, git = runGit }) {
           const reference = token.trim();
           if (reference && !tokens.has(reference)) tokens.set(reference, false);
         }
-        const live = [...tokens.entries()]
-          .filter(([reference, backticked]) => reference
-            && (CANDIDATE.test(reference) || (backticked && Object.hasOwn(scripts, reference)) || (Object.hasOwn(scripts, reference) && /[:.-]/.test(reference))))
-          .filter(([reference]) => resolveReference(root, scripts, reference).ok)
-          .map(([reference]) => reference);
+        const live = [...tokens.keys()]
+          .filter((reference) => reference && resolveReference(root, scripts, reference).ok);
         if (live.length > 0) errors.push(`lesson "${row.lesson}": retired with a live gate (${live.join(", ")}); remove the enforcement or name superseded-by`);
       }
       lessons.push({ lesson: row.lesson, resolved: [], occurrences: row.occurrences, falsifier: row.falsifier, trigger: row.trigger, status: row.status });

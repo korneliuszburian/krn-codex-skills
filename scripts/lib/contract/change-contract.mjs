@@ -441,7 +441,10 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       } else {
         const testRefs = named.flatMap((value) => [...value.matchAll(/\.?\/?[A-Za-z0-9_./-]*\.mjs/g)].map((match) => match[0].replace(/^\.\//, "")));
         const requiredTests = [...new Set([falsifierFile, ...testRefs].filter(Boolean))];
-        const declaredRefs = [...contract.contracts.map((entry) => entry.ref), ...contract.atRisk];
+        const declaredRefs = [
+          ...contract.contracts.filter((entry) => entry.after === "green").map((entry) => entry.ref),
+          ...contract.atRisk,
+        ];
         if (requiredTests.length > 0 && !requiredTests.some((test) => declaredRefs.includes(test))) {
           record.push({ rule: "unused-recall", commit: commit.sha, ref: hit.lesson, detail: `declare At-risk: ${requiredTests.join(" or ")} so the recalled lesson's test is exercised` });
         }

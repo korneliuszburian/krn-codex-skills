@@ -83,6 +83,14 @@ test("rejects a configured root that hides a symlink behind .. traversal", async
       requireDirectoryWithoutSymlinks(masked, { label: "root" }),
       (error) => error.code === "CATALOG_PATH_TRAVERSAL",
     );
+    await assert.rejects(
+      requireDirectoryWithoutSymlinks(`${root}\\bridge\\..\\skills`, { label: "root" }),
+      (error) => error.code === "CATALOG_PATH_TRAVERSAL",
+    );
+    assert.equal(
+      (await Promise.resolve().then(() => requireDirectoryWithoutSymlinks(path.join(root, "skills"), { label: "root" }))),
+      true,
+    );
   });
 });
 

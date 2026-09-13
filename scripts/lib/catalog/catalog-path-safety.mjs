@@ -25,7 +25,7 @@ async function requirePathWithoutSymlinks(
   // not actually walk.
   if (
     String(candidate)
-      .split(path.sep)
+      .split(/[\\/]+/)
       .some((segment) => segment === "..")
   ) {
     throw pathSafetyError(
