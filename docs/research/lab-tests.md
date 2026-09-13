@@ -67,6 +67,11 @@ design:
   workspace `.git` can leak a prior cell's lesson or answer to an ablation arm
   (Anthropic, demystifying evals for AI agents, 2026-01-09).
 
+- Pin and record the agent's inference-effort setting per cell, and make the
+  placebo wording-matched as well as length-matched: content can be an effort
+  artifact and an intervention's value shifts with the harness and effort
+  (arXiv:2608.01347).
+
 - Report cost as provider-billed cost per successful task, decomposed into
   prompt-cache write/read versus uncached input/output, not raw token counts;
   token count and billed cost diverge when cache traffic dominates
@@ -87,7 +92,9 @@ rate is 0 and the success count is identical, the resource pair is inert.
 Decompose the gate's paired variance; if data noise dominates prediction noise,
 rep-averaging cannot raise power and the reallocation is unnecessary. Derive
 billed cost from the usage record and compare arm ordering under tokens versus
-cost; if they agree, the metric change is unnecessary.
+cost; if they agree, the metric change is unnecessary. Run the decisive cell at
+two effort settings and a wording-matched placebo; if pass count and
+cost-per-success are identical, the effort pin is unnecessary.
 
 - bwrap floor is now available: 0.12.0 built from the official tag tarball (meson and
   ninja in a venv, libcap 2.78) and staged outside the repo; it passes a functional probe
