@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from "node:fs";
 import path from "node:path";
 import { posixRelative } from "./lib/support/path-rules.mjs";
 import process from "node:process";
@@ -43,43 +44,35 @@ const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
 function parseOptions(args) {
   const positional = [];
   const options = { json: false, yes: false };
+  const take = (index, flag) => {
+    const value = args[index + 1];
+    if (value === undefined || value.startsWith("--")) fail(`${flag} requires a value`);
+    return value;
+  };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--json") options.json = true;
     else if (arg === "--yes") options.yes = true;
     else if (arg === "--before") options.before = true;
     else if (arg === "--strict-recall") options.strictRecall = true;
-    else if (arg === "--source") {
-      options.source = args[++index];
-      if (!options.source) fail("--source requires REF or PATH");
-    } else if (arg === "--root") {
-      options.root = args[++index];
-      if (!options.root) fail("--root requires a path");
-    } else if (arg === "--base") {
-      options.base = args[++index];
-      if (!options.base) fail("--base requires a revision");
-    } else if (arg === "--changed") {
-      const value = args[++index];
-      if (!value) fail("--changed requires a path list");
-      options.changed = [...(options.changed ?? []), ...value.split(",").map((entry) => entry.trim()).filter(Boolean)];
+    else if (arg === "--source") options.source = take(index++, "--source");
+    else if (arg === "--root") options.root = take(index++, "--root");
+    else if (arg === "--base") options.base = take(index++, "--base");
+    else if (arg === "--changed") {
+      options.changed = [...(options.changed ?? []), ...take(index++, "--changed").split(",").map((entry) => entry.trim()).filter(Boolean)];
     } else if (arg === "--symbol") {
-      const value = args[++index];
-      if (!value) fail("--symbol requires a name list");
-      options.symbols = [...(options.symbols ?? []), ...value.split(",").map((entry) => entry.trim()).filter(Boolean)];
-    } else if (arg === "--keep") {
-      const value = args[++index];
-      if (!value) fail("--keep requires a count");
-      options.keep = value;
-    } else if (arg === "--head") {
-      options.head = args[++index];
-      if (!options.head) fail("--head requires a revision");
-    } else if (arg === "--upstream") {
-      options.upstream = args[++index];
-      if (!options.upstream) fail("--upstream requires a path");
-    } else if (arg.startsWith("--")) fail(`unknown option: ${arg}`);
+      options.symbols = [...(options.symbols ?? []), ...take(index++, "--symbol").split(",").map((entry) => entry.trim()).filter(Boolean)];
+    } else if (arg === "--keep") options.keep = take(index++, "--keep");
+    else if (arg === "--head") options.head = take(index++, "--head");
+    else if (arg === "--upstream") options.upstream = take(index++, "--upstream");
+    else if (arg.startsWith("--")) fail(`unknown option: ${arg}`);
     else positional.push(arg);
   }
   return { positional, options };
+}
+
+function requireDirectory(root) {
+  if (!fs.statSync(root, { throwIfNoEntry: false })?.isDirectory()) fail(`root is not a directory: ${root}`);
 }
 
 function print(value, json) {
@@ -114,7 +107,7 @@ try {
     delegate("skills/engineering/setup-repository-workflow/scripts/init-repository-workflow.mjs", raw.slice(1));
   } else if (raw[0] === "skills") {
     const { positional, options } = parseOptions(raw.slice(1));
-    if ((positional[0] !== "export" && positional[0] !== "check") || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
+    if ((positional[0] !== "export" && positional[0] !== "check") || positional.length > 1 || options.source || options.yes || (positional[0] === "check" && options.upstream) || !options.root) fail(usage);
     try {
       if (positional[0] === "check") {
         const report = checkSkills({ root: options.root });
@@ -130,6 +123,7 @@ try {
   } else if (raw[0] === "lessons") {
     const { positional, options } = parseOptions(raw.slice(1));
     if (!["check", "verify", "reanchor"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
+    requireDirectory(options.root);
     if (positional[0] === "check") {
       const report = checkLessons({ root: options.root });
       print(report, options.json);
@@ -170,6 +164,7 @@ try {
   } else if (raw[0] === "memory") {
     const { positional, options } = parseOptions(raw.slice(1));
     if (!["recall", "usage"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
+    requireDirectory(options.root);
     if (positional[0] === "usage") {
       const report = lessonUsage({ root: options.root });
       if (options.json) {
