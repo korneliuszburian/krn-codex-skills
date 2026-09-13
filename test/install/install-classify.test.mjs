@@ -68,6 +68,8 @@ test("classifyTarget recognizes the current release and a prior release", () => 
     applyInstall(planB);
     assert.equal(classifyTarget(planB, item, fs.realpathSync(join(planB.current, relative))), "current");
     assert.equal(classifyTarget(planB, item, fs.realpathSync(join(planA.release, relative))), "prior_release");
+    const catalogItem = { label: "bin__krn-codex-catalog", target: join(base, "cat-link"), relative: "scripts/krn-codex-catalog.mjs" };
+    assert.equal(classifyTarget(planB, catalogItem, join(planA.release, "scripts", "catalog.mjs")), "prior_release");
   } finally {
     if (previousSkills === undefined) delete process.env.KRN_SKILLS_DEST;
     else process.env.KRN_SKILLS_DEST = previousSkills;

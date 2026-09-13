@@ -241,7 +241,10 @@ function isPriorReleasePath(plan, item, linked) {
   const releases = path.join(plan.releaseRoot, "releases");
   if (!isInside(releases, linked)) return false;
   const segments = path.relative(releases, linked).split(path.sep);
-  if (segments.length <= 1 || segments.slice(1).join(path.sep) !== item.relative) return false;
+  if (segments.length <= 1) return false;
+  const relative = segments.slice(1).join(path.sep);
+  const legacy = item.label === "bin__krn-codex-catalog" ? "scripts/catalog.mjs" : null;
+  if (relative !== item.relative && relative !== legacy) return false;
   try { verifyRelease(path.join(releases, segments[0]), segments[0]); return true; } catch { return false; }
 }
 
