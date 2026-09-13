@@ -1174,7 +1174,7 @@ test("a head that differs from the checkout is rejected before running", () => {
   writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
   git("init", "-q"); commit("one");
   const first = git("rev-parse", "HEAD").trim();
-  git("commit", "-q", "--allow-empty", "-m", "two");
+  git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "--allow-empty", "-m", "two");
   const report = checkChangeContract({ root, base: first, head: first });
   assert.ok(report.errors.some((error) => error.rule === "head-mismatch"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
