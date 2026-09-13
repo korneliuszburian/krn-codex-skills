@@ -19,7 +19,9 @@ function scan(source, { literals = false, templates = false } = {}) {
     const next = source[index + 1];
     if (state === "code") {
       if (char === "}" && frames.length > 0 && braceDepth === 0) {
-        state = frames.pop();
+        const frame = frames.pop();
+        state = frame.state;
+        braceDepth = frame.braceDepth;
         out += char;
         previous = char;
         index += 1;
@@ -64,7 +66,7 @@ function scan(source, { literals = false, templates = false } = {}) {
       continue;
     }
     if (state === "template" && char === "$" && next === "{") {
-      frames.push("template");
+      frames.push({ state: "template", braceDepth });
       braceDepth = 0;
       state = "code";
       out += "${";

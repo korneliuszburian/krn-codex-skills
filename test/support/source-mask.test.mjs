@@ -35,6 +35,12 @@ test("masking preserves template interpolation code", () => {
   assert.ok(!maskLiterals(source).includes("x "), maskLiterals(source));
 });
 
+test("a nested template inside an interpolation keeps the enclosing code", () => {
+  const source = "const x = `${ {a: `b${y}c`}, d: extraCall() }`;";
+  assert.ok(maskLiterals(source).includes("extraCall()"), maskLiterals(source));
+  assert.ok(maskTemplates(source).includes("extraCall()"), maskTemplates(source));
+});
+
 test("maskTemplates ignores backticks inside strings and masks real templates", () => {
   const fence = 'const fence = "```";\nimport { used } from "./lib/real.mjs";\nconst doc = `# hi`;';
   const masked = maskTemplates(fence);
