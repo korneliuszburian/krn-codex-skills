@@ -34,7 +34,7 @@ const exportedNames = (source) => {
 const importedNames = (rawSource) => {
   const source = stripComments(rawSource);
   const names = new Set();
-  for (const match of source.matchAll(/import\s+([^;]*?)\s+from\s+["'][^"']+["']/g)) {
+  for (const match of source.matchAll(/(?:^|[;\n}])\s*import\s+([^;]*?)\s+from\s+["'][^"']+["']/g)) {
     const clause = match[1];
     const named = clause.match(/\{([\s\S]*?)\}/);
     if (named) {

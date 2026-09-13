@@ -177,3 +177,16 @@ test("a const token inside a string does not mask a missing import", () => {
     },
   );
 });
+
+test("an import phrase inside a string does not inject a phantom local", () => {
+  withRepo(
+    {
+      "scripts/lib/a.mjs": "export function leaky() {\n  return 1;\n}\n",
+      "scripts/lib/b.mjs": 'const note = \'import leaky from "./a.mjs"\';\nexport function run() {\n  return leaky();\n}\nexport const n = note;\n',
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("calls leaky() but never imports it")), JSON.stringify(errors));
+    },
+  );
+});

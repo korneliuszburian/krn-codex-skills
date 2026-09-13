@@ -51,6 +51,7 @@ class DestructiveGuardSmoke(unittest.TestCase):
             self.assertIsNone(reason("git -c core.clean=clean status"))
             self.assertIsNotNone(reason("git -C . clean"))
             self.assertIsNotNone(reason("git -c alias.wipe=clean wipe -fd"))
+            self.assertIsNotNone(reason("git -c alias.c='clean -fd' c"))
             self.assertIn("non-dry-run git clean", reason("git clean -fd") or "")
             self.assertIn(
                 "destructive removal blocked",

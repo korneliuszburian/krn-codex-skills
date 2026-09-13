@@ -108,9 +108,9 @@ function explicitTestOperands(command) {
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
     if (token === "node") continue;
+    if (token.startsWith("--") && token.includes("=")) continue;
     if (VALUE_FLAGS.has(token)) { index += 1; continue; }
     if (token.startsWith("--test") && !BOOLEAN_TEST_FLAGS.has(token)) { index += 1; continue; }
-    if (token.startsWith("--") && token.includes("=")) continue;
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(token)) continue;
     const cleaned = normalizeRel(token.replace(/^['"]|['"]$/g, "").replace(/\\(["'])/g, "$1").replace(/\\/g, "/"));
     if (new RegExp(`\\.(?:${CODE_EXT})$`).test(cleaned)) files.push(cleaned.replace(/^\.\//, ""));

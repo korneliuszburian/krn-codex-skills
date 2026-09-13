@@ -292,7 +292,7 @@ def has_static_destructive_reference(words: tuple[str, ...] | None) -> bool:
         if token in value_options:
             if token == "-c" and index + 1 < len(args):
                 assignment = args[index + 1].split("=", 1)
-                if len(assignment) == 2 and assignment[0].startswith("alias.") and assignment[1] == "clean":
+                if len(assignment) == 2 and assignment[0].startswith("alias.") and assignment[1].split(" ", 1)[0].strip() == "clean":
                     return True
             index += 2
         elif token.startswith("-"):

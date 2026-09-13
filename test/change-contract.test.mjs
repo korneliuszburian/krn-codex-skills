@@ -1088,21 +1088,23 @@ test("boolean test flags and dot-segment paths are handled", () => {
   assertSelfAuthorized({ scripts: { "test:t": "bash -lc 'node --test test/a.test.mjs'" }, changedFile: "test/a.test.mjs" });
 });
 
-test("a boolean --test flag does not force enumeration", () => {
-  const root = mkdtempSync(join(tmpdir(), "krn-boolflag-"));
-  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
-  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
-  mkdirSync(join(root, "test"), { recursive: true });
-  mkdirSync(join(root, "docs", "research"), { recursive: true });
-  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
-  writeFileSync(join(root, "package.json"), "{\"scripts\":{\"test:t\":\"node --test --test-force-exit test/a.test.mjs\"}}\n");
-  writeFileSync(join(root, "test", "a.test.mjs"), 'import test from "node:test";\ntest("ok", () => {});\n');
-  writeFileSync(join(root, "test", "b.test.mjs"), 'import test from "node:test";\ntest("ok", () => {});\n');
-  git("init", "-q"); commit("base");
-  const base = git("rev-parse", "HEAD").trim();
-  writeFileSync(join(root, "test", "b.test.mjs"), 'import test from "node:test";\ntest("changed", () => {});\n');
-  commit("unrelated edit\n\nChange-contract: test:t:red->green");
-  const report = checkChangeContract({ root, base, head: "HEAD" });
-  assert.ok(!report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
-  rmSync(root, { recursive: true, force: true });
+test("a boolean or =value --test flag does not force enumeration", () => {
+  for (const testScript of ["node --test --test-force-exit test/a.test.mjs", "node --test --test-reporter=spec test/a.test.mjs"]) {
+    const root = mkdtempSync(join(tmpdir(), "krn-boolflag-"));
+    const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+    const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+    mkdirSync(join(root, "test"), { recursive: true });
+    mkdirSync(join(root, "docs", "research"), { recursive: true });
+    writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ scripts: { "test:t": testScript } })}\n`);
+    writeFileSync(join(root, "test", "a.test.mjs"), 'import test from "node:test";\ntest("ok", () => {});\n');
+    writeFileSync(join(root, "test", "b.test.mjs"), 'import test from "node:test";\ntest("ok", () => {});\n');
+    git("init", "-q"); commit("base");
+    const base = git("rev-parse", "HEAD").trim();
+    writeFileSync(join(root, "test", "b.test.mjs"), 'import test from "node:test";\ntest("changed", () => {});\n');
+    commit("unrelated edit\n\nChange-contract: test:t:red->green");
+    const report = checkChangeContract({ root, base, head: "HEAD" });
+    assert.ok(!report.errors.some((error) => error.rule === "self-authorized-check"), `${testScript} => ${JSON.stringify(report.errors)}`);
+    rmSync(root, { recursive: true, force: true });
+  }
 });
