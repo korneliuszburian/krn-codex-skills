@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { runGit as git, runGitRaw } from "../support/git-cli.mjs";
-import { capsuleIds, runDirectoriesDetailed } from "./spine-runs.mjs";
+import { capsuleIdsDetailed, runDirectoriesDetailed } from "./spine-runs.mjs";
 import { inspectSpineState, normalizeRunPointer } from "./state-check.mjs";
 import { fieldLine, fixedPointAnchors, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
@@ -45,7 +45,8 @@ export function compileCapsule({ repo = process.cwd() } = {}) {
   const dirty = usableGit ? porcelain(root) : null;
   const { runs, errors: inventoryErrors } = runDirectoriesDetailed(root);
   for (const detail of inventoryErrors) if (!errors.some((error) => error.rule === "unreadable-run-inventory" && error.detail === detail)) errors.push({ rule: "unreadable-run-inventory", detail });
-  const capsules = capsuleIds(root);
+  const { ids: capsules, errors: capsuleErrors } = capsuleIdsDetailed(root);
+  for (const detail of capsuleErrors) errors.push({ rule: "unreadable-capsule-store", detail });
   const runsIgnored = usableGit ? git(root, ["check-ignore", "-q", join(".krn", "runs", ".krn-probe")]).ok : false;
 
   if (!hasGit) warnings.push("git is not on PATH; head and dirty scope are placeholders");

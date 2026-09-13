@@ -34,11 +34,17 @@ export function runDirectories(root) {
   return runDirectoriesDetailed(root).runs;
 }
 
-export function capsuleIds(root) {
+export function capsuleIdsDetailed(root) {
   const base = join(root, ".krn", "runs", "delivery-loop");
-  if (!existsSync(base)) return [];
+  if (!existsSync(base)) return { ids: [], errors: [] };
+  let entries;
+  try {
+    entries = readdirSync(base, { withFileTypes: true });
+  } catch {
+    return { ids: [], errors: [".krn/runs/delivery-loop could not be listed"] };
+  }
   const seen = new Map();
-  for (const entry of readdirSync(base, { withFileTypes: true })) {
+  for (const entry of entries) {
     if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
     const directory = join(base, entry.name);
     if (!existsSync(join(directory, "state.md"))) continue;
@@ -48,5 +54,9 @@ export function capsuleIds(root) {
     const previous = seen.get(real);
     if (!previous || (previous.link && !link)) seen.set(real, { id: entry.name, link });
   }
-  return [...seen.values()].map((entry) => entry.id).sort((a, b) => a.localeCompare(b));
+  return { ids: [...seen.values()].map((entry) => entry.id).sort((a, b) => a.localeCompare(b)), errors: [] };
+}
+
+export function capsuleIds(root) {
+  return capsuleIdsDetailed(root).ids;
 }

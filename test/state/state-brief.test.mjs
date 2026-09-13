@@ -293,3 +293,13 @@ test("resume reports an unreadable inventory exactly once", () => {
   assert.equal(report.errors.filter((error) => error.rule === "unreadable-run-inventory").length, 1, JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("compile reports an unreadable capsule store instead of throwing", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-capsule-store-"));
+  mkdirSync(join(root, ".krn", "runs"), { recursive: true });
+  writeFileSync(join(root, ".krn", "runs", "delivery-loop"), "not a directory\n");
+  let report;
+  assert.doesNotThrow(() => { report = compileCapsule({ repo: root }); });
+  assert.ok(report.errors.some((error) => error.rule === "unreadable-capsule-store"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
