@@ -32,8 +32,8 @@ OWNS: <repository-relative paths>
 Scope: <one complete outcome>
 
 - [ ] G1: <observable result>
-  CHECK: node ~/.agents/skills/unlazy/scripts/gate-check.mjs --status GATES.md
-  EXPECT: result verification passed
+  CHECK: <one command that proves the result>
+  EXPECT: <the exact text that command prints on success>
   EVIDENCE: pending
 
 - [ ] G2: <manual decision no command can settle>

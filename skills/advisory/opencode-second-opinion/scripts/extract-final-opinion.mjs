@@ -47,9 +47,25 @@ if (!opinion) {
   throw new Error("OpenCode completed without final answer text.");
 }
 
+function rejectArrayAnswer(text) {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("[")) return;
+  let value;
+  try {
+    value = JSON.parse(trimmed);
+  } catch {
+    return;
+  }
+  if (Array.isArray(value)) {
+    throw new Error("OpenCode must emit exactly one JSON object, not an array.");
+  }
+}
+
 function normalizeJsonOpinion(text) {
+  rejectArrayAnswer(text);
   const fencedMatches = [...text.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi)];
   const fenced = fencedMatches.map((match) => match[1].trim());
+  for (const candidate of fenced) rejectArrayAnswer(candidate);
   const withoutFences = text.replace(/```(?:json)?\s*[\s\S]*?```/gi, (match) => " ".repeat(match.length));
   const candidates = [...fenced, ...balancedObjects(withoutFences)];
   const objects = candidates.map((candidate) => {
