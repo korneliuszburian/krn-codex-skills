@@ -308,6 +308,7 @@ export function checkSkills({ root }) {
     if (!fs.existsSync(lockFile)) return null;
     try { return readJson(lockFile); } catch { errors.push("config/upstream-sources.json is not valid JSON"); return null; }
   })();
+  let upstreamNames = [];
   if (lock) {
     const sources = Array.isArray(lock.sources) ? lock.sources : [];
     const upstreamPin = sources.find((source) => source && (marker?.upstream?.id ? source.id === marker.upstream.id : source.id === "mattpocock/skills"))
@@ -317,6 +318,7 @@ export function checkSkills({ root }) {
         .filter((requiredPath) => typeof requiredPath === "string")
         .map((requiredPath) => path.basename(path.dirname(requiredPath))),
     )].sort();
+    upstreamNames = upstreamExpected;
     const upstreamExported = names.filter((name) => !sourceByName.has(name)).sort();
     if (JSON.stringify(upstreamExported) !== JSON.stringify(upstreamExpected)) {
       errors.push(`exported upstream skills [${upstreamExported.join(", ")}] must equal the pinned harness_paths [${upstreamExpected.join(", ")}]; run \`krn-codex skills export\``);
@@ -341,6 +343,24 @@ export function checkSkills({ root }) {
       const pin = (Array.isArray(lock.sources) ? lock.sources : []).find((source) => source && source.id === marker.upstream.id);
       if (pin && pin.commit !== marker.upstream.commit) {
         errors.push(`export marker records ${marker.upstream.id}@${marker.upstream.commit} but config/upstream-sources.json pins @${pin.commit}; run \`krn-codex skills export\``);
+      }
+    }
+  }
+  if (rootManifest) {
+    const rows = [...catalog.matchAll(/^\| `([^`]+)` \| (krn|upstream) \|/gm)].map((match) => ({
+      name: match[1],
+      origin: match[2],
+    }));
+    for (const row of rows) {
+      const expected = sourceByName.has(row.name) ? "krn" : upstreamNames.includes(row.name) ? "upstream" : null;
+      if (expected === null) errors.push(`.agents/skills/README.md lists unknown skill ${row.name}`);
+      else if (expected !== row.origin) {
+        errors.push(`.agents/skills/README.md lists ${row.name} as ${row.origin} but it is ${expected}`);
+      }
+    }
+    for (const name of names) {
+      if (!rows.some((row) => row.name === name)) {
+        errors.push(`.agents/skills/README.md is missing a catalog row for ${name}`);
       }
     }
   }

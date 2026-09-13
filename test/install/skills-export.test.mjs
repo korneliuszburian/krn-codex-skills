@@ -91,6 +91,20 @@ test("the long-description warning names only KRN-owned skills", () => {
   assert.ok(!report.warnings.some((warning) => warning.startsWith("one:")), "an upstream skill is not held to the KRN budget");
 });
 
+test("check fails when the catalog mislabels a skill origin", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  fs.mkdirSync(path.join(f.root, "skills"), { recursive: true });
+  fs.copyFileSync(path.join(f.source, "skills", "manifest.json"), path.join(f.root, "skills", "manifest.json"));
+  fs.mkdirSync(path.join(f.root, "config"), { recursive: true });
+  fs.copyFileSync(path.join(f.source, "config", "upstream-sources.json"), path.join(f.root, "config", "upstream-sources.json"));
+  const catalogFile = path.join(f.root, ".agents", "skills", "README.md");
+  fs.writeFileSync(catalogFile, fs.readFileSync(catalogFile, "utf8").replace("| `local` | krn |", "| `local` | upstream |"));
+  const report = checkSkills({ root: f.root });
+  assert.ok(report.errors.some((error) => error.includes("lists local as upstream")), JSON.stringify(report.errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
 test("check fails when the upstream pin moves without a re-export", () => {
   const f = fixture();
   exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
