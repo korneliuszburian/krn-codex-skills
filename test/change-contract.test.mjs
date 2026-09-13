@@ -959,7 +959,8 @@ function assertSelfAuthorized({ scripts, changedFile, shim = false }) {
   writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
   writeFileSync(join(root, "package.json"), `${JSON.stringify({ scripts })}\n`);
   const red = 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("x", () => assert.equal(value, 2));\n';
-  for (const name of ["test/a.test.mjs", "test/a.test.ts", "test/foo.mjs", "test/b.test.mjs", "scripts/foo.test.mjs"]) writeFileSync(join(root, name), red);
+  mkdirSync(join(root, "test", "sub"), { recursive: true });
+  for (const name of ["test/a.test.mjs", "test/a.test.ts", "test/foo.mjs", "test/b.test.mjs", "test/sub/a.test.mjs", "test/a\".test.mjs", "scripts/foo.test.mjs"]) writeFileSync(join(root, name), red);
   writeFileSync(join(root, "test", "register.mjs"), "export {};\n");
   writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
   if (shim) { mkdirSync(join(root, "node_modules", ".bin"), { recursive: true }); writeFileSync(join(root, "node_modules", ".bin", "gate"), "#!/bin/sh\nexit 0\n"); }
@@ -983,6 +984,8 @@ test("assignment and flag tokens still track the named test", () => {
   assertSelfAuthorized({ scripts: { "test:t": "X=test/a.test.mjs node --test" }, changedFile: "test/b.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "node '--test'" }, changedFile: "test/b.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "node --te\\st" }, changedFile: "test/b.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --test \"test\\sub\\a.test.mjs\"" }, changedFile: "test/sub/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --test \"test/a\\\".test.mjs\"" }, changedFile: "test/a\".test.mjs" });
 });
 
 test("runner subcommands and node_modules shims fail closed as non-literal", () => {
