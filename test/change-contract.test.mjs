@@ -1040,3 +1040,39 @@ test("an explicit test-file argument keeps the declared check scoped", () => {
   assert.ok(!report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a directly named node check cannot be redefined", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-nodecheck-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), "{\"scripts\":{\"test:t\":\"node scripts/selfcheck.mjs\"}}\n");
+  writeFileSync(join(root, "scripts", "selfcheck.mjs"), "process.exit(1);\n");
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "scripts", "selfcheck.mjs"), "process.exit(0);\n");
+  commit("fix\n\nChange-contract: scripts/selfcheck.mjs:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD" });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a backslash-escaped space test path is still tracked", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-escspace-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), `${JSON.stringify({ scripts: { "test:t": "node test/has\\ space.test.mjs" } })}\n`);
+  writeFileSync(join(root, "test", "has space.test.mjs"), 'import test from "node:test";\ntest("real", () => {});\n');
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "test", "has space.test.mjs"), 'import test from "node:test";\ntest("gutted", () => {});\n');
+  commit("gut\n\nChange-contract: test:t:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD" });
+  assert.ok(report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

@@ -92,7 +92,7 @@ const testFlagPresent = (command) => TEST_FLAG.test(command.replace(/['\"\\]/g, 
 
 const VALUE_FLAGS = new Set(["-r", "--import", "--require", "--loader", "--experimental-loader", "--test-name-pattern", "--test-reporter", "-e", "--eval"]);
 function explicitTestOperands(command) {
-  const tokens = command.split(/\s+/).filter(Boolean);
+  const tokens = command.replace(/\\ /g, "\u0000").split(/\s+/).filter(Boolean).map((token) => token.replace(/\u0000/g, " "));
   const operands = [];
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
@@ -110,11 +110,12 @@ const isTestFile = (rel) => TEST_FILE_RE.test(rel);
 
 function literalCommandFiles(command, { positionalOnly = false } = {}) {
   const files = [];
+  const safe = command.replace(/\\ /g, "\u0000");
   const quoted = new RegExp(`"([^"]+\\.(?:${CODE_EXT}))"|'([^']+\\.(?:${CODE_EXT}))'`, "g");
-  for (const match of command.matchAll(quoted)) files.push((match[1] ?? match[2]).replace(/^\.\//, ""));
+  for (const match of safe.matchAll(quoted)) files.push((match[1] ?? match[2]).replace(/\u0000/g, " ").replace(/^\.\//, ""));
   const prefix = positionalOnly ? "" : "(?:[A-Za-z_][A-Za-z0-9_]*=|--?[^\\s=]+=)?";
   const bare = new RegExp(`(?:^|\\s)${prefix}([^\\s]+\\.(?:${CODE_EXT}))(?=$|\\s)`, "g");
-  for (const match of command.matchAll(bare)) files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
+  for (const match of safe.matchAll(bare)) files.push(match[1].replace(/\u0000/g, " ").replace(/\\/g, "/").replace(/^\.\//, ""));
   return files;
 }
 
@@ -354,7 +355,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       const commandChanged = target.kind === "script"
         && baseScripts !== null && Object.hasOwn(baseScripts, target.name) && baseScripts[target.name] !== scripts[target.name];
       const scriptState = target.kind === "script" ? scriptRedefinition(root, base, git, scripts[target.name] ?? "") : null;
-      const fileChanged = target.kind === "test" ? checkFileRedefined(root, base, git, target.name) : false;
+      const fileChanged = (target.kind === "test" || target.kind === "node") ? checkFileRedefined(root, base, git, target.name) : false;
       const changedScriptFiles = target.kind === "script" && scriptState !== "non-literal" ? scriptChangedFiles(root, base, git, scripts[target.name] ?? "") : [];
       const changedTests = changedScriptFiles.filter(isTestFile);
       const changedOther = changedScriptFiles.filter((rel) => !isTestFile(rel));
