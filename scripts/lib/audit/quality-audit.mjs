@@ -6,12 +6,12 @@ import { maskLiterals, stripComments } from "../support/source-mask.mjs";
 
 const SELF = "scripts/lib/audit/quality-audit.mjs";
 
-const walk = (directory) => {
+const walk = (directory, keep = (candidate) => candidate.endsWith(".mjs")) => {
   if (!existsSync(directory)) return [];
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
-    if (entry.isDirectory()) return walk(path);
-    return entry.isFile() && path.endsWith(".mjs") ? [path] : [];
+    if (entry.isDirectory()) return walk(path, keep);
+    return entry.isFile() && keep(path) ? [path] : [];
   });
 };
 
@@ -79,14 +79,7 @@ const CREDENTIALS = [
 ];
 const ENV_DUMP = /\b(?:console\.log|process\.stdout\.write)\s*\([^)]*process\.env\b|\bprintenv\b|\benv\s*\|/;
 
-const walkAll = (directory) => {
-  if (!existsSync(directory)) return [];
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) return walkAll(path);
-    return entry.isFile() ? [path] : [];
-  });
-};
+const walkAll = (directory) => walk(directory, () => true);
 
 export function auditRepository(root) {
   const allFiles = [...walk(join(root, "scripts")), ...walk(join(root, "test")), ...walk(join(root, "skills"))];

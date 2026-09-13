@@ -166,13 +166,13 @@ export function frozenNodeArgs(command) {
   return args;
 }
 
-function literalCommandFiles(command, { positionalOnly = false } = {}) {
+function literalCommandFiles(command) {
   const files = [];
   const safe = command.replace(/\\[ \t]/g, "\u0000");
   const clean = (value) => normalizeRel(value.replace(/\u0000/g, " ").replace(/\\(["'])/g, "$1").replace(/\\/g, "/"));
   const quoted = new RegExp(`"((?:\\\\.|[^"\\\\])+\\.(?:${CODE_EXT}))"|'((?:\\\\.|[^'\\\\])+\\.(?:${CODE_EXT}))'`, "g");
   for (const match of safe.matchAll(quoted)) files.push(clean(match[1] ?? match[2]));
-  const prefix = positionalOnly ? "" : "(?:[A-Za-z_][A-Za-z0-9_]*=|--?[^\\s=]+=)?";
+  const prefix = "(?:[A-Za-z_][A-Za-z0-9_]*=|--?[^\\s=]+=)?";
   const bare = new RegExp(`(?:^|\\s)${prefix}([^\\s]+\\.(?:${CODE_EXT}))(?=$|\\s)`, "g");
   for (const match of safe.matchAll(bare)) files.push(clean(match[1]));
   return files;
@@ -212,20 +212,25 @@ function scriptNonLiteral(root, command) {
     || shimCommand(root, command);
 }
 
-function scriptRedefinition(root, base, git, command) {
-  if (scriptNonLiteral(root, command)) return "non-literal";
+function collectCommandFiles(root, base, git, command) {
   const files = literalCommandFiles(command);
   const operands = explicitTestOperands(command);
-  if (testFlagPresent(command) && (operands.files.filter(isTestFile).length === 0 || operands.hasDirectory)) files.push(...listTestFiles(root, base, git));
-  for (const rel of files) if (checkFileRedefined(root, base, git, rel)) return "redefined";
+  if (testFlagPresent(command) && (operands.files.filter(isTestFile).length === 0 || operands.hasDirectory)) {
+    files.push(...listTestFiles(root, base, git));
+  }
+  return files;
+}
+
+function scriptRedefinition(root, base, git, command) {
+  if (scriptNonLiteral(root, command)) return "non-literal";
+  for (const rel of collectCommandFiles(root, base, git, command)) {
+    if (checkFileRedefined(root, base, git, rel)) return "redefined";
+  }
   return "clean";
 }
 
 function scriptChangedFiles(root, base, git, command) {
-  const files = literalCommandFiles(command);
-  const operands = explicitTestOperands(command);
-  if (testFlagPresent(command) && (operands.files.filter(isTestFile).length === 0 || operands.hasDirectory)) files.push(...listTestFiles(root, base, git));
-  return files.filter((rel) => checkFileRedefined(root, base, git, rel));
+  return collectCommandFiles(root, base, git, command).filter((rel) => checkFileRedefined(root, base, git, rel));
 }
 
 function literalTestFiles(root, target) {

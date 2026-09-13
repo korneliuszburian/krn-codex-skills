@@ -239,9 +239,12 @@ export function extractSymbols(source) {
   return symbols;
 }
 
-export function changedLineNumbers(diffText) {
+function hunkLineNumbers(diffText, side) {
+  const pattern = side === "removed"
+    ? /^@@ -(\d+)(?:,(\d+))? \+\d+(?:,\d+)? @@/gm
+    : /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/gm;
   const lines = new Set();
-  for (const match of diffText.matchAll(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/gm)) {
+  for (const match of diffText.matchAll(pattern)) {
     const start = Number(match[1]);
     const count = match[2] === undefined ? 1 : Number(match[2]);
     for (let line = start; line < start + count; line += 1) lines.add(line);
@@ -249,14 +252,12 @@ export function changedLineNumbers(diffText) {
   return lines;
 }
 
+export function changedLineNumbers(diffText) {
+  return hunkLineNumbers(diffText, "changed");
+}
+
 export function removedLineNumbers(diffText) {
-  const lines = new Set();
-  for (const match of diffText.matchAll(/^@@ -(\d+)(?:,(\d+))? \+\d+(?:,\d+)? @@/gm)) {
-    const start = Number(match[1]);
-    const count = match[2] === undefined ? 1 : Number(match[2]);
-    for (let line = start; line < start + count; line += 1) lines.add(line);
-  }
-  return lines;
+  return hunkLineNumbers(diffText, "removed");
 }
 
 function unquote(value) {

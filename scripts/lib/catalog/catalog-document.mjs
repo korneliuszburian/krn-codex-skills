@@ -272,10 +272,3 @@ export function assertSingleBlock(blocks, target) {
   }
   return blocks[0];
 }
-
-/**
- * Build a byte-preserving dry-run plan for a Codex config.
- *
- * `desired.skills[path] = true` removes an override because discovered skills
- * are enabled by default. `false` creates or updates an explicit override.
- */
