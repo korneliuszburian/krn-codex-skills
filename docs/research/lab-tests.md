@@ -119,9 +119,9 @@ Held-out check copied in only after the agent exited; pre-run probes showed `/mn
 
 | Cell | decisive | neutral | median wall decisive/neutral (s) | median total tokens decisive/neutral |
 |---|---|---|---|---|
-| A (ablate) | 0/3 | 3/3 | 17 / 14 | 10152 / 8908 |
+| A (ablate) | 0/3 | 3/3 | 17 / 10 | 10152 / 8908 |
 | B (content) | 3/3 | 3/3 | 14 / 17 | 9953 / 10445 |
-| C (forced recall) | 3/3 | 3/3 | 15 / 16 | 9750 / 8956 |
+| C (forced recall) | 3/3 | 3/3 | 15 / 13 | 9750 / 8956 |
 
 Disposition: **content effect attributable, still non-promoting.** The arms differ
 only by the lesson row. In all three decisive A runs the agent changed `BANNER` to
@@ -135,6 +135,40 @@ length/wording-matched placebo (B'); one model family at one effort; and C is a
 CLI-forced proxy for the git-shim `--strict-recall` mechanism, not that mechanism.
 Reopen with a same-shape neutral that has variance, placebo B', the third family,
 and the exact git-shim.
+
+Round-54 lab-test-design review registered these as the open controls that still
+block promotion; each has a concrete falsifier. (1) Neutral shape: replace the
+README typo with a same-shape two-file coupling (`src/salutation.mjs` exports
+`SALUTATION`/`salutation`, `src/salutation-version.mjs` exports
+`SALUTATION_VERSION = 1`, the coupling stated in ordinary source docs available
+to every arm, request `"Welcome, world"`, hold out the output and version 2,
+lesson trigger only on `src/greeting.mjs`, matching file count, public-test
+strength, and prompt structure across strata), and pick complexity on a separate
+calibration set so arm A is interior; require observed variance and zero recall
+hits for every neutral changed path before proceeding. (2) Placebo B': make the
+lesson row an irrelevant footer coupling (`src/edition.mjs` `FOOTER_VERSION`) that
+keeps the greeting trigger, with rendered words and model tokens matched to B and
+the target-coupling information verifiably absent; require a powered B−B′
+advantage specific to the decisive stratum. (3) Power: preregister the contrast
+family, effect, and discordance assumptions and power the difference-in-
+differences itself, inflating for task clustering `1+(r−1)ρ`; with the
+illustrative `p10=.375/p01=.125` (δ=.25, q=.50) two-sided exact McNemar reaches
+80% only near 85 independent pairs at α=.05/3, so eight tasks × three repeats is
+not 24 independent samples and multiple tasks per stratum must be piloted. (4)
+Third family: run the frozen matrix separately under `opencode-go/glm-5.3` with
+family-scoped retained output, pinned executable/model, matched effort, and
+randomized blocks, reporting within-family contrasts and heterogeneity while
+keeping the shared-provider limitation. (5) Arm C mechanism: give B and C
+identical prompts, recall content, access, and timing and vary only the git-shim
+`unreconstructed-recall` enforcement, keeping the lesson corpus outside
+agent-readable binds; demonstrate an unreconstructed decisive commit clears B's
+boundary and fails C's, reconstruction clears C, and a neutral commit never
+triggers it. The runner now enforces promotion-kill prerequisites: a mandatory
+isolation preflight under the exact execution binds (`/mnt` and host `$HOME`
+hidden, a read-only bind denying a write, `busctl --user` and `flatpak-spawn
+--host` failing), no sentinel leak, and gate-level assertions that the decisive
+trigger matches and the neutral trigger does not, with arms shuffled per run and
+the model recorded.
 
 Confounds fixed for this run, recorded honestly: the earlier pass required an
 external-directory permission for `/harness`, so arms no-op'd; a second pass
