@@ -29,7 +29,7 @@ test("apply fails closed and restores current when the installed CLI cannot star
   const archive = execFileSync("git", ["-C", sourceRoot, "archive", "HEAD"], { maxBuffer: 64 * 1024 * 1024 });
   execFileSync("tar", ["-x", "-C", copy], { input: archive });
   execFileSync("git", ["-C", copy, "init", "-q"]);
-  fs.appendFileSync(path.join(copy, "scripts", "lib", "diagnostics.mjs"), '\nthrow new Error("krn smoke failure");\n');
+  fs.appendFileSync(path.join(copy, "scripts", "lib", "support", "diagnostics.mjs"), '\nthrow new Error("krn smoke failure");\n');
   execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "add", "-A"]);
   execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", "break the installed CLI start"]);
 
