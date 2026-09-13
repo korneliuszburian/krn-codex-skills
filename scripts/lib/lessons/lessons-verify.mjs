@@ -122,5 +122,6 @@ export function reanchorLessons({ root, timeout = 120000, runner = runCase, gitI
     }
   }
   if (updated.length > 0) fs.writeFileSync(pageFile, text);
-  return { root, updated, skipped, errors: report.errors ?? [] };
+  const after = updated.length > 0 ? checkLessons({ root }) : report;
+  return { root, updated, skipped, errors: after.errors ?? [] };
 }

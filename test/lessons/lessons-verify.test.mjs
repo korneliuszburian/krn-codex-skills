@@ -164,6 +164,7 @@ test("reanchor bumps a stale proof anchor after the case re-runs green", () => {
   const report = reanchorLessons({ root });
   assert.equal(report.updated.length, 1, JSON.stringify(report));
   assert.equal(report.updated[0].to, latest);
+  assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
   assert.ok(readFileSync(join(root, "docs", "research", "workflow-lessons.md"), "utf8").includes(`probe@${latest}`));
   rmSync(root, { recursive: true, force: true });
 });
@@ -190,6 +191,7 @@ test("reanchor fixes a gate-file staleness and refuses a dirty tree", () => {
   const report = reanchorLessons({ root });
   assert.equal(report.updated.length, 1, JSON.stringify(report));
   assert.equal(report.updated[0].to, latest);
+  assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
 
   writeFileSync(join(root, "test", "gate.test.mjs"), "// dirty\n");
   const dirty = reanchorLessons({ root });

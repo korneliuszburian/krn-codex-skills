@@ -140,6 +140,7 @@ try {
       if (!options.json) {
         for (const entry of report.updated) process.stdout.write(`reanchored ${entry.lesson}: ${entry.file} ${entry.from} -> ${entry.to}\n`);
         for (const entry of report.skipped ?? []) process.stderr.write(`skipped ${entry.lesson ?? ""}${entry.lesson ? ": " : ""}${entry.reason}\n`);
+        for (const message of report.errors ?? []) process.stderr.write(`error: ${message}\n`);
       }
       if ((report.errors ?? []).length > 0 || (report.skipped ?? []).some((entry) => entry.blocking)) process.exitCode = 1;
     } else {
