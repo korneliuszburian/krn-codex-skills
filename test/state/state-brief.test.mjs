@@ -284,3 +284,12 @@ test("an unreadable inventory is reported once with a relative detail", () => {
   assert.ok(!inventory[0].detail.includes(root), inventory[0].detail);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("resume reports an unreadable inventory exactly once", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, `HEAD=${head}`);
+  symlinkSync(join(root, ".krn", "runs", "missing-target"), join(root, ".krn", "runs", "slice-work"));
+  const report = resumeBrief({ repo: root });
+  assert.equal(report.errors.filter((error) => error.rule === "unreadable-run-inventory").length, 1, JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

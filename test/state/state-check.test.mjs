@@ -444,3 +444,11 @@ test("a symlink alias cannot bypass duplicate-run ownership", () => {
   assert.ok(report.errors.some((error) => error.rule === "duplicate-run-consumer"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("an unreadable inventory is reported even with no capsule", () => {
+  const { root } = makeRepo();
+  symlinkSync(join(root, ".krn", "runs", "missing-target"), join(root, ".krn", "runs", "slice-work"));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "unreadable-run-inventory"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

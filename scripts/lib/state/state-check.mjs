@@ -246,9 +246,9 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     }
   }
 
+  const inventory = runDirectoriesDetailed(root);
+  for (const detail of inventory.errors) errors.push({ id: "runs", rule: "unreadable-run-inventory", detail });
   if (capsules.length > 0) {
-    const inventory = runDirectoriesDetailed(root);
-    for (const detail of inventory.errors) errors.push({ id: "runs", rule: "unreadable-run-inventory", detail });
     for (const run of inventory.runs) {
       if (!listedRunPointers.has(normalizeRunPointer(root, run.pointer))) {
         errors.push({ id: run.workflow, rule: "orphaned-run", detail: run.pointer });
