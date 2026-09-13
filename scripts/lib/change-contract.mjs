@@ -101,6 +101,12 @@ function literalCommandFiles(command) {
   return files;
 }
 
+function changedFilesUnder(root, base, git, prefix) {
+  const result = git(root, ["diff", "--name-only", "--diff-filter=ACMR", base, "--", prefix]);
+  if (!result.ok) return [];
+  return result.out.split("\n").map((entry) => entry.trim()).filter(Boolean);
+}
+
 function listTestFiles(root, base, git) {
   const names = new Set();
   for (const ref of [base, "HEAD"]) {
@@ -327,7 +333,8 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       let overlays = [];
       if (target.kind === "test" && verifyBefore && (authoredNow || fileChanged)) {
         frozenObserver = true;
-        overlays = [target.name];
+        overlays = [...new Set([target.name, ...changedFilesUnder(root, base, git, "test/")])]
+          .filter((rel) => fs.existsSync(path.join(root, rel)));
       } else if (target.kind === "script" && verifyBefore && !authoredNow && !commandChanged && scriptState !== "non-literal" && changedOther.length === 0 && changedTests.length > 0) {
         frozenObserver = true;
         overlays = changedTests;

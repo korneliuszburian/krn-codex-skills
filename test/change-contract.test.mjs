@@ -986,3 +986,24 @@ test("runner subcommands and node_modules shims fail closed as non-literal", () 
   assertSelfAuthorized({ scripts: { "test:t": "npx mocha" }, changedFile: "test/a.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "gate" }, changedFile: "test/a.test.mjs", shim: true });
 });
+
+test("--before freezes a changed test's helper closure, not just the test file", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-closure-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  writeFileSync(join(root, "test", "h.mjs"), "export const marker = 1;\n");
+  writeFileSync(join(root, "test", "t.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("value is two", () => assert.equal(value, 2));\n');
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "lib.mjs"), "export const value = 2;\n");
+  writeFileSync(join(root, "test", "h.mjs"), "export const marker = 2;\nexport const fmt = (v) => `v${v}`;\n");
+  writeFileSync(join(root, "test", "t.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\nimport { fmt } from "./h.mjs";\ntest("value is two", () => assert.equal(value, 2));\ntest("formatted", () => assert.equal(fmt(value), "v2"));\n');
+  commit("fix\n\nChange-contract: test/t.test.mjs:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+  assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
