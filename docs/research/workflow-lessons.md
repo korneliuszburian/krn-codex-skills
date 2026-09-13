@@ -36,9 +36,10 @@ changed file matching the glob was touched at least twice before this commit),
 and `changes check` reports a matching surface change that does not reconstruct the lesson (advisory by default; `--strict-recall` makes it blocking)
 with a `Recall: <gate or falsifier> => <changed file or symbol>` trailer, so the
 lesson must be bound to the present change instead of replayed from the page.
-When the recalled lesson's gate or falsifier is an executable test, that test
-must also appear among the change's declared `Change-contract`/`At-risk` checks,
-so the recall is exercised rather than decorative.
+When the recalled lesson's gate or falsifier is an executable test, `changes
+check` reports (advisory by default; `--strict-recall` requires) that test among
+the change's declared `Change-contract`/`At-risk` checks, so the recall is
+exercised rather than decorative.
 
 A row may carry a seventh `Status` column. A retired row is archived as
 `retired@<7-hex>` and must either name `superseded-by:<anchor>` that resolves to

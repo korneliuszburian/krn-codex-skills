@@ -37,8 +37,9 @@ fixed diff, PR, or fingerprinted working tree enters the composed upstream
 `code-review`. The typed decision owner is `$source-to-decision` when
 external evidence must change a named local decision, and composed upstream
 for the rest: `domain-modeling` for a user-owned choice or contested concept,
-`prototype` for a disposable runnable experiment, or `codebase-design` for a
-seam or ownership decision. Each returns a bounded
+`grilling` for adversarial sharpening of a plan or decision, `prototype` for a
+disposable runnable experiment, or `codebase-design` for a seam or ownership
+decision. Each returns a bounded
 result to the current owner; none becomes a mandatory pipeline stage. The canonical condition → handler
 table, and with it the repository-scoped harness baseline, is owned by
 [`delivery-loop/references/transitions.md`](skills/engineering/delivery-loop/references/transitions.md);

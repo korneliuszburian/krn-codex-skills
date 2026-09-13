@@ -62,9 +62,10 @@ not delete a release while an installed link or session may still depend on it.
 
 If `install apply` exits 66 (`existing release is corrupt`) or `doctor` reports
 `broken_link`, `current` selects an unverified release; a dangling or foreign
-`current` exits 73 (`refusing foreign current binding`). Recover by verifying a
-sibling under `$CODEX_HOME/krn/releases/<commit>/` with `digestTree` from
-`scripts/lib/install-release.mjs`, repointing `current` to it through an atomic
-relative-symlink rename, and re-running apply. Never edit a release in place;
+`current` exits 73 (`refusing foreign current binding`). Recover by re-running
+`krn-codex install apply` from the clean source checkout at that commit, which
+re-verifies or rebuilds the release; when a verified sibling already exists,
+repointing `current` to it through an atomic relative-symlink rename is
+equivalent. Never edit a release in place;
 delete a corrupt or superseded release only after no installed link or session
 references it.
