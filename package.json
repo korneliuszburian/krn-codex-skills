@@ -9,7 +9,7 @@
     "url": "https://github.com/korneliuszburian/krn-codex-skills.git"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "keywords": [
     "codex",

@@ -17,6 +17,14 @@ test("the validation workflow runs on every main push as well as pull requests",
   assert.match(workflow, /0000000000000000000000000000000000000000/, "a new branch has no before-commit and must fall back");
 });
 
+test("the declared Node engine floor excludes the EOL Node 20 line", () => {
+  const engines = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).engines?.node;
+  assert.match(String(engines), /^>=\s*(2[2-9]|[3-9]\d)/, "engines.node must not allow an end-of-life Node line");
+  const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
+  const tested = Number(/node-version:\s*(\d+)/.exec(workflow)?.[1]);
+  assert.ok(tested >= 22, `CI must exercise a supported LTS, found ${tested}`);
+});
+
 test("every gate named in AGENTS.md runs in the workflow", () => {
   const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
   const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
