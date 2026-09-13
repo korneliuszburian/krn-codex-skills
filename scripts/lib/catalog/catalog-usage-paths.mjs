@@ -58,6 +58,8 @@ export function derivedRolloutDay(sessionsRoot, filePath) {
   return candidates.size === 1 ? [...candidates][0] : null;
 }
 
+const CATALOG_ID = /^[A-Za-z0-9][A-Za-z0-9@._:-]{0,159}$/;
+
 function isCanonicalSkillPath(candidate) {
   return (
     typeof candidate === "string"
@@ -67,19 +69,19 @@ function isCanonicalSkillPath(candidate) {
   );
 }
 
+const safeId = (id) => (typeof id === "string" && CATALOG_ID.test(id) ? id : null);
+
 export function canonicalSkillEntries(inventory) {
-  const skills = (inventory?.skills ?? []).flatMap(({ id, path: skillPath, targetPath }) =>
-    [skillPath, targetPath]
-      .filter(isCanonicalSkillPath)
-      .map((path) => ({ id, path })),
-  );
+  const skills = (inventory?.skills ?? []).flatMap(({ id, path: skillPath, targetPath }) => {
+    const validId = safeId(id);
+    if (!validId) return [];
+    return [skillPath, targetPath].filter(isCanonicalSkillPath).map((path) => ({ id: validId, path }));
+  });
   const plugins = (inventory?.plugins ?? []).flatMap((plugin) =>
     (plugin.allSkillPaths || plugin.skillPaths || [])
       .filter(isCanonicalSkillPath)
-      .map((skillPath) => ({
-        id: `${plugin.id}:${path.basename(path.dirname(skillPath))}`,
-        path: skillPath,
-      })),
+      .map((skillPath) => ({ id: `${plugin.id}:${path.basename(path.dirname(skillPath))}`, path: skillPath }))
+      .filter((entry) => safeId(entry.id)),
   );
   return [...skills, ...plugins];
 }

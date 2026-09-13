@@ -28,8 +28,10 @@ profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-13.
 - no-evidence is a review signal, never automatic proof that a skill is unused.
 
 The permanent quarantine includes `superpowers`. The catalog may report its
-logical name as policy evidence, but it never stats, resolves, traverses, or
-reads its files.
+logical name as policy evidence, and it never records, reads, or returns a
+quarantined family's files as a capability: a configured root, directory entry,
+symlink target, or resolved target that lands in a quarantined family is refused
+with quarantine evidence.
 
 ## Skill roots
 
@@ -37,12 +39,13 @@ The inventory reads `$CODEX_HOME/skills` (`user`), `$CODEX_HOME/skills/.system`
 (`system`), `$AGENTS_HOME/skills` (`global-index`), and
 `~/.config/opencode/skills` (`vendor-global`, the OpenCode host that loads it).
 A symlinked skill counts only when its resolved `SKILL.md` exists, so a dangling
-symlink is not reported as a capability; the chain is walked hop-by-hop and each
-hop is screened against the hard quarantine before any `stat`, so a chain
-through a quarantined family is refused without traversing it. A resolved target
-that is not named `SKILL.md` (or lives under a forbidden path family such as
-`logs`) is still inventoried, but it is not a usage-canonical path, so reads of
-that target are not attributed to the skill. The same skill name found in two roots
+symlink is not reported as a capability; the chain is walked hop-by-hop, each
+hop is screened against the hard quarantine before the next `stat`, and the
+resolved target is refused if it lands in a quarantined family. Resolving a
+symlinked path can `stat` intermediate components, but quarantined content is
+never read or recorded. A resolved target that is not named `SKILL.md` (or lives
+under a forbidden path family such as `logs`) is still inventoried, but it is
+not a usage-canonical path, so reads of that target are not attributed. The same skill name found in two roots
 is listed once per scope and is not deduplicated, because scope drives profile
 reconciliation; this double-counts a name that two roots share. The always-loaded
 contract (`config/AGENTS.md`) is bounded by an information budget, not only a

@@ -29,6 +29,15 @@ test("canonicalSkillEntries drops target paths that are not canonical SKILL.md p
   assert.doesNotThrow(() => canonicalSkills(entries));
 });
 
+test("canonicalSkillEntries drops ids that canonicalSkills would reject", () => {
+  const entries = canonicalSkillEntries({
+    skills: [{ id: "my skill", path: "/x/my skill/SKILL.md" }],
+    plugins: [{ id: "demo@my market", allSkillPaths: ["/cache/my market/demo/1.0.0/skills/alpha/SKILL.md"] }],
+  });
+  assert.deepEqual(entries, []);
+  assert.doesNotThrow(() => canonicalSkills(entries));
+});
+
 test("canonicalSkillEntries drops non-canonical plugin and primary paths without throwing", () => {
   const entries = canonicalSkillEntries({
     skills: [{ id: "bad", path: "/x/logs/SKILL.md", targetPath: "/x/shared-skill.md" }],

@@ -546,13 +546,9 @@ function inlineTableValue(value) {
   return null;
 }
 
-function featuresHooksDisabled(key, value) {
-  if (key === "features.hooks") return tomlBoolean(value) === false;
-  if (key === "features") {
-    const table = inlineTableValue(value);
-    return Boolean(table && table.has("hooks") && tomlBoolean(table.get("hooks")) === false);
-  }
-  return false;
+function inlineFeaturesHooksDisabled(value) {
+  const table = inlineTableValue(value);
+  return Boolean(table && table.has("hooks") && tomlBoolean(table.get("hooks")) === false);
 }
 
 export function managedHookPolicy({
@@ -573,21 +569,26 @@ export function managedHookPolicy({
     const content = document.lines[index].content;
     const header = splitHeader(content);
     if (header) {
-      table = header.validTail && !header.array ? (parseDottedHeaderKey(header.inner)?.join(".") ?? ARRAY_TABLE) : ARRAY_TABLE;
+      if (header.validTail) {
+        table = header.array ? ARRAY_TABLE : (parseDottedHeaderKey(header.inner)?.join(".") ?? ARRAY_TABLE);
+      }
       continue;
     }
     const assignment = parseAssignment(content);
     if (!assignment) continue;
+    const segments = parseDottedHeaderKey(assignment.prefix.replace(/\s*=\s*$/, "").trim()) ?? [assignment.key];
     const enabled = tomlBoolean(assignment.value);
-    if (table === null && assignment.key === "allow_managed_hooks_only" && enabled === true) {
+    if (table === null && segments.length === 1 && segments[0] === "allow_managed_hooks_only" && enabled === true) {
       return {
         status: "hook_inert_by_managed_policy",
         path: requirementsPath,
         detail: "top-level allow_managed_hooks_only = true",
       };
     }
-    const featuresDisabled = table === "features" && assignment.key === "hooks" && enabled === false;
-    if (featuresDisabled || (table === null && featuresHooksDisabled(assignment.key, assignment.value))) {
+    const featuresDisabled = table === "features" && segments.length === 1 && segments[0] === "hooks" && enabled === false;
+    const dottedDisabled = table === null && segments.length === 2 && segments[0] === "features" && segments[1] === "hooks" && enabled === false;
+    const inlineDisabled = table === null && segments.length === 1 && segments[0] === "features" && inlineFeaturesHooksDisabled(assignment.value);
+    if (featuresDisabled || dottedDisabled || inlineDisabled) {
       return {
         status: "hook_inert_features_disabled",
         path: requirementsPath,

@@ -89,6 +89,15 @@ test("managedHookPolicy parses inline tables structurally", () => {
   }
 });
 
+test("managedHookPolicy is not confused by array contents or a quoted single key", () => {
+  withRequirements("a = [\n  [1],\n]\nfeatures.hooks = false\n", (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
+  });
+  withRequirements('"features.hooks" = false\n', (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active");
+  });
+});
+
 test("managedHookPolicy does not treat an array table as the root scope", () => {
   withRequirements("[[policies]]\nallow_managed_hooks_only = true\n", (file) => {
     assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active");

@@ -1,4 +1,4 @@
-import { constants } from "node:fs";
+import { constants, realpathSync } from "node:fs";
 import { open, readdir, readlink, lstat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
@@ -495,7 +495,17 @@ async function resolveTargetFile(path, quarantine) {
     } catch {
       return { missing: true };
     }
-    if (!stat.isSymbolicLink()) return stat.isFile() ? { file: current } : { missing: true };
+    if (!stat.isSymbolicLink()) {
+      if (!stat.isFile()) return { missing: true };
+      let resolved;
+      try {
+        resolved = realpathSync(current);
+      } catch {
+        return { missing: true };
+      }
+      if (quarantine.matches(resolved)) return { quarantined: resolved };
+      return { file: resolved };
+    }
     let target;
     try {
       target = await readlink(current);
