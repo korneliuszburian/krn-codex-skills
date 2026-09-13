@@ -3,18 +3,17 @@ import { join, relative, resolve, sep } from "node:path";
 
 import {
   ABI_LABELS,
-  CLEANUP_STATES,
   OUTCOME_STATES,
   PUBLICATION_STATES,
   fieldLine,
   parseCleanup,
   stripMarkup,
 } from "./capsule-abi.mjs";
-import { gitAvailable, runGit as git } from "../support/git-cli.mjs";
+import { runGit as git } from "../support/git-cli.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
 import { runDirectories } from "./spine-runs.mjs";
-import { isInside } from "./../support/path-rules.mjs";
-import { resolveRepositoryRoot } from "./../support/repo-root.mjs";
+import { isInside } from "../support/path-rules.mjs";
+import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
 
 

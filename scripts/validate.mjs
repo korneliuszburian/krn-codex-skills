@@ -19,7 +19,7 @@ import {
   skillLayoutErrors,
   skillPointerErrors,
   skillPromotionErrors,
-} from "./lib/install/skill-rules.mjs";
+} from "./lib/rules/skill-rules.mjs";
 import {
   capsuleAbiErrors,
   transitionErrors,

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { git } from "../support/git-fixture.mjs";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -7,10 +8,6 @@ import test from "node:test";
 
 import { ABI_LABELS } from "../../scripts/lib/state/capsule-abi.mjs";
 import { compileCapsule, resumeBrief } from "../../scripts/lib/state/state-brief.mjs";
-
-function git(root, args) {
-  return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
-}
 
 function makeRepo() {
   const root = mkdtempSync(join(tmpdir(), "krn-brief-"));

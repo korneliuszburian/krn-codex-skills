@@ -54,7 +54,7 @@ export function compileCapsule({ repo = process.cwd() } = {}) {
   if (usableGit && !runsIgnored) warnings.push("`.krn/runs` is not git-ignored; a capsule here would be tracked");
 
   const headField = head.ok && head.out ? `HEAD=${head.out}` : "fingerprint=<fill: working-tree fingerprint>";
-  const dirtyField = dirty === null ? (usableGit ? "unknown (git status failed)" : "unknown (not a git worktree)") : dirty.length === 0 ? "clean" : `${dirty.length} paths: ${dirty.slice(0, 8).join(", ")}${dirty.length > 8 ? ", ..." : ""}`;
+  const dirtyField = dirty === null ? (usableGit ? "unknown (git status failed)" : hasGit ? "unknown (not a git worktree)" : "unknown (git unavailable)") : dirty.length === 0 ? "clean" : `${dirty.length} paths: ${dirty.slice(0, 8).join(", ")}${dirty.length > 8 ? ", ..." : ""}`;
   const cleanup = runs.length
     ? `[${runs
         .map((run) => `${run.pointer}; ${run.workflow}; <fill: sole in-goal consumer>; <fill: cleanup trigger>; ACTIVE`)

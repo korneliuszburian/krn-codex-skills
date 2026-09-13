@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-import { readFrontmatter, skillMetadata } from "./skill-metadata.mjs";
+import { skillMetadata } from "./skill-metadata.mjs";
 
 const MARKER = ".krn-export.json";
 const BUDGET = 8000;

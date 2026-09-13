@@ -38,7 +38,7 @@ export const PUBLICATION_STATES = new Set([
   "DEPLOYED",
 ]);
 
-export const CLEANUP_STATES = new Set(["ACTIVE", "CLEANUP_PENDING", "BLOCKED"]);
+const CLEANUP_STATES = new Set(["ACTIVE", "CLEANUP_PENDING", "BLOCKED"]);
 
 export function fieldLine(text, label) {
   for (const line of text.split("\n")) {

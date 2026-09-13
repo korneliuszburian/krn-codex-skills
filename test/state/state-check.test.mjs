@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { git } from "../support/git-fixture.mjs";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -19,10 +20,6 @@ test("state check honors --root instead of ignoring it", () => {
   assert.match(`${usage.stdout}${usage.stderr}`, /state <check\|compile\|resume> \[PATH\|--root PATH\]/, "usage must document the state --root form");
   rmSync(root, { recursive: true, force: true });
 });
-
-function git(root, args) {
-  return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
-}
 
 function makeRepo({ initialCommit = true } = {}) {
   const root = mkdtempSync(join(tmpdir(), "krn-state-"));

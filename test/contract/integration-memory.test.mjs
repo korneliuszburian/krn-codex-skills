@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { git } from "../support/git-fixture.mjs";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -8,7 +9,6 @@ import { fileURLToPath } from "node:url";
 
 const cli = fileURLToPath(new URL("../../scripts/krn-codex.mjs", import.meta.url));
 
-const git = (root, args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const commit = (root, message) => {
   git(root, ["add", "-A"]);
   git(root, ["-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", message]);

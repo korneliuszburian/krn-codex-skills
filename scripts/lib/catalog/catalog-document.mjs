@@ -116,7 +116,7 @@ export function skillPathContainsQuarantine(document, block, skillPath, families
   return pathLines.some((lineIndex) => {
     const content = document.lines[lineIndex].content;
     const value = (parseAssignment(content)?.value ?? "").toLowerCase();
-    return families.some((family) => value.includes(family));
+    return matchesQuarantined(value, families);
   });
 }
 

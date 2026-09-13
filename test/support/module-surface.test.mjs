@@ -60,7 +60,7 @@ const cases = [
     absent: ["runtimeClosure"],
   },
   {
-    module: "../../scripts/lib/install/skill-rules.mjs",
+    module: "../../scripts/lib/rules/skill-rules.mjs",
     present: ["openaiYamlErrors", "skillContentErrors", "skillPointerErrors", "lineLimitErrors", "skillLayoutErrors", "skillIdentityErrors", "referenceLinkErrors", "skillPromotionErrors"],
     absent: [],
   },
