@@ -477,9 +477,9 @@ function tomlBoolean(value) {
 function featuresHooksDisabled(key, value) {
   if (key === "features.hooks") return tomlBoolean(value) === false;
   if (key === "features") {
-    const inline = /\{[^}]*\}/.exec(String(value ?? ""));
-    if (!inline) return false;
-    return /(?:^|[,{\s])hooks\s*=\s*false(?=[,}\s#]|$)/.test(inline[0]);
+    const raw = String(value ?? "").trimStart();
+    if (!raw.startsWith("{")) return false;
+    return /(?:^|[,{\s])["']?hooks["']?\s*=\s*false(?=[,}\s#]|$)/.test(raw);
   }
   return false;
 }
@@ -497,13 +497,13 @@ export function managedHookPolicy({
   }
   let table = null;
   for (let index = 0; index < document.lines.length; index += 1) {
+    if (document.insideMultiline?.[index]) continue;
     const content = document.lines[index].content;
     const header = splitHeader(content);
     if (header) {
       table = header.validTail && !header.array ? (parseDottedHeaderKey(header.inner)?.join(".") ?? null) : null;
       continue;
     }
-    if (document.insideMultiline?.[index]) continue;
     const assignment = parseAssignment(content);
     if (!assignment) continue;
     const enabled = tomlBoolean(assignment.value);

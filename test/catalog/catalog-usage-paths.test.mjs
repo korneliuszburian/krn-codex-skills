@@ -4,11 +4,30 @@ import test from "node:test";
 
 import {
   assertAllowedRoot,
+  canonicalSkillEntries,
   canonicalSkills,
   derivedRolloutDay,
   forbiddenName,
   isRolloutFile,
 } from "../../scripts/lib/catalog/catalog-usage-paths.mjs";
+
+test("canonicalSkillEntries drops target paths that are not canonical SKILL.md paths", () => {
+  const entries = canonicalSkillEntries({
+    skills: [
+      { id: "shared", path: "/x/shared/SKILL.md", targetPath: "/x/shared-skill.md" },
+      { id: "linked", path: "/x/linked/SKILL.md", targetPath: "/x/real/SKILL.md" },
+      { id: "hist", path: "/x/hist/SKILL.md", targetPath: "/x/history/SKILL.md" },
+    ],
+    plugins: [],
+  });
+  assert.deepEqual(entries, [
+    { id: "shared", path: "/x/shared/SKILL.md" },
+    { id: "linked", path: "/x/linked/SKILL.md" },
+    { id: "linked", path: "/x/real/SKILL.md" },
+    { id: "hist", path: "/x/hist/SKILL.md" },
+  ]);
+  assert.doesNotThrow(() => canonicalSkills(entries));
+});
 
 test("forbiddenName flags quarantined and private path families", () => {
   for (const name of ["superpowers", "logs", "history.jsonl", "state.db", "state.sqlite-wal"]) {

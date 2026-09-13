@@ -58,6 +58,29 @@ export function derivedRolloutDay(sessionsRoot, filePath) {
   return candidates.size === 1 ? [...candidates][0] : null;
 }
 
+function isCanonicalSkillPath(candidate) {
+  return (
+    typeof candidate === "string"
+    && path.isAbsolute(candidate)
+    && path.basename(candidate) === "SKILL.md"
+    && !path.resolve(candidate).split(path.sep).filter(Boolean).some(forbiddenName)
+  );
+}
+
+export function canonicalSkillEntries(inventory) {
+  const skills = (inventory?.skills ?? []).flatMap(({ id, path: skillPath, targetPath }) => [
+    { id, path: skillPath },
+    ...(isCanonicalSkillPath(targetPath) ? [{ id, path: targetPath }] : []),
+  ]);
+  const plugins = (inventory?.plugins ?? []).flatMap((plugin) =>
+    (plugin.allSkillPaths || plugin.skillPaths || []).map((skillPath) => ({
+      id: `${plugin.id}:${path.basename(path.dirname(skillPath))}`,
+      path: skillPath,
+    })),
+  );
+  return [...skills, ...plugins];
+}
+
 export function canonicalSkills(entries) {
   if (!Array.isArray(entries)) {
     throw new TypeError("canonicalSkillPaths must be an array");

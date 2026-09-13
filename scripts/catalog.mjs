@@ -16,6 +16,7 @@ import {
 } from "./lib/catalog/catalog-config.mjs";
 import { resolveProfile } from "./lib/catalog/catalog-profile.mjs";
 import { scanCatalogUsage } from "./lib/catalog/catalog-usage.mjs";
+import { canonicalSkillEntries } from "./lib/catalog/catalog-usage-paths.mjs";
 
 import { EXIT_CODES, fail } from "./lib/support/diagnostics.mjs";
 
@@ -425,18 +426,7 @@ async function main() {
     const result = await scanCatalogUsage({
       sessionsRoot,
       sinceDays: options.days,
-      canonicalSkillPaths: [
-        ...inventory.skills.flatMap(({ id, path: skillPath, targetPath }) => [
-          { id, path: skillPath },
-          ...(targetPath ? [{ id, path: targetPath }] : []),
-        ]),
-        ...inventory.plugins.flatMap((plugin) =>
-          (plugin.allSkillPaths || plugin.skillPaths).map((skillPath) => ({
-            id: `${plugin.id}:${path.basename(path.dirname(skillPath))}`,
-            path: skillPath,
-          })),
-        ),
-      ],
+      canonicalSkillPaths: canonicalSkillEntries(inventory),
     });
     if (options.json) {
       printJson({ ...result, capability_states: usageStateContract(result) });

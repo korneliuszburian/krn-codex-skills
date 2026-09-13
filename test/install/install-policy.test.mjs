@@ -64,3 +64,21 @@ test("managedHookPolicy parses booleans with a trailing comment and ignores arra
     assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active");
   });
 });
+
+test("managedHookPolicy reads quoted and nested inline features keys", () => {
+  withRequirements('features = { "hooks" = false }\n', (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
+  });
+  withRequirements("features = { nested = { x = 1 }, hooks = false }\n", (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
+  });
+});
+
+test("managedHookPolicy ignores table headers inside multi-line strings", () => {
+  withRequirements('[features]\nnotes = """\n[other]\n"""\nhooks = false\n', (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
+  });
+  withRequirements('note = """\n[features]\n"""\nhooks = false\n', (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active");
+  });
+});
