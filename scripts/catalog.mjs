@@ -141,10 +141,14 @@ function configurationStateContract() {
   };
 }
 
-function usageStateContract(result) {
-  const rows = [...result.aggregates].sort((left, right) =>
+function usageRows(aggregates) {
+  return [...aggregates].sort((left, right) =>
     `${left.kind}:${left.id}`.localeCompare(`${right.kind}:${right.id}`),
   );
+}
+
+function usageStateContract(result) {
+  const rows = usageRows(result.aggregates);
   const droppedCandidates =
     result.malformed_lines +
     (result.coverage.oversized_candidate_lines || 0) +
@@ -215,9 +219,7 @@ function printInventory(inventory) {
 
 function printUsage(result, inventory) {
   const state = usageStateContract(result);
-  const rows = [...result.aggregates].sort((left, right) =>
-    `${left.kind}:${left.id}`.localeCompare(`${right.kind}:${right.id}`),
-  );
+  const rows = usageRows(result.aggregates);
   console.log(
     `Evidence window: ${state.evidence_window.since_day} through ` +
       state.evidence_window.through_day,

@@ -372,8 +372,10 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     }
   }
   const lessonsFile = path.join(root, "docs", "research", "workflow-lessons.md");
-  const malformed = fs.existsSync(lessonsFile) ? parseLessons(lessonsFile).malformed : [];
-  if (!fs.existsSync(lessonsFile) && commits.some((commit) => {
+  const lessonsExist = fs.existsSync(lessonsFile);
+  const localLessons = lessonsExist ? parseLessons(lessonsFile) : null;
+  const malformed = localLessons?.malformed ?? [];
+  if (!lessonsExist && commits.some((commit) => {
     const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", commit.sha]);
     return changed.ok && contractSurface(changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean));
   })) {
@@ -382,10 +384,10 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   if (malformed.length > 0) {
     errors.push({ rule: "malformed-lessons", detail: `${malformed.length} row(s); trigger delivery is unreliable` });
   }
-  const churnEnabled = fs.existsSync(lessonsFile) && parseLessons(lessonsFile).rows.some((row) => (row.trigger ?? "").includes("churn:"));
+  const churnEnabled = lessonsExist && localLessons.rows.some((row) => (row.trigger ?? "").includes("churn:"));
   const basePage = git(root, ["show", `${base}:docs/research/workflow-lessons.md`]);
-  if (basePage.ok && fs.existsSync(lessonsFile)) {
-    const headTexts = new Set(parseLessonText(fs.readFileSync(lessonsFile, "utf8")).rows.map((row) => row.lesson));
+  if (basePage.ok && lessonsExist) {
+    const headTexts = new Set(localLessons.rows.map((row) => row.lesson));
     for (const row of parseLessonText(basePage.out).rows.filter((entry) => !entry.status)) {
       if (!headTexts.has(row.lesson)) errors.push({ rule: "lesson-shrinkage", detail: row.lesson.slice(0, 60) });
     }

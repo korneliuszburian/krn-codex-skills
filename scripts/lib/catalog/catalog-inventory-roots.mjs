@@ -34,14 +34,18 @@ function defaultSkillRoots({ codexHome, agentsHome, opencodeHome }) {
   ];
 }
 
-function validateSkillRoots(roots) {
-  if (!Array.isArray(roots)) {
-    throw new TypeError("skillRoots must be an array");
-  }
+function validateRootList(roots, arrayMessage, fieldMessage) {
+  if (!Array.isArray(roots)) throw new TypeError(arrayMessage);
   for (const root of roots) {
     if (!root || typeof root.id !== "string" || typeof root.path !== "string") {
-      throw new TypeError("Each skill root needs string id and path fields");
+      throw new TypeError(fieldMessage);
     }
+  }
+}
+
+function validateSkillRoots(roots) {
+  validateRootList(roots, "skillRoots must be an array", "Each skill root needs string id and path fields");
+  for (const root of roots) {
     if (!ALLOWED_ROOT_SCOPES.has(root.scope)) {
       throw new Error(
         `Skill root '${root.id}' has unsupported scope '${root.scope}'. Project-local roots are never globally inventoried.`,
@@ -51,14 +55,7 @@ function validateSkillRoots(roots) {
 }
 
 function validateCacheRoots(roots) {
-  if (!Array.isArray(roots)) {
-    throw new TypeError("pluginCacheRoots must be an array");
-  }
-  for (const root of roots) {
-    if (!root || typeof root.id !== "string" || typeof root.path !== "string") {
-      throw new TypeError("Each plugin cache root needs string id and path fields");
-    }
-  }
+  validateRootList(roots, "pluginCacheRoots must be an array", "Each plugin cache root needs string id and path fields");
 }
 
 export function resolveInventoryRoots({

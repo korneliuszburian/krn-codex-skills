@@ -80,10 +80,12 @@ export function parseCleanup(value) {
   return { entries, malformed };
 }
 
+const COMMIT_ANCHOR = /\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi;
+
 export function commitTokens(value) {
   if (!value) return [];
   const plain = value.replace(/[<>`]/g, "");
-  return [...plain.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
+  return [...plain.matchAll(COMMIT_ANCHOR)].map((match) => match[2].toLowerCase());
 }
 
 export function renderCapsule(values) {
@@ -95,7 +97,7 @@ export function renderCapsule(values) {
 export function fixedPointAnchors(value) {
   const anchors = { base: null, head: null, fingerprint: null };
   if (!value) return anchors;
-  for (const match of value.replace(/[<>`]/g, "").matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)) {
+  for (const match of value.replace(/[<>`]/g, "").matchAll(COMMIT_ANCHOR)) {
     const key = match[1].toLowerCase() === "head" ? "head" : match[1].toLowerCase();
     anchors[key] = match[2].toLowerCase();
   }
