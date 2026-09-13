@@ -23,6 +23,7 @@ export const MCP_SERVER_KEYS = new Set([
   "env_vars",
   "experimental_environment",
   "http_headers",
+  "http_headers_helper",
   "oauth_resource",
   "required",
   "scopes",

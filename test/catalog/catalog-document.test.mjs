@@ -70,6 +70,34 @@ test("setEnabled toggles an existing flag and inserts a missing one", () => {
   assert.equal(applyOperations(withoutFlag, insert), "[mcp_servers.demo]\nenabled = true\n");
 });
 
+test("setEnabled accepts every documented MCP transport key, including http_headers_helper", () => {
+  const text = [
+    "[mcp_servers.demo]",
+    'url = "https://mcp.example.com/mcp"',
+    'http_headers_helper = "print-headers"',
+    'http_headers = { "X-Region" = "eu" }',
+    'env_http_headers = { "X-Token" = "TOKEN_ENV" }',
+    'bearer_token_env_var = "TOKEN_ENV"',
+    'default_tools_approval_mode = "prompt"',
+    "enabled = true",
+    "",
+  ].join("\n");
+  const operations = [];
+  setEnabled({
+    document: parseDocument(text),
+    block: blockFor(text),
+    enabled: false,
+    allowedKeys: MCP_SERVER_KEYS,
+    target: "mcp",
+    resource: "mcp",
+    reason: "test",
+    operations,
+    actions: [],
+  });
+  assert.equal(operations.length, 1);
+  assert.match(applyOperations(text, operations), /enabled = false/);
+});
+
 test("removeBlock deletes the managed block", () => {
   const operations = [];
   const actions = [];
