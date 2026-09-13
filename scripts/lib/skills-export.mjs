@@ -272,7 +272,7 @@ export function checkSkills({ root }) {
         errors.push(`${entry.name}: exported files differ from source; run \`krn-codex skills export\``);
       }
       const relativeDir = path.relative(root, sourceDir).split(path.sep).join("/");
-      if (marker?.krn?.commit && relativeDir && !relativeDir.startsWith("..")
+      if (marker?.krn?.commit && !marker.krn.dirty && relativeDir && !relativeDir.startsWith("..")
         && git(root, ["rev-parse", "--verify", `${marker.krn.commit}^{commit}`]) !== ""
         && !reproducesFromCommit(relativeDir, marker.krn.commit, dir)) {
         errors.push(`${entry.name}: exported files do not reproduce from marker commit ${marker.krn.commit}; re-export from a clean checkout`);

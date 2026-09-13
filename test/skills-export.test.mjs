@@ -341,5 +341,6 @@ test("dirty scope follows the exported skill paths, not the whole repo", () => {
   exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
   const dirty = JSON.parse(fs.readFileSync(path.join(f.root, ".agents", "skills", ".krn-export.json"), "utf8"));
   assert.equal(dirty.krn.dirty, true, "a tracked change inside a skill path must mark the export dirty");
+  assert.ok(!checkSkills({ root: f.root }).errors.some((e) => e.includes("do not reproduce")), "a recorded dirty export warns instead of failing reproducibility");
   fs.rmSync(f.base, { recursive: true, force: true });
 });

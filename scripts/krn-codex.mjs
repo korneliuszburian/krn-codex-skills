@@ -107,7 +107,7 @@ function renderInstallReport(report) {
 
 try {
   const raw = process.argv.slice(2);
-  if (raw.length === 0 || ["-h", "--help", "help"].includes(raw[0])) {
+  if (["-h", "--help", "help"].includes(raw[0])) {
     process.stdout.write(`${usage}\n`);
     process.exit(0);
   }

@@ -25,6 +25,14 @@ function makeRepo() {
   return root;
 }
 
+test("the CLI answers --help with usage on stdout and keeps no-args a usage error", () => {
+  const help = spawnSync(process.execPath, [cli, "--help"], { encoding: "utf8" });
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /^Usage:/);
+  const none = spawnSync(process.execPath, [cli], { encoding: "utf8" });
+  assert.equal(none.status, 64);
+});
+
 test("compile, check, and resume compose into one usable restart path", () => {
   const root = makeRepo();
   const compiled = spawnSync(process.execPath, [cli, "state", "compile", root], { encoding: "utf8" });
