@@ -1,4 +1,4 @@
-import { constants, realpathSync } from "node:fs";
+import { constants, lstatSync, readlinkSync } from "node:fs";
 import { open, readdir, readlink, lstat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
@@ -135,7 +135,7 @@ async function inventorySkillRoot(root, records, quarantine) {
         );
         continue;
       }
-      const resolved = await resolveTargetFile(join(resolvedTarget, "SKILL.md"), quarantine);
+      const resolved = await resolveTargetFile(`${absoluteLinkPath(entryPath, target)}/SKILL.md`, quarantine);
       if (resolved.quarantined) {
         quarantine.add(
           "skill",
@@ -179,7 +179,7 @@ async function inventorySkillRoot(root, records, quarantine) {
         );
         continue;
       }
-      const resolved = await resolveTargetFile(resolvedTarget, quarantine);
+      const resolved = await resolveTargetFile(absoluteLinkPath(skillPath, target), quarantine);
       if (resolved.quarantined) {
         quarantine.add(
           "skill",
@@ -485,42 +485,51 @@ async function readDirectory(path, quarantine) {
   }
 }
 
-async function resolveTargetFile(path, quarantine) {
-  let current = path;
-  for (let hop = 0; hop < 64; hop += 1) {
-    if (quarantine.matches(current)) return { quarantined: current };
+function absoluteLinkPath(linkPath, target) {
+  return target.startsWith("/") ? target : `${dirname(linkPath)}/${target}`;
+}
+
+function resolveKernelPath(start, quarantine, maxHops = 64) {
+  const parts = String(start).split("/").filter((segment) => segment !== "");
+  const resolved = [];
+  let hops = 0;
+  while (parts.length > 0) {
+    const segment = parts.shift();
+    if (segment === ".") continue;
+    if (segment === "..") {
+      resolved.pop();
+      continue;
+    }
+    const candidate = `/${[...resolved, segment].join("/")}`;
+    if (quarantine.matches(candidate)) return { quarantined: candidate };
     let stat;
     try {
-      stat = await lstat(current);
+      stat = lstatSync(candidate);
     } catch {
       return { missing: true };
     }
-    if (!stat.isSymbolicLink()) {
-      if (!stat.isFile()) return { missing: true };
-      let resolved;
+    if (stat.isSymbolicLink()) {
+      if ((hops += 1) > maxHops) return { missing: true };
+      let target;
       try {
-        resolved = realpathSync(current);
+        target = readlinkSync(candidate);
       } catch {
         return { missing: true };
       }
-      if (quarantine.matches(resolved)) return { quarantined: resolved };
-      return { file: resolved };
+      if (target.startsWith("/")) resolved.length = 0;
+      parts.unshift(...target.split("/").filter((entry) => entry !== ""));
+      continue;
     }
-    let target;
-    try {
-      target = await readlink(current);
-    } catch {
-      return { missing: true };
-    }
-    let base;
-    try {
-      base = realpathSync(dirname(current));
-    } catch {
-      return { missing: true };
-    }
-    current = resolve(base, target);
+    resolved.push(segment);
   }
-  return { missing: true };
+  const finalPath = `/${resolved.join("/")}`;
+  if (quarantine.matches(finalPath)) return { quarantined: finalPath };
+  const finalStat = lstatSync(finalPath, { throwIfNoEntry: false });
+  return finalStat && finalStat.isFile() ? { file: finalPath } : { missing: true };
+}
+
+async function resolveTargetFile(path, quarantine) {
+  return resolveKernelPath(path, quarantine);
 }
 
 async function safeLstat(path, quarantine) {

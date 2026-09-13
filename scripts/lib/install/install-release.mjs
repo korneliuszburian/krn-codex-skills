@@ -585,8 +585,14 @@ export function managedHookPolicy({
   let arrayDepth = 0;
   try {
     for (let index = 0; index < document.lines.length; index += 1) {
-      if (document.insideMultiline?.[index]) continue;
       const content = document.lines[index].content;
+      if (document.insideMultiline?.[index]) {
+        if (!document.insideMultiline?.[index + 1]) {
+          arrayDepth += bracketDelta(content.replace(/^[\s\S]*?(?:"""|''')/, ""));
+          if (arrayDepth < 0) arrayDepth = 0;
+        }
+        continue;
+      }
       const header = arrayDepth === 0 ? splitHeader(content) : undefined;
       if (header) {
         if (header.validTail) {

@@ -169,6 +169,26 @@ test("a skill directory whose SKILL.md is a valid file symlink is inventoried", 
   });
 });
 
+test("a symlinked component before .. does not bypass quarantine", async () => {
+  await withRoot("krn-inventory-sym-dotdot-", async (root) => {
+    mkdirSync(path.join(root, "superpowers", "deep"), { recursive: true });
+    mkdirSync(path.join(root, "superpowers", "clean"), { recursive: true });
+    writeFileSync(path.join(root, "superpowers", "clean", "SKILL.md"), "---\nname: x\ndescription: demo\n---\n");
+    mkdirSync(path.join(root, "demo-real", "clean"), { recursive: true });
+    writeFileSync(path.join(root, "demo-real", "clean", "SKILL.md"), "---\nname: y\ndescription: demo\n---\n");
+    symlinkSync("../superpowers/deep", path.join(root, "demo-real", "b"));
+    symlinkSync("b/../clean/SKILL.md", path.join(root, "demo-real", "SKILL.md"));
+    symlinkSync(path.join(root, "demo-real"), path.join(root, "demo"));
+    const inventory = await inventoryCapabilities({
+      skillRoots: [{ id: "root", path: root, scope: "user" }],
+      pluginCacheRoots: [],
+    });
+    const ids = JSON.stringify(inventory.skills.map((skill) => skill.id));
+    assert.ok(!inventory.skills.some((skill) => skill.id === "demo"), ids);
+    assert.ok(!inventory.skills.some((skill) => skill.id === "demo-real"), ids);
+  });
+});
+
 test("a link target with .. through a symlinked parent resolves POSIX-correctly", async () => {
   await withRoot("krn-inventory-dotdot-", async (root) => {
     const base = path.join(root, "base");
