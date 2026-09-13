@@ -42,6 +42,13 @@ Verified: 2026-09-13.
    restores the previous `current` if it cannot start, so a release that omits
    a runtime module fails closed instead of reporting a broken install.
 
+Codex runs the managed guard from `$CODEX_HOME/hooks.json`, which is a
+non-managed user hook: Codex marks a new or changed hook for review and skips
+it until the operator trusts the definition in `/hooks`. A fresh
+`install apply`, a prune, or a rollback therefore leaves the guard inert until
+that review; `install apply` and `doctor` do not record hook-trust state, so the
+contract's interception guarantee holds only after the hook is trusted.
+
 ## Doctor evidence
 
 `krn-codex doctor --json` is a filesystem observer, not a discovery or
