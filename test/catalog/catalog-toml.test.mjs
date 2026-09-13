@@ -65,6 +65,14 @@ test("parseHeader leaves plugin sub-tables and bare owner tables unmanaged", () 
   assert.deepEqual(parseHeader('[plugins."sample@test".mcp_servers.sample]'), { kind: "other" });
   assert.deepEqual(parseHeader("[plugins.a.b]"), { kind: "other" });
   assert.deepEqual(parseHeader("[mcp_servers]"), { kind: "other" });
+  assert.throws(() => parseHeader('[[plugins."x"]]'), /Ambiguous managed TOML table header/);
+  assert.throws(() => parseHeader("[[mcp_servers.foo]]"), /Ambiguous managed TOML table header/);
+});
+
+test("directAssignments reads dotted keys so an unknown managed key is rejected", () => {
+  const document = parseDocument('[plugins."x"]\nenabled.x = true\n');
+  const block = document.blocks.find((entry) => entry.kind === "plugin");
+  assert.deepEqual([...directAssignments(document, block).keys()], ["enabled.x"]);
 });
 
 test("directAssignments ignores multi-line array elements", () => {

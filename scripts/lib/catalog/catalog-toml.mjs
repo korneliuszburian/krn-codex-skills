@@ -168,14 +168,16 @@ export function parseHeader(content) {
 
   const [owner, id] = segments;
   if (owner === "plugins") {
-    if (!header.array && segments.length === 2) {
+    if (header.array) ambiguousManagedHeader();
+    if (segments.length === 2) {
       if (id === "") ambiguousManagedHeader();
       return { kind: "plugin", id };
     }
     return { kind: "other" };
   }
   if (owner === "mcp_servers") {
-    if (!header.array && segments.length === 2) {
+    if (header.array) ambiguousManagedHeader();
+    if (segments.length === 2) {
       if (id === "") ambiguousManagedHeader();
       return { kind: "mcp", id };
     }
@@ -317,7 +319,7 @@ function looksLikeManagedRootAssignment(content) {
 export function parseAssignment(content) {
   if (content.trimStart().startsWith("#")) return undefined;
   const match = content.match(
-    /^(\s*)((?:"(?:[^"\\]|\\.)*")|(?:'[^']*')|(?:[A-Za-z0-9_-]+))(\s*=\s*)(.*)$/,
+    /^(\s*)((?:"(?:[^"\\]|\\.)*")|(?:'[^']*')|(?:[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*))(\s*=\s*)(.*)$/,
   );
   if (!match) return undefined;
   const keyToken = match[2];
