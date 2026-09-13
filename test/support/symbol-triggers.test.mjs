@@ -40,6 +40,8 @@ test("extractSymbols reads every declarator and ignores default-expression ident
     ["a", "b"],
   );
   assert.deepEqual(extractSymbols("export const { a: c, d = 1 } = src;\n").map((symbol) => symbol.name), ["c", "d"]);
+  assert.deepEqual(extractSymbols("export const { a: { b } } = src;\n").map((symbol) => symbol.name), ["b"]);
+  assert.deepEqual(extractSymbols("export const [p, [q, r]] = src;\n").map((symbol) => symbol.name), ["p", "q", "r"]);
 });
 
 test("extractSymbols ignores braces inside strings and comments", () => {

@@ -6,29 +6,69 @@
 const DECL = /^\s*export\s+(?:default\s+)?(?:async\s+)?(function\*?|class|const|let|var)\s+([A-Za-z_$][\w$]*)/;
 const DESTRUCT_START = /^\s*export\s+(?:const|let|var)\s+([\[{])/;
 
+function matchingBracket(text, openIndex) {
+  const open = text[openIndex];
+  const close = open === "{" ? "}" : "]";
+  let depth = 0;
+  for (let index = openIndex; index < text.length; index += 1) {
+    if (text[index] === open) depth += 1;
+    else if (text[index] === close) {
+      depth -= 1;
+      if (depth === 0) return index;
+    }
+  }
+  return text.length;
+}
+
+function skipDefault(text, index) {
+  let depth = 0;
+  for (let cursor = index; cursor < text.length; cursor += 1) {
+    const char = text[cursor];
+    if (char === "{" || char === "[" || char === "(") depth += 1;
+    else if (char === "}" || char === "]" || char === ")") {
+      if (depth === 0) return cursor;
+      depth -= 1;
+    } else if (char === "," && depth === 0) {
+      return cursor;
+    }
+  }
+  return text.length;
+}
+
 function destructuredNames(text) {
   const names = [];
-  let depth = 0;
-  let current = "";
-  const flush = () => {
-    const part = current.trim();
-    current = "";
-    if (!part) return;
-    const withoutDefault = part.split("=")[0].trim();
-    const renamed = /:\s*([A-Za-z_$][\w$]*)$/.exec(withoutDefault);
-    const match = renamed ?? /^(?:\.\.\.)?([A-Za-z_$][\w$]*)/.exec(withoutDefault);
-    if (match) names.push(match[1]);
-  };
-  for (const char of text) {
-    if (char === "(" || char === "{" || char === "[") depth += 1;
-    else if (char === ")" || char === "}" || char === "]") depth -= 1;
-    if (char === "," && depth === 0) {
-      flush();
+  let index = 0;
+  while (index < text.length) {
+    while (index < text.length && /[\s,]/.test(text[index])) index += 1;
+    if (index >= text.length) break;
+    if (text.startsWith("...", index)) {
+      index += 3;
       continue;
     }
-    current += char;
+    const char = text[index];
+    if (char === "{" || char === "[") {
+      const close = matchingBracket(text, index);
+      names.push(...destructuredNames(text.slice(index + 1, close)));
+      index = close + 1;
+      while (index < text.length && /\s/.test(text[index])) index += 1;
+      if (text[index] === "=") index = skipDefault(text, index + 1);
+      continue;
+    }
+    const match = /^[A-Za-z_$][\w$]*/.exec(text.slice(index));
+    if (!match) {
+      index += 1;
+      continue;
+    }
+    const name = match[0];
+    index += name.length;
+    while (index < text.length && /\s/.test(text[index])) index += 1;
+    if (text[index] === ":") {
+      index += 1;
+      continue;
+    }
+    names.push(name);
+    if (text[index] === "=") index = skipDefault(text, index + 1);
   }
-  flush();
   return names;
 }
 
