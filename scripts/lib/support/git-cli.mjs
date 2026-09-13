@@ -25,6 +25,12 @@ export function gitText(repo, args) {
   return result.ok ? result.out : "";
 }
 
+export function commitChangedFiles(root, git, sha) {
+  const result = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", sha]);
+  if (!result.ok) return { ok: false, files: [] };
+  return { ok: true, files: result.out.split("\0").map((entry) => entry.trim()).filter(Boolean) };
+}
+
 export function gitAvailable() {
   try {
     execFileSync("git", ["--version"], { stdio: "ignore" });

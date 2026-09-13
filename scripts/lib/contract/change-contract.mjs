@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { GIT_LOG_FORMAT, parseGitLogRecords } from "../support/git-cli.mjs";
+import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords } from "../support/git-cli.mjs";
 import { tapName } from "../support/tap.mjs";
 import os from "node:os";
 import path from "node:path";
@@ -376,8 +376,8 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const localLessons = lessonsExist ? parseLessons(lessonsFile) : null;
   const malformed = localLessons?.malformed ?? [];
   if (!lessonsExist && commits.some((commit) => {
-    const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", commit.sha]);
-    return changed.ok && contractSurface(changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean));
+    const changed = commitChangedFiles(root, git, commit.sha);
+    return changed.ok && contractSurface(changed.files);
   })) {
     errors.push({ rule: "missing-lessons", detail: "a surface change requires the workflow-lessons page for trigger delivery" });
   }
@@ -400,12 +400,12 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   }
   const targets = new Map();
   for (const commit of commits) {
-    const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", commit.sha]);
+    const changed = commitChangedFiles(root, git, commit.sha);
     if (!changed.ok) {
       errors.push({ rule: "unreadable-changed-files", commit: commit.sha, detail: "git could not list the commit's files; the contract cannot be evaluated" });
       continue;
     }
-    const files = changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean);
+    const files = changed.files;
     const contract = parseChangeContract(`${commit.subject}\n${commit.body}`);
     const surface = contractSurface(files);
     const symbolFiles = touchedSymbolFiles({ root, git, sha: commit.sha });

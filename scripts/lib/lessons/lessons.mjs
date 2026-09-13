@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { GIT_LOG_FORMAT, parseGitLogRecords } from "../support/git-cli.mjs";
+import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords } from "../support/git-cli.mjs";
 import path from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 import { readJson } from "../support/read-json.mjs";
@@ -340,8 +340,7 @@ function recallUsage(root, git, rows) {
   for (const record of records) {
     const lines = recallLines(record.text);
     if (lines.length === 0) continue;
-    const changed = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", record.sha]);
-    const files = changed.ok ? changed.out.split("\0").map((entry) => entry.trim()).filter(Boolean) : [];
+    const files = commitChangedFiles(root, git, record.sha).files;
     const symbolFiles = touchedSymbolFiles({ root, git, sha: record.sha });
     const symbols = [...symbolFiles.keys()];
     const hot = churnEnabled ? churnHot({ root, git, sha: record.sha, files }) : [];

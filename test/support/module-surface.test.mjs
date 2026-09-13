@@ -46,7 +46,7 @@ const cases = [
   },
   {
     module: "../../scripts/lib/support/git-cli.mjs",
-    present: ["runGit", "gitText", "gitAvailable"],
+    present: ["runGit", "gitText", "gitAvailable", "commitChangedFiles"],
     absent: [],
   },
   {
