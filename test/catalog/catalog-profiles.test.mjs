@@ -37,6 +37,10 @@ test("validateProfilesDocument rejects policy violations", () => {
   const families = clone();
   families.hardQuarantine.families = ["other"];
   assert.throws(() => validateProfilesDocument(families), /fixed hard-quarantine families/);
+
+  const deadKey = clone();
+  deadKey.hardQuarantine.reason = "duplicated policy prose";
+  assert.throws(() => validateProfilesDocument(deadKey), /hardQuarantine has unknown keys: reason/);
 });
 
 test("isHardQuarantined matches the fixed family list", () => {

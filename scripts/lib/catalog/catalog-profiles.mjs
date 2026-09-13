@@ -59,7 +59,7 @@ export function validateProfilesDocument(document) {
   }
   assertExactKeys(
     document.hardQuarantine,
-    ["families", "pluginIds", "reason"],
+    ["families", "pluginIds"],
     "hardQuarantine",
   );
   if (

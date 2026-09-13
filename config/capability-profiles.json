@@ -6,8 +6,7 @@
     ],
     "pluginIds": [
       "superpowers@openai-curated"
-    ],
-    "reason": "This family is never inspected, enabled, or invoked. A profile cannot override the quarantine."
+    ]
   },
   "pluginSkillAliases": {
     "asana@openai-curated": [
