@@ -144,9 +144,9 @@ export function retirementErrors(retiredSkills, localSkillNames) {
       continue;
     }
     const keys = Object.keys(retired).sort();
-    if (keys.join(",") !== "name,owner,replacement") {
+    if (keys.join(",") !== "name,replacement") {
       errors.push(
-        `manifest: retired skill ${retired.name ?? "<unknown>"} must contain only name, owner, and replacement`,
+        `manifest: retired skill ${retired.name ?? "<unknown>"} must contain only name and replacement`,
       );
     }
     if (!/^[a-z0-9](?:-?[a-z0-9]){0,63}$/.test(retired.name ?? "")) {
@@ -159,9 +159,6 @@ export function retirementErrors(retiredSkills, localSkillNames) {
     names.add(retired.name);
     if (localSkillNames.has(retired.name)) {
       errors.push(`manifest: retired skill ${retired.name} is still active`);
-    }
-    if (typeof retired.owner !== "string" || !retired.owner.trim()) {
-      errors.push(`manifest: retired skill ${retired.name} must declare an owner`);
     }
     if (
       retired.replacement !== null &&

@@ -136,73 +136,59 @@
   "retired_skills": [
     {
       "name": "second-opinion-review",
-      "replacement": "opencode-second-opinion",
-      "owner": "repository"
+      "replacement": "opencode-second-opinion"
     },
     {
       "name": "code-review",
-      "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "replacement": null
     },
     {
       "name": "codebase-design",
-      "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "replacement": null
     },
     {
       "name": "diagnosing-bugs",
-      "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "replacement": null
     },
     {
       "name": "domain-modeling",
-      "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "replacement": null
     },
     {
       "name": "implement",
-      "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "replacement": null
     },
     {
       "name": "prototype",
-      "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "replacement": null
     },
     {
       "name": "to-spec",
-      "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "replacement": null
     },
     {
       "name": "wayfinder",
-      "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "replacement": null
     },
     {
       "name": "to-questionnaire",
-      "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "replacement": null
     },
     {
       "name": "wait-what",
-      "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "replacement": null
     },
     {
       "name": "writing-for-agents",
-      "replacement": null,
-      "owner": "upstream:mattpocock/skills"
+      "replacement": null
     },
     {
       "name": "writing-great-skills",
-      "replacement": null,
-      "owner": "repository"
+      "replacement": null
     },
     {
       "name": "reviewer-handoff",
-      "replacement": null,
-      "owner": "repository"
+      "replacement": null
     }
   ]
 }

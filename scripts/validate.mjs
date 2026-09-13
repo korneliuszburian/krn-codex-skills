@@ -51,9 +51,7 @@ import {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
 const readmePath = path.join(root, "README.md");
-const upstreamSourcesPath = path.resolve(
-  process.env.KRN_UPSTREAM_LOCK ?? path.join(root, "config", "upstream-sources.json"),
-);
+const upstreamSourcesPath = path.join(root, "config", "upstream-sources.json");
 const errors = [];
 
 const read = (file) => fs.readFileSync(file, "utf8");

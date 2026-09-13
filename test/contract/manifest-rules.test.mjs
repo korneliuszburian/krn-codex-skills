@@ -237,15 +237,14 @@ test("pretoolUseHookErrors accepts the canonical hook and rejects drift", () => 
 
 test("retirementErrors validates retired skill metadata", () => {
   const local = new Set(["current"]);
-  const base = { name: "old", owner: "me", replacement: "current" };
+  const base = { name: "old", replacement: "current" };
   assert.deepEqual(retirementErrors([base], local), { errors: [], names: new Set(["old"]) });
   assert.deepEqual(retirementErrors([{ ...base, replacement: null }], local).errors, []);
   const cases = [
     [(doc) => (doc.replacement = "ghost"), /has unknown replacement ghost/],
-    [(doc) => (doc.owner = ""), /must declare an owner/],
     [(doc) => (doc.replacement = "old"), /cannot replace itself/],
     [(doc) => (doc.name = "Bad"), /invalid retired skill name/],
-    [(doc) => (doc.extra = true), /must contain only name, owner, and replacement/],
+    [(doc) => (doc.extra = true), /must contain only name and replacement/],
   ];
   for (const [mutate, pattern] of cases) {
     const retired = { ...base };

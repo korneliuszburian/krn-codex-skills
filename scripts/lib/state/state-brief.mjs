@@ -139,7 +139,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     const fixedPoint = fieldLine(text, "Repository base, HEAD or working-tree fingerprint, and dirty-state scope");
     const anchors = fixedPointAnchors(fixedPoint);
     const recorded = [anchors.base, anchors.head].filter(Boolean);
-    const anchorHead = fixedPointAnchors(fixedPoint).head;
+    const anchorHead = anchors.head;
     const headMoved = liveHead.ok && liveHead.out !== "" && anchorHead !== null && anchorHead !== liveHead.out.toLowerCase();
     const cleanupValue = fieldLine(text, "Outstanding workflow-run cleanup");
     const listed = parseCleanup(cleanupValue).entries;

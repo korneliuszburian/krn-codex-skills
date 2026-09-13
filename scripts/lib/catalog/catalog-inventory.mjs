@@ -66,10 +66,7 @@ export async function inventoryCapabilities(options = {}) {
     agentsHome,
     opencodeHome: options.opencodeHome ?? join(homeDirectory, ".config", "opencode"),
   });
-  const quarantine = createQuarantineCollector(
-    options.quarantineEvidence ?? [],
-    options.quarantineFamilies ?? [],
-  );
+  const quarantine = createQuarantineCollector([], []);
 
   const skills = [];
   for (const root of skillRoots) {
