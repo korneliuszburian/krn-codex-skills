@@ -146,3 +146,32 @@ test("pruneReleases keeps the newest N plus the current target", () => {
   assert.ok(!fs.existsSync(join(releases, "old1")));
   rmSync(base, { recursive: true, force: true });
 });
+
+test("a legacy hook is reported before any release exists", () => {
+  withHome(({ home }) => {
+    fs.mkdirSync(join(home, "hooks"), { recursive: true });
+    writeFileSync(join(home, "hooks", "rtk_pretooluse.py"), "legacy\n");
+    const report = inspectInstall({ codexHome: home });
+    assert.equal(report.filesystem.status, "legacy_hook_conflict");
+    assert.ok(report.legacyHooks.length > 0, JSON.stringify(report.legacyHooks));
+  });
+});
+
+test("pruneReleases retains a release referenced by a managed link", () => {
+  withHome(({ base, home }) => {
+    const releaseRoot = join(home, "krn");
+    const releases = join(releaseRoot, "releases");
+    for (const [index, name] of ["old", "new"].entries()) {
+      mkdirSync(join(releases, name, "skills"), { recursive: true });
+      fs.utimesSync(join(releases, name), new Date(index * 1000), new Date(index * 1000));
+    }
+    writeFileSync(join(releases, "old", "skills", "x"), "x\n");
+    mkdirSync(join(base, "skills"), { recursive: true });
+    symlinkSync(join(releases, "old", "skills", "x"), join(base, "skills", "x"));
+    mkdirSync(releaseRoot, { recursive: true });
+    symlinkSync(join("releases", "new"), join(releaseRoot, "current"));
+    const report = pruneReleases({ codexHome: home, keep: 1 });
+    assert.ok(report.kept.includes("old"), JSON.stringify(report));
+    assert.ok(fs.existsSync(join(releases, "old")));
+  });
+});

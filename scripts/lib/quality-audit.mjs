@@ -69,6 +69,9 @@ const CREDENTIALS = [
   [/\bgithub_pat_[A-Za-z0-9_]{22,}\b/, "GitHub fine-grained token"],
   [/\bxox[baprs]-[A-Za-z0-9-]{10,}\b/, "Slack token"],
   [/\bAIza[0-9A-Za-z_-]{35}\b/, "Google API key"],
+  [/\bsk-(?:proj-|ant-|live-)?[A-Za-z0-9_-]{20,}\b/, "vendor API key"],
+  [/\bsk_live_[A-Za-z0-9]{16,}\b/, "Stripe secret key"],
+  [/\baws_secret_access_key\s*[:=]\s*["']?[A-Za-z0-9/+=]{40}/, "AWS secret access key"],
 ];
 const ENV_DUMP = /\b(?:console\.log|process\.stdout\.write)\s*\([^)]*process\.env\b|\bprintenv\b|\benv\s*\|/;
 
@@ -91,14 +94,14 @@ export function auditRepository(root) {
   const errors = [];
   const info = [];
 
-  const credentialFiles = [...walkAll(join(root, "skills")), ...walkAll(join(root, "scripts")), ...walkAll(join(root, "config"))];
+  const credentialFiles = [...walkAll(join(root, "skills")), ...walkAll(join(root, ".agents", "skills")), ...walkAll(join(root, "scripts")), ...walkAll(join(root, "config"))];
   for (const file of credentialFiles) {
     let text;
     try { text = readFileSync(file, "utf8"); } catch { continue; }
     for (const [pattern, kind] of CREDENTIALS) {
       if (pattern.test(text)) errors.push(`${label(file)}: possible credential (${kind})`);
     }
-    if (label(file).startsWith(`skills${sep}`) && ENV_DUMP.test(text)) {
+    if (/\.(?:mjs|js|cjs|sh|py)$/.test(label(file)) && /(^|\/)(?:skills|\.agents\/skills)\//.test(label(file)) && ENV_DUMP.test(text)) {
       errors.push(`${label(file)}: skill dumps environment variables into captured output`);
     }
   }

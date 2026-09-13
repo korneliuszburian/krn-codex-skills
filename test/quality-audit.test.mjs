@@ -115,3 +115,21 @@ test("the audit flags a credential and an environment dump in a skill", () => {
     },
   );
 });
+
+test("the audit scans the generated export and only script env dumps", () => {
+  withRepo(
+    {
+      ".agents/skills/upstream/SKILL.md": "key -----BEGIN RSA PRIVATE KEY-----\n",
+      ".agents/skills/upstream/scripts/run.mjs": "console.log(process.env);\n",
+      "skills/doc/SKILL.md": "Run `printenv` or `env | sort` to inspect.\n",
+      "skills/key/SKILL.md": "OPENAI_API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((e) => e.includes("possible credential (private key block)")), JSON.stringify(errors));
+      assert.ok(errors.some((e) => e.includes("possible credential (vendor API key)")), JSON.stringify(errors));
+      assert.ok(errors.some((e) => e.includes("dumps environment variables")), JSON.stringify(errors));
+      assert.ok(!errors.some((e) => e.startsWith("skills/doc/SKILL.md:")), JSON.stringify(errors));
+    },
+  );
+});

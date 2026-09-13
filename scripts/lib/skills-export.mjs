@@ -235,7 +235,6 @@ export function checkSkills({ root }) {
       fs.readFileSync(path.join(sourceDir, relative)).equals(fs.readFileSync(path.join(exportDir, relative))),
     );
   };
-  const gitBlobHash = (buffer) => crypto.createHash("sha1").update(Buffer.from(`blob ${buffer.length}\0`)).update(buffer).digest("hex");
   const reproducesFromCommit = (relativeDir, commit, directory) => {
     const walk = (dir) =>
       fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -244,7 +243,8 @@ export function checkSkills({ root }) {
       });
     return walk(directory).every((relative) => {
       const recorded = git(root, ["rev-parse", `${commit}:${relativeDir}/${relative}`]);
-      return recorded !== "" && recorded === gitBlobHash(fs.readFileSync(path.join(directory, relative)));
+      const actual = git(root, ["hash-object", path.join(relativeDir, relative)]);
+      return recorded !== "" && actual !== "" && recorded === actual;
     });
   };
   let total = 0;

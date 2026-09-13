@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { capsuleIds, runDirectories } from "../scripts/lib/spine-runs.mjs";
 
-test("runDirectories lists non-delivery runs and skips delivery-loop, files, and hidden entries", () => {
+test("runDirectories lists non-delivery runs and skips delivery-loop and files, never a hidden run", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-spine-runs-"));
   try {
     mkdirSync(join(root, ".krn", "runs", "slice-work", "run-1"), { recursive: true });
@@ -16,7 +16,7 @@ test("runDirectories lists non-delivery runs and skips delivery-loop, files, and
     mkdirSync(join(root, ".krn", "runs", ".cache", "run-1"), { recursive: true });
     assert.deepEqual(
       runDirectories(root).map((run) => run.pointer),
-      [".krn/runs/slice-work/run-1", ".krn/runs/slice-work/run-2"],
+      [".krn/runs/.cache/run-1", ".krn/runs/slice-work/run-1", ".krn/runs/slice-work/run-2"],
     );
     assert.deepEqual(runDirectories(join(root, "missing")), []);
   } finally {
@@ -31,7 +31,7 @@ test("runDirectories still lists a hidden run so it cannot hide from the orphan 
     mkdirSync(join(root, ".krn", "runs", ".cache", "run-1"), { recursive: true });
     assert.deepEqual(
       runDirectories(root).map((run) => run.pointer),
-      [".krn/runs/slice-work/.hidden-run"],
+      [".krn/runs/.cache/run-1", ".krn/runs/slice-work/.hidden-run"],
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

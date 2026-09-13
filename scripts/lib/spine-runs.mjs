@@ -12,7 +12,7 @@ export function runDirectories(root) {
     return [];
   }
   for (const workflow of workflows.sort((a, b) => a.name.localeCompare(b.name))) {
-    if ((!workflow.isDirectory() && !workflow.isSymbolicLink()) || workflow.name === "delivery-loop" || workflow.name.startsWith(".")) continue;
+    if ((!workflow.isDirectory() && !workflow.isSymbolicLink()) || workflow.name === "delivery-loop") continue;
     const workflowPath = join(runsBase, workflow.name);
     let entries;
     try {

@@ -143,7 +143,7 @@ are no hand-maintained per-skill mirror pages.
 ## Requirements
 
 Linux or macOS with Node.js >= 20 (`.nvmrc` pins 22), `git`, `bash`, `tar`,
-`python3` (hook tests), and POSIX symlink support. Windows is unsupported: the
+`python3` (runtime for the installed PreToolUse hook and its tests), and POSIX symlink support. Windows is unsupported: the
 installer and hooks rely on symlinks, `bash`, and `tar`.
 
 ## Install
