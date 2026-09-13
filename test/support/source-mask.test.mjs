@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { maskLiterals, maskTemplates, stripComments } from "../../scripts/lib/support/source-mask.mjs";
+import { maskLiterals, stripComments } from "../../scripts/lib/support/source-mask.mjs";
 
 test("stripComments removes comments but preserves code and import specifiers", () => {
   const source = 'import "./a.mjs"; // trailing\n/* block */\nconst x = 1; // tail';
@@ -20,8 +20,8 @@ test("stripComments does not treat a division slash or a regex literal as a comm
   assert.ok(!division.includes("// c"));
 });
 
-test("maskTemplates blanks template text and maskLiterals blanks strings", () => {
-  const maskedTemplate = maskTemplates('const s = `import "./phantom.mjs"`;');
+test("maskLiterals blanks template and string literals", () => {
+  const maskedTemplate = maskLiterals('const s = `import "./phantom.mjs"`;');
   assert.ok(!maskedTemplate.includes("phantom"));
   const masked = maskLiterals('const note = "const leaky";\nleaky();');
   assert.ok(masked.includes("leaky()"));
@@ -31,26 +31,25 @@ test("maskTemplates blanks template text and maskLiterals blanks strings", () =>
 test("masking preserves template interpolation code", () => {
   const source = "const s = `x ${kept(a)} y`;";
   assert.ok(maskLiterals(source).includes("kept(a)"), maskLiterals(source));
-  assert.ok(maskTemplates(source).includes("kept(a)"), maskTemplates(source));
   assert.ok(!maskLiterals(source).includes("x "), maskLiterals(source));
 });
 
 test("a nested template inside an interpolation keeps the enclosing code", () => {
   const source = "const x = `${ {a: `b${y}c`}, d: extraCall() }`;";
   assert.ok(maskLiterals(source).includes("extraCall()"), maskLiterals(source));
-  assert.ok(maskTemplates(source).includes("extraCall()"), maskTemplates(source));
 });
 
-test("maskTemplates ignores backticks inside strings and masks real templates", () => {
+test("backticks inside strings do not start a template and real templates stay masked", () => {
   const fence = 'const fence = "```";\nimport { used } from "./lib/real.mjs";\nconst doc = `# hi`;';
-  const masked = maskTemplates(fence);
-  assert.ok(masked.includes("./lib/real.mjs"));
-  assert.ok(!masked.includes("# hi"));
+  const stripped = stripComments(fence);
+  assert.ok(stripped.includes("./lib/real.mjs"));
+  assert.ok(stripped.includes("# hi"));
+  assert.ok(!maskLiterals(fence).includes("# hi"));
 });
 
 test("a regex after a keyword is recognized and does not swallow code", () => {
   const source = 'return /[\'"]/.test(s);\nconst t = `import phantom from "./x.mjs"`;';
-  const masked = maskTemplates(source);
+  const masked = maskLiterals(source);
   assert.ok(!masked.includes("phantom"), masked);
   const literals = maskLiterals(`${source}\nphantom();`);
   assert.ok(literals.includes("phantom();"), literals);

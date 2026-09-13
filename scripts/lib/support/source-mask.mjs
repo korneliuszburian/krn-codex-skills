@@ -7,7 +7,7 @@ function regexStart(out, previous) {
   return Boolean(word && REGEX_KEYWORDS.has(word[1]));
 }
 
-function scan(source, { literals = false, templates = false } = {}) {
+function scan(source, { literals = false } = {}) {
   let out = "";
   let index = 0;
   let state = "code";
@@ -74,7 +74,7 @@ function scan(source, { literals = false, templates = false } = {}) {
       index += 2;
       continue;
     }
-    const blank = literals || (templates && state === "template");
+    const blank = literals;
     if (char === "\\") { out += blank ? "  " : char + (next ?? ""); index += 2; continue; }
     if ((state === "single" && char === "'") || (state === "double" && char === '"') || (state === "template" && char === "`")) {
       state = "code";
@@ -96,8 +96,4 @@ export function stripComments(source) {
 
 export function maskLiterals(source) {
   return scan(source, { literals: true });
-}
-
-export function maskTemplates(source) {
-  return scan(source, { templates: true });
 }
