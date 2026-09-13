@@ -79,7 +79,8 @@ export function parseCleanup(value) {
 
 export function commitTokens(value) {
   if (!value) return [];
-  return [...value.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
+  const plain = value.replace(/[<>`]/g, "");
+  return [...plain.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
 }
 
 export function renderCapsule(values) {
@@ -91,7 +92,7 @@ export function renderCapsule(values) {
 export function fixedPointAnchors(value) {
   const anchors = { base: null, head: null, fingerprint: null };
   if (!value) return anchors;
-  for (const match of value.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)) {
+  for (const match of value.replace(/[<>`]/g, "").matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)) {
     const key = match[1].toLowerCase() === "head" ? "head" : match[1].toLowerCase();
     anchors[key] = match[2].toLowerCase();
   }

@@ -79,3 +79,10 @@ test("a regex literal containing // does not erase a following import", () => {
   assert.deepEqual(runtimeClosureErrors({ root, manifest }), []);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a concatenated dynamic-import prefix is not a missing module", () => {
+  const { root, manifest } = makeRepo(["scripts/a.mjs"]);
+  writeFileSync(join(root, "scripts", "a.mjs"), 'const name = "b";\nexport const m = await import("./lib/" + name + ".mjs");\n');
+  assert.deepEqual(runtimeClosureErrors({ root, manifest }), []);
+  rmSync(root, { recursive: true, force: true });
+});

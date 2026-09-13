@@ -25,9 +25,11 @@ export function normalizeRunPointer(root, pointer) {
 function fixedPointErrors(root, fixedPoint, canCheckCommits) {
   const errors = [];
   for (const match of fixedPoint.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([^\s,;]+)/gi)) {
+    const label = match[1].toLowerCase();
     const value = match[2].replace(/[`<>]/g, "");
     if (!/^[0-9a-f]+$/i.test(value)) continue;
     const tokenValue = value.toLowerCase();
+    if (label === "fingerprint") continue;
     if (tokenValue.length !== 40) {
       errors.push({ rule: "invalid-fixed-point", detail: `partial token ${tokenValue}` });
     } else if (canCheckCommits && !git(root, ["cat-file", "-e", `${tokenValue}^{commit}`]).ok) {
@@ -121,10 +123,13 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     } else if (!hasGit) {
       errors.push({ id: entry.name, rule: "git-unavailable", detail: "git is not on PATH" });
     } else {
-      const isIgnored = git(root, ["check-ignore", "-q", relativePath]).ok;
+      const ignore = git(root, ["check-ignore", "-q", relativePath]);
+      const isIgnored = ignore.ok;
+      const ignorable = ignore.ok || ignore.status === 1;
       ignored.checked += 1;
       if (isIgnored) ignored.ignored += 1;
-      else errors.push({ id: entry.name, rule: "runs-not-ignored", detail: `${relativePath} is not git-ignored` });
+      else if (ignorable) errors.push({ id: entry.name, rule: "runs-not-ignored", detail: `${relativePath} is not git-ignored` });
+      else warnings.push({ id: entry.name, rule: "gitignore-unverified", detail: `${relativePath}: git check-ignore failed` });
     }
 
     const fields = Object.fromEntries(ABI_LABELS.map((label) => [label, fieldLine(text, label)]));
@@ -199,13 +204,12 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       for (const finding of fixedPointErrors(root, fixedPoint, usableGit)) {
         errors.push({ id: entry.name, ...finding });
       }
-      const commits = [...fixedPoint.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
+      const commits = [...fixedPoint.replace(/[<>`]/g, "").matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
       const anchorHead = fixedPointAnchors(fixedPoint).head;
       if (outcome && stripMarkup(outcome) === "COMPLETE" && commits.length === 0) {
         errors.push({ id: entry.name, rule: "complete-without-commit-anchor", detail: stripMarkup(fixedPoint) });
       }
-      const headAnchor = anchorHead ?? (commits.length > 0 ? commits[commits.length - 1] : null);
-      if (headAnchor !== null && currentHead.ok && headAnchor !== currentHead.out.toLowerCase()) {
+      if (anchorHead !== null && currentHead.ok && anchorHead !== currentHead.out.toLowerCase()) {
         const stale = { id: entry.name, rule: "stale-fixed-point", detail: `capsule records ${commits.join(", ")} but HEAD is ${currentHead.out}` };
         if (outcome && stripMarkup(outcome) === "COMPLETE") errors.push(stale);
         else warnings.push(stale);

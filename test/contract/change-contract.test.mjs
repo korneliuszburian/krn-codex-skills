@@ -1140,4 +1140,6 @@ test("a frozen run preserves setup flags", () => {
   assert.deepEqual(frozenNodeArgs("node --import ./test/preload.mjs --test test/a.test.mjs"), ["--import", "./test/preload.mjs"]);
   assert.deepEqual(frozenNodeArgs("node --require=./test/preload.cjs --test"), ["--require=./test/preload.cjs"]);
   assert.deepEqual(frozenNodeArgs("node --test test/a.test.mjs"), []);
+  assert.deepEqual(frozenNodeArgs("node --import './test/pre load.mjs' --test test/a.test.mjs"), ["--import", "./test/pre load.mjs"]);
+  assert.deepEqual(frozenNodeArgs("node --import ./test/has\\ space.mjs --test"), ["--import", "./test/has space.mjs"]);
 });

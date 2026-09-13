@@ -125,18 +125,41 @@ const TEST_FILE_RE = new RegExp(`(?:^|/)(?:test/.+|[^/]*\\.test|[^/]*-test|[^/]*
 const isTestFile = (rel) => TEST_FILE_RE.test(rel);
 
 const SETUP_FLAGS = new Set(["--import", "-r", "--require", "--loader", "--experimental-loader"]);
+function unquote(value) {
+  return value.replace(/^(['"])([\s\S]*)\1$/, "$2").replace(/\\(["'])/g, "$1");
+}
+function shellTokens(command) {
+  const tokens = [];
+  let current = "";
+  let quote = null;
+  for (let index = 0; index < command.length; index += 1) {
+    const char = command[index];
+    if (quote) {
+      if (char === "\\" && index + 1 < command.length) { current += char + command[index + 1]; index += 1; continue; }
+      current += char;
+      if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "'" || char === "\"") { quote = char; current += char; continue; }
+    if (char === "\\" && index + 1 < command.length && /\s/.test(command[index + 1])) { current += " "; index += 1; continue; }
+    if (/\s/.test(char)) { if (current) { tokens.push(current); current = ""; } continue; }
+    current += char;
+  }
+  if (current) tokens.push(current);
+  return tokens;
+}
 export function frozenNodeArgs(command) {
-  const tokens = String(command ?? "").split(/\s+/).filter(Boolean);
+  const tokens = shellTokens(String(command ?? ""));
   const args = [];
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
     if (SETUP_FLAGS.has(token) && index + 1 < tokens.length) {
-      args.push(token, tokens[index + 1].replace(/^['"]|['"]$/g, ""));
+      args.push(token, unquote(tokens[index + 1]));
       index += 1;
       continue;
     }
     const attached = /^(--import|--require|--loader|--experimental-loader)=(.*)$/.exec(token);
-    if (attached) args.push(`${attached[1]}=${attached[2].replace(/^['"]|['"]$/g, "")}`);
+    if (attached) args.push(`${attached[1]}=${unquote(attached[2])}`);
   }
   return args;
 }

@@ -355,3 +355,32 @@ test("a live base does not mask a stale recorded HEAD", () => {
   assert.ok(report.warnings.some((warning) => warning.rule === "stale-fixed-point"), JSON.stringify(report.warnings));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a hex working-tree fingerprint is not validated as a commit", () => {
+  const { root, head } = makeRepo();
+  writeFileSync(join(root, "blob.txt"), "content\n");
+  git(root, ["add", "blob.txt"]);
+  const blob = git(root, ["hash-object", "blob.txt"]);
+  writeCapsule(root, capsule({ fixedPoint: `fingerprint=${blob}; dirty=clean` }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(!report.errors.some((error) => error.rule === "invalid-fixed-point"), JSON.stringify(report.errors));
+  assert.ok(!report.warnings.some((warning) => warning.rule === "stale-fixed-point"), JSON.stringify(report.warnings));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a base-only capsule has no head anchor so it is not called stale", () => {
+  const { root, head } = makeRepo();
+  git(root, ["commit", "-q", "--allow-empty", "-m", "second"]);
+  writeCapsule(root, capsule({ fixedPoint: "base=" + head + "; dirty=clean" }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(!report.warnings.some((warning) => warning.rule === "stale-fixed-point"), JSON.stringify(report.warnings));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a decorated HEAD anchor still counts for a COMPLETE capsule", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=<${head}>; dirty=clean`, friction: "none", next: "done" }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(!report.errors.some((error) => error.rule === "complete-without-commit-anchor"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

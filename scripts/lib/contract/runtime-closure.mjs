@@ -18,8 +18,10 @@ function runtimeClosure({ root, manifest }) {
     try {
       source = readFileSync(join(root, file), "utf8");
     } catch {
-      if (!missing.has(file)) missing.set(file, new Set());
-      if (from) missing.get(file).add(from);
+      if (file.endsWith(".mjs")) {
+        if (!missing.has(file)) missing.set(file, new Set());
+        if (from) missing.get(file).add(from);
+      }
       continue;
     }
     reachable.add(file);

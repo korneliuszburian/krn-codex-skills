@@ -127,12 +127,12 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     const fixedPoint = fieldLine(text, "Repository base, HEAD or working-tree fingerprint, and dirty-state scope");
     const recorded = commitTokens(fixedPoint);
     const anchorHead = fixedPointAnchors(fixedPoint).head;
-    const headMoved = liveHead.ok && liveHead.out !== "" && (anchorHead ? anchorHead !== liveHead.out.toLowerCase() : recorded.length > 0 && !recorded.includes(liveHead.out.toLowerCase()));
+    const headMoved = liveHead.ok && liveHead.out !== "" && anchorHead !== null && anchorHead !== liveHead.out.toLowerCase();
     const cleanupValue = fieldLine(text, "Outstanding workflow-run cleanup");
     const listed = parseCleanup(cleanupValue).entries;
     const listedPointers = new Set(listed.map((entry) => normalizeRunPointer(report.root, entry.pointer)));
     const missingRuns = [...new Set(listed
-      .filter((entry) => (entry.state === "ACTIVE" || entry.state === "BLOCKED") && !liveRuns.has(normalizeRunPointer(report.root, entry.pointer)))
+      .filter((entry) => !liveRuns.has(normalizeRunPointer(report.root, entry.pointer)))
       .map((entry) => normalizeRunPointer(report.root, entry.pointer)))];
     const unlistedRuns = [...liveRuns].filter((pointer) => !listedPointers.has(pointer));
     briefs.push({

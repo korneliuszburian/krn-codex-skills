@@ -239,3 +239,12 @@ test("headMoved is true when the recorded HEAD differs even if base matches", ()
   assert.equal(report.capsules[0].headMoved, true);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a base-only capsule reports headMoved false and a pending missing run is counted", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, `base=${head}; dirty=clean`, "[.krn/runs/slice-work/gone; slice-work; x; closes; CLEANUP_PENDING]");
+  const report = resumeBrief({ repo: root });
+  assert.equal(report.capsules[0].headMoved, false);
+  assert.equal(report.capsules[0].missingRuns.length, 1, JSON.stringify(report.capsules[0].missingRuns));
+  rmSync(root, { recursive: true, force: true });
+});
