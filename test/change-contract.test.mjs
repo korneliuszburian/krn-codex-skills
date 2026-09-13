@@ -981,6 +981,7 @@ test("assignment and flag tokens still track the named test", () => {
   assertSelfAuthorized({ scripts: { "test:t": "node --test" }, changedFile: "test/foo.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "node --test --test-name-pattern=test/a.test.mjs" }, changedFile: "test/b.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "X=test/a.test.mjs node --test" }, changedFile: "test/b.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node '--test'" }, changedFile: "test/b.test.mjs" });
 });
 
 test("runner subcommands and node_modules shims fail closed as non-literal", () => {
@@ -993,6 +994,10 @@ test("runner subcommands and node_modules shims fail closed as non-literal", () 
   assertSelfAuthorized({ scripts: { "test:t": "pnpm test" }, changedFile: "test/a.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "pnpm dlx mocha" }, changedFile: "test/a.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "node --strict --run test:inner" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "pnpm --filter . test" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "pnpm -C . test" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "npm --prefix . run test:inner" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "bun x mytest" }, changedFile: "test/a.test.mjs" });
 });
 
 test("--before freezes a changed test's helper closure, not just the test file", () => {

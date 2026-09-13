@@ -88,6 +88,7 @@ function checkFileRedefined(root, base, git, rel) {
 }
 
 const TEST_FLAG = /(^|\s)--test(\s|$)/;
+const testFlagPresent = (command) => TEST_FLAG.test(command.replace(/['\"]/g, ""));
 const CODE_EXT = "mjs|js|cjs|sh|ts|mts|cts";
 const TEST_FILE_RE = new RegExp(`(?:^|/)(?:test/.+|[^/]*\\.test|[^/]*-test|[^/]*_test|test-[^/]*|test)\\.(?:${CODE_EXT})$`);
 const isTestFile = (rel) => TEST_FILE_RE.test(rel);
@@ -127,7 +128,7 @@ function scriptNonLiteral(root, command) {
   return /[*?\[]/.test(command)
     || /[$`|;&<>]/.test(command)
     || /(^|[\s/'"])(?:[^\s/]*\/)*(?:sh|bash|zsh|dash|ash|ksh|busybox)\b[^\n]*?\s-c(\s|$)/.test(command)
-    || /\b(?:npm|pnpm|yarn|bun)\s+(?:-{1,2}\S+\s+)*(?:run|exec|test|start|dlx)\b/.test(command)
+    || /\b(?:npm|pnpm|yarn|bun)\s+(?:(?:-{1,2}\S+)(?:\s+\S+)?\s+)*(?:run|exec|test|start|dlx|x)\b/.test(command)
     || /(^|\s)node(?:\s+-{1,2}\S+)*\s+--run(\s|$)/.test(command)
     || /(^|\s)(?:bun|deno)\s+(?:test|bench)(\s|$)/.test(command)
     || /(^|\s)(?:npx|bunx)(\s|$)/.test(command)
@@ -137,14 +138,14 @@ function scriptNonLiteral(root, command) {
 function scriptRedefinition(root, base, git, command) {
   if (scriptNonLiteral(root, command)) return "non-literal";
   const files = literalCommandFiles(command);
-  if (TEST_FLAG.test(command)) files.push(...listTestFiles(root, base, git));
+  if (testFlagPresent(command)) files.push(...listTestFiles(root, base, git));
   for (const rel of files) if (checkFileRedefined(root, base, git, rel)) return "redefined";
   return "clean";
 }
 
 function scriptChangedFiles(root, base, git, command) {
   const files = literalCommandFiles(command);
-  if (TEST_FLAG.test(command)) files.push(...listTestFiles(root, base, git));
+  if (testFlagPresent(command)) files.push(...listTestFiles(root, base, git));
   return files.filter((rel) => checkFileRedefined(root, base, git, rel));
 }
 
@@ -211,6 +212,7 @@ export function runCheckAtBase({ root, base, target, git = runGit, overlay = nul
       const from = path.join(root, rel);
       const to = path.join(dir, rel);
       if (!fs.existsSync(from)) return { unavailable: true };
+      if (fs.lstatSync(from).isSymbolicLink()) return { unavailable: true };
       fs.mkdirSync(path.dirname(to), { recursive: true });
       fs.copyFileSync(from, to);
     }
