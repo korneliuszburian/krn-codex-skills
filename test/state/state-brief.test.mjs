@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { git } from "../support/git-fixture.mjs";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -246,5 +247,15 @@ test("a base-only capsule reports headMoved false and a pending missing run is c
   const report = resumeBrief({ repo: root });
   assert.equal(report.capsules[0].headMoved, false);
   assert.equal(report.capsules[0].missingRuns.length, 1, JSON.stringify(report.capsules[0].missingRuns));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a fingerprint is not reported as a recorded HEAD", () => {
+  const { root, head } = makeRepo();
+  writeFileSync(join(root, "blob.txt"), "content\n");
+  const blob = execFileSync("git", ["-C", root, "hash-object", "blob.txt"], { encoding: "utf8" }).trim();
+  writeCapsule(root, `fingerprint=${blob}; dirty=clean`);
+  const report = resumeBrief({ repo: root });
+  assert.ok(!report.capsules[0].recordedCommits.includes(blob), JSON.stringify(report.capsules[0].recordedCommits));
   rmSync(root, { recursive: true, force: true });
 });

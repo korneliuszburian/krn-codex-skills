@@ -104,7 +104,7 @@ function normalizeRel(rel) {
 }
 const VALUE_FLAGS = new Set(["-r", "--import", "--require", "--loader", "--experimental-loader", "--test-name-pattern", "--test-reporter", "-e", "--eval"]);
 function explicitTestOperands(command) {
-  const tokens = command.replace(/\\[ \t]/g, "\u0000").split(/\s+/).filter(Boolean).map((token) => token.replace(/\u0000/g, " "));
+  const tokens = shellTokens(command);
   const files = [];
   let hasDirectory = false;
   for (let index = 0; index < tokens.length; index += 1) {

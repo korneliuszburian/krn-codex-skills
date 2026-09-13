@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { runGit as git, runGitRaw } from "../support/git-cli.mjs";
 import { capsuleIds, runDirectories } from "./spine-runs.mjs";
 import { inspectSpineState, normalizeRunPointer } from "./state-check.mjs";
-import { commitTokens, fieldLine, fixedPointAnchors, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
+import { fieldLine, fixedPointAnchors, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
 import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
@@ -125,7 +125,8 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     if (!existsSync(path)) continue;
     const text = readFileSync(path, "utf8");
     const fixedPoint = fieldLine(text, "Repository base, HEAD or working-tree fingerprint, and dirty-state scope");
-    const recorded = commitTokens(fixedPoint);
+    const anchors = fixedPointAnchors(fixedPoint);
+    const recorded = [anchors.base, anchors.head].filter(Boolean);
     const anchorHead = fixedPointAnchors(fixedPoint).head;
     const headMoved = liveHead.ok && liveHead.out !== "" && anchorHead !== null && anchorHead !== liveHead.out.toLowerCase();
     const cleanupValue = fieldLine(text, "Outstanding workflow-run cleanup");
