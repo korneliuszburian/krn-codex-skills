@@ -186,8 +186,8 @@ a one-release `check`/`install` compatibility shim; it invokes the same CLI, and
 
 `krn-codex install prune --keep N` removes superseded releases while keeping the current one and the N newest, and never removes a release a managed link still resolves into. Use `krn-codex install check` for filesystem state and `krn-codex doctor` when
 you need the distinction between an installed filesystem snapshot, a broken or
-foreign link (a legacy mutable-source link is reported as foreign because
-doctor does not know the source root; `install apply` migrates it), and
+foreign link (a legacy mutable-source link is reported as
+`legacy_mutable_source`; `install apply` migrates it), and
 unknown/stale session loading.
 Start a fresh Codex session after installation. Discovery is session-scoped.
 `setup-repository-workflow`, `opencode-second-opinion`, `unlazy`, and `unslop`

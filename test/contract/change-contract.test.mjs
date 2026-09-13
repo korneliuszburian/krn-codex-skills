@@ -34,7 +34,7 @@ function fakeGit({ commits, files, baseScripts = {}, baseFiles = [], blobs = {},
       return { ok: baseFiles.includes(rel) || Object.hasOwn(blobs, spec), out: "" };
     }
     if (args[0] === "rev-parse") {
-      const key = args[args.length - 1];
+      const key = args[args.length - 1].replace(/\^\{commit\}$/, "");
       return Object.hasOwn(blobs, key) ? { ok: true, out: blobs[key] } : { ok: false, out: "" };
     }
     if (args[0] === "hash-object") {

@@ -53,11 +53,12 @@ contract's interception guarantee holds only after the hook is trusted.
 
 `krn-codex doctor --json` is a filesystem observer, not a discovery or
 execution test. Its filesystem state is one of `filesystem_installed`,
-`stable_link_bypasses_current`, `foreign_collision`, `legacy_hook_conflict`,
-`broken_link`, `missing`, or `masked_by_override`. A stable link that still
-points into a legacy mutable source checkout is reported as `foreign_collision`
-because `doctor` does not know the source root; `install apply` recognizes it
-against the selected source and migrates it. The last state means a
+`stable_link_bypasses_current`, `legacy_mutable_source`, `orphaned_link`,
+`foreign_collision`, `legacy_hook_conflict`, `broken_link`, `missing`, or
+`masked_by_override`. A stable link into a legacy mutable source checkout is
+reported as `legacy_mutable_source` (a same-relative link into a checkout that
+carries `scripts/krn-codex.mjs`); `install apply` migrates it. The last state
+means a
 present `$CODEX_HOME/AGENTS.override.md` would block `install apply`, even if
 the installed release and stable links themselves are intact.
 It reports session loading as `session_loaded_unknown` and post-install loading

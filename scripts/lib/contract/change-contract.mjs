@@ -344,8 +344,17 @@ function outputTail(output) {
 export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = false, requireCleanHead = false } = {}) {
   const errors = [];
   const warnings = [];
-  const requestedHead = git(root, ["rev-parse", head]);
-  const checkoutHead = git(root, ["rev-parse", "HEAD"]);
+  const requestedHead = git(root, ["rev-parse", "--verify", `${head}^{commit}`]);
+  const checkoutHead = git(root, ["rev-parse", "--verify", "HEAD^{commit}"]);
+  if (requireCleanHead && !requestedHead.ok) {
+    return {
+      root,
+      commits: [],
+      results: [],
+      errors: [{ rule: "unreadable-range", detail: `head ${head} is not resolvable` }],
+      warnings: [],
+    };
+  }
   if (requireCleanHead && requestedHead.ok && checkoutHead.ok && requestedHead.out === checkoutHead.out) {
     const status = git(root, ["status", "--porcelain", "--untracked-files=no"]);
     if (status.ok && status.out !== "") {

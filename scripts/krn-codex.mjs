@@ -46,7 +46,7 @@ function parseOptions(args) {
   const options = { json: false, yes: false };
   const take = (index, flag) => {
     const value = args[index + 1];
-    if (value === undefined || value.startsWith("--")) fail(`${flag} requires a value`);
+    if (value === undefined || value === "" || value.startsWith("--")) fail(`${flag} requires a value`);
     return value;
   };
   for (let index = 0; index < args.length; index += 1) {

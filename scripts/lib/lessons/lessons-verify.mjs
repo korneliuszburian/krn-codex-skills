@@ -106,7 +106,7 @@ export function reanchorLessons({ root, timeout = 120000, runner = runCase, gitI
       continue;
     }
     const gates = (lesson.resolved ?? []).map((entry) => entry.path).filter(Boolean).filter((gate) => gate !== file);
-    const latest = String(gitImpl(root, ["log", "-1", "--format=%h", `${sha}..HEAD`, "--", file, ...gates]) ?? "").trim().slice(0, 7);
+    const latest = String(gitImpl(root, ["log", "-1", "--format=%H", `${sha}..HEAD`, "--", file, ...gates]) ?? "").trim().slice(0, 7);
     if (!latest) continue;
     const outcome = runner({ root, file: path.join(root, file), name, timeout });
     if (!outcome.ok) {
