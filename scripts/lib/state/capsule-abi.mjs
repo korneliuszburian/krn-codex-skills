@@ -53,6 +53,9 @@ export function stripMarkup(value) {
 
 export function parseCleanup(value) {
   if (typeof value !== "string") return { entries: [], malformed: [] };
+  const trimmedValue = value.trim();
+  if (/^none$/i.test(trimmedValue)) return { entries: [], malformed: [] };
+  if (!trimmedValue.startsWith("[")) return { entries: [], malformed: [value] };
   const open = value.indexOf("[");
   const close = value.lastIndexOf("]");
   if (open === -1 || close <= open) return { entries: [], malformed: [value] };
@@ -84,7 +87,7 @@ export function commitTokens(value) {
 }
 
 export function renderCapsule(values) {
-  const missing = ABI_LABELS.filter((label) => values[label] === undefined);
+  const missing = ABI_LABELS.filter((label) => values[label] === undefined || values[label] === null);
   if (missing.length > 0) throw new Error(`capsule values missing labels: ${missing.join(", ")}`);
   return ABI_LABELS.map((label) => `${label}: ${values[label]}`).join("\n");
 }

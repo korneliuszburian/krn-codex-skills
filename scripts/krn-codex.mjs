@@ -185,8 +185,8 @@ try {
         .filter((entry) => entry && !entry.startsWith(".."));
       const hot = changed.length > 0 ? churnHot({ root: options.root, git: runGit, sha: "HEAD", files: changed }) : [];
       const hits = recallLessons({ root: options.root, files: changed, symbols: options.symbols ?? [], hot });
-      print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits }, options.json);
-      if (!options.json) for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
+      if (options.json) print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits }, true);
+      else for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
     }
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));

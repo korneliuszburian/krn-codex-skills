@@ -197,7 +197,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
   return {
     root: report.root,
     applicability: "checked",
-    status: report.status,
+    status: errors.length > 0 ? "divergent" : report.status,
     capsules: briefs,
     lessons,
     errors,
