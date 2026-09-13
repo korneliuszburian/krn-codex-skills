@@ -307,6 +307,7 @@ test("check fails when the exported upstream set disagrees with the pinned harne
   exportSkills({ source: f.source, upstream: f.upstream, root: f.source });
   const lockPath = path.join(f.source, "config", "upstream-sources.json");
   const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+  lock.sources[0].required_paths = ["skills/eng/one/SKILL.md"];
   lock.sources[0].harness_paths = ["skills/eng/one/SKILL.md", "skills/eng/two/SKILL.md"];
   fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
   const check = checkSkills({ root: f.source });
@@ -323,5 +324,22 @@ test("check warns when the export marker records a dirty source", () => {
   fs.writeFileSync(markerPath, `${JSON.stringify(marker, null, 2)}\n`);
   const check = checkSkills({ root: f.root });
   assert.ok(check.warnings.some((w) => w.includes("dirty source")), JSON.stringify(check.warnings));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
+test("dirty scope follows the exported skill paths, not the whole repo", () => {
+  const f = fixture();
+  fs.writeFileSync(path.join(f.source, "ROOT.md"), "a\n");
+  commit(f.source, "root file");
+  fs.writeFileSync(path.join(f.source, "ROOT.md"), "b\n");
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  const marker = JSON.parse(fs.readFileSync(path.join(f.root, ".agents", "skills", ".krn-export.json"), "utf8"));
+  assert.notEqual(marker.krn.dirty, true, "a tracked change outside skill paths must not mark the export dirty");
+
+  const skillFile = path.join(f.source, "skills", "meta", "local", "SKILL.md");
+  fs.writeFileSync(skillFile, `${fs.readFileSync(skillFile, "utf8")}\ntracked edit\n`);
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  const dirty = JSON.parse(fs.readFileSync(path.join(f.root, ".agents", "skills", ".krn-export.json"), "utf8"));
+  assert.equal(dirty.krn.dirty, true, "a tracked change inside a skill path must mark the export dirty");
   fs.rmSync(f.base, { recursive: true, force: true });
 });

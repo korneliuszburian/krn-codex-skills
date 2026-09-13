@@ -76,3 +76,20 @@ test("classifyTarget recognizes the current release and a prior release", () => 
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+test("classifyTarget refuses a matching file from an unrelated checkout", () => {
+  const base = fs.realpathSync(mkdtempSync(join(tmpdir(), "krn-classify-fork-")));
+  const source = join(base, "source");
+  const relative = "skills/engineering/x/SKILL.md";
+  mkdirSync(join(source, "skills", "engineering", "x"), { recursive: true });
+  writeFileSync(join(source, relative), "x");
+  const other = join(base, "other");
+  mkdirSync(join(other, "skills", "engineering", "x"), { recursive: true });
+  writeFileSync(join(other, relative), "y");
+  execFileSync("git", ["-C", other, "init", "-q"]);
+  const releaseRoot = join(base, "codex", "krn");
+  const plan = { source: fs.realpathSync(source), releaseRoot, current: join(releaseRoot, "current"), release: "" };
+  const item = { label: "skill__x", target: join(base, "link"), relative };
+  assert.equal(classifyTarget(plan, item, fs.realpathSync(join(other, relative))), "foreign");
+  rmSync(base, { recursive: true, force: true });
+});

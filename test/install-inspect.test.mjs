@@ -116,3 +116,16 @@ test("a legacy global hook path blocks apply and is surfaced by inspect", () => 
     );
   });
 });
+
+test("applyInstall refuses a symlinked managed destination root", () => {
+  withHome(({ base, home }) => {
+    const source = cleanSource(base);
+    const elsewhere = join(base, "elsewhere");
+    mkdirSync(elsewhere);
+    symlinkSync(elsewhere, join(base, "skills"));
+    assert.throws(
+      () => applyInstall(createInstallPlan({ source, cwd: source, codexHome: home })),
+      /symlinked managed destination root/,
+    );
+  });
+});

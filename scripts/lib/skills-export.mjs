@@ -118,9 +118,13 @@ export function exportSkills({ source, upstream, root }) {
     : manifest.skills;
   const sourceSkillDirs = manifestSkills.map((skill) => skill.path);
   const sourceStatus = git(source, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]);
-  const sourceDirty = sourceStatus.length > 0;
-  const sourceStray = sourceStatus
-    .split("\0")
+  const sourceEntries = sourceStatus.split("\0").filter(Boolean);
+  const sourceDirty = sourceEntries.some((entry) => {
+    if (entry.startsWith("?? ") || entry.startsWith("!! ")) return false;
+    const file = entry.slice(3).trim();
+    return sourceSkillDirs.some((dir) => file === dir || file.startsWith(`${dir}/`));
+  });
+  const sourceStray = sourceEntries
     .filter((entry) => entry.startsWith("?? ") || entry.startsWith("!! "))
     .map((entry) => entry.slice(3))
     .find((file) => sourceSkillDirs.some((dir) => file.startsWith(`${dir}/`)));
@@ -231,6 +235,18 @@ export function checkSkills({ root }) {
       fs.readFileSync(path.join(sourceDir, relative)).equals(fs.readFileSync(path.join(exportDir, relative))),
     );
   };
+  const gitBlobHash = (buffer) => crypto.createHash("sha1").update(Buffer.from(`blob ${buffer.length}\0`)).update(buffer).digest("hex");
+  const reproducesFromCommit = (relativeDir, commit, directory) => {
+    const walk = (dir) =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        return entry.isDirectory() ? walk(full) : [path.relative(directory, full).split(path.sep).join("/")];
+      });
+    return walk(directory).every((relative) => {
+      const recorded = git(root, ["rev-parse", `${commit}:${relativeDir}/${relative}`]);
+      return recorded !== "" && recorded === gitBlobHash(fs.readFileSync(path.join(directory, relative)));
+    });
+  };
   let total = 0;
   let count = 0;
   const names = [];
@@ -251,8 +267,16 @@ export function checkSkills({ root }) {
     }
     if (fields.name !== entry.name) errors.push(`${entry.name}: frontmatter name "${fields.name}" must equal the directory name`);
     const sourceDir = sourceByName.get(entry.name);
-    if (sourceDir && fs.existsSync(sourceDir) && !directoriesMatch(sourceDir, dir)) {
-      errors.push(`${entry.name}: exported files differ from source; run \`krn-codex skills export\``);
+    if (sourceDir && fs.existsSync(sourceDir)) {
+      if (!directoriesMatch(sourceDir, dir)) {
+        errors.push(`${entry.name}: exported files differ from source; run \`krn-codex skills export\``);
+      }
+      const relativeDir = path.relative(root, sourceDir).split(path.sep).join("/");
+      if (marker?.krn?.commit && relativeDir && !relativeDir.startsWith("..")
+        && git(root, ["rev-parse", "--verify", `${marker.krn.commit}^{commit}`]) !== ""
+        && !reproducesFromCommit(relativeDir, marker.krn.commit, dir)) {
+        errors.push(`${entry.name}: exported files do not reproduce from marker commit ${marker.krn.commit}; re-export from a clean checkout`);
+      }
     }
     const recorded = marker?.digests?.[entry.name];
     if (!recorded) {
@@ -278,10 +302,11 @@ export function checkSkills({ root }) {
   const lockFile = path.join(root, "config", "upstream-sources.json");
   const lock = fs.existsSync(lockFile) ? readJson(lockFile) : null;
   if (lock) {
+    const upstreamPin = (lock.sources ?? []).find((source) => (marker?.upstream?.id ? source.id === marker.upstream.id : source.id === "mattpocock/skills"))
+      ?? (lock.sources ?? [])[0];
     const upstreamExpected = [...new Set(
-      (lock.sources ?? []).flatMap((source) =>
-        (source.harness_paths ?? source.required_paths ?? []).map((requiredPath) => path.basename(path.dirname(requiredPath))),
-      ),
+      (upstreamPin?.harness_paths?.length > 0 ? upstreamPin.harness_paths : upstreamPin?.required_paths ?? [])
+        .map((requiredPath) => path.basename(path.dirname(requiredPath))),
     )].sort();
     const upstreamExported = names.filter((name) => !sourceByName.has(name)).sort();
     if (JSON.stringify(upstreamExported) !== JSON.stringify(upstreamExpected)) {
@@ -303,9 +328,8 @@ export function checkSkills({ root }) {
     if (marker.skills && JSON.stringify(actual) !== JSON.stringify(expected)) {
       errors.push(`marker lists [${expected.join(", ")}] but the directory holds [${actual.join(", ")}]`);
     }
-    const lockFile = path.join(root, "config", "upstream-sources.json");
-    if (marker.upstream && fs.existsSync(lockFile)) {
-      const pin = readJson(lockFile).sources?.find((source) => source.id === marker.upstream.id);
+    if (marker.upstream && lock) {
+      const pin = lock.sources?.find((source) => source.id === marker.upstream.id);
       if (pin && pin.commit !== marker.upstream.commit) {
         errors.push(`export marker records ${marker.upstream.id}@${marker.upstream.commit} but config/upstream-sources.json pins @${pin.commit}; run \`krn-codex skills export\``);
       }

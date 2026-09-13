@@ -210,6 +210,25 @@ function legacyHookTargets(codexHome, manifest) {
     .filter((target) => fs.lstatSync(target, { throwIfNoEntry: false }));
 }
 
+function releaseManifest(releaseRoot, currentTarget) {
+  const candidates = currentTarget ? [currentTarget] : [];
+  try {
+    const releases = path.join(releaseRoot, "releases");
+    for (const entry of fs.readdirSync(releases, { withFileTypes: true })) {
+      if (entry.isDirectory()) candidates.push(path.join(releases, entry.name));
+    }
+  } catch {
+    // no releases yet; legacy detection falls back to nothing
+  }
+  for (const directory of candidates) {
+    const file = path.join(directory, "skills", "manifest.json");
+    if (fs.existsSync(file)) {
+      try { return readJson(file); } catch { return null; }
+    }
+  }
+  return null;
+}
+
 function resolvedLink(target) {
   if (!fs.lstatSync(target, { throwIfNoEntry: false })?.isSymbolicLink()) return null;
   return resolvedPath(target);
@@ -259,7 +278,7 @@ export function classifyTarget(plan, item, linked) {
     return isPriorReleasePath(plan, item, linked) ? "prior_release" : "other_release";
   }
   const sourceRoot = git(path.dirname(linked), ["rev-parse", "--show-toplevel"]);
-  if (sourceRoot && path.relative(sourceRoot, linked) === item.relative) return "legacy_source";
+  if (sourceRoot && plan.source && path.resolve(sourceRoot) === path.resolve(plan.source) && path.relative(sourceRoot, linked) === item.relative) return "legacy_source";
   return "foreign";
 }
 
@@ -271,6 +290,12 @@ function preflightTargets(plan) {
   }
   for (const legacy of legacyHookTargets(path.dirname(plan.releaseRoot), plan.manifest)) {
     fail(`refusing legacy global hook path: ${legacy}`, EXIT_COLLISION);
+  }
+  for (const item of managedTargets(plan)) {
+    const parent = path.dirname(item.target);
+    const stat = fs.lstatSync(parent, { throwIfNoEntry: false });
+    if (stat?.isSymbolicLink()) fail(`refusing symlinked managed destination root: ${parent}`, EXIT_COLLISION);
+    if (stat && !stat.isDirectory()) fail(`refusing non-directory managed destination root: ${parent}`, EXIT_COLLISION);
   }
   for (const item of managedTargets(plan)) {
     const stat = fs.lstatSync(item.target, { throwIfNoEntry: false });
@@ -404,9 +429,12 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   const override = path.join(path.dirname(releaseRoot), "AGENTS.override.md");
   const overridePresent = Boolean(fs.lstatSync(override, { throwIfNoEntry: false }));
   const currentTarget = resolvedLink(current);
+  const manifest = releaseManifest(releaseRoot, currentTarget);
+  const legacyHooks = legacyHookTargets(path.dirname(releaseRoot), manifest);
   const base = {
     releaseRoot,
     current,
+    legacyHooks,
     session: { status: "session_loaded_unknown" },
     sessionAfterApply: { status: "stale_session_likely" },
   };
@@ -415,8 +443,12 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     return {
       ...base,
       filesystem: {
-        status: overridePresent ? "masked_by_override" : currentStat && !currentStat.isSymbolicLink() ? "foreign_collision" : currentStat ? "broken_link" : "missing",
-        ...(overridePresent ? { detail: override } : {}),
+        status: overridePresent
+          ? "masked_by_override"
+          : legacyHooks.length > 0
+            ? "legacy_hook_conflict"
+            : currentStat && !currentStat.isSymbolicLink() ? "foreign_collision" : currentStat ? "broken_link" : "missing",
+        ...(overridePresent ? { detail: override } : legacyHooks.length > 0 ? { detail: legacyHooks.join(", ") } : {}),
       },
       targets: [],
     };
@@ -424,10 +456,8 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   let metadata;
   try { metadata = verifyRelease(currentTarget, path.basename(currentTarget)); }
   catch (error) { return { ...base, filesystem: { status: "broken_link", detail: error.message }, targets: [] }; }
-  const manifest = readJson(path.join(currentTarget, "skills", "manifest.json"));
   const plan = { releaseRoot, current, manifest, source: "", release: currentTarget };
   const targets = managedTargets(plan).map((item) => itemStatus(plan, item));
-  const legacyHooks = legacyHookTargets(path.dirname(releaseRoot), manifest);
   const bad = targets.find((item) => item.status !== "filesystem_installed");
   return {
     ...base,
