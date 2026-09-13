@@ -6,7 +6,7 @@ reconciles named profiles into `config.toml` without rewriting unrelated
 configuration.
 
 Status: `accepted`. Consumer: operators selecting or auditing a KRN capability
-profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-11.
+profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-13.
 
 ## Trust model
 

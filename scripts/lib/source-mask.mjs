@@ -1,4 +1,11 @@
 const REGEX_START = /[([{=,:;!&|?+\-*%~^<>]/;
+const REGEX_KEYWORDS = new Set(["return", "typeof", "case", "in", "of", "instanceof", "void", "delete", "do", "else", "yield", "await"]);
+
+function regexStart(out, previous) {
+  if (previous === "" || REGEX_START.test(previous)) return true;
+  const word = /([A-Za-z_$][A-Za-z0-9_$]*)\s*$/.exec(out);
+  return Boolean(word && REGEX_KEYWORDS.has(word[1]));
+}
 
 function scan(source, { literals = false, templates = false } = {}) {
   let out = "";
@@ -11,7 +18,7 @@ function scan(source, { literals = false, templates = false } = {}) {
     if (state === "code") {
       if (char === "/" && next === "/") { state = "line"; out += "  "; index += 2; continue; }
       if (char === "/" && next === "*") { state = "block"; out += "  "; index += 2; continue; }
-      if (char === "/" && (previous === "" || REGEX_START.test(previous))) {
+      if (char === "/" && regexStart(out, previous)) {
         let cursor = index + 1;
         let inClass = false;
         while (cursor < source.length) {

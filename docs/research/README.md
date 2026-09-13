@@ -5,7 +5,7 @@ archive, or chronological log. Each topic page is rewritten as evidence changes;
 Git history records the sequence.
 
 Status: `accepted`. Consumer: maintainer and `$source-to-decision` promotion.
-Owner: maintainer. Verified: 2026-09-11.
+Owner: maintainer. Verified: 2026-09-13.
 
 ## Curation contract
 

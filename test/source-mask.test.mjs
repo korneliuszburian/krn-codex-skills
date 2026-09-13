@@ -34,3 +34,11 @@ test("maskTemplates ignores backticks inside strings and masks real templates", 
   assert.ok(masked.includes("./lib/real.mjs"));
   assert.ok(!masked.includes("# hi"));
 });
+
+test("a regex after a keyword is recognized and does not swallow code", () => {
+  const source = 'return /[\'"]/.test(s);\nconst t = `import phantom from "./x.mjs"`;';
+  const masked = maskTemplates(source);
+  assert.ok(!masked.includes("phantom"), masked);
+  const literals = maskLiterals(`${source}\nphantom();`);
+  assert.ok(literals.includes("phantom();"), literals);
+});

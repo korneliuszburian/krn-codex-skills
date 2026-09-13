@@ -1,6 +1,6 @@
 # Workflow lessons
 
-Status: `accepted`. Consumer: `$delivery-loop` at outcome bind. Owner: the lifecycle writer. Verified: 2026-09-11.
+Status: `accepted`. Consumer: `$delivery-loop` at outcome bind. Owner: the lifecycle writer. Verified: 2026-09-13.
 
 Cross-run workflow memory: the file-backed port of the Agents SDK `Memory()`
 pattern. Each row is a reusable process lesson with the evidence that earned it

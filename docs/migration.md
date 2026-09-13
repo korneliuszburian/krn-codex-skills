@@ -5,7 +5,7 @@ checkout remains an authoring surface; it is never a stable discovery target.
 
 Status: `accepted`. Consumer: KRN operators applying, checking, or rolling back
 the installed runtime. Owner: the installer and release-maintenance workflow.
-Verified: 2026-09-11.
+Verified: 2026-09-13.
 
 ## Ownership
 
