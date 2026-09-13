@@ -77,6 +77,10 @@ test("openaiYamlErrors accepts documented optional interface keys and a dependen
     openaiYamlErrors(unknownKey, { name: "alpha", implicit: true, skillPath: "p" }),
     ["p: agents/openai.yaml must match the canonical schema"],
   );
+  assert.deepEqual(
+    openaiYamlErrors(`${metadata}\ndependencies:\n  tools: []\nbogus_top_level: "x"\nnot yaml`, { name: "alpha", implicit: true, skillPath: "p" }),
+    ["p: agents/openai.yaml must match the canonical schema"],
+  );
 });
 
 test("skillContentErrors flags forbidden content", () => {

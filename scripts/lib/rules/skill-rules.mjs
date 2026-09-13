@@ -24,7 +24,10 @@ function parseMetadata(metadata) {
       if (section !== "interface" && section !== "policy") return null;
       continue;
     }
-    if (inDependencies) continue;
+    if (inDependencies) {
+      if (/^\s/.test(raw)) continue;
+      return null;
+    }
     const field = /^ {2}([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/.exec(raw);
     if (!field) return null;
     if (section === "interface") {
