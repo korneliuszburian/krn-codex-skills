@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Global Codex PreToolUse policy for Bash commands."""
+"""Global Codex PreToolUse policy for Bash commands.
+
+Best-effort heuristic policy, not a sandbox boundary. It models literal
+`rm`/`git clean`, shell redirection, a fixed writer set, and simple shell
+composition, but does not interpret arbitrary interpreters (`python -c`,
+`node -e`, `perl -e`) or track runtime filesystem state. Do not rely on it
+to make an untrusted-root destructive command safe.
+"""
 
 from __future__ import annotations
 
@@ -59,6 +66,9 @@ SYSTEM_DESTRUCTIVE = re.compile(
     r"|\bdd\b[^\n;|&]*\bof="
     r"|\brmtree\b"
     r"|\btruncate\b[^\n;|&]*\s-s\s*0\b"
+    r"|\brsync\b[^\n;|&]*--delete"
+    r"|\bchmod\b[^\n;|&]*\s-\S*R"
+    r"|\bchown\b[^\n;|&]*\s-\S*R"
     r"|\|[^\n;|&]*(?:\$\{IFS\}|\$IFS|\s)*(?:(?:env|sudo|command)\s+)*(?:/[\w./-]+/)*(?:ba|d|z|a|k)?sh(?:\s|$)",
     re.IGNORECASE,
 )
@@ -66,6 +76,65 @@ SYSTEM_DESTRUCTIVE = re.compile(
 
 def executable_name(token: str) -> str:
     return os.path.basename(token)
+
+
+COMMAND_WRAPPERS = {
+    "builtin", "busybox", "command", "doas", "env", "exec", "ionice", "nice",
+    "nohup", "setsid", "stdbuf", "sudo", "time", "timeout",
+}
+SHELL_INTERPRETERS = {"sh", "bash", "dash", "zsh", "ash", "ksh"}
+
+
+def strip_wrappers(words: tuple[str, ...]) -> tuple[str, ...]:
+    tokens = list(words)
+    while tokens and executable_name(tokens[0]) in COMMAND_WRAPPERS:
+        wrapper = executable_name(tokens[0])
+        tokens = tokens[1:]
+        while tokens and (
+            tokens[0].startswith("-")
+            or re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tokens[0])
+        ):
+            tokens = tokens[1:]
+        if wrapper == "timeout" and tokens and re.match(r"^\d+(?:\.\d+)?[smhd]?$", tokens[0]):
+            tokens = tokens[1:]
+    return tuple(tokens)
+
+
+def pipe_segments(command: str) -> list[str]:
+    segments: list[str] = []
+    quote: str | None = None
+    start = 0
+    index = 0
+    while index < len(command):
+        character = command[index]
+        if quote:
+            if quote == '"' and character == "\\" and index + 1 < len(command):
+                index += 2
+                continue
+            if character == quote:
+                quote = None
+            index += 1
+            continue
+        if character in {"'", '"'}:
+            quote = character
+            index += 1
+            continue
+        if character == "\\" and index + 1 < len(command):
+            index += 2
+            continue
+        if character == "|":
+            if (index + 1 < len(command) and command[index + 1] == "|") or (
+                index > 0 and command[index - 1] == "|"
+            ):
+                index += 1
+                continue
+            segments.append(command[start:index].strip())
+            index += 1
+            start = index
+            continue
+        index += 1
+    segments.append(command[start:].strip())
+    return [segment for segment in segments if segment]
 SHELL_COMPOSITION = frozenset(";&|<>(){}\n\r$`*?[")
 
 
@@ -333,6 +402,18 @@ def git_static_risk(args: tuple[str, ...]) -> bool:
             option in {"--force", "-f"} or option.startswith("--force") for option in rest
         ):
             return True
+        if token == "update-ref" and "-d" in rest:
+            return True
+        if token == "reflog" and "expire" in rest:
+            return True
+        if token == "filter-branch":
+            return True
+        if token == "gc" and any(option.startswith("--prune") for option in rest):
+            return True
+        if token == "stash" and any(option in {"clear", "drop"} for option in rest):
+            return True
+        if token == "worktree" and "remove" in rest:
+            return True
         return False
     return False
 
@@ -357,6 +438,17 @@ def has_static_destructive_reference(words: tuple[str, ...] | None) -> bool:
     return git_static_risk(remaining[1:])
 
 
+def pipe_writer_reason(command: str, cwd: Path) -> str | None:
+    for segment in pipe_segments(command):
+        words = static_simple_words(segment)
+        if not words:
+            continue
+        reason = write_target_denial_reason(strip_wrappers(words), cwd)
+        if reason is not None:
+            return reason
+    return None
+
+
 def cd_target(segment: str, cwd: Path) -> Path | None:
     words = static_simple_words(segment)
     if not words or executable_name(words[0]) != "cd":
@@ -379,35 +471,51 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
             active_cwd = cd_target(segment, active_cwd) or active_cwd
         return None
     words = static_simple_words(literal_text)
+    effective = strip_wrappers(words) if words is not None else None
+    if effective:
+        executable = executable_name(effective[0])
+        if executable in SHELL_INTERPRETERS:
+            for position, argument in enumerate(effective[1:], start=1):
+                if argument == "-c" or re.fullmatch(r"-[a-zA-Z]*c", argument):
+                    if position + 1 < len(effective):
+                        return bash_denial_reason(effective[position + 1], cwd)
+                    break
+        if executable == "eval" and len(effective) >= 2:
+            return bash_denial_reason(effective[1], cwd)
     forbidden = references_forbidden_capability(lexical_text)
     literal_risk = (
         DESTRUCTIVE_LITERAL.search(literal_text) is not None
         or SYSTEM_DESTRUCTIVE.search(literal_text) is not None
     )
-    if words is not None and words and executable_name(words[0]) == "git":
+    if effective and executable_name(effective[0]) == "git":
         # A commit message may contain words such as "clean" or "rm". The
         # parsed git argv, not arbitrary message text, decides whether this is
         # the destructive `git clean` command.
         literal_risk = False
     destructive = (
         literal_risk
-        or has_static_destructive_reference(words)
+        or has_static_destructive_reference(effective)
     )
     if not forbidden and not destructive:
-        return redirection_denial_reason(literal_text, cwd) or write_target_denial_reason(words, cwd)
-    if is_safe_text(words):
+        writer = (
+            write_target_denial_reason(effective, cwd)
+            if effective
+            else pipe_writer_reason(literal_text, cwd)
+        )
+        return redirection_denial_reason(literal_text, cwd) or writer
+    if is_safe_text(effective):
         return None
     if forbidden:
         return "blocked by the global forbidden-capability policy"
-    if is_safe_inspection(words):
+    if is_safe_inspection(effective):
         return None
 
-    if words is None or direct_destructive_kind(words) is None:
+    if effective is None or direct_destructive_kind(effective) is None:
         return (
             "literal destructive text appears in shell composition or an "
             "unsupported command; rewrite it as one reviewed direct command"
         )
-    return direct_destructive_denial_reason(words, cwd)
+    return direct_destructive_denial_reason(effective, cwd)
 
 
 def emit_denial(reason: str) -> int:

@@ -47,6 +47,23 @@ PROTECTED_FILE_SUFFIXES = {
 }
 PROTECTED_DATABASE_SIDECARS = ("-journal", "-shm", "-wal")
 MAX_SCAN_ENTRIES = 2_000
+EXEMPT_DEVICE_TARGETS = {
+    "/dev/console",
+    "/dev/full",
+    "/dev/null",
+    "/dev/random",
+    "/dev/stderr",
+    "/dev/stdin",
+    "/dev/stdout",
+    "/dev/tty",
+    "/dev/urandom",
+    "/dev/zero",
+}
+
+
+def is_exempt_device(target: Path) -> bool:
+    text = str(target)
+    return text in EXEMPT_DEVICE_TARGETS or text.startswith("/dev/fd/")
 
 
 def find_repo_root(cwd: Path) -> Path | None:
@@ -296,6 +313,11 @@ def redirection_denial_reason(command: str, cwd: Path) -> str | None:
     for raw_target in redirection_targets(command):
         target = resolve_target(raw_target, cwd)
         if target is None:
+            return (
+                "redirection to an expansion or glob target is blocked; "
+                "name one concrete path"
+            )
+        if is_exempt_device(target):
             continue
         reason = protected_path_reason(target, cwd, recursive=False)
         if reason is not None:
@@ -303,7 +325,7 @@ def redirection_denial_reason(command: str, cwd: Path) -> str | None:
     return None
 
 
-WRITER_COMMANDS = {"cp", "install", "mv"}
+WRITER_COMMANDS = {"cp", "install", "mv", "truncate"}
 
 
 def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
@@ -311,14 +333,26 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
         return None
     executable = os.path.basename(words[0])
     arguments = [word for word in words[1:] if not word.startswith("-")]
-    if executable in WRITER_COMMANDS:
+    if executable in {"mv", "ln"}:
+        if not arguments:
+            return None
+        targets = arguments
+    elif executable == "truncate":
+        if not arguments:
+            return None
+        targets = [arguments[-1]]
+    elif executable in {"cp", "install"}:
         if len(arguments) < 2:
             return None
         targets = [arguments[-1]]
     elif executable == "tee":
         targets = arguments
     elif executable == "sed" and any(
-        word == "-i" or word.startswith("-i") for word in words[1:]
+        word == "-i"
+        or word.startswith("-i")
+        or word == "--in-place"
+        or word.startswith("--in-place")
+        for word in words[1:]
     ):
         targets = arguments[1:]
     else:
@@ -326,6 +360,8 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
     for raw_target in targets:
         target = resolve_target(raw_target, cwd)
         if target is None:
+            continue
+        if is_exempt_device(target):
             continue
         reason = protected_path_reason(target, cwd, recursive=False)
         if reason is not None:
