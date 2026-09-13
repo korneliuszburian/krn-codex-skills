@@ -106,37 +106,43 @@ cost-per-success are identical, the effort pin is unnecessary.
 One decisive plus one neutral task, arms A (lesson row removed), B (lesson
 content), C (forced recall via the harness CLI), three runs per cell, under the
 staged bwrap 0.12.0 with a fresh share seeded only with `auth.json` and the host
-`opencode.db` never copied. The harness is copied inside the working tree so the
-agent needs no external-directory permission. Fixture: a banner string coupled to
-`BANNER_VERSION`; the decisive lesson's `path:src/greeting.mjs` trigger matched
-(1 hit) and the neutral `README.md` path matched none (0 hits). Held-out check
-copied in only after the agent exited; pre-run isolation probes showed `/mnt` and
-`$HOME` hidden and `node` available.
+`opencode.db` never copied. The runner asserts `bwrap --version >= 0.12.0`, copies
+the harness inside `/work` (no external-directory permission), binds a private
+`/run/user` (host session D-Bus hidden), unsets `DBUS_SESSION_BUS_ADDRESS` and
+`XDG_RUNTIME_DIR`, and records a per-run sentinel. Fixture: a banner string coupled
+to `BANNER_VERSION`; the decisive lesson's `path:src/greeting.mjs` trigger matched
+(1 hit) and the neutral `README.md` path matched none (0 hits). The in-repo test
+asserts `greeting` uses the current `BANNER` and `BANNER_VERSION >= 1` (not the old
+literal), so arm A can attempt the banner change and fail only the coupling.
+Held-out check copied in only after the agent exited; pre-run probes showed `/mnt`,
+`$HOME`, and `/run/user/1000/bus` hidden and `node` available.
 
-| Cell | decisive | neutral | median wall (s) | median tokens in/out |
+| Cell | decisive | neutral | median wall decisive/neutral (s) | median total tokens decisive/neutral |
 |---|---|---|---|---|
-| A (ablate) | 0/3 | 3/3 | 16 / 14 | 10876 / 8914 |
-| B (content) | 2/3 | 3/3 | 17 / 16 | 10384 / 10149 |
-| C (forced recall) | 3/3 | 3/3 | 20 / 14 | 11481 / 9398 |
+| A (ablate) | 0/3 | 3/3 | 17 / 14 | 10152 / 8908 |
+| B (content) | 3/3 | 3/3 | 14 / 17 | 9953 / 10445 |
+| C (forced recall) | 3/3 | 3/3 | 15 / 16 | 9750 / 8956 |
 
-Disposition: **content effect present, still non-promoting.** Content (B) beats
-ablation (A) on the decisive task (2/3 vs 0/3); the arms differ only by the
-lesson row, so delivering the coupled-version lesson changed the outcome. Forced
-recall (C) is at ceiling (3/3) and does not beat content at this N, and cost does
-not separate them. The neutral stratum is at ceiling for every arm (3/3), so it
-provides no contrast and the registered difference-in-differences cannot separate
-the content effect from generic priming; N=3 is below the registered MDE; and the
-placebo arm and the exact git-shim `--strict-recall` mechanism (C is a
-CLI-forced proxy) are not yet run. No mechanism is promoted on this gate. Reopen
-with a neutral task that has variance, the length-matched placebo, the registered
-tasks x reps, and the exact git-shim mechanism.
+Disposition: **content effect attributable, still non-promoting.** The arms differ
+only by the lesson row. In all three decisive A runs the agent changed `BANNER` to
+`Welcome` and left `BANNER_VERSION` at 1, failing the held-out coupling check on the
+version assertion alone; B (lesson content) and C (forced recall) bumped it and
+passed 3/3. Delivery of the coupled-version lesson, not the task wording, changed
+the outcome. Still not promoted: the neutral stratum is at ceiling for every arm
+(3/3), so the registered difference-in-differences is unidentified and generic
+priming is not separated; N=3 is below the registered MDE; there is no
+length/wording-matched placebo (B'); one model family at one effort; and C is a
+CLI-forced proxy for the git-shim `--strict-recall` mechanism, not that mechanism.
+Reopen with a same-shape neutral that has variance, placebo B', the third family,
+and the exact git-shim.
 
-Confounds recorded honestly: an earlier pass was confounded by an
-external-directory permission rejection when the harness lived outside the working
-tree (arm B no-op), and an intermediate pass aborted on transient provider
-`UnknownError`s; both were fixed for the final run (harness copied inside `/work`,
-retry on transient errors). The final dataset has zero retries and zero provider
-errors.
+Confounds fixed for this run, recorded honestly: the earlier pass required an
+external-directory permission for `/harness`, so arms no-op'd; a second pass
+aborted on transient provider `UnknownError`s; and the original in-repo test pinned
+the old banner/version so arm A could not attempt the change. The runner now asserts
+the bwrap floor and the harness lives in `/work`, transient provider errors are
+retried, and the decisive test no longer pins the target value. Final dataset: zero
+retries, zero provider errors, `sentinel_leak=no`.
 
 Retention manifest (salt `46bd785538ad43e1`, first 16 hex of
 sha256(salt || file)): `greeting.mjs=eaa6f61223c4be17`,
