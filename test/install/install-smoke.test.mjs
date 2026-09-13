@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { applyInstall, createInstallPlan, installExitCodes } from "../../scripts/lib/install/install-release.mjs";
 
-const sourceRoot = fileURLToPath(new URL("..", import.meta.url));
+const sourceRoot = fileURLToPath(new URL("../../", import.meta.url));
 
 test("the install shim dispatches check and rejects an unknown mode", () => {
   const shim = path.join(sourceRoot, "scripts", "install.sh");
