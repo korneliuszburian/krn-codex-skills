@@ -52,6 +52,7 @@ export function stripMarkup(value) {
 }
 
 export function parseCleanup(value) {
+  if (typeof value !== "string") return { entries: [], malformed: [] };
   const open = value.indexOf("[");
   const close = value.lastIndexOf("]");
   if (open === -1 || close <= open) return { entries: [], malformed: [value] };

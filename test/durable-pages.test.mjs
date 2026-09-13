@@ -115,3 +115,12 @@ test("a missing header field and a missing Topics row are reported", () => {
   assert.ok(rowErrors.some((error) => error.includes("../capabilities.md")), JSON.stringify(rowErrors));
   rmSync(missingRow, { recursive: true, force: true });
 });
+
+test("a missing durable page is a first-class error, not a crash", () => {
+  const root = makeRoot();
+  rmSync(join(root, "docs", "capabilities.md"));
+  let report;
+  assert.doesNotThrow(() => { report = checkDurablePages({ root }); });
+  assert.ok(report.errors.some((error) => error.includes("docs/capabilities.md: missing")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

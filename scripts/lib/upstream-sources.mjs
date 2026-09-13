@@ -65,7 +65,10 @@ export function upstreamSourceErrors(document) {
 }
 
 export function upstreamSkillNamesFrom(document) {
-  return document.sources.flatMap((source) =>
-    (source.required_paths ?? []).map((requiredPath) => path.basename(path.dirname(requiredPath))),
+  const sources = Array.isArray(document?.sources) ? document.sources : [];
+  return sources.flatMap((source) =>
+    (Array.isArray(source?.required_paths) ? source.required_paths : [])
+      .filter((requiredPath) => typeof requiredPath === "string")
+      .map((requiredPath) => path.basename(path.dirname(requiredPath))),
   );
 }

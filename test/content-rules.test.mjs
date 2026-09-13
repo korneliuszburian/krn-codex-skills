@@ -118,3 +118,9 @@ test("parseFrontmatterFields parses and validates keys", () => {
     ),
   );
 });
+
+test("inline code links and self-closing or void tags are not errors", () => {
+  const errors = markdownLinkErrors("a `[fake](missing.md)` example\n", { label: "README.md", resolveTarget: () => false });
+  assert.deepEqual(errors, []);
+  assert.deepEqual(semanticXmlErrors("<br />\n<img src=\"x\">\n<hr>\n", "f.md"), []);
+});

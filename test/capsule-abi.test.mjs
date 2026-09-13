@@ -22,3 +22,8 @@ test("commitTokens extracts fixed-point commits and stripMarkup removes markers"
   assert.deepEqual(commitTokens("base=ffc3f987ded091b37448bd0481f8ad248f1e86a6; HEAD=21902f0"), ["ffc3f987ded091b37448bd0481f8ad248f1e86a6"]);
   assert.equal(stripMarkup("`value`"), "value");
 });
+
+test("parseCleanup tolerates a missing cleanup value", () => {
+  assert.deepEqual(parseCleanup(null), { entries: [], malformed: [] });
+  assert.deepEqual(parseCleanup(undefined), { entries: [], malformed: [] });
+});

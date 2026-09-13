@@ -51,3 +51,10 @@ test("a declared but unreachable module is reported as dead weight", () => {
   ]);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a commented-out import does not make a declared path reachable", () => {
+  const { root, manifest } = makeRepo(["scripts/a.mjs", "scripts/lib/b.mjs", "scripts/lib/dead.mjs"]);
+  writeFileSync(join(root, "scripts", "a.mjs"), 'import "./lib/b.mjs";\n// import "./lib/dead.mjs"\n');
+  assert.ok(runtimeClosureErrors({ root, manifest }).some((error) => error.includes("scripts/lib/dead.mjs")), JSON.stringify(runtimeClosureErrors({ root, manifest })));
+  rmSync(root, { recursive: true, force: true });
+});

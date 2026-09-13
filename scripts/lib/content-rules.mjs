@@ -14,7 +14,7 @@ export function unfencedLines(content) {
 export function markdownLinkErrors(content, { label, resolveTarget }) {
   const errors = [];
   for (const { line, number } of unfencedLines(content)) {
-    for (const match of line.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
+    for (const match of line.replace(/`[^`]*`/g, " ").matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
       let target = match[1].trim().split(/\s+"/)[0];
       if (/^<.*>$/.test(target)) target = target.slice(1, -1);
       if (!target || target.startsWith("#") || /^[a-z][a-z+.-]*:/i.test(target)) {
@@ -37,6 +37,7 @@ export function markdownLinkErrors(content, { label, resolveTarget }) {
 export function semanticXmlErrors(content, label) {
   const errors = [];
   const stack = [];
+  const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
   for (const { line, number } of unfencedLines(content)) {
     const trimmed = line.trim();
     const close = trimmed.match(/^<\/([a-z][a-z0-9-]*)>$/);
@@ -47,8 +48,9 @@ export function semanticXmlErrors(content, label) {
       }
       continue;
     }
+    if (/\/>$/.test(trimmed)) continue;
     const open = trimmed.match(/^<([a-z][a-z0-9-]*)(?:\s+[^>]*)?>$/);
-    if (open) stack.push({ name: open[1], number });
+    if (open && !VOID.has(open[1])) stack.push({ name: open[1], number });
   }
   for (const open of stack) {
     errors.push(`${label}:${open.number}: unclosed <${open.name}>`);

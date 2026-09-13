@@ -68,3 +68,10 @@ test("isSafeRelativePath rejects absolute and escaping paths", () => {
   assert.equal(isSafeRelativePath("a\\..\\b"), false);
   assert.equal(isSafeRelativePath("a\\b"), false);
 });
+
+test("upstreamSkillNamesFrom tolerates a malformed document", () => {
+  assert.deepEqual(upstreamSkillNamesFrom({}), []);
+  assert.deepEqual(upstreamSkillNamesFrom({ sources: "nope" }), []);
+  assert.deepEqual(upstreamSkillNamesFrom({ sources: [{ required_paths: "nope" }] }), []);
+  assert.deepEqual(upstreamSkillNamesFrom(validSource()), ["alpha"]);
+});

@@ -7,6 +7,7 @@ export function runGit(repo, args) {
       out: execFileSync("git", ["-C", repo, ...args], {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],
+        maxBuffer: 64 * 1024 * 1024,
       }).trim(),
     };
   } catch {

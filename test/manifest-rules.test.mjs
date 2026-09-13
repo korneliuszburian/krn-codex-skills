@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { isSafeRelativePath } from "../scripts/lib/path-rules.mjs";
+
 import {
   binErrors,
   hookFileErrors,
@@ -261,4 +263,11 @@ test("retirementErrors validates retired skill metadata", () => {
   assert.deepEqual(retirementErrors(undefined, local).errors, [
     "manifest: retired_skills must be an array",
   ]);
+});
+
+test("manifest rule helpers never throw on malformed fields", () => {
+  assert.doesNotThrow(() => legacyHookPathErrors(["hooks/x.py", null], { isSafeRelativePath, hookNames: new Set() }));
+  assert.ok(legacyHookPathErrors([null], { isSafeRelativePath, hookNames: new Set() }).errors.length > 0);
+  assert.doesNotThrow(() => retirementErrors({}, new Set()));
+  assert.doesNotThrow(() => retirementErrors(5, new Set()));
 });

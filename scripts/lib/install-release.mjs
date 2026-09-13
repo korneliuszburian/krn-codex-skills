@@ -270,7 +270,7 @@ function preflightCurrent(plan) {
   verifyRelease(linked, path.basename(linked));
 }
 
-export function classifyTarget(plan, item, linked, { unknownSourceOk = false } = {}) {
+export function classifyTarget(plan, item, linked) {
   const expectedSource = plan.source ? path.join(plan.source, item.relative) : null;
   const legacySource = item.label === "bin__krn-codex-catalog" && plan.source
     ? path.join(plan.source, "scripts/catalog.mjs")
@@ -282,10 +282,7 @@ export function classifyTarget(plan, item, linked, { unknownSourceOk = false } =
     return isPriorReleasePath(plan, item, linked) ? "prior_release" : "other_release";
   }
   const sourceRoot = git(path.dirname(linked), ["rev-parse", "--show-toplevel"]);
-  if (sourceRoot && path.relative(sourceRoot, linked) === item.relative) {
-    if (plan.source && path.resolve(sourceRoot) === path.resolve(plan.source)) return "legacy_source";
-    if (unknownSourceOk) return "legacy_source";
-  }
+  if (sourceRoot && plan.source && path.resolve(sourceRoot) === path.resolve(plan.source) && path.relative(sourceRoot, linked) === item.relative) return "legacy_source";
   return "foreign";
 }
 
@@ -419,7 +416,7 @@ function itemStatus(plan, item) {
   if (!stat.isSymbolicLink()) return { target: item.target, status: "foreign_collision" };
   const linked = resolvedLink(item.target);
   if (!linked) return { target: item.target, status: "broken_link" };
-  const kind = classifyTarget(plan, item, linked, { unknownSourceOk: true });
+  const kind = classifyTarget(plan, item, linked);
   const status = kind === "current"
     ? "filesystem_installed"
     : kind === "prior_release" || kind === "other_release"
@@ -436,7 +433,10 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   const override = path.join(path.dirname(releaseRoot), "AGENTS.override.md");
   const overridePresent = Boolean(fs.lstatSync(override, { throwIfNoEntry: false }));
   const currentTarget = resolvedLink(current);
-  const manifest = releaseManifest(releaseRoot, currentTarget) ?? (fs.existsSync(OWN_MANIFEST) ? readJson(OWN_MANIFEST) : null);
+  const manifest = releaseManifest(releaseRoot, currentTarget) ?? (() => {
+    if (!fs.existsSync(OWN_MANIFEST)) return null;
+    try { return readJson(OWN_MANIFEST); } catch { return null; }
+  })();
   const legacyHooks = legacyHookTargets(path.dirname(releaseRoot), manifest);
   const base = {
     releaseRoot,

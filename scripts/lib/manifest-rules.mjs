@@ -50,6 +50,10 @@ export function legacyHookPathErrors(legacyPaths, { isSafeRelativePath, hookName
     return { errors, names };
   }
   for (const legacyPath of legacyPaths) {
+    if (typeof legacyPath !== "string") {
+      errors.push(`manifest: unsafe legacy global hook path ${legacyPath}`);
+      continue;
+    }
     if (!isSafeRelativePath(legacyPath)) {
       errors.push(`manifest: unsafe legacy global hook path ${legacyPath}`);
     }
@@ -134,7 +138,7 @@ export function retirementErrors(retiredSkills, localSkillNames) {
     errors.push("manifest: retired_skills must be an array");
   }
   const names = new Set();
-  for (const retired of retiredSkills ?? []) {
+  for (const retired of (Array.isArray(retiredSkills) ? retiredSkills : [])) {
     if (!retired || typeof retired !== "object" || Array.isArray(retired)) {
       errors.push("manifest: retired skill metadata must be an object");
       continue;

@@ -18,13 +18,14 @@ function runtimeClosure({ root, manifest }) {
       continue;
     }
     reachable.add(file);
-    for (const match of source.matchAll(/(?:from|import)\s*\(?\s*["'](\.[^"']+)["']/g)) {
+    const code = source.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
+    for (const match of code.matchAll(/(?:from|import)\s*\(?\s*["'](\.[^"']+)["']/g)) {
       queue.push(relativePath(root, file, match[1]));
     }
-    for (const match of source.matchAll(/delegate\(\s*["']([^"']+\.mjs)["']/g)) {
+    for (const match of code.matchAll(/delegate\(\s*["']([^"']+\.mjs)["']/g)) {
       queue.push(match[1]);
     }
-    for (const match of source.matchAll(/spawnSync\([^,]+,\s*\[[^\]]*["']([^"']+\.mjs)["']/g)) {
+    for (const match of code.matchAll(/spawnSync\([^,]+,\s*\[[^\]]*["']([^"']+\.mjs)["']/g)) {
       queue.push(match[1]);
     }
   }

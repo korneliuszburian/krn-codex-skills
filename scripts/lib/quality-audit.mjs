@@ -69,7 +69,7 @@ const CREDENTIALS = [
   [/\bgithub_pat_[A-Za-z0-9_]{22,}\b/, "GitHub fine-grained token"],
   [/\bxox[baprs]-[A-Za-z0-9-]{10,}\b/, "Slack token"],
   [/\bAIza[0-9A-Za-z_-]{35}\b/, "Google API key"],
-  [/\bsk-(?:proj-|ant-|live-)?[A-Za-z0-9_-]{20,}\b/, "vendor API key"],
+  [/\bsk-(?:proj-|ant-|live-)?[A-Za-z0-9]{20,}\b/, "vendor API key"],
   [/\bsk_live_[A-Za-z0-9]{16,}\b/, "Stripe secret key"],
   [/\baws_secret_access_key\s*[:=]\s*["']?[A-Za-z0-9/+=]{40}/, "AWS secret access key"],
 ];

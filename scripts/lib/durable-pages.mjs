@@ -123,7 +123,12 @@ export function checkDurablePages({ root }) {
     ["capabilities.md", "../capabilities.md"],
     ["migration.md", "../migration.md"],
   ]) {
-    header(path.join(root, "docs", file));
+    const absolute = path.join(root, "docs", file);
+    if (!fs.existsSync(absolute)) {
+      errors.push(`docs/${file}: missing`);
+    } else {
+      header(absolute);
+    }
     if (!topicsSection.includes(`](${target})`)) {
       errors.push(`docs/research/README.md Topics is missing ${target}`);
     }

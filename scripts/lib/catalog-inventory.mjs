@@ -483,7 +483,11 @@ async function readSmallJson(path, maxBytes, quarantine) {
   try {
     const file = await handle.stat();
     if (!file.isFile() || file.size > maxBytes) return undefined;
-    return JSON.parse(await handle.readFile({ encoding: "utf8" }));
+    try {
+      return JSON.parse(await handle.readFile({ encoding: "utf8" }));
+    } catch {
+      return undefined;
+    }
   } finally {
     await handle.close();
   }

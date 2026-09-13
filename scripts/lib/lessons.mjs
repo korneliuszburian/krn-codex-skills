@@ -234,9 +234,17 @@ export function checkLessons({ root, git = runGit }) {
         });
         if (!target) errors.push(`lesson "${row.lesson}": superseded-by "${anchor}" resolves to no active row`);
       } else {
-        const tokens = [...row.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
-        for (const token of row.gate.replace(/`/g, " ").split(/\s+/)) tokens.push(token.trim());
-        const live = [...new Set(tokens)].filter((reference) => reference && (CANDIDATE.test(reference) || Object.hasOwn(scripts, reference))).filter((reference) => resolveReference(root, scripts, reference).ok);
+        const tokens = new Map();
+        for (const match of row.gate.matchAll(/`([^`]+)`/g)) tokens.set(match[1].trim(), true);
+        for (const token of row.gate.replace(/`/g, " ").split(/\s+/)) {
+          const reference = token.trim();
+          if (reference && !tokens.has(reference)) tokens.set(reference, false);
+        }
+        const live = [...tokens.entries()]
+          .filter(([reference, backticked]) => reference
+            && (CANDIDATE.test(reference) || (backticked && Object.hasOwn(scripts, reference)) || (Object.hasOwn(scripts, reference) && /[:.-]/.test(reference))))
+          .filter(([reference]) => resolveReference(root, scripts, reference).ok)
+          .map(([reference]) => reference);
         if (live.length > 0) errors.push(`lesson "${row.lesson}": retired with a live gate (${live.join(", ")}); remove the enforcement or name superseded-by`);
       }
       lessons.push({ lesson: row.lesson, resolved: [], occurrences: row.occurrences, falsifier: row.falsifier, trigger: row.trigger, status: row.status });

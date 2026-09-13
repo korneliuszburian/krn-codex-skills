@@ -336,10 +336,10 @@ for (const markdown of repositoryMarkdown) {
   );
   const baseline = new Set([
     ...(Array.isArray(manifest.harness_skills) ? manifest.harness_skills : []),
-    ...upstreamSources.sources.flatMap((source) => {
-      const paths = source.harness_paths ?? source.required_paths;
-      return paths.map((requiredPath) => path.basename(path.dirname(requiredPath)));
-    }),
+    ...((Array.isArray(upstreamSources.sources) ? upstreamSources.sources : []).flatMap((source) => {
+      const paths = Array.isArray(source?.harness_paths) ? source.harness_paths : Array.isArray(source?.required_paths) ? source.required_paths : [];
+      return paths.filter((requiredPath) => typeof requiredPath === "string").map((requiredPath) => path.basename(path.dirname(requiredPath)));
+    })),
   ]);
   const knownHandlers = new Set([...localSkillNames, ...upstreamSkillNames]);
   for (const error of transitionErrors(transitions, { knownHandlers, baseline })) fail(error);
