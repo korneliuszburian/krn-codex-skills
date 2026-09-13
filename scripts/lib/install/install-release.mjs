@@ -316,11 +316,46 @@ function restoreCurrent(plan, previous) {
   }
 }
 
+function linkResolvesInto(target, root) {
+  let textual;
+  try { textual = fs.readlinkSync(target); } catch { return false; }
+  const absolute = path.isAbsolute(textual) ? textual : path.resolve(path.dirname(target), textual);
+  return isInside(root, absolute);
+}
+
+function orphanManagedLinks(plan) {
+  const roots = [
+    process.env.KRN_SKILLS_DEST || path.join(os.homedir(), ".agents", "skills"),
+    process.env.KRN_BIN_DEST || path.join(os.homedir(), ".local", "bin"),
+    path.join(path.dirname(plan.releaseRoot), "hooks"),
+  ];
+  const managed = new Set(managedTargets(plan).map((item) => item.target));
+  const orphans = [];
+  for (const root of roots) {
+    let entries;
+    try { entries = fs.readdirSync(root, { withFileTypes: true }); } catch { continue; }
+    for (const entry of entries) {
+      const target = path.join(root, entry.name);
+      if (managed.has(target) || !entry.isSymbolicLink()) continue;
+      if (linkResolvesInto(target, plan.releaseRoot)) orphans.push(target);
+    }
+  }
+  return orphans;
+}
+
 function reconcileTargets(plan) {
   const backup = path.join(plan.releaseRoot, "migration-backups", `${new Date().toISOString().replaceAll(/[:.]/g, "-")}-${process.pid}`);
   let usedBackup = false;
   const changed = [];
   try {
+    for (const target of orphanManagedLinks(plan)) {
+      const entry = { target, backup: null, created: false };
+      changed.push(entry);
+      fs.mkdirSync(backup, { recursive: true });
+      entry.backup = path.join(backup, `orphan__${path.basename(target)}`);
+      fs.renameSync(target, entry.backup);
+      usedBackup = true;
+    }
     for (const item of managedTargets(plan)) {
       fs.mkdirSync(path.dirname(item.target), { recursive: true });
       const expected = stableTarget(plan, item);
@@ -353,7 +388,7 @@ function reconcileTargets(plan) {
     }
     throw error;
   }
-  return usedBackup ? backup : null;
+  return { backup: usedBackup ? backup : null, reconciled: changed.length > 0 };
 }
 
 export function applyInstall(plan) {
@@ -382,8 +417,8 @@ export function applyInstall(plan) {
   replaceCurrent(plan, plan.release);
   try {
     verifyInstalledCli(plan);
-    const backup = reconcileTargets(plan);
-    return { ...plan, backup, idempotent: Boolean(previous === plan.release) };
+    const { backup, reconciled } = reconcileTargets(plan);
+    return { ...plan, backup, idempotent: Boolean(previous === plan.release) && !reconciled };
   } catch (error) {
     restoreCurrent(plan, previous);
     throw error;
@@ -454,6 +489,7 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   catch (error) { return { ...base, filesystem: { status: "broken_link", detail: error.message }, targets: [] }; }
   const plan = { releaseRoot, current, manifest, source: "", release: currentTarget };
   const targets = managedTargets(plan).map((item) => itemStatus(plan, item));
+  for (const orphan of orphanManagedLinks(plan)) targets.push({ target: orphan, status: "orphaned_link" });
   const bad = targets.find((item) => item.status !== "filesystem_installed");
   return {
     ...base,
