@@ -93,16 +93,19 @@ const testFlagPresent = (command) => TEST_FLAG.test(command.replace(/['\"\\]/g, 
 const VALUE_FLAGS = new Set(["-r", "--import", "--require", "--loader", "--experimental-loader", "--test-name-pattern", "--test-reporter", "-e", "--eval"]);
 function explicitTestOperands(command) {
   const tokens = command.replace(/\\[ \t]/g, "\u0000").split(/\s+/).filter(Boolean).map((token) => token.replace(/\u0000/g, " "));
-  const operands = [];
+  const files = [];
+  let hasDirectory = false;
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
     if (VALUE_FLAGS.has(token)) { index += 1; continue; }
+    if (token.startsWith("--test") && token !== "--test" && token !== "--test-only") { index += 1; continue; }
     if (token.startsWith("--") && token.includes("=")) continue;
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(token)) continue;
-    const cleaned = token.replace(/^['"]|['"]$/g, "").replace(/\\(["'])/g, "$1").replace(/\\/g, "/");
-    if (new RegExp(`\\.(?:${CODE_EXT})$`).test(cleaned)) operands.push(cleaned.replace(/^\.\//, ""));
+    const cleaned = token.replace(/^['"]|['"]$/g, "").replace(/\\(["'])/g, "$1").replace(/\\/g, "/").replace(/\/{2,}/g, "/");
+    if (new RegExp(`\\.(?:${CODE_EXT})$`).test(cleaned)) files.push(cleaned.replace(/^\.\//, ""));
+    else if (!cleaned.startsWith("-") && (cleaned === "test" || cleaned.endsWith("/") || /^\.{0,2}\//.test(cleaned))) hasDirectory = true;
   }
-  return operands;
+  return { files, hasDirectory };
 }
 const CODE_EXT = "mjs|js|cjs|sh|ts|mts|cts";
 const TEST_FILE_RE = new RegExp(`(?:^|/)(?:test/.+|[^/]*\\.test|[^/]*-test|[^/]*_test|test-[^/]*|test)\\.(?:${CODE_EXT})$`);
@@ -111,11 +114,12 @@ const isTestFile = (rel) => TEST_FILE_RE.test(rel);
 function literalCommandFiles(command, { positionalOnly = false } = {}) {
   const files = [];
   const safe = command.replace(/\\[ \t]/g, "\u0000");
+  const clean = (value) => value.replace(/\u0000/g, " ").replace(/\\(["'])/g, "$1").replace(/\\/g, "/").replace(/\/{2,}/g, "/").replace(/^\.\//, "");
   const quoted = new RegExp(`"((?:\\\\.|[^"\\\\])+\\.(?:${CODE_EXT}))"|'((?:\\\\.|[^'\\\\])+\\.(?:${CODE_EXT}))'`, "g");
-  for (const match of safe.matchAll(quoted)) files.push((match[1] ?? match[2]).replace(/\u0000/g, " ").replace(/\\(["'])/g, "$1").replace(/\\/g, "/").replace(/^\.\//, ""));
+  for (const match of safe.matchAll(quoted)) files.push(clean(match[1] ?? match[2]));
   const prefix = positionalOnly ? "" : "(?:[A-Za-z_][A-Za-z0-9_]*=|--?[^\\s=]+=)?";
   const bare = new RegExp(`(?:^|\\s)${prefix}([^\\s]+\\.(?:${CODE_EXT}))(?=$|\\s)`, "g");
-  for (const match of safe.matchAll(bare)) files.push(match[1].replace(/\u0000/g, " ").replace(/\\/g, "/").replace(/^\.\//, ""));
+  for (const match of safe.matchAll(bare)) files.push(clean(match[1]));
   return files;
 }
 
@@ -154,14 +158,16 @@ function scriptNonLiteral(root, command) {
 function scriptRedefinition(root, base, git, command) {
   if (scriptNonLiteral(root, command)) return "non-literal";
   const files = literalCommandFiles(command);
-  if (testFlagPresent(command) && explicitTestOperands(command).filter(isTestFile).length === 0) files.push(...listTestFiles(root, base, git));
+  const operands = explicitTestOperands(command);
+  if (testFlagPresent(command) && (operands.files.filter(isTestFile).length === 0 || operands.hasDirectory)) files.push(...listTestFiles(root, base, git));
   for (const rel of files) if (checkFileRedefined(root, base, git, rel)) return "redefined";
   return "clean";
 }
 
 function scriptChangedFiles(root, base, git, command) {
   const files = literalCommandFiles(command);
-  if (testFlagPresent(command) && explicitTestOperands(command).filter(isTestFile).length === 0) files.push(...listTestFiles(root, base, git));
+  const operands = explicitTestOperands(command);
+  if (testFlagPresent(command) && (operands.files.filter(isTestFile).length === 0 || operands.hasDirectory)) files.push(...listTestFiles(root, base, git));
   return files.filter((rel) => checkFileRedefined(root, base, git, rel));
 }
 
@@ -169,7 +175,9 @@ function literalTestFiles(root, target) {
   if (target.kind !== "script") return null;
   const command = scriptCommand(root, target);
   if (typeof command !== "string" || scriptNonLiteral(root, command)) return null;
-  const tests = explicitTestOperands(command).filter(isTestFile);
+  const operands = explicitTestOperands(command);
+  if (operands.hasDirectory) return null;
+  const tests = operands.files.filter(isTestFile);
   return tests.length > 0 ? tests : null;
 }
 

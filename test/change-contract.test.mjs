@@ -986,6 +986,9 @@ test("assignment and flag tokens still track the named test", () => {
   assertSelfAuthorized({ scripts: { "test:t": "node --te\\st" }, changedFile: "test/b.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "node --test \"test\\sub\\a.test.mjs\"" }, changedFile: "test/sub/a.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "node --test \"test/a\\\".test.mjs\"" }, changedFile: "test/a\".test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --test --test-skip-pattern test/a.test.mjs" }, changedFile: "test/b.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --test \"test\\\\sub\\\\a.test.mjs\"" }, changedFile: "test/sub/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --test test/ test/a.test.mjs" }, changedFile: "test/b.test.mjs" });
 });
 
 test("runner subcommands and node_modules shims fail closed as non-literal", () => {
