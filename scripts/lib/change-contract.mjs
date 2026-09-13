@@ -88,7 +88,22 @@ function checkFileRedefined(root, base, git, rel) {
 }
 
 const TEST_FLAG = /(^|\s)--test(\s|$)/;
-const testFlagPresent = (command) => TEST_FLAG.test(command.replace(/['\"]/g, ""));
+const testFlagPresent = (command) => TEST_FLAG.test(command.replace(/['\"\\]/g, ""));
+
+const VALUE_FLAGS = new Set(["-r", "--import", "--require", "--loader", "--experimental-loader", "--test-name-pattern", "--test-reporter", "-e", "--eval"]);
+function explicitTestOperands(command) {
+  const tokens = command.split(/\s+/).filter(Boolean);
+  const operands = [];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (VALUE_FLAGS.has(token)) { index += 1; continue; }
+    if (token.startsWith("--") && token.includes("=")) continue;
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(token)) continue;
+    const cleaned = token.replace(/^['"]|['"]$/g, "").replace(/\\/g, "");
+    if (new RegExp(`\\.(?:${CODE_EXT})$`).test(cleaned)) operands.push(cleaned.replace(/^\.\//, ""));
+  }
+  return operands;
+}
 const CODE_EXT = "mjs|js|cjs|sh|ts|mts|cts";
 const TEST_FILE_RE = new RegExp(`(?:^|/)(?:test/.+|[^/]*\\.test|[^/]*-test|[^/]*_test|test-[^/]*|test)\\.(?:${CODE_EXT})$`);
 const isTestFile = (rel) => TEST_FILE_RE.test(rel);
@@ -138,14 +153,14 @@ function scriptNonLiteral(root, command) {
 function scriptRedefinition(root, base, git, command) {
   if (scriptNonLiteral(root, command)) return "non-literal";
   const files = literalCommandFiles(command);
-  if (testFlagPresent(command)) files.push(...listTestFiles(root, base, git));
+  if (testFlagPresent(command) && explicitTestOperands(command).filter(isTestFile).length === 0) files.push(...listTestFiles(root, base, git));
   for (const rel of files) if (checkFileRedefined(root, base, git, rel)) return "redefined";
   return "clean";
 }
 
 function scriptChangedFiles(root, base, git, command) {
   const files = literalCommandFiles(command);
-  if (testFlagPresent(command)) files.push(...listTestFiles(root, base, git));
+  if (testFlagPresent(command) && explicitTestOperands(command).filter(isTestFile).length === 0) files.push(...listTestFiles(root, base, git));
   return files.filter((rel) => checkFileRedefined(root, base, git, rel));
 }
 
@@ -153,7 +168,7 @@ function literalTestFiles(root, target) {
   if (target.kind !== "script") return null;
   const command = scriptCommand(root, target);
   if (typeof command !== "string" || scriptNonLiteral(root, command)) return null;
-  const tests = literalCommandFiles(command, { positionalOnly: true }).filter(isTestFile);
+  const tests = explicitTestOperands(command).filter(isTestFile);
   return tests.length > 0 ? tests : null;
 }
 
@@ -208,13 +223,20 @@ export function runCheckAtBase({ root, base, target, git = runGit, overlay = nul
   }
   try {
     const overlays = Array.isArray(overlay) ? overlay : overlay ? [overlay] : [];
+    const rootReal = fs.realpathSync(root);
     for (const rel of overlays) {
       const from = path.join(root, rel);
       const to = path.join(dir, rel);
       if (!fs.existsSync(from)) return { unavailable: true };
       if (fs.lstatSync(from).isSymbolicLink()) return { unavailable: true };
-      fs.mkdirSync(path.dirname(to), { recursive: true });
-      fs.copyFileSync(from, to);
+      const real = path.relative(rootReal, fs.realpathSync(from));
+      if (real.startsWith("..") || path.isAbsolute(real)) return { unavailable: true };
+      try {
+        fs.mkdirSync(path.dirname(to), { recursive: true });
+        fs.copyFileSync(from, to);
+      } catch {
+        return { unavailable: true };
+      }
     }
     let frozenTests = null;
     if (target.kind === "script") {
@@ -377,7 +399,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       const named = overlays.filter(isTestFile);
       const command = scriptCommand(root, record.target);
       if (named.length > 0) headFrozen = named;
-      else if (command && /(^|\s)--test(\s|$)/.test(command)) headFrozen = literalTestFiles(root, record.target) ?? listTestFilesIn(root);
+      else if (command && /(^|\s)--test(\s|$)/.test(command)) headFrozen = literalTestFiles(root, record.target) ?? listTestFiles(root, "HEAD", git);
     }
     const outcome = run({ root, target: record.target, frozenTests: headFrozen });
     const baseCache = new Map();

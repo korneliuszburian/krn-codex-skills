@@ -982,6 +982,7 @@ test("assignment and flag tokens still track the named test", () => {
   assertSelfAuthorized({ scripts: { "test:t": "node --test --test-name-pattern=test/a.test.mjs" }, changedFile: "test/b.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "X=test/a.test.mjs node --test" }, changedFile: "test/b.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "node '--test'" }, changedFile: "test/b.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --te\\st" }, changedFile: "test/b.test.mjs" });
 });
 
 test("runner subcommands and node_modules shims fail closed as non-literal", () => {
@@ -1018,5 +1019,24 @@ test("--before freezes a changed test's helper closure, not just the test file",
   commit("fix\n\nChange-contract: test/t.test.mjs:red->green");
   const report = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
   assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an explicit test-file argument keeps the declared check scoped", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-scoped-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), "{\"scripts\":{\"test:t\":\"node --test test/a.test.mjs\"}}\n");
+  writeFileSync(join(root, "test", "a.test.mjs"), 'import test from "node:test";\ntest("ok", () => {});\n');
+  writeFileSync(join(root, "test", "b.test.mjs"), 'import test from "node:test";\ntest("ok", () => {});\n');
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "test", "b.test.mjs"), 'import test from "node:test";\ntest("changed", () => {});\n');
+  commit("unrelated edit\n\nChange-contract: test:t:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD" });
+  assert.ok(!report.errors.some((error) => error.rule === "self-authorized-check"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
