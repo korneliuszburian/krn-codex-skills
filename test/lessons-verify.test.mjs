@@ -7,10 +7,11 @@ import test from "node:test";
 import { checkLessons } from "../scripts/lib/lessons.mjs";
 import { verifyLessons, tapCasePassed } from "../scripts/lib/lessons-verify.mjs";
 
-test("tapCasePassed accepts plain and nested reporter labels and rejects missing cases", () => {
+test("tapCasePassed accepts the exact reporter label and rejects impersonation", () => {
   assert.equal(tapCasePassed("ok 1 - probe\n", "probe"), true);
-  assert.equal(tapCasePassed("    ok 1 - test/x.test.mjs > probe\n", "probe"), true);
-  assert.equal(tapCasePassed("ok 1 - test/x.test.mjs::probe\n", "probe"), true);
+  assert.equal(tapCasePassed("    ok 1 - probe\n", "probe"), true);
+  assert.equal(tapCasePassed("ok 1 - other > probe\n", "probe"), false);
+  assert.equal(tapCasePassed("ok 1 - test/x.test.mjs::probe\n", "probe"), false);
   assert.equal(tapCasePassed("ok 1 - other\n", "probe"), false);
   assert.equal(tapCasePassed("not ok 1 - probe\n", "probe"), false);
   assert.equal(tapCasePassed("", "probe"), false);
@@ -58,6 +59,13 @@ test("a case name that matches no test is not a pass", () => {
   const root = makeRoot('import test from "node:test";\ntest("other", () => {});\n');
   const report = verifyLessons({ root });
   assert.equal(report.results[0].status, "fail", "an unmatched pattern must not count as a pass");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a case name cannot be impersonated by an unrelated test label", () => {
+  const root = makeRoot('import test from "node:test";\ntest("other > probe", () => {});\n');
+  const report = verifyLessons({ root });
+  assert.equal(report.results[0].status, "fail", "a suffix-impersonating label must not count as a pass");
   rmSync(root, { recursive: true, force: true });
 });
 

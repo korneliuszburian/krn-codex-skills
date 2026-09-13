@@ -12,7 +12,7 @@ export function runDirectories(root) {
     return [];
   }
   for (const workflow of workflows.sort((a, b) => a.name.localeCompare(b.name))) {
-    if ((!workflow.isDirectory() && !workflow.isSymbolicLink()) || workflow.name === "delivery-loop") continue;
+    if ((!workflow.isDirectory() && !workflow.isSymbolicLink()) || workflow.name === "delivery-loop" || workflow.name.startsWith(".")) continue;
     const workflowPath = join(runsBase, workflow.name);
     let entries;
     try {
@@ -22,6 +22,7 @@ export function runDirectories(root) {
     }
     for (const run of entries.sort((a, b) => a.name.localeCompare(b.name))) {
       if (!run.isDirectory() && !run.isSymbolicLink()) continue;
+      if (run.name.startsWith(".")) continue;
       runs.push({ workflow: workflow.name, pointer: join(".krn", "runs", workflow.name, run.name) });
     }
   }
@@ -32,7 +33,7 @@ export function capsuleIds(root) {
   const base = join(root, ".krn", "runs", "delivery-loop");
   if (!existsSync(base)) return [];
   return readdirSync(base, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && existsSync(join(base, entry.name, "state.md")))
+    .filter((entry) => (entry.isDirectory() || entry.isSymbolicLink()) && existsSync(join(base, entry.name, "state.md")))
     .map((entry) => entry.name)
     .sort((a, b) => a.localeCompare(b));
 }

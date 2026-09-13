@@ -20,7 +20,7 @@ function inside(root, candidate) {
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 }
 
-function normalizeRunPointer(root, pointer) {
+export function normalizeRunPointer(root, pointer) {
   return relative(root, resolve(root, pointer)).split(sep).join("/");
 }
 
@@ -139,7 +139,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
 
     const fields = Object.fromEntries(ABI_LABELS.map((label) => [label, fieldLine(text, label)]));
     for (const [label, value] of Object.entries(fields)) {
-      if (value === null || value === "") errors.push({ id: entry.name, rule: "missing-field", detail: label });
+      if (value === null || stripMarkup(value) === "") errors.push({ id: entry.name, rule: "missing-field", detail: label });
     }
     for (const label of ABI_LABELS) {
       const occurrences = text.split("\n").filter((line) => line.trimStart().startsWith(`${label}:`)).length;

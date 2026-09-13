@@ -128,6 +128,14 @@ test("an empty ABI value counts as a missing field", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a markup-only ABI value counts as a missing field", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}` }).replace("Restart state: ABSENT", "Restart state: <>"));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("missing-field"), rules(report).join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a capsule in a non-git directory reports not-a-git-worktree", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-state-nogit-"));
   writeCapsule(root, capsule({ fixedPoint: "fingerprint=working-tree" }));

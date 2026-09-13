@@ -2,7 +2,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { gitAvailable, runGit as git } from "./git-cli.mjs";
 import { capsuleIds, runDirectories } from "./spine-runs.mjs";
-import { inspectSpineState } from "./state-check.mjs";
+import { inspectSpineState, normalizeRunPointer } from "./state-check.mjs";
 import { commitTokens, fieldLine, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
 import { parseLessons } from "./lessons.mjs";
 
@@ -135,9 +135,9 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     const headMoved = recorded.length > 0 && liveHead.ok && liveHead.out !== "" && !recorded.includes(liveHead.out.toLowerCase());
     const cleanupValue = fieldLine(text, "Outstanding workflow-run cleanup");
     const listed = parseCleanup(cleanupValue).entries;
-    const listedPointers = new Set(listed.map((entry) => entry.pointer));
+    const listedPointers = new Set(listed.map((entry) => normalizeRunPointer(report.root, entry.pointer)));
     const missingRuns = listed
-      .filter((entry) => (entry.state === "ACTIVE" || entry.state === "BLOCKED") && !liveRuns.has(entry.pointer))
+      .filter((entry) => (entry.state === "ACTIVE" || entry.state === "BLOCKED") && !liveRuns.has(normalizeRunPointer(report.root, entry.pointer)))
       .map((entry) => entry.pointer);
     const unlistedRuns = [...liveRuns].filter((pointer) => !listedPointers.has(pointer));
     briefs.push({

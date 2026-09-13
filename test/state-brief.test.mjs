@@ -151,3 +151,13 @@ test("resume reports cleanup entries whose run directory is gone", () => {
   assert.deepEqual(report.capsules[0].missingRuns, [".krn/runs/slice-work/gone"]);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("resume normalizes cleanup pointers so a live run is neither missing nor unlisted", () => {
+  const { root, head } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "slice-work", "run-1"), { recursive: true });
+  writeCapsule(root, `HEAD=${head}`, "[./.krn/runs/slice-work/run-1/; slice-work; $delivery-loop; closes; ACTIVE]");
+  const report = resumeBrief({ repo: root });
+  assert.deepEqual(report.capsules[0].missingRuns, [], JSON.stringify(report.capsules[0].missingRuns));
+  assert.deepEqual(report.capsules[0].unlistedRuns, [], JSON.stringify(report.capsules[0].unlistedRuns));
+  rmSync(root, { recursive: true, force: true });
+});

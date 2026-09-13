@@ -13,6 +13,8 @@ test("runDirectories lists non-delivery runs and skips delivery-loop, files, and
     mkdirSync(join(root, ".krn", "runs", "slice-work", "run-2"), { recursive: true });
     mkdirSync(join(root, ".krn", "runs", "delivery-loop", "out-1"), { recursive: true });
     writeFileSync(join(root, ".krn", "runs", "slice-work", "notes.txt"), "x");
+    mkdirSync(join(root, ".krn", "runs", ".cache", "run-1"), { recursive: true });
+    mkdirSync(join(root, ".krn", "runs", "slice-work", ".hidden"), { recursive: true });
     assert.deepEqual(
       runDirectories(root).map((run) => run.pointer),
       [".krn/runs/slice-work/run-1", ".krn/runs/slice-work/run-2"],
@@ -52,6 +54,20 @@ test("capsuleIds returns only delivery-loop directories holding a state.md", () 
     mkdirSync(join(root, ".krn", "runs", "delivery-loop", "empty"), { recursive: true });
     assert.deepEqual(capsuleIds(root), ["with-state"]);
     assert.deepEqual(capsuleIds(join(root, "missing")), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("capsuleIds follows a symlinked capsule directory", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-capsule-symlink-"));
+  try {
+    mkdirSync(join(root, ".krn", "runs", "delivery-loop"), { recursive: true });
+    const target = join(root, "real-capsule");
+    mkdirSync(target);
+    writeFileSync(join(target, "state.md"), "x");
+    symlinkSync(target, join(root, ".krn", "runs", "delivery-loop", "linked"));
+    assert.deepEqual(capsuleIds(root), ["linked"]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

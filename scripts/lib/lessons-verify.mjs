@@ -21,15 +21,18 @@ export function tapCasePassed(output, name) {
   return output.split("\n").some((line) => {
     const tap = /^\s*ok \d+ - (.+?)\s*$/.exec(line);
     if (!tap) return false;
-    const label = tap[1].trim();
-    return label === name || label.endsWith(`> ${name}`) || label.endsWith(`::${name}`) || label.endsWith(`:: ${name}`);
+    return tap[1].trim() === name;
   });
+}
+
+function escapePattern(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function runCase({ root, file, name, timeout }) {
   const env = { ...process.env, KRN_LESSONS_VERIFY: "0" };
   delete env.NODE_TEST_CONTEXT;
-  const result = spawnSync(process.execPath, ["--test", "--test-reporter=tap", `--test-name-pattern=${name}`, file], {
+  const result = spawnSync(process.execPath, ["--test", "--test-reporter=tap", `--test-name-pattern=^${escapePattern(name)}$`, file], {
     cwd: root,
     timeout,
     encoding: "utf8",
