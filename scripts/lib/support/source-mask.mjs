@@ -12,10 +12,21 @@ function scan(source, { literals = false, templates = false } = {}) {
   let index = 0;
   let state = "code";
   let previous = "";
+  const frames = [];
+  let braceDepth = 0;
   while (index < source.length) {
     const char = source[index];
     const next = source[index + 1];
     if (state === "code") {
+      if (char === "}" && frames.length > 0 && braceDepth === 0) {
+        state = frames.pop();
+        out += char;
+        previous = char;
+        index += 1;
+        continue;
+      }
+      if (frames.length > 0 && char === "{") braceDepth += 1;
+      else if (frames.length > 0 && char === "}") braceDepth -= 1;
       if (char === "/" && next === "/") { state = "line"; out += "  "; index += 2; continue; }
       if (char === "/" && next === "*") { state = "block"; out += "  "; index += 2; continue; }
       if (char === "/" && regexStart(out, previous)) {
@@ -50,6 +61,15 @@ function scan(source, { literals = false, templates = false } = {}) {
     if (state === "block") {
       if (char === "*" && next === "/") { state = "code"; out += "  "; index += 2; }
       else { out += char === "\n" ? "\n" : " "; index += 1; }
+      continue;
+    }
+    if (state === "template" && char === "$" && next === "{") {
+      frames.push("template");
+      braceDepth = 0;
+      state = "code";
+      out += "${";
+      previous = "{";
+      index += 2;
       continue;
     }
     const blank = literals || (templates && state === "template");

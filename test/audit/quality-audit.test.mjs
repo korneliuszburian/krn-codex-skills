@@ -102,6 +102,18 @@ test("the audit catches a dead export and an unreferenced function", () => {
   );
 });
 
+test("a string or comment mention does not suppress the unreferenced-function check", () => {
+  withRepo(
+    {
+      "scripts/lib/orphans.mjs": "export const note = \"zombie is only mentioned here\";\n// zombie is also mentioned here\nfunction zombie() {\n  return 2;\n}\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("unreferenced function zombie")), JSON.stringify(errors));
+    },
+  );
+});
+
 test("the audit flags a credential and an environment dump in a skill", () => {
   withRepo(
     {

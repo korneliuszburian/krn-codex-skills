@@ -166,10 +166,10 @@ export function auditRepository(root) {
 
   for (const file of runtime.filter((candidate) => label(candidate).startsWith(`scripts${sep}lib${sep}`))) {
     if (isSelf(file)) continue;
-    const source = sources.get(file);
-    for (const name of functionDeclarations(source)) {
-      if (exportedNames(source).includes(name)) continue;
-      if ((source.match(new RegExp(`\\b${name}\\b`, "g")) ?? []).length <= 1) {
+    const code = maskLiterals(stripComments(sources.get(file)));
+    for (const name of functionDeclarations(code)) {
+      if (exportedNames(code).includes(name)) continue;
+      if ((code.match(new RegExp(`\\b${name}\\b`, "g")) ?? []).length <= 1) {
         errors.push(`${label(file)}: unreferenced function ${name}`);
       }
     }

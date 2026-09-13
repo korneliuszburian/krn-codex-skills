@@ -28,6 +28,13 @@ test("maskTemplates blanks template text and maskLiterals blanks strings", () =>
   assert.ok(!masked.includes('"const leaky"'));
 });
 
+test("masking preserves template interpolation code", () => {
+  const source = "const s = `x ${kept(a)} y`;";
+  assert.ok(maskLiterals(source).includes("kept(a)"), maskLiterals(source));
+  assert.ok(maskTemplates(source).includes("kept(a)"), maskTemplates(source));
+  assert.ok(!maskLiterals(source).includes("x "), maskLiterals(source));
+});
+
 test("maskTemplates ignores backticks inside strings and masks real templates", () => {
   const fence = 'const fence = "```";\nimport { used } from "./lib/real.mjs";\nconst doc = `# hi`;';
   const masked = maskTemplates(fence);

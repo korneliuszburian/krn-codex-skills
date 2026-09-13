@@ -60,7 +60,6 @@ export function openaiYamlErrors(metadata, { name, implicit, skillPath }) {
   if (displayName === undefined || shortDescription === undefined || defaultPrompt === undefined || (policy !== "true" && policy !== "false")) {
     return [schemaError];
   }
-  if (!displayName) errors.push(`${skillPath}: missing quoted display_name`);
   if (shortDescription.length < 25 || shortDescription.length > 64) {
     errors.push(`${skillPath}: short_description must be 25-64 characters`);
   }
