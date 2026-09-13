@@ -203,3 +203,17 @@ test("an import phrase inside a multi-line template does not inject a phantom lo
     },
   );
 });
+
+test("a backtick inside a string does not desync template masking", () => {
+  withRepo(
+    {
+      "scripts/lib/real.mjs": "export function used() {\n  return 1;\n}\n",
+      "scripts/lib/fence.mjs": 'const fence = "```";\nimport { used } from "./lib/real.mjs";\nused();\nconst doc = `# hi`;\nexport const f = fence;\n',
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(!errors.some((m) => m.includes("calls used() but never imports it")), JSON.stringify(errors));
+      assert.ok(!errors.some((m) => m.includes("dead export used")), JSON.stringify(errors));
+    },
+  );
+});

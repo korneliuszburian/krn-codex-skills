@@ -1,6 +1,6 @@
 const REGEX_START = /[([{=,:;!&|?+\-*%~^<>]/;
 
-function scan(source, maskLiterals) {
+function scan(source, { literals = false, templates = false } = {}) {
   let out = "";
   let index = 0;
   let state = "code";
@@ -23,7 +23,7 @@ function scan(source, maskLiterals) {
           if (current === "\n") break;
           cursor += 1;
         }
-        out += maskLiterals ? " ".repeat(cursor - index) : source.slice(index, cursor);
+        out += literals ? " ".repeat(cursor - index) : source.slice(index, cursor);
         previous = "/";
         index = cursor;
         continue;
@@ -45,7 +45,8 @@ function scan(source, maskLiterals) {
       else { out += char === "\n" ? "\n" : " "; index += 1; }
       continue;
     }
-    if (char === "\\") { out += maskLiterals ? "  " : char + (next ?? ""); index += 2; continue; }
+    const blank = literals || (templates && state === "template");
+    if (char === "\\") { out += blank ? "  " : char + (next ?? ""); index += 2; continue; }
     if ((state === "single" && char === "'") || (state === "double" && char === '"') || (state === "template" && char === "`")) {
       state = "code";
       out += char;
@@ -53,21 +54,21 @@ function scan(source, maskLiterals) {
       index += 1;
       continue;
     }
-    out += maskLiterals ? (char === "\n" ? "\n" : " ") : char;
-    if (!maskLiterals && !/\s/.test(char)) previous = char;
+    out += blank ? (char === "\n" ? "\n" : " ") : char;
+    if (!blank && !/\s/.test(char)) previous = char;
     index += 1;
   }
   return out;
 }
 
 export function stripComments(source) {
-  return scan(source, false);
+  return scan(source, {});
 }
 
 export function maskLiterals(source) {
-  return scan(source, true);
+  return scan(source, { literals: true });
 }
 
 export function maskTemplates(source) {
-  return source.replace(/`(?:\\.|[^`\\])*`/g, " ");
+  return scan(source, { templates: true });
 }
