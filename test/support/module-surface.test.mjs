@@ -53,6 +53,7 @@ const cases = [
     module: "../../scripts/lib/state/spine-runs.mjs",
     present: ["runDirectories", "capsuleIds"],
     absent: [],
+    exact: ["capsuleIds", "capsuleIdsDetailed", "capsuleStoreReport", "runDirectories", "runDirectoriesDetailed"],
   },
   {
     module: "../../scripts/lib/contract/runtime-closure.mjs",
@@ -85,5 +86,12 @@ test("module surfaces expose only the intended interface", async () => {
     for (const name of absent) {
       assert.ok(!keys.includes(name), `${module} must not export internal ${name}`);
     }
+  }
+});
+
+test("modules with an exact surface export nothing else", async () => {
+  for (const { module, exact } of cases.filter((entry) => entry.exact)) {
+    const keys = await surface(module);
+    assert.deepEqual([...keys].sort(), [...exact].sort(), `${module} exports changed`);
   }
 });
