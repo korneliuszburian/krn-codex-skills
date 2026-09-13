@@ -157,7 +157,7 @@ try {
     const { positional, options } = parseOptions(raw.slice(1));
     if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root || !options.base) fail(usage);
     const report = contractGuardActive()
-      ? { root: options.root, commits: [], results: [], errors: [], warnings: [], skipped: true }
+      ? { root: options.root, commits: [], results: [], errors: [], warnings: [{ rule: "change-contract-skipped", detail: "KRN_CHANGE_CONTRACT=0" }], skipped: true }
       : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD", verifyBefore: options.before === true, strictRecall: options.strictRecall === true });
     print(report, options.json);
     if (!options.json) {

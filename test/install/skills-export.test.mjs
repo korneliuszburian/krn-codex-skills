@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { git } from "../support/git-fixture.mjs";
+import { runGit } from "../../scripts/lib/support/git-cli.mjs";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -7,6 +7,8 @@ import path from "node:path";
 import test from "node:test";
 
 import { checkSkills, exportSkills } from "../../scripts/lib/install/skills-export.mjs";
+
+const git = (root, args) => runGit(root, args).out;
 
 function initRepo(root) {
   fs.mkdirSync(root, { recursive: true });

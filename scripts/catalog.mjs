@@ -3,8 +3,6 @@
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { realpathSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 
 import {
   HARD_QUARANTINE_FAMILIES,
@@ -517,19 +515,7 @@ async function main() {
   }
 }
 
-const directEntrypoint = (() => {
-  if (!process.argv[1]) return false;
-  try {
-    return (
-      realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
-    );
-  } catch {
-    return false;
-  }
-})();
-if (directEntrypoint) {
-  main().catch((error) => {
-    console.error(`catalog: ${error.message}`);
-    process.exitCode = error.exitCode || 1;
-  });
-}
+main().catch((error) => {
+  console.error(`catalog: ${error.message}`);
+  process.exitCode = error.exitCode || 1;
+});

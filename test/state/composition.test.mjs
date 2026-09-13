@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
-import { git } from "../support/git-fixture.mjs";
+import { runGit } from "../../scripts/lib/support/git-cli.mjs";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+
+const git = (root, args) => runGit(root, args).out;
 
 const cli = fileURLToPath(new URL("../../scripts/krn-codex.mjs", import.meta.url));
 
