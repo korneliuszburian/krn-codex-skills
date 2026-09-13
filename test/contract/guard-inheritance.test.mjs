@@ -20,3 +20,9 @@ test("a skipped change-contract is reported instead of silently passing", () => 
   assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
   assert.match(`${result.stdout}${result.stderr}`, /change-contract-skipped/);
 });
+
+test("the CLI usage lists every changes-check option it accepts", () => {
+  const cli = fileURLToPath(new URL("../../scripts/krn-codex.mjs", import.meta.url));
+  const result = spawnSync(process.execPath, [cli, "--help"], { encoding: "utf8" });
+  assert.match(`${result.stdout}${result.stderr}`, /--strict-recall/);
+});

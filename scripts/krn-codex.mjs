@@ -35,7 +35,7 @@ const usage = `Usage:
   krn-codex state <check|compile|resume> [PATH|--root PATH] [--json]
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
   krn-codex lessons <check|verify|reanchor> --root DIR [--json]
-  krn-codex changes check --base REF [--head REF] --root DIR [--before] [--json]
+  krn-codex changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]`;
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
