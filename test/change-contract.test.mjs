@@ -959,7 +959,7 @@ function assertSelfAuthorized({ scripts, changedFile, shim = false }) {
   writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
   writeFileSync(join(root, "package.json"), `${JSON.stringify({ scripts })}\n`);
   const red = 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("x", () => assert.equal(value, 2));\n';
-  for (const name of ["test/a.test.mjs", "test/a.test.ts", "scripts/foo.test.mjs"]) writeFileSync(join(root, name), red);
+  for (const name of ["test/a.test.mjs", "test/a.test.ts", "test/foo.mjs", "test/b.test.mjs", "scripts/foo.test.mjs"]) writeFileSync(join(root, name), red);
   writeFileSync(join(root, "test", "register.mjs"), "export {};\n");
   writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
   if (shim) { mkdirSync(join(root, "node_modules", ".bin"), { recursive: true }); writeFileSync(join(root, "node_modules", ".bin", "gate"), "#!/bin/sh\nexit 0\n"); }
@@ -978,6 +978,9 @@ test("assignment and flag tokens still track the named test", () => {
   assertSelfAuthorized({ scripts: { "test:t": "node --import ./test/register.mjs --test" }, changedFile: "test/a.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "node --test" }, changedFile: "scripts/foo.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "node --test test/a.test.ts" }, changedFile: "test/a.test.ts" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --test" }, changedFile: "test/foo.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --test --test-name-pattern=test/a.test.mjs" }, changedFile: "test/b.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "X=test/a.test.mjs node --test" }, changedFile: "test/b.test.mjs" });
 });
 
 test("runner subcommands and node_modules shims fail closed as non-literal", () => {
@@ -985,6 +988,11 @@ test("runner subcommands and node_modules shims fail closed as non-literal", () 
   assertSelfAuthorized({ scripts: { "test:t": "deno test" }, changedFile: "test/a.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "npx mocha" }, changedFile: "test/a.test.mjs" });
   assertSelfAuthorized({ scripts: { "test:t": "gate" }, changedFile: "test/a.test.mjs", shim: true });
+  assertSelfAuthorized({ scripts: { "test:t": "npm test" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "npm --silent run test:inner" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "pnpm test" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "pnpm dlx mocha" }, changedFile: "test/a.test.mjs" });
+  assertSelfAuthorized({ scripts: { "test:t": "node --strict --run test:inner" }, changedFile: "test/a.test.mjs" });
 });
 
 test("--before freezes a changed test's helper closure, not just the test file", () => {

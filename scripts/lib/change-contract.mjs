@@ -89,14 +89,15 @@ function checkFileRedefined(root, base, git, rel) {
 
 const TEST_FLAG = /(^|\s)--test(\s|$)/;
 const CODE_EXT = "mjs|js|cjs|sh|ts|mts|cts";
-const TEST_FILE_RE = /(^|\/)[^/]+\.test\.(?:mjs|js|cjs|ts|mts|cts)$/;
+const TEST_FILE_RE = new RegExp(`(?:^|/)(?:test/.+|[^/]*\\.test|[^/]*-test|[^/]*_test|test-[^/]*|test)\\.(?:${CODE_EXT})$`);
 const isTestFile = (rel) => TEST_FILE_RE.test(rel);
 
-function literalCommandFiles(command) {
+function literalCommandFiles(command, { positionalOnly = false } = {}) {
   const files = [];
   const quoted = new RegExp(`"([^"]+\\.(?:${CODE_EXT}))"|'([^']+\\.(?:${CODE_EXT}))'`, "g");
   for (const match of command.matchAll(quoted)) files.push((match[1] ?? match[2]).replace(/^\.\//, ""));
-  const bare = new RegExp(`(?:^|\\s)(?:[A-Za-z_][A-Za-z0-9_]*=|--?[^\\s=]+=)?([^\\s]+\\.(?:${CODE_EXT}))(?=$|\\s)`, "g");
+  const prefix = positionalOnly ? "" : "(?:[A-Za-z_][A-Za-z0-9_]*=|--?[^\\s=]+=)?";
+  const bare = new RegExp(`(?:^|\\s)${prefix}([^\\s]+\\.(?:${CODE_EXT}))(?=$|\\s)`, "g");
   for (const match of command.matchAll(bare)) files.push(match[1].replace(/\\/g, "/").replace(/^\.\//, ""));
   return files;
 }
@@ -126,8 +127,8 @@ function scriptNonLiteral(root, command) {
   return /[*?\[]/.test(command)
     || /[$`|;&<>]/.test(command)
     || /(^|[\s/'"])(?:[^\s/]*\/)*(?:sh|bash|zsh|dash|ash|ksh|busybox)\b[^\n]*?\s-c(\s|$)/.test(command)
-    || /(^|\s)(?:npm|pnpm|yarn|bun)\s+(?:run|exec)(\s|$)/.test(command)
-    || /(^|\s)node\s+--run(\s|$)/.test(command)
+    || /\b(?:npm|pnpm|yarn|bun)\s+(?:-{1,2}\S+\s+)*(?:run|exec|test|start|dlx)\b/.test(command)
+    || /(^|\s)node(?:\s+-{1,2}\S+)*\s+--run(\s|$)/.test(command)
     || /(^|\s)(?:bun|deno)\s+(?:test|bench)(\s|$)/.test(command)
     || /(^|\s)(?:npx|bunx)(\s|$)/.test(command)
     || shimCommand(root, command);
@@ -136,14 +137,14 @@ function scriptNonLiteral(root, command) {
 function scriptRedefinition(root, base, git, command) {
   if (scriptNonLiteral(root, command)) return "non-literal";
   const files = literalCommandFiles(command);
-  if (TEST_FLAG.test(command) && files.filter(isTestFile).length === 0) files.push(...listTestFiles(root, base, git));
+  if (TEST_FLAG.test(command)) files.push(...listTestFiles(root, base, git));
   for (const rel of files) if (checkFileRedefined(root, base, git, rel)) return "redefined";
   return "clean";
 }
 
 function scriptChangedFiles(root, base, git, command) {
   const files = literalCommandFiles(command);
-  if (TEST_FLAG.test(command) && files.filter(isTestFile).length === 0) files.push(...listTestFiles(root, base, git));
+  if (TEST_FLAG.test(command)) files.push(...listTestFiles(root, base, git));
   return files.filter((rel) => checkFileRedefined(root, base, git, rel));
 }
 
@@ -151,7 +152,7 @@ function literalTestFiles(root, target) {
   if (target.kind !== "script") return null;
   const command = scriptCommand(root, target);
   if (typeof command !== "string" || scriptNonLiteral(root, command)) return null;
-  const tests = literalCommandFiles(command).filter(isTestFile);
+  const tests = literalCommandFiles(command, { positionalOnly: true }).filter(isTestFile);
   return tests.length > 0 ? tests : null;
 }
 
@@ -329,15 +330,15 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       const changedScriptFiles = target.kind === "script" && scriptState !== "non-literal" ? scriptChangedFiles(root, base, git, scripts[target.name] ?? "") : [];
       const changedTests = changedScriptFiles.filter(isTestFile);
       const changedOther = changedScriptFiles.filter((rel) => !isTestFile(rel));
+      const changedUnderTest = changedFilesUnder(root, base, git, "test/").filter((rel) => fs.existsSync(path.join(root, rel)));
       let frozenObserver = false;
       let overlays = [];
       if (target.kind === "test" && verifyBefore && (authoredNow || fileChanged)) {
         frozenObserver = true;
-        overlays = [...new Set([target.name, ...changedFilesUnder(root, base, git, "test/")])]
-          .filter((rel) => fs.existsSync(path.join(root, rel)));
+        overlays = [...new Set([target.name, ...changedUnderTest])];
       } else if (target.kind === "script" && verifyBefore && !authoredNow && !commandChanged && scriptState !== "non-literal" && changedOther.length === 0 && changedTests.length > 0) {
         frozenObserver = true;
-        overlays = changedTests;
+        overlays = [...new Set([...changedTests, ...changedUnderTest])];
       }
       if (!frozenObserver) {
         if (authoredNow) {
