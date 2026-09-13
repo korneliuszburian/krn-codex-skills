@@ -169,6 +169,26 @@ test("a skill directory whose SKILL.md is a valid file symlink is inventoried", 
   });
 });
 
+test("a link target with .. through a symlinked parent resolves POSIX-correctly", async () => {
+  await withRoot("krn-inventory-dotdot-", async (root) => {
+    const base = path.join(root, "base");
+    mkdirSync(path.join(base, "nested"), { recursive: true });
+    mkdirSync(path.join(base, "shared"), { recursive: true });
+    writeFileSync(path.join(base, "shared", "SKILL.md"), "---\nname: shared\ndescription: demo\n---\n");
+    symlinkSync("../shared/SKILL.md", path.join(base, "nested", "SKILL.md"));
+    symlinkSync(path.join(base, "nested"), path.join(root, "x"));
+    symlinkSync(path.join(root, "x"), path.join(root, "demo"));
+    const inventory = await inventoryCapabilities({
+      skillRoots: [{ id: "root", path: root, scope: "user" }],
+      pluginCacheRoots: [],
+    });
+    assert.ok(
+      inventory.skills.some((skill) => skill.id === "demo"),
+      JSON.stringify(inventory.skills.map((skill) => skill.id)),
+    );
+  });
+});
+
 test("a chain through a clean-named directory symlink into quarantine is not inventoried", async () => {
   await withRoot("krn-inventory-alias-quarantine-", async (root) => {
     mkdirSync(path.join(root, "superpowers"), { recursive: true });

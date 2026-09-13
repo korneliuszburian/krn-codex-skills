@@ -512,7 +512,13 @@ async function resolveTargetFile(path, quarantine) {
     } catch {
       return { missing: true };
     }
-    current = resolve(dirname(current), target);
+    let base;
+    try {
+      base = realpathSync(dirname(current));
+    } catch {
+      return { missing: true };
+    }
+    current = resolve(base, target);
   }
   return { missing: true };
 }

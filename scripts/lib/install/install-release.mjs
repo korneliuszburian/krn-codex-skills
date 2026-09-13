@@ -474,6 +474,24 @@ function tomlBoolean(value) {
   return null;
 }
 
+function bracketDelta(line) {
+  let depth = 0;
+  let quote = null;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (quote) {
+      if (quote === "\"" && char === "\\") index += 1;
+      else if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "\"" || char === "'") quote = char;
+    else if (char === "#") break;
+    else if (char === "[") depth += 1;
+    else if (char === "]") depth -= 1;
+  }
+  return depth;
+}
+
 function topLevelEquals(part) {
   let quote = null;
   for (let index = 0; index < part.length; index += 1) {
@@ -564,37 +582,45 @@ export function managedHookPolicy({
   }
   const ARRAY_TABLE = "\u0000array";
   let table = null;
-  for (let index = 0; index < document.lines.length; index += 1) {
-    if (document.insideMultiline?.[index]) continue;
-    const content = document.lines[index].content;
-    const header = splitHeader(content);
-    if (header) {
-      if (header.validTail) {
-        table = header.array ? ARRAY_TABLE : (parseDottedHeaderKey(header.inner)?.join(".") ?? ARRAY_TABLE);
+  let arrayDepth = 0;
+  try {
+    for (let index = 0; index < document.lines.length; index += 1) {
+      if (document.insideMultiline?.[index]) continue;
+      const content = document.lines[index].content;
+      const header = arrayDepth === 0 ? splitHeader(content) : undefined;
+      if (header) {
+        if (header.validTail) {
+          table = header.array ? ARRAY_TABLE : (parseDottedHeaderKey(header.inner)?.join(".") ?? ARRAY_TABLE);
+        }
+      } else {
+        const assignment = parseAssignment(content);
+        if (assignment) {
+          const segments = parseDottedHeaderKey(assignment.prefix.replace(/\s*=\s*$/, "").trim()) ?? [assignment.key];
+          const enabled = tomlBoolean(assignment.value);
+          if (table === null && segments.length === 1 && segments[0] === "allow_managed_hooks_only" && enabled === true) {
+            return {
+              status: "hook_inert_by_managed_policy",
+              path: requirementsPath,
+              detail: "top-level allow_managed_hooks_only = true",
+            };
+          }
+          const featuresDisabled = table === "features" && segments.length === 1 && segments[0] === "hooks" && enabled === false;
+          const dottedDisabled = table === null && segments.length === 2 && segments[0] === "features" && segments[1] === "hooks" && enabled === false;
+          const inlineDisabled = table === null && segments.length === 1 && segments[0] === "features" && inlineFeaturesHooksDisabled(assignment.value);
+          if (featuresDisabled || dottedDisabled || inlineDisabled) {
+            return {
+              status: "hook_inert_features_disabled",
+              path: requirementsPath,
+              detail: "[features] hooks = false",
+            };
+          }
+        }
       }
-      continue;
+      arrayDepth += bracketDelta(content);
+      if (arrayDepth < 0) arrayDepth = 0;
     }
-    const assignment = parseAssignment(content);
-    if (!assignment) continue;
-    const segments = parseDottedHeaderKey(assignment.prefix.replace(/\s*=\s*$/, "").trim()) ?? [assignment.key];
-    const enabled = tomlBoolean(assignment.value);
-    if (table === null && segments.length === 1 && segments[0] === "allow_managed_hooks_only" && enabled === true) {
-      return {
-        status: "hook_inert_by_managed_policy",
-        path: requirementsPath,
-        detail: "top-level allow_managed_hooks_only = true",
-      };
-    }
-    const featuresDisabled = table === "features" && segments.length === 1 && segments[0] === "hooks" && enabled === false;
-    const dottedDisabled = table === null && segments.length === 2 && segments[0] === "features" && segments[1] === "hooks" && enabled === false;
-    const inlineDisabled = table === null && segments.length === 1 && segments[0] === "features" && inlineFeaturesHooksDisabled(assignment.value);
-    if (featuresDisabled || dottedDisabled || inlineDisabled) {
-      return {
-        status: "hook_inert_features_disabled",
-        path: requirementsPath,
-        detail: "[features] hooks = false",
-      };
-    }
+  } catch (error) {
+    return { status: "requirements_unreadable", path: requirementsPath, detail: error.message };
   }
   return { status: "hooks_active", path: requirementsPath };
 }
@@ -693,5 +719,3 @@ export function pruneReleases({ codexHome = process.env.CODEX_HOME || path.join(
   }
   return { removed, kept: [...keepNames].sort() };
 }
-
-export const installExitCodes = { EXIT_USAGE, EXIT_SOURCE, EXIT_CORRUPT, EXIT_COLLISION };

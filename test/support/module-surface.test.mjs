@@ -31,7 +31,7 @@ const cases = [
   },
   {
     module: "../../scripts/lib/install/install-release.mjs",
-    present: ["applyInstall", "createInstallPlan", "inspectInstall", "classifyTarget", "declaredRuntimePaths", "installExitCodes"],
+    present: ["applyInstall", "createInstallPlan", "inspectInstall", "classifyTarget", "declaredRuntimePaths"],
     absent: ["resolveSource", "digestTree"],
   },
   {

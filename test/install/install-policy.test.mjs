@@ -93,8 +93,17 @@ test("managedHookPolicy is not confused by array contents or a quoted single key
   withRequirements("a = [\n  [1],\n]\nfeatures.hooks = false\n", (file) => {
     assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
   });
+  withRequirements("a = [\n  [1]\n]\nallow_managed_hooks_only = true\n", (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_by_managed_policy");
+  });
   withRequirements('"features.hooks" = false\n', (file) => {
     assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active");
+  });
+});
+
+test("managedHookPolicy reports unreadable instead of throwing on a bad string key", () => {
+  withRequirements('[features]\nhooks = true\n"C:\\x" = "y"\n', (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "requirements_unreadable");
   });
 });
 

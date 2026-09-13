@@ -6,7 +6,8 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { applyInstall, createInstallPlan, installExitCodes } from "../../scripts/lib/install/install-release.mjs";
+import { applyInstall, createInstallPlan } from "../../scripts/lib/install/install-release.mjs";
+import { EXIT_CODES } from "../../scripts/lib/support/diagnostics.mjs";
 
 const sourceRoot = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -43,7 +44,7 @@ test("apply fails closed and restores current when the installed CLI cannot star
     assert.ok(plan.runtimePaths.includes("scripts/lib/support/diagnostics.mjs"));
     assert.throws(
       () => applyInstall(plan),
-      (error) => error.exitCode === installExitCodes.EXIT_CORRUPT && /smoke failed/.test(error.message),
+      (error) => error.exitCode === EXIT_CODES.CORRUPT && /smoke failed/.test(error.message),
     );
     assert.equal(fs.lstatSync(plan.current, { throwIfNoEntry: false }), undefined);
     assert.ok(fs.existsSync(plan.release));
