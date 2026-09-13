@@ -6,6 +6,7 @@ import {
   OUTCOME_STATES,
   PUBLICATION_STATES,
   fieldLine,
+  fixedPointAnchors,
   parseCleanup,
   stripMarkup,
 } from "./capsule-abi.mjs";
@@ -199,10 +200,12 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         errors.push({ id: entry.name, ...finding });
       }
       const commits = [...fixedPoint.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
+      const anchorHead = fixedPointAnchors(fixedPoint).head;
       if (outcome && stripMarkup(outcome) === "COMPLETE" && commits.length === 0) {
         errors.push({ id: entry.name, rule: "complete-without-commit-anchor", detail: stripMarkup(fixedPoint) });
       }
-      if (commits.length > 0 && currentHead.ok && !commits.includes(currentHead.out.toLowerCase())) {
+      const headAnchor = anchorHead ?? (commits.length > 0 ? commits[commits.length - 1] : null);
+      if (headAnchor !== null && currentHead.ok && headAnchor !== currentHead.out.toLowerCase()) {
         const stale = { id: entry.name, rule: "stale-fixed-point", detail: `capsule records ${commits.join(", ")} but HEAD is ${currentHead.out}` };
         if (outcome && stripMarkup(outcome) === "COMPLETE") errors.push(stale);
         else warnings.push(stale);

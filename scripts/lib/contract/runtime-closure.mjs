@@ -8,30 +8,33 @@ function relativePath(root, from, specifier) {
 }
 
 function runtimeClosure({ root, manifest }) {
-  const queue = (manifest.bins ?? []).map((bin) => bin.path).filter((path) => path.endsWith(".mjs"));
+  const queue = (manifest.bins ?? []).map((bin) => [null, bin.path]).filter(([, file]) => file.endsWith(".mjs"));
   const reachable = new Set();
+  const missing = new Map();
   while (queue.length > 0) {
-    const file = queue.pop();
+    const [from, file] = queue.pop();
     if (reachable.has(file)) continue;
     let source;
     try {
       source = readFileSync(join(root, file), "utf8");
     } catch {
+      if (!missing.has(file)) missing.set(file, new Set());
+      if (from) missing.get(file).add(from);
       continue;
     }
     reachable.add(file);
     const code = maskTemplates(stripComments(source));
     for (const match of code.matchAll(/(?:from|import)\s*\(?\s*["'](\.[^"']+)["']/g)) {
-      queue.push(relativePath(root, file, match[1]));
+      queue.push([file, relativePath(root, file, match[1])]);
     }
     for (const match of code.matchAll(/delegate\(\s*["']([^"']+\.mjs)["']/g)) {
-      queue.push(match[1]);
+      queue.push([file, match[1]]);
     }
     for (const match of code.matchAll(/spawnSync\([^,]+,\s*\[[^\]]*["']([^"']+\.mjs)["']/g)) {
-      queue.push(match[1]);
+      queue.push([file, match[1]]);
     }
   }
-  return [...reachable].sort();
+  return { reachable: [...reachable].sort(), missing: [...missing].map(([file, from]) => ({ file, from: [...from].sort() })).sort((a, b) => a.file.localeCompare(b.file)) };
 }
 
 export function runtimeClosureErrors({ root, manifest }) {
@@ -48,7 +51,11 @@ export function runtimeClosureErrors({ root, manifest }) {
     declaredSet.has(file) || skillDirectories.some((directory) => file === directory || file.startsWith(`${directory}/`));
 
   const errors = [];
-  const reachable = new Set(runtimeClosure({ root, manifest }));
+  const closure = runtimeClosure({ root, manifest });
+  const reachable = new Set(closure.reachable);
+  for (const gap of closure.missing) {
+    errors.push(`runtime closure gap: ${gap.file} is imported but not present (from ${gap.from.join(", ") || "entrypoint"})`);
+  }
   for (const file of reachable) {
     if (!covered(file)) {
       errors.push(`runtime closure gap: ${file} is reachable from installed entrypoints but not declared`);

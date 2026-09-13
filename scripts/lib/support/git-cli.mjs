@@ -10,8 +10,8 @@ export function runGit(repo, args) {
         maxBuffer: 512 * 1024 * 1024,
       }).trim(),
     };
-  } catch {
-    return { ok: false, out: "" };
+  } catch (error) {
+    return { ok: false, out: "", status: error?.status ?? null, signal: error?.signal ?? null, errorCode: error?.code ?? null };
   }
 }
 
@@ -25,8 +25,8 @@ export function runGitRaw(repo, args) {
         maxBuffer: 512 * 1024 * 1024,
       }),
     };
-  } catch {
-    return { ok: false, out: "" };
+  } catch (error) {
+    return { ok: false, out: "", status: error?.status ?? null, signal: error?.signal ?? null, errorCode: error?.code ?? null };
   }
 }
 

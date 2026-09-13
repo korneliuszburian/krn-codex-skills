@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { runGit as git, runGitRaw } from "../support/git-cli.mjs";
 import { capsuleIds, runDirectories } from "./spine-runs.mjs";
 import { inspectSpineState, normalizeRunPointer } from "./state-check.mjs";
-import { commitTokens, fieldLine, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
+import { commitTokens, fieldLine, fixedPointAnchors, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
 import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
@@ -126,7 +126,8 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     const text = readFileSync(path, "utf8");
     const fixedPoint = fieldLine(text, "Repository base, HEAD or working-tree fingerprint, and dirty-state scope");
     const recorded = commitTokens(fixedPoint);
-    const headMoved = recorded.length > 0 && liveHead.ok && liveHead.out !== "" && !recorded.includes(liveHead.out.toLowerCase());
+    const anchorHead = fixedPointAnchors(fixedPoint).head;
+    const headMoved = liveHead.ok && liveHead.out !== "" && (anchorHead ? anchorHead !== liveHead.out.toLowerCase() : recorded.length > 0 && !recorded.includes(liveHead.out.toLowerCase()));
     const cleanupValue = fieldLine(text, "Outstanding workflow-run cleanup");
     const listed = parseCleanup(cleanupValue).entries;
     const listedPointers = new Set(listed.map((entry) => normalizeRunPointer(report.root, entry.pointer)));

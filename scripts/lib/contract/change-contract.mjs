@@ -71,11 +71,11 @@ function resolveCheck(root, scripts, ref) {
   return null;
 }
 
-function runCheck({ root, target, frozenTests = null }) {
+function runCheck({ root, target, frozenTests = null, frozenArgs = [] }) {
   const env = { ...process.env, KRN_CHANGE_CONTRACT: "0" };
   delete env.NODE_TEST_CONTEXT;
   const result = target.kind === "script" && frozenTests?.length
-    ? spawnSync(process.execPath, ["--test", "--test-reporter=tap", ...frozenTests], { cwd: root, timeout: 600000, encoding: "utf8", env })
+    ? spawnSync(process.execPath, ["--test", "--test-reporter=tap", ...frozenArgs, ...frozenTests], { cwd: root, timeout: 600000, encoding: "utf8", env })
     : target.kind === "script"
       ? spawnSync("npm", ["run", target.name], { cwd: root, timeout: 600000, encoding: "utf8", env })
       : spawnSync(process.execPath, target.kind === "test" ? ["--test", "--test-reporter=tap", target.name] : [target.name], { cwd: root, timeout: 600000, encoding: "utf8", env });
@@ -123,6 +123,23 @@ function explicitTestOperands(command) {
 const CODE_EXT = "mjs|js|cjs|sh|ts|mts|cts";
 const TEST_FILE_RE = new RegExp(`(?:^|/)(?:test/.+|[^/]*\\.test|[^/]*-test|[^/]*_test|test-[^/]*|test)\\.(?:${CODE_EXT})$`);
 const isTestFile = (rel) => TEST_FILE_RE.test(rel);
+
+const SETUP_FLAGS = new Set(["--import", "-r", "--require", "--loader", "--experimental-loader"]);
+export function frozenNodeArgs(command) {
+  const tokens = String(command ?? "").split(/\s+/).filter(Boolean);
+  const args = [];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (SETUP_FLAGS.has(token) && index + 1 < tokens.length) {
+      args.push(token, tokens[index + 1].replace(/^['"]|['"]$/g, ""));
+      index += 1;
+      continue;
+    }
+    const attached = /^(--import|--require|--loader|--experimental-loader)=(.*)$/.exec(token);
+    if (attached) args.push(`${attached[1]}=${attached[2].replace(/^['"]|['"]$/g, "")}`);
+  }
+  return args;
+}
 
 function literalCommandFiles(command, { positionalOnly = false } = {}) {
   const files = [];
@@ -274,7 +291,8 @@ export function runCheckAtBase({ root, base, target, git = runGit, overlay = nul
       }
     }
     const frozenTests = frozenTestsFor(root, target, () => listTestFilesIn(dir));
-    return { outcome: runCheck({ root: dir, target, frozenTests }) };
+    const frozenArgs = target.kind === "script" ? frozenNodeArgs(scriptCommand(root, target) ?? "") : [];
+    return { outcome: runCheck({ root: dir, target, frozenTests, frozenArgs }) };
   } finally {
     git(root, ["worktree", "remove", "--force", dir]);
     git(root, ["worktree", "prune"]);
@@ -427,7 +445,8 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   for (const record of targets.values()) {
     const overlays = record.overlays ?? [];
     const headFrozen = frozenTestsFor(root, record.target, () => listTestFiles(root, "HEAD", git));
-    const outcome = run({ root, target: record.target, frozenTests: headFrozen });
+    const headArgs = record.target.kind === "script" ? frozenNodeArgs(scriptCommand(root, record.target) ?? "") : [];
+    const outcome = run({ root, target: record.target, frozenTests: headFrozen, frozenArgs: headArgs });
     const baseCache = new Map();
     const baseOnce = (value) => {
       const key = value && value.length ? value.join(",") : "\u0000";

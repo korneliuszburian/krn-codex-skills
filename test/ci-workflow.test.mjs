@@ -50,3 +50,19 @@ test("the aggregate gate script covers every AGENTS.md gate", () => {
     assert.ok(expanded.has(gate), `AGENTS.md gate ${gate} is missing from the gate script`);
   }
 });
+
+test("every discovered test file is run by a gate suite", () => {
+  const scripts = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts;
+  const steps = [...String(scripts.gate ?? "").matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]);
+  const covered = new Set();
+  for (const step of steps) for (const match of String(scripts[step] ?? "").matchAll(/test\/[A-Za-z0-9_./-]+\.test\.mjs/g)) covered.add(match[0]);
+  const walk = (directory) => fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(directory, entry.name);
+    if (entry.isDirectory()) return walk(full);
+    return entry.name.endsWith(".test.mjs") ? [path.relative(root, full).split(path.sep).join("/")] : [];
+  });
+  for (const file of walk(path.join(root, "test"))) {
+    if (file.startsWith("test/bootstrap-fixture/")) continue;
+    assert.ok(covered.has(file), `${file} is not run by the gate`);
+  }
+});

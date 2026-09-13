@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkChangeContract, contractGuardActive, contractSurface, parseChangeContract, runCheckAtBase } from "../../scripts/lib/contract/change-contract.mjs";
+import { checkChangeContract, contractGuardActive, contractSurface, frozenNodeArgs, parseChangeContract, runCheckAtBase } from "../../scripts/lib/contract/change-contract.mjs";
 
 function makeRoot(scripts = { "test:lessons": "x", "test:lib": "x" }) {
   const root = mkdtempSync(join(tmpdir(), "krn-contract-"));
@@ -1134,4 +1134,10 @@ test("skill scripts are part of the change-contract surface", () => {
   assert.equal(contractSurface(["skills/meta/unlazy/scripts/gate-check.mjs"]), true);
   assert.equal(contractSurface(["skills/advisory/opencode-second-opinion/scripts/run-opinion.sh"]), true);
   assert.equal(contractSurface(["skills/meta/unlazy/SKILL.md"]), false);
+});
+
+test("a frozen run preserves setup flags", () => {
+  assert.deepEqual(frozenNodeArgs("node --import ./test/preload.mjs --test test/a.test.mjs"), ["--import", "./test/preload.mjs"]);
+  assert.deepEqual(frozenNodeArgs("node --require=./test/preload.cjs --test"), ["--require=./test/preload.cjs"]);
+  assert.deepEqual(frozenNodeArgs("node --test test/a.test.mjs"), []);
 });

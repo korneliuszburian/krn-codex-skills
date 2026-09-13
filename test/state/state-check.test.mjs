@@ -345,3 +345,13 @@ test("the CLI prints readable warning lines, not objects", () => {
   assert.doesNotMatch(result.stderr, /\[object Object\]/);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a live base does not mask a stale recorded HEAD", () => {
+  const { root, head } = makeRepo();
+  git(root, ["commit", "-q", "--allow-empty", "-m", "second"]);
+  const live = git(root, ["rev-parse", "HEAD"]);
+  writeCapsule(root, capsule({ fixedPoint: `base=${live}; HEAD=${head}; dirty=clean` }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.warnings.some((warning) => warning.rule === "stale-fixed-point"), JSON.stringify(report.warnings));
+  rmSync(root, { recursive: true, force: true });
+});

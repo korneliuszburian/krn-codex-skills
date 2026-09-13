@@ -87,3 +87,13 @@ export function renderCapsule(values) {
   if (missing.length > 0) throw new Error(`capsule values missing labels: ${missing.join(", ")}`);
   return ABI_LABELS.map((label) => `${label}: ${values[label]}`).join("\n");
 }
+
+export function fixedPointAnchors(value) {
+  const anchors = { base: null, head: null, fingerprint: null };
+  if (!value) return anchors;
+  for (const match of value.matchAll(/\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi)) {
+    const key = match[1].toLowerCase() === "head" ? "head" : match[1].toLowerCase();
+    anchors[key] = match[2].toLowerCase();
+  }
+  return anchors;
+}

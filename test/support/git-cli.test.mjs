@@ -15,7 +15,26 @@ test("runGit returns trimmed output inside a repo and fails safely outside", () 
   const inside = runGit(process.cwd(), ["rev-parse", "--is-inside-work-tree"]);
   assert.equal(inside.ok, true);
   assert.equal(inside.out, "true");
-  assert.deepEqual(runGit("/nonexistent-krn-repo-xyz", ["status"]), { ok: false, out: "" });
+  const outside = runGit("/nonexistent-krn-repo-xyz", ["status"]);
+  assert.equal(outside.ok, false);
+  assert.equal(outside.out, "");
+});
+
+test("runGit keeps the failure cause: exit status versus spawn error", () => {
+  const badRevision = runGit(process.cwd(), ["rev-parse", "no-such-revision-krn"]);
+  assert.equal(badRevision.ok, false);
+  assert.equal(typeof badRevision.status, "number");
+  assert.equal(badRevision.errorCode, null);
+  const savedPath = process.env.PATH;
+  process.env.PATH = "/nonexistent-krn-path";
+  try {
+    const missingBinary = runGit(process.cwd(), ["--version"]);
+    assert.equal(missingBinary.ok, false);
+    assert.equal(missingBinary.status, null);
+    assert.equal(missingBinary.errorCode, "ENOENT");
+  } finally {
+    process.env.PATH = savedPath;
+  }
 });
 
 test("gitText returns empty on failure and the value on success", () => {

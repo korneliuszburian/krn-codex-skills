@@ -229,3 +229,13 @@ test("compile marks the dirty scope unknown outside a git worktree", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("headMoved is true when the recorded HEAD differs even if base matches", () => {
+  const { root, head } = makeRepo();
+  git(root, ["commit", "-q", "--allow-empty", "-m", "second"]);
+  const live = git(root, ["rev-parse", "HEAD"]);
+  writeCapsule(root, `base=${live}; HEAD=${head}; dirty=clean`);
+  const report = resumeBrief({ repo: root });
+  assert.equal(report.capsules[0].headMoved, true);
+  rmSync(root, { recursive: true, force: true });
+});
