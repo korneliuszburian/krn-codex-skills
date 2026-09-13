@@ -105,6 +105,20 @@ test("check fails when the catalog mislabels a skill origin", () => {
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
+test("check fails when the catalog description drifts from SKILL.md", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  fs.mkdirSync(path.join(f.root, "skills"), { recursive: true });
+  fs.copyFileSync(path.join(f.source, "skills", "manifest.json"), path.join(f.root, "skills", "manifest.json"));
+  fs.mkdirSync(path.join(f.root, "config"), { recursive: true });
+  fs.copyFileSync(path.join(f.source, "config", "upstream-sources.json"), path.join(f.root, "config", "upstream-sources.json"));
+  const catalogFile = path.join(f.root, ".agents", "skills", "README.md");
+  fs.writeFileSync(catalogFile, fs.readFileSync(catalogFile, "utf8").replace("| Local skill |", "| TAMPERED |"));
+  const report = checkSkills({ root: f.root });
+  assert.ok(report.errors.some((error) => error.includes("description for local differs")), JSON.stringify(report.errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
 test("check does not flag upstream rows when the lock is absent", () => {
   const f = fixture();
   exportSkills({ source: f.source, upstream: f.upstream, root: f.root });

@@ -347,9 +347,10 @@ export function checkSkills({ root }) {
     }
   }
   if (rootManifest && lock) {
-    const rows = [...catalog.matchAll(/^\| `([^`]+)` \| (krn|upstream) \|/gm)].map((match) => ({
+    const rows = [...catalog.matchAll(/^\| `([^`]+)` \| (krn|upstream) \| (.*?) \|$/gm)].map((match) => ({
       name: match[1],
       origin: match[2],
+      description: match[3],
     }));
     for (const row of rows) {
       const expected = !names.includes(row.name)
@@ -362,6 +363,12 @@ export function checkSkills({ root }) {
       if (expected === null) errors.push(`.agents/skills/README.md lists unknown skill ${row.name}`);
       else if (expected !== row.origin) {
         errors.push(`.agents/skills/README.md lists ${row.name} as ${row.origin} but it is ${expected}`);
+      }
+      if (!names.includes(row.name)) continue;
+      const fields = skillMetadata(path.join(skillsDir, row.name, "SKILL.md"));
+      const expectedDescription = (fields?.description ?? "").replace(/\|/g, "\\|");
+      if (row.description !== expectedDescription) {
+        errors.push(`.agents/skills/README.md description for ${row.name} differs from its SKILL.md`);
       }
     }
     for (const name of names) {
