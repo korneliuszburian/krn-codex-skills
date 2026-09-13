@@ -277,6 +277,12 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const baseRunner = runAtBase ?? ((args) => runCheckAtBase({ ...args, git }));
   for (const record of targets.values()) {
     const outcome = run({ root, target: record.target });
+    const frozen = record.obligations.some((obligation) => obligation.frozenObserver);
+    let baseCache = null;
+    const baseOnce = () => {
+      if (!baseCache) baseCache = baseRunner({ root, base, target: record.target, overlay: frozen ? record.target.name : null });
+      return baseCache;
+    };
     for (const obligation of record.obligations) {
       results.push({ ref: obligation.ref, commit: obligation.commit, after: obligation.after, status: outcome.ok ? "green" : "red" });
       const failed = obligation.after === "green" ? !outcome.ok : outcome.ok;
@@ -289,7 +295,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         });
       }
       if (verifyBefore && obligation.label === "contract" && obligation.before === "red" && obligation.after === "green" && outcome.ok) {
-        const baseRun = baseRunner({ root, base, target: record.target, overlay: obligation.frozenObserver ? record.target.name : null });
+        const baseRun = baseOnce();
         const baseOutput = baseRun.outcome?.output ?? "";
         if (baseRun.unavailable || baseRun.outcome?.spawnFailed) {
           errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete; its before-state is unproven" });
