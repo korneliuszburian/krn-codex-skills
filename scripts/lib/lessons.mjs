@@ -205,9 +205,10 @@ export function checkLessons({ root, git = runGit }) {
   if (retiredRows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} archived rows; consolidate the archive`);
   if (!fs.existsSync(file)) return { root, lessons, errors, warnings: ["no workflow-lessons page; memory is not adopted at this root"], skipped: true };
   const packageFile = path.join(root, "package.json");
-  const scripts = fs.existsSync(packageFile)
-    ? JSON.parse(fs.readFileSync(packageFile, "utf8")).scripts ?? {}
-    : {};
+  let scripts = {};
+  if (fs.existsSync(packageFile)) {
+    try { scripts = JSON.parse(fs.readFileSync(packageFile, "utf8")).scripts ?? {}; } catch { errors.push("package.json is not valid JSON"); }
+  }
   for (const row of rows) {
     const invalidTrigger = (row.trigger ?? "").split(/[;,]/).map((entry) => entry.trim()).filter(Boolean).find((entry) => !/^(path|symbol|churn):/.test(entry));
     if (invalidTrigger) {

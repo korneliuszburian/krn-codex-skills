@@ -35,7 +35,7 @@ const usage = `Usage:
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
   krn-codex lessons <check|verify> --root DIR [--json]
   krn-codex changes check --base REF [--head REF] --root DIR [--before] [--json]
-  krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...]] [--symbol NAME[,NAME...]] [--json]`;
+  krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]`;
 
 function fail(message, code = EXIT_CODES.USAGE) {
   const error = new Error(message);

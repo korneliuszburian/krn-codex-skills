@@ -147,3 +147,20 @@ test("a comment mention does not count as a consumer of an export", () => {
     },
   );
 });
+
+test("dynamic imports and re-export chains count as consumers", () => {
+  withRepo(
+    {
+      "scripts/lib/a.mjs": "export function orphan() { return 1; }\n",
+      "scripts/lib/b.mjs": "export const v = (await import(\"./a.mjs\")).orphan();\n",
+      "scripts/lib/barrel.mjs": "export { orphan } from \"./a.mjs\";\n",
+      "scripts/lib/chain.mjs": "export { orphan } from \"./barrel.mjs\";\n",
+      "scripts/lib/final.mjs": "import { orphan } from \"./chain.mjs\";\nexport const w = orphan;\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(!errors.some((e) => e.includes("dead export orphan")), JSON.stringify(errors));
+      assert.ok(!errors.some((e) => e.includes("dead re-export orphan")), JSON.stringify(errors));
+    },
+  );
+});

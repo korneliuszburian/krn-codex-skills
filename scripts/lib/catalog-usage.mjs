@@ -93,9 +93,10 @@ export async function scanCatalogUsage({
     throw new TypeError("sessionsRoot must be a non-empty path");
   }
   assertAllowedRoot(sessionsRoot);
-  await requireDirectoryWithoutSymlinks(sessionsRoot, {
+  const present = await requireDirectoryWithoutSymlinks(sessionsRoot, {
     label: "sessionsRoot",
     beforeAccess: assertAllowedRoot,
+    allowMissing: true,
   });
 
   const allowedSkills = canonicalSkills(canonicalSkillPaths);
@@ -119,6 +120,10 @@ export async function scanCatalogUsage({
       absence_means_unused: false,
     },
   };
+  if (!present) {
+    report.coverage.absence_means_unused = true;
+    return { aggregates: finalAggregates(aggregates), ...report };
+  }
 
   for await (const filePath of rolloutFiles(sessionsRoot)) {
     const fileDay = derivedRolloutDay(sessionsRoot, filePath);

@@ -215,7 +215,10 @@ export function checkSkills({ root }) {
   if (!fs.existsSync(markerFile)) {
     errors.push(`\`${MARKER}\` is missing; this directory is not a generated export`);
   }
-  const marker = fs.existsSync(markerFile) ? readJson(markerFile) : null;
+  const marker = (() => {
+    if (!fs.existsSync(markerFile)) return null;
+    try { return readJson(markerFile); } catch { errors.push(`.agents/skills/${MARKER} is not valid JSON`); return null; }
+  })();
   const sourceByName = new Map();
   const sourceManifest = path.join(root, "skills", "manifest.json");
   const rootManifest = (() => {

@@ -142,14 +142,18 @@ export function auditRepository(root) {
     }
     return names;
   };
+  const dynamicallyImports = (source, moduleFile) => {
+    const base = basename(moduleFile);
+    return new RegExp(`import\\s*\\(\\s*["'][^"']*${base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']`).test(source);
+  };
   const consumed = new Map([...sources.entries()].map(([file, source]) => [file, consumedNames(source)]));
 
   for (const file of runtime.filter((candidate) => label(candidate).startsWith(`scripts${sep}lib${sep}`))) {
     if (isSelf(file)) continue;
     const source = sources.get(file);
     for (const name of exportedNames(source)) {
-      const usedElsewhere = [...sources.keys()].some(
-        (other) => other !== file && consumed.get(other)?.has(name),
+      const usedElsewhere = [...sources.entries()].some(
+        ([other, otherSource]) => other !== file && (consumed.get(other)?.has(name) || dynamicallyImports(otherSource, file)),
       );
       if (!usedElsewhere) errors.push(`${label(file)}: dead export ${name}`);
     }
@@ -176,7 +180,7 @@ export function auditRepository(root) {
       for (const name of names) {
         const imported = [...sources.entries()].some(([other, otherSource]) => {
           if (other === file) return false;
-          for (const spec of otherSource.matchAll(/import\s+([^;]*?)\s+from\s+["'](\.[^"']+)["']/g)) {
+          for (const spec of otherSource.matchAll(/(?:import|export)\s+([^;]*?)\s+from\s+["'](\.[^"']+)["']/g)) {
             if (basename(spec[2]) !== base) continue;
             const braces = spec[1].match(/\{([\s\S]*?)\}/);
             if (!braces) continue;

@@ -20,7 +20,7 @@ function runtimeClosure({ root, manifest }) {
     reachable.add(file);
     const code = source
       .replace(/\/\*[\s\S]*?\*\//g, " ")
-      .replace(/(^|[^:])\/\/[^\n]*/g, "$1 ")
+      .replace(/(^|\s)\/\/[^\n]*/g, "$1 ")
       .replace(/`(?:\\.|[^`])*`/g, " ");
     for (const match of code.matchAll(/(?:from|import)\s*\(?\s*["'](\.[^"']+)["']/g)) {
       queue.push(relativePath(root, file, match[1]));

@@ -72,8 +72,10 @@ If `install apply` exits 66 (`existing release is corrupt`) or `doctor` reports
 not rebuild a corrupt release (it fails closed again) and cannot repair a
 foreign `current`; recover by repointing `current` to a verified sibling
 release through an atomic relative-symlink rename, or, when no sibling is
-verified, delete the corrupt release directory and re-run apply from the clean
-checkout at that commit. Never edit a release in place;
+verified, delete the corrupt release directory **and** the `current` symlink
+and every managed link, then re-run apply from the clean checkout at that
+commit (a dangling `current` or a stale managed link makes apply fail closed
+at exit 73). Never edit a release in place;
 delete a corrupt or superseded release only after no installed link or session
 references it.
 
