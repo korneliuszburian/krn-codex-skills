@@ -75,6 +75,14 @@ function requireDirectory(root) {
   if (!fs.statSync(root, { throwIfNoEntry: false })?.isDirectory()) fail(`root is not a directory: ${root}`);
 }
 
+function rejectForeignOptions(options, allowed) {
+  const permitted = new Set(["json", ...allowed]);
+  for (const key of Object.keys(options)) {
+    if (options[key] === undefined || options[key] === false) continue;
+    if (!permitted.has(key)) fail(`unknown option for this command: --${key}`);
+  }
+}
+
 function print(value, json) {
   if (json) process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
   else if (typeof value === "string") process.stdout.write(`${value}\n`);
@@ -107,6 +115,7 @@ try {
     delegate("skills/engineering/setup-repository-workflow/scripts/init-repository-workflow.mjs", raw.slice(1));
   } else if (raw[0] === "skills") {
     const { positional, options } = parseOptions(raw.slice(1));
+    rejectForeignOptions(options, ["root", "upstream"]);
     if ((positional[0] !== "export" && positional[0] !== "check") || positional.length > 1 || options.source || options.yes || (positional[0] === "check" && options.upstream) || !options.root) fail(usage);
     try {
       if (positional[0] === "check") {
@@ -122,6 +131,7 @@ try {
     }
   } else if (raw[0] === "lessons") {
     const { positional, options } = parseOptions(raw.slice(1));
+    rejectForeignOptions(options, ["root"]);
     if (!["check", "verify", "reanchor"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
     requireDirectory(options.root);
     if (positional[0] === "check") {
@@ -150,6 +160,7 @@ try {
     }
   } else if (raw[0] === "changes") {
     const { positional, options } = parseOptions(raw.slice(1));
+    rejectForeignOptions(options, ["root", "base", "head", "before", "strictRecall"]);
     if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root || !options.base) fail(usage);
     const report = contractGuardActive()
       ? { root: options.root, commits: [], results: [], errors: [], warnings: [{ rule: "change-contract-skipped", detail: "KRN_CHANGE_CONTRACT=0" }], skipped: true }
@@ -163,6 +174,7 @@ try {
     if (report.errors.length) process.exitCode = 1;
   } else if (raw[0] === "memory") {
     const { positional, options } = parseOptions(raw.slice(1));
+    rejectForeignOptions(options, ["root", "changed", "symbols"]);
     if (!["recall", "usage"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
     requireDirectory(options.root);
     if (positional[0] === "usage") {
@@ -185,6 +197,7 @@ try {
     }
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));
+    rejectForeignOptions(options, ["root"]);
     const command = positional[0];
     if (!["check", "compile", "resume"].includes(command) || positional.length > 2 || options.source || options.yes) fail(usage);
     const repo = options.root ?? positional[1] ?? process.cwd();
@@ -211,14 +224,17 @@ try {
     if (positional.length !== 2) fail(usage);
     const command = positional[1];
     if (command === "check") {
+      rejectForeignOptions(options, []);
       const report = inspectInstall();
       print(report, options.json);
       if (report.filesystem.status !== "filesystem_installed") process.exitCode = 3;
     } else if (command === "prune") {
+      rejectForeignOptions(options, ["keep"]);
       const keep = options.keep ? Number(options.keep) : 3;
       if (!Number.isInteger(keep) || keep < 1) fail("install prune --keep must be a positive integer");
       print(pruneReleases({ keep }), options.json);
     } else if (command === "plan" || command === "apply") {
+      rejectForeignOptions(options, command === "apply" ? ["source", "yes"] : ["source"]);
       const plan = createInstallPlan({ source: options.source, cwd: process.cwd() });
       if (command === "plan") {
         print({ source: plan.source, commit: plan.commit, release: plan.release, runtimePaths: plan.runtimePaths }, options.json);
@@ -229,6 +245,7 @@ try {
       }
     } else fail(usage);
   } else if (positional[0] === "doctor") {
+    rejectForeignOptions(options, []);
     if (positional.length !== 1 || options.source || options.yes) fail(usage);
     const report = inspectInstall();
     print(options.json ? report : renderInstallReport(report), options.json);
