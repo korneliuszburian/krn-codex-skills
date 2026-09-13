@@ -15,6 +15,21 @@ export function runGit(repo, args) {
   }
 }
 
+export function runGitRaw(repo, args) {
+  try {
+    return {
+      ok: true,
+      out: execFileSync("git", ["-C", repo, ...args], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        maxBuffer: 512 * 1024 * 1024,
+      }),
+    };
+  } catch {
+    return { ok: false, out: "" };
+  }
+}
+
 export function gitText(repo, args) {
   const result = runGit(repo, args);
   return result.ok ? result.out : "";

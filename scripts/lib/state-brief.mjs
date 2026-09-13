@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { gitAvailable, runGit as git } from "./git-cli.mjs";
+import { gitAvailable, runGit as git, runGitRaw } from "./git-cli.mjs";
 import { capsuleIds, runDirectories } from "./spine-runs.mjs";
 import { inspectSpineState, normalizeRunPointer } from "./state-check.mjs";
 import { commitTokens, fieldLine, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
@@ -17,7 +17,7 @@ function resolveRoot(repo) {
 }
 
 function porcelain(root) {
-  const status = git(root, ["status", "--porcelain"]);
+  const status = runGitRaw(root, ["status", "--porcelain"]);
   if (!status.ok || status.out === "") return [];
   return status.out.split("\n").filter(Boolean).map((line) => line.slice(3).trim()).filter(Boolean);
 }

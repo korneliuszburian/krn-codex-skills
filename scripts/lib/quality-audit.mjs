@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join, relative, sep } from "node:path";
 
-import { maskLiterals, stripComments } from "./source-mask.mjs";
+import { maskLiterals, maskTemplates, stripComments } from "./source-mask.mjs";
 
 const SELF = "scripts/lib/quality-audit.mjs";
 
@@ -32,7 +32,7 @@ const exportedNames = (source) => {
 };
 
 const importedNames = (rawSource) => {
-  const source = stripComments(rawSource);
+  const source = maskTemplates(stripComments(rawSource));
   const names = new Set();
   for (const match of source.matchAll(/(?:^|[;\n}])\s*import\s+([^;]*?)\s+from\s+["'][^"']+["']/g)) {
     const clause = match[1];

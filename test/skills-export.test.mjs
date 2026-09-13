@@ -364,3 +364,12 @@ test("check reports invalid JSON in the lock or manifest instead of throwing", (
   assert.ok(check.errors.some((error) => error.includes("not valid JSON")), JSON.stringify(check.errors));
   fs.rmSync(f.base, { recursive: true, force: true });
 });
+
+test("a tracked skill edit as the first change marks the export dirty", () => {
+  const f = fixture();
+  fs.appendFileSync(path.join(f.source, "skills", "meta", "local", "SKILL.md"), "\n");
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  const marker = JSON.parse(fs.readFileSync(path.join(f.root, ".agents", "skills", ".krn-export.json"), "utf8"));
+  assert.equal(marker.krn.dirty, true, "the first porcelain entry must not be truncated");
+  fs.rmSync(f.base, { recursive: true, force: true });
+});

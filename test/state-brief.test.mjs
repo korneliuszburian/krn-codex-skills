@@ -161,3 +161,14 @@ test("resume normalizes cleanup pointers so a live run is neither missing nor un
   assert.deepEqual(report.capsules[0].unlistedRuns, [], JSON.stringify(report.capsules[0].unlistedRuns));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("compile records the full dirty path for a tracked modification", () => {
+  const { root } = makeRepo();
+  writeFileSync(join(root, "tracked.txt"), "one\n");
+  git(root, ["add", "tracked.txt"]);
+  git(root, ["commit", "-q", "-m", "tracked file"]);
+  writeFileSync(join(root, "tracked.txt"), "one\ntwo\n");
+  const report = compileCapsule({ repo: root });
+  assert.match(report.capsule, /dirty=1 paths: tracked\.txt/, report.capsule);
+  rmSync(root, { recursive: true, force: true });
+});

@@ -190,3 +190,16 @@ test("an import phrase inside a string does not inject a phantom local", () => {
     },
   );
 });
+
+test("an import phrase inside a multi-line template does not inject a phantom local", () => {
+  withRepo(
+    {
+      "scripts/lib/a.mjs": "export function phantom() {\n  return 1;\n}\n",
+      "scripts/lib/b.mjs": 'const t = `\nimport phantom from "./nowhere.mjs"\n`;\nexport function run() {\n  return phantom();\n}\nexport const x = t;\n',
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("calls phantom() but never imports it")), JSON.stringify(errors));
+    },
+  );
+});

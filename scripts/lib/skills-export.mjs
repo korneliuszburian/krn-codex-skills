@@ -1,4 +1,4 @@
-import { gitText as git } from "./git-cli.mjs";
+import { gitText as git, runGitRaw } from "./git-cli.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -103,7 +103,7 @@ export function exportSkills({ source, upstream, root }) {
     ? upstreamPin.harness_paths
     : upstreamPin.required_paths;
   const harnessDirs = [...new Set(harnessPaths.map((required) => path.dirname(required)))];
-  const upstreamStatus = git(resolvedUpstream, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]);
+  const upstreamStatus = runGitRaw(resolvedUpstream, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]).out;
   const untracked = upstreamStatus
     .split("\0")
     .filter((entry) => entry.startsWith("?? ") || entry.startsWith("!! "))
@@ -117,7 +117,7 @@ export function exportSkills({ source, upstream, root }) {
     ? manifest.skills.filter((skill) => manifest.harness_skills.includes(skill.name))
     : manifest.skills;
   const sourceSkillDirs = manifestSkills.map((skill) => skill.path);
-  const sourceStatus = git(source, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]);
+  const sourceStatus = runGitRaw(source, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]).out;
   const sourceEntries = sourceStatus.split("\0").filter(Boolean);
   const sourceDirty = sourceEntries.some((entry) => {
     if (entry.startsWith("?? ") || entry.startsWith("!! ")) return false;

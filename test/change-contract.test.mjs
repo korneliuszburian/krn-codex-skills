@@ -1108,3 +1108,24 @@ test("a boolean or =value --test flag does not force enumeration", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("a bare node --test script does not report shrinkage for an untouched passing test", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-noshrink-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), "{\"scripts\":{\"test:t\":\"node --test\"}}\n");
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  writeFileSync(join(root, "test", "o.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("flip", () => assert.equal(value, 2));\n');
+  writeFileSync(join(root, "test", "other.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("stable", () => assert.equal(typeof value, "number"));\n');
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "lib.mjs"), "export const value = 2;\n");
+  writeFileSync(join(root, "test", "o.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("flip", () => assert.equal(value, 2));\ntest("extra", () => assert.equal(value * 1, 2));\n');
+  commit("fix\n\nChange-contract: test:t:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+  assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
