@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { QuarantineViolationError, planCatalogConfig } from "../../scripts/lib/catalog/catalog-plan.mjs";
+import { QuarantineViolationError } from "../../scripts/lib/catalog/catalog-errors.mjs";
+import { planCatalogConfig } from "../../scripts/lib/catalog/catalog-plan.mjs";
 
 const SOURCE = '[plugins."figma@openai-curated"]\nenabled = false\n';
 

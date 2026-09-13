@@ -2,6 +2,8 @@ import fs from "node:fs";
 import { GIT_LOG_FORMAT, parseGitLogRecords } from "../support/git-cli.mjs";
 import path from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
+import { readJson } from "../support/read-json.mjs";
+import { escapeRegExp } from "../support/regexp.mjs";
 
 import { runGit } from "../support/git-cli.mjs";
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
@@ -220,7 +222,7 @@ export function checkLessons({ root, git = runGit }) {
   const packageFile = path.join(root, "package.json");
   let scripts = {};
   if (fs.existsSync(packageFile)) {
-    try { scripts = JSON.parse(fs.readFileSync(packageFile, "utf8")).scripts ?? {}; } catch { errors.push("package.json is not valid JSON"); }
+    try { scripts = readJson(packageFile).scripts ?? {}; } catch { errors.push("package.json is not valid JSON"); }
   }
   for (const row of rows) {
     const invalidTrigger = (row.trigger ?? "").split(/[;,]/).map((entry) => entry.trim()).filter(Boolean).find((entry) => !/^(path|symbol|churn):/.test(entry));
@@ -317,7 +319,7 @@ export function recallBindings({ hit, lines }) {
   const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
   const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
   const named = [...ids, falsifierFile].filter(Boolean);
-  const namesId = (text, id) => new RegExp(`(^|[\\s,;])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s,;]|$)`).test(text);
+  const namesId = (text, id) => new RegExp(`(^|[\\s,;])${escapeRegExp(id)}([\\s,;]|$)`).test(text);
   const relevant = hit.matched ?? [];
   const reconstructed = lines.some((line) => {
     const [left, right] = line.split("=>").map((part) => part?.trim() ?? "");
@@ -352,12 +354,12 @@ function recallUsage(root, git, rows) {
   return counts;
 }
 
-export function lessonUsage({ root, git = runGit } = {}) {
+export function lessonUsage({ root } = {}) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
   const { rows } = parseLessons(file);
   const triggered = rows.filter((row) => !row.status && (row.trigger ?? "").trim());
-  if (!git(root, ["rev-parse", "--git-dir"]).ok) return { root, usage: [], neverRecalled: [], skipped: true };
-  const counts = recallUsage(root, git, rows);
+  if (!runGit(root, ["rev-parse", "--git-dir"]).ok) return { root, usage: [], neverRecalled: [], skipped: true };
+  const counts = recallUsage(root, runGit, rows);
   const usage = triggered.map((row) => ({ lesson: row.lesson, recalls: counts.get(row.lesson) ?? 0 }));
   return { root, usage, neverRecalled: usage.filter((entry) => entry.recalls === 0).map((entry) => entry.lesson) };
 }

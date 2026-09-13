@@ -6,7 +6,6 @@ import { parseDocument } from "./catalog-toml.mjs";
 import { normalizeDesired, normalizeFamilies, pluginIdFromCachedSkillPath } from "./catalog-desired.mjs";
 import { matchesQuarantined, pluginFamilyFromId } from "./plugin-identity.mjs";
 
-export { QuarantineViolationError } from "./catalog-errors.mjs";
 
 export function digest(source) {
   return createHash("sha256").update(source).digest("hex");

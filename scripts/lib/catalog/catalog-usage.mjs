@@ -9,7 +9,6 @@ import {
   isCandidateRecordLine,
   MAX_ROLLOUT_RECORD_BYTES,
 } from "./catalog-usage-lines.mjs";
-export { MAX_ROLLOUT_RECORD_BYTES } from "./catalog-usage-lines.mjs";
 import {
   assertAllowedRoot,
   canonicalSkills,

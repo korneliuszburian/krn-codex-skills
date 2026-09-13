@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { posixRelative } from "../support/path-rules.mjs";
+import { escapeRegExp } from "../support/regexp.mjs";
 import path from "node:path";
 
 import { parseLessons } from "../lessons/lessons.mjs";
@@ -97,7 +98,7 @@ export function checkDurablePages({ root }) {
       };
       const context = stripCode(stripHtmlComments(fs.readFileSync(contextFile, "utf8")));
       for (const entry of adrEntries) {
-        const escaped = entry.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const escaped = escapeRegExp(entry.name);
         const target = `(?:\\./)?docs/adr/${escaped}`;
         const inline = new RegExp(`(?<!\\\\)\\[[^\\]]*\\]\\(\\s*<?${target}(?:[#?][^)\\s]*)?\\s*(?:"[^"]*")?\\s*>?\\s*\\)`);
         const reference = new RegExp(`^\\s*\\[[^\\]]+\\]:\\s*<?${target}(?:[#?][^\\s>]*)?>?\\s*$`, "m");

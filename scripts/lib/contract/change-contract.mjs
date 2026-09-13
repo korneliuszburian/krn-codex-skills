@@ -7,6 +7,7 @@ import { posixRelative } from "../support/path-rules.mjs";
 import { spawnSync } from "node:child_process";
 
 import { runGit } from "../support/git-cli.mjs";
+import { readJson } from "../support/read-json.mjs";
 import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings } from "../lessons/lessons.mjs";
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
 import { churnHot } from "../support/churn.mjs";
@@ -253,7 +254,7 @@ function frozenTestsFor(root, target, enumerate) {
 function scriptCommand(root, target) {
   if (target.kind !== "script") return null;
   try {
-    return JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts?.[target.name] ?? null;
+    return readJson(path.join(root, "package.json")).scripts?.[target.name] ?? null;
   } catch {
     return null;
   }
@@ -359,7 +360,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const packageFile = path.join(root, "package.json");
   let scripts = {};
   if (fs.existsSync(packageFile)) {
-    try { scripts = JSON.parse(fs.readFileSync(packageFile, "utf8")).scripts ?? {}; } catch { errors.push({ rule: "unreadable-package", detail: "package.json is not valid JSON" }); }
+    try { scripts = readJson(packageFile).scripts ?? {}; } catch { errors.push({ rule: "unreadable-package", detail: "package.json is not valid JSON" }); }
   }
   const basePackage = git(root, ["show", `${base}:package.json`]);
   let baseScripts = null;

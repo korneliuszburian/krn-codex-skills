@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
+import { escapeRegExp } from "../support/regexp.mjs";
 import { spawnSync } from "node:child_process";
 
 import { checkLessons } from "./lessons.mjs";
@@ -27,14 +28,12 @@ export function tapCasePassed(output, name) {
   });
 }
 
-function escapePattern(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+
 
 function runCase({ root, file, name, timeout }) {
   const env = { ...process.env, KRN_LESSONS_VERIFY: "0" };
   delete env.NODE_TEST_CONTEXT;
-  const result = spawnSync(process.execPath, ["--test", "--test-reporter=tap", `--test-name-pattern=^${escapePattern(name)}$`, file], {
+  const result = spawnSync(process.execPath, ["--test", "--test-reporter=tap", `--test-name-pattern=^${escapeRegExp(name)}$`, file], {
     cwd: root,
     timeout,
     encoding: "utf8",

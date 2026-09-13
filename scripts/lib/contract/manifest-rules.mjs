@@ -2,6 +2,8 @@ import path from "node:path";
 
 import { isSafeRelativePath } from "../support/path-rules.mjs";
 
+const SKILL_NAME = /^[a-z0-9](?:-?[a-z0-9]){0,63}$/;
+
 const SKILL_PATH_GROUPS = ["engineering", "advisory", "meta"];
 
 export function hookFileErrors(hookFiles, { isSafeRelativePath, inspectTarget }) {
@@ -81,7 +83,7 @@ export function binErrors(bins, { isSafeRelativePath, inspectTarget }) {
       errors.push("manifest: bins entries must be objects");
       continue;
     }
-    if (!/^[a-z0-9](?:-?[a-z0-9]){0,63}$/.test(bin.name ?? "")) {
+    if (!SKILL_NAME.test(bin.name ?? "")) {
       errors.push(`manifest: invalid bin name ${bin.name}`);
     }
     if (names.has(bin.name)) {
@@ -149,7 +151,7 @@ export function retirementErrors(retiredSkills, localSkillNames) {
         `manifest: retired skill ${retired.name ?? "<unknown>"} must contain only name and replacement`,
       );
     }
-    if (!/^[a-z0-9](?:-?[a-z0-9]){0,63}$/.test(retired.name ?? "")) {
+    if (!SKILL_NAME.test(retired.name ?? "")) {
       errors.push(`manifest: invalid retired skill name ${retired.name}`);
       continue;
     }
@@ -202,7 +204,7 @@ export function validateManifestSkills(document) {
     if (!keysAreValid) {
       errors.push(`manifest: skill ${skill.name ?? "<unknown>"} must contain only implicit, name, and path`);
     }
-    const nameIsValid = /^[a-z0-9](?:-?[a-z0-9]){0,63}$/.test(skill.name ?? "");
+    const nameIsValid = SKILL_NAME.test(skill.name ?? "");
     if (!nameIsValid) {
       errors.push(`manifest: invalid skill name ${skill.name}`);
     }
