@@ -15,8 +15,11 @@ function makeRoot(scripts = { "test:lessons": "x", "test:lib": "x" }) {
   return root;
 }
 
-function fakeGit({ commits, files, baseScripts = {}, baseFiles = [], blobs = {}, trees = {} }) {
+function fakeGit({ commits, files, baseScripts = {}, baseFiles = [], blobs = {}, trees = {}, ancestor = true }) {
   return (_root, args) => {
+    if (args[0] === "merge-base") {
+      return ancestor ? { ok: true, out: "" } : { ok: false, out: "", status: 1 };
+    }
     if (args[0] === "log") {
       return { ok: true, out: commits.map((commit) => `${commit.sha}\u001f${commit.subject}\u001f${commit.body ?? ""}`).join("\u001e") };
     }
@@ -84,6 +87,21 @@ test("multiple comma-separated contract refs are all admitted and run", () => {
   const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.equal(report.errors.length, 0, JSON.stringify(report.errors));
   assert.equal(report.results.length, 2);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a base that is not an ancestor of head is refused", () => {
+  const root = makeRoot();
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lessons:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    ancestor: false,
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
+  assert.ok(
+    report.errors.some((error) => error.rule === "unreadable-range" && String(error.detail).includes("not an ancestor")),
+    JSON.stringify(report.errors),
+  );
   rmSync(root, { recursive: true, force: true });
 });
 

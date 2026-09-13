@@ -338,6 +338,16 @@ function outputTail(output) {
 export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = false } = {}) {
   const errors = [];
   const warnings = [];
+  const ancestry = git(root, ["merge-base", "--is-ancestor", base, head]);
+  if (ancestry.status === 1) {
+    return {
+      root,
+      commits: [],
+      results: [],
+      errors: [{ rule: "unreadable-range", detail: `${base} is not an ancestor of ${head}` }],
+      warnings: [],
+    };
+  }
   const log = git(root, ["log", GIT_LOG_FORMAT, `${base}..${head}`]);
   if (!log.ok) return { root, commits: [], results: [], errors: [{ rule: "unreadable-range", detail: `${base}..${head}` }] };
   const commits = parseGitLogRecords(log.out);
