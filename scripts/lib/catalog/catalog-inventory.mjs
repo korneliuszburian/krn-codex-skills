@@ -15,7 +15,6 @@ import {
   compareInventoryRecords,
   createQuarantineCollector,
 } from "./catalog-inventory-quarantine.mjs";
-import { parseSkillFrontmatter, validSkillName } from "./catalog-inventory-frontmatter.mjs";
 import {
   requireDirectoryWithoutSymlinks,
   requireRegularFileWithoutSymlinks,
@@ -172,26 +171,9 @@ async function inventorySkillRoot(root, records, quarantine) {
       }
     }
 
-    let metadata;
-    if (root.readFrontmatter === true && skillFile.isFile()) {
-      metadata = await readSkillFrontmatter(skillPath, quarantine);
-      if (metadata?.name && quarantine.matches(metadata.name)) {
-        quarantine.add(
-          "skill",
-          metadata.name,
-          "frontmatter-name",
-          root.id,
-          resolve(skillPath),
-        );
-        continue;
-      }
-    }
-
-    const name = validSkillName(metadata?.name) ? metadata.name : entry.name;
     records.push(
       skillRecord({
-        name,
-        description: metadata?.description,
+        name: entry.name,
         root,
         source: skillFile.isSymbolicLink() ? "file-symlink" : "directory",
         path: skillPath,
@@ -445,27 +427,6 @@ async function pluginSkillPaths(pluginPath, sourceId, quarantine) {
     if (skillFile?.isFile()) paths.push(skillPath);
   }
   return paths.sort();
-}
-
-async function readSkillFrontmatter(skillPath, quarantine) {
-  assertAllowedPath(skillPath, quarantine);
-  let handle;
-  try {
-    handle = await open(
-      skillPath,
-      constants.O_RDONLY | constants.O_NOFOLLOW,
-    );
-  } catch (error) {
-    if (error?.code === "ENOENT" || error?.code === "ELOOP") return undefined;
-    throw error;
-  }
-  try {
-    const buffer = Buffer.alloc(8192);
-    const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
-    return parseSkillFrontmatter(buffer.subarray(0, bytesRead).toString("utf8"));
-  } finally {
-    await handle.close();
-  }
 }
 
 async function readSmallJson(path, maxBytes, quarantine) {

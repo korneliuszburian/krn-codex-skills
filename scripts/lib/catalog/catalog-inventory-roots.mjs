@@ -15,25 +15,21 @@ function defaultSkillRoots({ codexHome, agentsHome, opencodeHome }) {
       id: "codex-user-skills",
       path: join(codexHome, "skills"),
       scope: "user",
-      readFrontmatter: false,
     },
     {
       id: "codex-system-skills",
       path: join(codexHome, "skills", ".system"),
       scope: "system",
-      readFrontmatter: false,
     },
     {
       id: "agent-global-index",
       path: join(agentsHome, "skills"),
       scope: "global-index",
-      readFrontmatter: false,
     },
     {
       id: "opencode-skills",
       path: join(opencodeHome, "skills"),
       scope: "vendor-global",
-      readFrontmatter: false,
     },
   ];
 }
