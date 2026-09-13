@@ -79,6 +79,8 @@ test("setEnabled accepts every documented MCP transport key, including http_head
     'env_http_headers = { "X-Token" = "TOKEN_ENV" }',
     'bearer_token_env_var = "TOKEN_ENV"',
     'default_tools_approval_mode = "prompt"',
+    'oauth = { client_id = "abc" }',
+    'tools = { my_tool = { approval_mode = "prompt" } }',
     "enabled = true",
     "",
   ].join("\n");

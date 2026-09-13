@@ -236,11 +236,13 @@ function advanceMultilineState(content, mode) {
 export function parseDocument(source) {
   const lines = splitLines(source);
   const headers = [];
+  const insideMultiline = [];
   let insideTable = false;
   let multiline = null;
 
   for (let index = 0; index < lines.length; index += 1) {
     const content = lines[index].content;
+    insideMultiline[index] = multiline !== null;
     if (multiline === null) {
       const header = parseHeader(content);
       if (header) {
@@ -271,7 +273,7 @@ export function parseDocument(source) {
   });
 
   const eol = lines.find((line) => line.eol !== "")?.eol ?? "\n";
-  return { source, lines, blocks, eol };
+  return { source, lines, blocks, eol, insideMultiline };
 }
 
 function looksLikeManagedRootAssignment(content) {
@@ -342,6 +344,7 @@ export function directAssignments(document, block) {
     index < block.endLineIndex;
     index += 1
   ) {
+    if (document.insideMultiline?.[index]) continue;
     const key = parseAssignmentKey(document.lines[index].content);
     if (key === undefined) continue;
     const entries = assignments.get(key) ?? [];

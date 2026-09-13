@@ -81,8 +81,15 @@ test("parseDocument ignores managed-looking headers inside multi-line strings", 
   assert.deepEqual(parseDocument(basic).blocks.map(({ kind, id }) => ({ kind, id })), [{ kind: "plugin", id: "real" }]);
   const literal = "notes = '''\n[mcp_servers.demo]\nenabled = true\n'''\n";
   assert.deepEqual(parseDocument(literal).blocks, []);
-  const sameLineOpenClose = 'help = """[skills.config]\npath = "x" """\n[mcp_servers.after]\n';
+  const sameLineOpenClose = 'help = """[mcp_servers.fake]\n[skills.config]\n"""\n[mcp_servers.after]\n';
   assert.deepEqual(parseDocument(sameLineOpenClose).blocks.map(({ kind, id }) => ({ kind, id })), [{ kind: "mcp", id: "after" }]);
+});
+
+test("directAssignments ignores assignment-looking lines inside a multi-line string", () => {
+  const source = '[mcp_servers.demo]\ncommand = """\n[mcp_servers.demo]\nenabled = true\n"""\n';
+  const document = parseDocument(source);
+  const block = document.blocks.find((entry) => entry.kind === "mcp");
+  assert.deepEqual([...directAssignments(document, block).keys()], ["command"]);
 });
 
 test("parseAssignment reads key, prefix, and value", () => {

@@ -24,12 +24,14 @@ export const MCP_SERVER_KEYS = new Set([
   "experimental_environment",
   "http_headers",
   "http_headers_helper",
+  "oauth",
   "oauth_resource",
   "required",
   "scopes",
   "startup_timeout_ms",
   "startup_timeout_sec",
   "tool_timeout_sec",
+  "tools",
   "url",
 ]);
 
