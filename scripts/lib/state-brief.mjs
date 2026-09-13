@@ -18,7 +18,8 @@ function resolveRoot(repo) {
 
 function porcelain(root) {
   const status = runGitRaw(root, ["status", "--porcelain"]);
-  if (!status.ok || status.out === "") return [];
+  if (!status.ok) return null;
+  if (status.out === "") return [];
   return status.out.split("\n").filter(Boolean).map((line) => line.slice(3).trim()).filter(Boolean);
 }
 
@@ -57,11 +58,12 @@ export function compileCapsule({ repo = process.cwd() } = {}) {
 
   if (!hasGit) warnings.push("git is not on PATH; head and dirty scope are placeholders");
   else if (!usableGit) warnings.push("not a git worktree; head and dirty scope are placeholders");
+  if (dirty === null) errors.push({ rule: "dirty-state-unavailable", detail: "git status failed; the dirty scope is unknown, not clean" });
   if (capsules.length > 0) warnings.push(`an outcome capsule already exists (${capsules.join(", ")}); resume it instead of opening a second writer`);
   if (usableGit && !runsIgnored) warnings.push("`.krn/runs` is not git-ignored; a capsule here would be tracked");
 
   const headField = head.ok && head.out ? `HEAD=${head.out}` : "fingerprint=<fill: working-tree fingerprint>";
-  const dirtyField = dirty.length === 0 ? "clean" : `${dirty.length} paths: ${dirty.slice(0, 8).join(", ")}${dirty.length > 8 ? ", ..." : ""}`;
+  const dirtyField = dirty === null ? "unknown (git status failed)" : dirty.length === 0 ? "clean" : `${dirty.length} paths: ${dirty.slice(0, 8).join(", ")}${dirty.length > 8 ? ", ..." : ""}`;
   const cleanup = runs.length
     ? `[${runs
         .map((run) => `${run.pointer}; ${run.workflow}; <fill: sole in-goal consumer>; <fill: cleanup trigger>; ACTIVE`)
@@ -123,6 +125,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
 
   const liveHead = git(report.root, ["rev-parse", "HEAD"]);
   const liveDirty = porcelain(report.root);
+  if (liveDirty === null) warnings.push("git status failed; the live dirty scope is unknown, not clean");
   const liveRuns = new Set(runDirectories(report.root).map((run) => run.pointer));
   const briefs = [];
 
@@ -149,6 +152,11 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
       owner: fieldLine(text, "Current workflow owner and sole writer"),
       nextAction: fieldLine(text, "Next bounded owner and action"),
       friction: fieldLine(text, "Workflow friction and lesson candidates"),
+      authority: fieldLine(text, "Authority"),
+      blockers: fieldLine(text, "Open unknowns and blockers with owners"),
+      evidence: fieldLine(text, "Evidence observed"),
+      nonProofs: fieldLine(text, "Explicit non-proofs"),
+      reviewDisposition: fieldLine(text, "Review fixed point and Standards / Spec disposition"),
       recordedCommits: recorded,
       liveHead: liveHead.ok ? liveHead.out : null,
       headMoved,
@@ -160,7 +168,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
   }
 
   const lines = briefs.map((brief) => {
-    const repoLine = `repo: recorded HEAD ${brief.recordedCommits.join(", ") || "none"} / live HEAD ${brief.liveHead ?? "unknown"} (${brief.headMoved ? "MOVED" : "unchanged"}); dirty ${brief.liveDirty.length} paths`;
+    const repoLine = `repo: recorded HEAD ${brief.recordedCommits.join(", ") || "none"} / live HEAD ${brief.liveHead ?? "unknown"} (${brief.headMoved ? "MOVED" : "unchanged"}); dirty ${brief.liveDirty === null ? "unknown (git status failed)" : `${brief.liveDirty.length} paths`}`;
     const cleanupLine = `cleanup: listed ${brief.listedRuns.length} / live ${brief.listedRuns.length + brief.unlistedRuns.length - brief.missingRuns.length}; missing ${brief.missingRuns.length ? brief.missingRuns.join(", ") : "none"}; unlisted ${brief.unlistedRuns.length ? brief.unlistedRuns.join(", ") : "none"}`;
     return [
       `capsule ${brief.id}`,
@@ -168,6 +176,11 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
       `state: ${brief.outcomeState} / publication ${brief.publicationState}`,
       `owner: ${brief.owner}`,
       `next: ${brief.nextAction}`,
+      `authority: ${brief.authority ?? "none"}`,
+      `blockers: ${brief.blockers ?? "none"}`,
+      `evidence: ${brief.evidence ?? "none"}`,
+      `non-proofs: ${brief.nonProofs ?? "none"}`,
+      `review: ${brief.reviewDisposition ?? "none"}`,
       `friction: ${brief.friction}`,
       repoLine,
       cleanupLine,

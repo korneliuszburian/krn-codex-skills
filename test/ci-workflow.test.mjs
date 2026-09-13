@@ -39,3 +39,14 @@ test("the gate list does not duplicate a check that validate already runs", () =
   assert.doesNotMatch(agents, /npm run lessons:check/, "lessons:check is subsumed by validate");
   assert.doesNotMatch(workflow, /npm run lessons:check/, "lessons:check is subsumed by validate");
 });
+
+test("the aggregate gate script covers every AGENTS.md gate", () => {
+  const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
+  const gates = new Set([...agents.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
+  const scripts = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts;
+  const expanded = new Set([...String(scripts.gate ?? "").matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
+  for (const gate of gates) {
+    if (["lessons:check", "gate", "test"].includes(gate)) continue;
+    assert.ok(expanded.has(gate), `AGENTS.md gate ${gate} is missing from the gate script`);
+  }
+});

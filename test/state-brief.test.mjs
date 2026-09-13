@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -170,5 +170,36 @@ test("compile records the full dirty path for a tracked modification", () => {
   writeFileSync(join(root, "tracked.txt"), "one\ntwo\n");
   const report = compileCapsule({ repo: root });
   assert.match(report.capsule, /dirty=1 paths: tracked\.txt/, report.capsule);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("resume projects authority, blockers, evidence, non-proofs, and review", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, `HEAD=${head}`);
+  const file = join(root, ".krn", "runs", "delivery-loop", "out-1", "state.md");
+  const text = readFileSync(file, "utf8")
+    .replace("push=none", "push=forbidden")
+    .replace("Evidence observed: probe", "Evidence observed: ran test:state")
+    .replace("Explicit non-proofs: probe", "Explicit non-proofs: no cross-model review")
+    .replace("Open unknowns and blockers with owners: none", "Open unknowns and blockers with owners: owner=alice")
+    .replace("Review fixed point and Standards / Spec disposition: none", "Review fixed point and Standards / Spec disposition: Standards=green");
+  writeFileSync(file, text);
+  const report = resumeBrief({ repo: root });
+  const brief = report.capsules[0];
+  assert.equal(brief.authority, "writes=none; tracker/issue=none; commit=none; push=forbidden; PR=none; merge=none; deployment/install=none");
+  assert.match(report.text, /push=forbidden/);
+  assert.match(report.text, /ran test:state/);
+  assert.match(report.text, /no cross-model review/);
+  assert.match(report.text, /owner=alice/);
+  assert.match(report.text, /Standards=green/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a failed git status reports an unknown dirty scope, not clean", () => {
+  const { root, head } = makeRepo();
+  writeFileSync(join(root, ".git", "index"), "corrupt\n");
+  const report = compileCapsule({ repo: root });
+  assert.match(report.capsule, /dirty=unknown \(git status failed\)/, report.capsule);
+  assert.ok(report.errors.some((error) => error.rule === "dirty-state-unavailable"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
