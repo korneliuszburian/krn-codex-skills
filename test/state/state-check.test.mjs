@@ -192,6 +192,32 @@ test("capsule discovery converges on a symlink loop instead of silently skipping
   rmSync(root, { recursive: true, force: true });
 });
 
+test("an in-repo capsule is accepted when the root is reached through a symlink", () => {
+  const base = mkdtempSync(join(tmpdir(), "krn-state-linkroot-"));
+  const real = join(base, "real");
+  mkdirSync(join(real, ".krn", "runs", "delivery-loop", "cap"), { recursive: true });
+  writeFileSync(join(real, ".krn", "runs", "delivery-loop", "cap", "state.md"), capsule({ fixedPoint: "fingerprint=working-tree" }));
+  const link = join(base, "link");
+  symlinkSync(real, link);
+  const report = inspectSpineState({ repo: link });
+  assert.ok(!rules(report).includes("capsule-outside-repo"), rules(report).join(","));
+  assert.equal(report.capsules.length, 1);
+  assert.deepEqual(capsuleIdsDetailed(link).ids, ["cap"]);
+  rmSync(base, { recursive: true, force: true });
+});
+
+test("compile and check skip a symlink to a regular file in the capsule store", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "delivery-loop"), { recursive: true });
+  writeFileSync(join(root, "plain.txt"), "x");
+  symlinkSync(join(root, "plain.txt"), join(root, ".krn", "runs", "delivery-loop", "filelink"));
+  const compile = capsuleIdsDetailed(root);
+  const report = inspectSpineState({ repo: root });
+  assert.ok(!compile.errors.some((error) => error.rule === "unreadable-capsule"), JSON.stringify(compile.errors));
+  assert.ok(!report.errors.some((error) => error.id === "filelink"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("an unignored capsule fails before capsule trust", () => {
   const { root, head } = makeRepo();
   rmSync(join(root, ".krn", "runs", ".gitignore"));

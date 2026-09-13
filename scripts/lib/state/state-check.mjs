@@ -42,6 +42,8 @@ function fixedPointErrors(root, fixedPoint, canCheckCommits) {
 
 export function inspectSpineState({ repo = process.cwd() } = {}) {
   const { root, hasGit } = resolveRepositoryRoot(repo, { label: "state check" });
+  let realRoot;
+  try { realRoot = realpathSync(root); } catch { realRoot = root; }
 
   const errors = [];
   const warnings = [];
@@ -93,7 +95,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       continue;
     }
     if (!directoryStat.isDirectory()) continue;
-    if (!isInside(root, resolvedDirectory)) {
+    if (!isInside(realRoot, resolvedDirectory)) {
       capsules.push({ id: entry.name, path: join(".krn", "runs", "delivery-loop", entry.name) });
       errors.push({ id: entry.name, rule: "capsule-outside-repo", detail: resolvedDirectory });
       continue;

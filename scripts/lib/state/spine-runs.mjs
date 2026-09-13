@@ -54,13 +54,18 @@ export function capsuleIdsDetailed(root) {
   }
   const errors = [];
   const seen = new Map();
+  let realRoot;
+  try { realRoot = realpathSync(root); } catch { realRoot = root; }
   for (const entry of entries) {
     if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
     const directory = join(base, entry.name);
     const relativePath = `.krn/runs/delivery-loop/${entry.name}/state.md`;
     let real;
     try { real = realpathSync(directory); } catch { errors.push({ rule: "unreadable-capsule", detail: `${relativePath} cannot be resolved` }); continue; }
-    if (!isInside(root, real)) { errors.push({ rule: "capsule-outside-repo", detail: real }); continue; }
+    let directoryStat;
+    try { directoryStat = statSync(real); } catch { continue; }
+    if (!directoryStat.isDirectory()) continue;
+    if (!isInside(realRoot, real)) { errors.push({ rule: "capsule-outside-repo", detail: real }); continue; }
     let statePresent;
     try { statePresent = lstatSync(join(directory, "state.md"), { throwIfNoEntry: false }); } catch { errors.push({ rule: "unreadable-capsule", detail: relativePath }); continue; }
     if (!statePresent) continue;
