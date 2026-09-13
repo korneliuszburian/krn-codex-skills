@@ -1,16 +1,62 @@
 import { basename, join, relative } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
-const METADATA_SCHEMA =
-  /^interface:\n  display_name: "([^"\n]+)"\n  short_description: "([^"\n]+)"\n  default_prompt: "([^"\n]+)"\npolicy:\n  allow_implicit_invocation: (true|false)\n?$/;
+const INTERFACE_REQUIRED = ["display_name", "short_description", "default_prompt"];
+const INTERFACE_OPTIONAL = new Set(["icon_small", "icon_large", "brand_color"]);
+const SCHEMA_ERROR = "must match the canonical schema";
+
+function parseMetadata(metadata) {
+  const interfaceFields = new Map();
+  const policyFields = new Map();
+  let section = null;
+  let inDependencies = false;
+  for (const raw of String(metadata).split("\n")) {
+    if (raw.trim() === "" || raw.trimStart().startsWith("#")) continue;
+    if (/^dependencies:\s*$/.test(raw)) {
+      section = null;
+      inDependencies = true;
+      continue;
+    }
+    const topLevel = /^([A-Za-z_][A-Za-z0-9_-]*):\s*$/.exec(raw);
+    if (topLevel) {
+      section = topLevel[1];
+      inDependencies = false;
+      if (section !== "interface" && section !== "policy") return null;
+      continue;
+    }
+    if (inDependencies) continue;
+    const field = /^ {2}([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/.exec(raw);
+    if (!field) return null;
+    if (section === "interface") {
+      if (!INTERFACE_REQUIRED.includes(field[1]) && !INTERFACE_OPTIONAL.has(field[1])) return null;
+      interfaceFields.set(field[1], field[2].trim());
+    } else if (section === "policy") {
+      if (field[1] !== "allow_implicit_invocation") return null;
+      policyFields.set(field[1], field[2].trim());
+    } else {
+      return null;
+    }
+  }
+  return { interfaceFields, policyFields };
+}
+
+function quoted(value) {
+  const match = value?.match(/^"([^"\n]+)"$/);
+  return match ? match[1] : undefined;
+}
 
 export function openaiYamlErrors(metadata, { name, implicit, skillPath }) {
   const errors = [];
-  const match = metadata.match(METADATA_SCHEMA);
-  if (!match) {
-    return [`${skillPath}: agents/openai.yaml must match the canonical schema`];
+  const schemaError = `${skillPath}: agents/openai.yaml ${SCHEMA_ERROR}`;
+  const parsed = parseMetadata(metadata);
+  if (!parsed) return [schemaError];
+  const displayName = quoted(parsed.interfaceFields.get("display_name"));
+  const shortDescription = quoted(parsed.interfaceFields.get("short_description"));
+  const defaultPrompt = quoted(parsed.interfaceFields.get("default_prompt"));
+  const policy = parsed.policyFields.get("allow_implicit_invocation");
+  if (displayName === undefined || shortDescription === undefined || defaultPrompt === undefined || (policy !== "true" && policy !== "false")) {
+    return [schemaError];
   }
-  const [, displayName, shortDescription, defaultPrompt, policy] = match;
   if (!displayName) errors.push(`${skillPath}: missing quoted display_name`);
   if (shortDescription.length < 25 || shortDescription.length > 64) {
     errors.push(`${skillPath}: short_description must be 25-64 characters`);

@@ -52,6 +52,33 @@ test("openaiYamlErrors accepts a canonical metadata document", () => {
   );
 });
 
+test("openaiYamlErrors accepts documented optional interface keys and a dependencies block", () => {
+  const extended = [
+    "interface:",
+    '  display_name: "Demo"',
+    '  short_description: "A sufficiently long short description here"',
+    '  default_prompt: "Use $alpha to do the thing"',
+    '  icon_small: "./assets/small.svg"',
+    '  icon_large: "./assets/large.png"',
+    '  brand_color: "#3B82F6"',
+    "policy:",
+    "  allow_implicit_invocation: true",
+    "dependencies:",
+    "  tools:",
+    '    - type: "mcp"',
+    '      value: "openaiDeveloperDocs"',
+  ].join("\n");
+  assert.deepEqual(
+    openaiYamlErrors(extended, { name: "alpha", implicit: true, skillPath: "p" }),
+    [],
+  );
+  const unknownKey = metadata.replace("  default_prompt", '  mystery_field: "x"\n  default_prompt');
+  assert.deepEqual(
+    openaiYamlErrors(unknownKey, { name: "alpha", implicit: true, skillPath: "p" }),
+    ["p: agents/openai.yaml must match the canonical schema"],
+  );
+});
+
 test("skillContentErrors flags forbidden content", () => {
   assert.deepEqual(skillContentErrors("clean body", { skillPath: "p" }), []);
   assert.deepEqual(skillContentErrors("disable-model-invocation", { skillPath: "p" }), [
