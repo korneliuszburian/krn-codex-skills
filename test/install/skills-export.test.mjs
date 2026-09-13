@@ -105,6 +105,30 @@ test("check fails when the catalog mislabels a skill origin", () => {
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
+test("check does not flag upstream rows when the lock is absent", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  fs.mkdirSync(path.join(f.root, "skills"), { recursive: true });
+  fs.copyFileSync(path.join(f.source, "skills", "manifest.json"), path.join(f.root, "skills", "manifest.json"));
+  const report = checkSkills({ root: f.root });
+  assert.ok(!report.errors.some((error) => error.includes("unknown skill")), JSON.stringify(report.errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
+test("check flags a catalog row for an unexported skill", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  fs.mkdirSync(path.join(f.root, "skills"), { recursive: true });
+  fs.copyFileSync(path.join(f.source, "skills", "manifest.json"), path.join(f.root, "skills", "manifest.json"));
+  fs.mkdirSync(path.join(f.root, "config"), { recursive: true });
+  fs.copyFileSync(path.join(f.source, "config", "upstream-sources.json"), path.join(f.root, "config", "upstream-sources.json"));
+  const catalogFile = path.join(f.root, ".agents", "skills", "README.md");
+  fs.appendFileSync(catalogFile, "| `extra` | krn | phantom |\n");
+  const report = checkSkills({ root: f.root });
+  assert.ok(report.errors.some((error) => error.includes("unknown skill extra")), JSON.stringify(report.errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
 test("check fails when the upstream pin moves without a re-export", () => {
   const f = fixture();
   exportSkills({ source: f.source, upstream: f.upstream, root: f.root });

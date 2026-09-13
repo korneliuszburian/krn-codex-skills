@@ -346,13 +346,19 @@ export function checkSkills({ root }) {
       }
     }
   }
-  if (rootManifest) {
+  if (rootManifest && lock) {
     const rows = [...catalog.matchAll(/^\| `([^`]+)` \| (krn|upstream) \|/gm)].map((match) => ({
       name: match[1],
       origin: match[2],
     }));
     for (const row of rows) {
-      const expected = sourceByName.has(row.name) ? "krn" : upstreamNames.includes(row.name) ? "upstream" : null;
+      const expected = !names.includes(row.name)
+        ? null
+        : sourceByName.has(row.name)
+          ? "krn"
+          : upstreamNames.includes(row.name)
+            ? "upstream"
+            : null;
       if (expected === null) errors.push(`.agents/skills/README.md lists unknown skill ${row.name}`);
       else if (expected !== row.origin) {
         errors.push(`.agents/skills/README.md lists ${row.name} as ${row.origin} but it is ${expected}`);
