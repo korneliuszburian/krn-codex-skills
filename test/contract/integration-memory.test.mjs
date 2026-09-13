@@ -59,3 +59,24 @@ test("the memory harness composes: a triggered lesson blocks an unreconstructed 
     rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
+
+test("memory recall normalizes a ./-prefixed changed path", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-int-normalize-"));
+  try {
+    git(root, ["init", "-q"]);
+    mkdirSync(join(root, "docs", "research"), { recursive: true });
+    mkdirSync(join(root, "scripts"), { recursive: true });
+    writeFileSync(join(root, "package.json"), JSON.stringify({ scripts: { "test:state": "x" } }));
+    writeFileSync(join(root, "scripts", "foo.mjs"), "export const x = 1;\n");
+    writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| A | probe | `test:state` | | | path:scripts/foo.mjs | |\n");
+    commit(root, "seed");
+    const bare = run(["memory", "recall", "--root", root, "--changed", "scripts/foo.mjs"]);
+    const dotted = run(["memory", "recall", "--root", root, "--changed", "./scripts/foo.mjs"]);
+    const absolute = run(["memory", "recall", "--root", root, "--changed", join(root, "scripts", "foo.mjs")]);
+    assert.equal(bare.hits.length, 1, JSON.stringify(bare));
+    assert.equal(dotted.hits.length, 1, JSON.stringify(dotted));
+    assert.equal(absolute.hits.length, 1, JSON.stringify(absolute));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

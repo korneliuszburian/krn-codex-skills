@@ -179,7 +179,9 @@ try {
       }
     } else {
       if (!(options.changed?.length || options.symbols?.length)) fail(usage);
-      const changed = options.changed ?? [];
+      const changed = (options.changed ?? [])
+        .map((entry) => path.relative(path.resolve(options.root), path.resolve(options.root, entry)).split(path.sep).join("/"))
+        .filter((entry) => entry && !entry.startsWith(".."));
       const hot = changed.length > 0 ? churnHot({ root: options.root, git: runGit, sha: "HEAD", files: changed }) : [];
       const hits = recallLessons({ root: options.root, files: changed, symbols: options.symbols ?? [], hot });
       print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits }, options.json);

@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 export function runDirectoriesDetailed(root) {
@@ -36,7 +36,10 @@ export function runDirectories(root) {
 
 export function capsuleIdsDetailed(root) {
   const base = join(root, ".krn", "runs", "delivery-loop");
-  if (!existsSync(base)) return { ids: [], errors: [] };
+  if (!lstatSync(base, { throwIfNoEntry: false })) return { ids: [], errors: [] };
+  const target = statSync(base, { throwIfNoEntry: false });
+  if (!target) return { ids: [], errors: [".krn/runs/delivery-loop is a broken symlink"] };
+  if (!target.isDirectory()) return { ids: [], errors: [".krn/runs/delivery-loop is not a directory"] };
   let entries;
   try {
     entries = readdirSync(base, { withFileTypes: true });

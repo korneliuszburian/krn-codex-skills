@@ -127,7 +127,13 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
   for (const capsule of report.capsules) {
     const path = join(report.root, capsule.path);
     if (!existsSync(path)) continue;
-    const text = readFileSync(path, "utf8");
+    let text;
+    try {
+      text = readFileSync(path, "utf8");
+    } catch {
+      errors.push({ rule: "unreadable-capsule", detail: capsule.path });
+      continue;
+    }
     const fixedPoint = fieldLine(text, "Repository base, HEAD or working-tree fingerprint, and dirty-state scope");
     const anchors = fixedPointAnchors(fixedPoint);
     const recorded = [anchors.base, anchors.head].filter(Boolean);

@@ -303,3 +303,12 @@ test("compile reports an unreadable capsule store instead of throwing", () => {
   assert.ok(report.errors.some((error) => error.rule === "unreadable-capsule-store"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("resume does not crash on a directory state.md", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "delivery-loop", "out-1", "state.md"), { recursive: true });
+  let report;
+  assert.doesNotThrow(() => { report = resumeBrief({ repo: root }); });
+  assert.ok(report.errors.some((error) => error.rule === "unreadable-capsule"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

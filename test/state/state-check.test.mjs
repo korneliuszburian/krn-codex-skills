@@ -452,3 +452,22 @@ test("an unreadable inventory is reported even with no capsule", () => {
   assert.ok(report.errors.some((error) => error.rule === "unreadable-run-inventory"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a dangling capsule-store symlink fails closed", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs"), { recursive: true });
+  symlinkSync(join(root, "missing-store-target"), join(root, ".krn", "runs", "delivery-loop"));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "unreadable-capsule-store"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a dangling state.md symlink fails closed", () => {
+  const { root, head } = makeRepo();
+  const dir = join(root, ".krn", "runs", "delivery-loop", "out-1");
+  mkdirSync(dir, { recursive: true });
+  symlinkSync(join(dir, "missing-state-target"), join(dir, "state.md"));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "unreadable-capsule"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

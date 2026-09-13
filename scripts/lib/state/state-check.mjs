@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 
 import {
@@ -52,21 +52,18 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   const usableGit = gitRepo.ok && gitRepo.out === "true";
 
   const capsuleBase = join(root, ".krn", "runs", "delivery-loop");
-  let capsuleStore;
-  try {
-    capsuleStore = statSync(capsuleBase, { throwIfNoEntry: false });
-  } catch {
-    errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop" });
-  }
   let candidates = [];
-  if (capsuleStore) {
-    if (!capsuleStore.isDirectory()) {
+  if (lstatSync(capsuleBase, { throwIfNoEntry: false })) {
+    const storeTarget = statSync(capsuleBase, { throwIfNoEntry: false });
+    if (!storeTarget) {
+      errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop is a broken symlink" });
+    } else if (!storeTarget.isDirectory()) {
       errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop is not a directory" });
     } else {
       try {
         candidates = readdirSync(capsuleBase, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name));
       } catch {
-        errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop" });
+        errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop could not be listed" });
       }
     }
   }
@@ -98,14 +95,12 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     }
     const file = join(entryPath, "state.md");
     const relativePath = join(".krn", "runs", "delivery-loop", entry.name, "state.md");
-    let fileStat;
-    try {
-      fileStat = statSync(file, { throwIfNoEntry: false });
-    } catch {
-      errors.push({ id: entry.name, rule: "unreadable-capsule", detail: relativePath });
+    if (!lstatSync(file, { throwIfNoEntry: false })) continue;
+    const fileStat = statSync(file, { throwIfNoEntry: false });
+    if (!fileStat) {
+      errors.push({ id: entry.name, rule: "unreadable-capsule", detail: `${relativePath} is a broken symlink` });
       continue;
     }
-    if (!fileStat) continue;
     capsules.push({ id: entry.name, path: relativePath });
     if (!fileStat.isFile()) {
       errors.push({ id: entry.name, rule: "unreadable-capsule", detail: `${relativePath} is not a regular file` });
