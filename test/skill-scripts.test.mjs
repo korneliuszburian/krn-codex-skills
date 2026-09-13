@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -217,6 +217,38 @@ test("extract-final-opinion writes the terminal answer and refuses bad input", (
       ].join("\n"),
     );
     assert.equal(run(extract, [multiRaw, jsonOutput, target, "json"]).status, 1);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("run-opinion records elapsed time and token usage in meta.json", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-opinion-meta-"));
+  try {
+    const target = join(root, "target");
+    const runDir = join(target, ".krn", "runs", "opencode-second-opinion", "run-1");
+    mkdirSync(runDir, { recursive: true });
+    const prompt = join(root, "prompt.md");
+    writeFileSync(prompt, "advise\n");
+    const output = join(runDir, "opinion.md");
+    const bin = join(root, "bin");
+    mkdirSync(bin);
+    const stub = join(bin, "opencode");
+    writeFileSync(stub, [
+      "#!/usr/bin/env bash",
+      'printf \'%s\\n\' \'{"type":"text","part":{"messageID":"m1","text":"Final answer"}}\'',
+      'printf \'%s\\n\' \'{"type":"step_finish","part":{"reason":"stop","messageID":"m1","tokens":{"input":11,"output":22,"reasoning":3,"total":36,"cache":{"read":4,"write":5}}}}\'',
+      "exit 0",
+      "",
+    ].join("\n"));
+    chmodSync(stub, 0o755);
+    const result = bash(runOpinion, [target, prompt, output], { env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
+    assert.equal(result.status, 0, result.stderr);
+    const meta = JSON.parse(readFileSync(join(runDir, "meta.json"), "utf8"));
+    assert.equal(meta.usage.input, 11);
+    assert.equal(meta.usage.output, 22);
+    assert.equal(meta.usage.cacheRead, 4);
+    assert.ok(Number.isInteger(meta.elapsedSeconds) && meta.elapsedSeconds >= 0, JSON.stringify(meta));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

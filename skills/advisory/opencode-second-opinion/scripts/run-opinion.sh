@@ -120,6 +120,7 @@ fi
 prompt_sha=$(sha256sum "$prompt_file" | awk '{print $1}')
 
 run_exit=0
+started_at=$(date +%s)
 timeout -k 5 "$timeout_seconds" opencode run --agent "$agent" --model "$model" --variant "$variant" --format json --dir "$target_dir" "$prompt" > "$temporary_raw" || run_exit=$?
 if [[ $run_exit -ne 0 ]]; then
   if [[ $run_exit -eq 124 || $run_exit -eq 137 ]]; then
@@ -145,9 +146,32 @@ fi
 
 mv -- "$temporary_raw" "$raw_output_file"
 mv -- "$temporary_opinion" "$output_file"
+completed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+elapsed_seconds=$(( $(date +%s) - started_at ))
 node -e '
-  const [promptSha256, model, variant, target, completedAt] = process.argv.slice(1);
-  process.stdout.write(`${JSON.stringify({ promptSha256, model, variant, target, completedAt })}\n`);
-' "$prompt_sha" "$model" "$variant" "$target_dir" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$output_dir/meta.json"
+  const fs = require("node:fs");
+  const [promptSha256, model, variant, target, completedAt, elapsed, rawPath] = process.argv.slice(1);
+  let usage = null;
+  try {
+    for (const line of fs.readFileSync(rawPath, "utf8").split("\n")) {
+      if (!line.trim()) continue;
+      let event;
+      try { event = JSON.parse(line); } catch { continue; }
+      const tokens = event?.part?.tokens ?? event?.tokens ?? event?.usage ?? null;
+      if (!tokens || typeof tokens !== "object") continue;
+      usage ??= { input: 0, output: 0, reasoning: 0, total: 0, cacheRead: 0, cacheWrite: 0 };
+      const num = (value) => (typeof value === "number" ? value : 0);
+      usage.input += num(tokens.input);
+      usage.output += num(tokens.output);
+      usage.reasoning += num(tokens.reasoning);
+      usage.total += num(tokens.total);
+      usage.cacheRead += num(tokens.cache?.read);
+      usage.cacheWrite += num(tokens.cache?.write);
+    }
+  } catch { usage = null; }
+  const record = { promptSha256, model, variant, target, completedAt, elapsedSeconds: Number(elapsed) };
+  if (usage) record.usage = usage;
+  process.stdout.write(`${JSON.stringify(record)}\n`);
+' "$prompt_sha" "$model" "$variant" "$target_dir" "$completed_at" "$elapsed_seconds" "$raw_output_file" > "$output_dir/meta.json"
 trap - EXIT
 rm -f -- "$temporary_extraction_error"

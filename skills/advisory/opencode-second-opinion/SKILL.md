@@ -57,7 +57,8 @@ local verification.
    save the completed brief as `prompt.md`. Redact credentials, environment
    files, private user data, and unrelated paths. The runner writes `raw.jsonl`
    and extracts a completed final answer into `opinion.md`, and records
-   `meta.json` with the prompt SHA-256, model, variant, and target identity.
+   `meta.json` with the prompt SHA-256, model, variant, target identity,
+   elapsed seconds, and summed token usage when the provider reports it.
    A failed or rejected run retains the partial stream as `raw.failed.jsonl`
    and the reason as `failure.txt` instead of destroying evidence; retain
    those only while the initiating Goal needs them.
