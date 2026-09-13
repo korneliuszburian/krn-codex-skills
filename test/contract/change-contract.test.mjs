@@ -105,6 +105,18 @@ test("a base that is not an ancestor of head is refused", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("requireCleanHead refuses a dirty working tree", () => {
+  const root = makeRoot();
+  const base = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:lessons:red->green" }],
+    files: { a1: ["test/gate.test.mjs"] },
+  });
+  const git = (repo, args) => (args[0] === "status" ? { ok: true, out: " M test/gate.test.mjs" } : base(repo, args));
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true, requireCleanHead: true });
+  assert.ok(report.errors.some((error) => error.rule === "dirty-tree"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a malformed part fails the whole contract line closed", () => {
   const root = makeRoot();
   const git = fakeGit({

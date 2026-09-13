@@ -341,9 +341,21 @@ function outputTail(output) {
   return `; output: ${[...new Set([...failing, ...tail])].join("\n")}`;
 }
 
-export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = false } = {}) {
+export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = false, requireCleanHead = false } = {}) {
   const errors = [];
   const warnings = [];
+  if (requireCleanHead) {
+    const status = git(root, ["status", "--porcelain"]);
+    if (status.ok && status.out !== "") {
+      return {
+        root,
+        commits: [],
+        results: [],
+        errors: [{ rule: "dirty-tree", detail: "commit the working tree before `changes check`" }],
+        warnings: [],
+      };
+    }
+  }
   const ancestry = git(root, ["merge-base", "--is-ancestor", base, head]);
   if (ancestry.status === 1) {
     return {
