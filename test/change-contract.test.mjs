@@ -456,6 +456,24 @@ test("a frozen observer that is green at base or fails to load is rejected", () 
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a non-frozen base check that fails to load is unverified, not red", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-setup-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "test", "gate.test.mjs"), 'import test from "node:test";\nimport { helper } from "../helper.mjs";\ntest("loads", () => helper);\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "helper.mjs"), "export const helper = 1;\n");
+  commit("fix\n\nChange-contract: test/gate.test.mjs:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+  assert.ok(report.errors.some((error) => error.rule === "before-state-unverified"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });

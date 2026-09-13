@@ -293,8 +293,8 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         const baseOutput = baseRun.outcome?.output ?? "";
         if (baseRun.unavailable || baseRun.outcome?.spawnFailed) {
           errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete; its before-state is unproven" });
-        } else if (obligation.frozenObserver && !frozenRedOk(baseOutput) && tapSummary(baseOutput).setup) {
-          errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the frozen observer failed to load at base (setup error), so red is unproven" });
+        } else if (tapSummary(baseOutput).setup) {
+          errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check failed to load (setup error), so red is unproven" });
         } else {
           const red = obligation.frozenObserver ? frozenRedOk(baseOutput) : !baseRun.outcome.ok;
           results.push({ ref: obligation.ref, commit: obligation.commit, phase: "base", after: "red", status: red ? "red" : "green" });
