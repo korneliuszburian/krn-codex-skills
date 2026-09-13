@@ -1,20 +1,11 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { gitAvailable, runGit as git, runGitRaw } from "../support/git-cli.mjs";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { runGit as git, runGitRaw } from "../support/git-cli.mjs";
 import { capsuleIds, runDirectories } from "./spine-runs.mjs";
 import { inspectSpineState, normalizeRunPointer } from "./state-check.mjs";
 import { commitTokens, fieldLine, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
-
-function resolveRoot(repo) {
-  const requested = resolve(repo);
-  const requestedStat = statSync(requested, { throwIfNoEntry: false });
-  if (!requestedStat) throw new Error(`repository path does not exist: ${requested}`);
-  if (!requestedStat.isDirectory()) throw new Error(`state expects a repository directory, got a file: ${requested}`);
-  const hasGit = gitAvailable();
-  const top = hasGit ? git(requested, ["rev-parse", "--show-toplevel"]) : { ok: false, out: "" };
-  return { root: top.ok && top.out ? resolve(top.out) : requested, hasGit };
-}
+import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
 function porcelain(root) {
   const status = runGitRaw(root, ["status", "--porcelain"]);
@@ -43,7 +34,7 @@ function renderErrors(errors) {
 }
 
 export function compileCapsule({ repo = process.cwd() } = {}) {
-  const { root, hasGit } = resolveRoot(repo);
+  const { root, hasGit } = resolveRepositoryRoot(repo, { label: "state" });
   const gitRepo = hasGit ? git(root, ["rev-parse", "--is-inside-work-tree"]) : { ok: false, out: "" };
   const usableGit = gitRepo.ok && gitRepo.out === "true";
   const warnings = [];

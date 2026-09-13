@@ -3,6 +3,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { checkLessons } from "./lessons.mjs";
+import { tapName } from "../support/tap.mjs";
 
 const ALLOWED = /^test\/[A-Za-z0-9_./-]+\.mjs$/;
 const TOKEN = /^((?:test|scripts)\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
@@ -19,9 +20,8 @@ function contained(root, file) {
 
 export function tapCasePassed(output, name) {
   return output.split("\n").some((line) => {
-    const tap = /^\s*ok \d+ - (.+?)\s*$/.exec(line);
-    if (!tap) return false;
-    return tap[1].trim().replace(/\\([#\\])/g, "$1") === name;
+    const t = tapName(line);
+    return Boolean(t && t.pass && t.name === name);
   });
 }
 

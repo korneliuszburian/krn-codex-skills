@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { tapName } from "../support/tap.mjs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -228,11 +229,16 @@ function listTestFilesIn(dir) {
 
 function tapSummary(output) {
   const text = output ?? "";
-  const unescape = (name) => name.replace(/\\([#\\])/g, "$1");
   const tests = Number((/^# tests (\d+)\s*$/m.exec(text)?.[1] ?? "0"));
   const fail = Number((/^#\s*fail[^0-9]*(\d+)\s*$/m.exec(text)?.[1] ?? "0"));
-  const passing = [...text.matchAll(/^\s*ok \d+ - (.+?)\s*$/gm)].map((match) => unescape(match[1].trim()));
-  const failing = [...text.matchAll(/^\s*not ok \d+ - (.+?)\s*$/gm)].map((match) => unescape(match[1].trim())).filter((name) => !/\.(mjs|js|cjs|ts)$/.test(name));
+  const passing = [];
+  const failing = [];
+  for (const line of text.split("\n")) {
+    const t = tapName(line);
+    if (!t) continue;
+    if (t.pass) passing.push(t.name);
+    else if (!/\.(mjs|js|cjs|ts)$/.test(t.name)) failing.push(t.name);
+  }
   const setup = /ERR_MODULE_NOT_FOUND|SyntaxError|Cannot find module|Could not find|MODULE_NOT_FOUND/.test(text);
   return { tests, fail, passing, failing, setup };
 }

@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { EXIT_CODES } from "../support/diagnostics.mjs";
 import { isInside, isSafeRelativePath as safeRelativePath } from "../support/path-rules.mjs";
+import { readJson } from "../support/read-json.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
@@ -18,10 +19,6 @@ function fail(message, exitCode = 1) {
   const error = new Error(message);
   error.exitCode = exitCode;
   throw error;
-}
-
-function readJson(file) {
-  return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
 function canonicalPath(candidate) {

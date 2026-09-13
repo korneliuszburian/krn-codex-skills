@@ -1,4 +1,5 @@
 import { gitText as git, runGitRaw } from "../support/git-cli.mjs";
+import { readJson } from "../support/read-json.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -25,10 +26,6 @@ function directoryDigest(directory) {
     hash.update("\0");
   }
   return hash.digest("hex");
-}
-
-function readJson(file) {
-  return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
 function harnessCommit(source) {
