@@ -228,6 +228,17 @@ test("extract-final-opinion writes the terminal answer and refuses bad input", (
       ].join("\n"),
     );
     assert.equal(run(extract, [arrayRaw, jsonOutput, target, "json"]).status, 1);
+
+    const proseArrayRaw = join(root, "prose-array.jsonl");
+    writeFileSync(
+      proseArrayRaw,
+      [
+        JSON.stringify({ type: "text", part: { messageID: "m1", text: 'Here is my answer:\n[{"verdict":"low"}]' } }),
+        JSON.stringify({ type: "step_finish", part: { reason: "stop", messageID: "m1" } }),
+        "",
+      ].join("\n"),
+    );
+    assert.equal(run(extract, [proseArrayRaw, jsonOutput, target, "json"]).status, 1);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
