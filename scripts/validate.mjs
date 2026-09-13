@@ -378,9 +378,12 @@ if (globalAgentsPathSafe) {
     if (name === "test") continue;
     for (const match of String(command).matchAll(/test\/[A-Za-z0-9_./-]+\.test\.mjs/g)) declared.add(match[0]);
   }
-  const actual = fs.readdirSync(path.join(root, "test"))
-    .filter((name) => name.endsWith(".test.mjs"))
-    .map((name) => `test/${name}`);
+  const walkTests = (directory) => fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(directory, entry.name);
+    if (entry.isDirectory()) return walkTests(full);
+    return entry.name.endsWith(".test.mjs") ? [path.relative(root, full).split(path.sep).join("/")] : [];
+  });
+  const actual = walkTests(path.join(root, "test"));
   for (const file of actual) if (!declared.has(file)) fail(`${file} is not referenced by any npm script`);
 }
 
