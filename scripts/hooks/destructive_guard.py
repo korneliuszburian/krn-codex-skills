@@ -212,8 +212,46 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
     return None
 
 
+def _read_redirection_target(command: str, index: int) -> tuple[str, int]:
+    while index < len(command) and command[index] in " \t":
+        index += 1
+    target = ""
+    target_quote: str | None = None
+    while index < len(command):
+        current = command[index]
+        if target_quote:
+            if target_quote == '"' and current == "\\" and index + 1 < len(command):
+                target += command[index + 1]
+                index += 2
+                continue
+            if current == target_quote:
+                target_quote = None
+                index += 1
+                continue
+            target += current
+            index += 1
+            continue
+        if current in {"'", '"'}:
+            target_quote = current
+            index += 1
+            continue
+        if current in " \t;&|<>":
+            break
+        if current == "\\" and index + 1 < len(command):
+            target += command[index + 1]
+            index += 2
+            continue
+        target += current
+        index += 1
+    return target, index
+
+
 def redirection_targets(command: str) -> list[str]:
-    """Return files named by ``>``/``>>``/``&>`` operators, ignoring quoted text."""
+    """Return files named by shell redirection operators, ignoring quoted text.
+
+    Recognizes ``>``, ``>>``, ``>|``, ``>&file``, and ``&>file``.  A numeric
+    target (``>&2``) is a file-descriptor duplication, not an overwrite.
+    """
 
     targets: list[str] = []
     quote: str | None = None
@@ -235,41 +273,19 @@ def redirection_targets(command: str) -> list[str]:
         if character == "\\" and index + 1 < len(command):
             index += 2
             continue
+        if character == "&" and index + 1 < len(command) and command[index + 1] == ">":
+            target, index = _read_redirection_target(command, index + 2)
+            if target and not target.isdigit():
+                targets.append(target)
+            continue
         if character == ">":
             index += 1
-            if index < len(command) and command[index] == ">":
+            if index < len(command) and command[index] in {">", "|"}:
                 index += 1
-            while index < len(command) and command[index] in " \t":
+            elif index < len(command) and command[index] == "&":
                 index += 1
-            target = ""
-            target_quote: str | None = None
-            while index < len(command):
-                current = command[index]
-                if target_quote:
-                    if target_quote == '"' and current == "\\" and index + 1 < len(command):
-                        target += command[index + 1]
-                        index += 2
-                        continue
-                    if current == target_quote:
-                        target_quote = None
-                        index += 1
-                        continue
-                    target += current
-                    index += 1
-                    continue
-                if current in {"'", '"'}:
-                    target_quote = current
-                    index += 1
-                    continue
-                if current in " \t;&|<>":
-                    break
-                if current == "\\" and index + 1 < len(command):
-                    target += command[index + 1]
-                    index += 2
-                    continue
-                target += current
-                index += 1
-            if target:
+            target, index = _read_redirection_target(command, index)
+            if target and not target.isdigit():
                 targets.append(target)
             continue
         index += 1
@@ -278,6 +294,36 @@ def redirection_targets(command: str) -> list[str]:
 
 def redirection_denial_reason(command: str, cwd: Path) -> str | None:
     for raw_target in redirection_targets(command):
+        target = resolve_target(raw_target, cwd)
+        if target is None:
+            continue
+        reason = protected_path_reason(target, cwd, recursive=False)
+        if reason is not None:
+            return f"overwrite of a protected path is blocked: {reason}"
+    return None
+
+
+WRITER_COMMANDS = {"cp", "install", "mv"}
+
+
+def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
+    if not words:
+        return None
+    executable = os.path.basename(words[0])
+    arguments = [word for word in words[1:] if not word.startswith("-")]
+    if executable in WRITER_COMMANDS:
+        if len(arguments) < 2:
+            return None
+        targets = [arguments[-1]]
+    elif executable == "tee":
+        targets = arguments
+    elif executable == "sed" and any(
+        word == "-i" or word.startswith("-i") for word in words[1:]
+    ):
+        targets = arguments[1:]
+    else:
+        return None
+    for raw_target in targets:
         target = resolve_target(raw_target, cwd)
         if target is None:
             continue

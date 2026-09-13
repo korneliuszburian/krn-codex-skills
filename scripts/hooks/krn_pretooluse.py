@@ -18,6 +18,7 @@ from destructive_guard import (
     protected_path_reason,
     redirection_denial_reason,
     resolve_target,
+    write_target_denial_reason,
 )
 
 
@@ -58,7 +59,7 @@ SYSTEM_DESTRUCTIVE = re.compile(
     r"|\bdd\b[^\n;|&]*\bof="
     r"|\brmtree\b"
     r"|\btruncate\b[^\n;|&]*\s-s\s*0\b"
-    r"|\|\s*(?:env\s+|sudo\s+)*(?:ba|d|z|a|k)?sh(?:\s|$)",
+    r"|\|[^\n;|&]*(?:\$\{IFS\}|\$IFS|\s)*(?:(?:env|sudo|command)\s+)*(?:/[\w./-]+/)*(?:ba|d|z|a|k)?sh(?:\s|$)",
     re.IGNORECASE,
 )
 
@@ -290,6 +291,17 @@ def direct_destructive_kind(words: tuple[str, ...]) -> str | None:
     return None
 
 
+def alias_is_risky(value: str) -> bool:
+    value = value.lstrip()
+    if value.startswith("!"):
+        return True
+    try:
+        tokens = tuple(shlex.split(value, posix=True))
+    except ValueError:
+        return True
+    return bool(tokens) and git_static_risk(tokens)
+
+
 def git_static_risk(args: tuple[str, ...]) -> bool:
     value_options = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--attr-source", "--config-env"}
     index = 0
@@ -299,16 +311,14 @@ def git_static_risk(args: tuple[str, ...]) -> bool:
             if token == "-c" and index + 1 < len(args):
                 assignment = args[index + 1].split("=", 1)
                 if len(assignment) == 2 and assignment[0].startswith("alias."):
-                    value = assignment[1].lstrip()
-                    if value.startswith("!") or value.split(" ", 1)[0].strip() == "clean":
-                        return True
+                    return alias_is_risky(assignment[1])
             index += 2
             continue
         if token.startswith("-"):
             index += 1
             continue
         rest = args[index + 1 :]
-        if token == "clean":
+        if token in {"clean", "rm"}:
             return True
         if token == "reset" and "--hard" in rest:
             return True
@@ -347,21 +357,32 @@ def has_static_destructive_reference(words: tuple[str, ...] | None) -> bool:
     return git_static_risk(remaining[1:])
 
 
+def cd_target(segment: str, cwd: Path) -> Path | None:
+    words = static_simple_words(segment)
+    if not words or executable_name(words[0]) != "cd":
+        return None
+    if len(words) < 2:
+        return None
+    return resolve_target(words[1], cwd)
+
+
 def bash_denial_reason(command: str, cwd: Path) -> str | None:
     lexical_text = command.replace("\\\r\n", "").replace("\\\n", "")
     literal_text = without_shell_comments(lexical_text)
     chain = split_safe_and_chain(literal_text)
     if chain is not None and len(chain) > 1:
+        active_cwd = cwd
         for segment in chain:
-            reason = bash_denial_reason(segment, cwd)
+            reason = bash_denial_reason(segment, active_cwd)
             if reason is not None:
                 return reason
+            active_cwd = cd_target(segment, active_cwd) or active_cwd
         return None
     words = static_simple_words(literal_text)
     forbidden = references_forbidden_capability(lexical_text)
     literal_risk = (
-        DESTRUCTIVE_LITERAL.search(lexical_text) is not None
-        or SYSTEM_DESTRUCTIVE.search(lexical_text) is not None
+        DESTRUCTIVE_LITERAL.search(literal_text) is not None
+        or SYSTEM_DESTRUCTIVE.search(literal_text) is not None
     )
     if words is not None and words and executable_name(words[0]) == "git":
         # A commit message may contain words such as "clean" or "rm". The
@@ -373,7 +394,7 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
         or has_static_destructive_reference(words)
     )
     if not forbidden and not destructive:
-        return redirection_denial_reason(lexical_text, cwd)
+        return redirection_denial_reason(literal_text, cwd) or write_target_denial_reason(words, cwd)
     if is_safe_text(words):
         return None
     if forbidden:
@@ -426,6 +447,15 @@ def patch_denial_reason(command: str, cwd: Path) -> str | None:
             return "patch target is not inspectable"
         if path_has_forbidden_component(candidate):
             return "patch target belongs to the quarantined capability"
+
+    write_paths = re.findall(r"^\*\*\* (?:Add|Update) File: (.+)$", command, re.MULTILINE)
+    for raw_target in write_paths:
+        target = resolve_target(raw_target.strip(), cwd)
+        if target is None:
+            return "file write target is not inspectable"
+        reason = protected_path_reason(target, cwd, recursive=False)
+        if reason is not None:
+            return f"protected file write blocked: {reason}"
 
     deleted_paths = re.findall(r"^\*\*\* Delete File: (.+)$", command, re.MULTILINE)
     for raw_target in deleted_paths:
