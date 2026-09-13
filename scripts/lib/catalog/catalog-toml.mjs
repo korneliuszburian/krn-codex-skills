@@ -172,15 +172,14 @@ export function parseHeader(content) {
       if (id === "") ambiguousManagedHeader();
       return { kind: "plugin", id };
     }
-    ambiguousManagedHeader();
+    return { kind: "other" };
   }
   if (owner === "mcp_servers") {
     if (!header.array && segments.length === 2) {
       if (id === "") ambiguousManagedHeader();
       return { kind: "mcp", id };
     }
-    if (!header.array && segments.length > 2) return { kind: "other" };
-    ambiguousManagedHeader();
+    return { kind: "other" };
   }
   if (owner === "skills") {
     if (header.array && segments.length === 2 && id === "config") {
@@ -318,7 +317,7 @@ function looksLikeManagedRootAssignment(content) {
 export function parseAssignment(content) {
   if (content.trimStart().startsWith("#")) return undefined;
   const match = content.match(
-    /^(\s*)((?:"(?:[^"\\]|\\.)*")|(?:'[^']*')|(?:[^\s=]+))(\s*=\s*)(.*)$/,
+    /^(\s*)((?:"(?:[^"\\]|\\.)*")|(?:'[^']*')|(?:[A-Za-z0-9_-]+))(\s*=\s*)(.*)$/,
   );
   if (!match) return undefined;
   const keyToken = match[2];

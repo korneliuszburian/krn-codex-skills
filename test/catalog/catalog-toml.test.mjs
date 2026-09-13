@@ -58,7 +58,20 @@ test("parseHeader classifies managed tables", () => {
   assert.deepEqual(parseHeader("[mcp_servers.demo]"), { kind: "mcp", id: "demo" });
   assert.deepEqual(parseHeader("[[skills.config]]"), { kind: "skill" });
   assert.deepEqual(parseHeader("[other.thing]"), { kind: "other" });
-  assert.throws(() => parseHeader("[plugins]"), /Ambiguous managed TOML table header/);
+  assert.deepEqual(parseHeader("[plugins]"), { kind: "other" });
+});
+
+test("parseHeader leaves plugin sub-tables and bare owner tables unmanaged", () => {
+  assert.deepEqual(parseHeader('[plugins."sample@test".mcp_servers.sample]'), { kind: "other" });
+  assert.deepEqual(parseHeader("[plugins.a.b]"), { kind: "other" });
+  assert.deepEqual(parseHeader("[mcp_servers]"), { kind: "other" });
+});
+
+test("directAssignments ignores multi-line array elements", () => {
+  const source = '[mcp_servers.context7]\ncommand = "npx"\nargs = [\n    "-y",\n    "--transport=stdio",\n]\nenabled = false\n';
+  const document = parseDocument(source);
+  const block = document.blocks.find((entry) => entry.kind === "mcp");
+  assert.deepEqual([...directAssignments(document, block).keys()], ["command", "args", "enabled"]);
 });
 
 test("parseDocument builds blocks and rejects managed root assignments", () => {
