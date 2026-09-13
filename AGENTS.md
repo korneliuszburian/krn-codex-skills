@@ -64,4 +64,4 @@ git diff --check
 
 Work on a branch you own; commit and publish only under explicit authority.
 Installation, retirement, and rollback follow
-`scripts/lib/install-release.mjs` and `docs/migration.md`.
+`scripts/lib/install/install-release.mjs` and `docs/migration.md`.

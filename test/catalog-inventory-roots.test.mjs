@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import test from "node:test";
 
-import { resolveInventoryRoots } from "../scripts/lib/catalog-inventory-roots.mjs";
+import { resolveInventoryRoots } from "../scripts/lib/catalog/catalog-inventory-roots.mjs";
 
 test("resolveInventoryRoots derives the default codex and agent roots", () => {
   const { skillRoots, pluginCacheRoots } = resolveInventoryRoots({

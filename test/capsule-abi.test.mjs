@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ABI_LABELS, commitTokens, parseCleanup, renderCapsule, stripMarkup } from "../scripts/lib/capsule-abi.mjs";
+import { ABI_LABELS, commitTokens, parseCleanup, renderCapsule, stripMarkup } from "../scripts/lib/state/capsule-abi.mjs";
 
 test("renderCapsule refuses to emit a capsule with a missing label", () => {
   const values = Object.fromEntries(ABI_LABELS.map((label) => [label, "value"]));

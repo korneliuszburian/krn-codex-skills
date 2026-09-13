@@ -5,8 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { ABI_LABELS } from "../scripts/lib/capsule-abi.mjs";
-import { compileCapsule, resumeBrief } from "../scripts/lib/state-brief.mjs";
+import { ABI_LABELS } from "../scripts/lib/state/capsule-abi.mjs";
+import { compileCapsule, resumeBrief } from "../scripts/lib/state/state-brief.mjs";
 
 function git(root, args) {
   return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { churnHot } from "../scripts/lib/churn.mjs";
+import { churnHot } from "../scripts/lib/contract/churn.mjs";
 
 test("churnHot counts matches in a single git pass", () => {
   const git = (_root, args) => {

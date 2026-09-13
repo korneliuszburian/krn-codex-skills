@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { parseLessons } from "./lessons.mjs";
+import { parseLessons } from "../lessons/lessons.mjs";
 
 const HEADER_RULES = [
   [/^Status: `(accepted|lab-test|defer|reject)`/m, "header needs a canonical Status enum (accepted|lab-test|defer|reject)"],

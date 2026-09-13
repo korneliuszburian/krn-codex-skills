@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import test from "node:test";
 
-import { applyInstall, createInstallPlan, inspectInstall, pruneReleases } from "../scripts/lib/install-release.mjs";
+import { applyInstall, createInstallPlan, inspectInstall, pruneReleases } from "../scripts/lib/install/install-release.mjs";
 
 const sourceRoot = process.cwd();
 

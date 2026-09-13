@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   compareInventoryRecords,
   createQuarantineCollector,
-} from "../scripts/lib/catalog-inventory-quarantine.mjs";
+} from "../scripts/lib/catalog/catalog-inventory-quarantine.mjs";
 
 test("createQuarantineCollector matches the fixed family and reports none by default", () => {
   const quarantine = createQuarantineCollector([], []);

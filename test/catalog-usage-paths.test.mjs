@@ -8,7 +8,7 @@ import {
   derivedRolloutDay,
   forbiddenName,
   isRolloutFile,
-} from "../scripts/lib/catalog-usage-paths.mjs";
+} from "../scripts/lib/catalog/catalog-usage-paths.mjs";
 
 test("forbiddenName flags quarantined and private path families", () => {
   for (const name of ["superpowers", "logs", "history.jsonl", "state.db", "state.sqlite-wal"]) {

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
-import { maskTemplates, stripComments } from "./source-mask.mjs";
+import { maskTemplates, stripComments } from "../support/source-mask.mjs";
 
 function relativePath(root, from, specifier) {
   return relative(root, resolve(dirname(join(root, from)), specifier)).split(sep).join("/");

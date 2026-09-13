@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { maskLiterals, maskTemplates, stripComments } from "../scripts/lib/source-mask.mjs";
+import { maskLiterals, maskTemplates, stripComments } from "../scripts/lib/support/source-mask.mjs";
 
 test("stripComments removes comments but preserves code and import specifiers", () => {
   const source = 'import "./a.mjs"; // trailing\n/* block */\nconst x = 1; // tail';

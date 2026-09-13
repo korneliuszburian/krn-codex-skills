@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { auditRepository } from "../scripts/lib/quality-audit.mjs";
+import { auditRepository } from "../scripts/lib/audit/quality-audit.mjs";
 
 const withRepo = (files, body) => {
   const root = mkdtempSync(join(tmpdir(), "krn-audit-"));

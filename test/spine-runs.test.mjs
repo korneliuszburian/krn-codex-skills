@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { capsuleIds, runDirectories } from "../scripts/lib/spine-runs.mjs";
+import { capsuleIds, runDirectories } from "../scripts/lib/state/spine-runs.mjs";
 
 test("runDirectories lists non-delivery runs and skips delivery-loop and files, never a hidden run", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-spine-runs-"));

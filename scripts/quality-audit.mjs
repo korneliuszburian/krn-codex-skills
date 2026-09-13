@@ -2,7 +2,7 @@
 
 import process from "node:process";
 
-import { auditRepository } from "./lib/quality-audit.mjs";
+import { auditRepository } from "./lib/audit/quality-audit.mjs";
 
 const { errors, info } = auditRepository(process.cwd());
 for (const message of info) console.log(`AUDIT-INFO ${message}`);

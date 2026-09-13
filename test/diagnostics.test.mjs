@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { renderDiagnostics, toLine } from "../scripts/lib/diagnostics.mjs";
+import { renderDiagnostics, toLine } from "../scripts/lib/support/diagnostics.mjs";
 
 test("toLine normalizes string and record diagnostics", () => {
   assert.equal(toLine("plain"), "plain");

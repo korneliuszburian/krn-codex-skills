@@ -11,15 +11,15 @@ import {
   getCapabilityProfile,
   inventoryCapabilities,
   loadCapabilityProfiles,
-} from "./lib/catalog-inventory.mjs";
+} from "./lib/catalog/catalog-inventory.mjs";
 import {
   applyCatalogConfigPlan,
   loadCatalogConfigPlan,
-} from "./lib/catalog-config.mjs";
-import { resolveProfile } from "./lib/catalog-profile.mjs";
-import { scanCatalogUsage } from "./lib/catalog-usage.mjs";
+} from "./lib/catalog/catalog-config.mjs";
+import { resolveProfile } from "./lib/catalog/catalog-profile.mjs";
+import { scanCatalogUsage } from "./lib/catalog/catalog-usage.mjs";
 
-import { EXIT_CODES } from "./lib/diagnostics.mjs";
+import { EXIT_CODES } from "./lib/support/diagnostics.mjs";
 
 const EXIT_USAGE = EXIT_CODES.USAGE;
 const EXIT_DRIFT = 3;

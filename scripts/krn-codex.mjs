@@ -4,16 +4,16 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { applyInstall, createInstallPlan, inspectInstall, pruneReleases } from "./lib/install-release.mjs";
-import { inspectSpineState } from "./lib/state-check.mjs";
-import { compileCapsule, resumeBrief } from "./lib/state-brief.mjs";
-import { checkSkills, exportSkills } from "./lib/skills-export.mjs";
-import { checkLessons, lessonUsage, recallLessons } from "./lib/lessons.mjs";
-import { churnHot } from "./lib/churn.mjs";
-import { runGit } from "./lib/git-cli.mjs";
-import { verifyLessons } from "./lib/lessons-verify.mjs";
-import { checkChangeContract, contractGuardActive } from "./lib/change-contract.mjs";
-import { EXIT_CODES, renderDiagnostics } from "./lib/diagnostics.mjs";
+import { applyInstall, createInstallPlan, inspectInstall, pruneReleases } from "./lib/install/install-release.mjs";
+import { inspectSpineState } from "./lib/state/state-check.mjs";
+import { compileCapsule, resumeBrief } from "./lib/state/state-brief.mjs";
+import { checkSkills, exportSkills } from "./lib/install/skills-export.mjs";
+import { checkLessons, lessonUsage, recallLessons } from "./lib/lessons/lessons.mjs";
+import { churnHot } from "./lib/contract/churn.mjs";
+import { runGit } from "./lib/support/git-cli.mjs";
+import { verifyLessons } from "./lib/lessons/lessons-verify.mjs";
+import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
+import { EXIT_CODES, renderDiagnostics } from "./lib/support/diagnostics.mjs";
 
 process.stdout.on("error", (error) => {
   if (error.code === "EPIPE") process.exit(0);

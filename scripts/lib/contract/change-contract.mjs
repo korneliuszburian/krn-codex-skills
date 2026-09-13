@@ -3,8 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { runGit } from "./git-cli.mjs";
-import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings } from "./lessons.mjs";
+import { runGit } from "../support/git-cli.mjs";
+import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings } from "../lessons/lessons.mjs";
 import { touchedSymbolFiles } from "./symbol-triggers.mjs";
 import { churnHot } from "./churn.mjs";
 

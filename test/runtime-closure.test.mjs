@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { runtimeClosureErrors } from "../scripts/lib/runtime-closure.mjs";
+import { runtimeClosureErrors } from "../scripts/lib/contract/runtime-closure.mjs";
 
 const makeRepo = (runtimePaths) => {
   const root = mkdtempSync(join(tmpdir(), "krn-closure-"));

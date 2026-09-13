@@ -12,7 +12,7 @@ import {
   recordEvidence,
   responseItem,
   skillReadsForCall,
-} from "../scripts/lib/catalog-usage-normalize.mjs";
+} from "../scripts/lib/catalog/catalog-usage-normalize.mjs";
 
 const nowMs = Date.parse("2026-01-08T00:00:00.000Z");
 const skills = new Map([[path.normalize("/skills/alpha/SKILL.md"), "alpha"]]);

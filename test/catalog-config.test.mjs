@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { applyCatalogConfigPlan, loadCatalogConfigPlan } from "../scripts/lib/catalog-config.mjs";
+import { applyCatalogConfigPlan, loadCatalogConfigPlan } from "../scripts/lib/catalog/catalog-config.mjs";
 
 const SOURCE = '[plugins."figma@openai-curated"]\nenabled = false\n';
 

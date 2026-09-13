@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { runGit } from "./git-cli.mjs";
-import { touchedSymbolFiles } from "./symbol-triggers.mjs";
-import { churnHot } from "./churn.mjs";
+import { runGit } from "../support/git-cli.mjs";
+import { touchedSymbolFiles } from "../contract/symbol-triggers.mjs";
+import { churnHot } from "../contract/churn.mjs";
 
 const CANDIDATE = /^(npm run |test:|manual:)|[.][a-z0-9]{2,4}$/i;
 

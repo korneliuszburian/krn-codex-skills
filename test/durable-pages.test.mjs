@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkDurablePages } from "../scripts/lib/durable-pages.mjs";
+import { checkDurablePages } from "../scripts/lib/rules/durable-pages.mjs";
 
 const HEADER = "Status: `accepted`. Consumer: maintainer. Owner: maintainer. Verified: 2026-09-10.\n";
 

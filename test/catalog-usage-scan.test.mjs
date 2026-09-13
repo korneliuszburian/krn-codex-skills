@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { MAX_ROLLOUT_RECORD_BYTES, scanCatalogUsage } from "../scripts/lib/catalog-usage.mjs";
+import { MAX_ROLLOUT_RECORD_BYTES, scanCatalogUsage } from "../scripts/lib/catalog/catalog-usage.mjs";
 
 const line = (value) => `${JSON.stringify(value)}\n`;
 

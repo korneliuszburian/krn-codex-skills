@@ -4,11 +4,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { loadCapabilityProfiles } from "./lib/catalog-inventory.mjs";
-import { ABI_LABELS } from "./lib/capsule-abi.mjs";
-import { checkDurablePages } from "./lib/durable-pages.mjs";
-import { checkLessons } from "./lib/lessons.mjs";
-import { runtimeClosureErrors } from "./lib/runtime-closure.mjs";
+import { loadCapabilityProfiles } from "./lib/catalog/catalog-inventory.mjs";
+import { ABI_LABELS } from "./lib/state/capsule-abi.mjs";
+import { checkDurablePages } from "./lib/rules/durable-pages.mjs";
+import { checkLessons } from "./lib/lessons/lessons.mjs";
+import { runtimeClosureErrors } from "./lib/contract/runtime-closure.mjs";
 import {
   contractBudgetErrors,
   lineLimitErrors,
@@ -19,11 +19,11 @@ import {
   skillLayoutErrors,
   skillPointerErrors,
   skillPromotionErrors,
-} from "./lib/skill-rules.mjs";
+} from "./lib/install/skill-rules.mjs";
 import {
   capsuleAbiErrors,
   transitionErrors,
-} from "./lib/delivery-loop-rules.mjs";
+} from "./lib/contract/delivery-loop-rules.mjs";
 import {
   markdownLinkErrors,
   parseFrontmatterFields,
@@ -31,8 +31,8 @@ import {
   readmeSourceOnlyPointerErrors,
   semanticXmlErrors,
   skillMarkdownErrors,
-} from "./lib/content-rules.mjs";
-import { isSafeRelativePath as safeRelativePath } from "./lib/path-rules.mjs";
+} from "./lib/rules/content-rules.mjs";
+import { isSafeRelativePath as safeRelativePath } from "./lib/support/path-rules.mjs";
 import {
   binErrors,
   hookFileErrors,
@@ -40,11 +40,11 @@ import {
   pretoolUseHookErrors,
   retirementErrors,
   validateManifestSkills,
-} from "./lib/manifest-rules.mjs";
+} from "./lib/contract/manifest-rules.mjs";
 import {
   upstreamSkillNamesFrom,
   upstreamSourceErrors,
-} from "./lib/upstream-sources.mjs";
+} from "./lib/contract/upstream-sources.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { inspectSpineState } from "../scripts/lib/state-check.mjs";
+import { inspectSpineState } from "../scripts/lib/state/state-check.mjs";
 
 const cli = fileURLToPath(new URL("../scripts/krn-codex.mjs", import.meta.url));
 

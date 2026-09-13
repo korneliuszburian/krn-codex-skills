@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkLessons } from "../scripts/lib/lessons.mjs";
-import { verifyLessons, tapCasePassed } from "../scripts/lib/lessons-verify.mjs";
+import { checkLessons } from "../scripts/lib/lessons/lessons.mjs";
+import { verifyLessons, tapCasePassed } from "../scripts/lib/lessons/lessons-verify.mjs";
 
 test("tapCasePassed accepts the exact reporter label and rejects impersonation", () => {
   assert.equal(tapCasePassed("ok 1 - probe\n", "probe"), true);

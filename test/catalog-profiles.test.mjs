@@ -6,7 +6,7 @@ import {
   getCapabilityProfile,
   isHardQuarantined,
   validateProfilesDocument,
-} from "../scripts/lib/catalog-profiles.mjs";
+} from "../scripts/lib/catalog/catalog-profiles.mjs";
 
 const load = () =>
   JSON.parse(readFileSync(new URL("../config/capability-profiles.json", import.meta.url), "utf8"));

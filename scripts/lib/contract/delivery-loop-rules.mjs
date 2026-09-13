@@ -12,7 +12,7 @@ export function capsuleAbiErrors(skillContent, expectedLabels) {
     labels.length !== expectedLabels.length ||
     labels.some((label, index) => label !== expectedLabels[index])
   ) {
-    return ["delivery-loop capsule ABI labels must match scripts/lib/capsule-abi.mjs ABI_LABELS"];
+    return ["delivery-loop capsule ABI labels must match scripts/lib/state/capsule-abi.mjs ABI_LABELS"];
   }
   return [];
 }

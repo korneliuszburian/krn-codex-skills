@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { isSafeRelativePath } from "../scripts/lib/path-rules.mjs";
+import { isSafeRelativePath } from "../scripts/lib/support/path-rules.mjs";
 
 import {
   binErrors,
@@ -10,7 +10,7 @@ import {
   pretoolUseHookErrors,
   retirementErrors,
   validateManifestSkills,
-} from "../scripts/lib/manifest-rules.mjs";
+} from "../scripts/lib/contract/manifest-rules.mjs";
 
 const base = () => ({
   skills: [{ implicit: true, name: "alpha", path: "skills/engineering/alpha" }],

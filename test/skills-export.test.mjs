@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { checkSkills, exportSkills } from "../scripts/lib/skills-export.mjs";
+import { checkSkills, exportSkills } from "../scripts/lib/install/skills-export.mjs";
 
 function git(root, args) {
   return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();

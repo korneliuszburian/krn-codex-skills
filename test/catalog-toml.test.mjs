@@ -10,7 +10,7 @@ import {
   parseTomlString,
   splitHeader,
   splitLines,
-} from "../scripts/lib/catalog-toml.mjs";
+} from "../scripts/lib/catalog/catalog-toml.mjs";
 
 test("splitLines keeps raw, content, eol, and offsets", () => {
   const lines = splitLines("a\nb\r\nc");

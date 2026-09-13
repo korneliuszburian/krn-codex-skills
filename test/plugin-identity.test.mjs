@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { matchesQuarantined, pluginFamilyFromId } from "../scripts/lib/plugin-identity.mjs";
+import { matchesQuarantined, pluginFamilyFromId } from "../scripts/lib/catalog/plugin-identity.mjs";
 
 test("pluginFamilyFromId parses a family from a plugin id", () => {
   assert.equal(pluginFamilyFromId("figma@openai-curated"), "figma");

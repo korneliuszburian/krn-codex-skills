@@ -10,8 +10,8 @@ import {
   parseCleanup,
   stripMarkup,
 } from "./capsule-abi.mjs";
-import { gitAvailable, runGit as git } from "./git-cli.mjs";
-import { parseLessons } from "./lessons.mjs";
+import { gitAvailable, runGit as git } from "../support/git-cli.mjs";
+import { parseLessons } from "../lessons/lessons.mjs";
 import { runDirectories } from "./spine-runs.mjs";
 
 function inside(root, candidate) {

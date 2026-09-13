@@ -13,7 +13,7 @@ import {
   skillLayoutErrors,
   skillPointerErrors,
   skillPromotionErrors,
-} from "../scripts/lib/skill-rules.mjs";
+} from "../scripts/lib/install/skill-rules.mjs";
 
 const metadata = [
   "interface:",

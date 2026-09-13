@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { applyInstall, classifyTarget, createInstallPlan, declaredRuntimePaths } from "../scripts/lib/install-release.mjs";
+import { applyInstall, classifyTarget, createInstallPlan, declaredRuntimePaths } from "../scripts/lib/install/install-release.mjs";
 
 const sourceRoot = process.cwd();
 
@@ -56,7 +56,7 @@ test("classifyTarget recognizes the current release and a prior release", () => 
     };
     commit("one");
     const home = join(base, "codex");
-    const relative = "scripts/lib/diagnostics.mjs";
+    const relative = "scripts/lib/support/diagnostics.mjs";
     const item = { label: "lib__diagnostics", target: join(base, "link"), relative };
 
     const planA = createInstallPlan({ source, cwd: source, codexHome: home });

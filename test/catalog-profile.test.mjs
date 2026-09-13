@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveProfile } from "../scripts/lib/catalog-profile.mjs";
+import { resolveProfile } from "../scripts/lib/catalog/catalog-profile.mjs";
 
 const plugin = (over = {}) => ({
   id: "demo@market",

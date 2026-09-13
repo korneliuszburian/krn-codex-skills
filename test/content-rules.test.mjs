@@ -9,7 +9,7 @@ import {
   semanticXmlErrors,
   skillMarkdownErrors,
   unfencedLines,
-} from "../scripts/lib/content-rules.mjs";
+} from "../scripts/lib/rules/content-rules.mjs";
 
 test("unfencedLines skips fenced blocks", () => {
   assert.deepEqual(

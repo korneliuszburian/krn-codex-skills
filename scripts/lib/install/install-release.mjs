@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { gitText as git } from "./git-cli.mjs";
+import { gitText as git } from "../support/git-cli.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -7,12 +7,12 @@ import path from "node:path";
 
 import { fileURLToPath } from "node:url";
 
-import { EXIT_CODES } from "./diagnostics.mjs";
-import { isSafeRelativePath as safeRelativePath } from "./path-rules.mjs";
+import { EXIT_CODES } from "../support/diagnostics.mjs";
+import { isSafeRelativePath as safeRelativePath } from "../support/path-rules.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
-const OWN_MANIFEST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "skills", "manifest.json");
+const OWN_MANIFEST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "skills", "manifest.json");
 
 function fail(message, exitCode = 1) {
   const error = new Error(message);

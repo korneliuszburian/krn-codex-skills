@@ -11,8 +11,8 @@ import {
   quoteToml,
   removeBlock,
   setEnabled,
-} from "../scripts/lib/catalog-document.mjs";
-import { parseDocument } from "../scripts/lib/catalog-toml.mjs";
+} from "../scripts/lib/catalog/catalog-document.mjs";
+import { parseDocument } from "../scripts/lib/catalog/catalog-toml.mjs";
 
 const source = "[mcp_servers.demo]\n# keep me\nenabled = true\n";
 const blockFor = (text, kind = "mcp", id = "demo") =>

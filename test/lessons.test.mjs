@@ -6,7 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { checkLessons, lessonUsage, parseLessons, recallBindings, recallLessons, recallLines } from "../scripts/lib/lessons.mjs";
+import { checkLessons, lessonUsage, parseLessons, recallBindings, recallLessons, recallLines } from "../scripts/lib/lessons/lessons.mjs";
 
 function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "krn-lessons-"));
@@ -219,11 +219,11 @@ test("a trigger delivers the matching lesson for changed paths", () => {
   writeFileSync(
     file,
     "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n"
-    + "| Guards | probe | `test:state` | | | path:scripts/lib/git-cli.mjs |\n",
+    + "| Guards | probe | `test:state` | | | path:scripts/lib/support/git-cli.mjs |\n",
   );
-  const all = recallLessons({ root, files: ["scripts/lib/git-cli.mjs", "docs/x.md"] });
+  const all = recallLessons({ root, files: ["scripts/lib/support/git-cli.mjs", "docs/x.md"] });
   assert.equal(all.length, 1);
-  assert.deepEqual(all[0].matched, ["scripts/lib/git-cli.mjs"]);
+  assert.deepEqual(all[0].matched, ["scripts/lib/support/git-cli.mjs"]);
   assert.deepEqual(recallLessons({ root, files: ["docs/x.md"] }), []);
   const matchedFor = (trigger, files) => {
     writeFileSync(

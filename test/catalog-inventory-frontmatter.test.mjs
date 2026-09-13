@@ -4,12 +4,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { inventoryCapabilities } from "../scripts/lib/catalog-inventory.mjs";
+import { inventoryCapabilities } from "../scripts/lib/catalog/catalog-inventory.mjs";
 import {
   parseSkillFrontmatter,
   sanitizeMetadataValue,
   validSkillName,
-} from "../scripts/lib/catalog-inventory-frontmatter.mjs";
+} from "../scripts/lib/catalog/catalog-inventory-frontmatter.mjs";
 
 test("sanitizeMetadataValue strips quotes, collapses whitespace, and truncates", () => {
   assert.equal(sanitizeMetadataValue('"Demo  skill"'), "Demo skill");

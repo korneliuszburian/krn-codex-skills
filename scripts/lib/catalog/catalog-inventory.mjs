@@ -27,7 +27,7 @@ export {
 } from "./catalog-profiles.mjs";
 
 const DEFAULT_PROFILES_PATH = fileURLToPath(
-  new URL("../../config/capability-profiles.json", import.meta.url),
+  new URL("../../../config/capability-profiles.json", import.meta.url),
 );
 
 const versionCollator = new Intl.Collator("en", {

@@ -6,7 +6,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { applyInstall, createInstallPlan, installExitCodes } from "../scripts/lib/install-release.mjs";
+import { applyInstall, createInstallPlan, installExitCodes } from "../scripts/lib/install/install-release.mjs";
 
 const sourceRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -40,7 +40,7 @@ test("apply fails closed and restores current when the installed CLI cannot star
   process.env.KRN_BIN_DEST = path.join(base, "bin");
   try {
     const plan = createInstallPlan({ source: copy, cwd: copy, codexHome: home });
-    assert.ok(plan.runtimePaths.includes("scripts/lib/diagnostics.mjs"));
+    assert.ok(plan.runtimePaths.includes("scripts/lib/support/diagnostics.mjs"));
     assert.throws(
       () => applyInstall(plan),
       (error) => error.exitCode === installExitCodes.EXIT_CORRUPT && /smoke failed/.test(error.message),

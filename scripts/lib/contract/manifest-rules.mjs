@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { isSafeRelativePath } from "./path-rules.mjs";
+import { isSafeRelativePath } from "../support/path-rules.mjs";
 
 const SKILL_PATH_GROUPS = ["engineering", "advisory", "frontend", "meta"];
 

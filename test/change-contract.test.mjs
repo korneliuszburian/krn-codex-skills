@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkChangeContract, contractGuardActive, contractSurface, parseChangeContract, runCheckAtBase } from "../scripts/lib/change-contract.mjs";
+import { checkChangeContract, contractGuardActive, contractSurface, parseChangeContract, runCheckAtBase } from "../scripts/lib/contract/change-contract.mjs";
 
 function makeRoot(scripts = { "test:lessons": "x", "test:lib": "x" }) {
   const root = mkdtempSync(join(tmpdir(), "krn-contract-"));
@@ -51,7 +51,7 @@ function fakeGit({ commits, files, baseScripts = {}, baseFiles = [], blobs = {},
 const green = () => ({ ok: true, status: 0 });
 
 test("contractSurface scopes the harness surfaces", () => {
-  assert.equal(contractSurface(["scripts/lib/lessons.mjs"]), true);
+  assert.equal(contractSurface(["scripts/lib/lessons/lessons.mjs"]), true);
   assert.equal(contractSurface(["test/change-contract.test.mjs"]), true);
   assert.equal(contractSurface(["skills/manifest.json"]), true);
   assert.equal(contractSurface(["config/AGENTS.md"]), true);
@@ -552,7 +552,7 @@ test("--before freezes a changed test reached through an unchanged literal scrip
 
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
-  const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });
+  const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons/lessons.mjs"] } });
   const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
   assert.ok(report.errors.some((error) => error.rule === "missing-change-contract"));
   rmSync(root, { recursive: true, force: true });
@@ -562,13 +562,13 @@ test("a surface commit cannot be excused by No-check or a green->green contract"
   const root = makeRoot();
   const nonFalsifiable = fakeGit({
     commits: [{ sha: "a1", subject: "chore: tidy", body: "Change-contract: test:lessons:green->green" }],
-    files: { a1: ["scripts/lib/lessons.mjs"] },
+    files: { a1: ["scripts/lib/lessons/lessons.mjs"] },
     baseScripts: { "test:lessons": "x" },
   });
   assert.ok(checkChangeContract({ root, base: "base", git: nonFalsifiable, run: green, strictRecall: true }).errors.some((error) => error.rule === "non-falsifiable-prediction"));
   const escaped = fakeGit({
     commits: [{ sha: "a1", subject: "chore: tidy", body: "No-check: whatever\nAt-risk: test:lib" }],
-    files: { a1: ["scripts/lib/lessons.mjs"] },
+    files: { a1: ["scripts/lib/lessons/lessons.mjs"] },
     baseScripts: { "test:lessons": "x", "test:lib": "x" },
   });
   assert.ok(checkChangeContract({ root, base: "base", git: escaped, run: green, strictRecall: true }).errors.some((error) => error.rule === "missing-change-contract"), "No-check plus At-risk must not excuse a surface change");
@@ -590,14 +590,14 @@ test("a met prediction passes and an unmet or self-authored one blocks", () => {
   const root = makeRoot();
   const git = fakeGit({
     commits: [{ sha: "a1", subject: "fix: gate", body: "Change-contract: test:lessons:red->green" }],
-    files: { a1: ["scripts/lib/lessons.mjs"] },
+    files: { a1: ["scripts/lib/lessons/lessons.mjs"] },
     baseScripts: { "test:lessons": "x" },
   });
   assert.deepEqual(checkChangeContract({ root, base: "base", git, run: green, strictRecall: true }).errors, []);
   assert.ok(checkChangeContract({ root, base: "base", git, run: () => ({ ok: false, status: 1 }) }).errors.some((error) => error.rule === "unmet-prediction"));
   const selfAuthored = fakeGit({
     commits: [{ sha: "a1", subject: "fix: gate", body: "Change-contract: test:lessons:red->green" }],
-    files: { a1: ["scripts/lib/lessons.mjs"] },
+    files: { a1: ["scripts/lib/lessons/lessons.mjs"] },
     baseScripts: {},
   });
   assert.ok(checkChangeContract({ root, base: "base", git: selfAuthored, run: green, strictRecall: true }).errors.some((error) => error.rule === "self-authorized-check"));
@@ -617,7 +617,7 @@ test("a self-authored test file and a denied ref both block", () => {
   assert.ok(checkChangeContract({ root, base: "base", git: added, run: green, strictRecall: true }).errors.some((error) => error.rule === "self-authorized-check"));
   const denied = fakeGit({
     commits: [{ sha: "a1", subject: "fix: gate", body: "Change-contract: changes:check:red->green" }],
-    files: { a1: ["scripts/lib/lessons.mjs"] },
+    files: { a1: ["scripts/lib/lessons/lessons.mjs"] },
     baseScripts: { "changes:check": "x" },
   });
   assert.ok(checkChangeContract({ root, base: "base", git: denied, run: green, strictRecall: true }).errors.some((error) => error.rule === "unknown-check"));
@@ -628,7 +628,7 @@ test("an at-risk regression blocks", () => {
   const root = makeRoot();
   const git = fakeGit({
     commits: [{ sha: "a1", subject: "fix: gate", body: "Change-contract: test:lessons:red->green\nAt-risk: test:lib" }],
-    files: { a1: ["scripts/lib/lessons.mjs"] },
+    files: { a1: ["scripts/lib/lessons/lessons.mjs"] },
     baseScripts: { "test:lessons": "x", "test:lib": "x" },
   });
   const report = checkChangeContract({ root, base: "base", git, run: ({ target }) => ({ ok: target.name !== "test:lib", status: 0 }) });
@@ -654,27 +654,27 @@ test("a change that triggers a lesson requires a Recall trailer", () => {
   mkdirSync(join(root, "docs", "research"), { recursive: true });
   writeFileSync(
     join(root, "docs", "research", "workflow-lessons.md"),
-    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `scripts/lib/git-cli.mjs` | | | path:scripts/lib/git-cli.mjs |\n",
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `scripts/lib/support/git-cli.mjs` | | | path:scripts/lib/support/git-cli.mjs |\n",
   );
   const base = {
     commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green" }],
-    files: { a1: ["scripts/lib/git-cli.mjs"] },
+    files: { a1: ["scripts/lib/support/git-cli.mjs"] },
     baseScripts: { "test:lessons": "x" },
   };
   assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(base), run: green, strictRecall: true }).errors.some((error) => error.rule === "unreconstructed-recall"));
   const junk = {
     ...base,
-    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: contest:scripts/lib/git-cli.mjs" }],
+    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: contest:scripts/lib/support/git-cli.mjs" }],
   };
   assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(junk), run: green, strictRecall: true }).errors.some((error) => error.rule === "unreconstructed-recall"), "a superstring must not satisfy the recall");
   const misbound = {
     ...base,
-    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/git-cli.mjs => docs/other.md" }],
+    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/support/git-cli.mjs => docs/other.md" }],
   };
   assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(misbound), run: green, strictRecall: true }).errors.some((error) => error.rule === "unreconstructed-recall"), "the reconstruction target must be a changed file or symbol");
   const recalled = {
     ...base,
-    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/git-cli.mjs => scripts/lib/git-cli.mjs" }],
+    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/support/git-cli.mjs => scripts/lib/support/git-cli.mjs" }],
   };
   assert.ok(!checkChangeContract({ root, base: "base", git: fakeGit(recalled), run: green, strictRecall: true }).errors.some((error) => error.rule === "unreconstructed-recall"));
   rmSync(root, { recursive: true, force: true });
@@ -692,9 +692,9 @@ test("a symbol trigger requires a Recall trailer", () => {
       const last = args[args.length - 1];
       if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x" } }) };
       if (last.includes(":")) return { ok: true, out: "export function runGit(r) {\n  return 1;\n}\n" };
-      return { ok: true, out: "scripts/lib/git-cli.mjs" };
+      return { ok: true, out: "scripts/lib/support/git-cli.mjs" };
     }
-    if (args[0] === "diff" || args[2] === "diff") return { ok: true, out: "+++ b/scripts/lib/git-cli.mjs\n@@ -0,0 +2,1 @@\n" };
+    if (args[0] === "diff" || args[2] === "diff") return { ok: true, out: "+++ b/scripts/lib/support/git-cli.mjs\n@@ -0,0 +2,1 @@\n" };
     if (args[0] === "cat-file") return { ok: true, out: "" };
     return { ok: false, out: "" };
   };
@@ -709,27 +709,27 @@ test("a churn trigger requires a Recall trailer for a hot file", () => {
   const root = makeRoot();
   writeFileSync(
     join(root, "docs", "research", "workflow-lessons.md"),
-    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Fragile | probe | `test:lessons` | | | churn:scripts/lib/git-cli.mjs |\n",
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Fragile | probe | `test:lessons` | | | churn:scripts/lib/support/git-cli.mjs |\n",
   );
   const gitFor = (body) => (_root, args) => {
     if (args[0] === "log") {
-      if (args.includes("--name-only")) return { ok: true, out: "scripts/lib/git-cli.mjs\0scripts/lib/git-cli.mjs\0" };
+      if (args.includes("--name-only")) return { ok: true, out: "scripts/lib/support/git-cli.mjs\0scripts/lib/support/git-cli.mjs\0" };
       return { ok: true, out: `a1\u001ffic: churn\u001f${body}` };
     }
     if (args[0] === "show") {
       const last = args[args.length - 1];
       if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x" } }) };
       if (last.includes(":")) return { ok: true, out: "export function runGit(r) {\n  return 1;\n}\n" };
-      return { ok: true, out: "scripts/lib/git-cli.mjs" };
+      return { ok: true, out: "scripts/lib/support/git-cli.mjs" };
     }
-    if (args[0] === "diff" || args[2] === "diff") return { ok: true, out: "--- a/scripts/lib/git-cli.mjs\n+++ b/scripts/lib/git-cli.mjs\n@@ -0,0 +2,1 @@\n" };
+    if (args[0] === "diff" || args[2] === "diff") return { ok: true, out: "--- a/scripts/lib/support/git-cli.mjs\n+++ b/scripts/lib/support/git-cli.mjs\n@@ -0,0 +2,1 @@\n" };
     if (args[0] === "rev-list") return { ok: true, out: "2" };
     if (args[0] === "cat-file") return { ok: true, out: "" };
     return { ok: false, out: "" };
   };
   const bare = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green"), run: green, strictRecall: true });
   assert.ok(bare.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(bare.errors));
-  const recalled = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green\nRecall: test:lessons => scripts/lib/git-cli.mjs"), run: green, strictRecall: true });
+  const recalled = checkChangeContract({ root, base: "base", git: gitFor("Change-contract: test:lessons:red->green\nRecall: test:lessons => scripts/lib/support/git-cli.mjs"), run: green, strictRecall: true });
   assert.ok(!recalled.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(recalled.errors));
   rmSync(root, { recursive: true, force: true });
 });
@@ -740,7 +740,7 @@ test("a recalled lesson with a testable gate must be exercised by the change", (
   writeFileSync(join(root, "test", "gate.test.mjs"), "// probe\n");
   writeFileSync(
     join(root, "docs", "research", "workflow-lessons.md"),
-    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `test/gate.test.mjs` | | | path:scripts/lib/git-cli.mjs |\n",
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `test/gate.test.mjs` | | | path:scripts/lib/support/git-cli.mjs |\n",
   );
   const gitFor = (body) => (_root, args) => {
     if (args[0] === "log") return { ok: true, out: `a1\u001ffic: use\u001f${body}` };
@@ -748,13 +748,13 @@ test("a recalled lesson with a testable gate must be exercised by the change", (
       const last = args[args.length - 1];
       if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x", "test:lib": "x" } }) };
       if (last.includes(":")) return { ok: true, out: "export const x = 1;\n" };
-      return { ok: true, out: "scripts/lib/git-cli.mjs" };
+      return { ok: true, out: "scripts/lib/support/git-cli.mjs" };
     }
     if (args[0] === "cat-file") return { ok: true, out: "" };
     if (args[0] === "rev-list") return { ok: true, out: "0" };
     return { ok: false, out: "" };
   };
-  const recalled = "Change-contract: test:lessons:red->green\nRecall: test/gate.test.mjs => scripts/lib/git-cli.mjs";
+  const recalled = "Change-contract: test:lessons:red->green\nRecall: test/gate.test.mjs => scripts/lib/support/git-cli.mjs";
   const used = checkChangeContract({ root, base: "base", git: gitFor(recalled), run: green, strictRecall: true });
   assert.ok(used.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(used.errors));
   const exercised = checkChangeContract({ root, base: "base", git: gitFor(`${recalled}\nAt-risk: test/gate.test.mjs`), run: green, strictRecall: true });
@@ -768,7 +768,7 @@ test("a recalled lesson whose gate is a command still requires its test at-risk"
   writeFileSync(join(root, "test", "gate.test.mjs"), "// probe\n");
   writeFileSync(
     join(root, "docs", "research", "workflow-lessons.md"),
-    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `node --test test/gate.test.mjs` | | | path:scripts/lib/git-cli.mjs |\n",
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `node --test test/gate.test.mjs` | | | path:scripts/lib/support/git-cli.mjs |\n",
   );
   const gitFor = (body) => (_root, args) => {
     if (args[0] === "log") return { ok: true, out: `a1\u001ffic: use\u001f${body}` };
@@ -776,13 +776,13 @@ test("a recalled lesson whose gate is a command still requires its test at-risk"
       const last = args[args.length - 1];
       if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x", "test:lib": "x" } }) };
       if (last.includes(":")) return { ok: true, out: "export const x = 1;\n" };
-      return { ok: true, out: "scripts/lib/git-cli.mjs" };
+      return { ok: true, out: "scripts/lib/support/git-cli.mjs" };
     }
     if (args[0] === "cat-file") return { ok: true, out: "" };
     if (args[0] === "rev-list") return { ok: true, out: "0" };
     return { ok: false, out: "" };
   };
-  const recalled = "Change-contract: test:lessons:red->green\nRecall: node --test test/gate.test.mjs => scripts/lib/git-cli.mjs";
+  const recalled = "Change-contract: test:lessons:red->green\nRecall: node --test test/gate.test.mjs => scripts/lib/support/git-cli.mjs";
   const used = checkChangeContract({ root, base: "base", git: gitFor(recalled), run: green, strictRecall: true });
   assert.ok(used.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(used.errors));
   const exercised = checkChangeContract({ root, base: "base", git: gitFor(`${recalled}\nAt-risk: test/gate.test.mjs`), run: green, strictRecall: true });

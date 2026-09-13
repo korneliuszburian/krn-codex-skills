@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { isSafeRelativePath } from "../scripts/lib/path-rules.mjs";
-import { upstreamSkillNamesFrom, upstreamSourceErrors } from "../scripts/lib/upstream-sources.mjs";
+import { isSafeRelativePath } from "../scripts/lib/support/path-rules.mjs";
+import { upstreamSkillNamesFrom, upstreamSourceErrors } from "../scripts/lib/contract/upstream-sources.mjs";
 
 const validSource = () => ({
   schema_version: 1,

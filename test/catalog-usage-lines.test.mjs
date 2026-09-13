@@ -5,7 +5,7 @@ import {
   consumeLines,
   isCandidateRecordLine,
   MAX_ROLLOUT_RECORD_BYTES,
-} from "../scripts/lib/catalog-usage-lines.mjs";
+} from "../scripts/lib/catalog/catalog-usage-lines.mjs";
 
 async function* chunks(...buffers) {
   for (const buffer of buffers) yield buffer;

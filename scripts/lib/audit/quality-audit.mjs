@@ -1,9 +1,9 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join, relative, sep } from "node:path";
 
-import { maskLiterals, maskTemplates, stripComments } from "./source-mask.mjs";
+import { maskLiterals, maskTemplates, stripComments } from "../support/source-mask.mjs";
 
-const SELF = "scripts/lib/quality-audit.mjs";
+const SELF = "scripts/lib/audit/quality-audit.mjs";
 
 const walk = (directory) => {
   if (!existsSync(directory)) return [];

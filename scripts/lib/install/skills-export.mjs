@@ -1,4 +1,4 @@
-import { gitText as git, runGitRaw } from "./git-cli.mjs";
+import { gitText as git, runGitRaw } from "../support/git-cli.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";

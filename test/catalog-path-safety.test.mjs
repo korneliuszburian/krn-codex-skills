@@ -7,7 +7,7 @@ import test from "node:test";
 import {
   requireDirectoryWithoutSymlinks,
   requireRegularFileWithoutSymlinks,
-} from "../scripts/lib/catalog-path-safety.mjs";
+} from "../scripts/lib/catalog/catalog-path-safety.mjs";
 
 const withRoot = async (body) => {
   const root = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-path-safety-")));

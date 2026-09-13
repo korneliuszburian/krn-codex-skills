@@ -7,7 +7,7 @@ import {
   capsuleAbiErrors,
   transitionErrors,
   transitionHandlersFrom,
-} from "../scripts/lib/delivery-loop-rules.mjs";
+} from "../scripts/lib/contract/delivery-loop-rules.mjs";
 
 test("capsuleAbiErrors accepts matching labels and rejects gaps", () => {
   const content = "<outcome-capsule>\nOutcome: done\nResult: ok\n</outcome-capsule>";
@@ -16,7 +16,7 @@ test("capsuleAbiErrors accepts matching labels and rejects gaps", () => {
     "delivery-loop SKILL.md is missing the outcome-capsule block",
   ]);
   assert.deepEqual(capsuleAbiErrors(content, ["Result", "Outcome"]), [
-    "delivery-loop capsule ABI labels must match scripts/lib/capsule-abi.mjs ABI_LABELS",
+    "delivery-loop capsule ABI labels must match scripts/lib/state/capsule-abi.mjs ABI_LABELS",
   ]);
 });
 

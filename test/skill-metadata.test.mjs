@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { readFrontmatter } from "../scripts/lib/skill-metadata.mjs";
+import { readFrontmatter } from "../scripts/lib/install/skill-metadata.mjs";
 
 test("readFrontmatter extracts name and description and strips quotes", () => {
   assert.deepEqual(readFrontmatter('---\nname: demo\ndescription: "a skill"\n---\nbody'), {

@@ -1,10 +1,10 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { gitAvailable, runGit as git, runGitRaw } from "./git-cli.mjs";
+import { gitAvailable, runGit as git, runGitRaw } from "../support/git-cli.mjs";
 import { capsuleIds, runDirectories } from "./spine-runs.mjs";
 import { inspectSpineState, normalizeRunPointer } from "./state-check.mjs";
 import { commitTokens, fieldLine, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
-import { parseLessons } from "./lessons.mjs";
+import { parseLessons } from "../lessons/lessons.mjs";
 
 function resolveRoot(repo) {
   const requested = resolve(repo);

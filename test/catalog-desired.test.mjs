@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { normalizeDesired, normalizeFamilies, pluginIdFromCachedSkillPath } from "../scripts/lib/catalog-desired.mjs";
-import { QuarantineViolationError } from "../scripts/lib/catalog-errors.mjs";
+import { normalizeDesired, normalizeFamilies, pluginIdFromCachedSkillPath } from "../scripts/lib/catalog/catalog-desired.mjs";
+import { QuarantineViolationError } from "../scripts/lib/catalog/catalog-errors.mjs";
 
 const cached = (marketplace, plugin) =>
   `/home/u/.codex/plugins/cache/${marketplace}/${plugin}/1.0.0/skills/alpha/SKILL.md`;
