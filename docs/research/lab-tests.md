@@ -103,91 +103,85 @@ cost-per-success are identical, the effort pin is unnecessary.
 
 ## LT-5 separation gate (2026-09-13)
 
-One decisive plus one neutral task, arms A (lesson row removed), B (lesson
-content), C (forced recall via the harness CLI), three runs per cell, under the
-staged bwrap 0.12.0 with a fresh share seeded only with `auth.json` and the host
-`opencode.db` never copied. The runner asserts `bwrap --version >= 0.12.0`, copies
-the harness inside `/work` (no external-directory permission), binds a private
-`/run/user` (host session D-Bus hidden), unsets `DBUS_SESSION_BUS_ADDRESS` and
-`XDG_RUNTIME_DIR`, and records a per-run sentinel. Fixture: a banner string coupled
-to `BANNER_VERSION`; the decisive lesson's `path:src/greeting.mjs` trigger matched
-(1 hit) and the neutral `README.md` path matched none (0 hits). The in-repo test
-asserts `greeting` uses the current `BANNER` and `BANNER_VERSION >= 1` (not the old
-literal), so arm A can attempt the banner change and fail only the coupling.
-Held-out check copied in only after the agent exited; pre-run probes showed `/mnt`,
-`$HOME`, and `/run/user/1000/bus` hidden and `node` available.
+One decisive plus one neutral task, arms A (lesson row removed), B (real
+coupled-version lesson), P (placebo: same trigger and shape, task-irrelevant
+footer coupling), C (forced recall via the harness CLI), three runs per cell,
+under the staged bwrap 0.12.0 with a fresh share seeded only with `auth.json` and
+the host `opencode.db` never copied. The runner asserts `bwrap --version >=
+0.12.0`, copies the harness inside `/work` (no external-directory permission),
+binds a private `/run/user` (host session D-Bus hidden), unsets
+`DBUS_SESSION_BUS_ADDRESS`/`XDG_RUNTIME_DIR`, records a per-run sentinel, runs a
+mandatory isolation preflight under the exact binds, shuffles arm order, and
+records the model. Fixture: the decisive task couples a banner string to
+`BANNER_VERSION` with lesson trigger `path:src/greeting.mjs` (1 hit); the neutral
+is a same-shape two-file coupling (`SALUTATION` + `SALUTATION_VERSION`, coupling
+stated in ordinary source docs, no lesson trigger, 0 hits on `src/salutation.mjs`).
+The in-repo tests read the current constant and require version `>= 1`, so an arm
+can attempt the change and fail only the coupling. Held-out checks are copied in
+only after the agent exits.
 
 | Cell | decisive | neutral | median wall decisive/neutral (s) | median total tokens decisive/neutral |
 |---|---|---|---|---|
-| A (ablate) | 0/3 | 3/3 | 17 / 10 | 10152 / 8908 |
-| B (content) | 3/3 | 3/3 | 14 / 17 | 9953 / 10445 |
-| C (forced recall) | 3/3 | 3/3 | 15 / 13 | 9750 / 8956 |
+| A (ablate) | 0/3 | 2/3 | 27 / 32 | 31514 / 14521 |
+| B (content) | 3/3 | 3/3 | 14 / 22 | 10561 / 15846 |
+| P (placebo) | 0/3 | 3/3 | 71 / 31 | 49161 / 15539 |
+| C (forced recall) | 3/3 | 3/3 | 15 / 18 | 10824 / 10330 |
 
-Disposition: **content effect attributable, still non-promoting.** The arms differ
-only by the lesson row. In all three decisive A runs the agent changed `BANNER` to
-`Welcome` and left `BANNER_VERSION` at 1, failing the held-out coupling check on the
-version assertion alone; B (lesson content) and C (forced recall) bumped it and
-passed 3/3. Delivery of the coupled-version lesson, not the task wording, changed
-the outcome. Still not promoted: the neutral stratum is at ceiling for every arm
-(3/3), so the registered difference-in-differences is unidentified and generic
-priming is not separated; N=3 is below the registered MDE; there is no
-length/wording-matched placebo (B'); one model family at one effort; and C is a
-CLI-forced proxy for the git-shim `--strict-recall` mechanism, not that mechanism.
-Reopen with a same-shape neutral that has variance, placebo B', the third family,
-and the exact git-shim.
+Disposition: **content effect attributable to the lesson's content, still
+non-promoting.** The arms differ only by the lesson row. In all three decisive A
+runs the agent changed `BANNER` to `Welcome` and left `BANNER_VERSION` at 1,
+failing the held-out coupling on the version assertion alone; B and C bumped it
+and passed 3/3. The placebo P also failed 0/3: with the same trigger, shape, and
+length but task-irrelevant footer content the agent made no source change in any
+run, so only the correct coupled-version content produced success. The neutral now
+has interior variance (A 2/3: one run changed `SALUTATION` and left
+`SALUTATION_VERSION` at 1), so the difference-in-differences is partially
+identified: `(B−A)_decisive − (B−A)_neutral = 1.0 − 0.333`. Still not promoted:
+N=3 is below the registered MDE; one model family at one effort; P is a
+wrong-content control, not a neutral length-matched placebo (it suppressed the
+task rather than merely adding irrelevant text), so a non-confusing placebo
+remains open; the neutral is one task; and C is a CLI-forced proxy for the git-shim
+`--strict-recall` mechanism, not that mechanism.
 
-Round-54 lab-test-design review registered these as the open controls that still
-block promotion; each has a concrete falsifier. (1) Neutral shape: replace the
-README typo with a same-shape two-file coupling (`src/salutation.mjs` exports
-`SALUTATION`/`salutation`, `src/salutation-version.mjs` exports
-`SALUTATION_VERSION = 1`, the coupling stated in ordinary source docs available
-to every arm, request `"Welcome, world"`, hold out the output and version 2,
-lesson trigger only on `src/greeting.mjs`, matching file count, public-test
-strength, and prompt structure across strata), and pick complexity on a separate
-calibration set so arm A is interior; require observed variance and zero recall
-hits for every neutral changed path before proceeding. (2) Placebo B': make the
-lesson row an irrelevant footer coupling (`src/edition.mjs` `FOOTER_VERSION`) that
-keeps the greeting trigger, with rendered words and model tokens matched to B and
-the target-coupling information verifiably absent; require a powered B−B′
-advantage specific to the decisive stratum. (3) Power: preregister the contrast
-family, effect, and discordance assumptions and power the difference-in-
-differences itself, inflating for task clustering `1+(r−1)ρ`; with the
-illustrative `p10=.375/p01=.125` (δ=.25, q=.50) two-sided exact McNemar reaches
-80% only near 85 independent pairs at α=.05/3, so eight tasks × three repeats is
-not 24 independent samples and multiple tasks per stratum must be piloted. (4)
-Third family: run the frozen matrix separately under `opencode-go/glm-5.3` with
+Open controls after the round-54 review and this run. Done: the same-shape neutral
+fixture with an interior arm-A rate, and a same-trigger/same-shape placebo arm
+(though wrong-content, not neutral). Still open, each with a falsifier: (1) a
+non-confusing, length- and token-matched placebo and a powered decisive-specific
+B−P advantage; (2) preregistered power for the difference-in-differences itself,
+inflating for task clustering `1+(r−1)ρ` (illustrative `p10=.375/p01=.125`, δ=.25,
+q=.50 reaches 80% only near 85 independent pairs at α=.05/3, so multiple tasks per
+stratum must be piloted); (3) a second family `opencode-go/glm-5.3` run with
 family-scoped retained output, pinned executable/model, matched effort, and
-randomized blocks, reporting within-family contrasts and heterogeneity while
-keeping the shared-provider limitation. (5) Arm C mechanism: give B and C
-identical prompts, recall content, access, and timing and vary only the git-shim
-`unreconstructed-recall` enforcement, keeping the lesson corpus outside
-agent-readable binds; demonstrate an unreconstructed decisive commit clears B's
-boundary and fails C's, reconstruction clears C, and a neutral commit never
-triggers it. The runner now enforces promotion-kill prerequisites: a mandatory
-isolation preflight under the exact execution binds (`/mnt` and host `$HOME`
-hidden, a read-only bind denying a write, `busctl --user` and `flatpak-spawn
---host` failing), no sentinel leak, and gate-level assertions that the decisive
-trigger matches and the neutral trigger does not, with arms shuffled per run and
-the model recorded.
+randomized blocks, keeping the shared-provider limitation; (4) the exact git-shim C
+mechanism with B/C parity (identical prompt, recall content, access, and timing,
+corpus outside agent-readable binds) showing an unreconstructed decisive commit
+clears B's boundary and fails C's, reconstruction clears C, and a neutral commit
+never triggers it.
 
-Confounds fixed for this run, recorded honestly: the earlier pass required an
-external-directory permission for `/harness`, so arms no-op'd; a second pass
-aborted on transient provider `UnknownError`s; and the original in-repo test pinned
-the old banner/version so arm A could not attempt the change. The runner now asserts
-the bwrap floor and the harness lives in `/work`, transient provider errors are
-retried, and the decisive test no longer pins the target value. Final dataset: zero
-retries, zero provider errors, `sentinel_leak=no`.
+Confounds fixed across the LT-5 passes, recorded honestly: the first pass required
+an external-directory permission for `/harness`, so arms no-op'd; a second aborted
+on transient provider `UnknownError`s; the original in-repo test pinned the old
+banner/version so arm A could not attempt the change; and the first placebo was
+constructed after the run. The runner now asserts the bwrap floor, keeps the
+harness in `/work`, retries transient provider errors, no longer pins the target
+value, enforces a mandatory isolation preflight, and kills the run on a sentinel
+leak or trigger mismatch. Final dataset: zero retries, zero provider errors,
+`sentinel_leak=no`; the placebo P's adverse no-op is a recorded property, not a
+confound to remove.
 
 Retention manifest (salt `46bd785538ad43e1`, first 16 hex of
 sha256(salt || file)): `greeting.mjs=eaa6f61223c4be17`,
 `version.mjs=84e8e430b910d5d3`, `workflow-lessons.md=5398bfff51bf429f`,
 `heldout-decisive.test.mjs=929bd21846386888`,
-`heldout-neutral.test.mjs=00c7c0c97cdf1c67`. Residuals: the fixtures and answer
-keys are staged outside the repo (in the lab dir, not committed here), so the
-manifest verifies only a retained copy; arm C's forced-reconstruction prompt is a
-proxy for the registered git-shim `--strict-recall` path, not that exact
-mechanism; the neutral stratum is at ceiling and uninformative; and the runs are
-one model family with N=3.
+`heldout-neutral.test.mjs=bae8578bb295cd66`,
+`salutation.mjs=d8568706aaf07f98`,
+`salutation-version.mjs=12704b3cb7844392`, `placebo-row.txt=34b52d47eee8b107`.
+Residuals: the fixtures and answer keys are staged outside the repo (in the lab
+dir, not committed here), so the manifest verifies only a retained copy; arm C's
+forced-reconstruction prompt is a proxy for the registered git-shim
+`--strict-recall` path, not that exact mechanism; the placebo is wrong-content
+rather than neutral; the neutral is one task with an interior but possibly
+task-specific arm-A rate; and the runs are one model family with N=3.
 
 ## Decision
 
@@ -195,4 +189,4 @@ one model family with N=3.
 `LT-3` is a deterministic check with a documented residual; `LT-4` is retired (its lower-rank mechanism needs a ranked store KRN forbids); the shipped proof-drift surrogate is `stale-anchor`; `LT-1` and `LT-2` are blinded
 pilots that must run before the memory harness or cross-repo transfer is
 described as effective rather than defensive; the `LT-1` content-vs-enforcement
-question is probed by the `LT-5` gate: content beats ablation on the decisive task (2/3 vs 0/3) while the neutral stratum is at ceiling, so no mechanism is promoted yet.
+question is probed by the `LT-5` gate: content beats ablation and a wrong-content placebo on the decisive task (3/3 vs 0/3 vs 0/3), and the same-shape neutral now has an interior arm-A rate (2/3), so the difference-in-differences is partially identified but no mechanism is promoted yet (N=3, one family, wrong-content placebo, one neutral task).
