@@ -66,9 +66,6 @@ SYSTEM_DESTRUCTIVE = re.compile(
     r"|\bdd\b[^\n;|&]*\bof="
     r"|\brmtree\b"
     r"|\btruncate\b[^\n;|&]*\s-s\s*0\b"
-    r"|\brsync\b[^\n;|&]*--delete"
-    r"|\bchmod\b[^\n;|&]*\s-\S*R"
-    r"|\bchown\b[^\n;|&]*\s-\S*R"
     r"|\|[^\n;|&]*(?:\$\{IFS\}|\$IFS|\s)*(?:(?:env|sudo|command)\s+)*(?:/[\w./-]+/)*(?:ba|d|z|a|k)?sh(?:\s|$)",
     re.IGNORECASE,
 )
@@ -349,6 +346,8 @@ def is_safe_inspection(words: tuple[str, ...] | None) -> bool:
 
 
 def direct_destructive_kind(words: tuple[str, ...]) -> str | None:
+    if not words:
+        return None
     remaining = words[1:] if words[0] == "rtk" else words
     if not remaining:
         return None
@@ -477,8 +476,11 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
         if executable in SHELL_INTERPRETERS:
             for position, argument in enumerate(effective[1:], start=1):
                 if argument == "-c" or re.fullmatch(r"-[a-zA-Z]*c", argument):
-                    if position + 1 < len(effective):
-                        return bash_denial_reason(effective[position + 1], cwd)
+                    script_index = position + 1
+                    if script_index < len(effective) and effective[script_index] == "--":
+                        script_index += 1
+                    if script_index < len(effective):
+                        return bash_denial_reason(effective[script_index], cwd)
                     break
         if executable == "eval" and len(effective) >= 2:
             return bash_denial_reason(effective[1], cwd)
@@ -510,7 +512,7 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
     if is_safe_inspection(effective):
         return None
 
-    if effective is None or direct_destructive_kind(effective) is None:
+    if not effective or direct_destructive_kind(effective) is None:
         return (
             "literal destructive text appears in shell composition or an "
             "unsupported command; rewrite it as one reviewed direct command"

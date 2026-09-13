@@ -333,6 +333,10 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
         if not arguments:
             return None
         targets = arguments
+    elif executable in {"chmod", "chown", "rsync"}:
+        if not arguments:
+            return None
+        targets = [arguments[-1]]
     elif executable == "truncate":
         if not arguments:
             return None
