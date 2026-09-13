@@ -271,7 +271,15 @@ export function classifyTarget(plan, item, linked) {
     return isPriorReleasePath(plan, item, linked) ? "prior_release" : "other_release";
   }
   const sourceRoot = git(path.dirname(linked), ["rev-parse", "--show-toplevel"]);
-  if (sourceRoot && plan.source && path.resolve(sourceRoot) === path.resolve(plan.source) && path.relative(sourceRoot, linked) === item.relative) return "legacy_source";
+  if (
+    sourceRoot
+    && path.relative(sourceRoot, linked) === item.relative
+    && (plan.source
+      ? path.resolve(sourceRoot) === path.resolve(plan.source)
+      : plan.allowLegacySource === true && fs.existsSync(path.join(sourceRoot, "scripts", "krn-codex.mjs")))
+  ) {
+    return "legacy_source";
+  }
   return "foreign";
 }
 
@@ -487,7 +495,7 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   let metadata;
   try { metadata = verifyRelease(currentTarget, path.basename(currentTarget)); }
   catch (error) { return { ...base, filesystem: { status: "broken_link", detail: error.message }, targets: [] }; }
-  const plan = { releaseRoot, current, manifest, source: "", release: currentTarget };
+  const plan = { releaseRoot, current, manifest, source: "", allowLegacySource: true, release: currentTarget };
   const targets = managedTargets(plan).map((item) => itemStatus(plan, item));
   for (const orphan of orphanManagedLinks(plan)) targets.push({ target: orphan, status: "orphaned_link" });
   const bad = targets.find((item) => item.status !== "filesystem_installed");
