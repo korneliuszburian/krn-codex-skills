@@ -80,7 +80,7 @@ export function parseCleanup(value) {
   return { entries, malformed };
 }
 
-const COMMIT_ANCHOR = /\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40})\b/gi;
+const COMMIT_ANCHOR = /\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40}|[0-9a-f]{64})\b/gi;
 
 export function commitTokens(value) {
   if (!value) return [];

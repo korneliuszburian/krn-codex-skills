@@ -133,8 +133,12 @@ function resolveFalsifier(root, cell, git = runGit) {
     return { ok: false, reason: `falsifier case "${caseName}" is not present in ${rel}` };
   }
   if (git(root, ["rev-parse", "--git-dir"]).ok) {
-    const known = git(root, ["cat-file", "-e", `${sha}^{commit}`]).ok;
-    if (known && !git(root, ["merge-base", "--is-ancestor", sha, "HEAD"]).ok) {
+    const objectExists = git(root, ["cat-file", "-e", sha]).ok;
+    const commitExists = git(root, ["cat-file", "-e", `${sha}^{commit}`]).ok;
+    if (objectExists && !commitExists) {
+      return { ok: false, reason: `falsifier anchor ${sha} for ${spec} is not a commit` };
+    }
+    if (commitExists && !git(root, ["merge-base", "--is-ancestor", sha, "HEAD"]).ok) {
       return { ok: false, reason: `falsifier commit ${sha} for ${spec} is not an ancestor of HEAD` };
     }
   }

@@ -57,6 +57,10 @@ export function verifyLessons({ root, timeout = 120000, runner = runCase, force 
       continue;
     }
     const [, file, name] = match;
+    if (name === file || name === path.basename(file)) {
+      results.push({ lesson: lesson.lesson, file, case: name, status: "fail", reason: "falsifier must name a test case, not the file path" });
+      continue;
+    }
     if (/[\u0000-\u001f\u007f]/.test(name) || !contained(root, file)) {
       results.push({ lesson: lesson.lesson, file, case: name, status: "fail", reason: "unsafe or uncontained proof target" });
       continue;
@@ -92,6 +96,10 @@ export function reanchorLessons({ root, timeout = 120000, runner = runCase, gitI
       continue;
     }
     const [, file, name, sha] = match;
+    if (name === file || name === path.basename(file)) {
+      skipped.push({ lesson: lesson.lesson, reason: "falsifier must name a test case, not the file path", blocking: true });
+      continue;
+    }
     if (!contained(root, file)) {
       skipped.push({ lesson: lesson.lesson, reason: "unsafe or uncontained proof target", blocking: true });
       continue;

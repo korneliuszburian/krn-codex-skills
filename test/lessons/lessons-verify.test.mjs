@@ -49,6 +49,19 @@ test("a passing proof case is executed and reported as pass", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a falsifier whose case names the file path is rejected, not verified", () => {
+  const root = makeRoot('import test from "node:test";\n// falsifier label: test/proof.test.mjs\ntest("unrelated", () => {});\n');
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n"
+      + "| A | probe | `test:state` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | `test/proof.test.mjs::test/proof.test.mjs@abcdef0` |\n",
+  );
+  const report = verifyLessons({ root });
+  assert.equal(report.results[0].status, "fail");
+  assert.match(report.results[0].reason, /not the file path/);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a failing proof case is reported and blocks", () => {
   const root = makeRoot('import test from "node:test";\ntest("probe", () => { throw new Error("boom"); });\n');
   const report = verifyLessons({ root });

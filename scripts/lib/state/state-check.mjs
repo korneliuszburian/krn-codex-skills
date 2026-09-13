@@ -31,7 +31,7 @@ function fixedPointErrors(root, fixedPoint, canCheckCommits) {
     if (!/^[0-9a-f]+$/i.test(value)) continue;
     const tokenValue = value.toLowerCase();
     if (label === "fingerprint") continue;
-    if (tokenValue.length !== 40) {
+    if (tokenValue.length !== 40 && tokenValue.length !== 64) {
       errors.push({ rule: "invalid-fixed-point", detail: `partial token ${tokenValue}` });
     } else if (canCheckCommits && !git(root, ["cat-file", "-e", `${tokenValue}^{commit}`]).ok) {
       errors.push({ rule: "invalid-fixed-point", detail: tokenValue });
@@ -237,7 +237,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       for (const finding of fixedPointErrors(root, fixedPoint, usableGit)) {
         errors.push({ id: entry.name, ...finding });
       }
-      const commits = [...fixedPoint.replace(/[<>`]/g, "").matchAll(/\b(base|HEAD)\s*=\s*([0-9a-f]{40})\b/gi)].map((match) => match[2].toLowerCase());
+      const commits = [...fixedPoint.replace(/[<>`]/g, "").matchAll(/\b(base|HEAD)\s*=\s*([0-9a-f]{40}|[0-9a-f]{64})\b/gi)].map((match) => match[2].toLowerCase());
       const anchorHead = fixedPointAnchors(fixedPoint).head;
       if (outcome && stripMarkup(outcome) === "COMPLETE" && commits.length === 0) {
         errors.push({ id: entry.name, rule: "complete-without-commit-anchor", detail: stripMarkup(fixedPoint) });

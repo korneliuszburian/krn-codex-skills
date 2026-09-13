@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ABI_LABELS, commitTokens, parseCleanup, renderCapsule, stripMarkup } from "../../scripts/lib/state/capsule-abi.mjs";
+import { ABI_LABELS, commitTokens, fixedPointAnchors, parseCleanup, renderCapsule, stripMarkup } from "../../scripts/lib/state/capsule-abi.mjs";
 
 test("renderCapsule refuses to emit a capsule with a missing label", () => {
   const values = Object.fromEntries(ABI_LABELS.map((label) => [label, "value"]));
@@ -33,6 +33,12 @@ test("parseCleanup parses well-formed entries and reports malformed ones", () =>
 test("commitTokens extracts fixed-point commits and stripMarkup removes markers", () => {
   assert.deepEqual(commitTokens("base=ffc3f987ded091b37448bd0481f8ad248f1e86a6; HEAD=21902f0"), ["ffc3f987ded091b37448bd0481f8ad248f1e86a6"]);
   assert.equal(stripMarkup("`value`"), "value");
+});
+
+test("commitTokens and fixedPointAnchors accept a 64-hex sha256 anchor", () => {
+  const sha = "a".repeat(64);
+  assert.deepEqual(commitTokens(`HEAD=${sha}`), [sha]);
+  assert.equal(fixedPointAnchors(`HEAD=${sha}`).head, sha);
 });
 
 test("parseCleanup tolerates a missing cleanup value", () => {
