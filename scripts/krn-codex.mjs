@@ -174,10 +174,10 @@ try {
     if (report.errors.length) process.exitCode = 1;
   } else if (raw[0] === "memory") {
     const { positional, options } = parseOptions(raw.slice(1));
-    rejectForeignOptions(options, ["root", "changed", "symbols"]);
     if (!["recall", "usage"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
     requireDirectory(options.root);
     if (positional[0] === "usage") {
+      rejectForeignOptions(options, ["root"]);
       const report = lessonUsage({ root: options.root });
       if (options.json) {
         print(report, true);
@@ -186,6 +186,7 @@ try {
         if (report.neverRecalled?.length) process.stdout.write(`never recalled: ${report.neverRecalled.length}\n`);
       }
     } else {
+      rejectForeignOptions(options, ["root", "changed", "symbols"]);
       if (!(options.changed?.length || options.symbols?.length)) fail(usage);
       const changed = (options.changed ?? [])
         .map((entry) => posixRelative(path.resolve(options.root), path.resolve(options.root, entry)))

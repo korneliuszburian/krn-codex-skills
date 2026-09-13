@@ -360,7 +360,7 @@ function reconcileTargets(plan) {
       const entry = { target, backup: null, created: false };
       changed.push(entry);
       fs.mkdirSync(backup, { recursive: true });
-      entry.backup = path.join(backup, `orphan__${path.basename(target)}`);
+      entry.backup = path.join(backup, `orphan__${changed.length}__${path.basename(target)}`);
       fs.renameSync(target, entry.backup);
       usedBackup = true;
     }
