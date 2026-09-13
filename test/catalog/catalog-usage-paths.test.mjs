@@ -29,6 +29,20 @@ test("canonicalSkillEntries drops target paths that are not canonical SKILL.md p
   assert.doesNotThrow(() => canonicalSkills(entries));
 });
 
+test("canonicalSkillEntries id acceptance matches canonicalSkills", () => {
+  const ids = ["ok", "9ok", "a@b.c:d", "a".repeat(160), "a".repeat(161), "with space", "_leading", "", "a/b"];
+  for (const id of ids) {
+    const entries = canonicalSkillEntries({ skills: [{ id, path: `/x/${id}/SKILL.md` }], plugins: [] });
+    let acceptedBySkills = true;
+    try {
+      canonicalSkills([{ id, path: `/x/${id}/SKILL.md` }]);
+    } catch {
+      acceptedBySkills = false;
+    }
+    assert.equal(entries.length === 1, acceptedBySkills, id);
+  }
+});
+
 test("canonicalSkillEntries drops ids that canonicalSkills would reject", () => {
   const entries = canonicalSkillEntries({
     skills: [{ id: "my skill", path: "/x/my skill/SKILL.md" }],

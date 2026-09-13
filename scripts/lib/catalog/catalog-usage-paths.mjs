@@ -98,7 +98,7 @@ export function canonicalSkills(entries) {
     if (typeof suppliedPath !== "string" || !path.isAbsolute(suppliedPath) || path.basename(suppliedPath) !== "SKILL.md") {
       throw new TypeError("each canonical skill path must be an absolute SKILL.md path");
     }
-    if (typeof suppliedId !== "string" || !/^[A-Za-z0-9][A-Za-z0-9@._:-]{0,159}$/.test(suppliedId)) {
+    if (!safeId(suppliedId)) {
       throw new TypeError("each canonical skill id must be a safe catalog identifier");
     }
     if (path.resolve(suppliedPath).split(path.sep).filter(Boolean).some(forbiddenName)) {

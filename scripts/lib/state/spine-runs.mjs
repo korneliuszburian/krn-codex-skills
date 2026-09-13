@@ -83,7 +83,7 @@ export function capsuleStoreReport(root) {
     if (!isInside(realRoot, resolvedState)) { entries.push({ id: entry.name, link, resolvedDirectory: real, error: { rule: "capsule-outside-repo", detail: resolvedState } }); continue; }
     let text;
     try { text = readFileSync(file, "utf8"); } catch { entries.push({ id: entry.name, link, resolvedDirectory: real, error: { rule: "unreadable-capsule", detail: relativePath } }); continue; }
-    entries.push({ id: entry.name, link, resolvedDirectory: real, state: { relativePath, resolvedPath: resolvedState, text } });
+    entries.push({ id: entry.name, link, resolvedDirectory: real, state: { relativePath, text } });
   }
   return { storeErrors, entries };
 }
