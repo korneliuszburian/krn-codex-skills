@@ -3,8 +3,8 @@ import { GIT_LOG_FORMAT, parseGitLogRecords } from "../support/git-cli.mjs";
 import path from "node:path";
 
 import { runGit } from "../support/git-cli.mjs";
-import { touchedSymbolFiles } from "../contract/symbol-triggers.mjs";
-import { churnHot } from "../contract/churn.mjs";
+import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
+import { churnHot } from "../support/churn.mjs";
 
 const CANDIDATE = /^(npm run |test:|manual:)|[.][a-z0-9]{2,4}$/i;
 

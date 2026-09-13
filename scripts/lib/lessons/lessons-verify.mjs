@@ -82,29 +82,43 @@ export function reanchorLessons({ root, timeout = 120000, runner = runCase, gitI
   const skipped = [];
   if (!fs.existsSync(pageFile)) return { root, updated, skipped, errors: report.errors ?? [] };
   let text = fs.readFileSync(pageFile, "utf8");
+  const dirty = String(gitImpl(root, ["status", "--porcelain"]) ?? "").trim();
+  if (dirty) return { root, updated, skipped: [{ reason: "working tree is dirty; commit before reanchor", blocking: true }], errors: report.errors ?? [] };
   for (const lesson of report.lessons.filter((entry) => !entry.status)) {
     const raw = (lesson.falsifier ?? "").replace(/`/g, "").trim();
     const match = TOKEN.exec(raw);
     if (!match) {
-      skipped.push({ lesson: lesson.lesson, reason: "no parseable falsifier" });
+      skipped.push({ lesson: lesson.lesson, reason: "falsifier is not a token", blocking: false });
       continue;
     }
     const [, file, name, sha] = match;
     if (!contained(root, file)) {
-      skipped.push({ lesson: lesson.lesson, reason: "unsafe or uncontained proof target" });
+      skipped.push({ lesson: lesson.lesson, reason: "unsafe or uncontained proof target", blocking: true });
       continue;
     }
-    const latest = String(gitImpl(root, ["log", "-1", "--format=%h", "--", file]) ?? "").trim().slice(0, 7);
-    if (!latest || latest === sha) continue;
+    const gates = (lesson.resolved ?? []).map((entry) => entry.path).filter(Boolean).filter((gate) => gate !== file);
+    const latest = String(gitImpl(root, ["log", "-1", "--format=%h", `${sha}..HEAD`, "--", file, ...gates]) ?? "").trim().slice(0, 7);
+    if (!latest) continue;
     const outcome = runner({ root, file: path.join(root, file), name, timeout });
     if (!outcome.ok) {
-      skipped.push({ lesson: lesson.lesson, reason: "proof did not re-run green" });
+      skipped.push({ lesson: lesson.lesson, reason: "proof did not re-run green", blocking: true });
       continue;
     }
     const from = `${file}::${name}@${sha}`;
-    if (text.includes(from)) {
-      text = text.replace(from, `${file}::${name}@${latest}`);
+    const lines = text.split("\n");
+    let replaced = false;
+    for (let index = 0; index < lines.length; index += 1) {
+      if (lines[index].startsWith(`| ${lesson.lesson} `) && lines[index].includes(from)) {
+        lines[index] = lines[index].replace(from, `${file}::${name}@${latest}`);
+        replaced = true;
+        break;
+      }
+    }
+    if (replaced) {
+      text = lines.join("\n");
       updated.push({ lesson: lesson.lesson, file, from: sha, to: latest });
+    } else {
+      skipped.push({ lesson: lesson.lesson, reason: "anchor not found in its own row", blocking: true });
     }
   }
   if (updated.length > 0) fs.writeFileSync(pageFile, text);

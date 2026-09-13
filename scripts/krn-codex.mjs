@@ -9,7 +9,7 @@ import { inspectSpineState } from "./lib/state/state-check.mjs";
 import { compileCapsule, resumeBrief } from "./lib/state/state-brief.mjs";
 import { checkSkills, exportSkills } from "./lib/install/skills-export.mjs";
 import { checkLessons, lessonUsage, recallLessons } from "./lib/lessons/lessons.mjs";
-import { churnHot } from "./lib/contract/churn.mjs";
+import { churnHot } from "./lib/support/churn.mjs";
 import { runGit } from "./lib/support/git-cli.mjs";
 import { reanchorLessons, verifyLessons } from "./lib/lessons/lessons-verify.mjs";
 import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
@@ -137,7 +137,11 @@ try {
     } else if (positional[0] === "reanchor") {
       const report = reanchorLessons({ root: options.root });
       print(report, options.json);
-      if (!options.json) for (const entry of report.updated) process.stdout.write(`reanchored ${entry.lesson}: ${entry.file} ${entry.from} -> ${entry.to}\n`);
+      if (!options.json) {
+        for (const entry of report.updated) process.stdout.write(`reanchored ${entry.lesson}: ${entry.file} ${entry.from} -> ${entry.to}\n`);
+        for (const entry of report.skipped ?? []) process.stderr.write(`skipped ${entry.lesson ?? ""}${entry.lesson ? ": " : ""}${entry.reason}\n`);
+      }
+      if ((report.errors ?? []).length > 0 || (report.skipped ?? []).some((entry) => entry.blocking)) process.exitCode = 1;
     } else {
       const report = verifyLessons({ root: options.root, force: true });
       print(report, options.json);

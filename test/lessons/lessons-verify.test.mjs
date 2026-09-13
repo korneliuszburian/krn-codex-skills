@@ -167,3 +167,33 @@ test("reanchor bumps a stale proof anchor after the case re-runs green", () => {
   assert.ok(readFileSync(join(root, "docs", "research", "workflow-lessons.md"), "utf8").includes(`probe@${latest}`));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("reanchor fixes a gate-file staleness and refuses a dirty tree", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-reanchor-gate-"));
+  const run = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  const commit = (message) => {
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"]);
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message]);
+    return run(["rev-parse", "HEAD"]).slice(0, 7);
+  };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "package.json"), JSON.stringify({ scripts: { "test:state": "x" } }));
+  writeFileSync(join(root, "test", "proof.test.mjs"), 'import test from "node:test";\ntest("probe", () => {});\n');
+  writeFileSync(join(root, "test", "gate.test.mjs"), "// gate v1\n");
+  run(["init", "-q"]);
+  const first = commit("one");
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), `| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| A | probe | \`test/gate.test.mjs\` | | \`test/proof.test.mjs::probe@${first}\` | | |\n`);
+  commit("two");
+  writeFileSync(join(root, "test", "gate.test.mjs"), "// gate v2\n");
+  const latest = commit("three");
+  const report = reanchorLessons({ root });
+  assert.equal(report.updated.length, 1, JSON.stringify(report));
+  assert.equal(report.updated[0].to, latest);
+
+  writeFileSync(join(root, "test", "gate.test.mjs"), "// dirty\n");
+  const dirty = reanchorLessons({ root });
+  assert.equal(dirty.updated.length, 0);
+  assert.ok(dirty.skipped.some((entry) => /dirty/.test(entry.reason)), JSON.stringify(dirty.skipped));
+  rmSync(root, { recursive: true, force: true });
+});

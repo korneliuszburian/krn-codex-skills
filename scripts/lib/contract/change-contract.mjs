@@ -7,8 +7,8 @@ import { spawnSync } from "node:child_process";
 
 import { runGit } from "../support/git-cli.mjs";
 import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings } from "../lessons/lessons.mjs";
-import { touchedSymbolFiles } from "./symbol-triggers.mjs";
-import { churnHot } from "./churn.mjs";
+import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
+import { churnHot } from "../support/churn.mjs";
 
 const SURFACE = [
   /^scripts\//,
