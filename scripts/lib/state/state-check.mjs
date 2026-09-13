@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
@@ -13,7 +13,7 @@ import {
 } from "./capsule-abi.mjs";
 import { runGit as git } from "../support/git-cli.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
-import { runDirectoriesDetailed } from "./spine-runs.mjs";
+import { capsuleStoreReport, runDirectoriesDetailed } from "./spine-runs.mjs";
 import { isInside } from "../support/path-rules.mjs";
 import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
@@ -42,9 +42,6 @@ function fixedPointErrors(root, fixedPoint, canCheckCommits) {
 
 export function inspectSpineState({ repo = process.cwd() } = {}) {
   const { root, hasGit } = resolveRepositoryRoot(repo, { label: "state check" });
-  let realRoot;
-  try { realRoot = realpathSync(root); } catch { realRoot = root; }
-
   const errors = [];
   const warnings = [];
   const capsules = [];
@@ -54,91 +51,33 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   const gitRepo = hasGit ? git(root, ["rev-parse", "--is-inside-work-tree"]) : { ok: false, out: "" };
   const usableGit = gitRepo.ok && gitRepo.out === "true";
 
-  const capsuleBase = join(root, ".krn", "runs", "delivery-loop");
-  let candidates = [];
-  let storePresent;
-  try { storePresent = lstatSync(capsuleBase, { throwIfNoEntry: false }); } catch { errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop could not be listed" }); }
-  if (storePresent) {
-    let storeTarget;
-    let storeError = false;
-    try { storeTarget = statSync(capsuleBase, { throwIfNoEntry: false }); } catch { storeError = true; }
-    if (storeError) {
-      errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop could not be listed" });
-    } else if (!storeTarget) {
-      errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop is a broken symlink" });
-    } else if (!storeTarget.isDirectory()) {
-      errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop is not a directory" });
-    } else {
-      try {
-        candidates = readdirSync(capsuleBase, { withFileTypes: true }).sort(
-          (left, right) =>
-            Number(left.isSymbolicLink()) - Number(right.isSymbolicLink()) ||
-            left.name.localeCompare(right.name),
-        );
-      } catch {
-        errors.push({ id: "runs", rule: "unreadable-capsule-store", detail: ".krn/runs/delivery-loop could not be listed" });
-      }
-    }
-  }
+  const { storeErrors, entries } = capsuleStoreReport(root);
+  for (const error of storeErrors) errors.push({ id: "runs", rule: error.rule, detail: error.detail });
+  const candidates = [...entries]
+    .map((entry) => ({ ...entry, name: entry.id, relativePath: entry.state?.relativePath, text: entry.state?.text }))
+    .sort(
+      (left, right) =>
+        Number(Boolean(left.link)) - Number(Boolean(right.link)) || left.name.localeCompare(right.name),
+    );
 
   const currentHead = usableGit ? git(root, ["rev-parse", "HEAD"]) : { ok: false, out: "" };
   const seenDirectories = new Set();
 
   for (const entry of candidates) {
-    const entryPath = join(capsuleBase, entry.name);
-    let resolvedDirectory;
-    try {
-      resolvedDirectory = realpathSync(entryPath);
-    } catch {
+    if (entry.kind === "resolve") {
       errors.push({ id: entry.name, rule: "unreadable-capsule", detail: `${entry.name} cannot be resolved` });
       continue;
     }
-    let directoryStat;
-    try {
-      directoryStat = statSync(resolvedDirectory);
-    } catch {
+    if (entry.resolvedDirectory !== undefined) {
+      if (seenDirectories.has(entry.resolvedDirectory)) continue;
+      seenDirectories.add(entry.resolvedDirectory);
+    }
+    if (entry.error) {
+      errors.push({ id: entry.name, rule: entry.error.rule, detail: entry.error.detail });
       continue;
     }
-    if (!directoryStat.isDirectory()) continue;
-    if (seenDirectories.has(resolvedDirectory)) continue;
-    seenDirectories.add(resolvedDirectory);
-    if (!isInside(realRoot, resolvedDirectory)) {
-      errors.push({ id: entry.name, rule: "capsule-outside-repo", detail: resolvedDirectory });
-      continue;
-    }
-    const file = join(entryPath, "state.md");
-    const relativePath = join(".krn", "runs", "delivery-loop", entry.name, "state.md");
-    let linkPresent;
-    try { linkPresent = lstatSync(file, { throwIfNoEntry: false }); } catch { errors.push({ id: entry.name, rule: "unreadable-capsule", detail: relativePath }); continue; }
-    if (!linkPresent) continue;
-    let fileStat;
-    try { fileStat = statSync(file, { throwIfNoEntry: false }); } catch { errors.push({ id: entry.name, rule: "unreadable-capsule", detail: relativePath }); continue; }
-    if (!fileStat) {
-      errors.push({ id: entry.name, rule: "unreadable-capsule", detail: `${relativePath} is a broken symlink` });
-      continue;
-    }
-    if (!fileStat.isFile()) {
-      errors.push({ id: entry.name, rule: "unreadable-capsule", detail: `${relativePath} is not a regular file` });
-      continue;
-    }
-    let resolvedState;
-    try {
-      resolvedState = realpathSync(file);
-    } catch {
-      errors.push({ id: entry.name, rule: "unreadable-capsule", detail: relativePath });
-      continue;
-    }
-    if (!isInside(realRoot, resolvedState)) {
-      errors.push({ id: entry.name, rule: "capsule-outside-repo", detail: resolvedState });
-      continue;
-    }
-    let text;
-    try {
-      text = readFileSync(file, "utf8");
-    } catch {
-      errors.push({ id: entry.name, rule: "unreadable-capsule", detail: relativePath });
-      continue;
-    }
+    const relativePath = entry.relativePath;
+    const text = entry.text;
     capsules.push({ id: entry.name, path: relativePath });
 
     if (hasGit && !usableGit) {
