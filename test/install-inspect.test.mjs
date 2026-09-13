@@ -100,3 +100,19 @@ test("inspectInstall reports filesystem_installed after a real apply", () => {
     assert.ok(report.targets.every((target) => target.status === "filesystem_installed"));
   });
 });
+
+test("a legacy global hook path blocks apply and is surfaced by inspect", () => {
+  withHome(({ base, home }) => {
+    const source = cleanSource(base);
+    applyInstall(createInstallPlan({ source, cwd: source, codexHome: home }));
+    fs.mkdirSync(join(home, "hooks"), { recursive: true });
+    writeFileSync(join(home, "hooks", "rtk_pretooluse.py"), "legacy\n");
+    const report = inspectInstall({ codexHome: home });
+    assert.equal(report.filesystem.status, "legacy_hook_conflict");
+    assert.ok(report.legacyHooks.some((target) => target.endsWith("hooks/rtk_pretooluse.py")));
+    assert.throws(
+      () => applyInstall(createInstallPlan({ source, cwd: source, codexHome: home })),
+      /legacy global hook path/,
+    );
+  });
+});

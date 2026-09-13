@@ -301,3 +301,27 @@ test("check reports drift in any exported file and a harness_skills mismatch", (
 
   fs.rmSync(f.base, { recursive: true, force: true });
 });
+
+test("check fails when the exported upstream set disagrees with the pinned harness_paths", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.source });
+  const lockPath = path.join(f.source, "config", "upstream-sources.json");
+  const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+  lock.sources[0].harness_paths = ["skills/eng/one/SKILL.md", "skills/eng/two/SKILL.md"];
+  fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+  const check = checkSkills({ root: f.source });
+  assert.ok(check.errors.some((e) => e.includes("pinned harness_paths")), JSON.stringify(check.errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
+test("check warns when the export marker records a dirty source", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  const markerPath = path.join(f.root, ".agents", "skills", ".krn-export.json");
+  const marker = JSON.parse(fs.readFileSync(markerPath, "utf8"));
+  marker.krn.dirty = true;
+  fs.writeFileSync(markerPath, `${JSON.stringify(marker, null, 2)}\n`);
+  const check = checkSkills({ root: f.root });
+  assert.ok(check.warnings.some((w) => w.includes("dirty source")), JSON.stringify(check.warnings));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});

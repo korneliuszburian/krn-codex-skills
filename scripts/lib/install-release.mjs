@@ -204,6 +204,12 @@ function managedTargets(plan) {
   return targets;
 }
 
+function legacyHookTargets(codexHome, manifest) {
+  return (manifest?.legacy_global_hook_paths ?? [])
+    .map((relative) => path.join(codexHome, relative))
+    .filter((target) => fs.lstatSync(target, { throwIfNoEntry: false }));
+}
+
 function resolvedLink(target) {
   if (!fs.lstatSync(target, { throwIfNoEntry: false })?.isSymbolicLink()) return null;
   return resolvedPath(target);
@@ -262,6 +268,9 @@ function preflightTargets(plan) {
   const override = path.join(path.dirname(plan.releaseRoot), "AGENTS.override.md");
   if (fs.lstatSync(override, { throwIfNoEntry: false })) {
     fail(`refusing masked global instructions: ${override}`, EXIT_COLLISION);
+  }
+  for (const legacy of legacyHookTargets(path.dirname(plan.releaseRoot), plan.manifest)) {
+    fail(`refusing legacy global hook path: ${legacy}`, EXIT_COLLISION);
   }
   for (const item of managedTargets(plan)) {
     const stat = fs.lstatSync(item.target, { throwIfNoEntry: false });
@@ -418,13 +427,17 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   const manifest = readJson(path.join(currentTarget, "skills", "manifest.json"));
   const plan = { releaseRoot, current, manifest, source: "", release: currentTarget };
   const targets = managedTargets(plan).map((item) => itemStatus(plan, item));
+  const legacyHooks = legacyHookTargets(path.dirname(releaseRoot), manifest);
   const bad = targets.find((item) => item.status !== "filesystem_installed");
   return {
     ...base,
     commit: metadata.commit,
+    legacyHooks,
     filesystem: overridePresent
       ? { status: "masked_by_override", detail: override }
-      : { status: bad ? bad.status : "filesystem_installed" },
+      : legacyHooks.length > 0
+        ? { status: "legacy_hook_conflict", detail: legacyHooks.join(", ") }
+        : { status: bad ? bad.status : "filesystem_installed" },
     targets,
   };
 }

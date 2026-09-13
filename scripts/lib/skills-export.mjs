@@ -275,10 +275,26 @@ export function checkSkills({ root }) {
       errors.push(`exported krn skills [${krnExported.join(", ")}] must equal manifest.harness_skills [${expected.join(", ")}]; run \`krn-codex skills export\``);
     }
   }
+  const lockFile = path.join(root, "config", "upstream-sources.json");
+  const lock = fs.existsSync(lockFile) ? readJson(lockFile) : null;
+  if (lock) {
+    const upstreamExpected = [...new Set(
+      (lock.sources ?? []).flatMap((source) =>
+        (source.harness_paths ?? source.required_paths ?? []).map((requiredPath) => path.basename(path.dirname(requiredPath))),
+      ),
+    )].sort();
+    const upstreamExported = names.filter((name) => !sourceByName.has(name)).sort();
+    if (JSON.stringify(upstreamExported) !== JSON.stringify(upstreamExpected)) {
+      errors.push(`exported upstream skills [${upstreamExported.join(", ")}] must equal the pinned harness_paths [${upstreamExpected.join(", ")}]; run \`krn-codex skills export\``);
+    }
+  }
   const catalogFile = path.join(skillsDir, "README.md");
   const catalog = fs.existsSync(catalogFile) ? fs.readFileSync(catalogFile, "utf8") : "";
   if (!catalog) errors.push(".agents/skills/README.md is missing");
   if (marker) {
+    if (marker.krn?.dirty) {
+      warnings.push(".agents/skills was exported from a dirty source; re-export from a clean checkout for a reproducible release");
+    }
     for (const pin of [marker.krn?.commit, marker.upstream?.commit]) {
       if (!pin || !catalog.includes(pin)) errors.push(`.agents/skills/README.md is missing provenance pin ${pin ?? "?"}`);
     }
