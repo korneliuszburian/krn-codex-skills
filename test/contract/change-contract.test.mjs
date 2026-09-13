@@ -829,6 +829,32 @@ test("a recalled lesson with a testable gate must be exercised by the change", (
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a recalled lesson's test declared as a non-green obligation does not count as exercised", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "test"), { recursive: true });
+  writeFileSync(join(root, "test", "gate.test.mjs"), "// probe\n");
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Guards | probe | `test/gate.test.mjs` | | | path:scripts/lib/support/git-cli.mjs |\n",
+  );
+  const gitFor = (body) => (_root, args) => {
+    if (args[0] === "log") return { ok: true, out: `a1\u001ffic: use\u001f${body}` };
+    if (args[0] === "show") {
+      const last = args[args.length - 1];
+      if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x", "test:lib": "x" } }) };
+      if (last.includes(":")) return { ok: true, out: "export const x = 1;\n" };
+      return { ok: true, out: "scripts/lib/support/git-cli.mjs" };
+    }
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    if (args[0] === "rev-list") return { ok: true, out: "0" };
+    return { ok: false, out: "" };
+  };
+  const body = "Change-contract: test:lessons:red->green, test/gate.test.mjs:green->red\nRecall: test/gate.test.mjs => scripts/lib/support/git-cli.mjs";
+  const report = checkChangeContract({ root, base: "base", git: gitFor(body), run: green, strictRecall: true });
+  assert.ok(report.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a recalled lesson whose gate is a command still requires its test at-risk", () => {
   const root = makeRoot();
   mkdirSync(join(root, "test"), { recursive: true });
