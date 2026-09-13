@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { git } from "../support/git-fixture.mjs";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -271,5 +271,16 @@ test("resume preserves every cleanup obligation field", () => {
   assert.equal(entry.trigger, "closes");
   assert.equal(entry.state, "ACTIVE");
   assert.match(report.text, /alice/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an unreadable inventory is reported once with a relative detail", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, `HEAD=${head}`);
+  symlinkSync(join(root, ".krn", "runs", "missing-target"), join(root, ".krn", "runs", "slice-work"));
+  const report = compileCapsule({ repo: root });
+  const inventory = report.errors.filter((error) => error.rule === "unreadable-run-inventory");
+  assert.equal(inventory.length, 1, JSON.stringify(report.errors));
+  assert.ok(!inventory[0].detail.includes(root), inventory[0].detail);
   rmSync(root, { recursive: true, force: true });
 });

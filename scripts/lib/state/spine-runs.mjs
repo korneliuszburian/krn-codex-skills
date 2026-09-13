@@ -19,7 +19,7 @@ export function runDirectoriesDetailed(root) {
     try {
       entries = readdirSync(workflowPath, { withFileTypes: true });
     } catch {
-      errors.push(`${workflowPath} could not be listed`);
+      errors.push(`${join(".krn", "runs", workflow.name)} could not be listed`);
       continue;
     }
     for (const run of entries.sort((a, b) => a.name.localeCompare(b.name))) {

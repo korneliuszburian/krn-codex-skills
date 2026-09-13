@@ -136,7 +136,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     const fields = Object.fromEntries(ABI_LABELS.map((label) => [label, fieldLine(text, label)]));
     for (const [label, value] of Object.entries(fields)) {
       if (value === null || stripMarkup(value) === "") errors.push({ id: entry.name, rule: "missing-field", detail: label });
-      else if (/<fill:/.test(value)) errors.push({ id: entry.name, rule: "unresolved-placeholder", detail: label });
+      else if (/<fill\b/.test(value)) errors.push({ id: entry.name, rule: "unresolved-placeholder", detail: label });
     }
     for (const label of ABI_LABELS) {
       const occurrences = text.split("\n").filter((line) => line.trimStart().startsWith(`${label}:`)).length;
@@ -194,11 +194,13 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       }
       for (const parsedEntry of parsed.entries) {
         const normalizedPointer = normalizeRunPointer(root, parsedEntry.pointer);
-        const owner = runOwners.get(normalizedPointer);
+        let ownerKey = normalizedPointer;
+        try { ownerKey = realpathSync(resolve(root, parsedEntry.pointer)); } catch { /* keep normalized */ }
+        const owner = runOwners.get(ownerKey);
         if (owner && owner !== entry.name) {
           errors.push({ id: entry.name, rule: "duplicate-run-consumer", detail: `${parsedEntry.pointer} already owned by ${owner}` });
         } else {
-          runOwners.set(normalizedPointer, entry.name);
+          runOwners.set(ownerKey, entry.name);
         }
         listedRunPointers.add(normalizedPointer);
         if (!isInside(root, parsedEntry.pointer)) {

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { gitAvailable, gitText, runGit } from "../../scripts/lib/support/git-cli.mjs";
+import { GIT_LOG_FORMAT, gitAvailable, gitText, parseGitLogRecords, runGit } from "../../scripts/lib/support/git-cli.mjs";
 
 test("gitAvailable detects a usable git", () => {
   assert.equal(gitAvailable(), true);
@@ -56,4 +56,10 @@ test("runGit keeps large output instead of silently truncating", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("parseGitLogRecords splits the NUL-safe log format", () => {
+  assert.equal(GIT_LOG_FORMAT.includes("%H%x1f%s%x1f%b%x1e"), true);
+  assert.deepEqual(parseGitLogRecords("abc\u001fsubject\u001fbody\u001e"), [{ sha: "abc", subject: "subject", body: "body" }]);
+  assert.deepEqual(parseGitLogRecords(""), []);
 });

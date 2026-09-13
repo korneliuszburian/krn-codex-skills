@@ -33,3 +33,16 @@ export function gitAvailable() {
     return false;
   }
 }
+
+export const GIT_LOG_FORMAT = "--format=%H%x1f%s%x1f%b%x1e";
+
+export function parseGitLogRecords(output) {
+  return String(output ?? "")
+    .split("\u001e")
+    .map((record) => record.trim())
+    .filter(Boolean)
+    .map((record) => {
+      const [sha, subject, body] = record.split("\u001f");
+      return { sha, subject: subject ?? "", body: body ?? "" };
+    });
+}

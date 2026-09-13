@@ -44,7 +44,7 @@ export function compileCapsule({ repo = process.cwd() } = {}) {
   const branch = usableGit ? git(root, ["rev-parse", "--abbrev-ref", "HEAD"]) : { ok: false, out: "" };
   const dirty = usableGit ? porcelain(root) : null;
   const { runs, errors: inventoryErrors } = runDirectoriesDetailed(root);
-  for (const detail of inventoryErrors) errors.push({ rule: "inventory-unreadable", detail });
+  for (const detail of inventoryErrors) if (!errors.some((error) => error.rule === "unreadable-run-inventory" && error.detail === detail)) errors.push({ rule: "unreadable-run-inventory", detail });
   const capsules = capsuleIds(root);
   const runsIgnored = usableGit ? git(root, ["check-ignore", "-q", join(".krn", "runs", ".krn-probe")]).ok : false;
 
@@ -119,7 +119,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
   const liveDirty = porcelain(report.root);
   if (liveDirty === null) errors.push({ rule: "dirty-state-unavailable", detail: "git status failed; the live dirty scope is unknown, not clean" });
   const { runs: liveRunList, errors: liveRunErrors } = runDirectoriesDetailed(report.root);
-  for (const detail of liveRunErrors) errors.push({ rule: "inventory-unreadable", detail });
+  for (const detail of liveRunErrors) if (!errors.some((error) => error.rule === "unreadable-run-inventory" && error.detail === detail)) errors.push({ rule: "unreadable-run-inventory", detail });
   const liveRuns = new Set(liveRunList.map((run) => run.pointer));
   const briefs = [];
 

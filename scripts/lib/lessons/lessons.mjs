@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { GIT_LOG_FORMAT, parseGitLogRecords } from "../support/git-cli.mjs";
 import path from "node:path";
 
 import { runGit } from "../support/git-cli.mjs";
@@ -318,17 +319,10 @@ function recallUsage(root, git, rows) {
   const active = rows.filter((row) => !row.status && (row.trigger ?? "").trim());
   const counts = new Map();
   if (active.length === 0 || !git(root, ["rev-parse", "--git-dir"]).ok) return counts;
-  const log = git(root, ["log", "--format=%H%x1f%s%x1f%b%x1e"]);
+  const log = git(root, ["log", GIT_LOG_FORMAT]);
   if (!log.ok) return counts;
   const churnEnabled = rows.some((row) => (row.trigger ?? "").includes("churn:"));
-  const records = log.out
-    .split("\u001e")
-    .map((record) => record.trim())
-    .filter(Boolean)
-    .map((record) => {
-      const [sha, subject, body] = record.split("\u001f");
-      return { sha, text: `${subject ?? ""}\n${body ?? ""}` };
-    });
+  const records = parseGitLogRecords(log.out).map((record) => ({ sha: record.sha, text: `${record.subject}\n${record.body}` }));
   for (const record of records) {
     const lines = recallLines(record.text);
     if (lines.length === 0) continue;

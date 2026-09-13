@@ -424,3 +424,23 @@ test("an unreadable run inventory is an error, not an empty inventory", () => {
   assert.ok(report.errors.some((error) => error.rule === "unreadable-run-inventory"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a bare <fill> Authority placeholder is rejected", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}` }).replace("Authority: writes=none", "Authority: writes=<fill>"));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "unresolved-placeholder"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a symlink alias cannot bypass duplicate-run ownership", () => {
+  const { root, head } = makeRepo();
+  const cleanup = ".krn/runs/slice-work/one; slice-work; x; closes; ACTIVE";
+  mkdirSync(join(root, ".krn", "runs", "slice-work", "one"), { recursive: true });
+  symlinkSync(join(root, ".krn", "runs", "slice-work"), join(root, ".krn", "runs", "slice-link"));
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}`, cleanup: `[${cleanup}]` }), "out-1");
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}`, cleanup: "[.krn/runs/slice-link/one; slice-work; y; closes; ACTIVE]" }), "out-2");
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "duplicate-run-consumer"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

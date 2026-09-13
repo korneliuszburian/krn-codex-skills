@@ -36,7 +36,7 @@ test("compile, check, and resume compose into one usable restart path", () => {
   assert.equal(compiled.status, 0, compiled.stderr);
   const dir = join(root, ".krn", "runs", "delivery-loop", "composed");
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "state.md"), compiled.stdout.replace(/<fill:[^>]*>/g, "done"));
+  writeFileSync(join(dir, "state.md"), compiled.stdout.replace(/<fill[^>]*>/g, "done"));
   mkdirSync(join(root, "docs", "research"), { recursive: true });
   writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by |\n|---|---|---|\n| Compose the restart path. | composition probe | this test |\n");
 

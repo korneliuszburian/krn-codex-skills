@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { GIT_LOG_FORMAT, parseGitLogRecords } from "../support/git-cli.mjs";
 import { tapName } from "../support/tap.mjs";
 import os from "node:os";
 import path from "node:path";
@@ -334,16 +335,9 @@ function outputTail(output) {
 export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = false } = {}) {
   const errors = [];
   const warnings = [];
-  const log = git(root, ["log", "--format=%H%x1f%s%x1f%b%x1e", `${base}..${head}`]);
+  const log = git(root, ["log", GIT_LOG_FORMAT, `${base}..${head}`]);
   if (!log.ok) return { root, commits: [], results: [], errors: [{ rule: "unreadable-range", detail: `${base}..${head}` }] };
-  const commits = log.out
-    .split("\u001e")
-    .map((record) => record.trim())
-    .filter(Boolean)
-    .map((record) => {
-      const [sha, subject, body] = record.split("\u001f");
-      return { sha, subject: subject ?? "", body: body ?? "" };
-    });
+  const commits = parseGitLogRecords(log.out);
   const packageFile = path.join(root, "package.json");
   let scripts = {};
   if (fs.existsSync(packageFile)) {
