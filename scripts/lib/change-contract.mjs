@@ -278,10 +278,11 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   for (const record of targets.values()) {
     const outcome = run({ root, target: record.target });
     const frozen = record.obligations.some((obligation) => obligation.frozenObserver);
-    let baseCache = null;
-    const baseOnce = () => {
-      if (!baseCache) baseCache = baseRunner({ root, base, target: record.target, overlay: frozen ? record.target.name : null });
-      return baseCache;
+    const baseCache = new Map();
+    const baseOnce = (overlay) => {
+      const key = overlay ?? "\u0000";
+      if (!baseCache.has(key)) baseCache.set(key, baseRunner({ root, base, target: record.target, overlay }));
+      return baseCache.get(key);
     };
     for (const obligation of record.obligations) {
       results.push({ ref: obligation.ref, commit: obligation.commit, after: obligation.after, status: outcome.ok ? "green" : "red" });
@@ -295,7 +296,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         });
       }
       if (verifyBefore && obligation.label === "contract" && obligation.before === "red" && obligation.after === "green" && outcome.ok) {
-        const baseRun = baseOnce();
+        const baseRun = baseOnce(frozen ? record.target.name : null);
         const baseOutput = baseRun.outcome?.output ?? "";
         if (baseRun.unavailable || baseRun.outcome?.spawnFailed) {
           errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete; its before-state is unproven" });
@@ -312,7 +313,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
             if (missing.length > 0) {
               errors.push({ rule: "frozen-observer-mismatch", commit: obligation.commit, ref: obligation.ref, detail: `cases failing at base do not pass at head: ${missing.join(", ")}` });
             }
-            const baseObserver = baseRunner({ root, base, target: record.target, overlay: null });
+            const baseObserver = baseOnce(null);
             if (!baseObserver.unavailable && !baseObserver.outcome?.spawnFailed) {
               const baseSummary = tapSummary(baseObserver.outcome.output);
               const baseCases = [...new Set([...baseSummary.passing, ...baseSummary.failing])].filter(Boolean);

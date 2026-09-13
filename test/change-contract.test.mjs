@@ -510,6 +510,24 @@ test("shared obligations execute the base check once", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a shared frozen check executes each overlay once", () => {
+  const root = makeRoot();
+  const git = fakeGit({
+    commits: [
+      { sha: "a1", subject: "fix", body: "Change-contract: test/x.test.mjs:red->green" },
+      { sha: "a2", subject: "fix again", body: "Change-contract: test/x.test.mjs:red->green" },
+    ],
+    files: { a1: ["scripts/lib/x.mjs"], a2: ["scripts/lib/x.mjs"] },
+  });
+  mkdirSync(join(root, "test"), { recursive: true });
+  writeFileSync(join(root, "test", "x.test.mjs"), "// observer\n");
+  let calls = 0;
+  const report = checkChangeContract({ root, base: "base", git, run: () => ({ ok: true, status: 0, output: "ok 1 - x\n# tests 1\n# fail 0\n" }), verifyBefore: true, runAtBase: () => { calls += 1; return { outcome: { ok: false, output: "not ok 1 - x\n# tests 1\n# fail 1\n" } }; } });
+  assert.equal(calls, 2, "one overlay run plus one base-observer run, reused across the shared check");
+  assert.equal(report.errors.length, 0, JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });
