@@ -111,6 +111,21 @@ test("redefining the declared script in the same range is self-authorized", () =
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a declared check with an opaque local launcher is not a literal invocation", () => {
+  const root = makeRoot({ "test:lessons": "x", "test:t": "./scripts/run-tests" });
+  const git = fakeGit({
+    commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test:t:red->green" }],
+    files: { a1: ["scripts/lib/x.mjs"] },
+    baseScripts: { "test:t": "./scripts/run-tests" },
+  });
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
+  assert.ok(
+    report.errors.some((error) => error.rule === "self-authorized-check" && error.detail.includes("not a literal")),
+    JSON.stringify(report.errors),
+  );
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("redefining the declared test file in the same range is self-authorized", () => {
   const root = makeRoot();
   mkdirSync(join(root, "test"), { recursive: true });

@@ -200,8 +200,10 @@ function shimCommand(root, command) {
 }
 
 function scriptNonLiteral(root, command) {
+  const first = command.trim().split(/\s+/)[0] ?? "";
   return /[*?\[]/.test(command)
     || /[$`|;&<>]/.test(command)
+    || (first.includes("/") && first !== "node")
     || /(^|[\s/'"])(?:[^\s/]*\/)*(?:sh|bash|zsh|dash|ash|ksh|busybox)\b[^\n]*?\s-[a-z]*c[a-z]*(\s|$)/.test(command)
     || /\b(?:npm|pnpm|yarn|bun)\s+(?:(?:-{1,2}\S+)(?:\s+\S+)?\s+)*(?:run|exec|test|start|dlx|x)\b/.test(command)
     || /(^|\s)node(?:\s+-{1,2}\S+)*\s+--run(\s|$)/.test(command)
