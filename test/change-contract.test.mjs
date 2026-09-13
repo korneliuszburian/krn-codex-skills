@@ -413,6 +413,49 @@ test("runCheckAtBase executes the declared check in a base worktree", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a newly authored observer is admitted only when it is red at base and green at head", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-frozen-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "test", "o.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("value is two", () => assert.equal(value, 2));\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 2;\n");
+  commit("fix\n\nChange-contract: test/o.test.mjs:red->green");
+  const admitted = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+  assert.deepEqual(admitted.errors, [], JSON.stringify(admitted.errors));
+  assert.ok(admitted.results.some((result) => result.phase === "base" && result.status === "red"), JSON.stringify(admitted.results));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a frozen observer that is green at base or fails to load is rejected", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-frozen2-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "test", "green.test.mjs"), 'import test from "node:test";\ntest("always", () => {});\n');
+  writeFileSync(join(root, "lib.mjs"), "export const value = 2;\n");
+  commit("green observer\n\nChange-contract: test/green.test.mjs:red->green");
+  const green = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+  assert.ok(green.errors.some((error) => error.rule === "before-state-not-red"), JSON.stringify(green.errors));
+  const base2 = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "test", "broken.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { x } from "../missing.mjs";\ntest("x", () => assert.equal(x, 1));\n');
+  writeFileSync(join(root, "missing.mjs"), "export const x = 1;\n");
+  commit("broken observer\n\nChange-contract: test/broken.test.mjs:red->green");
+  const broken = checkChangeContract({ root, base: base2, head: "HEAD", verifyBefore: true });
+  assert.ok(broken.errors.some((error) => error.rule === "before-state-unverified"), JSON.stringify(broken.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a surface commit without a contract fails closed", () => {
   const root = makeRoot();
   const git = fakeGit({ commits: [{ sha: "a1", subject: "fix: gate" }], files: { a1: ["scripts/lib/lessons.mjs"] } });

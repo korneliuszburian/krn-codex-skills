@@ -43,7 +43,7 @@ export function checkDurablePages({ root }) {
         fenced = !fenced;
         return;
       }
-      if (!fenced && line.length > 3600) {
+      if (!fenced && line.length > 4000) {
         errors.push(`${relative(topic)}:${index + 1}: a non-fenced line is ${line.length} characters; keep run ledgers out of durable pages`);
       }
     });

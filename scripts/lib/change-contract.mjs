@@ -74,7 +74,7 @@ function runCheck({ root, target }) {
   delete env.NODE_TEST_CONTEXT;
   const result = target.kind === "script"
     ? spawnSync("npm", ["run", target.name], { cwd: root, timeout: 600000, encoding: "utf8", env })
-    : spawnSync(process.execPath, target.kind === "test" ? ["--test", target.name] : [target.name], { cwd: root, timeout: 600000, encoding: "utf8", env });
+    : spawnSync(process.execPath, target.kind === "test" ? ["--test", "--test-reporter=tap", target.name] : [target.name], { cwd: root, timeout: 600000, encoding: "utf8", env });
   const spawnFailed = result.error !== undefined && result.error !== null || result.status === null;
   return { ok: result.status === 0, status: result.status, spawnFailed, output: `${result.stdout ?? ""}${result.stderr ?? ""}` };
 }
@@ -110,7 +110,23 @@ function scriptRedefinition(root, base, git, command) {
   return "clean";
 }
 
-export function runCheckAtBase({ root, base, target, git = runGit }) {
+function tapSummary(output) {
+  const text = output ?? "";
+  const tests = Number((/^# tests (\d+)\s*$/m.exec(text)?.[1] ?? "0"));
+  const fail = Number((/^#\s*fail[^0-9]*(\d+)\s*$/m.exec(text)?.[1] ?? "0"));
+  const passing = [...text.matchAll(/^\s*ok \d+ - (.+?)\s*$/gm)].map((match) => match[1].trim());
+  const failing = [...text.matchAll(/^\s*not ok \d+ - (.+?)\s*$/gm)].map((match) => match[1].trim()).filter((name) => !/\.(mjs|js|cjs|ts)$/.test(name));
+  const setup = /ERR_MODULE_NOT_FOUND|SyntaxError|Cannot find module|Could not find|MODULE_NOT_FOUND/.test(text);
+  return { tests, fail, passing, failing, setup };
+}
+
+function frozenRedOk(output) {
+  const summary = tapSummary(output);
+  return summary.tests >= 1 && summary.fail >= 1 && summary.failing.length >= 1 && !summary.setup;
+}
+
+
+export function runCheckAtBase({ root, base, target, git = runGit, overlay = null }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "krn-base-"));
   const added = git(root, ["worktree", "add", "--detach", dir, base]);
   if (!added.ok) {
@@ -118,6 +134,13 @@ export function runCheckAtBase({ root, base, target, git = runGit }) {
     return { unavailable: true };
   }
   try {
+    if (overlay) {
+      const from = path.join(root, overlay);
+      const to = path.join(dir, overlay);
+      if (!fs.existsSync(from)) return { unavailable: true };
+      fs.mkdirSync(path.dirname(to), { recursive: true });
+      fs.copyFileSync(from, to);
+    }
     return { outcome: runCheck({ root: dir, target }) };
   } finally {
     git(root, ["worktree", "remove", "--force", dir]);
@@ -220,18 +243,21 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       const authoredNow = target.kind === "script"
         ? (baseScripts !== null ? !Object.hasOwn(baseScripts, target.name) : git(root, ["rev-parse", "--git-dir"]).ok)
         : !git(root, ["cat-file", "-e", `${base}:${target.name}`]).ok;
-      if (authoredNow) {
-        errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail: "the check did not exist before this range" });
-        return;
-      }
       const commandChanged = target.kind === "script"
         && baseScripts !== null && Object.hasOwn(baseScripts, target.name) && baseScripts[target.name] !== scripts[target.name];
       const scriptState = target.kind === "script" ? scriptRedefinition(root, base, git, scripts[target.name] ?? "") : null;
       const redefined = target.kind === "script" ? commandChanged || scriptState !== "clean" : checkFileRedefined(root, base, git, target.name);
-      if (redefined) {
-        const detail = scriptState === "non-literal" && !commandChanged ? "the declared check is not a literal invocation" : "the check was redefined in this range";
-        errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail });
-        return;
+      const frozenObserver = verifyBefore && target.kind === "test" && (authoredNow || redefined);
+      if (!frozenObserver) {
+        if (authoredNow) {
+          errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail: "the check did not exist before this range" });
+          return;
+        }
+        if (redefined) {
+          const detail = scriptState === "non-literal" && !commandChanged ? "the declared check is not a literal invocation" : "the check was redefined in this range";
+          errors.push({ rule: "self-authorized-check", commit: commit.sha, ref: entry.ref, detail });
+          return;
+        }
       }
       const key = `${target.kind}:${target.name}`;
       const record = targets.get(key) ?? { target, obligations: [] };
@@ -241,7 +267,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         errors.push({ rule: "conflicting-obligations", commit: commit.sha, ref: entry.ref, detail: `the same check (${key}) is predicted both ${seen.join(" and ")} across the range` });
         return;
       }
-      record.obligations.push({ commit: commit.sha, after, label, before: label === "risk" ? "green" : entry.before, ref: entry.ref });
+      record.obligations.push({ commit: commit.sha, after, label, before: label === "risk" ? "green" : entry.before, ref: entry.ref, frozenObserver });
       targets.set(key, record);
     };
     for (const entry of contract.contracts) admit(entry, "contract");
@@ -263,15 +289,23 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         });
       }
       if (verifyBefore && obligation.label === "contract" && obligation.before === "red" && obligation.after === "green" && outcome.ok) {
-        const baseRun = baseRunner({ root, base, target: record.target });
-        if (baseRun.unavailable) {
-          errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base revision could not be materialized to prove the before-state" });
-        } else if (baseRun.outcome.spawnFailed) {
-          errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete (timeout or spawn failure), so its before-state is unproven" });
+        const baseRun = baseRunner({ root, base, target: record.target, overlay: obligation.frozenObserver ? record.target.name : null });
+        const baseOutput = baseRun.outcome?.output ?? "";
+        if (baseRun.unavailable || baseRun.outcome?.spawnFailed) {
+          errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete; its before-state is unproven" });
+        } else if (obligation.frozenObserver && !frozenRedOk(baseOutput) && tapSummary(baseOutput).setup) {
+          errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the frozen observer failed to load at base (setup error), so red is unproven" });
         } else {
-          results.push({ ref: obligation.ref, commit: obligation.commit, phase: "base", after: "red", status: baseRun.outcome.ok ? "green" : "red" });
-          if (baseRun.outcome.ok) {
+          const red = obligation.frozenObserver ? frozenRedOk(baseOutput) : !baseRun.outcome.ok;
+          results.push({ ref: obligation.ref, commit: obligation.commit, phase: "base", after: "red", status: red ? "red" : "green" });
+          if (!red) {
             errors.push({ rule: "before-state-not-red", commit: obligation.commit, ref: obligation.ref, detail: "the check already passed at base; the declared red->green is not a real flip" });
+          } else if (obligation.frozenObserver) {
+            const headPass = new Set(tapSummary(outcome.output).passing);
+            const missing = tapSummary(baseOutput).failing.filter((name) => !headPass.has(name));
+            if (missing.length > 0) {
+              errors.push({ rule: "frozen-observer-mismatch", commit: obligation.commit, ref: obligation.ref, detail: `cases failing at base do not pass at head: ${missing.join(", ")}` });
+            }
           }
         }
       }

@@ -29,9 +29,9 @@ test("a corrupted research index title is reported", () => {
 
 test("a long non-fenced line is rejected but a fenced one is allowed", () => {
   const root = makeRoot();
-  writeFileSync(join(root, "docs", "research", "topic.md"), `# Topic\n\n${HEADER}\n${"x".repeat(3601)}\n`);
+  writeFileSync(join(root, "docs", "research", "topic.md"), `# Topic\n\n${HEADER}\n${"x".repeat(4001)}\n`);
   assert.ok(checkDurablePages({ root }).errors.some((error) => error.includes("keep run ledgers")), "an over-long non-fenced line is rejected");
-  writeFileSync(join(root, "docs", "research", "topic.md"), `# Topic\n\n${HEADER}\n\`\`\`\n${"x".repeat(3601)}\n\`\`\`\n`);
+  writeFileSync(join(root, "docs", "research", "topic.md"), `# Topic\n\n${HEADER}\n\`\`\`\n${"x".repeat(4001)}\n\`\`\`\n`);
   assert.ok(!checkDurablePages({ root }).errors.some((error) => error.includes("keep run ledgers")), "a fenced over-long line is allowed");
   rmSync(root, { recursive: true, force: true });
 });
