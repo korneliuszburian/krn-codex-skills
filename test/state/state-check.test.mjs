@@ -8,6 +8,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { inspectSpineState } from "../../scripts/lib/state/state-check.mjs";
+import { capsuleIdsDetailed } from "../../scripts/lib/state/spine-runs.mjs";
 
 const git = (root, args) => runGit(root, args).out;
 
@@ -173,8 +174,22 @@ test("a symlinked capsule directory outside the repo is rejected", () => {
   symlinkSync(outside, join(root, ".krn", "runs", "delivery-loop", "linked"));
   const report = inspectSpineState({ repo: root });
   assert.ok(rules(report).includes("capsule-outside-repo"), rules(report).join(","));
+  const compile = capsuleIdsDetailed(root);
+  assert.ok(compile.errors.some((error) => error.rule === "capsule-outside-repo"), JSON.stringify(compile.errors));
+  assert.ok(!compile.ids.includes("linked"), JSON.stringify(compile.ids));
   rmSync(root, { recursive: true, force: true });
   rmSync(outside, { recursive: true, force: true });
+});
+
+test("capsule discovery converges on a symlink loop instead of silently skipping it", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "delivery-loop"), { recursive: true });
+  symlinkSync("loop", join(root, ".krn", "runs", "delivery-loop", "loop"));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("unreadable-capsule"), rules(report).join(","));
+  const compile = capsuleIdsDetailed(root);
+  assert.ok(compile.errors.some((error) => error.rule === "unreadable-capsule"), JSON.stringify(compile.errors));
+  rmSync(root, { recursive: true, force: true });
 });
 
 test("an unignored capsule fails before capsule trust", () => {

@@ -83,9 +83,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     try {
       resolvedDirectory = realpathSync(entryPath);
     } catch {
-      if (existsSync(join(entryPath, "state.md"))) {
-        errors.push({ id: entry.name, rule: "unreadable-capsule", detail: `${entry.name} cannot be resolved` });
-      }
+      errors.push({ id: entry.name, rule: "unreadable-capsule", detail: `${entry.name} cannot be resolved` });
       continue;
     }
     let directoryStat;

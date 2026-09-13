@@ -1,6 +1,8 @@
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+import { isInside } from "../support/path-rules.mjs";
+
 export function runDirectoriesDetailed(root) {
   const runsBase = join(root, ".krn", "runs");
   if (!existsSync(runsBase)) return { runs: [], errors: [] };
@@ -56,6 +58,9 @@ export function capsuleIdsDetailed(root) {
     if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
     const directory = join(base, entry.name);
     const relativePath = `.krn/runs/delivery-loop/${entry.name}/state.md`;
+    let real;
+    try { real = realpathSync(directory); } catch { errors.push({ rule: "unreadable-capsule", detail: `${relativePath} cannot be resolved` }); continue; }
+    if (!isInside(root, real)) { errors.push({ rule: "capsule-outside-repo", detail: real }); continue; }
     let statePresent;
     try { statePresent = lstatSync(join(directory, "state.md"), { throwIfNoEntry: false }); } catch { errors.push({ rule: "unreadable-capsule", detail: relativePath }); continue; }
     if (!statePresent) continue;
@@ -64,8 +69,6 @@ export function capsuleIdsDetailed(root) {
     if (!stateStat) { errors.push({ rule: "unreadable-capsule", detail: `${relativePath} is a broken symlink` }); continue; }
     if (!stateStat.isFile()) { errors.push({ rule: "unreadable-capsule", detail: `${relativePath} is not a regular file` }); continue; }
     try { readFileSync(join(directory, "state.md")); } catch { errors.push({ rule: "unreadable-capsule", detail: relativePath }); continue; }
-    let real;
-    try { real = realpathSync(directory); } catch { continue; }
     const link = entry.isSymbolicLink();
     const previous = seen.get(real);
     if (!previous || (previous.link && !link)) seen.set(real, { id: entry.name, link });
