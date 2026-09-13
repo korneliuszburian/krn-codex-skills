@@ -37,6 +37,28 @@ are durable.
 
 | LT-5 | The content-vs-enforcement memory effect survives a neutral stratum, repeats, and a third model family. | Registered 2026-09-13. Start with a one-decisive plus one-neutral separation gate (six runs) before scaling to eight frozen tasks in two strata (decisive where a lesson applies implicitly, neutral of equal shape where none does), three arms (A ablation, B content, C forced reconstruction), at least three reps for A as well as B/C to estimate variance and a minimum detectable effect, and a length-matched irrelevant (placebo) row as an arm-B control. A third family (opencode-go/glm-5.3) runs all arms, but it shares a provider/SDK with the decider, so decider independence is a stated non-proof; the single blinded decider sees anonymized, left/right-randomized, trailer-stripped packets. Explicit bwrap binds only, fixture and answer key outside every bind with a committed salted hash manifest for retention, held-out check copied in only after the agent exits, per-run sentinel; host-root exposure is defined as access to `/` or host `$HOME` outside the declared binds. bwrap must be >= 0.12.0 (CVE-2026-87766, GHSA-pxhw-h44j-8pfx: setup-time creation follows a parent symlink onto /oldroot and writes on the host outside every bind); the pre-run assertion must check `bwrap --version` and run a setup-write probe, and the 0.11.2 host is a stated confound. The MDE must come from the paired-binary required-N (McNemar) with a cluster design effect over the 8 tasks and 2 strata; three reps are repeated measures. `/run` exposes only name resolution (a static resolv.conf or the resolved subpath) with a private `/run/user`, and a pre-run probe must show `busctl --user` and `flatpak-spawn --host` fail inside the sandbox. Arm C runs the harness read-only via --root with a git shim that fires only on `unreconstructed-recall` and holds the change-contract obligation constant across B/C, so a C effect is attributable to recall enforcement. A mechanical pre-run assertion requires `memory recall` to return zero hits for every neutral changed path, and arm A's neutral pass rate strictly between 0 and 1. | Held-out pass by arm and stratum, wall time, tokens in/out, delivered context (not nominal budget; arXiv:2608.31057), diff size, decider score, sentinel leak, host-root exposure. | Content is generic priming, not memory: the decisive difference-in-differences over the neutral stratum does not clear the estimated minimum detectable effect (not a fixed 0.25). Enforcement is unattributable if pass(C) beats pass(B) only with material extra cost or if the shim fires on a neutral task. Promotion kill: sentinel leak, declared host-root or answer-key read, held-out reachability during execution, or a neutral path that matches a trigger. | lab-test | Protocol registered and isolation dry-run validated 2026-09-13, no task run yet. Non-proofs: no result; arms and strata are designed but no run has produced evidence, so no mechanism is promoted on this row. The codex lane is not hermetic here (npx/mise wrapper) and is a stated non-proof unless pinned by hash; the decider shares a provider with the third family; and a definitional ablation without a placebo cannot separate content from added context on its own. Dry-run findings: `opencode --version` runs under explicit binds only with `/run` and `/sys` bound (omitting `/run` gives an API connect error), a fresh share dir without an auth seed fails (`UnknownError`), and with those fixed a one-prompt run exited 0 with token usage captured from `events.jsonl` (9,427 in / 2 out) while a `$HOME` canary and `/mnt` stayed invisible. Seed only the auth file into the isolated share, never the whole 31 GB host share. The dry-run ran on bwrap 0.11.2 without the setup-write probe, so it does not evidence isolation on a vulnerable bwrap. |
 
+## LT-5 design additions (2026-09-13)
+
+Registered before any LT-5 run, from a fresh-source review of the measurement
+design:
+
+- The three arms and two strata are a family of contrasts, so report
+  Holm-adjusted significance (or one mixed model with task/stratum random
+  effects) rather than unadjusted pairwise McNemar (arXiv:2607.25589).
+- The blinded decider scores each packet once; report verdict flips and
+  majority aggregation over N=11 repetitions, because single-pass judge
+  verdicts flip within items (arXiv:2606.13685).
+- Build placebo and neutral rows by deterministic perturbation of a held-out
+  gold answer and add a gold-to-negative string-equality oracle, so item
+  integrity is mechanically checkable in addition to the salted hash manifest
+  (arXiv:2607.13707).
+
+Falsifiers: re-run each contrast both ways; if significance is identical under
+unadjusted McNemar and under Holm, the adjustment is unnecessary. Score one
+packet set once and 11 times; if single-pass matches the majority at >=95% and
+the within-item flip rate is <5%, repetition is unnecessary. If every placebo
+item is string-distinguishable from its gold, the oracle changes nothing.
+
 ## Decision
 
 `$source-to-decision` reads this page before promoting a behavioral mechanism.
