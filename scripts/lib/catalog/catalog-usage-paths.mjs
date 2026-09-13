@@ -68,15 +68,18 @@ function isCanonicalSkillPath(candidate) {
 }
 
 export function canonicalSkillEntries(inventory) {
-  const skills = (inventory?.skills ?? []).flatMap(({ id, path: skillPath, targetPath }) => [
-    { id, path: skillPath },
-    ...(isCanonicalSkillPath(targetPath) ? [{ id, path: targetPath }] : []),
-  ]);
+  const skills = (inventory?.skills ?? []).flatMap(({ id, path: skillPath, targetPath }) =>
+    [skillPath, targetPath]
+      .filter(isCanonicalSkillPath)
+      .map((path) => ({ id, path })),
+  );
   const plugins = (inventory?.plugins ?? []).flatMap((plugin) =>
-    (plugin.allSkillPaths || plugin.skillPaths || []).map((skillPath) => ({
-      id: `${plugin.id}:${path.basename(path.dirname(skillPath))}`,
-      path: skillPath,
-    })),
+    (plugin.allSkillPaths || plugin.skillPaths || [])
+      .filter(isCanonicalSkillPath)
+      .map((skillPath) => ({
+        id: `${plugin.id}:${path.basename(path.dirname(skillPath))}`,
+        path: skillPath,
+      })),
   );
   return [...skills, ...plugins];
 }

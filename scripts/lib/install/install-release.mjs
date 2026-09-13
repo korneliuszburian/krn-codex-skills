@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { isInside, isSafeRelativePath as safeRelativePath } from "../support/path-rules.mjs";
 import { readJson } from "../support/read-json.mjs";
-import { parseAssignment, parseDocument, parseDottedHeaderKey, splitHeader } from "../catalog/catalog-toml.mjs";
+import { parseAssignment, parseDocument, parseDottedHeaderKey, parseTomlString, splitHeader } from "../catalog/catalog-toml.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
@@ -474,12 +474,83 @@ function tomlBoolean(value) {
   return null;
 }
 
+function topLevelEquals(part) {
+  let quote = null;
+  for (let index = 0; index < part.length; index += 1) {
+    const char = part[index];
+    if (quote) {
+      if (quote === "\"" && char === "\\") index += 1;
+      else if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "\"" || char === "'") quote = char;
+    else if (char === "=") return index;
+  }
+  return -1;
+}
+
+function splitTopLevel(inner) {
+  const parts = [];
+  let depth = 0;
+  let quote = null;
+  let current = "";
+  for (let index = 0; index < inner.length; index += 1) {
+    const char = inner[index];
+    if (quote) {
+      current += char;
+      if (quote === "\"" && char === "\\") {
+        current += inner[index + 1] ?? "";
+        index += 1;
+      } else if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "\"" || char === "'") { quote = char; current += char; continue; }
+    if (char === "{") depth += 1;
+    else if (char === "}") depth -= 1;
+    if (char === "," && depth === 0) { parts.push(current); current = ""; continue; }
+    current += char;
+  }
+  parts.push(current);
+  return parts;
+}
+
+function inlineTableValue(value) {
+  const raw = String(value ?? "").trimEnd();
+  if (!raw.startsWith("{")) return null;
+  let depth = 0;
+  let quote = null;
+  for (let index = 0; index < raw.length; index += 1) {
+    const char = raw[index];
+    if (quote) {
+      if (quote === "\"" && char === "\\") index += 1;
+      else if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "\"" || char === "'") { quote = char; continue; }
+    if (char === "{") depth += 1;
+    else if (char === "}" && --depth === 0) {
+      const map = new Map();
+      for (const part of splitTopLevel(raw.slice(1, index))) {
+        const eq = topLevelEquals(part);
+        if (eq === -1) continue;
+        const keyToken = part.slice(0, eq).trim();
+        let key = keyToken;
+        if ((keyToken.startsWith("\"") && keyToken.endsWith("\"")) || (keyToken.startsWith("'") && keyToken.endsWith("'"))) {
+          try { key = parseTomlString(keyToken, "requirements.toml inline key"); } catch { key = keyToken.slice(1, -1); }
+        }
+        map.set(key, part.slice(eq + 1).trim());
+      }
+      return map;
+    }
+  }
+  return null;
+}
+
 function featuresHooksDisabled(key, value) {
   if (key === "features.hooks") return tomlBoolean(value) === false;
   if (key === "features") {
-    const raw = String(value ?? "").trimStart();
-    if (!raw.startsWith("{")) return false;
-    return /(?:^|[,{\s])["']?hooks["']?\s*=\s*false(?=[,}\s#]|$)/.test(raw);
+    const table = inlineTableValue(value);
+    return Boolean(table && table.has("hooks") && tomlBoolean(table.get("hooks")) === false);
   }
   return false;
 }
@@ -495,13 +566,14 @@ export function managedHookPolicy({
   } catch (error) {
     return { status: "requirements_unreadable", path: requirementsPath, detail: error.message };
   }
+  const ARRAY_TABLE = "\u0000array";
   let table = null;
   for (let index = 0; index < document.lines.length; index += 1) {
     if (document.insideMultiline?.[index]) continue;
     const content = document.lines[index].content;
     const header = splitHeader(content);
     if (header) {
-      table = header.validTail && !header.array ? (parseDottedHeaderKey(header.inner)?.join(".") ?? null) : null;
+      table = header.validTail && !header.array ? (parseDottedHeaderKey(header.inner)?.join(".") ?? ARRAY_TABLE) : ARRAY_TABLE;
       continue;
     }
     const assignment = parseAssignment(content);

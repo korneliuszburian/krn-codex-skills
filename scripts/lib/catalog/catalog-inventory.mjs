@@ -1,4 +1,4 @@
-import { constants, realpathSync } from "node:fs";
+import { constants } from "node:fs";
 import { open, readdir, readlink, lstat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
@@ -135,24 +135,18 @@ async function inventorySkillRoot(root, records, quarantine) {
         );
         continue;
       }
-      let realSkill;
-      try {
-        realSkill = realpathSync(join(resolvedTarget, "SKILL.md"));
-      } catch {
-        continue;
-      }
-      if (quarantine.matches(realSkill)) {
+      const resolved = await resolveTargetFile(join(resolvedTarget, "SKILL.md"), quarantine);
+      if (resolved.quarantined) {
         quarantine.add(
           "skill",
-          quarantine.familyFor(realSkill) ?? entry.name,
+          quarantine.familyFor(resolved.quarantined) ?? entry.name,
           "symlink-target",
           root.id,
           resolve(entryPath, "SKILL.md"),
         );
         continue;
       }
-      const resolvedFile = await safeLstat(realSkill, quarantine);
-      if (!resolvedFile || !resolvedFile.isFile()) continue;
+      if (!resolved.file) continue;
       records.push(
         skillRecord({
           name: entry.name,
@@ -160,7 +154,7 @@ async function inventorySkillRoot(root, records, quarantine) {
           root,
           source: "symlink",
           path: join(entryPath, "SKILL.md"),
-          targetPath: realSkill,
+          targetPath: resolved.file,
         }),
       );
       continue;
@@ -185,25 +179,19 @@ async function inventorySkillRoot(root, records, quarantine) {
         );
         continue;
       }
-      let realTarget;
-      try {
-        realTarget = realpathSync(resolvedTarget);
-      } catch {
-        continue;
-      }
-      if (quarantine.matches(realTarget)) {
+      const resolved = await resolveTargetFile(resolvedTarget, quarantine);
+      if (resolved.quarantined) {
         quarantine.add(
           "skill",
-          quarantine.familyFor(realTarget) ?? entry.name,
+          quarantine.familyFor(resolved.quarantined) ?? entry.name,
           "symlink-target",
           root.id,
           resolve(skillPath),
         );
         continue;
       }
-      const resolvedFile = await safeLstat(realTarget, quarantine);
-      if (!resolvedFile || !resolvedFile.isFile()) continue;
-      fileLinkTarget = realTarget;
+      if (!resolved.file) continue;
+      fileLinkTarget = resolved.file;
     }
 
     records.push(
@@ -495,6 +483,28 @@ async function readDirectory(path, quarantine) {
     if (error?.code === "ENOENT") return [];
     throw error;
   }
+}
+
+async function resolveTargetFile(path, quarantine) {
+  let current = path;
+  for (let hop = 0; hop < 64; hop += 1) {
+    if (quarantine.matches(current)) return { quarantined: current };
+    let stat;
+    try {
+      stat = await lstat(current);
+    } catch {
+      return { missing: true };
+    }
+    if (!stat.isSymbolicLink()) return stat.isFile() ? { file: current } : { missing: true };
+    let target;
+    try {
+      target = await readlink(current);
+    } catch {
+      return { missing: true };
+    }
+    current = resolve(dirname(current), target);
+  }
+  return { missing: true };
 }
 
 async function safeLstat(path, quarantine) {

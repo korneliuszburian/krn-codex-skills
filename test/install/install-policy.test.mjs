@@ -74,6 +74,27 @@ test("managedHookPolicy reads quoted and nested inline features keys", () => {
   });
 });
 
+test("managedHookPolicy parses inline tables structurally", () => {
+  withRequirements('features = { "ho\\u006fks" = false }\n', (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
+  });
+  for (const source of [
+    "features = { hooks = true } # hooks = false\n",
+    'features = { note = "see hooks = false here" }\n',
+    "features = { nested = { hooks = false } }\n",
+  ]) {
+    withRequirements(source, (file) => {
+      assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active", source);
+    });
+  }
+});
+
+test("managedHookPolicy does not treat an array table as the root scope", () => {
+  withRequirements("[[policies]]\nallow_managed_hooks_only = true\n", (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active");
+  });
+});
+
 test("managedHookPolicy ignores table headers inside multi-line strings", () => {
   withRequirements('[features]\nnotes = """\n[other]\n"""\nhooks = false\n', (file) => {
     assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");

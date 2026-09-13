@@ -29,6 +29,25 @@ test("canonicalSkillEntries drops target paths that are not canonical SKILL.md p
   assert.doesNotThrow(() => canonicalSkills(entries));
 });
 
+test("canonicalSkillEntries drops non-canonical plugin and primary paths without throwing", () => {
+  const entries = canonicalSkillEntries({
+    skills: [{ id: "bad", path: "/x/logs/SKILL.md", targetPath: "/x/shared-skill.md" }],
+    plugins: [
+      {
+        id: "demo@market",
+        allSkillPaths: [
+          "/cache/market/demo/1.0.0/skills/logs/SKILL.md",
+          "/cache/market/demo/1.0.0/skills/ok/SKILL.md",
+        ],
+      },
+    ],
+  });
+  assert.deepEqual(entries, [
+    { id: "demo@market:ok", path: "/cache/market/demo/1.0.0/skills/ok/SKILL.md" },
+  ]);
+  assert.doesNotThrow(() => canonicalSkills(entries));
+});
+
 test("forbiddenName flags quarantined and private path families", () => {
   for (const name of ["superpowers", "logs", "history.jsonl", "state.db", "state.sqlite-wal"]) {
     assert.equal(forbiddenName(name), true, name);

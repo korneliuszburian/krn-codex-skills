@@ -169,6 +169,26 @@ test("a skill directory whose SKILL.md is a valid file symlink is inventoried", 
   });
 });
 
+test("a symlink chain through a quarantined family is not inventoried", async () => {
+  await withRoot("krn-inventory-chain-quarantine-", async (root) => {
+    mkdirSync(path.join(root, "superpowers"), { recursive: true });
+    writeFileSync(path.join(root, "superpowers", "bridge.md"), "---\nname: x\ndescription: demo\n---\n");
+    const intermediate = path.join(root, "step.md");
+    symlinkSync(path.join(root, "superpowers", "bridge.md"), intermediate);
+    const directory = path.join(root, "demo");
+    mkdirSync(directory, { recursive: true });
+    symlinkSync(intermediate, path.join(directory, "SKILL.md"));
+    const inventory = await inventoryCapabilities({
+      skillRoots: [{ id: "root", path: root, scope: "user" }],
+      pluginCacheRoots: [],
+    });
+    assert.ok(
+      !inventory.skills.some((skill) => skill.id === "demo"),
+      JSON.stringify(inventory.skills.map((skill) => skill.id)),
+    );
+  });
+});
+
 test("a chained file symlink whose final target is missing is not inventoried", async () => {
   await withRoot("krn-inventory-chain-dangling-", async (root) => {
     const intermediate = path.join(root, "intermediate.md");
