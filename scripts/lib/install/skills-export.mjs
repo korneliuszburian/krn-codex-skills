@@ -135,23 +135,30 @@ export function exportSkills({ source, upstream, root }) {
     }
   }
   const sourceSkillDirs = manifestSkills.map((skill) => skill.path);
-  const sourceStatusResult = runGitRaw(source, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]);
-  if (!sourceStatusResult.ok) {
-    throw new Error("source git status failed; cannot verify the worktree is clean");
-  }
-  const sourceStatus = sourceStatusResult.out;
-  const sourceEntries = sourceStatus.split("\0").filter(Boolean);
-  const sourceDirty = sourceEntries.some((entry) => {
-    if (entry.startsWith("?? ") || entry.startsWith("!! ")) return false;
-    const file = entry.slice(3).trim();
-    return sourceSkillDirs.some((dir) => file === dir || file.startsWith(`${dir}/`));
-  });
-  const sourceStray = sourceEntries
-    .filter((entry) => entry.startsWith("?? ") || entry.startsWith("!! "))
-    .map((entry) => entry.slice(3))
-    .find((file) => sourceSkillDirs.some((dir) => file.startsWith(`${dir}/`)));
-  if (sourceStray) {
-    throw new Error(`source skill path contains an untracked or ignored file (${sourceStray}); it would be exported without provenance`);
+  // An installed release is an immutable, digest-verified git archive without a
+  // `.git` directory; its provenance is `.krn-release.json`, so the worktree
+  // cleanliness checks below apply only to a live checkout.
+  const sourceIsCheckout = fs.existsSync(path.join(source, ".git"));
+  let sourceDirty = false;
+  if (sourceIsCheckout) {
+    const sourceStatusResult = runGitRaw(source, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]);
+    if (!sourceStatusResult.ok) {
+      throw new Error("source git status failed; cannot verify the worktree is clean");
+    }
+    const sourceStatus = sourceStatusResult.out;
+    const sourceEntries = sourceStatus.split("\0").filter(Boolean);
+    sourceDirty = sourceEntries.some((entry) => {
+      if (entry.startsWith("?? ") || entry.startsWith("!! ")) return false;
+      const file = entry.slice(3).trim();
+      return sourceSkillDirs.some((dir) => file === dir || file.startsWith(`${dir}/`));
+    });
+    const sourceStray = sourceEntries
+      .filter((entry) => entry.startsWith("?? ") || entry.startsWith("!! "))
+      .map((entry) => entry.slice(3))
+      .find((file) => sourceSkillDirs.some((dir) => file.startsWith(`${dir}/`)));
+    if (sourceStray) {
+      throw new Error(`source skill path contains an untracked or ignored file (${sourceStray}); it would be exported without provenance`);
+    }
   }
 
   const skillsDir = `${finalDir}.staging-${process.pid}-${Date.now()}`;

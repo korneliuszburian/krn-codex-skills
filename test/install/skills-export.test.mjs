@@ -498,3 +498,12 @@ test("checkSkills reports a non-array marker skills field", () => {
   assert.ok(checkSkills({ root: f.root }).errors.some((error) => error.includes("skills must be an array")), JSON.stringify(checkSkills({ root: f.root }).errors));
   fs.rmSync(f.base, { recursive: true, force: true });
 });
+
+test("exportSkills exports from an installed release without a .git directory", () => {
+  const f = fixture();
+  const commit = git(f.source, ["rev-parse", "HEAD"]);
+  fs.rmSync(path.join(f.source, ".git"), { recursive: true, force: true });
+  fs.writeFileSync(path.join(f.source, ".krn-release.json"), `${JSON.stringify({ schema_version: 1, commit }, null, 2)}\n`);
+  assert.doesNotThrow(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
