@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { basename, join, relative, sep } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
 import { maskLiterals, stripComments } from "../support/source-mask.mjs";
@@ -145,13 +145,15 @@ export function auditRepository(root) {
     }
     return names;
   };
-  const dynamicallyImports = (rawSource, moduleFile) => {
-    const base = basename(moduleFile);
+  const dynamicallyImports = (rawSource, importerFile, moduleFile) => {
+    const target = posixRelative(root, moduleFile);
     const code = stripComments(rawSource);
     const masked = maskLiterals(code);
     for (const match of masked.matchAll(/import\s*\(/g)) {
       const specifier = /^import\s*\(\s*["']([^"']+)["']/.exec(code.slice(match.index))?.[1];
-      if (specifier && specifier.endsWith(base)) return true;
+      if (!specifier || !specifier.startsWith(".")) continue;
+      const resolved = posixRelative(root, resolve(dirname(importerFile), specifier));
+      if (resolved === target) return true;
     }
     return false;
   };
@@ -162,7 +164,7 @@ export function auditRepository(root) {
     const source = sources.get(file);
     for (const name of exportedNames(source)) {
       const usedElsewhere = [...sources.entries()].some(
-        ([other, otherSource]) => other !== file && (consumed.get(other)?.has(name) || dynamicallyImports(otherSource, file)),
+        ([other, otherSource]) => other !== file && (consumed.get(other)?.has(name) || dynamicallyImports(otherSource, other, file)),
       );
       if (!usedElsewhere) errors.push(`${label(file)}: dead export ${name}`);
     }

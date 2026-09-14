@@ -101,7 +101,11 @@ export function exportSkills({ source, upstream, root }) {
     ? upstreamPin.harness_paths
     : upstreamPin.required_paths;
   const harnessDirs = [...new Set(harnessPaths.map((required) => path.dirname(required)))];
-  const upstreamStatus = runGitRaw(resolvedUpstream, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]).out;
+  const upstreamStatusResult = runGitRaw(resolvedUpstream, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]);
+  if (!upstreamStatusResult.ok) {
+    throw new Error("upstream git status failed; cannot verify the pinned revision reproduces the export");
+  }
+  const upstreamStatus = upstreamStatusResult.out;
   const untracked = upstreamStatus
     .split("\0")
     .filter((entry) => entry.startsWith("?? ") || entry.startsWith("!! "))
@@ -115,7 +119,11 @@ export function exportSkills({ source, upstream, root }) {
     ? manifest.skills.filter((skill) => manifest.harness_skills.includes(skill.name))
     : manifest.skills;
   const sourceSkillDirs = manifestSkills.map((skill) => skill.path);
-  const sourceStatus = runGitRaw(source, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]).out;
+  const sourceStatusResult = runGitRaw(source, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]);
+  if (!sourceStatusResult.ok) {
+    throw new Error("source git status failed; cannot verify the worktree is clean");
+  }
+  const sourceStatus = sourceStatusResult.out;
   const sourceEntries = sourceStatus.split("\0").filter(Boolean);
   const sourceDirty = sourceEntries.some((entry) => {
     if (entry.startsWith("?? ") || entry.startsWith("!! ")) return false;
