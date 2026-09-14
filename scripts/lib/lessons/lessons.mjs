@@ -322,16 +322,37 @@ export function recallLines(text) {
 }
 
 export function recallBindings({ hit, lines }) {
-  const cleanRef = (value) => String(value ?? "").trim().replace(/^npm run test\s+/, "test ").replace(/^node\s+/, "").replace(/^--test\s+/, "").replace(/^test\s+/, "").replace(/^\.\//, "");
-  const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => cleanRef(match[1]));
-  const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
-  const named = [...ids, falsifierFile].filter(Boolean);
-  const namesId = (text, id) => new RegExp(`(^|[\\s,;"'\`])${escapeRegExp(id)}([\\s,;"'\`]|$)`).test(text);
+  const cleanRef = (value) => String(value ?? "")
+    .trim()
+    .replace(/^(?:npm run|node)\s+/, "")
+    .replace(/^--test\s+/, "")
+    .replace(/^test\s+/, "")
+    .replace(/^\.\//, "")
+    .replace(/^(['"])([\s\S]*)\1$/, "$2")
+    .replace(/\\ /g, " ")
+    .trim();
+  const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => cleanRef(match[1])).filter((id) => /\.[a-z0-9]{2,4}$|\//i.test(id));
+  const falsifierFile = (/(test\/[^:@\s]+\.mjs)/.exec(hit.falsifier ?? "") ?? [])[1];
+  const scriptRefs = [...hit.gate.matchAll(/`([^`]+)`/g)]
+    .map((match) => String(match[1]).trim())
+    .filter((id) => /^[\w:@.-]+$/.test(id));
+  const named = [...new Set([...ids, ...scriptRefs, falsifierFile])].filter(Boolean);
+  const namesId = (text, id) => new RegExp(`(?<![A-Za-z0-9_./-])${escapeRegExp(id)}(?![A-Za-z0-9_./-])`).test(text);
   const relevant = hit.matched ?? [];
   const reconstructed = lines.some((line) => {
-    const [left, right] = line.split("=>").map((part) => cleanRef(part));
-    if (!right || !named.some((id) => namesId(left, id))) return false;
-    return right.split(/[\s,;]+/).filter(Boolean).some((target) => relevant.includes(target));
+    const [rawLeft, rawRight] = line.split("=>");
+    if (!cleanRef(rawRight ?? "")) return false;
+    const left = (rawLeft ?? "").trim();
+    const loose = cleanRef(left);
+    const namedLeft = named.some((id) => namesId(left, id) || namesId(loose, id));
+    const gateScriptIds = [...hit.gate.matchAll(/`([^`]+)`/g)]
+      .map((match) => cleanRef(match[1]))
+      .filter((id) => id && !id.includes("/"));
+    const normalizedLeft = loose !== left
+      && /^(?:npm run|node|--test|test)\b/.test(left)
+      && gateScriptIds.some((id) => namesId(loose, id));
+    if (!namedLeft && !normalizedLeft) return false;
+    return cleanRef(rawRight).split(/[\s,;]+/).filter(Boolean).some((target) => relevant.includes(target));
   });
   return { falsifierFile, named, reconstructed };
 }

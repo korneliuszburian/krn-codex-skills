@@ -514,6 +514,23 @@ test("recallBindings binds a recall to a changed target by gate or falsifier", (
   assert.equal(recallBindings({ hit, lines: ["npm run test"] }).reconstructed, false);
 });
 
+test("a falsifier under a regular-file parent fails closed instead of throwing", () => {
+  const root = makeRoot();
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| A | probe | `test:state` | | `test/gate.test.mjs/x.test.mjs::probe@abcdef0` | path:scripts/lib/support/git-cli.mjs |\n");
+  let report;
+  assert.doesNotThrow(() => { report = checkLessons({ root }); });
+  assert.ok(report.errors.some((error) => error.includes("falsifier file not found")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("recallBindings binds the falsifier form and a quoted spaced gate", () => {
+  const spaced = { gate: "`node --test \"test/has space.test.mjs\"`", falsifier: "", matched: ["scripts/x.mjs"] };
+  assert.equal(recallBindings({ hit: spaced, lines: ["test/has space.test.mjs => scripts/x.mjs"] }).reconstructed, true);
+  const falsified = { gate: "`test:state`", falsifier: "test/gate.test.mjs::probe@abcdef0", matched: ["scripts/x.mjs"] };
+  assert.equal(recallBindings({ hit: falsified, lines: ["test/gate.test.mjs::probe@abcdef0 => scripts/x.mjs"] }).reconstructed, true);
+});
+
 test("retirement supersession requires an exact anchor", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

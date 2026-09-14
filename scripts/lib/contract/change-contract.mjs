@@ -445,7 +445,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       } else {
         const testRefs = named.flatMap((value) => {
           const whole = normalizeRef(value);
-          if (isTestFile(whole)) return [whole];
+          if (!/\s/.test(whole) && isTestFile(whole)) return [whole];
           return [...value.matchAll(/\.?\/?[A-Za-z0-9_./-]*\.mjs/g)]
             .map((match) => normalizeRef(match[0]))
             .filter((reference) => isTestFile(reference));
