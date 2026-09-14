@@ -395,6 +395,15 @@ neutral that returns zero trigger hits, every fixture and answer key is hashed a
 kept outside an agent-readable bind, and the placebo is already satisfied. Bounded:
 only the manifest check is landed; no fixture set is authored or run here.
 
+## Deferred measurement tooling
+
+The evaluation instruments described above (`blind-mutations`, `cost-paired`,
+`lt1-fixtures`, `lt5-admissibility`, `lt5-fixtures`, `lt5-power`) have no runtime
+or dev-gate consumer; their disposal is delegated in
+`docs/prd/0006-retire-evaluation-instruments.md`. Until it lands, treat their
+booleans as declarations, not verified evidence, and treat the sections above as
+the design of record rather than an operating pipeline.
+
 ## Decision
 
 `$source-to-decision` reads this page before promoting a behavioral mechanism.
