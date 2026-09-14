@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { runGit as git, runGitRaw } from "../support/git-cli.mjs";
 import { capsuleIdsDetailed, runDirectoriesDetailed } from "./spine-runs.mjs";
 import { inspectSpineState, normalizeRunPointer } from "./state-check.mjs";
-import { fieldLine, fixedPointAnchors, parseCleanup, renderCapsule } from "./capsule-abi.mjs";
+import { fieldLine, fixedPointAnchors, parseCleanup, renderCapsule, stripMarkup } from "./capsule-abi.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
 import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
@@ -142,7 +142,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     const anchorHead = anchors.head;
     const headMoved = liveHead.ok && liveHead.out !== "" && anchorHead !== null && anchorHead !== liveHead.out.toLowerCase();
     const cleanupValue = fieldLine(text, "Outstanding workflow-run cleanup");
-    const listed = parseCleanup(cleanupValue).entries;
+    const listed = cleanupValue === null ? [] : parseCleanup(stripMarkup(cleanupValue)).entries;
     const listedPointers = new Set(listed.map((entry) => normalizeRunPointer(report.root, entry.pointer)));
     const missingRuns = [...new Set(listed
       .filter((entry) => !liveRuns.has(normalizeRunPointer(report.root, entry.pointer)))
@@ -162,6 +162,9 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
       evidence: fieldLine(text, "Evidence observed") || null,
       nonProofs: fieldLine(text, "Explicit non-proofs") || null,
       reviewDisposition: fieldLine(text, "Review fixed point and Standards / Spec disposition") || null,
+      restartState: fieldLine(text, "Restart state") || null,
+      nativeGoal: fieldLine(text, "Native Goal identity/state and configured tracker item/state") || null,
+      durableReferences: fieldLine(text, "Durable CONTEXT / ADR / research references") || null,
       recordedCommits: recorded,
       liveHead: liveHead.ok ? liveHead.out : null,
       headMoved,
@@ -187,6 +190,9 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
       `evidence: ${brief.evidence ?? "none"}`,
       `non-proofs: ${brief.nonProofs ?? "none"}`,
       `review: ${brief.reviewDisposition ?? "none"}`,
+      `restart: ${brief.restartState ?? "none"}`,
+      `goal/tracker: ${brief.nativeGoal ?? "none"}`,
+      `durable refs: ${brief.durableReferences ?? "none"}`,
       `friction: ${brief.friction}`,
       repoLine,
       cleanupLine,

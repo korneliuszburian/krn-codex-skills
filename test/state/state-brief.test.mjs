@@ -49,6 +49,21 @@ function writeCapsule(root, fixedPoint, cleanup = "none") {
   writeFileSync(join(dir, "state.md"), lines.join("\n"));
 }
 
+test("resume parses a markup-decorated cleanup and projects restart/goal/durable fields", () => {
+  const { root, head } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "slice-work", "one"), { recursive: true });
+  writeCapsule(root, `HEAD=${head}`, "`[.krn/runs/slice-work/one; slice-work; alice; closes; ACTIVE]`");
+  const report = resumeBrief({ repo: root });
+  const text = report.text;
+  assert.ok(text.includes(".krn/runs/slice-work/one"), text);
+  assert.ok(!/unlisted \.krn\/runs\/slice-work\/one/.test(text), text);
+  assert.ok(text.includes("cleanup entries: .krn/runs/slice-work/one"), text);
+  assert.ok(text.includes("restart: ABSENT"), text);
+  assert.ok(text.includes("goal/tracker: none"), text);
+  assert.ok(text.includes("durable refs: none"), text);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("compile prefills every ABI field with deterministic repo truth", () => {
   const { root, head } = makeRepo();
   const report = compileCapsule({ repo: root });
