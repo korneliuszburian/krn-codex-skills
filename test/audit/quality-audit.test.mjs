@@ -233,7 +233,7 @@ test("a backtick inside a string does not desync template masking", () => {
   withRepo(
     {
       "scripts/lib/real.mjs": "export function used() {\n  return 1;\n}\n",
-      "scripts/lib/fence.mjs": 'const fence = "```";\nimport { used } from "./lib/real.mjs";\nused();\nconst doc = `# hi`;\nexport const f = fence;\n',
+      "scripts/lib/fence.mjs": 'const fence = "```";\nimport { used } from "./real.mjs";\nused();\nconst doc = `# hi`;\nexport const f = fence;\n',
     },
     (root) => {
       const { errors } = auditRepository(root);
@@ -254,4 +254,84 @@ test("the audit credits aliased imports and ignores commented exports", () => {
     assert.ok(!errors.some((error) => error.includes("dead export foo")), JSON.stringify(errors));
     assert.ok(!errors.some((error) => error.includes("dead export ghost")), JSON.stringify(errors));
   });
+});
+
+test("a same-named import from another module does not mask a dead export", () => {
+  withRepo(
+    {
+      "scripts/lib/a.mjs": "export function parse() { return 1; }\nexport function usedA() { return 0; }\n",
+      "scripts/lib/consumerA.mjs": 'import { usedA } from "./a.mjs";\nexport const x = usedA();\n',
+      "scripts/lib/b.mjs": "export function parse() { return 2; }\n",
+      "scripts/lib/c.mjs": 'import { parse } from "./b.mjs";\nexport const v = parse();\n',
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((m) => m.includes("a.mjs: dead export parse")), JSON.stringify(errors));
+    },
+  );
+});
+
+test("a nested module imported only by a sibling is not flagged as never imported", () => {
+  withRepo(
+    {
+      "scripts/lib/nested/one.mjs": "export function one() { return 1; }\n",
+      "scripts/lib/nested/two.mjs": 'import { one } from "./one.mjs";\nexport const two = one();\n',
+      "scripts/lib/root.mjs": 'import { two } from "./nested/two.mjs";\nexport const y = two;\n',
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(!errors.some((m) => m.includes("nested/one.mjs: lib file is never imported")), JSON.stringify(errors));
+      assert.ok(!errors.some((m) => m.includes("dead export one")), JSON.stringify(errors));
+    },
+  );
+});
+
+test("a module reached only through a dynamic import is a consumer, not orphaned", () => {
+  withRepo(
+    {
+      "scripts/lib/dyn.mjs": "export function d() { return 1; }\n",
+      "scripts/lib/use.mjs": 'export const x = (await import("./dyn.mjs")).d;\n',
+      "scripts/lib/root.mjs": 'import { x } from "./use.mjs";\nexport const y = x;\n',
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(!errors.some((m) => m.includes("dyn.mjs: lib file is never imported")), JSON.stringify(errors));
+      assert.ok(!errors.some((m) => m.includes("dead export d")), JSON.stringify(errors));
+    },
+  );
+});
+
+test("namespace and default imports count as consumers", () => {
+  withRepo(
+    {
+      "scripts/lib/origin.mjs": "export function foo() { return 1; }\n",
+      "scripts/lib/ns.mjs": 'import * as ns from "./origin.mjs";\nexport const v = ns.foo();\n',
+      "scripts/lib/dorigin.mjs": "export default function bar() { return 1; }\n",
+      "scripts/lib/dconsumer.mjs": 'import bar from "./dorigin.mjs";\nexport const v = bar();\n',
+      "scripts/lib/root.mjs": 'import { v } from "./ns.mjs";\nexport const w = v;\n',
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(!errors.some((m) => m.includes("origin.mjs: dead export foo")), JSON.stringify(errors));
+      assert.ok(!errors.some((m) => m.includes("dorigin.mjs: dead export default")), JSON.stringify(errors));
+      assert.ok(!errors.some((m) => m.includes("unreferenced function bar")), JSON.stringify(errors));
+    },
+  );
+});
+
+test("export let, multi-declarators, and destructured exports are audited", () => {
+  withRepo(
+    {
+      "scripts/lib/lets.mjs": "export let unused = 1;\nexport const a = 1, b = 2;\nexport const { c, d } = {};\nexport let used = 3;\n",
+      "scripts/lib/uselets.mjs": 'import { used } from "./lets.mjs";\nexport const v = used;\n',
+      "scripts/lib/root.mjs": 'import { v } from "./uselets.mjs";\nexport const w = v;\n',
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      for (const name of ["unused", "a", "b", "c", "d"]) {
+        assert.ok(errors.some((m) => m.includes(`lets.mjs: dead export ${name}`)), `${name}: ${JSON.stringify(errors)}`);
+      }
+      assert.ok(!errors.some((m) => m.includes("dead export used")), JSON.stringify(errors));
+    },
+  );
 });

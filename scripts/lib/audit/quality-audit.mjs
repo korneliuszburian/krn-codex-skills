@@ -18,18 +18,39 @@ const walk = (directory, keep = (candidate) => candidate.endsWith(".mjs")) => {
 const functionDeclarations = (source) =>
   [...source.matchAll(/(?:export\s+)?(?:async\s+)?function\*?\s+([A-Za-z0-9_$]+)\s*\(/g)].map((m) => m[1]);
 
+const bindingNames = (text) => {
+  const parts = [];
+  let depth = 0;
+  let current = "";
+  for (const char of text) {
+    if ("{[(".includes(char)) depth += 1;
+    else if ("}])".includes(char)) depth -= 1;
+    if (char === "," && depth === 0) {
+      parts.push(current);
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  parts.push(current);
+  return parts.flatMap((part) => [...part.split("=")[0].matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)].map((match) => match[0]));
+};
+
 const exportedNames = (rawSource) => {
   const source = maskLiterals(stripComments(rawSource));
-  const names = new Set([
-    ...[...source.matchAll(/export\s+(?:async\s+)?(?:function|class)\s+([A-Za-z0-9_$]+)/g)].map((m) => m[1]),
-    ...[...source.matchAll(/export\s+const\s+([A-Za-z0-9_$]+)/g)].map((m) => m[1]),
-  ]);
+  const names = new Set(
+    [...source.matchAll(/export\s+(?:default\s+)?(?:async\s+)?(?:function|class)\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1]),
+  );
+  for (const match of source.matchAll(/export\s+(?:const|let|var)\s+([^;]+)/g)) {
+    for (const name of bindingNames(match[1])) names.add(name);
+  }
   for (const match of source.matchAll(/export\s*\{([^}]*)\}/g)) {
     for (const part of match[1].split(",")) {
       const name = part.split(/\s+as\s+/).pop().trim();
       if (/^[A-Za-z0-9_$]+$/.test(name)) names.add(name);
     }
   }
+  if (/export\s+default\b/.test(source)) names.add("default");
   return [...names];
 };
 
@@ -55,6 +76,43 @@ const importedNames = (rawSource) => {
     }
   }
   return names;
+};
+
+const clauseNames = (clause) => {
+  const names = new Set();
+  const named = clause.match(/\{([\s\S]*?)\}/);
+  if (named) {
+    for (const part of named[1].split(",")) {
+      for (const piece of part.split(/\s+as\s+/)) {
+        const name = piece.trim();
+        if (/^[A-Za-z0-9_$]+$/.test(name)) names.add(name);
+      }
+    }
+  }
+  const bare = clause.replace(/\{[\s\S]*?\}/, "").replace(/,/g, " ").trim();
+  const star = /^\*\s+as\s+/.test(bare);
+  if (star || /^[A-Za-z0-9_$]+$/.test(bare)) names.add("default");
+  return { names: star ? new Set() : names, star };
+};
+
+const importEdges = (rawSource) => {
+  const code = stripComments(rawSource);
+  const masked = maskLiterals(code);
+  const edges = [];
+  for (const match of masked.matchAll(/(?:^|[;\n}])\s*import\s+([^;]*?)\s+from\s+["']([^"']+)["']/dg)) {
+    const [start, end] = match.indices[2];
+    edges.push({ clause: match[1], specifier: code.slice(start, end), dynamic: false });
+  }
+  for (const match of masked.matchAll(/export\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']/dg)) {
+    const lefts = match[1].split(",").map((part) => part.split(/\s+as\s+/)[0].trim()).filter(Boolean);
+    const [start, end] = match.indices[2];
+    edges.push({ clause: `{${lefts.join(",")}}`, specifier: code.slice(start, end), dynamic: false });
+  }
+  for (const match of masked.matchAll(/import\s*\(/g)) {
+    const specifier = /^import\s*\(\s*["']([^"']+)["']/.exec(code.slice(match.index))?.[1];
+    if (specifier) edges.push({ clause: "", specifier, dynamic: true });
+  }
+  return edges;
 };
 
 const normalizedBody = (source, start) => {
@@ -121,7 +179,7 @@ export function auditRepository(root) {
 
   for (const file of runtime) {
     const source = maskLiterals(sources.get(file));
-    const local = new Set([...functionDeclarations(source), ...importedNames(sources.get(file)), ...[...source.matchAll(/(?:const|let|var)\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1])]);
+    const local = new Set([...functionDeclarations(source), ...importedNames(sources.get(file)), ...[...source.matchAll(/(?:const|let|var)\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1]), ...[...source.matchAll(/\bclass\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1])]);
     for (const match of source.matchAll(/(?<![.\w$])([A-Za-z0-9_$]+)\s*\(/g)) {
       const name = match[1];
       if (local.has(name)) continue;
@@ -134,39 +192,42 @@ export function auditRepository(root) {
     }
   }
 
-  const consumedNames = (rawSource) => {
-    const source = maskLiterals(stripComments(rawSource));
-    const names = importedNames(source);
-    for (const match of source.matchAll(/export\s*\{([^}]*)\}\s*from\s*["'][^"']+["']/g)) {
-      for (const part of match[1].split(",")) {
-        const name = part.split(/\s+as\s+/).pop().trim();
-        if (/^[A-Za-z0-9_$]+$/.test(name)) names.add(name);
+  const dynamicTargets = new Set();
+  const starTargets = new Set();
+  const edgesByImporter = new Map();
+  for (const [file, rawSource] of sources) {
+    const edges = new Map();
+    for (const edge of importEdges(rawSource)) {
+      if (!edge.specifier.startsWith(".")) continue;
+      const target = resolve(dirname(file), edge.specifier);
+      if (edge.dynamic) {
+        dynamicTargets.add(target);
+        continue;
       }
+      const { names, star } = clauseNames(edge.clause);
+      const entry = edges.get(target) ?? { names: new Set(), star: false };
+      for (const name of names) entry.names.add(name);
+      if (star) {
+        entry.star = true;
+        starTargets.add(target);
+      }
+      edges.set(target, entry);
     }
-    return names;
-  };
-  const dynamicallyImports = (rawSource, importerFile, moduleFile) => {
-    const target = posixRelative(root, moduleFile);
-    const code = stripComments(rawSource);
-    const masked = maskLiterals(code);
-    for (const match of masked.matchAll(/import\s*\(/g)) {
-      const specifier = /^import\s*\(\s*["']([^"']+)["']/.exec(code.slice(match.index))?.[1];
-      if (!specifier || !specifier.startsWith(".")) continue;
-      const resolved = posixRelative(root, resolve(dirname(importerFile), specifier));
-      if (resolved === target) return true;
-    }
-    return false;
-  };
-  const consumed = new Map([...sources.entries()].map(([file, source]) => [file, consumedNames(source)]));
+    edgesByImporter.set(file, edges);
+  }
+  const isImported = (file) =>
+    dynamicTargets.has(file) ||
+    [...edgesByImporter].some(([importer, edges]) => importer !== file && edges.has(file));
+  const consumedIn = (file, name) =>
+    starTargets.has(file) ||
+    dynamicTargets.has(file) ||
+    [...edgesByImporter].some(([importer, edges]) => importer !== file && edges.get(file)?.names.has(name));
 
   for (const file of runtime.filter((candidate) => label(candidate).startsWith(`scripts${sep}lib${sep}`))) {
     if (isSelf(file)) continue;
     const source = sources.get(file);
     for (const name of exportedNames(source)) {
-      const usedElsewhere = [...sources.entries()].some(
-        ([other, otherSource]) => other !== file && (consumed.get(other)?.has(name) || dynamicallyImports(otherSource, other, file)),
-      );
-      if (!usedElsewhere) errors.push(`${label(file)}: dead export ${name}`);
+      if (!consumedIn(file, name)) errors.push(`${label(file)}: dead export ${name}`);
     }
   }
 
@@ -226,15 +287,9 @@ export function auditRepository(root) {
     }
   }
 
-  const importedTargets = new Set();
-  for (const source of sources.values()) {
-    for (const match of source.matchAll(/from\s+["'](\.[^"']+)["']/g)) importedTargets.add(match[1]);
-  }
   for (const file of runtime.filter((candidate) => label(candidate).startsWith(`scripts${sep}lib${sep}`))) {
     if (isSelf(file)) continue;
-    const base = label(file).replace("scripts/lib/", "");
-    const used = [...importedTargets].some((target) => target.endsWith(base));
-    if (!used) errors.push(`${label(file)}: lib file is never imported`);
+    if (!isImported(file)) errors.push(`${label(file)}: lib file is never imported`);
   }
 
   return { errors: [...new Set(errors)], info: [...new Set(info)] };
