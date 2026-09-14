@@ -63,6 +63,7 @@ Mutations happen only through the explicit apply command. A new Codex session
 is required before changed plugin, MCP, or skill exposure is observable.`;
 
 function parseArguments(argv) {
+  const seen = new Set();
   const options = { json: false, days: 30 };
   const positional = [];
 
@@ -88,6 +89,8 @@ function parseArguments(argv) {
         "--sessions-root": "sessionsRoot",
         "--days": "days",
       }[argument];
+      if (seen.has(key)) fail(`duplicate option: ${argument}`, EXIT_USAGE);
+      seen.add(key);
       options[key] = key === "days" ? Number(value) : value;
       continue;
     }
@@ -373,8 +376,13 @@ function printPlan(name, resolved, plan) {
 
 async function main() {
   const { options, positional } = parseArguments(process.argv.slice(2));
-  if (options.help || positional.length === 0 || positional[0] === "help") {
+  if (options.help || positional[0] === "help") {
     console.log(usage);
+    return;
+  }
+  if (positional.length === 0) {
+    console.error(usage);
+    process.exitCode = EXIT_USAGE;
     return;
   }
 
@@ -519,5 +527,5 @@ async function main() {
 
 main().catch((error) => {
   console.error(`catalog: ${error.message}`);
-  process.exitCode = error.exitCode || 1;
+  process.exitCode = error.exitCode || (/^Unknown capability profile/.test(error.message) ? EXIT_USAGE : 1);
 });

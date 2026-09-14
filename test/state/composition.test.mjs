@@ -64,3 +64,19 @@ test("doctor renders a human summary by default and JSON with --json", () => {
   assert.equal(typeof JSON.parse(json.stdout).filesystem.status, "string");
   rmSync(base, { recursive: true, force: true });
 });
+
+test("state rejects a positional path given together with --root", () => {
+  const root = makeRepo();
+  const both = spawnSync(process.execPath, [cli, "state", "check", "--root", root, join(root, "nope")], { encoding: "utf8" });
+  assert.equal(both.status, 64, both.stdout + both.stderr);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a foreign option names the flag the user typed", () => {
+  const root = makeRepo();
+  const result = spawnSync(process.execPath, [cli, "lessons", "check", "--root", root, "--strict-recall"], { encoding: "utf8" });
+  assert.equal(result.status, 64);
+  assert.match(result.stderr, /--strict-recall/);
+  assert.ok(!/strictRecall/.test(result.stderr), result.stderr);
+  rmSync(root, { recursive: true, force: true });
+});

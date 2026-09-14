@@ -180,3 +180,18 @@ test("skipping a pre-window rollout file marks the evidence incomplete", () => {
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+test("a duplicate single-valued option and a bare command are usage errors", () => {
+  const { base, env } = makeHome();
+  try {
+    const dup = run(["plan", "minimal", "--config", join(base, "a.toml"), "--config", join(base, "b.toml")], env);
+    assert.equal(dup.status, 64, dup.stdout + dup.stderr);
+    assert.match(dup.stderr, /duplicate option: --config/);
+    const bare = run([], env);
+    assert.equal(bare.status, 64, bare.stdout + bare.stderr);
+    const unknownProfile = run(["plan", "does-not-exist", "--config", join(base, "a.toml")], env);
+    assert.equal(unknownProfile.status, 64, unknownProfile.stdout + unknownProfile.stderr);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});

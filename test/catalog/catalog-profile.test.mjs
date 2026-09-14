@@ -152,3 +152,11 @@ test("a prototype-key selector is rejected instead of silently ignored", () => {
     /invalid profile selector/,
   );
 });
+
+test("plugins.enable resolves a manifest name or family to the plugin id", () => {
+  const inventory = { plugins: [{ id: "demo-family@market", family: "demo-family", manifestName: "Demo Plugin", skillPaths: [], allSkillPaths: [] }], skills: [], hardQuarantine: [] };
+  const base = { plugins: { disable: [], disableFamilies: [] }, skills: {}, mcps: {}, apps: {} };
+  assert.equal(resolveProfile({ ...base, plugins: { ...base.plugins, enable: ["Demo Plugin"] } }, inventory).desired.plugins["demo-family@market"], true);
+  assert.equal(resolveProfile({ ...base, plugins: { ...base.plugins, enable: ["demo-family"] } }, inventory).desired.plugins["demo-family@market"], true);
+  assert.equal(resolveProfile({ ...base, plugins: { ...base.plugins, enable: ["demo-family@market"] } }, inventory).desired.plugins["demo-family@market"], true);
+});

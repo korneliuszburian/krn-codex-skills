@@ -36,8 +36,18 @@ export function resolveProfile(
   };
   const unresolved = { plugins: [], skills: [] };
 
-  for (const pluginId of profile.plugins?.enable || []) {
-    assignDesired(desired.plugins, pluginId, true, "plugins.enable");
+  for (const selector of profile.plugins?.enable || []) {
+    // Resolve a name/family/manifest selector to the real plugin id(s), mirroring
+    // the disable path: planning matches ids, and a bare selector would otherwise
+    // fail as an invalid enabled plugin ID.
+    const matched = inventory.plugins.filter((plugin) => selectorMatches(plugin, [selector]));
+    if (matched.length === 0) {
+      assignDesired(desired.plugins, selector, true, "plugins.enable");
+      continue;
+    }
+    for (const plugin of matched) {
+      assignDesired(desired.plugins, plugin.id, true, "plugins.enable");
+    }
   }
   for (const selector of profile.plugins?.disable || []) {
     // Resolve a name/family selector to the real plugin id(s), so the disable

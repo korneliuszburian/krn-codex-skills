@@ -79,11 +79,26 @@ function requireDirectory(root) {
   if (!fs.statSync(root, { throwIfNoEntry: false })?.isDirectory()) fail(`root is not a directory: ${root}`);
 }
 
+const OPTION_FLAG = {
+  strictRecall: "--strict-recall",
+  symbols: "--symbol",
+  source: "--source",
+  root: "--root",
+  base: "--base",
+  changed: "--changed",
+  keep: "--keep",
+  head: "--head",
+  upstream: "--upstream",
+  before: "--before",
+  yes: "--yes",
+  json: "--json",
+};
+
 function rejectForeignOptions(options, allowed) {
   const permitted = new Set(["json", ...allowed]);
   for (const key of Object.keys(options)) {
     if (options[key] === undefined || options[key] === false) continue;
-    if (!permitted.has(key)) fail(`unknown option for this command: --${key}`);
+    if (!permitted.has(key)) fail(`unknown option for this command: ${OPTION_FLAG[key] ?? `--${key}`}`);
   }
 }
 
@@ -205,7 +220,7 @@ try {
     const { positional, options } = parseOptions(raw.slice(1));
     rejectForeignOptions(options, ["root"]);
     const command = positional[0];
-    if (!["check", "compile", "resume"].includes(command) || positional.length > 2 || options.source || options.yes) fail(usage);
+    if (!["check", "compile", "resume"].includes(command) || positional.length > 2 || options.source || options.yes || (options.root && positional[1])) fail(usage);
     const repo = options.root ?? positional[1] ?? process.cwd();
     let report;
     try {
