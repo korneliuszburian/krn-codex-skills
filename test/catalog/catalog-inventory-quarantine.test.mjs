@@ -10,7 +10,7 @@ import { inventoryCapabilities } from "../../scripts/lib/catalog/catalog-invento
 import {
   compareInventoryRecords,
   createQuarantineCollector,
-} from "../../scripts/lib/catalog/catalog-inventory-quarantine.mjs";
+} from "../../scripts/lib/catalog/catalog-inventory.mjs";
 
 test("createQuarantineCollector matches the fixed family and reports none by default", () => {
   const quarantine = createQuarantineCollector([], []);
