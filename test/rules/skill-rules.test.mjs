@@ -148,6 +148,19 @@ test("skillLayoutErrors and skillIdentityErrors enforce directory shape", () => 
   ]);
 });
 
+test("skillPointerErrors accepts a titled or anchored direct pointer", () => {
+  assert.deepEqual(skillPointerErrors('[n](references/a.md "usage")', { skillPath: "p", resolveTarget: () => true }), []);
+  assert.deepEqual(skillPointerErrors("[n](references/a.md#usage)", { skillPath: "p", resolveTarget: () => true }), []);
+});
+
+test("referenceLinkErrors accepts an anchored link and ignores fenced mentions", () => {
+  assert.deepEqual(referenceLinkErrors("[n](references/a.md#usage)", { skillPath: "s", references: ["references/a.md"] }), []);
+  assert.deepEqual(
+    referenceLinkErrors("```\n(references/a.md)\n```", { skillPath: "s", references: ["references/a.md"] }),
+    ["s: references/a.md is not linked directly from SKILL.md"],
+  );
+});
+
 test("referenceLinkErrors requires each reference to be linked", () => {
   const references = ["references/a.md", "references/b.md"];
   assert.deepEqual(

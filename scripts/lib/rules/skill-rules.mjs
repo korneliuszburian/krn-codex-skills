@@ -88,7 +88,7 @@ export function skillContentErrors(content, { skillPath }) {
 
 export function skillPointerErrors(content, { skillPath, resolveTarget }) {
   const errors = [];
-  for (const match of content.matchAll(/\]\((references|scripts)\/([^)#]+)\)/g)) {
+  for (const match of content.matchAll(/\]\((references|scripts)\/([^)\s#]+)[^)]*\)/g)) {
     if (!resolveTarget(match[1], match[2])) {
       errors.push(`${skillPath}: broken direct pointer ${match[0]}`);
     }
@@ -140,8 +140,13 @@ export function skillIdentityErrors(fields, skill) {
 
 export function referenceLinkErrors(content, { skillPath, references }) {
   const errors = [];
+  const unfenced = content.replace(/^```[\s\S]*?^```/gm, "");
+  const targets = new Set();
+  for (const match of unfenced.matchAll(/\(<?([^)\s>#]+)(?:#[^)\s>]*)?(?:\s+"[^"]*")?\s*>?\)/g)) {
+    targets.add(match[1]);
+  }
   for (const pointer of references) {
-    if (!content.includes(`(${pointer})`)) {
+    if (!targets.has(pointer)) {
       errors.push(`${skillPath}: ${pointer} is not linked directly from SKILL.md`);
     }
   }
