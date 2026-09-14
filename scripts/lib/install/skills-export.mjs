@@ -115,9 +115,17 @@ export function exportSkills({ source, upstream, root }) {
     throw new Error(`upstream harness path contains an untracked file (${stray}); the pinned revision cannot reproduce exported bytes`);
   }
   const krnCommit = harnessCommit(source);
-  const manifestSkills = Array.isArray(manifest.harness_skills) && manifest.harness_skills.length > 0
-    ? manifest.skills.filter((skill) => manifest.harness_skills.includes(skill.name))
+  const harnessNames = Array.isArray(manifest.harness_skills) && manifest.harness_skills.length > 0 ? manifest.harness_skills : null;
+  const manifestSkills = harnessNames
+    ? manifest.skills.filter((skill) => harnessNames.includes(skill.name))
     : manifest.skills;
+  if (harnessNames) {
+    const known = new Set(manifest.skills.map((skill) => skill.name));
+    const unmatched = harnessNames.filter((name) => !known.has(name));
+    if (unmatched.length > 0) {
+      throw new Error(`manifest.harness_skills names skills not present in manifest.skills: ${unmatched.join(", ")}`);
+    }
+  }
   const sourceSkillDirs = manifestSkills.map((skill) => skill.path);
   const sourceStatusResult = runGitRaw(source, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]);
   if (!sourceStatusResult.ok) {
@@ -231,7 +239,11 @@ export function checkSkills({ root }) {
     if (!fs.existsSync(sourceManifest)) return null;
     try { return readJson(sourceManifest); } catch { errors.push("skills/manifest.json is not valid JSON"); return null; }
   })();
-  for (const skill of rootManifest?.skills ?? []) {
+  if (rootManifest && !Array.isArray(rootManifest.skills)) {
+    errors.push("skills/manifest.json skills must be an array");
+  }
+  for (const skill of Array.isArray(rootManifest?.skills) ? rootManifest.skills : []) {
+    if (!skill || typeof skill !== "object" || typeof skill.name !== "string" || typeof skill.path !== "string") continue;
     sourceByName.set(skill.name, path.join(root, skill.path));
   }
   const directoriesMatch = (sourceDir, exportDir) => {

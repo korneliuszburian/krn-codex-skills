@@ -434,3 +434,23 @@ test("a tracked skill edit as the first change marks the export dirty", () => {
   assert.equal(marker.krn.dirty, true, "the first porcelain entry must not be truncated");
   fs.rmSync(f.base, { recursive: true, force: true });
 });
+
+test("checkSkills reports a non-array skills field instead of throwing", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "krn-skills-malformed-"));
+  fs.mkdirSync(path.join(root, ".agents", "skills"), { recursive: true });
+  fs.mkdirSync(path.join(root, "skills"), { recursive: true });
+  fs.writeFileSync(path.join(root, "skills", "manifest.json"), '{"skills": 5}\n');
+  assert.doesNotThrow(() => checkSkills({ root }));
+  assert.ok(checkSkills({ root }).errors.some((error) => error.includes("skills must be an array")), JSON.stringify(checkSkills({ root }).errors));
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("exportSkills fails closed when harness_skills names an absent skill", () => {
+  const f = fixture();
+  fs.writeFileSync(
+    path.join(f.source, "skills", "manifest.json"),
+    `${JSON.stringify({ schema_version: 1, harness_skills: ["local", "ghost"], skills: [{ name: "local", path: "skills/meta/local", implicit: true }, { name: "extra", path: "skills/meta/extra", implicit: false }] }, null, 2)}\n`,
+  );
+  assert.throws(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }), /ghost/);
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
