@@ -515,6 +515,12 @@ Durable decisions from the pass (each transports into the steps below):
   config check-to-rename residual; do not claim string validation proves reviewer
   independence.
 
+Progress against the plan: step 1 (guarantee language corrected; status
+scaffolding reduced), step 2 (advisory pre-edit recall route in `$delivery-loop`),
+and step 3 (observed before-state: `changes:check`/`changes:push`/CI pass `--before`;
+a behavior-preserving surface change declares `green->green`, a behavioral change
+needs the observed `red->green`). Steps 4-6 and the LT lane remain.
+
 Ordered plan (safest first): (1) correct guarantee language, (2) advisory pre-edit
 recall, (3) proof modes (`--before`), (4) completion review-evidence relationship,
 (5) incremental catalog/test consolidation, (6) one executable owner of the gate
