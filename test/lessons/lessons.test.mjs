@@ -537,6 +537,11 @@ test("recallBindings binds a spaced changed target", () => {
   assert.equal(recallBindings({ hit, lines: ["test:state => test/has space.test.mjs, other.mjs"] }).reconstructed, true);
   const quoted = { gate: "`test:state`", falsifier: "", matched: ["dir/a.mjs"] };
   assert.equal(recallBindings({ hit: quoted, lines: ['test:state => "./dir/a.mjs"'] }).reconstructed, true);
+  const suffixed = { gate: "`test:state`", falsifier: "", matched: ["test/a.mjs"] };
+  assert.equal(recallBindings({ hit: suffixed, lines: ["test:state => test/a.mjs.bak"] }).reconstructed, false);
+  assert.equal(recallBindings({ hit: suffixed, lines: ["test:state => x test/a.mjs.extra"] }).reconstructed, false);
+  const symbol = { gate: "`test:state`", falsifier: "", matched: ["runGit"] };
+  assert.equal(recallBindings({ hit: symbol, lines: ["test:state => xrunGit"] }).reconstructed, false);
 });
 
 test("retirement supersession requires an exact anchor", () => {

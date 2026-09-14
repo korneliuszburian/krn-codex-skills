@@ -353,8 +353,9 @@ export function recallBindings({ hit, lines }) {
       && gateScriptIds.some((id) => namesId(loose, id));
     if (!namedLeft && !normalizedLeft) return false;
     const right = cleanRef(rawRight);
-    if (relevant.includes(right) || relevant.some((target) => target && right.includes(target))) return true;
-    return right.split(/\s*[,;]\s*|\s+/).filter(Boolean).some((target) => relevant.includes(target));
+    const namesTarget = (value) => relevant.some((target) => target && namesId(value, target));
+    if (relevant.includes(right) || namesTarget(right)) return true;
+    return right.split(/\s*[,;]\s*|\s+/).filter(Boolean).some((target) => relevant.includes(target) || namesTarget(target));
   });
   return { falsifierFile, named, reconstructed };
 }
