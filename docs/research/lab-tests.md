@@ -1,7 +1,7 @@
 # Lab tests
 
 Status: `accepted`. Consumer: `$source-to-decision` and the maintainer.
-Owner: maintainer. Verified: 2026-09-13. This page makes bounded, blinded pilots
+Owner: maintainer. Verified: 2026-09-14. This page makes bounded, blinded pilots
 the mandatory evidence for any behavioral claim in this repository; it records
 the registry and the non-proofs, and it is not itself proof that a mechanism
 works.
