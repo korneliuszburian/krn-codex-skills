@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -23,6 +23,27 @@ const run = (args, env) =>
     encoding: "utf8",
     env: { ...process.env, ...env },
   });
+
+test("a relative CODEX_HOME still yields absolute inventory paths", () => {
+  const { base } = makeHome();
+  try {
+    const relativeHome = "relcodex";
+    const skillDir = join(base, relativeHome, "skills", "demo");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(join(skillDir, "SKILL.md"), "---\nname: demo\ndescription: demo\n---\n");
+    const result = spawnSync(process.execPath, [cli, "inventory", "--json"], {
+      encoding: "utf8",
+      cwd: base,
+      env: { ...process.env, HOME: base, CODEX_HOME: relativeHome, AGENTS_HOME: "relagents" },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const demo = JSON.parse(result.stdout).skills.find((skill) => skill.id === "demo");
+    assert.ok(demo, result.stdout);
+    assert.ok(isAbsolute(demo.path), `expected absolute path, got ${demo.path}`);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
 
 test("catalog profile list reports the installed profiles as JSON", () => {
   const { base, env } = makeHome();
