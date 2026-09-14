@@ -101,6 +101,18 @@ cost-per-success are identical, the effort pin is unnecessary.
   (`/mnt` and `$HOME` hidden) and the GHSA-pxhw-h44j-8pfx setup-write probe (fails closed,
   no host write). The system bwrap stays 0.11.2, so a run must use the staged 0.12.0.
 
+## Codex-transport runner (2026-09-14)
+
+The luna family prerequisite is now built and isolation-verified. The runner lives
+outside the repo at `lab/lt5/isolation-run-codex.sh` (codex transport only,
+`ALLOWED_MODELS=gpt-5.6-luna`), pins `@openai/codex@0.154.0` by version and npm
+integrity `sha512-FV/x1OHXYv/ifjf3mXj9ThTTAWcUZN6cGIRQRhRxkKNOPuImu1WW0c8ev1vUkE9XGH90dEnYG1tBjIkxRikg0w==`,
+seeds only `auth.json` into a fresh `CODEX_HOME`, and reads `served_model=` from the
+codex session rollout (fail-closed on mismatch). Isolation `probe` under staged
+bwrap 0.12.0: `/mnt` hidden, host `~/.codex` hidden, writes denied, auth seeded,
+uid 1000. No luna model call has been made yet; the first is a bounded smoke that
+spends codex quota and is intentionally gated on the maintainer.
+
 ## LT-5 separation gate (2026-09-13)
 
 One decisive plus one neutral task, arms A (lesson row removed), B (real
