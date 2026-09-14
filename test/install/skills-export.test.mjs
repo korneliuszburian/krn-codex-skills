@@ -507,3 +507,13 @@ test("exportSkills exports from an installed release without a .git directory", 
   assert.doesNotThrow(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }));
   fs.rmSync(f.base, { recursive: true, force: true });
 });
+
+test("an explicit-only skill does not spend the discovery budget", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  const dir = path.join(f.root, ".agents", "skills", "local");
+  fs.writeFileSync(path.join(dir, "SKILL.md"), `---\nname: local\ndescription: ${"x".repeat(9000)}\n---\n`);
+  fs.writeFileSync(path.join(dir, "agents", "openai.yaml"), 'interface:\n  display_name: "local"\npolicy:\n  allow_implicit_invocation: false\n');
+  assert.ok(!checkSkills({ root: f.root }).errors.some((error) => error.includes("characters of")), JSON.stringify(checkSkills({ root: f.root }).errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
