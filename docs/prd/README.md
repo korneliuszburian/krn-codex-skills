@@ -16,6 +16,7 @@ can implement a batch on a branch without spending Codex quota on exploration.
 - [0003 LT-5 fixture mechanism diversity](0003-lt5-fixture-mechanism-diversity.md) — mechanism-distinct fixtures.
 - [0004 cost-paired memory measurement](0004-cost-paired-measurement.md) — cost per success, paired within task.
 - [0005 reproducible LT-1 scale-up](0005-lt1-scaling.md) — retained fixture/key hashes, neutral stratum, reps.
+- [0006 retire the unwired evaluation instruments](0006-retire-evaluation-instruments.md) — delete the test-only evaluation modules, keep the PRDs.
 
 ## Lifecycle
 
