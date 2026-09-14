@@ -642,3 +642,11 @@ test("parseLessonText honors escaped pipes and ignores fenced rows", () => {
   assert.equal(rows.length, 1, JSON.stringify(rows));
   assert.equal(rows[0].lesson, "A | B");
 });
+
+test("parseLessons returns an empty page when the path is not a file", () => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-lessons-dir-"));
+  mkdirSync(join(dir, "workflow-lessons.md"));
+  assert.doesNotThrow(() => parseLessons(join(dir, "workflow-lessons.md")));
+  assert.deepEqual(parseLessons(join(dir, "workflow-lessons.md")).rows, []);
+  rmSync(dir, { recursive: true, force: true });
+});

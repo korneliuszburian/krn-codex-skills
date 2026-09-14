@@ -58,7 +58,8 @@ export function parseLessonText(text) {
 }
 
 export function parseLessons(file) {
-  if (!fs.existsSync(file)) return { rows: [], malformed: [], budget: LESSON_BUDGET, headerColumns: null, unbalancedFence: false };
+  const isFile = fs.existsSync(file) && fs.statSync(file).isFile();
+  if (!isFile) return { rows: [], malformed: [], budget: LESSON_BUDGET, headerColumns: null, unbalancedFence: false };
   const { rows, malformed, headerColumns, unbalancedFence } = parseLessonText(fs.readFileSync(file, "utf8"));
   return { rows, malformed, budget: LESSON_BUDGET, headerColumns, unbalancedFence };
 }
