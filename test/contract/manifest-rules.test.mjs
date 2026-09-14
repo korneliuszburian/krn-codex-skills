@@ -303,3 +303,8 @@ test("manifest rule helpers return errors, not throws, for a null document", () 
   assert.doesNotThrow(() => validateManifestSkills(null));
   assert.ok(validateManifestSkills(null).errors.some((error) => error.includes("document must be an object")));
 });
+
+test("validateManifestSkills reports a non-string skill name instead of coercing it", () => {
+  const document = { skills: [{ implicit: true, name: ["alpha"], path: "skills/engineering/alpha" }], source_only_skills: [], harness_skills: [], runtime_paths: [] };
+  assert.ok(validateManifestSkills(document).errors.some((error) => error.includes("invalid skill name")), JSON.stringify(validateManifestSkills(document).errors));
+});

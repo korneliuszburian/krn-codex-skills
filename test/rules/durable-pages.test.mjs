@@ -140,3 +140,27 @@ test("a tilde-fenced over-long line is allowed", () => {
   assert.ok(!checkDurablePages({ root }).errors.some((error) => error.includes("keep run ledgers")), "a tilde-fenced over-long line is allowed");
   rmSync(root, { recursive: true, force: true });
 });
+
+test("an inline-coded or commented Topics link does not satisfy the ledger", () => {
+  const root = makeRoot({ topicsRows: "| T | `[topic.md](topic.md)` | state | reopen |\n| C | [capabilities.md](../capabilities.md) | state | reopen |\n| M | [migration.md](../migration.md) | state | reopen |\n" });
+  assert.ok(checkDurablePages({ root }).errors.some((error) => error.includes("topic is missing from docs/research/README.md Topics")), JSON.stringify(checkDurablePages({ root }).errors));
+  writeFileSync(join(root, "docs", "research", "README.md"), "# Research index\n\n## Topics\n\n<!-- [topic.md](topic.md) -->\n| C | [capabilities.md](../capabilities.md) | state | reopen |\n| M | [migration.md](../migration.md) | state | reopen |\n");
+  assert.ok(checkDurablePages({ root }).errors.some((error) => error.includes("topic is missing")), JSON.stringify(checkDurablePages({ root }).errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a header that exists only inside a fence does not satisfy the ABI", () => {
+  const root = makeRoot({ topicHeader: "~~~text\nStatus: `accepted`. Consumer: maintainer. Owner: maintainer. Verified: 2026-01-01.\n~~~\n\n" });
+  assert.ok(checkDurablePages({ root }).errors.some((error) => error.includes("topic.md") && error.includes("Status")), JSON.stringify(checkDurablePages({ root }).errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a path only shown inside a fence in config/AGENTS.md is not a missing reference", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "config"), { recursive: true });
+  writeFileSync(join(root, "config", "AGENTS.md"), "# A\n\n~~~\n`docs/research/ghost.md`\n~~~\n");
+  assert.ok(!checkDurablePages({ root }).errors.some((error) => error.includes("ghost.md")), JSON.stringify(checkDurablePages({ root }).errors));
+  writeFileSync(join(root, "config", "AGENTS.md"), "# A\n\nsee `docs/research/ghost.md`\n");
+  assert.ok(checkDurablePages({ root }).errors.some((error) => error.includes("ghost.md")), JSON.stringify(checkDurablePages({ root }).errors));
+  rmSync(root, { recursive: true, force: true });
+});

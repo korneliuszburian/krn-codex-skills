@@ -216,7 +216,7 @@ export function validateManifestSkills(document) {
     if (!keysAreValid) {
       errors.push(`manifest: skill ${skill.name ?? "<unknown>"} must contain only implicit, name, and path`);
     }
-    const nameIsValid = SKILL_NAME.test(skill.name ?? "");
+    const nameIsValid = typeof skill.name === "string" && SKILL_NAME.test(skill.name);
     if (!nameIsValid) {
       errors.push(`manifest: invalid skill name ${skill.name}`);
     }
