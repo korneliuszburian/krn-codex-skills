@@ -9,7 +9,7 @@ import {
   derivedRolloutDay,
   forbiddenName,
   isRolloutFile,
-} from "../../scripts/lib/catalog/catalog-usage-paths.mjs";
+} from "../../scripts/lib/catalog/catalog-usage.mjs";
 
 test("canonicalSkillEntries drops target paths that are not canonical SKILL.md paths", () => {
   const entries = canonicalSkillEntries({

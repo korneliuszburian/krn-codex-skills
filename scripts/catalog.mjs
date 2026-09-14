@@ -16,7 +16,7 @@ import {
 } from "./lib/catalog/catalog-config.mjs";
 import { resolveProfile } from "./lib/catalog/catalog-profile.mjs";
 import { scanCatalogUsage } from "./lib/catalog/catalog-usage.mjs";
-import { canonicalSkillEntries } from "./lib/catalog/catalog-usage-paths.mjs";
+import { canonicalSkillEntries } from "./lib/catalog/catalog-usage.mjs";
 
 import { EXIT_CODES, fail } from "./lib/support/diagnostics.mjs";
 
