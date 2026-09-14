@@ -25,7 +25,6 @@
     "scripts/lib/catalog/catalog-profiles.mjs",
     "scripts/lib/catalog/catalog-toml.mjs",
     "scripts/lib/catalog/catalog-usage-json.mjs",
-    "scripts/lib/catalog/catalog-usage-lines.mjs",
     "scripts/lib/catalog/catalog-usage-normalize.mjs",
     "scripts/lib/catalog/catalog-usage-paths.mjs",
     "scripts/lib/catalog/catalog-usage-shell.mjs",
