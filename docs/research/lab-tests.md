@@ -358,6 +358,15 @@ or below the declared floor. Bounded: only the scorer is landed; the seeded
 mutant/control manifest and the key-hiding replay harness are not, so the current
 clean rounds remain unmeasured (open in `docs/prd/0001-blind-mutation-evaluation.md`).
 
+## Cost-paired measurement
+
+`scripts/lib/evaluation/cost-paired.mjs` is the single owner of the cost axis
+(`docs/prd/0004`): `costPaired` reports tokens and cost per held-out success per
+arm, pairs the token and pass delta within each task rather than differencing arm
+means, and flags a run without captured tokens as unmeasured instead of counting it
+as zero cost. Cost is never inferred from context length. Bounded: only the
+grouping/paired arithmetic is landed; no live run or model call feeds it yet.
+
 ## Decision
 
 `$source-to-decision` reads this page before promoting a behavioral mechanism.
