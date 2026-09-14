@@ -246,7 +246,14 @@ Second multi-task calibration (2026-09-14, fixed neutral fixtures, frozen
 `gate-tasks.sh` re-permuting arms per repetition block, four tasks × two strata ×
 A/B/P × three reps, `results-calib2-*`): `glm-5.3` decisive A 3/12, **B 12/12**,
 P 4/12; neutral A 6/12, B 2/12, P 6/12. `deepseek-v4.1-flash` decisive A 11/12,
-B 12/12, P 12/12; neutral A 12/12, B 10/12, P 10/12. Reading: glm separates
+B 12/12, P 12/12; neutral A 12/12, B 10/12, P 10/12. Family verification: the
+served model is proven from each run's own `share/opencode/log/opencode.log`,
+which records `providerID=<p> modelID=<m>` (calib2 glm runs
+`providerID=opencode-go modelID=glm-5.3`, deepseek runs
+`... modelID=deepseek-v4.1-flash`); the runner now extracts that line, prints
+`served_model=`, fails closed as `model_mismatch=YES` on a mismatch, and
+`gate-tasks` kills a batch not proven all `model_mismatch=no`. Reading: glm
+separates
 content from ablation and from the wrong-content placebo on the decisive stratum
 (12/12 vs 3/12 and 4/12) with a `(B−P)` DiD of 0.667 − (−0.333) = 1.0, but B is
 **below** A on its neutral stratum (2/12 vs 6/12), which is unexpected and not
