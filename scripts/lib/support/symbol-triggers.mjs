@@ -282,12 +282,19 @@ export function touchedSymbolFiles({ root, git, sha }) {
     after = null;
     hunks = [];
   };
+  const isPath = (line) => /^(?:"|[ab]\/|\/dev\/null)/.test(line.slice(4));
+  let inHeader = false;
   for (const line of diff.out.split("\n")) {
-    if (hunks.length === 0 && line.startsWith("--- ") && /^(?:"|[ab]\/|\/dev\/null)/.test(line.slice(4))) {
+    if (line.startsWith("diff --git ")) {
+      flush();
+      inHeader = false;
+    } else if (line.startsWith("--- ") && isPath(line) && before === null && after === null) {
       flush();
       before = headerPath(line, "--- ");
-    } else if (hunks.length === 0 && line.startsWith("+++ ") && /^(?:"|[ab]\/|\/dev\/null)/.test(line.slice(4))) {
+      inHeader = true;
+    } else if (inHeader && line.startsWith("+++ ") && isPath(line)) {
       after = headerPath(line, "+++ ");
+      inHeader = false;
     } else if (line.startsWith("@@")) {
       hunks.push(line);
     }

@@ -136,7 +136,7 @@ test("a comma inside a regex literal does not create a phantom symbol", () => {
 });
 
 test("a removed line beginning with -- is not treated as a file header", () => {
-  const diff = ["--- a/x.mjs", "+++ b/x.mjs", "@@ -1,3 +1,3 @@", "--- old --", "-export function f() {", "}", " export const g = 1;"].join("\n");
+  const diff = ["diff --git a/x.mjs b/x.mjs", "--- a/x.mjs", "+++ b/x.mjs", "@@ -1,3 +1,3 @@", "--- old --", "-export function f() {", "}", " export const g = 1;"].join("\n");
   const specs = [];
   const git = (_root, args) => {
     if (args.includes("--unified=0")) return { ok: true, out: diff };
@@ -153,4 +153,19 @@ test("a unary sign before a regex does not understate the enclosing span", () =>
     extractSymbols("export function f() {\n  const x = a - -/}/;\n  return 1;\n}\n"),
     [{ name: "f", kind: "function", start: 1, end: 4 }],
   );
+});
+
+test("every file in a multi-file diff contributes symbols", () => {
+  const diff = [
+    "diff --git a/a.mjs b/a.mjs", "--- a/a.mjs", "+++ b/a.mjs", "@@ -1 +1,2 @@", " export const A = 1;", "+export const A2 = 2;",
+    "diff --git a/b.mjs b/b.mjs", "--- a/b.mjs", "+++ b/b.mjs", "@@ -1 +1,2 @@", " export const B = 1;", "+export const B2 = 2;",
+  ].join("\n");
+  const specs = [];
+  const git = (_root, args) => {
+    if (args.includes("--unified=0")) return { ok: true, out: diff };
+    if (args[0] === "show" && args.length === 2) { specs.push(args[1]); return { ok: false, out: "" }; }
+    return { ok: false, out: "" };
+  };
+  touchedSymbolFiles({ root: ".", git, sha: "abc1234" });
+  assert.deepEqual([...new Set(specs)].sort(), ["abc1234:a.mjs", "abc1234:b.mjs", "abc1234^:a.mjs", "abc1234^:b.mjs"]);
 });
