@@ -376,6 +376,15 @@ neutral partner, an answer key inside an agent-readable bind is rejected, and th
 placebo must be length-matched and already satisfied. Bounded: only the manifest
 check is landed; no fixture set is authored or run here.
 
+## LT-5 power simulation
+
+`scripts/lib/evaluation/lt5-power.mjs` (`docs/prd/0002`) simulates the registered
+paired-binary, task-clustered design with a seeded generator and reports the power
+and null-rejection rate at a one-sided threshold. Repetitions shrink within-task
+noise but add no independent task: `clustersFor` is the task count and never grows
+with reps, so repeated measures cannot inflate the effective sample size. Bounded:
+the simulation sizes a design; it does not run LT-5 or fix the confirmation N.
+
 ## Decision
 
 `$source-to-decision` reads this page before promoting a behavioral mechanism.
