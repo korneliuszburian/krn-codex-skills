@@ -34,7 +34,7 @@ export function isHardQuarantined(
 
 export function getCapabilityProfile(document, name) {
   validateProfilesDocument(document);
-  const profile = document.profiles[name];
+  const profile = Object.hasOwn(document.profiles, name) ? document.profiles[name] : undefined;
   if (!profile) {
     throw new Error(
       `Unknown capability profile '${name}'. Expected one of: ${Object.keys(

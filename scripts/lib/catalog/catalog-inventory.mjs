@@ -351,6 +351,7 @@ async function inventoryPluginCache(root, records, quarantine) {
           "manifest-name",
           root.id,
           resolve(currentPath),
+          `${family}@${marketplace}`,
         );
         continue;
       }

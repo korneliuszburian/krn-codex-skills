@@ -11,6 +11,9 @@ function familyMatches(record, families = []) {
 }
 
 function assignDesired(target, key, enabled, reason) {
+  if (typeof key !== "string" || key === "__proto__" || key === "constructor" || key === "prototype") {
+    throw new Error(`invalid profile selector: ${String(key)} (${reason})`);
+  }
   if (Object.hasOwn(target, key) && target[key] !== enabled) {
     throw new Error(
       `profile conflict for ${key}: both enabled and disabled (${reason})`,
@@ -127,8 +130,9 @@ export function resolveProfile(
   }
 
   for (const evidence of inventory.hardQuarantine || []) {
-    if (evidence.kind === "plugin" && evidence.id?.includes("@")) {
-      desired.plugins[evidence.id] = false;
+    const pluginId = evidence.configId ?? (typeof evidence.id === "string" && evidence.id.includes("@") ? evidence.id : null);
+    if (evidence.kind === "plugin" && pluginId) {
+      desired.plugins[pluginId] = false;
     }
     if (evidence.kind === "skill" && evidence.path) {
       desired.skills[evidence.path] = false;

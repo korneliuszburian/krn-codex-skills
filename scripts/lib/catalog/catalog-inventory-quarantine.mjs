@@ -33,7 +33,7 @@ export function createQuarantineCollector(evidence, additionalFamilies) {
   const matches = (value) => isHardQuarantined(value, families);
   const familyFor = (value) => quarantinedFamily(value, families);
   const records = new Map();
-  const add = (kind, id, evidenceType, sourceId, lexicalPath) => {
+  const add = (kind, id, evidenceType, sourceId, lexicalPath, configId) => {
     if (!matches(id) && !matches(lexicalPath)) return;
     const record = {
       kind: sanitizeLabel(kind),
@@ -41,6 +41,7 @@ export function createQuarantineCollector(evidence, additionalFamilies) {
       evidence: sanitizeLabel(evidenceType),
       sourceId: sanitizeLabel(sourceId),
       ...(typeof lexicalPath === "string" ? { path: lexicalPath } : {}),
+      ...(typeof configId === "string" && configId ? { configId } : {}),
     };
     records.set(JSON.stringify(record), record);
   };
@@ -53,6 +54,7 @@ export function createQuarantineCollector(evidence, additionalFamilies) {
       item.evidence ?? "supplied-name",
       item.sourceId ?? "supplied",
       item.path,
+      item.configId,
     );
   }
 

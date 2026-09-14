@@ -137,3 +137,18 @@ test("passes mcps and apps policy through", () => {
   assert.equal(result.desired.mcpServers["mcp-b"], false);
   assert.deepEqual(result.apps, { mode: "report-only", enable: ["a"], disable: [] });
 });
+
+test("a manifest-name quarantine tombstones the config plugin id", () => {
+  const r = resolveProfile(
+    { plugins: { enable: [], disable: [], disableFamilies: [] }, skills: {}, mcps: {}, apps: {} },
+    { plugins: [], skills: [], hardQuarantine: [{ kind: "plugin", id: "superpowers", evidence: "manifest-name", sourceId: "cache", path: "/cache/market/demo/1.0.0", configId: "demo@market" }] },
+  );
+  assert.equal(r.desired.plugins["demo@market"], false);
+});
+
+test("a prototype-key selector is rejected instead of silently ignored", () => {
+  assert.throws(
+    () => resolveProfile({ plugins: { enable: ["__proto__"], disable: [], disableFamilies: [] }, skills: {}, mcps: {}, apps: {} }, { plugins: [], skills: [], hardQuarantine: [] }),
+    /invalid profile selector/,
+  );
+});

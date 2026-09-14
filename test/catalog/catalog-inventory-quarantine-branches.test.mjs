@@ -95,6 +95,7 @@ test("inventoryCapabilities quarantines a plugin by manifest name", async () => 
         evidence: "manifest-name",
         sourceId: "cache",
         path: path.join(root, "market", "demo", "1.0.0"),
+        configId: "demo@market",
       },
     ]);
   });

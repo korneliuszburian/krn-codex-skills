@@ -47,3 +47,9 @@ test("isHardQuarantined matches the fixed family list", () => {
   assert.equal(isHardQuarantined("superpowers@market"), true);
   assert.equal(isHardQuarantined("demo@market"), false);
 });
+
+test("reserved prototype names are unknown profiles, not inherited members", () => {
+  const load = () => JSON.parse(readFileSync("config/capability-profiles.json", "utf8"));
+  assert.throws(() => getCapabilityProfile(load(), "__proto__"), /Unknown capability profile/);
+  assert.throws(() => getCapabilityProfile(load(), "constructor"), /Unknown capability profile/);
+});
