@@ -75,6 +75,19 @@ test("directAssignments reads dotted keys so an unknown managed key is rejected"
   assert.deepEqual([...directAssignments(document, block).keys()], ["enabled.x"]);
 });
 
+test("a nested array element is not a phantom table header", () => {
+  const source = '[mcp_servers.demo]\ncommand = "npx"\nargs = [\n  ["-y"],\n]\nenabled = false\n';
+  const doc = parseDocument(source);
+  const mcp = doc.blocks.filter((block) => block.kind === "mcp");
+  assert.equal(mcp.length, 1, JSON.stringify(doc.blocks.map((block) => block.kind)));
+  assert.deepEqual([...directAssignments(doc, mcp[0]).keys()], ["command", "args", "enabled"]);
+});
+
+test("a fully quoted dotted root key is not a managed assignment", () => {
+  assert.doesNotThrow(() => parseDocument('"plugins.x" = 1\n'));
+  assert.throws(() => parseDocument("plugins.x = 1\n"), /Managed TOML owners must use supported table syntax/);
+});
+
 test("directAssignments ignores multi-line array elements", () => {
   const source = '[mcp_servers.context7]\ncommand = "npx"\nargs = [\n    "-y",\n    "--transport=stdio",\n]\nenabled = false\n';
   const document = parseDocument(source);

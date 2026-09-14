@@ -9,6 +9,17 @@ import { scanCatalogUsage } from "../../scripts/lib/catalog/catalog-usage.mjs";
 
 const line = (value) => `${JSON.stringify(value)}\n`;
 
+test("a missing sessions root is unobserved, not evidence of non-use", async () => {
+  const report = await scanCatalogUsage({
+    sessionsRoot: path.join(tmpdir(), "krn-usage-missing-root-does-not-exist"),
+    canonicalSkillPaths: [],
+    sinceDay: "2026-01-01",
+    nowMs: Date.parse("2026-01-10T00:00:00.000Z"),
+  });
+  assert.equal(report.scanned_files, 0);
+  assert.equal(report.coverage.absence_means_unused, false);
+});
+
 test("scanCatalogUsage reads dated rollout evidence end to end", async () => {
   const root = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-usage-")));
   try {

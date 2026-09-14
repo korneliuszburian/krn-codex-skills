@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { isInside, isSafeRelativePath as safeRelativePath } from "../support/path-rules.mjs";
 import { readJson } from "../support/read-json.mjs";
-import { parseAssignment, parseDocument, parseDottedHeaderKey, parseTomlString, splitHeader } from "../catalog/catalog-toml.mjs";
+import { bracketDelta, parseAssignment, parseDocument, parseDottedHeaderKey, parseTomlString, splitHeader } from "../catalog/catalog-toml.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
@@ -472,24 +472,6 @@ function tomlBoolean(value) {
   if (token === "true") return true;
   if (token === "false") return false;
   return null;
-}
-
-function bracketDelta(line) {
-  let depth = 0;
-  let quote = null;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (quote) {
-      if (quote === "\"" && char === "\\") index += 1;
-      else if (char === quote) quote = null;
-      continue;
-    }
-    if (char === "\"" || char === "'") quote = char;
-    else if (char === "#") break;
-    else if (char === "[") depth += 1;
-    else if (char === "]") depth -= 1;
-  }
-  return depth;
 }
 
 function topLevelEquals(part) {

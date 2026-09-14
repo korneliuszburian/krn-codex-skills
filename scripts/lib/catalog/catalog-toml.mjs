@@ -238,13 +238,16 @@ export function parseDocument(source) {
   const lines = splitLines(source);
   const headers = [];
   const insideMultiline = [];
+  const insideArray = [];
   let insideTable = false;
   let multiline = null;
+  let arrayDepth = 0;
 
   for (let index = 0; index < lines.length; index += 1) {
     const content = lines[index].content;
     insideMultiline[index] = multiline !== null;
-    if (multiline === null) {
+    insideArray[index] = arrayDepth > 0;
+    if (multiline === null && arrayDepth === 0) {
       const header = parseHeader(content);
       if (header) {
         insideTable = true;
@@ -255,6 +258,16 @@ export function parseDocument(source) {
           { code: "CONFIG_AMBIGUOUS_MANAGED_ASSIGNMENT" },
         );
       }
+    }
+    if (multiline === null) {
+      const delta = bracketDelta(content);
+      if (delta !== 0) arrayDepth = Math.max(0, arrayDepth + delta);
+    } else if (!insideMultiline[index + 1]) {
+      // The multi-line string closed on this line; count any brackets after it.
+      const closer = multiline === "\"\"\"" ? content.indexOf("\"\"\"") : content.indexOf("'''");
+      const tail = closer === -1 ? "" : content.slice(closer + 3);
+      const delta = bracketDelta(tail);
+      if (delta !== 0) arrayDepth = Math.max(0, arrayDepth + delta);
     }
     multiline = advanceMultilineState(content, multiline);
   }
@@ -274,7 +287,27 @@ export function parseDocument(source) {
   });
 
   const eol = lines.find((line) => line.eol !== "")?.eol ?? "\n";
-  return { source, lines, blocks, eol, insideMultiline };
+  return { source, lines, blocks, eol, insideMultiline, insideArray };
+}
+
+// Bracket balance outside strings and comments; a table header line balances to
+// zero, so only multi-line array bodies move the depth.
+export function bracketDelta(line) {
+  let depth = 0;
+  let quote = null;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (quote) {
+      if (quote === "\"" && char === "\\") index += 1;
+      else if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "\"" || char === "'") quote = char;
+    else if (char === "#") break;
+    else if (char === "[") depth += 1;
+    else if (char === "]") depth -= 1;
+  }
+  return depth;
 }
 
 function looksLikeManagedRootAssignment(content) {
@@ -310,9 +343,10 @@ function looksLikeManagedRootAssignment(content) {
 
   const keySource = trimmed.slice(0, assignmentIndex).trimEnd();
   const segments = parseDottedHeaderKey(keySource);
-  if (segments && ["plugins", "mcp_servers", "skills"].includes(segments[0])) {
-    return true;
-  }
+  // A parsed key decides ownership by its first segment; a fully-quoted single
+  // key (`"plugins.x" = 1`) is a literal root key, not the managed table. Keep
+  // fail-closed only for malformed keys that do not parse.
+  if (segments) return ["plugins", "mcp_servers", "skills"].includes(segments[0]);
   return looksLikeManagedOwner(keySource);
 }
 
@@ -344,7 +378,7 @@ export function directAssignments(document, block) {
     index < block.endLineIndex;
     index += 1
   ) {
-    if (document.insideMultiline?.[index]) continue;
+    if (document.insideMultiline?.[index] || document.insideArray?.[index]) continue;
     const key = parseAssignmentKey(document.lines[index].content);
     if (key === undefined) continue;
     const entries = assignments.get(key) ?? [];

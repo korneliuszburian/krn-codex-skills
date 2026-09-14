@@ -120,7 +120,8 @@ export async function scanCatalogUsage({
     },
   };
   if (!present) {
-    report.coverage.absence_means_unused = true;
+    // A missing sessions root is unobserved, never evidence of non-use.
+    report.coverage.absence_means_unused = false;
     return { aggregates: finalAggregates(aggregates), ...report };
   }
 
