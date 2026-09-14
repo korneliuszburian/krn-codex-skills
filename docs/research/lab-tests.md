@@ -254,26 +254,10 @@ modelID=<m>`; the runner now extracts it, prints `served_model=`, fails closed a
 are structure-matched, and the neutral stratum needs a larger sample. (`gpt-6-astra`
 is reserved for the single creative escalation, not a lab family.)
 
-The family/transport rule above is executable, not prose-only:
-`scripts/lib/evaluation/lt5-admissibility.mjs` is the canonical machine-checked
-owner of the authorized pairs (this row and the quarantine notes keep the same
-tuple set only as narrative; edit `AUTHORIZED_FAMILIES` when the rule moves). A
-record is built from the runner's `providerID=<p> modelID=<m>` line with
-`recordFromRun`, which derives the transport from `providerID`
-(`opencode-go`→`opencode`, `codex`→`codex`) instead of trusting a caller label,
-so `providerID=opencode-go modelID=gpt-5.6-luna` stays unauthorized; a record must
-carry its `provider` and the module rejects any whose `transport` disagrees with
-it, so a hand-built `codex` label over an `opencode-go` provider cannot pass. The
-isolation tokens (`no`/`YES`) are normalized to booleans; and
-`partitionAdmissible` drops inadmissible records before pooling and, when given a
-target `{designation, family}`, also rejects a calibration row or a second family
-so a confirmation pool cannot absorb them. Bounded: this
-boundary checks family/transport, `designation`, and the isolation flags only —
-it does not verify fixture/answer hashes, a runner or codex package pin, the
-bwrap version, or decider blinding, which stay the aggregator's preconditions
-(reopen when the aggregator is built). The aggregator and promotion review must
-reject any record this module rejects before pooling, so a luna record on the
-opencode transport or any `gpt-6-astra` lab record cannot enter the estimand.
+The family/transport rule above is prose in this page and was made executable by
+`scripts/lib/evaluation/lt5-admissibility.mjs`; that instrument was retired (no
+consumer) and the rule now lives here and in `docs/prd/0002`/`0003` as the design
+of record, to be re-implemented together with the aggregator when the lab runs.
 
 Quarantined wrong-transport run (2026-09-14, `opencode-go/gpt-5.6-luna` **via the
 opencode runner**, which is not the authorized transport for luna): four tasks ×
@@ -346,63 +330,14 @@ forced-reconstruction prompt is a proxy for the registered git-shim
 rather than neutral; the neutral is one task with an interior but possibly
 task-specific arm-A rate; and the runs are one model family with N=3.
 
-## Judge sensitivity (blind mutations)
+## Retired measurement tooling
 
-A judge round that returns `NO FINDINGS` is not evidence the harness is clean
-until the swarm's detection rate is measured. `scripts/lib/evaluation/blind-mutations.mjs`
-is the single owner of that measurement: given a set of seeded mutants, matched
-clean controls, and the judge's per-id verdicts, `scoreVerdicts` counts a missed
-mutant as a false negative and a fault reported on a clean control as a false
-positive, and `summarizeSensitivity` fails a round whose sensitivity is unmeasured
-or below the declared floor. Bounded: only the scorer is landed; the seeded
-mutant/control manifest and the key-hiding replay harness are not, so the current
-clean rounds remain unmeasured (open in `docs/prd/0001-blind-mutation-evaluation.md`).
-
-## Cost-paired measurement
-
-`scripts/lib/evaluation/cost-paired.mjs` is the single owner of the cost axis
-(`docs/prd/0004`): `costPaired` reports tokens and cost per held-out success per
-arm, pairs the token and pass delta within each task rather than differencing arm
-means, and flags a run without captured tokens as unmeasured instead of counting it
-as zero cost. Cost is never inferred from context length. Bounded: only the
-grouping/paired arithmetic is landed; no live run or model call feeds it yet.
-
-## LT-1 scale-up manifest
-
-`scripts/lib/evaluation/lt1-fixtures.mjs` (`docs/prd/0005`) validates the
-reproducible LT-1 scale-up manifest: every task needs a retained fixture hash and
-answer-key hash, a decisive task needs at least three planned reps and a matched
-neutral partner, an answer key inside an agent-readable bind is rejected, and the
-placebo must be length-matched and already satisfied. Bounded: only the manifest
-check is landed; no fixture set is authored or run here.
-
-## LT-5 power simulation
-
-`scripts/lib/evaluation/lt5-power.mjs` (`docs/prd/0002`) simulates the registered
-paired-binary, task-clustered design with a seeded generator and reports the power
-and null-rejection rate at a one-sided threshold. Repetitions shrink within-task
-noise but add no independent task: `clustersFor` is the task count and never grows
-with reps, so repeated measures cannot inflate the effective sample size. Bounded:
-the simulation sizes a design; it does not run LT-5 or fix the confirmation N.
-
-## LT-5 fixture mechanism diversity
-
-`scripts/lib/evaluation/lt5-fixtures.mjs` (`docs/prd/0003`) validates the
-mechanism-distinct fixture manifest: each decisive task declares a dependency
-mechanism that no other decisive task reuses, its gold passes and the
-requested change fails solely on the omitted dependency, each has a matched
-neutral that returns zero trigger hits, every fixture and answer key is hashed and
-kept outside an agent-readable bind, and the placebo is already satisfied. Bounded:
-only the manifest check is landed; no fixture set is authored or run here.
-
-## Deferred measurement tooling
-
-The evaluation instruments described above (`blind-mutations`, `cost-paired`,
-`lt1-fixtures`, `lt5-admissibility`, `lt5-fixtures`, `lt5-power`) have no runtime
-or dev-gate consumer; their disposal is delegated in
-`docs/prd/0006-retire-evaluation-instruments.md`. Until it lands, treat their
-booleans as declarations, not verified evidence, and treat the sections above as
-the design of record rather than an operating pipeline.
+The evaluation instruments (`blind-mutations`, `cost-paired`, `lt1-fixtures`,
+`lt5-admissibility`, `lt5-fixtures`, `lt5-power`) had no runtime or dev-gate
+consumer, so they were retired to cut mass while keeping the guarantee. Their
+designs remain as specs in `docs/prd/0001`–`0005`; re-implement them behind a
+named lab consumer, not ahead of it, and treat the recorded booleans as design
+intent rather than verified evidence.
 
 ## Decision
 
