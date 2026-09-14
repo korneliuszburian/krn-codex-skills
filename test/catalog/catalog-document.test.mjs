@@ -8,9 +8,11 @@ import {
   assertSingleBlock,
   indexNamedBlocks,
   parseEnabled,
+  parseSkillPath,
   quoteToml,
   removeBlock,
   setEnabled,
+  skillPathContainsQuarantine,
 } from "../../scripts/lib/catalog/catalog-document.mjs";
 import { parseDocument } from "../../scripts/lib/catalog/catalog-toml.mjs";
 
@@ -188,4 +190,14 @@ test("removeBlock drops the block's own leading comment", () => {
   const ops = [];
   removeBlock({ document: parseDocument(src), block: blockFor(src, "mcp", "b"), allowedKeys: MCP_SERVER_KEYS, target: "b", resource: "mcp", reason: "t", operations: ops, actions: [] });
   assert.equal(applyOperations(src, ops), '[mcp_servers.a]\ncommand = "x"\n');
+});
+
+test("quarantine is checked on the raw path before normalization", () => {
+  const src = '[[skills.config]]\npath = "/safe/badfamily/../okay/SKILL.md"\nenabled = true\n';
+  const doc = parseDocument(src);
+  const block = doc.blocks.find((b) => b.kind === "skill");
+  const normalized = parseSkillPath(doc, block);
+  assert.equal(normalized, "/safe/okay/SKILL.md");
+  assert.equal(skillPathContainsQuarantine(doc, block, normalized, ["badfamily"]), true);
+  assert.equal(skillPathContainsQuarantine(doc, block, normalized, ["cleanfam"]), false);
 });

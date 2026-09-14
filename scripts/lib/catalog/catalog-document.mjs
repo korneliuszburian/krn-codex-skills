@@ -110,17 +110,18 @@ export function parseSkillPath(document, block) {
 }
 
 export function skillPathContainsQuarantine(document, block, skillPath, families) {
-  if (skillPath !== undefined) return matchesQuarantined(skillPath, families);
-
-  // If the path is malformed, inspect only its lexical assignment rather than
-  // comments or unrelated lines in the block. The caller will then fail closed
-  // without touching the referenced filesystem path.
+  // Inspect the decoded source path before normalization: `/x/badfamily/../ok/SKILL.md`
+  // traverses a quarantined family but normalizes it away, so the lexical check
+  // must run on the raw value in both the existing-config and desired-config paths.
   const pathLines = directAssignments(document, block).get("path") ?? [];
-  return pathLines.some((lineIndex) => {
+  const rawQuarantined = pathLines.some((lineIndex) => {
     const content = document.lines[lineIndex].content;
     const value = (parseAssignment(content)?.value ?? "").toLowerCase();
     return matchesQuarantined(value, families);
   });
+  if (rawQuarantined) return true;
+  if (skillPath !== undefined) return matchesQuarantined(skillPath, families);
+  return false;
 }
 
 const isCommentLine = (document, index) =>
