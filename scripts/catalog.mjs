@@ -164,6 +164,12 @@ function usageStateContract(result) {
       through_day: result.coverage.through_day,
     },
     evidence_incomplete: droppedCandidates > 0,
+    dropped_evidence: {
+      malformed_lines: result.malformed_lines,
+      oversized_candidate_lines: result.coverage.oversized_candidate_lines || 0,
+      records_without_usable_date: result.coverage.records_without_usable_date || 0,
+      skipped_files_before_window: result.coverage.skipped_files_before_window || 0,
+    },
     ...externalStateBoundary(),
     optional_capabilities: Object.entries(OPTIONAL_CAPABILITY_PATTERNS).map(
       ([capability, pattern]) => {

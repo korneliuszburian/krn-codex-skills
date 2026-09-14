@@ -175,6 +175,7 @@ test("skipping a pre-window rollout file marks the evidence incomplete", () => {
     const report = JSON.parse(result.stdout);
     assert.equal(report.coverage.skipped_files_before_window, 1);
     assert.equal(report.capability_states.evidence_incomplete, true);
+    assert.equal(report.capability_states.dropped_evidence.skipped_files_before_window, 1);
   } finally {
     rmSync(base, { recursive: true, force: true });
   }
