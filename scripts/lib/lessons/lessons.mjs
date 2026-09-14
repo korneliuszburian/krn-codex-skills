@@ -17,17 +17,32 @@ export function parseLessonText(text) {
   const rows = [];
   const malformed = [];
   let headerColumns = null;
+  let fenced = false;
+  const splitLessonCells = (row) => {
+    const cells = [];
+    let current = "";
+    for (let index = 0; index < row.length; index += 1) {
+      const char = row[index];
+      if (char === "\\" && row[index + 1] === "|") { current += "|"; index += 1; continue; }
+      if (char === "|") { cells.push(current); current = ""; continue; }
+      current += char;
+    }
+    cells.push(current);
+    return cells.map((cell) => cell.trim());
+  };
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
+    if (/^(?:```|~~~)/.test(trimmed)) { fenced = !fenced; continue; }
+    if (fenced) continue;
     if (!trimmed.startsWith("|")) continue;
     if (/^\|[\s:|-]*-{1,}[\s:|-]*\|?$/.test(trimmed)) continue;
     if (/^\|\s*lesson\s*\|\s*evidence\s*\|/i.test(trimmed)) {
-      headerColumns = trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|").length;
+      headerColumns = splitLessonCells(trimmed.replace(/^\|/, "").replace(/\|$/, "")).length;
       continue;
     }
     const body = trimmed.startsWith("|") ? trimmed.slice(1) : trimmed;
     const inner = body.endsWith("|") ? body.slice(0, -1) : body;
-    const cells = inner.split("|").map((cell) => cell.trim());
+    const cells = splitLessonCells(inner);
     if (cells.length < 3 || cells.length > 7 || cells.slice(0, 3).some((cell) => cell === "")) {
       malformed.push(line);
       continue;

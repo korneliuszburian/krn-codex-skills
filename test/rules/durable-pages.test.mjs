@@ -124,3 +124,12 @@ test("a missing durable page is a first-class error, not a crash", () => {
   assert.ok(report.errors.some((error) => error.includes("docs/capabilities.md: missing")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a titled Topics link is accepted", () => {
+  const root = makeRoot({
+    topicsRows: '| T | [topic.md](topic.md "state") | state | reopen |\n| C | [capabilities.md](../capabilities.md) | state | reopen |\n| M | [migration.md](../migration.md) | state | reopen |\n',
+  });
+  const errors = checkDurablePages({ root }).errors;
+  assert.ok(!errors.some((error) => error.includes("topic is missing")), JSON.stringify(errors));
+  rmSync(root, { recursive: true, force: true });
+});

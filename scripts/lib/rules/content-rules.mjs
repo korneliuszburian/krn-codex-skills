@@ -2,7 +2,7 @@ export function unfencedLines(content) {
   const lines = [];
   let fenced = false;
   for (const [index, line] of content.split("\n").entries()) {
-    if (/^\s*```/.test(line)) {
+    if (/^\s*(?:```|~~~)/.test(line)) {
       fenced = !fenced;
       continue;
     }
@@ -14,9 +14,20 @@ export function unfencedLines(content) {
 export function markdownLinkErrors(content, { label, resolveTarget }) {
   const errors = [];
   for (const { line, number } of unfencedLines(content)) {
-    for (const match of line.replace(/`[^`]*`/g, " ").matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
-      let target = match[1].trim().split(/\s+"/)[0];
-      if (/^<.*>$/.test(target)) target = target.slice(1, -1);
+    for (const match of line.replace(/`[^`]*`/g, " ").matchAll(/\[[^\]]*\]\(((?:[^()\\]|\\.|\([^()]*\))*)\)/g)) {
+      const raw = match[1].trim();
+      let target;
+      if (raw.startsWith("<")) {
+        const close = raw.indexOf(">");
+        target = close === -1 ? raw.slice(1) : raw.slice(1, close);
+      } else {
+        let end = raw.length;
+        for (let index = 0; index < raw.length; index += 1) {
+          if (raw[index] === "\\") { index += 1; continue; }
+          if (/\s/.test(raw[index])) { end = index; break; }
+        }
+        target = raw.slice(0, end).replace(/\\(["'() ])/g, "$1");
+      }
       if (!target || target.startsWith("#") || /^[a-z][a-z+.-]*:/i.test(target)) {
         continue;
       }

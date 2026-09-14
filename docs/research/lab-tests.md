@@ -278,8 +278,10 @@ neutral]` on paired binary held-out outcomes, paired within task/repetition bloc
 averaged within tasks with equal task weights, and a two-sided 95% CI under
 task-clustered small-sample inference; B-A is secondary and C is omitted; arms are
 randomized within every block. Conditional planning N for `theta*=0.25`, alpha=.05,
-80% power, three reps, ICC<=.20 (DE=1.4), and the calibration discordances
-`q_D=11/12`, `q_N in [1/12,3/12]`: about
+80% power, three reps, ICC<=.20 (DE=1.4), and **hypothetical** discordances
+`q_D`, `q_N` chosen independently of the quarantined runs (the only authorized
+calibration, deepseek, is at ceiling, so it yields `q_D=0` and no finite N); with
+the illustrative `q_D=11/12`, `q_N in [1/12,3/12]` the formula gives about
 `(1.96+0.842)^2*(11/12+3/12)/0.25^2*1.4 ~= 206` pairs per stratum, i.e. about 69
 tasks per stratum with three reps (~1,242 A/B/P executions); this is a planning
 candidate, not established power, and the final N is frozen only after a

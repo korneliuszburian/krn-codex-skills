@@ -6,7 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { checkLessons, lessonUsage, parseLessons, recallBindings, recallLessons, recallLines } from "../../scripts/lib/lessons/lessons.mjs";
+import { checkLessons, lessonUsage, parseLessons, parseLessonText, recallBindings, recallLessons, recallLines } from "../../scripts/lib/lessons/lessons.mjs";
 
 function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "krn-lessons-"));
@@ -633,4 +633,12 @@ test("a retired row cannot keep a bare or multi-word gate reference", () => {
     assert.ok(report.errors.some((error) => error.includes("retired with a live gate")), `${gate} => ${JSON.stringify(report.errors)}`);
   }
   rmSync(root, { recursive: true, force: true });
+});
+
+test("parseLessonText honors escaped pipes and ignores fenced rows", () => {
+  const text = "| Lesson | Evidence | Enforced by |\n|---|---|---|\n| A \\| B | probe | `test:state` |\n```\n| X | Y | Z |\n```\n";
+  const { rows, malformed } = parseLessonText(text);
+  assert.deepEqual(malformed, []);
+  assert.equal(rows.length, 1, JSON.stringify(rows));
+  assert.equal(rows[0].lesson, "A | B");
 });

@@ -14,6 +14,8 @@ const HEADER_RULES = [
 
 export function checkDurablePages({ root }) {
   const errors = [];
+  const linksTarget = (text, target) =>
+    new RegExp(`\\]\\(\\s*<?${escapeRegExp(target)}(?:[#?][^)\\s]*)?\\s*(?:"[^"]*"|'[^']*')?\\s*>?\\s*\\)`).test(text);
   const relative = (file) => posixRelative(root, file);
   const header = (file) => {
     const text = fs.readFileSync(file, "utf8").split("\n## ")[0];
@@ -49,7 +51,7 @@ export function checkDurablePages({ root }) {
         errors.push(`${relative(topic)}:${index + 1}: a non-fenced line is ${line.length} characters; keep run ledgers out of durable pages`);
       }
     });
-    if (!topicsSection.includes(`](${entry.name})`)) {
+    if (!linksTarget(topicsSection, entry.name)) {
       errors.push(`${relative(topic)}: topic is missing from docs/research/README.md Topics`);
     }
   }
@@ -100,8 +102,8 @@ export function checkDurablePages({ root }) {
       for (const entry of adrEntries) {
         const escaped = escapeRegExp(entry.name);
         const target = `(?:\\./)?docs/adr/${escaped}`;
-        const inline = new RegExp(`(?<!\\\\)\\[[^\\]]*\\]\\(\\s*<?${target}(?:[#?][^)\\s]*)?\\s*(?:"[^"]*")?\\s*>?\\s*\\)`);
-        const reference = new RegExp(`^\\s*\\[[^\\]]+\\]:\\s*<?${target}(?:[#?][^\\s>]*)?>?\\s*$`, "m");
+        const inline = new RegExp(`(?<!\\\\)\\[[^\\]]*\\]\\(\\s*<?${target}(?:[#?][^)\\s]*)?\\s*(?:"[^"]*"|'[^']*')?\\s*>?\\s*\\)`);
+        const reference = new RegExp(`^\\s*\\[[^\\]]+\\]:\\s*<?${target}(?:[#?][^\\s>]*)?>?\\s*(?:"[^"]*"|'[^']*')?\\s*$`, "m");
         if (!inline.test(context) && !reference.test(context)) {
           errors.push(`docs/adr/${entry.name}: accepted decision is not linked from CONTEXT.md`);
         }
@@ -131,7 +133,7 @@ export function checkDurablePages({ root }) {
     } else {
       header(absolute);
     }
-    if (!topicsSection.includes(`](${target})`)) {
+    if (!linksTarget(topicsSection, target)) {
       errors.push(`docs/research/README.md Topics is missing ${target}`);
     }
   }

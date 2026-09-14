@@ -124,3 +124,19 @@ test("inline code links and self-closing or void tags are not errors", () => {
   assert.deepEqual(errors, []);
   assert.deepEqual(semanticXmlErrors("<br />\n<img src=\"x\">\n<hr>\n", "f.md"), []);
 });
+
+test("unfencedLines and markdownLinkErrors handle ~~~ fences and titled links", () => {
+  assert.deepEqual(unfencedLines("a\n~~~\nb\n~~~\nc").map((entry) => entry.line), ["a", "c"]);
+  assert.deepEqual(
+    markdownLinkErrors("~~~\n[x](missing.md)\n~~~\n", { label: "f.md", resolveTarget: () => false }),
+    [],
+  );
+  assert.deepEqual(
+    markdownLinkErrors("[x](a.md 'title')", { label: "f.md", resolveTarget: (target) => target === "a.md" }),
+    [],
+  );
+  assert.deepEqual(
+    markdownLinkErrors("[x](a(b).md)", { label: "f.md", resolveTarget: (target) => target === "a(b).md" }),
+    [],
+  );
+});
