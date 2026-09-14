@@ -202,7 +202,9 @@ export function auditRepository(root) {
     }
   }
 
+  const runtimeSet = new Set(runtime);
   const dynamicTargets = new Set();
+  const productionDynamic = new Set();
   const starTargets = new Set();
   const edgesByImporter = new Map();
   for (const [file, rawSource] of sources) {
@@ -212,6 +214,7 @@ export function auditRepository(root) {
       const target = resolve(dirname(file), edge.specifier);
       if (edge.dynamic) {
         dynamicTargets.add(target);
+        if (runtimeSet.has(file)) productionDynamic.add(target);
         continue;
       }
       const { names, star } = clauseNames(edge.clause);
@@ -228,6 +231,9 @@ export function auditRepository(root) {
   const isImported = (file) =>
     dynamicTargets.has(file) ||
     [...edgesByImporter].some(([importer, edges]) => importer !== file && edges.has(file));
+  const productionImported = (file) =>
+    productionDynamic.has(file) ||
+    [...edgesByImporter].some(([importer, edges]) => runtimeSet.has(importer) && importer !== file && edges.has(file));
   const consumedIn = (file, name) =>
     starTargets.has(file) ||
     dynamicTargets.has(file) ||
@@ -300,6 +306,7 @@ export function auditRepository(root) {
   for (const file of runtime.filter((candidate) => label(candidate).startsWith(`scripts${sep}lib${sep}`))) {
     if (isSelf(file)) continue;
     if (!isImported(file)) errors.push(`${label(file)}: lib file is never imported`);
+    else if (!productionImported(file)) info.push(`${label(file)}: no production consumer (reachable only from tests)`);
   }
 
   return { errors: [...new Set(errors)], info: [...new Set(info)] };

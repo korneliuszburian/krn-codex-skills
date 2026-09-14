@@ -371,3 +371,17 @@ test("a duplicate body behind destructured parameters is still reported", () => 
     },
   );
 });
+
+test("a module reachable only from tests is reported separately from the hard rule", () => {
+  withRepo(
+    {
+      "scripts/lib/zombie.mjs": "export function z() { return 1; }\n",
+      "test/zombie.test.mjs": 'import { z } from "../scripts/lib/zombie.mjs";\nexport const v = z();\n',
+    },
+    (root) => {
+      const { errors, info } = auditRepository(root);
+      assert.ok(!errors.some((message) => message.includes("zombie.mjs: lib file is never imported")), JSON.stringify(errors));
+      assert.ok(info.some((message) => message.includes("zombie.mjs: no production consumer")), JSON.stringify(info));
+    },
+  );
+});
