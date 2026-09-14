@@ -56,3 +56,28 @@ test("apply fails closed and restores current when the installed CLI cannot star
     fs.rmSync(base, { recursive: true, force: true, maxRetries: 50, retryDelay: 100 });
   }
 });
+
+test("the CLI rejects a duplicate single-valued option", () => {
+  const cli = path.join(sourceRoot, "scripts", "krn-codex.mjs");
+  const duplicate = spawnSync(process.execPath, [cli, "install", "plan", "--source", sourceRoot, "--source", sourceRoot], { encoding: "utf8" });
+  assert.equal(duplicate.status, EXIT_CODES.USAGE);
+  assert.match(duplicate.stderr, /duplicate option: --source/);
+});
+
+test("an unconfirmed install apply does not run the source validator", () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-confirm-"));
+  const copy = path.join(base, "source");
+  fs.mkdirSync(copy);
+  const archive = execFileSync("git", ["-C", sourceRoot, "archive", "HEAD"], { maxBuffer: 64 * 1024 * 1024 });
+  execFileSync("tar", ["-x", "-C", copy], { input: archive });
+  execFileSync("git", ["-C", copy, "init", "-q"]);
+  fs.writeFileSync(path.join(copy, "scripts", "validate.mjs"), 'import { writeFileSync } from "node:fs";\nwriteFileSync(process.env.KRN_MARKER, "ran");\n');
+  execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "add", "-A"]);
+  execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", "marker validator"]);
+  const marker = path.join(base, "marker");
+  const result = spawnSync(process.execPath, [path.join(sourceRoot, "scripts", "krn-codex.mjs"), "install", "apply", "--source", copy], { encoding: "utf8", env: { ...process.env, KRN_MARKER: marker } });
+  assert.equal(result.status, EXIT_CODES.USAGE);
+  assert.match(result.stderr, /requires --yes/);
+  assert.equal(fs.existsSync(marker), false, "the source validator must not run before confirmation");
+  fs.rmSync(base, { recursive: true, force: true });
+});

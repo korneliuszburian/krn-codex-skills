@@ -22,8 +22,13 @@ export function splitLines(source) {
 const SIMPLE_ESCAPES = { b: "\b", t: "\t", n: "\n", f: "\f", r: "\r", "\"": "\"", "\\": "\\" };
 
 export function parseTomlString(token, target) {
-  if (token.startsWith("'")) return token.slice(1, -1);
-  if (!token.startsWith("\"") || !token.endsWith("\"")) {
+  if (token.startsWith("'")) {
+    if (token.length < 2 || !token.endsWith("'")) {
+      throw new ConfigReconcileError(`Invalid TOML string for ${target}`, { target });
+    }
+    return token.slice(1, -1);
+  }
+  if (token.length < 2 || !token.startsWith("\"") || !token.endsWith("\"")) {
     throw new ConfigReconcileError(`Invalid TOML string for ${target}`, { target });
   }
   const body = token.slice(1, -1);
@@ -124,7 +129,7 @@ export function parseDottedHeaderKey(inner) {
         }
         index += 1;
       }
-      if (inner[index - 1] !== quote) return undefined;
+      if (index - 1 <= start || inner[index - 1] !== quote) return undefined;
       token = inner.slice(start, index);
     } else {
       const match = inner.slice(index).match(/^[A-Za-z0-9_-]+/);
@@ -201,10 +206,11 @@ export function parseHeader(content) {
     return { kind: "other" };
   }
   if (owner === "skills") {
-    if (header.array && segments.length === 2 && id === "config") {
-      return { kind: "skill" };
+    if (header.array) {
+      if (segments.length === 2 && id === "config") return { kind: "skill" };
+      ambiguousManagedHeader();
     }
-    ambiguousManagedHeader();
+    return { kind: "other" };
   }
 
   return { kind: "other" };

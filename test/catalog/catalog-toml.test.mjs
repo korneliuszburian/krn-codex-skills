@@ -178,3 +178,18 @@ test("parseAssignment reads key, prefix, and value", () => {
   });
   assert.equal(parseAssignment("# comment"), undefined);
 });
+
+test("parseTomlString rejects an unterminated literal and a lone quote", () => {
+  assert.throws(() => parseTomlString("'unterminated", "x"), /Invalid TOML string for x/);
+  assert.throws(() => parseTomlString('"', "x"), /Invalid TOML string for x/);
+  assert.throws(() => parseTomlString("'", "x"), /Invalid TOML string for x/);
+  assert.equal(parseTomlString("'ok'", "x"), "ok");
+  assert.equal(parseDottedHeaderKey('"'), undefined);
+});
+
+test("a bare [skills] table is unmanaged, unlike an ambiguous managed header", () => {
+  assert.deepEqual(parseHeader("[skills]"), { kind: "other" });
+  assert.deepEqual(parseHeader("[skills.other]"), { kind: "other" });
+  assert.deepEqual(parseHeader("[[skills.config]]"), { kind: "skill" });
+  assert.throws(() => parseHeader("[[skills.other]]"), /Ambiguous managed TOML table header/);
+});

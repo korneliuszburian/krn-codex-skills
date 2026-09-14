@@ -49,22 +49,26 @@ function parseOptions(args) {
     if (value === undefined || value === "" || value.startsWith("--")) fail(`${flag} requires a value`);
     return value;
   };
+  const setOnce = (key, flag, value) => {
+    if (options[key] !== undefined) fail(`duplicate option: ${flag}`);
+    options[key] = value;
+  };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--json") options.json = true;
     else if (arg === "--yes") options.yes = true;
     else if (arg === "--before") options.before = true;
     else if (arg === "--strict-recall") options.strictRecall = true;
-    else if (arg === "--source") options.source = take(index++, "--source");
-    else if (arg === "--root") options.root = take(index++, "--root");
-    else if (arg === "--base") options.base = take(index++, "--base");
+    else if (arg === "--source") setOnce("source", "--source", take(index++, "--source"));
+    else if (arg === "--root") setOnce("root", "--root", take(index++, "--root"));
+    else if (arg === "--base") setOnce("base", "--base", take(index++, "--base"));
     else if (arg === "--changed") {
       options.changed = [...(options.changed ?? []), ...take(index++, "--changed").split(",").map((entry) => entry.trim()).filter(Boolean)];
     } else if (arg === "--symbol") {
       options.symbols = [...(options.symbols ?? []), ...take(index++, "--symbol").split(",").map((entry) => entry.trim()).filter(Boolean)];
-    } else if (arg === "--keep") options.keep = take(index++, "--keep");
-    else if (arg === "--head") options.head = take(index++, "--head");
-    else if (arg === "--upstream") options.upstream = take(index++, "--upstream");
+    } else if (arg === "--keep") setOnce("keep", "--keep", take(index++, "--keep"));
+    else if (arg === "--head") setOnce("head", "--head", take(index++, "--head"));
+    else if (arg === "--upstream") setOnce("upstream", "--upstream", take(index++, "--upstream"));
     else if (arg.startsWith("--")) fail(`unknown option: ${arg}`);
     else positional.push(arg);
   }
@@ -237,11 +241,11 @@ try {
       print(pruneReleases({ keep }), options.json);
     } else if (command === "plan" || command === "apply") {
       rejectForeignOptions(options, command === "apply" ? ["source", "yes"] : ["source"]);
+      if (command === "apply" && !options.yes) fail("install apply requires --yes");
       const plan = createInstallPlan({ source: options.source, cwd: process.cwd() });
       if (command === "plan") {
         print({ source: plan.source, commit: plan.commit, release: plan.release, runtimePaths: plan.runtimePaths }, options.json);
       } else {
-        if (!options.yes) fail("install apply requires --yes");
         const applied = applyInstall(plan);
         print({ commit: applied.commit, release: applied.release, current: applied.current, backup: applied.backup, idempotent: applied.idempotent }, options.json);
       }
