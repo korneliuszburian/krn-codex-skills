@@ -5,7 +5,7 @@ Status: `accepted`. Consumer: `$delivery-loop` at outcome bind. Owner: the lifec
 Cross-run workflow memory: the file-backed port of the Agents SDK `Memory()`
 pattern. Each row is a reusable process lesson with the evidence that earned it
 and the gate or owner that enforces it; case-specific findings stay in reviewed
-artifacts. Bounded at 24 rows: displace or condense before adding.
+artifacts. Bounded at 24 rows: displace before adding (add the replacement row, then retire the displaced row with `retired@<sha>`); a reworded row reads as a deletion to `lesson-shrinkage`, which preserves exact prose against context collapse.
 
 Each row may carry a fourth `Occurrences` column of `YYYY-MM-DD@<7-hex>`
 tokens naming each witnessed instance. Two or more occurrences whose gate is not

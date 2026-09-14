@@ -248,7 +248,7 @@ export function lessonStructureFindings({ root }) {
   for (const [trigger, owners] of triggerOwners) {
     if (owners.length > 1) findings.push({ rule: "duplicate-trigger", message: `lessons ${owners.map((owner) => `"${owner}"`).join(" and ")} share trigger ${trigger}` });
   }
-  if (activeRows.length > budget) findings.push({ rule: "over-budget-active", message: `workflow-lessons.md exceeds ${budget} active lesson rows; displace, condense, or retire` });
+  if (activeRows.length > budget) findings.push({ rule: "over-budget-active", message: `workflow-lessons.md exceeds ${budget} active lesson rows; displace (add a row, then retire the displaced one) or retire` });
   if (retiredRows.length > budget) findings.push({ rule: "over-budget-archived", message: `workflow-lessons.md exceeds ${budget} archived rows; consolidate the archive` });
   for (const row of rows) {
     const invalidTrigger = (row.trigger ?? "").split(/[;,]/).map((entry) => entry.trim()).filter(Boolean).find((entry) => !/^(path|symbol|churn):/.test(entry));
