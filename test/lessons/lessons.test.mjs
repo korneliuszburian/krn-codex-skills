@@ -650,3 +650,17 @@ test("parseLessons returns an empty page when the path is not a file", () => {
   assert.deepEqual(parseLessons(join(dir, "workflow-lessons.md")).rows, []);
   rmSync(dir, { recursive: true, force: true });
 });
+
+test("lesson parsing uses the common fence rules for mixed fences", () => {
+  const page = [
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |",
+    "|---|---|---|---|---|---|---|",
+    "~~~",
+    "```",
+    "| Fake | probe | `test:state` | | | | |",
+    "```",
+    "~~~",
+    "| Real | probe | `test:state` | | | | |",
+  ].join("\n");
+  assert.deepEqual(parseLessonText(page).rows.map((row) => row.lesson), ["Real"]);
+});

@@ -1,28 +1,6 @@
-const FENCE = /^( {0,3})(`{3,}|~{3,})(.*)$/;
+import { fenceLines, unfencedLines } from "../support/fences.mjs";
 
-export function fenceLines(content) {
-  const result = [];
-  let fence = null;
-  for (const [index, line] of content.split("\n").entries()) {
-    const match = FENCE.exec(line);
-    const number = index + 1;
-    if (fence) {
-      result.push({ line, number, fenced: true });
-      const closing = match !== null && match[2][0] === fence.char && match[2].length >= fence.length && match[3].trim() === "";
-      if (closing) fence = null;
-      continue;
-    }
-    if (match && !(match[2][0] === "`" && match[3].includes("`"))) {
-      fence = { char: match[2][0], length: match[2].length };
-      result.push({ line, number, fenced: true });
-      continue;
-    }
-    result.push({ line, number, fenced: false });
-  }
-  return result;
-}
-
-export const unfencedLines = (content) => fenceLines(content).filter((entry) => !entry.fenced);
+export { fenceLines, unfencedLines };
 
 function splitTableRow(line) {
   const cells = [];

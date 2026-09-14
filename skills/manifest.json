@@ -44,6 +44,7 @@
     "scripts/lib/state/state-check.mjs",
     "scripts/lib/support/churn.mjs",
     "scripts/lib/support/diagnostics.mjs",
+    "scripts/lib/support/fences.mjs",
     "scripts/lib/support/git-cli.mjs",
     "scripts/lib/support/path-rules.mjs",
     "scripts/lib/support/read-json.mjs",

@@ -8,6 +8,7 @@ import { escapeRegExp } from "../support/regexp.mjs";
 import { runGit } from "../support/git-cli.mjs";
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
 import { churnHot } from "../support/churn.mjs";
+import { fenceLines, unbalancedFence as hasUnbalancedFence } from "../support/fences.mjs";
 
 const CANDIDATE = /^(npm run |test:|manual:)|[.][a-z0-9]{2,4}$/i;
 
@@ -17,7 +18,6 @@ export function parseLessonText(text) {
   const rows = [];
   const malformed = [];
   let headerColumns = null;
-  let fenced = false;
   const splitLessonCells = (row) => {
     const cells = [];
     let current = "";
@@ -30,10 +30,9 @@ export function parseLessonText(text) {
     cells.push(current);
     return cells.map((cell) => cell.trim());
   };
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (/^(?:```|~~~)/.test(trimmed)) { fenced = !fenced; continue; }
+  for (const { line, fenced } of fenceLines(text)) {
     if (fenced) continue;
+    const trimmed = line.trim();
     if (!trimmed.startsWith("|")) continue;
     if (/^\|[\s:|-]*-{1,}[\s:|-]*\|?$/.test(trimmed)) continue;
     if (/^\|\s*lesson\s*\|\s*evidence\s*\|/i.test(trimmed)) {
@@ -54,7 +53,7 @@ export function parseLessonText(text) {
     }
     rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences, falsifier: cells[4] ?? "", trigger: cells[5] ?? "", status: (cells[6] ?? "").trim(), columns: cells.length });
   }
-  return { rows, malformed, headerColumns, unbalancedFence: fenced };
+  return { rows, malformed, headerColumns, unbalancedFence: hasUnbalancedFence(text) };
 }
 
 export function parseLessons(file) {
