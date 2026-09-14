@@ -258,13 +258,18 @@ The family/transport rule above is executable, not prose-only:
 `scripts/lib/evaluation/lt5-admissibility.mjs` is the canonical machine-checked
 owner of the authorized pairs (this row and the quarantine notes keep the same
 tuple set only as narrative; edit `AUTHORIZED_FAMILIES` when the rule moves). A
-result record must carry the runner's bare `served_model` (the `modelID=` field
-that `parseServedModel` reads — never the `providerID/modelID` CLI form), a
-`designation` of `calibration`/`confirmation`, and isolation reporting `ok`,
-`sentinel_leak=false`, `model_mismatch=false`. The aggregator and promotion
-review must reject any record this module rejects before pooling, so a luna
-record on the opencode transport or any `gpt-6-astra` lab record cannot enter the
-estimand.
+record is built from the runner's `providerID=<p> modelID=<m>` line with
+`recordFromRun`, which derives the transport from `providerID`
+(`opencode-go`→`opencode`, `codex`→`codex`) instead of trusting a caller label,
+so `providerID=opencode-go modelID=gpt-5.6-luna` stays unauthorized; the
+isolation tokens (`no`/`YES`) are normalized to booleans; and
+`partitionAdmissible` drops inadmissible records before pooling. Bounded: this
+boundary checks family/transport, `designation`, and the isolation flags only —
+it does not verify fixture/answer hashes, a runner or codex package pin, the
+bwrap version, or decider blinding, which stay the aggregator's preconditions
+(reopen when the aggregator is built). The aggregator and promotion review must
+reject any record this module rejects before pooling, so a luna record on the
+opencode transport or any `gpt-6-astra` lab record cannot enter the estimand.
 
 Quarantined wrong-transport run (2026-09-14, `opencode-go/gpt-5.6-luna` **via the
 opencode runner**, which is not the authorized transport for luna): four tasks ×
