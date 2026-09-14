@@ -327,8 +327,8 @@ export function recallBindings({ hit, lines }) {
     .replace(/^(?:npm run|node)\s+/, "")
     .replace(/^--test\s+/, "")
     .replace(/^test\s+/, "")
-    .replace(/^\.\//, "")
     .replace(/^(['"])([\s\S]*)\1$/, "$2")
+    .replace(/^\.\//, "")
     .replace(/\\ /g, " ")
     .trim();
   const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => cleanRef(match[1])).filter((id) => /\.[a-z0-9]{2,4}$|\//i.test(id));
@@ -353,8 +353,8 @@ export function recallBindings({ hit, lines }) {
       && gateScriptIds.some((id) => namesId(loose, id));
     if (!namedLeft && !normalizedLeft) return false;
     const right = cleanRef(rawRight);
-    if (relevant.includes(right)) return true;
-    return right.split(/[\s,;]+/).filter(Boolean).some((target) => relevant.includes(target));
+    if (relevant.includes(right) || relevant.some((target) => target && right.includes(target))) return true;
+    return right.split(/\s*[,;]\s*|\s+/).filter(Boolean).some((target) => relevant.includes(target));
   });
   return { falsifierFile, named, reconstructed };
 }

@@ -36,7 +36,7 @@
     "lessons:check": "node scripts/krn-codex.mjs lessons check --root .",
     "lessons:verify": "node scripts/krn-codex.mjs lessons verify --root .",
     "changes:check": "base=$(git merge-base origin/main HEAD 2>/dev/null || true); if [ -z \"$base\" ] || [ \"$base\" = \"$(git rev-parse HEAD)\" ]; then base=HEAD~1; fi; node scripts/krn-codex.mjs changes check --root . --base \"$base\" --head HEAD",
-    "changes:push": "base=${KRN_PUSH_BASE:-$(git rev-parse origin/main 2>/dev/null || echo HEAD~1)}; node scripts/krn-codex.mjs changes check --root . --base \"$base\" --head HEAD",
+    "changes:push": "base=${KRN_PUSH_BASE:-$(git merge-base origin/main HEAD 2>/dev/null || true)}; if [ -z \"$base\" ] || [ \"$base\" = \"$(git rev-parse HEAD)\" ]; then base=\"$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)\"; fi; node scripts/krn-codex.mjs changes check --root . --base \"$base\" --head HEAD",
     "test:change-contract": "node --test test/contract/change-contract.test.mjs",
     "test:lessons": "node --test test/lessons/lessons.test.mjs",
     "test:lessons-verify": "node --test test/lessons/lessons-verify.test.mjs",
