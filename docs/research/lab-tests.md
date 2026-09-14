@@ -203,6 +203,17 @@ mechanically enforced: `src/edition.mjs` `footer()` returns `` `${FOOTER}\n` `` 
 `test/edition.test.mjs` asserts `endsWith("\n")`, so the P row's claim holds and
 the visible test would fail if the convention broke.
 
+Multi-task fixtures are now generated: `setup-tasks.sh` builds four matched
+coupling shapes (text→revision, key→schema, route→registration, media→type), each
+with a decisive variant (lesson trigger on the changed `src` path, 1 recall hit)
+and a neutral variant (coupling only in ordinary source docs, 0 hits), all with one
+main file plus one version file, the same visible-test shape, and the same prompt
+structure. `gate-tasks.sh` runs A/B/P over them with per-task-scoped preflight
+(asserting decisive ≥1 and neutral = 0 hits), shuffled arms, family-scoped
+results, and the isolation probe; a gold patch passes every held-out and a
+requested-change-only patch fails only the coupling. A first multi-task pilot runs
+on `opencode-go/glm-5.3` with `REPS=1`.
+
 Confounds fixed across the LT-5 passes, recorded honestly: the first pass required
 an external-directory permission for `/harness`, so arms no-op'd; a second aborted
 on transient provider `UnknownError`s; the original in-repo test pinned the old
