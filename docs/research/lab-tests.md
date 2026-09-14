@@ -251,9 +251,18 @@ each run's own `share/opencode/log/opencode.log` records `providerID=<p>
 modelID=<m>`; the runner now extracts it, prints `served_model=`, fails closed as
 `model_mismatch=YES` on a mismatch, and `gate-tasks` kills a batch not proven all
 `model_mismatch=no`. Still calibration, not confirmation: N is unfrozen, the shapes
-are structure-matched, the authorized second lab family (`opencode-go/gpt-5.6-luna`)
-is not yet run, and the neutral stratum needs a larger sample. (`gpt-6-astra` is
-reserved for the single creative escalation, not a lab family.)
+are structure-matched, and the neutral stratum needs a larger sample. (`gpt-6-astra`
+is reserved for the single creative escalation, not a lab family.)
+
+Second authorized-family calibration (2026-09-14, `opencode-go/gpt-5.6-luna`, same
+frozen fixtures and runner, four tasks × two strata × A/B/P × three reps,
+`results-luna`, all 72 runs `served_model=gpt-5.6-luna`, `model_mismatch=no`, zero
+sentinel leaks): decisive A 0/12, B 11/12, P 0/12; neutral A 0/12, B 1/12, P 2/12.
+Unlike deepseek (at ceiling), the luna family separates content from both ablation
+and the wrong-content placebo on the decisive stratum — `(B−A)` DiD 0.833 and
+`(B−P)` DiD 1.0 — while the neutral stratum stays near the floor. This is the first
+authorized family with separation power on this task set, but it is still
+calibration (one task set, one run, N unfrozen) and not promotion evidence.
 
 Earlier multi-task pilot (2026-09-14, unauthorized `opencode-go/glm-5.3`, A/B/P,
 `REPS=1`, four tasks per stratum): decisive A 1/4, B 4/4, P 2/4; neutral A 3/4,
