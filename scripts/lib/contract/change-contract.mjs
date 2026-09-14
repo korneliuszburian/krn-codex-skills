@@ -52,7 +52,12 @@ export function parseChangeContract(message) {
       continue;
     }
     const risk = /^At-risk:\s*(.+?)(?::\s*(?:red|green)\s*->\s*(?:red|green))?\s*$/i.exec(line);
-    if (risk) atRisk.push(...risk[1].split(",").map((ref) => ref.trim()).filter(Boolean));
+    if (risk) {
+      atRisk.push(...risk[1]
+        .split(",")
+        .map((ref) => ref.trim().replace(/:\s*(?:red|green)\s*->\s*(?:red|green)\s*$/i, "").trim())
+        .filter(Boolean));
+    }
   }
   return { contracts, atRisk };
 }
@@ -60,7 +65,7 @@ export function parseChangeContract(message) {
 function resolveCheck(root, scripts, ref) {
   const name = ref.startsWith("npm run ") ? ref.slice("npm run ".length).trim() : ref;
   if (DENY.has(ref) || DENY.has(name)) return null;
-  if (Object.hasOwn(scripts, name)) return { kind: "script", name };
+  if (Object.hasOwn(scripts, name) && typeof scripts[name] === "string") return { kind: "script", name };
   const rel = normalizeRef(name);
   if (/^(test|scripts)\/.+\.mjs$/.test(rel) && !rel.includes("..")) {
     let real;
@@ -195,7 +200,12 @@ function listTestFiles(root, base, git) {
   const names = new Set();
   for (const ref of [base, "HEAD"]) {
     const result = git(root, ["ls-tree", "-r", "-z", "--name-only", ref]);
-    if (result.ok) for (const name of result.out.split("\0")) if (name.trim()) names.add(name.trim());
+    if (result.ok) {
+      for (const name of result.out.split("\0")) {
+        if (name.trim()) names.add(name.trim());
+        if (name && name !== name.trim()) names.add(name);
+      }
+    }
   }
   return [...names].filter((name) => TEST_FILE_RE.test(name));
 }
