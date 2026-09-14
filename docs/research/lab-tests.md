@@ -198,10 +198,10 @@ solely on the coupled value, and neutral recall returns zero hits; reject a
 proposed N unless simulation shows ≥80% power at the registered effect and ≤5%
 null rejection across the declared nuisance bounds; in the frozen run a CI spanning
 zero leaves the interaction unconfirmed and an upper bound below .25 rules out the
-registered effect. The current placebo still needs repair: `setup-fixture.sh`
-asserts a trailing newline but `src/edition.mjs` returns `"Built"` and
-`test/edition.test.mjs` accepts its absence, so that convention is not actually
-enforced in the visible test.
+registered effect. The placebo's trailing-newline convention is now real and
+mechanically enforced: `src/edition.mjs` `footer()` returns `` `${FOOTER}\n` `` and
+`test/edition.test.mjs` asserts `endsWith("\n")`, so the P row's claim holds and
+the visible test would fail if the convention broke.
 
 Confounds fixed across the LT-5 passes, recorded honestly: the first pass required
 an external-directory permission for `/harness`, so arms no-op'd; a second aborted
