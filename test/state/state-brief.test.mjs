@@ -349,3 +349,11 @@ test("resume reports a dangling capsule state.md once and does not throw", () =>
   assert.equal(report.errors.filter((error) => error.rule === "unreadable-capsule").length, 1, JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("resume records a fingerprint-only fixed point", () => {
+  const { root } = makeRepo();
+  writeCapsule(root, "fingerprint=abcdef0123456789abcdef0123456789abcdef01");
+  const report = resumeBrief({ repo: root });
+  assert.match(report.text, /abcdef0123456789abcdef0123456789abcdef01/);
+  rmSync(root, { recursive: true, force: true });
+});

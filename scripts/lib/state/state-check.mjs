@@ -20,7 +20,12 @@ import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
 
 export function normalizeRunPointer(root, pointer) {
-  return posixRelative(root, resolve(root, pointer));
+  // Resolve symlink aliases so one physical run reached by two names has one
+  // identity; a missing pointer falls back to its normalized lexical path.
+  const absolute = resolve(root, pointer);
+  let resolved = absolute;
+  try { resolved = realpathSync(absolute); } catch { resolved = absolute; }
+  return posixRelative(root, resolved);
 }
 
 function fixedPointErrors(root, fixedPoint, canCheckCommits) {
@@ -186,7 +191,9 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         if (outcome && stripMarkup(outcome) === "ACTIVE") errors.push(finding);
         else warnings.push(finding);
       }
-      if (outcome && stripMarkup(outcome) === "COMPLETE" && commits.length === 0) {
+      if (outcome && stripMarkup(outcome) === "COMPLETE" && anchorHead === null) {
+        // A COMPLETE outcome needs an end anchor: a base-only fixed point cannot
+        // detect that HEAD advanced after completion.
         errors.push({ id: entry.name, rule: "complete-without-commit-anchor", detail: stripMarkup(fixedPoint) });
       }
       if (anchorHead !== null && currentHead.ok && anchorHead !== currentHead.out.toLowerCase()) {

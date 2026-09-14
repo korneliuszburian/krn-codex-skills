@@ -139,6 +139,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     const fixedPoint = fieldLine(text, "Repository base, HEAD or working-tree fingerprint, and dirty-state scope");
     const anchors = fixedPointAnchors(fixedPoint);
     const recorded = [anchors.base, anchors.head].filter(Boolean);
+    const recordedFingerprint = anchors.fingerprint;
     const anchorHead = anchors.head;
     const headMoved = liveHead.ok && liveHead.out !== "" && anchorHead !== null && anchorHead !== liveHead.out.toLowerCase();
     const cleanupValue = fieldLine(text, "Outstanding workflow-run cleanup");
@@ -166,6 +167,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
       nativeGoal: fieldLine(text, "Native Goal identity/state and configured tracker item/state") || null,
       durableReferences: fieldLine(text, "Durable CONTEXT / ADR / research references") || null,
       recordedCommits: recorded,
+      recordedFingerprint,
       liveHead: liveHead.ok ? liveHead.out : null,
       headMoved,
       liveDirty,
@@ -177,7 +179,7 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
   }
 
   const lines = briefs.map((brief) => {
-    const repoLine = `repo: recorded fixed point ${[...new Set(brief.recordedCommits)].join(", ") || "none"} / live HEAD ${brief.liveHead ?? "unknown"} (${brief.headMoved ? "MOVED" : "unchanged"}); dirty ${brief.liveDirty === null ? "unknown (git status failed)" : `${brief.liveDirty.length} paths`}`;
+    const repoLine = `repo: recorded fixed point ${[...new Set(brief.recordedCommits)].join(", ") || brief.recordedFingerprint || "none"} / live HEAD ${brief.liveHead ?? "unknown"} (${brief.headMoved ? "MOVED" : "unchanged"}); dirty ${brief.liveDirty === null ? "unknown (git status failed)" : `${brief.liveDirty.length} paths`}`;
     const cleanupLine = `cleanup: listed ${brief.listedRuns.length} / live ${brief.listedRuns.length + brief.unlistedRuns.length - brief.missingRuns.length}; missing ${brief.missingRuns.length ? brief.missingRuns.join(", ") : "none"}; unlisted ${brief.unlistedRuns.length ? brief.unlistedRuns.join(", ") : "none"}`;
     return [
       `capsule ${brief.id}`,

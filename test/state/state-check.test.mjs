@@ -699,3 +699,26 @@ test("state check reports an invalid lesson Status through the shared validator"
   assert.ok(report.errors.some((error) => error.rule === "malformed-lesson"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a COMPLETE capsule with a base-only fixed point is divergent", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `base=${head}; dirty=clean` }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "complete-without-commit-anchor"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a symlinked run alias is not reported as orphaned or unlisted", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "slice-work", "one"), { recursive: true });
+  symlinkSync("slice-work", join(root, ".krn", "runs", "slice-link"));
+  const capsuleDir = join(root, ".krn", "runs", "delivery-loop", "alias");
+  mkdirSync(capsuleDir, { recursive: true });
+  writeFileSync(
+    join(capsuleDir, "state.md"),
+    capsule({ fixedPoint: "fingerprint=working-tree", cleanup: "[.krn/runs/slice-work/one; slice-work; $delivery-loop; closes; ACTIVE]" }),
+  );
+  const report = inspectSpineState({ repo: root });
+  assert.ok(!report.errors.some((error) => error.rule === "orphaned-run"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
