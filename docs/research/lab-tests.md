@@ -242,6 +242,20 @@ confirmation run, preregister the designation (calibration vs frozen
 confirmation), the final N and stopping rule, and the simulated ≥80% power / ≤5%
 null-rejection evidence.
 
+Second multi-task calibration (2026-09-14, fixed neutral fixtures, frozen
+`gate-tasks.sh` re-permuting arms per repetition block, four tasks × two strata ×
+A/B/P × three reps, `results-calib2-*`): `glm-5.3` decisive A 3/12, **B 12/12**,
+P 4/12; neutral A 6/12, B 2/12, P 6/12. `deepseek-v4.1-flash` decisive A 11/12,
+B 12/12, P 12/12; neutral A 12/12, B 10/12, P 10/12. Reading: glm separates
+content from ablation and from the wrong-content placebo on the decisive stratum
+(12/12 vs 3/12 and 4/12) with a `(B−P)` DiD of 0.667 − (−0.333) = 1.0, but B is
+**below** A on its neutral stratum (2/12 vs 6/12), which is unexpected and not
+explained by the design, so the neutral contrast is noisy at three reps; deepseek
+is at ceiling on both strata (A 11–12/12), so it has no separation power on this
+task set. Still calibration, not confirmation: N is unfrozen (no power simulation),
+the shapes are structure-matched, and the neutral anomaly needs a larger neutral
+sample before the interaction is read.
+
 First multi-task pilot (2026-09-14, `opencode-go/glm-5.3`, A/B/P, `REPS=1`, four
 tasks per stratum, family-scoped output): decisive A 1/4, B 4/4, P 2/4; neutral
 A 3/4, B 4/4, P 2/4. The decisive arm-A rate is now interior (1/4), so the
