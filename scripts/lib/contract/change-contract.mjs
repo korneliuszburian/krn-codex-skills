@@ -19,6 +19,8 @@ const SURFACE = [
   /^config\//,
   /^skills\/manifest\.json$/,
   /^skills\/.*\/scripts\//,
+  /^skills\/.*\/SKILL\.md$/,
+  /^skills\/.*\/references\//,
   /^docs\/research\/workflow-lessons\.md$/,
   /^\.github\/workflows\//,
 ];
