@@ -135,6 +135,17 @@ so no promotion and the required-N must use the decisive contrast. This gate is 
 separation check, not confirmation; scaling the neutral fixtures (more shapes) and
 the frozen confirmation pool remains open.
 
+The same v2 fixtures were rerun on the authorized deepseek family
+(`results-deepseek-v2`, REPS=3) for cross-family comparability: decisive A 3/3,
+B 3/3, P 3/3 and neutral A/B/P 3/3 — deepseek is at ceiling on both strata, so it has
+no separation power on this task, exactly the authorized-calibration ceiling already
+recorded. Reading across families: on the decisive text task luna fails without the
+lesson and passes with it (`B-A = 3/3`) while deepseek passes either way, so the
+content effect is real but family-dependent and only observable where the base model
+lacks the knowledge. Neither family promotes: the neutral contrast is 0 for both, the
+luna neutral has zero variance at N=3, and one task per stratum is a separation probe,
+not a frozen confirmation.
+
 ## LT-5 separation gate (2026-09-13)
 
 One decisive plus one neutral task, arms A (lesson row removed), B (real
