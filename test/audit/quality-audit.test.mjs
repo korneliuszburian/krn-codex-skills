@@ -242,3 +242,16 @@ test("a backtick inside a string does not desync template masking", () => {
     },
   );
 });
+
+test("the audit credits aliased imports and ignores commented exports", () => {
+  withRepo({
+    "scripts/lib/x.mjs": "export function foo() { return 1; }\n",
+    "scripts/lib/y.mjs": 'import { foo as bar } from "./x.mjs";\nexport const y = bar();\n',
+    "scripts/lib/z.mjs": "// export const ghost = 1;\nexport const real = 1;\n",
+    "scripts/lib/c.mjs": 'import { real } from "./z.mjs";\nexport const c = real;\n',
+  }, (root) => {
+    const errors = auditRepository(root).errors;
+    assert.ok(!errors.some((error) => error.includes("dead export foo")), JSON.stringify(errors));
+    assert.ok(!errors.some((error) => error.includes("dead export ghost")), JSON.stringify(errors));
+  });
+});

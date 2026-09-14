@@ -94,3 +94,10 @@ test("a concatenated dynamic-import prefix is not a missing module", () => {
   assert.deepEqual(runtimeClosureErrors({ root, manifest }), []);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("an identifier ending in from is not treated as an import", () => {
+  const { root, manifest } = makeRepo(["scripts/a.mjs", "scripts/lib/b.mjs"]);
+  writeFileSync(join(root, "scripts", "lib", "b.mjs"), 'export const b = 1;\nreadFrom("./missing.mjs");\n');
+  assert.deepEqual(runtimeClosureErrors({ root, manifest }), []);
+  rmSync(root, { recursive: true, force: true });
+});

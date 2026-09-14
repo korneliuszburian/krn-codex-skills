@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { GIT_LOG_FORMAT, gitAvailable, gitText, parseGitLogRecords, runGit } from "../../scripts/lib/support/git-cli.mjs";
+import { GIT_LOG_FORMAT, commitChangedFiles, gitAvailable, gitText, parseGitLogRecords, runGit } from "../../scripts/lib/support/git-cli.mjs";
 
 test("gitAvailable detects a usable git", () => {
   assert.equal(gitAvailable(), true);
@@ -62,4 +62,19 @@ test("parseGitLogRecords splits the NUL-safe log format", () => {
   assert.equal(GIT_LOG_FORMAT.includes("%H%x1f%s%x1f%b%x1e"), true);
   assert.deepEqual(parseGitLogRecords("abc\u001fsubject\u001fbody\u001e"), [{ sha: "abc", subject: "subject", body: "body" }]);
   assert.deepEqual(parseGitLogRecords(""), []);
+});
+
+test("commitChangedFiles preserves whitespace in path names", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-git-ws-"));
+  const g = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  g(["init", "-q"]);
+  g(["config", "user.email", "l@x"]);
+  g(["config", "user.name", "l"]);
+  writeFileSync(join(root, " lead.mjs"), "x\n");
+  g(["add", "-A"]);
+  g(["commit", "-q", "-m", "feat: x"]);
+  const sha = g(["rev-parse", "HEAD"]).trim();
+  const files = commitChangedFiles(root, runGit, sha).files;
+  assert.ok(files.includes(" lead.mjs"), JSON.stringify(files));
+  rmSync(root, { recursive: true, force: true });
 });

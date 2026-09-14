@@ -2,7 +2,9 @@ import { execFileSync } from "node:child_process";
 
 export function runGit(repo, args) {
   const raw = runGitRaw(repo, args);
-  return raw.ok ? { ...raw, out: raw.out.trim() } : raw;
+  // `-z` output is an exact, unquoted record list; trimming it would corrupt
+  // path names with leading/trailing whitespace.
+  return raw.ok ? { ...raw, out: Array.isArray(args) && args.includes("-z") ? raw.out : raw.out.trim() } : raw;
 }
 
 export function runGitRaw(repo, args) {
@@ -13,10 +15,19 @@ export function runGitRaw(repo, args) {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],
         maxBuffer: 512 * 1024 * 1024,
+        timeout: 600_000,
+        killSignal: "SIGKILL",
       }),
     };
   } catch (error) {
-    return { ok: false, out: "", status: error?.status ?? null, signal: error?.signal ?? null, errorCode: error?.code ?? null };
+    return {
+      ok: false,
+      out: typeof error?.stdout === "string" ? error.stdout : "",
+      stderr: typeof error?.stderr === "string" ? error.stderr : "",
+      status: error?.status ?? null,
+      signal: error?.signal ?? null,
+      errorCode: error?.code ?? null,
+    };
   }
 }
 
@@ -28,7 +39,7 @@ export function gitText(repo, args) {
 export function commitChangedFiles(root, git, sha) {
   const result = git(root, ["show", "--no-renames", "--name-only", "-z", "--format=", sha]);
   if (!result.ok) return { ok: false, files: [] };
-  return { ok: true, files: result.out.split("\0").map((entry) => entry.trim()).filter(Boolean) };
+  return { ok: true, files: result.out.split("\0").filter((entry) => entry !== "") };
 }
 
 export function gitAvailable() {

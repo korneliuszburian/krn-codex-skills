@@ -29,7 +29,7 @@ function runtimeClosure({ root, manifest }) {
     const code = stripComments(source);
     const masked = maskLiterals(code);
     const survives = (match, keyword) => new RegExp(keyword).test(masked.slice(match.index, match.index + match[0].length));
-    for (const match of code.matchAll(/(?:from|import)\s*\(?\s*["'](\.[^"']+)["']/g)) {
+    for (const match of code.matchAll(/(?<![\w$.])(?:from|import)\s*\(?\s*["'](\.[^"']+)["']/g)) {
       if (!survives(match, "from|import")) continue;
       queue.push([file, relativePath(root, file, match[1])]);
     }

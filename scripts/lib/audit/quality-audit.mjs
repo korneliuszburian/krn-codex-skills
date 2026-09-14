@@ -18,7 +18,8 @@ const walk = (directory, keep = (candidate) => candidate.endsWith(".mjs")) => {
 const functionDeclarations = (source) =>
   [...source.matchAll(/(?:export\s+)?(?:async\s+)?function\*?\s+([A-Za-z0-9_$]+)\s*\(/g)].map((m) => m[1]);
 
-const exportedNames = (source) => {
+const exportedNames = (rawSource) => {
+  const source = maskLiterals(stripComments(rawSource));
   const names = new Set([
     ...[...source.matchAll(/export\s+(?:async\s+)?(?:function|class)\s+([A-Za-z0-9_$]+)/g)].map((m) => m[1]),
     ...[...source.matchAll(/export\s+const\s+([A-Za-z0-9_$]+)/g)].map((m) => m[1]),
@@ -40,8 +41,12 @@ const importedNames = (rawSource) => {
     const named = clause.match(/\{([\s\S]*?)\}/);
     if (named) {
       for (const part of named[1].split(",")) {
-        const alias = part.split(/\s+as\s+/).pop().trim();
-        if (alias) names.add(alias);
+        // Record the original binding as well as the alias, so an idiomatic
+        // `import { foo as bar }` still counts as consuming `foo`.
+        for (const piece of part.split(/\s+as\s+/)) {
+          const name = piece.trim();
+          if (/^[A-Za-z0-9_$]+$/.test(name)) names.add(name);
+        }
       }
     }
     const bare = clause.replace(/\{[\s\S]*?\}/, "").replace(/,/g, " ").trim();
@@ -177,7 +182,7 @@ export function auditRepository(root) {
   const bodies = new Map();
   for (const file of runtime.filter((candidate) => label(candidate).startsWith(`scripts${sep}lib${sep}`))) {
     if (isSelf(file)) continue;
-    const source = sources.get(file);
+    const source = stripComments(sources.get(file));
     const base = basename(file);
     for (const match of source.matchAll(/export\s*\{([^}]*)\}\s*from\s*["'](\.[^"']+)["']/g)) {
       const names = match[1].split(",").map((part) => part.split(/\s+as\s+/).pop().trim()).filter(Boolean);
