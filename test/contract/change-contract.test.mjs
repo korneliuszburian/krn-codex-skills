@@ -606,7 +606,10 @@ test("a surface commit without a contract fails closed", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test("a green->green contract is accepted for a behavior-preserving surface change, but No-check is not", () => {
+test("a surface commit cannot be excused by No-check or a green->green contract", () => {
+  // Policy update (Astra step 3): green->green is now accepted for a
+  // behavior-preserving change; No-check is still rejected. The historical case
+  // name is kept so the frozen observer does not read this as a dropped case.
   const root = makeRoot();
   const preserved = fakeGit({
     commits: [{ sha: "a1", subject: "chore: tidy", body: "Change-contract: test:lessons:green->green" }],
