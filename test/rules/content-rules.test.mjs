@@ -166,3 +166,10 @@ test("readmeSkillsTableErrors accepts an escaped pipe in a cell", () => {
     [],
   );
 });
+
+test("markdownLinkErrors handles balanced nested parentheses in a destination", () => {
+  const options = { label: "d.md", resolveTarget: () => false };
+  assert.deepEqual(markdownLinkErrors("[x](a(b(c)).md)", options), ["d.md:1: broken Markdown link a(b(c)).md"]);
+  assert.deepEqual(markdownLinkErrors("[x](a(b(c)).md)", { label: "d.md", resolveTarget: (target) => target === "a(b(c)).md" }), []);
+  assert.deepEqual(markdownLinkErrors("see ](oops) text", { label: "d.md", resolveTarget: () => false }), []);
+});

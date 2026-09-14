@@ -47,11 +47,49 @@ function splitTableRow(line) {
   return cells;
 }
 
+function linkTargets(line) {
+  const text = line.replace(/`[^`]*`/g, " ");
+  const targets = [];
+  let index = 0;
+  while (index < text.length) {
+    const open = text.indexOf("](", index);
+    if (open === -1) break;
+    const labelStart = text.lastIndexOf("[", open);
+    if (labelStart === -1 || text.slice(labelStart + 1, open).includes("]")) {
+      index = open + 2;
+      continue;
+    }
+    let cursor = open + 2;
+    let raw = "";
+    let depth = 1;
+    while (cursor < text.length) {
+      const char = text[cursor];
+      if (char === "\\") {
+        raw += char + (text[cursor + 1] ?? "");
+        cursor += 2;
+        continue;
+      }
+      if (char === "(") {
+        depth += 1;
+      } else if (char === ")") {
+        depth -= 1;
+        if (depth === 0) break;
+      }
+      raw += char;
+      cursor += 1;
+    }
+    targets.push(raw);
+    index = cursor + 1;
+  }
+  return targets;
+}
+
 export function markdownLinkErrors(content, { label, resolveTarget }) {
   const errors = [];
   for (const { line, number } of unfencedLines(content)) {
-    for (const match of line.replace(/`[^`]*`/g, " ").matchAll(/\[[^\]]*\]\(((?:[^()\\]|\\.|\([^()]*\))*)\)/g)) {
-      const raw = match[1].trim();
+    for (const match of linkTargets(line)) {
+      const raw = match.trim();
+      if (!raw) continue;
       let target;
       if (raw.startsWith("<")) {
         const close = raw.indexOf(">");
@@ -70,11 +108,11 @@ export function markdownLinkErrors(content, { label, resolveTarget }) {
       try {
         target = decodeURIComponent(target.split("#")[0]);
       } catch {
-        errors.push(`${label}:${number}: malformed Markdown link target ${match[1]}`);
+        errors.push(`${label}:${number}: malformed Markdown link target ${match}`);
         continue;
       }
       if (!resolveTarget(target)) {
-        errors.push(`${label}:${number}: broken Markdown link ${match[1]}`);
+        errors.push(`${label}:${number}: broken Markdown link ${match}`);
       }
     }
   }
