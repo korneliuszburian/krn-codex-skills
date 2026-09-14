@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
-import { normalizeCommandPath, observedSkillsInShell } from "../../scripts/lib/catalog/catalog-usage-shell.mjs";
+import { normalizeCommandPath, observedSkillsInShell } from "../../scripts/lib/catalog/catalog-usage-normalize.mjs";
 
 test("normalizeCommandPath resolves absolute and workdir-relative candidates", () => {
   assert.equal(normalizeCommandPath("/a/b/../c", "/w"), path.normalize("/a/c"));

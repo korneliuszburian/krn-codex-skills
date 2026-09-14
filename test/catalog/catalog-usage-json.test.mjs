@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { balancedJsonObject, freeformSource, isObject, literalToolCalls, nestedExecCommands, parseFlatExecLiteral, parseObject } from "../../scripts/lib/catalog/catalog-usage-json.mjs";
+import { balancedJsonObject, freeformSource, isObject, literalToolCalls, nestedExecCommands, parseFlatExecLiteral, parseObject } from "../../scripts/lib/catalog/catalog-usage-normalize.mjs";
 
 test("parseObject accepts objects and JSON strings only", () => {
   assert.deepEqual(parseObject({ a: 1 }), { a: 1 });

@@ -3,7 +3,6 @@ import { opendir } from "node:fs/promises";
 import path from "node:path";
 
 import { requireDirectoryWithoutSymlinks } from "./catalog-path-safety.mjs";
-import { isObject } from "./catalog-usage-json.mjs";
 import {
   assertAllowedRoot,
   canonicalSkills,
@@ -13,6 +12,7 @@ import {
 } from "./catalog-usage-paths.mjs";
 import {
   dayFromMs,
+  isObject,
   finalAggregates,
   nestedToolsForCall,
   normalizeWindow,
