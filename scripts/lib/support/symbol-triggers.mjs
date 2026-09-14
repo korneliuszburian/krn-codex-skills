@@ -149,8 +149,10 @@ export function extractSymbols(source) {
     return (terminated ? endLine : lines.length - 1) + 1;
   };
   const symbols = [];
+  const maskedSource = mask.map((keep, index) => (keep ? source[index] : " ")).join("");
+  const maskedLines = maskedSource.split("\n");
   for (let line = 0; line < lines.length; line += 1) {
-    const start = DESTRUCT_START.exec(lines[line]);
+    const start = DESTRUCT_START.exec(maskedLines[line]);
     if (start) {
       const openChar = start[1];
       const closeChar = openChar === "{" ? "}" : "]";
@@ -181,7 +183,7 @@ export function extractSymbols(source) {
       line = endLine;
       continue;
     }
-    const match = DECL.exec(lines[line]);
+    const match = DECL.exec(maskedLines[line]);
     if (!match) continue;
     const end = scanSpan(line);
     symbols.push({ name: match[2], kind: match[1], start: line + 1, end });
@@ -201,7 +203,7 @@ export function extractSymbols(source) {
       const name = part.trim().split(/\s+as\s+/).pop().trim();
       if (!/^[A-Za-z_$][\w$]*$/.test(name) || symbols.some((symbol) => symbol.name === name)) continue;
       const escaped = name.replace(/\$/g, "\\$");
-      const localLine = lines.findIndex((text, index) => new RegExp(`(?:function\\*?|class|const|let|var)\\s+${escaped}\\b`).test(text) && mask[lineStart[index]]);
+      const localLine = maskedLines.findIndex((text, index) => new RegExp(`(?:function\\*?|class|const|let|var)\\s+${escaped}\\b`).test(text) && mask[lineStart[index]]);
       if (localLine >= 0) symbols.push({ name, kind: "local", start: localLine + 1, end: scanSpan(localLine) });
       else symbols.push({ name, kind: "export", start: exportLine + 1, end: exportLine + 1 });
     }

@@ -169,3 +169,14 @@ test("every file in a multi-file diff contributes symbols", () => {
   touchedSymbolFiles({ root: ".", git, sha: "abc1234" });
   assert.deepEqual([...new Set(specs)].sort(), ["abc1234:a.mjs", "abc1234:b.mjs", "abc1234^:a.mjs", "abc1234^:b.mjs"]);
 });
+
+test("a commented-out export is not a symbol", () => {
+  assert.deepEqual(
+    extractSymbols("/*\nexport const PHANTOM = 1;\n*/\nexport const REAL = 2;\n").map((symbol) => symbol.name),
+    ["REAL"],
+  );
+  assert.deepEqual(
+    extractSymbols("// export const GHOST = 1;\nexport const REAL = 2;\n").map((symbol) => symbol.name),
+    ["REAL"],
+  );
+});
