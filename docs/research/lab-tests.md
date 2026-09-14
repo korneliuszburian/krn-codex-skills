@@ -137,17 +137,25 @@ run, so only the correct coupled-version content produced success. The neutral n
 has interior variance (A 2/3: one run changed `SALUTATION` and left
 `SALUTATION_VERSION` at 1), so the difference-in-differences is partially
 identified: `(B−A)_decisive − (B−A)_neutral = 1.0 − 0.333`. Still not promoted:
-N=3 is below the registered MDE; one model family at one effort; P is a
-wrong-content control, not a neutral length-matched placebo (it suppressed the
-task rather than merely adding irrelevant text), so a non-confusing placebo
-remains open; the neutral is one task; and C is a CLI-forced proxy for the git-shim
-`--strict-recall` mechanism, not that mechanism.
+N=3 is below the registered MDE; one model family at one effort; the neutral is one
+task; and C is a CLI-forced proxy for the git-shim `--strict-recall` mechanism, not
+that mechanism.
+
+Placebo P was then repaired to a true, already-satisfied convention (the footer
+already ends in a trailing newline; no panel threatens the task). On a fresh
+one-rep calibration (REPS=1, separate `results-smoke`) the repaired P still failed
+the decisive held-out: it changed `BANNER` to `Welcome` and left
+`BANNER_VERSION` at 1, exactly like arm A, so P again added nothing task-relevant.
+That is a calibration signal, not a powered dataset (N=1, different context), so
+the registered N=3 dataset above is kept as recorded and P is not called neutral
+until it is run in the powered design.
 
 Open controls after the round-54 review and this run. Done: the same-shape neutral
-fixture with an interior arm-A rate, and a same-trigger/same-shape placebo arm
-(though wrong-content, not neutral). Still open, each with a falsifier: (1) a
-non-confusing, length- and token-matched placebo and a powered decisive-specific
-B−P advantage; (2) preregistered power for the difference-in-differences itself,
+fixture with an interior arm-A rate, and a same-trigger/same-shape placebo arm now
+repaired to a non-confusing, already-satisfied convention. Still open, each with a
+falsifier: (1) a length- and token-matched placebo confirmed neutral in a powered
+design, with a decisive-specific B−P advantage; (2) preregistered power for the
+difference-in-differences itself,
 inflating for task clustering `1+(r−1)ρ` (illustrative `p10=.375/p01=.125`, δ=.25,
 q=.50 reaches 80% only near 85 independent pairs at α=.05/3, so multiple tasks per
 stratum must be piloted); (3) a second family `opencode-go/glm-5.3` run with
@@ -175,7 +183,7 @@ sha256(salt || file)): `greeting.mjs=eaa6f61223c4be17`,
 `heldout-decisive.test.mjs=929bd21846386888`,
 `heldout-neutral.test.mjs=bae8578bb295cd66`,
 `salutation.mjs=d8568706aaf07f98`,
-`salutation-version.mjs=12704b3cb7844392`, `placebo-row.txt=34b52d47eee8b107`.
+`salutation-version.mjs=12704b3cb7844392`, `placebo-row.txt=f612d5c7217dd0e6`.
 Residuals: the fixtures and answer keys are staged outside the repo (in the lab
 dir, not committed here), so the manifest verifies only a retained copy; arm C's
 forced-reconstruction prompt is a proxy for the registered git-shim
