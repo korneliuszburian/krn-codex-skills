@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import test from "node:test";
 
-import { resolveInventoryRoots } from "../../scripts/lib/catalog/catalog-inventory-roots.mjs";
+import { resolveInventoryRoots } from "../../scripts/lib/catalog/catalog-inventory.mjs";
 import { inventoryCapabilities } from "../../scripts/lib/catalog/catalog-inventory.mjs";
 
 test("inventoryCapabilities resolves a relative CODEX_HOME to absolute paths", async () => {
