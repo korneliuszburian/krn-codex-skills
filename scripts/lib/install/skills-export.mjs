@@ -38,7 +38,8 @@ function harnessCommit(source) {
 }
 
 function upstreamSource(lock) {
-  const source = lock.sources.find((candidate) => candidate.id === "mattpocock/skills");
+  const sources = Array.isArray(lock?.sources) ? lock.sources : [];
+  const source = sources.find((candidate) => candidate?.id === "mattpocock/skills");
   if (!source) throw new Error("config/upstream-sources.json is missing the mattpocock/skills pin");
   return source;
 }
@@ -101,6 +102,13 @@ export function exportSkills({ source, upstream, root }) {
     ? upstreamPin.harness_paths
     : upstreamPin.required_paths;
   const harnessDirs = [...new Set(harnessPaths.map((required) => path.dirname(required)))];
+  for (const dir of harnessDirs) {
+    const tree = git(resolvedUpstream, ["ls-tree", "-r", upstreamPin.commit, "--", dir]);
+    const unsafeEntry = tree.split("\n").find((line) => /^(120000|160000) /.test(line));
+    if (unsafeEntry) {
+      throw new Error(`upstream harness path contains a symlink or gitlink (${unsafeEntry.split("\t")[1] ?? dir}); refusing to export`);
+    }
+  }
   const upstreamStatusResult = runGitRaw(resolvedUpstream, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]);
   if (!upstreamStatusResult.ok) {
     throw new Error("upstream git status failed; cannot verify the pinned revision reproduces the export");
@@ -171,6 +179,27 @@ export function exportSkills({ source, upstream, root }) {
     const name = path.basename(relative);
     fs.cpSync(path.join(resolvedUpstream, relative), path.join(skillsDir, name), { recursive: true, dereference: true });
     skills.push({ name, origin: "upstream", description: skillMetadata(path.join(resolvedUpstream, relative, "SKILL.md"))?.description ?? "" });
+  }
+  const blobHash = (buffer) => crypto.createHash("sha1").update(`blob ${buffer.length}\0`).update(buffer).digest("hex");
+  for (const dir of harnessDirs) {
+    const exportedDir = path.join(skillsDir, path.basename(dir));
+    const files = [];
+    const collect = (current) => {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        const full = path.join(current, entry.name);
+        if (entry.isDirectory()) collect(full);
+        else if (!entry.isSymbolicLink()) files.push(path.relative(exportedDir, full).split(path.sep).join("/"));
+      }
+    };
+    collect(exportedDir);
+    for (const rel of files) {
+      const repoRel = `${dir}/${rel}`;
+      const pinned = git(resolvedUpstream, ["rev-parse", `${upstreamPin.commit}:${repoRel}`]);
+      const actual = blobHash(fs.readFileSync(path.join(exportedDir, rel)));
+      if (!pinned || pinned !== actual) {
+        throw new Error(`upstream export for ${repoRel} does not match the pinned blob; refusing to certify`);
+      }
+    }
   }
   const license = path.join(resolvedUpstream, "LICENSE");
   if (fs.existsSync(license)) fs.copyFileSync(license, path.join(skillsDir, "UPSTREAM-LICENSE"));
@@ -356,7 +385,10 @@ export function checkSkills({ root }) {
     for (const pin of [marker.krn?.commit, marker.upstream?.commit]) {
       if (!pin || !catalog.includes(pin)) errors.push(`.agents/skills/README.md is missing provenance pin ${pin ?? "?"}`);
     }
-    const expected = [...(marker.skills ?? [])].sort();
+    if (marker.skills !== undefined && !Array.isArray(marker.skills)) {
+      errors.push(`.agents/skills/${MARKER} skills must be an array`);
+    }
+    const expected = [...(Array.isArray(marker.skills) ? marker.skills : [])].sort();
     const actual = [...names].sort();
     if (marker.skills && JSON.stringify(actual) !== JSON.stringify(expected)) {
       errors.push(`marker lists [${expected.join(", ")}] but the directory holds [${actual.join(", ")}]`);

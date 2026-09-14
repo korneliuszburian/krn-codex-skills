@@ -454,3 +454,47 @@ test("exportSkills fails closed when harness_skills names an absent skill", () =
   assert.throws(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }), /ghost/);
   fs.rmSync(f.base, { recursive: true, force: true });
 });
+
+test("exportSkills refuses a worktree blob that does not match the pinned commit", () => {
+  const f = fixture();
+  execFileSync("git", ["-C", f.upstream, "update-index", "--assume-unchanged", "skills/eng/one/SKILL.md"]);
+  fs.appendFileSync(path.join(f.upstream, "skills", "eng", "one", "SKILL.md"), "\n<!-- tampered -->\n");
+  assert.throws(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }), /pinned blob/);
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
+test("exportSkills refuses a pinned harness path that is a symlink", () => {
+  const f = fixture();
+  const external = path.join(f.base, "external-one");
+  fs.mkdirSync(external, { recursive: true });
+  writeSkill(external, "one", "External one");
+  fs.rmSync(path.join(f.upstream, "skills", "eng", "one"), { recursive: true, force: true });
+  fs.symlinkSync(external, path.join(f.upstream, "skills", "eng", "one"));
+  const newHead = commit(f.upstream, "symlink harness dir");
+  fs.writeFileSync(
+    path.join(f.source, "config", "upstream-sources.json"),
+    `${JSON.stringify({ schema_version: 1, sources: [{ id: "mattpocock/skills", repository: "https://example.invalid/skills.git", commit: newHead, required_paths: ["skills/eng/one/SKILL.md", "skills/eng/two/SKILL.md"], harness_paths: ["skills/eng/one/SKILL.md"] }] }, null, 2)}\n`,
+  );
+  commit(f.source, "repin");
+  assert.throws(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }), /symlink or gitlink/);
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
+test("exportSkills fails closed on a malformed upstream config", () => {
+  const f = fixture();
+  fs.writeFileSync(path.join(f.source, "config", "upstream-sources.json"), '{"schema_version":1,"sources":[null]}\n');
+  assert.throws(() => exportSkills({ source: f.source, upstream: f.upstream, root: f.root }), /missing the mattpocock\/skills pin/);
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
+test("checkSkills reports a non-array marker skills field", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  const markerFile = path.join(f.root, ".agents", "skills", ".krn-export.json");
+  const marker = JSON.parse(fs.readFileSync(markerFile, "utf8"));
+  marker.skills = 5;
+  fs.writeFileSync(markerFile, JSON.stringify(marker));
+  assert.doesNotThrow(() => checkSkills({ root: f.root }));
+  assert.ok(checkSkills({ root: f.root }).errors.some((error) => error.includes("skills must be an array")), JSON.stringify(checkSkills({ root: f.root }).errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
