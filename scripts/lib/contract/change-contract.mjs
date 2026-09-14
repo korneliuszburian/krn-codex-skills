@@ -118,7 +118,7 @@ function explicitTestOperands(command) {
     if (token.startsWith("--test") && !BOOLEAN_TEST_FLAGS.has(token)) { index += 1; continue; }
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(token)) continue;
     const cleaned = normalizeRel(token.replace(/^['"]|['"]$/g, "").replace(/\\(["'])/g, "$1").replace(/\\/g, "/"));
-    if (new RegExp(`\\.(?:${CODE_EXT})$`).test(cleaned)) files.push(cleaned.replace(/^\.\//, ""));
+    if (new RegExp(`\\.(?:${CODE_EXT})$`).test(cleaned)) files.push(cleaned);
     else if (!cleaned.startsWith("-")) hasDirectory = true;
   }
   return { files, hasDirectory };

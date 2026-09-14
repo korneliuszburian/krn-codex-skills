@@ -544,6 +544,17 @@ test("recallBindings binds a spaced changed target", () => {
   assert.equal(recallBindings({ hit: symbol, lines: ["test:state => xrunGit"] }).reconstructed, false);
 });
 
+test("recallBindings requires the exact script gate and a well-formed falsifier suffix", () => {
+  const script = { gate: "`npm run test`", falsifier: "", matched: ["greet.mjs"] };
+  assert.equal(recallBindings({ hit: script, lines: ["npm run test => greet.mjs"] }).reconstructed, true);
+  assert.equal(recallBindings({ hit: script, lines: ["npm run test:extra => greet.mjs"] }).reconstructed, false);
+  const target = { gate: "`test:state`", falsifier: "", matched: ["scripts/x.mjs"] };
+  assert.equal(recallBindings({ hit: target, lines: ["test:state => scripts/x.mjs::not-a-sha"] }).reconstructed, false);
+  assert.equal(recallBindings({ hit: target, lines: ["test:state => scripts/x.mjs::probe@abcdef0"] }).reconstructed, true);
+  const spaced = { gate: "`test:state`", falsifier: "", matched: ["test/has space.test.mjs"] };
+  assert.equal(recallBindings({ hit: spaced, lines: ["test:state => test/has space.test.mjs::probe@abcdef0"] }).reconstructed, true);
+});
+
 test("retirement supersession requires an exact anchor", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

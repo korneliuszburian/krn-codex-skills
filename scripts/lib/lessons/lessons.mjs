@@ -334,38 +334,36 @@ export function recallBindings({ hit, lines }) {
   const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => cleanRef(match[1])).filter((id) => /\.[a-z0-9]{2,4}$|\//i.test(id));
   const falsifierFile = (/(test\/[^:@\s]+\.mjs)/.exec(hit.falsifier ?? "") ?? [])[1];
   const scriptRefs = [...hit.gate.matchAll(/`([^`]+)`/g)]
-    .map((match) => String(match[1]).trim())
+    .map((match) => cleanRef(match[1]))
     .filter((id) => /^[\w:@.-]+$/.test(id));
-  const named = [...new Set([...ids, ...scriptRefs, falsifierFile])].filter(Boolean);
+  const fileNames = [...new Set([...ids, falsifierFile])].filter(Boolean);
+  const scriptNames = [...new Set(scriptRefs)].filter(Boolean);
   const namesId = (text, id) => new RegExp(`(?<![A-Za-z0-9_./-])${escapeRegExp(id)}(?![A-Za-z0-9_./-])`).test(text);
+  const FALSIFIER_SUFFIX = /^(.+?)::[^@\s]+@[0-9a-f]{7}$/;
   const relevant = hit.matched ?? [];
   const reconstructed = lines.some((line) => {
     const [rawLeft, rawRight] = line.split("=>");
     if (!cleanRef(rawRight ?? "")) return false;
     const left = (rawLeft ?? "").trim();
     const loose = cleanRef(left);
-    const namedLeft = named.some((id) => namesId(left, id) || namesId(loose, id));
-    const gateScriptIds = [...hit.gate.matchAll(/`([^`]+)`/g)]
-      .map((match) => cleanRef(match[1]))
-      .filter((id) => id && !id.includes("/"));
-    const normalizedLeft = loose !== left
-      && /^(?:npm run|node|--test|test)\b/.test(left)
-      && gateScriptIds.some((id) => namesId(loose, id));
-    if (!namedLeft && !normalizedLeft) return false;
+    // A file/falsifier gate matches on a path boundary; a script gate must be
+    // the whole token, so `npm run test` is not satisfied by `test:extra`.
+    const fileLeft = fileNames.some((id) => namesId(left, id) || namesId(loose, id));
+    const scriptLeft = /^(?:npm run|node|--test|test)\b/.test(left) && scriptNames.some((id) => id === loose);
+    if (!fileLeft && !scriptLeft) return false;
     const right = cleanRef(rawRight);
     const targets = new Set(relevant);
-    if (targets.has(right)) return true;
-    if ([...targets].some((target) => target && (right === target || right.startsWith(`${target},`) || right.endsWith(`, ${target}`) || right.includes(`, ${target},`)))) return true;
-    if (right.split(/\s*[,;]\s*|\s+/).some((token) => token && targets.has(token))) return true;
-    // A token is a changed path/symbol when it names one exactly, or when it
-    // carries a trailing `::case@sha` falsifier suffix. Exact equality keeps a
-    // superstring (`xpath`, `path$`) from satisfying the recall.
-    return right.split(/\s*[,;]\s*|\s+/).some((token) => {
-      const [head] = token.split("::");
-      return head && targets.has(head);
-    });
+    const matchToken = (token) => {
+      if (!token) return false;
+      if (targets.has(token)) return true;
+      const suffix = FALSIFIER_SUFFIX.exec(token);
+      return Boolean(suffix && targets.has(suffix[1]));
+    };
+    if (matchToken(right)) return true;
+    if ([...targets].some((target) => target && (right.startsWith(`${target},`) || right.endsWith(`, ${target}`) || right.includes(`, ${target},`)))) return true;
+    return right.split(/\s*[,;]\s*|\s+/).some(matchToken);
   });
-  return { falsifierFile, named, reconstructed };
+  return { falsifierFile, named: [...fileNames, ...scriptNames], reconstructed };
 }
 
 function recallUsage(root, git, rows) {
