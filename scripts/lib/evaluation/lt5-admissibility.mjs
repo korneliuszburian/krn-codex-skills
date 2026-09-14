@@ -1,7 +1,12 @@
 export const AUTHORIZED_FAMILIES = Object.freeze([
-  Object.freeze({ family: "deepseek", transport: "opencode", model: "opencode-go/deepseek-v4.1-flash" }),
+  Object.freeze({ family: "deepseek", transport: "opencode", model: "deepseek-v4.1-flash" }),
   Object.freeze({ family: "luna", transport: "codex", model: "gpt-5.6-luna" }),
 ]);
+
+export const parseServedModel = (line) => {
+  const match = /modelID=(\S+)/.exec(typeof line === "string" ? line : "");
+  return match ? match[1] : "";
+};
 
 const authorized = (record) => {
   const transport = typeof record?.transport === "string" ? record.transport.trim() : "";

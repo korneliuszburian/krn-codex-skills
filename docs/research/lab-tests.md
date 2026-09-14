@@ -255,11 +255,13 @@ are structure-matched, and the neutral stratum needs a larger sample. (`gpt-6-as
 is reserved for the single creative escalation, not a lab family.)
 
 The family/transport rule above is executable, not prose-only:
-`scripts/lib/evaluation/lt5-admissibility.mjs` is the single owner of the
-authorized pairs and returns the admissibility errors for a result record
-(`transport`+`served_model` must match an authorized pair, `designation` must be
-`calibration`/`confirmation`, and isolation must report `ok`,
-`sentinel_leak=false`, `model_mismatch=false`). The aggregator and promotion
+`scripts/lib/evaluation/lt5-admissibility.mjs` is the canonical machine-checked
+owner of the authorized pairs (this row and the quarantine notes keep the same
+tuple set only as narrative; edit `AUTHORIZED_FAMILIES` when the rule moves). A
+result record must carry the runner's bare `served_model` (the `modelID=` field
+that `parseServedModel` reads — never the `providerID/modelID` CLI form), a
+`designation` of `calibration`/`confirmation`, and isolation reporting `ok`,
+`sentinel_leak=false`, `model_mismatch=false`. The aggregator and promotion
 review must reject any record this module rejects before pooling, so a luna
 record on the opencode transport or any `gpt-6-astra` lab record cannot enter the
 estimand.

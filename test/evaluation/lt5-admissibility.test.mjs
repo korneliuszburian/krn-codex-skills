@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { AUTHORIZED_FAMILIES, admissibilityErrors, familyOf, isAdmissible } from "../../scripts/lib/evaluation/lt5-admissibility.mjs";
+import {
+  AUTHORIZED_FAMILIES,
+  admissibilityErrors,
+  familyOf,
+  isAdmissible,
+  parseServedModel,
+} from "../../scripts/lib/evaluation/lt5-admissibility.mjs";
 
 const record = (over = {}) => ({
   transport: "opencode",
-  served_model: "opencode-go/deepseek-v4.1-flash",
+  served_model: "deepseek-v4.1-flash",
   designation: "calibration",
   isolation: { ok: true, sentinel_leak: false, model_mismatch: false },
   ...over,
@@ -19,6 +25,17 @@ test("admits only the two authorized family/transport pairs", () => {
   assert.equal(AUTHORIZED_FAMILIES.length, 2);
 });
 
+test("admits a record built from the documented runner line", () => {
+  const line = "providerID=opencode-go modelID=deepseek-v4.1-flash";
+  assert.equal(parseServedModel(line), "deepseek-v4.1-flash");
+  assert.equal(isAdmissible(record({ served_model: parseServedModel(line) })), true);
+  assert.deepEqual(
+    admissibilityErrors(record({ transport: "opencode", served_model: parseServedModel("providerID=opencode-go modelID=gpt-5.6-luna") })),
+    ["unauthorized family/transport: opencode/gpt-5.6-luna"],
+  );
+  assert.equal(parseServedModel("no model here"), "");
+});
+
 test("rejects a model on the wrong transport or outside the authorized set", () => {
   assert.deepEqual(
     admissibilityErrors(record({ transport: "opencode", served_model: "gpt-5.6-luna" })),
@@ -28,7 +45,7 @@ test("rejects a model on the wrong transport or outside the authorized set", () 
     admissibilityErrors(record({ transport: "codex", served_model: "gpt-6-astra" })),
     ["unauthorized family/transport: codex/gpt-6-astra"],
   );
-  assert.equal(isAdmissible(record({ transport: "opencode", served_model: "opencode-go/glm-5.3" })), false);
+  assert.equal(isAdmissible(record({ transport: "opencode", served_model: "glm-5.3" })), false);
 });
 
 test("rejects missing provenance, wrong designation, and false isolation claims", () => {
