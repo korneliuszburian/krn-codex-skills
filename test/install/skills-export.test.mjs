@@ -76,6 +76,16 @@ function fixture() {
   return { base, upstream, source, root };
 }
 
+test("checkSkills errors when a declared manifest source directory is missing", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.root });
+  fs.mkdirSync(path.join(f.root, "skills"), { recursive: true });
+  fs.copyFileSync(path.join(f.source, "skills", "manifest.json"), path.join(f.root, "skills", "manifest.json"));
+  fs.rmSync(path.join(f.source, "skills", "meta", "local"), { recursive: true });
+  const report = checkSkills({ root: f.root });
+  assert.ok(report.errors.some((error) => error.includes("source directory is missing")), JSON.stringify(report.errors));
+});
+
 test("the long-description warning names only KRN-owned skills", () => {
   const f = fixture();
   exportSkills({ source: f.source, upstream: f.upstream, root: f.root });

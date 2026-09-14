@@ -191,6 +191,11 @@ export function validateManifestSkills(document) {
     ? document.source_only_skills
     : [];
   const allLocalSkills = [...installableSkills, ...sourceOnlySkills];
+  const installableNames = new Set(
+    installableSkills
+      .filter((skill) => skill && typeof skill === "object" && !Array.isArray(skill) && typeof skill.name === "string")
+      .map((skill) => skill.name),
+  );
   const names = new Set();
   const paths = new Set();
   const valid = [];
@@ -249,7 +254,7 @@ export function validateManifestSkills(document) {
       errors.push("manifest: harness_skills must be a non-empty array");
     } else {
       for (const name of document.harness_skills) {
-        if (!names.has(name)) {
+        if (!installableNames.has(name)) {
           errors.push(`manifest: harness skill ${name} is not a local installable skill`);
         }
       }

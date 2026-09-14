@@ -271,7 +271,9 @@ export function checkSkills({ root }) {
     }
     if (fields.name !== entry.name) errors.push(`${entry.name}: frontmatter name "${fields.name}" must equal the directory name`);
     const sourceDir = sourceByName.get(entry.name);
-    if (sourceDir && fs.existsSync(sourceDir)) {
+    if (sourceDir && !fs.existsSync(sourceDir)) {
+      errors.push(`${entry.name}: manifest source directory is missing; re-export from a clean checkout`);
+    } else if (sourceDir) {
       if (!directoriesMatch(sourceDir, dir)) {
         errors.push(`${entry.name}: exported files differ from source; run \`krn-codex skills export\``);
       }

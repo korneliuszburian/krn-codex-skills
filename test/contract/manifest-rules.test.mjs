@@ -59,6 +59,16 @@ test("validateManifestSkills checks harness and runtime invariants", () => {
     ),
   );
 
+  const sourceOnlyHarness = base();
+  sourceOnlyHarness.source_only_skills = [{ implicit: true, name: "beta", path: "skills/engineering/beta" }];
+  sourceOnlyHarness.harness_skills = ["beta"];
+  assert.ok(
+    validateManifestSkills(sourceOnlyHarness).errors.includes(
+      "manifest: harness skill beta is not a local installable skill",
+    ),
+    JSON.stringify(validateManifestSkills(sourceOnlyHarness).errors),
+  );
+
   const emptyHarness = base();
   emptyHarness.harness_skills = [];
   assert.ok(
