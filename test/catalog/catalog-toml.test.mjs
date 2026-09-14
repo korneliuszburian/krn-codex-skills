@@ -193,3 +193,10 @@ test("a bare [skills] table is unmanaged, unlike an ambiguous managed header", (
   assert.deepEqual(parseHeader("[[skills.config]]"), { kind: "skill" });
   assert.throws(() => parseHeader("[[skills.other]]"), /Ambiguous managed TOML table header/);
 });
+
+test("an unterminated multi-line string or array is rejected", () => {
+  assert.throws(() => parseDocument('note = """\n'), /Unterminated TOML multi-line string/);
+  assert.throws(() => parseDocument("note = '''\n"), /Unterminated TOML multi-line string/);
+  assert.throws(() => parseDocument("[mcp_servers.demo]\nargs = [\n"), /Unterminated TOML array/);
+  assert.throws(() => parseDocument('note = """\r\n'), /Unterminated TOML multi-line string/);
+});

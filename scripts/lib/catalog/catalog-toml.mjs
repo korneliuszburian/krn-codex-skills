@@ -300,6 +300,17 @@ export function parseDocument(source) {
     multiline = scanned.next;
   }
 
+  if (multiline !== null) {
+    throw new ConfigReconcileError("Unterminated TOML multi-line string", {
+      code: "CONFIG_UNTERMINATED_STRING",
+    });
+  }
+  if (arrayDepth > 0) {
+    throw new ConfigReconcileError("Unterminated TOML array", {
+      code: "CONFIG_UNTERMINATED_ARRAY",
+    });
+  }
+
   const blocks = headers.map((header, index) => {
     const endLineIndex = headers[index + 1]?.lineIndex ?? lines.length;
     return {
