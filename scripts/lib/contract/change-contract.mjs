@@ -393,6 +393,10 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       warnings: [],
     };
   }
+  const baseCommit = git(root, ["rev-parse", "--verify", `${base}^{commit}`]);
+  if (requestedHead.ok && baseCommit.ok && baseCommit.out !== "" && baseCommit.out === requestedHead.out) {
+    errors.push({ rule: "vacuous-range", detail: `${base}..${head} is empty; nothing to evaluate` });
+  }
   const log = git(root, ["log", GIT_LOG_FORMAT, `${base}..${head}`]);
   if (!log.ok) return { root, commits: [], results: [], errors: [{ rule: "unreadable-range", detail: `${base}..${head}` }] };
   const commits = parseGitLogRecords(log.out);

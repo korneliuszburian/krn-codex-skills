@@ -1381,3 +1381,17 @@ test("a head that differs from the checkout is rejected before running", () => {
   assert.ok(report.errors.some((error) => error.rule === "head-mismatch"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a same-ref base and head is a vacuous range", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-vacuous-"));
+  const run = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  writeFileSync(join(root, "package.json"), `${JSON.stringify({ scripts: {} })}\n`);
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by |\n|---|---|---|\n");
+  run(["init", "-q"]);
+  execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"]);
+  execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", "seed"]);
+  const report = checkChangeContract({ root, base: "HEAD", head: "HEAD" });
+  assert.ok(report.errors.some((error) => error.rule === "vacuous-range"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
