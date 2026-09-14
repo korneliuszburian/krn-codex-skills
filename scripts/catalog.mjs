@@ -153,7 +153,10 @@ function usageStateContract(result) {
   const droppedCandidates =
     result.malformed_lines +
     (result.coverage.oversized_candidate_lines || 0) +
-    (result.coverage.records_without_usable_date || 0);
+    (result.coverage.records_without_usable_date || 0) +
+    // A file named for a day before the window is skipped, but a resumed session
+    // appends in-window records to it, so its records are unaccounted for.
+    (result.coverage.skipped_files_before_window || 0);
 
   return {
     evidence_window: {

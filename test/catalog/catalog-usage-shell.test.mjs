@@ -29,3 +29,9 @@ test("observedSkillsInShell ignores non-read and malformed commands", () => {
   assert.deepEqual([...observedSkillsInShell("echo /skills/alpha/SKILL.md", "/w", skills, "confirmed")], []);
   assert.deepEqual([...observedSkillsInShell("cat relative/SKILL.md", "/w", skills, "confirmed")], []);
 });
+
+test("a heredoc body is not tokenized as commands", () => {
+  const skills = new Map([["/skills/alpha/SKILL.md", "alpha"]]);
+  const found = [...observedSkillsInShell("cat <<'EOF'\ncat /skills/alpha/SKILL.md\nEOF\n", "/w", skills, "confirmed")];
+  assert.deepEqual(found, []);
+});

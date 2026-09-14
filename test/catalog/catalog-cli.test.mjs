@@ -163,3 +163,19 @@ test("catalog usage reports aggregates and the usage state contract", () => {
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+test("skipping a pre-window rollout file marks the evidence incomplete", () => {
+  const { base, env } = makeHome();
+  try {
+    const sessions = join(base, "codex", "sessions");
+    mkdirSync(join(sessions, "2020", "01", "01"), { recursive: true });
+    writeFileSync(join(sessions, "2020", "01", "01", "rollout-2020-01-01T00-00-00.jsonl"), "\n");
+    const result = run(["usage", "--json", "--sessions-root", sessions], env);
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.coverage.skipped_files_before_window, 1);
+    assert.equal(report.capability_states.evidence_incomplete, true);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});

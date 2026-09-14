@@ -14,7 +14,25 @@ const READ_COMMANDS = new Set([
   "tail",
 ]);
 
-function shellCommands(source) {
+function stripHeredocBodies(text) {
+  const lines = text.split("\n");
+  const out = [];
+  let delimiter = null;
+  for (const line of lines) {
+    if (delimiter !== null) {
+      if (line.trim() === delimiter) delimiter = null;
+      out.push("");
+      continue;
+    }
+    const match = /<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/.exec(line);
+    if (match) delimiter = match[2];
+    out.push(line);
+  }
+  return out.join("\n");
+}
+
+function shellCommands(rawSource) {
+  const source = stripHeredocBodies(rawSource);
   const commands = [];
   let tokens = [];
   let token = "";

@@ -65,8 +65,17 @@ export function parseFlatExecLiteral(source) {
       const character = source[index];
       if (character === "\\") {
         const next = source[index + 1];
+        if (next === "x") {
+          const hex = source.slice(index + 2, index + 4);
+          if (/^[0-9a-fA-F]{2}$/.test(hex)) { out += String.fromCharCode(Number.parseInt(hex, 16)); index += 4; continue; }
+        }
+        if (next === "u") {
+          const hex = source.slice(index + 2, index + 6);
+          if (/^[0-9a-fA-F]{4}$/.test(hex)) { out += String.fromCharCode(Number.parseInt(hex, 16)); index += 6; continue; }
+        }
+        const simple = { n: "\n", t: "\t", r: "\r", b: "\b", f: "\f", v: "\v", 0: "\0" };
+        out += Object.hasOwn(simple, next) ? simple[next] : (next ?? "");
         index += 2;
-        out += next === "n" ? "\n" : next === "t" ? "\t" : next === "r" ? "\r" : (next ?? "");
         continue;
       }
       index += 1;

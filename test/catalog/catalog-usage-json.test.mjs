@@ -46,3 +46,8 @@ test("nested exec literals accept single-quoted strings", () => {
   assert.deepEqual(balancedJsonObject("{cmd: '}'}", 0), { end: 10, source: "{cmd: '}'}" });
   assert.equal(nestedExecCommands("tools.exec_command({cmd: 'a'})")[0].cmd, "a");
 });
+
+test("nested exec literals decode JS escapes", () => {
+  assert.equal(nestedExecCommands('tools.exec_command({cmd:"cat \\u002fskills\\u002falpha\\u002fSKILL.md"})')[0].cmd, "cat /skills/alpha/SKILL.md");
+  assert.equal(nestedExecCommands('tools.exec_command({cmd:"a\\x2fb"})')[0].cmd, "a/b");
+});
