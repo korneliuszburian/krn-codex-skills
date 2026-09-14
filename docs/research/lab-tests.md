@@ -110,8 +110,15 @@ integrity `sha512-FV/x1OHXYv/ifjf3mXj9ThTTAWcUZN6cGIRQRhRxkKNOPuImu1WW0c8ev1vUkE
 seeds only `auth.json` into a fresh `CODEX_HOME`, and reads `served_model=` from the
 codex session rollout (fail-closed on mismatch). Isolation `probe` under staged
 bwrap 0.12.0: `/mnt` hidden, host `~/.codex` hidden, writes denied, auth seeded,
-uid 1000. No luna model call has been made yet; the first is a bounded smoke that
-spends codex quota and is intentionally gated on the maintainer.
+uid 1000. First runs (2026-09-14, maintainer-approved): a one-call smoke returned
+`codex_exit=0`, `served_model=gpt-5.6-luna`, `model_mismatch=no`, `sentinel_leak=no`;
+then the separation gate (`gate-tasks-codex.sh`, FAMILY=gpt-5.6-luna, SHAPES=text,
+REPS=1, arms A/B/P) returned decisive A 0/1, B 1/1, P 0/1 and neutral A 0/1, B 0/1,
+P 0/1, all six `served_model=gpt-5.6-luna`, `model_mismatch=no`, tokens captured
+(input 39k-98k, output 0.4k-1.1k). Non-promoting and N=1: the neutral stratum is at
+floor (every arm 0), so the registered precondition (arm A neutral strictly between
+0 and 1) is unmet and content cannot yet be separated from priming on this family —
+recalibrate neutral difficulty for luna before scaling.
 
 ## LT-5 separation gate (2026-09-13)
 
