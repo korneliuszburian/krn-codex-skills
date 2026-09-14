@@ -169,6 +169,27 @@ test("a skill directory whose SKILL.md is a valid file symlink is inventoried", 
   });
 });
 
+test("a kernel-unresolvable symlink target (ENOTDIR or trailing slash) is not inventoried", async () => {
+  await withRoot("krn-inventory-enotdir-", async (root) => {
+    writeFileSync(path.join(root, "plain.md"), "not a directory\n");
+    const dotted = path.join(root, "dotted");
+    mkdirSync(path.join(dotted, "real"), { recursive: true });
+    writeFileSync(path.join(dotted, "real", "SKILL.md"), "---\nname: d\ndescription: demo\n---\n");
+    symlinkSync(`${path.join(root, "plain.md")}/../dotted/real/SKILL.md`, path.join(dotted, "SKILL.md"));
+    writeFileSync(path.join(root, "other.md"), "not a dir\n");
+    const slash = path.join(root, "slash");
+    mkdirSync(slash, { recursive: true });
+    symlinkSync(`${path.join(root, "other.md")}/`, path.join(slash, "SKILL.md"));
+    const inventory = await inventoryCapabilities({
+      skillRoots: [{ id: "root", path: root, scope: "user" }],
+      pluginCacheRoots: [],
+    });
+    const ids = JSON.stringify(inventory.skills.map((skill) => skill.id));
+    assert.ok(!inventory.skills.some((skill) => skill.id === "dotted"), ids);
+    assert.ok(!inventory.skills.some((skill) => skill.id === "slash"), ids);
+  });
+});
+
 test("a symlinked component before .. does not bypass quarantine", async () => {
   await withRoot("krn-inventory-sym-dotdot-", async (root) => {
     mkdirSync(path.join(root, "superpowers", "deep"), { recursive: true });

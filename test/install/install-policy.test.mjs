@@ -99,6 +99,10 @@ test("managedHookPolicy is not confused by array contents or a quoted single key
   withRequirements('a = ["""\nx\n"""]\n[features]\nhooks = false\n', (file) => {
     assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
   });
+  // A `'''` inside a `"""` string must not be mistaken for the closer.
+  withRequirements(`a = [\n"""\nx\n''' y """ ]\n[features]\nhooks = false\n`, (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
+  });
   withRequirements('"features.hooks" = false\n', (file) => {
     assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active");
   });

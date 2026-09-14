@@ -583,13 +583,19 @@ export function managedHookPolicy({
   const ARRAY_TABLE = "\u0000array";
   let table = null;
   let arrayDepth = 0;
+  let multilineDelim = null;
   try {
     for (let index = 0; index < document.lines.length; index += 1) {
       const content = document.lines[index].content;
+      if (!document.insideMultiline?.[index] && document.insideMultiline?.[index + 1]) {
+        multilineDelim = content.includes("\"\"\"") ? "\"\"\"" : "'''";
+      }
       if (document.insideMultiline?.[index]) {
-        if (!document.insideMultiline?.[index + 1]) {
-          arrayDepth += bracketDelta(content.replace(/^[\s\S]*?(?:"""|''')/, ""));
+        if (!document.insideMultiline?.[index + 1] && multilineDelim) {
+          const closer = content.indexOf(multilineDelim);
+          arrayDepth += bracketDelta(closer === -1 ? "" : content.slice(closer + multilineDelim.length));
           if (arrayDepth < 0) arrayDepth = 0;
+          multilineDelim = null;
         }
         continue;
       }

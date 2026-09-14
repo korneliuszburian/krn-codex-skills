@@ -490,13 +490,18 @@ function absoluteLinkPath(linkPath, target) {
 }
 
 function resolveKernelPath(start, quarantine, maxHops = 64) {
-  const parts = String(start).split("/").filter((segment) => segment !== "");
+  const source = String(start);
+  let trailingSlash = source.length > 1 && source.endsWith("/");
+  const parts = source.split("/").filter((segment) => segment !== "");
   const resolved = [];
   let hops = 0;
   while (parts.length > 0) {
     const segment = parts.shift();
     if (segment === ".") continue;
     if (segment === "..") {
+      // POSIX: `..` after a non-directory is ENOTDIR, so the popped component
+      // must have been a directory. Intermediates are checked below.
+      if (resolved.length === 0) return { missing: true };
       resolved.pop();
       continue;
     }
@@ -517,15 +522,19 @@ function resolveKernelPath(start, quarantine, maxHops = 64) {
         return { missing: true };
       }
       if (target.startsWith("/")) resolved.length = 0;
+      if (target.length > 1 && target.endsWith("/")) trailingSlash = true;
       parts.unshift(...target.split("/").filter((entry) => entry !== ""));
       continue;
     }
+    if (parts.length > 0 && !stat.isDirectory()) return { missing: true };
     resolved.push(segment);
   }
   const finalPath = `/${resolved.join("/")}`;
   if (quarantine.matches(finalPath)) return { quarantined: finalPath };
   const finalStat = lstatSync(finalPath, { throwIfNoEntry: false });
-  return finalStat && finalStat.isFile() ? { file: finalPath } : { missing: true };
+  if (!finalStat || !finalStat.isFile()) return { missing: true };
+  // A trailing separator addresses a directory; a file path is unresolvable.
+  return trailingSlash ? { missing: true } : { file: finalPath };
 }
 
 async function resolveTargetFile(path, quarantine) {
