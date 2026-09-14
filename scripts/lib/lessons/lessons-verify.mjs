@@ -133,7 +133,7 @@ export function reanchorLessons({ root, timeout = 120000, runner = runCase, gitI
     let replaced = false;
     for (let index = 0; index < lines.length; index += 1) {
       if (lines[index].startsWith(`| ${lesson.lesson} `) && lines[index].includes(from)) {
-        lines[index] = lines[index].replace(from, `${file}::${name}@${latest}`);
+        lines[index] = lines[index].replace(from, () => `${file}::${name}@${latest}`);
         replaced = true;
         break;
       }

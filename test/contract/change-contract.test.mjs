@@ -1188,6 +1188,26 @@ test("runner subcommands and node_modules shims fail closed as non-literal", () 
   assertSelfAuthorized({ scripts: { "test:t": "bun x mytest" }, changedFile: "test/a.test.mjs" });
 });
 
+test("--before freezes a non-ASCII changed helper under test/", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-frozen-unicode-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), "{\"scripts\":{\"test:t\":\"node --test test/gate.test.mjs\"}}\n");
+  writeFileSync(join(root, "test", "hélper.mjs"), "export const flag = false;\n");
+  writeFileSync(join(root, "test", "gate.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { flag } from "./hélper.mjs";\ntest("flag", () => assert.equal(flag, true));\n');
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "test", "hélper.mjs"), "export const flag = true;\n");
+  writeFileSync(join(root, "test", "gate.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { flag } from "./hélper.mjs";\ntest("flag", () => assert.equal(flag, true));\ntest("extra", () => assert.equal(typeof flag, "boolean"));\n');
+  commit("fix\n\nChange-contract: test/gate.test.mjs:red->green");
+  const frozen = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+  assert.ok(frozen.errors.some((error) => error.rule === "before-state-not-red"), JSON.stringify(frozen.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("--before freezes a changed test's helper closure, not just the test file", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-closure-"));
   const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });

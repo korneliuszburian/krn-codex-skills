@@ -182,6 +182,30 @@ test("reanchor bumps a stale proof anchor after the case re-runs green", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("reanchor preserves a case name containing a dollar sign", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-reanchor-dollar-"));
+  const run = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  const commit = (message) => {
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"]);
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message]);
+    return run(["rev-parse", "HEAD"]).slice(0, 7);
+  };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "package.json"), JSON.stringify({ scripts: { "test:state": "x" } }));
+  writeFileSync(join(root, "test", "proof.test.mjs"), 'import test from "node:test";\ntest("a$&b", () => {});\n');
+  run(["init", "-q"]);
+  const first = commit("one");
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), `| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| A | probe | \`test:state\` | | \`test/proof.test.mjs::a$&b@${first}\` | | |\n`);
+  commit("two");
+  writeFileSync(join(root, "test", "proof.test.mjs"), 'import test from "node:test";\ntest("a$&b", () => {});\n// touched\n');
+  const latest = commit("three");
+  const report = reanchorLessons({ root });
+  assert.deepEqual(report.errors, [], JSON.stringify(report));
+  assert.ok(readFileSync(join(root, "docs", "research", "workflow-lessons.md"), "utf8").includes(`::a$&b@${latest}`));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("reanchor refuses to bump to a red candidate commit", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-reanchor-red-"));
   const run = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();

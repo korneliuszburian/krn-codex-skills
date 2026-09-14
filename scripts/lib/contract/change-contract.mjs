@@ -184,9 +184,9 @@ function literalCommandFiles(command) {
 }
 
 function changedFilesUnder(root, base, git, prefix) {
-  const result = git(root, ["diff", "--name-only", "--diff-filter=ACMR", base, "--", prefix]);
+  const result = git(root, ["-c", "core.quotePath=false", "diff", "-z", "--name-only", "--diff-filter=ACMR", base, "--", prefix]);
   if (!result.ok) return [];
-  return result.out.split("\n").map((entry) => entry.trim()).filter(Boolean);
+  return result.out.split("\0").filter(Boolean);
 }
 
 function listTestFiles(root, base, git) {
