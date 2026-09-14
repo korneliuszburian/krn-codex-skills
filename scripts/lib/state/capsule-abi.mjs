@@ -82,12 +82,6 @@ export function parseCleanup(value) {
 
 const COMMIT_ANCHOR = /\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40}|[0-9a-f]{64})\b/gi;
 
-export function commitTokens(value) {
-  if (!value) return [];
-  const plain = value.replace(/[<>`]/g, "");
-  return [...plain.matchAll(COMMIT_ANCHOR)].map((match) => match[2].toLowerCase());
-}
-
 export function renderCapsule(values) {
   const missing = ABI_LABELS.filter((label) => values[label] === undefined || values[label] === null);
   if (missing.length > 0) throw new Error(`capsule values missing labels: ${missing.join(", ")}`);
