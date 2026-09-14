@@ -111,14 +111,29 @@ seeds only `auth.json` into a fresh `CODEX_HOME`, and reads `served_model=` from
 codex session rollout (fail-closed on mismatch). Isolation `probe` under staged
 bwrap 0.12.0: `/mnt` hidden, host `~/.codex` hidden, writes denied, auth seeded,
 uid 1000. First runs (2026-09-14, maintainer-approved): a one-call smoke returned
-`codex_exit=0`, `served_model=gpt-5.6-luna`, `model_mismatch=no`, `sentinel_leak=no`;
-then the separation gate (`gate-tasks-codex.sh`, FAMILY=gpt-5.6-luna, SHAPES=text,
-REPS=1, arms A/B/P) returned decisive A 0/1, B 1/1, P 0/1 and neutral A 0/1, B 0/1,
-P 0/1, all six `served_model=gpt-5.6-luna`, `model_mismatch=no`, tokens captured
-(input 39k-98k, output 0.4k-1.1k). Non-promoting and N=1: the neutral stratum is at
-floor (every arm 0), so the registered precondition (arm A neutral strictly between
-0 and 1) is unmet and content cannot yet be separated from priming on this family —
-recalibrate neutral difficulty for luna before scaling.
+`codex_exit=0`, `served_model=gpt-5.6-luna`, `model_mismatch=no`, `sentinel_leak=no`.
+
+Separation gate v1 (FAMILY=gpt-5.6-luna, SHAPES=text, REPS=1, arms A/B/P) exposed a
+fixture defect, not a result: the neutral coupling (bump `RECEIPT_VERSION` with
+`RECEIPT`) was only a source comment, so luna changed the value without the bump and
+neutral sat at floor (A/B/P 0/1) while decisive showed A 0/1, B 1/1, P 0/1. With a
+floor neutral the difference-in-differences is unidentified.
+
+Separation gate v2 (recalibrated: the neutral template's mandated `node --test` now
+carries a visible coupling test, so the bump is discoverable rather than hidden;
+`results-codex-gpt-5.6-luna-v2`, REPS=3): decisive A 0/3, B 3/3, P 0/3; neutral A 3/3,
+B 3/3, P 3/3. All 18 runs `served_model=gpt-5.6-luna`, `model_mismatch=no`,
+`sentinel_leak=no`; decisive tokens input ~55k-85k, output ~0.8k-1.0k. Reading: the
+lesson content changes the decisive outcome and adds nothing on the neutral task
+(`B-A` decis 3/3 vs neutral 0/3), and the wrong-content placebo fails decisive, so
+the effect is content-specific rather than generic context.
+
+Bound and adjustment: the registered precondition "arm A neutral strictly between 0
+and 1" was replaced by a **ceiling** neutral (`B-A = 0`), which still identifies the
+interaction; the neutral stratum has zero variance at N=3 and one task per stratum,
+so no promotion and the required-N must use the decisive contrast. This gate is a
+separation check, not confirmation; scaling the neutral fixtures (more shapes) and
+the frozen confirmation pool remains open.
 
 ## LT-5 separation gate (2026-09-13)
 
