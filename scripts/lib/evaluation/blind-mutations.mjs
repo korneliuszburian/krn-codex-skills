@@ -4,11 +4,11 @@ export function scoreVerdicts({ mutants = [], controls = [], findings = {} } = {
   let falsePositives = 0;
   let trueNegatives = 0;
   for (const id of mutants) {
-    if (findings[id]) truePositives += 1;
+    if (Object.hasOwn(findings, id) && findings[id]) truePositives += 1;
     else falseNegatives += 1;
   }
   for (const id of controls) {
-    if (findings[id]) falsePositives += 1;
+    if (Object.hasOwn(findings, id) && findings[id]) falsePositives += 1;
     else trueNegatives += 1;
   }
   const sensitivity = mutants.length === 0 ? null : truePositives / mutants.length;

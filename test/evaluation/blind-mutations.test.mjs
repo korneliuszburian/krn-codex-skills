@@ -21,3 +21,15 @@ test("an empty mutant set leaves sensitivity unmeasured", () => {
   assert.equal(summarizeSensitivity(result).ok, false);
   assert.equal(summarizeSensitivity(scoreVerdicts({ mutants: ["m1"], controls: ["c1"], findings: { m1: true, c1: false } })).ok, true);
 });
+
+test("a reserved mutation id is not counted as a reported finding", () => {
+  assert.deepEqual(scoreVerdicts({ mutants: ["toString"], controls: [], findings: {} }), {
+    truePositives: 0,
+    falseNegatives: 1,
+    falsePositives: 0,
+    trueNegatives: 0,
+    sensitivity: 0,
+    specificity: null,
+  });
+  assert.equal(scoreVerdicts({ mutants: [], controls: ["constructor"], findings: {} }).falsePositives, 0);
+});

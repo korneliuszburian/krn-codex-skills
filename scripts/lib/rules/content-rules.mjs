@@ -314,6 +314,10 @@ export function parseFrontmatterFields(content, label) {
       errors.push(`${label}: unsupported frontmatter line "${line}"`);
       continue;
     }
+    if (field[1] !== "name" && field[1] !== "description") {
+      errors.push(`${label}: frontmatter must contain only name and description`);
+      continue;
+    }
     fields[field[1]] = field[2].replace(/^"(.*)"$/, "$1");
   }
   const keys = Object.keys(fields).sort();

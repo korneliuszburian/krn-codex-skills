@@ -173,3 +173,15 @@ test("markdownLinkErrors handles balanced nested parentheses in a destination", 
   assert.deepEqual(markdownLinkErrors("[x](a(b(c)).md)", { label: "d.md", resolveTarget: (target) => target === "a(b(c)).md" }), []);
   assert.deepEqual(markdownLinkErrors("see ](oops) text", { label: "d.md", resolveTarget: () => false }), []);
 });
+
+test("a reserved frontmatter key is rejected", () => {
+  assert.ok(
+    parseFrontmatterFields("---\nname: a\ndescription: b\n__proto__: c\n---\n", "SKILL.md").errors.some((error) => error.includes("only name and description")),
+    "a __proto__ frontmatter key must be rejected",
+  );
+  assert.ok(
+    parseFrontmatterFields("---\nname: a\ndescription: b\nextra: c\n---\n", "SKILL.md").errors.some((error) => error.includes("only name and description")),
+    "an unknown frontmatter key must be rejected",
+  );
+  assert.deepEqual(parseFrontmatterFields("---\nname: a\ndescription: b\n---\n", "SKILL.md").errors, []);
+});
