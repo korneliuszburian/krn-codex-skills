@@ -367,6 +367,15 @@ means, and flags a run without captured tokens as unmeasured instead of counting
 as zero cost. Cost is never inferred from context length. Bounded: only the
 grouping/paired arithmetic is landed; no live run or model call feeds it yet.
 
+## LT-1 scale-up manifest
+
+`scripts/lib/evaluation/lt1-fixtures.mjs` (`docs/prd/0005`) validates the
+reproducible LT-1 scale-up manifest: every task needs a retained fixture hash and
+answer-key hash, a decisive task needs at least three planned reps and a matched
+neutral partner, an answer key inside an agent-readable bind is rejected, and the
+placebo must be length-matched and already satisfied. Bounded: only the manifest
+check is landed; no fixture set is authored or run here.
+
 ## Decision
 
 `$source-to-decision` reads this page before promoting a behavioral mechanism.
