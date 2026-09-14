@@ -13,3 +13,12 @@ test("readFrontmatter extracts name and description and strips quotes", () => {
 test("readFrontmatter returns null without a frontmatter block", () => {
   assert.equal(readFrontmatter("no frontmatter"), null);
 });
+
+test("readFrontmatter preserves a plain scalar that ends in a quote", () => {
+  assert.equal(readFrontmatter('---\nname: demo\ndescription: he said "hi"\n---\n').description, 'he said "hi"');
+  assert.equal(readFrontmatter("---\nname: demo\ndescription: users'\n---\n").description, "users'");
+});
+
+test("readFrontmatter agrees with the validator on a single-quoted scalar", () => {
+  assert.equal(readFrontmatter("---\nname: 'demo'\ndescription: x\n---\n").name, "'demo'");
+});

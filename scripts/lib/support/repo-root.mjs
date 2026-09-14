@@ -4,8 +4,18 @@ import { resolve } from "node:path";
 import { gitAvailable, runGit as git } from "./git-cli.mjs";
 
 export function resolveRepositoryRoot(repo, { label = "state" } = {}) {
-  const requested = resolve(repo);
-  const requestedStat = statSync(requested, { throwIfNoEntry: false });
+  let requested;
+  try {
+    requested = resolve(repo);
+  } catch {
+    throw new Error(`${label} expects a repository path, got an invalid value`);
+  }
+  let requestedStat;
+  try {
+    requestedStat = statSync(requested, { throwIfNoEntry: false });
+  } catch {
+    requestedStat = undefined;
+  }
   if (!requestedStat) throw new Error(`repository path does not exist: ${requested}`);
   if (!requestedStat.isDirectory()) throw new Error(`${label} expects a repository directory, got a file: ${requested}`);
   const hasGit = gitAvailable();

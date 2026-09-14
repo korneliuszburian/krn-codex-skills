@@ -280,3 +280,26 @@ test("manifest rule helpers never throw on malformed fields", () => {
   assert.doesNotThrow(() => retirementErrors({}, new Set()));
   assert.doesNotThrow(() => retirementErrors(5, new Set()));
 });
+
+test("manifest rule helpers reject non-string names instead of regex-coercing them", () => {
+  assert.ok(
+    retirementErrors([{ name: ["old"], replacement: null }], new Set()).errors.some((error) => error.includes("invalid retired skill name")),
+    "a non-string retired name is rejected",
+  );
+  const target = { exists: true, isFile: true, executable: true };
+  assert.ok(
+    binErrors([{ name: ["krn"], path: "bin/krn" }], { isSafeRelativePath: () => true, inspectTarget: () => target }).errors.some((error) => error.includes("invalid bin name")),
+    "a non-string bin name is rejected",
+  );
+  assert.ok(
+    hookFileErrors([{ name: 123, path: "hooks/hook.py", executable: false }], { isSafeRelativePath: () => true, inspectTarget: () => target }).errors.some((error) => error.includes("invalid global hook file name")),
+    "a non-string hook name is rejected",
+  );
+});
+
+test("manifest rule helpers return errors, not throws, for a null document", () => {
+  assert.doesNotThrow(() => pretoolUseHookErrors(null, "hooks.json"));
+  assert.ok(pretoolUseHookErrors(null, "hooks.json").some((error) => error.includes("hooks.json")));
+  assert.doesNotThrow(() => validateManifestSkills(null));
+  assert.ok(validateManifestSkills(null).errors.some((error) => error.includes("document must be an object")));
+});

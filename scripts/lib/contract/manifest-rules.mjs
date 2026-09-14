@@ -18,7 +18,7 @@ export function hookFileErrors(hookFiles, { isSafeRelativePath, inspectTarget })
       errors.push("manifest: global_hook_files entries must be objects");
       continue;
     }
-    if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}$/.test(hookFile.name ?? "")) {
+    if (typeof hookFile.name !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}$/.test(hookFile.name)) {
       errors.push(`manifest: invalid global hook file name ${hookFile.name}`);
     }
     if (names.has(hookFile.name)) {
@@ -83,7 +83,7 @@ export function binErrors(bins, { isSafeRelativePath, inspectTarget }) {
       errors.push("manifest: bins entries must be objects");
       continue;
     }
-    if (!SKILL_NAME.test(bin.name ?? "")) {
+    if (typeof bin.name !== "string" || !SKILL_NAME.test(bin.name)) {
       errors.push(`manifest: invalid bin name ${bin.name}`);
     }
     if (names.has(bin.name)) {
@@ -108,6 +108,10 @@ export function binErrors(bins, { isSafeRelativePath, inspectTarget }) {
 
 export function pretoolUseHookErrors(hooks, label) {
   const errors = [];
+  if (!hooks || typeof hooks !== "object") {
+    errors.push(`${label}: expected one PreToolUse matcher group`);
+    return errors;
+  }
   const preToolUse = hooks.hooks?.PreToolUse;
   if (!Array.isArray(preToolUse) || preToolUse.length !== 1) {
     errors.push(`${label}: expected one PreToolUse matcher group`);
@@ -151,7 +155,7 @@ export function retirementErrors(retiredSkills, localSkillNames) {
         `manifest: retired skill ${retired.name ?? "<unknown>"} must contain only name and replacement`,
       );
     }
-    if (!SKILL_NAME.test(retired.name ?? "")) {
+    if (typeof retired.name !== "string" || !SKILL_NAME.test(retired.name)) {
       errors.push(`manifest: invalid retired skill name ${retired.name}`);
       continue;
     }
@@ -180,6 +184,9 @@ export function retirementErrors(retiredSkills, localSkillNames) {
 
 export function validateManifestSkills(document) {
   const errors = [];
+  if (!document || typeof document !== "object" || Array.isArray(document)) {
+    return { errors: ["manifest: document must be an object"], names: new Set(), paths: new Set(), valid: [], installableSkills: [], sourceOnlySkills: [] };
+  }
   if (!Array.isArray(document.skills)) {
     errors.push("manifest: skills must be an array");
   }
