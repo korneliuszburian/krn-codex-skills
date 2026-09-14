@@ -21,6 +21,15 @@ const skill = (over = {}) => ({
 const inventory = (over = {}) => ({ plugins: [], skills: [], hardQuarantine: [], ...over });
 const profile = (over = {}) => ({ plugins: {}, skills: {}, mcps: {}, apps: {}, ...over });
 
+test("a plugin disable selector resolves to the real plugin id", () => {
+  const result = resolveProfile(
+    profile({ plugins: { disable: ["demo"] } }),
+    inventory({ plugins: [plugin()] }),
+  );
+  assert.deepEqual(result.desired.plugins, { "demo@market": false });
+  assert.deepEqual(result.unresolved.plugins, []);
+});
+
 test("resolves plugin selectors and reports unresolved ones", () => {
   const result = resolveProfile(
     profile({ plugins: { enable: ["demo@market"], disable: ["ghost@market"] } }),

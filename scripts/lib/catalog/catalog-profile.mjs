@@ -36,8 +36,18 @@ export function resolveProfile(
   for (const pluginId of profile.plugins?.enable || []) {
     assignDesired(desired.plugins, pluginId, true, "plugins.enable");
   }
-  for (const pluginId of profile.plugins?.disable || []) {
-    assignDesired(desired.plugins, pluginId, false, "plugins.disable");
+  for (const selector of profile.plugins?.disable || []) {
+    // Resolve a name/family selector to the real plugin id(s), so the disable
+    // tombstone is keyed by id (planning matches ids) even when the profile uses
+    // a family or manifest name.
+    const matched = inventory.plugins.filter((plugin) => selectorMatches(plugin, [selector]));
+    if (matched.length === 0) {
+      assignDesired(desired.plugins, selector, false, "plugins.disable");
+      continue;
+    }
+    for (const plugin of matched) {
+      assignDesired(desired.plugins, plugin.id, false, "plugins.disable");
+    }
   }
   for (const family of profile.plugins?.disableFamilies || []) {
     assignDesired(
