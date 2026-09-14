@@ -116,14 +116,24 @@ const importEdges = (rawSource) => {
 };
 
 const normalizedBody = (source, start) => {
-  const open = source.indexOf("{", start);
+  let index = source.indexOf("(", start);
+  if (index < 0) return "";
+  let parens = 0;
+  for (; index < source.length; index += 1) {
+    if (source[index] === "(") parens += 1;
+    else if (source[index] === ")") {
+      parens -= 1;
+      if (parens === 0) { index += 1; break; }
+    }
+  }
+  const open = source.indexOf("{", index);
   if (open < 0) return "";
   let depth = 0;
-  for (let index = open; index < source.length; index += 1) {
-    if (source[index] === "{") depth += 1;
-    else if (source[index] === "}") {
+  for (let cursor = open; cursor < source.length; cursor += 1) {
+    if (source[cursor] === "{") depth += 1;
+    else if (source[cursor] === "}") {
       depth -= 1;
-      if (depth === 0) return source.slice(open, index + 1).replace(/\s+/g, " ");
+      if (depth === 0) return source.slice(open, cursor + 1).replace(/\s+/g, " ");
     }
   }
   return "";
@@ -179,7 +189,7 @@ export function auditRepository(root) {
 
   for (const file of runtime) {
     const source = maskLiterals(sources.get(file));
-    const local = new Set([...functionDeclarations(source), ...importedNames(sources.get(file)), ...[...source.matchAll(/(?:const|let|var)\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1]), ...[...source.matchAll(/\bclass\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1])]);
+    const local = new Set([...functionDeclarations(source), ...importedNames(sources.get(file)), ...[...source.matchAll(/(?:const|let|var)\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1]), ...[...source.matchAll(/\bclass\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1]), ...[...source.matchAll(/function\s*\*?\s*[A-Za-z0-9_$]*\s*\(([^)]*)\)/g)].flatMap((match) => [...match[1].matchAll(/[A-Za-z0-9_$]+/g)].map((name) => name[0]))]);
     for (const match of source.matchAll(/(?<![.\w$])([A-Za-z0-9_$]+)\s*\(/g)) {
       const name = match[1];
       if (local.has(name)) continue;

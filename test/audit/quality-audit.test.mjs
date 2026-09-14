@@ -335,3 +335,39 @@ test("export let, multi-declarators, and destructured exports are audited", () =
     },
   );
 });
+
+test("a parameter or class binding does not look like a missing import", () => {
+  withRepo(
+    {
+      "scripts/lib/a.mjs": "export function Widget() { return 1; }\n",
+      "scripts/lib/b.mjs": "class Widget {}\nexport const w = new Widget();\n",
+      "scripts/lib/c.mjs": "export function f(Widget) {\n  return Widget();\n}\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(!errors.some((m) => m.includes("calls Widget() but never imports it")), JSON.stringify(errors));
+    },
+  );
+});
+
+test("a duplicate body behind destructured parameters is still reported", () => {
+  const body = [
+    "export function dup({ a, b }) {",
+    "  const first = a + b;",
+    "  const second = first * b - a;",
+    "  const third = second + first - b;",
+    "  const fourth = third * a + second;",
+    "  return fourth - third + second - first + b;",
+    "}",
+  ].join("\n");
+  withRepo(
+    {
+      "scripts/lib/one.mjs": body,
+      "scripts/lib/two.mjs": body,
+    },
+    (root) => {
+      const { info } = auditRepository(root);
+      assert.ok(info.some((m) => m.includes("duplicate function body")), JSON.stringify(info));
+    },
+  );
+});
