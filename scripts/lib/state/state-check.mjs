@@ -210,7 +210,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         errors.push({ id: entry.name, rule: "complete-with-friction", detail: stripMarkup(friction) });
       }
       const participants = fields["Native Goal identity/state and configured tracker item/state"];
-      if (participants && /=\s*(active|open|in[_-]?progress|blocked|deferred)\b/i.test(stripMarkup(participants))) {
+      if (participants && /\bstate\s*[=:]\s*["\']?(active|open|in[ _-]?progress|blocked|deferred)\b/i.test(stripMarkup(participants))) {
         errors.push({ id: entry.name, rule: "complete-with-active-participant", detail: stripMarkup(participants) });
       }
     }

@@ -160,3 +160,15 @@ test("quoteToml escapes U+007F", () => {
   assert.ok(!/\u007f/.test(quoteToml("a\u007fb")));
   assert.ok(quoteToml("a\u007fb").includes("\\u007F"));
 });
+
+test("removeBlock drops the removed block's own trailing comment", () => {
+  const last = '[mcp_servers.a]\ncommand = "x"\n# trailing for a\n';
+  const ops = [];
+  removeBlock({ document: parseDocument(last), block: blockFor(last, "mcp", "a"), allowedKeys: MCP_SERVER_KEYS, target: "a", resource: "mcp", reason: "t", operations: ops, actions: [] });
+  assert.equal(applyOperations(last, ops), "");
+
+  const blankSeparated = '[mcp_servers.a]\ncommand = "x"\n# trailing for a\n\n[mcp_servers.b]\nenabled = true\n';
+  const ops2 = [];
+  removeBlock({ document: parseDocument(blankSeparated), block: blockFor(blankSeparated, "mcp", "a"), allowedKeys: MCP_SERVER_KEYS, target: "a", resource: "mcp", reason: "t", operations: ops2, actions: [] });
+  assert.equal(applyOperations(blankSeparated, ops2), "[mcp_servers.b]\nenabled = true\n");
+});

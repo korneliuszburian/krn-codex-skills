@@ -123,19 +123,18 @@ export function skillPathContainsQuarantine(document, block, skillPath, families
   });
 }
 
-function isTrivia(line) {
-  const trimmed = line.content.trim();
-  return trimmed === "" || trimmed.startsWith("#");
+function ownedEndLine(document, block) {
+  let cursor = block.endLineIndex - 1;
+  if (block.endLineIndex < document.lines.length) {
+    while (cursor > block.startLineIndex && document.lines[cursor].content.trim().startsWith("#")) cursor -= 1;
+    return cursor;
+  }
+  while (cursor > block.startLineIndex && document.lines[cursor].content.trim() === "") cursor -= 1;
+  return cursor;
 }
 
 function insertionAtBlockEnd(document, block, text) {
-  let insertLineIndex = block.endLineIndex;
-  while (
-    insertLineIndex > block.startLineIndex + 1 &&
-    isTrivia(document.lines[insertLineIndex - 1])
-  ) {
-    insertLineIndex -= 1;
-  }
+  const insertLineIndex = ownedEndLine(document, block) + 1;
 
   const offset =
     insertLineIndex < document.lines.length
@@ -157,13 +156,7 @@ function replaceEnabledOperation(document, lineIndex, enabled) {
 }
 
 function deletionOperation(document, block) {
-  let lastOwnedLine = block.endLineIndex - 1;
-  while (
-    lastOwnedLine > block.startLineIndex &&
-    isTrivia(document.lines[lastOwnedLine])
-  ) {
-    lastOwnedLine -= 1;
-  }
+  const lastOwnedLine = ownedEndLine(document, block);
 
   return {
     start: block.start,

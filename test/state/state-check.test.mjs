@@ -643,3 +643,31 @@ test("a fingerprint-only fixed point is a real anchor", () => {
   assert.ok(!rules(report).includes("missing-fixed-point"), rules(report).join(","));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a terminal participant identity is not an active participant", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(
+    root,
+    capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(
+      "Native Goal identity/state and configured tracker item/state: none",
+      "Native Goal identity/state and configured tracker item/state: goal=open-migration state=COMPLETE; tracker=issue_9 state=closed",
+    ),
+  );
+  const report = inspectSpineState({ repo: root });
+  assert.ok(!rules(report).includes("complete-with-active-participant"), rules(report).join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an active state written with a space separator is caught", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(
+    root,
+    capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(
+      "Native Goal identity/state and configured tracker item/state: none",
+      "Native Goal identity/state and configured tracker item/state: goal=goal_1 state=in progress; tracker=issue_9 state=closed",
+    ),
+  );
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("complete-with-active-participant"), rules(report).join(","));
+  rmSync(root, { recursive: true, force: true });
+});
