@@ -140,3 +140,29 @@ test("unfencedLines and markdownLinkErrors handle ~~~ fences and titled links", 
     [],
   );
 });
+
+test("unfencedLines is a fence state machine, not a toggle", () => {
+  assert.deepEqual(unfencedLines("~~~\n```\n[x](missing.md)\n~~~\n").map((entry) => entry.line).filter(Boolean), []);
+  assert.deepEqual(unfencedLines("    ```\n[x](missing.md)\n").map((entry) => entry.line).filter(Boolean), ["    ```", "[x](missing.md)"]);
+  assert.deepEqual(unfencedLines("````\n```\n[x](missing.md)\n````\n").map((entry) => entry.line).filter(Boolean), []);
+});
+
+test("markdownLinkErrors honors tilde fences and indented code blocks", () => {
+  const options = { label: "d.md", resolveTarget: () => false };
+  assert.deepEqual(markdownLinkErrors("~~~\n```\n[x](missing.md)\n~~~\n", options), []);
+  assert.deepEqual(markdownLinkErrors("    ```\n[x](missing.md)\n", options), ["d.md:2: broken Markdown link missing.md"]);
+});
+
+test("readmeSkillsTableErrors accepts an escaped pipe in a cell", () => {
+  const content = [
+    "## Skills",
+    "",
+    "| Skill | Invocation | Owns |",
+    "| --- | --- | --- |",
+    "| [`alpha`](skills/g/alpha/SKILL.md) | explicit only | a \\| b |",
+  ].join("\n");
+  assert.deepEqual(
+    readmeSkillsTableErrors(content, { label: "README.md", skills: [{ name: "alpha", path: "skills/g/alpha/SKILL.md", implicit: false }] }),
+    [],
+  );
+});

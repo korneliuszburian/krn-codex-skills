@@ -1,14 +1,50 @@
-export function unfencedLines(content) {
-  const lines = [];
-  let fenced = false;
+const FENCE = /^( {0,3})(`{3,}|~{3,})(.*)$/;
+
+export function fenceLines(content) {
+  const result = [];
+  let fence = null;
   for (const [index, line] of content.split("\n").entries()) {
-    if (/^\s*(?:```|~~~)/.test(line)) {
-      fenced = !fenced;
+    const match = FENCE.exec(line);
+    const number = index + 1;
+    if (fence) {
+      result.push({ line, number, fenced: true });
+      const closing = match !== null && match[2][0] === fence.char && match[2].length >= fence.length && match[3].trim() === "";
+      if (closing) fence = null;
       continue;
     }
-    if (!fenced) lines.push({ line, number: index + 1 });
+    if (match && !(match[2][0] === "`" && match[3].includes("`"))) {
+      fence = { char: match[2][0], length: match[2].length };
+      result.push({ line, number, fenced: true });
+      continue;
+    }
+    result.push({ line, number, fenced: false });
   }
-  return lines;
+  return result;
+}
+
+export const unfencedLines = (content) => fenceLines(content).filter((entry) => !entry.fenced);
+
+function splitTableRow(line) {
+  const cells = [];
+  const inner = line.startsWith("|") ? line.slice(1) : line;
+  const body = inner.endsWith("|") ? inner.slice(0, -1) : inner;
+  let current = "";
+  for (let index = 0; index < body.length; index += 1) {
+    const char = body[index];
+    if (char === "\\" && body[index + 1] === "|") {
+      current += "|";
+      index += 1;
+      continue;
+    }
+    if (char === "|") {
+      cells.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  cells.push(current.trim());
+  return cells;
 }
 
 export function markdownLinkErrors(content, { label, resolveTarget }) {
@@ -111,10 +147,7 @@ export function readmeSkillsTableErrors(content, { label, skills }) {
       errors.push(`${label}:${index + 1}: malformed Skills table row`);
       break;
     }
-    const cells = line
-      .slice(1, -1)
-      .split("|")
-      .map((cell) => cell.trim());
+    const cells = splitTableRow(line);
     if (cells.length !== 3) {
       errors.push(`${label}:${index + 1}: Skills table row must have exactly three cells`);
       continue;

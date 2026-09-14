@@ -133,3 +133,10 @@ test("a titled Topics link is accepted", () => {
   assert.ok(!errors.some((error) => error.includes("topic is missing")), JSON.stringify(errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a tilde-fenced over-long line is allowed", () => {
+  const root = makeRoot();
+  writeFileSync(join(root, "docs", "research", "topic.md"), `# Topic\n\n${HEADER}\n~~~\n${"x".repeat(4001)}\n~~~\n`);
+  assert.ok(!checkDurablePages({ root }).errors.some((error) => error.includes("keep run ledgers")), "a tilde-fenced over-long line is allowed");
+  rmSync(root, { recursive: true, force: true });
+});

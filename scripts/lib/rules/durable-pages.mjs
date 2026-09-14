@@ -4,6 +4,7 @@ import { escapeRegExp } from "../support/regexp.mjs";
 import path from "node:path";
 
 import { parseLessons } from "../lessons/lessons.mjs";
+import { fenceLines, unfencedLines } from "./content-rules.mjs";
 
 const HEADER_RULES = [
   [/^Status: `(accepted|lab-test|defer|reject)`/m, "header needs a canonical Status enum (accepted|lab-test|defer|reject)"],
@@ -41,16 +42,11 @@ export function checkDurablePages({ root }) {
     const topic = path.join(researchDirectory, entry.name);
     header(topic);
     const topicText = fs.readFileSync(topic, "utf8");
-    let fenced = false;
-    topicText.split("\n").forEach((line, index) => {
-      if (/^\s*```/.test(line)) {
-        fenced = !fenced;
-        return;
+    for (const { line, number } of unfencedLines(topicText)) {
+      if (line.length > 4000) {
+        errors.push(`${relative(topic)}:${number}: a non-fenced line is ${line.length} characters; keep run ledgers out of durable pages`);
       }
-      if (!fenced && line.length > 4000) {
-        errors.push(`${relative(topic)}:${index + 1}: a non-fenced line is ${line.length} characters; keep run ledgers out of durable pages`);
-      }
-    });
+    }
     if (!linksTarget(topicsSection, entry.name)) {
       errors.push(`${relative(topic)}: topic is missing from docs/research/README.md Topics`);
     }
@@ -87,12 +83,7 @@ export function checkDurablePages({ root }) {
       };
       const stripCode = (text) => {
         const kept = [];
-        let fenced = false;
-        for (const line of text.split("\n")) {
-          if (/^\s{0,3}(```|~~~)/.test(line)) {
-            fenced = !fenced;
-            continue;
-          }
+        for (const { line, fenced } of fenceLines(text)) {
           if (fenced || /^(?: {4,}|\t)/.test(line)) continue;
           kept.push(line.replace(/`[^`]*`/g, ""));
         }
