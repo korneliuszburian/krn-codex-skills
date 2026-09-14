@@ -127,6 +127,16 @@ only after the agent exits.
 | P (placebo) | 0/3 | 3/3 | 71 / 31 | 49161 / 15539 |
 | C (forced recall) | 3/3 | 3/3 | 15 / 18 | 10824 / 10330 |
 
+Second-family replication (2026-09-13, `opencode-go/glm-5.3`, arms A/B/P, same
+fixture and one decisive plus one neutral task, three runs per cell, family-scoped
+retained output; P is the repaired already-satisfied-convention row): decisive
+A 0/3, B 3/3, P 0/3; neutral A 0/3, B 2/3, P 1/3. The decisive contrast reproduces
+(the coupled lesson flips only B), and P stays at zero on the decisive task, so the
+decisive effect is not explained by the wrong-content row; on the neutral task B
+still leads A (2/3 vs 0/3) and P (1/3), weaker than the first family. This is a
+pilot for the interaction, not powered confirmation: the second family shares a
+provider/SDK with the first, so decider independence remains a stated non-proof.
+
 Disposition: **content effect attributable to the lesson's content, still
 non-promoting.** The arms differ only by the lesson row. In all three decisive A
 runs the agent changed `BANNER` to `Welcome` and left `BANNER_VERSION` at 1,
@@ -151,16 +161,16 @@ the registered N=3 dataset above is kept as recorded and P is not called neutral
 until it is run in the powered design.
 
 Open controls after the round-54 review and this run. Done: the same-shape neutral
-fixture with an interior arm-A rate, and a same-trigger/same-shape placebo arm now
-repaired to a non-confusing, already-satisfied convention. Still open, each with a
-falsifier: (1) a length- and token-matched placebo confirmed neutral in a powered
-design, with a decisive-specific B−P advantage; (2) preregistered power for the
-difference-in-differences itself,
-inflating for task clustering `1+(r−1)ρ` (illustrative `p10=.375/p01=.125`, δ=.25,
-q=.50 reaches 80% only near 85 independent pairs at α=.05/3, so multiple tasks per
-stratum must be piloted); (3) a second family `opencode-go/glm-5.3` run with
-family-scoped retained output, pinned executable/model, matched effort, and
-randomized blocks, keeping the shared-provider limitation; (4) the exact git-shim C
+fixture with an interior arm-A rate; a same-trigger/same-shape placebo arm repaired
+to a non-confusing, already-satisfied convention; and a first second-family pilot
+(glm-5.3, A/B/P, family-scoped output) that reproduces the decisive contrast. Still
+open, each with a falsifier: (1) a length- and token-matched placebo confirmed
+neutral in a powered design, with a decisive-specific B−P advantage; (2)
+preregistered power for the difference-in-differences itself, inflating for task
+clustering `1+(r−1)ρ` (illustrative `p10=.375/p01=.125`, δ=.25, q=.50 reaches 80%
+only near 85 independent pairs at α=.05/3), so multiple independently authored
+tasks per stratum must be piloted (the second-family pilot used one task per
+stratum, so its neutral B-vs-A gap is not powered); (3) the exact git-shim C
 mechanism with B/C parity (identical prompt, recall content, access, and timing,
 corpus outside agent-readable binds) showing an unreconstructed decisive commit
 clears B's boundary and fails C's, reconstruction clears C, and a neutral commit
