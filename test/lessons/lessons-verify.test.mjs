@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkLessons } from "../../scripts/lib/lessons/lessons.mjs";
+import { checkLessons, recallLessons } from "../../scripts/lib/lessons/lessons.mjs";
 import { reanchorLessons, verifyLessons, tapCasePassed } from "../../scripts/lib/lessons/lessons-verify.mjs";
 
 test("tapCasePassed accepts the exact reporter label and rejects impersonation", () => {
@@ -262,5 +262,68 @@ test("reanchor fixes a gate-file staleness and refuses a dirty tree", () => {
   const dirty = reanchorLessons({ root });
   assert.equal(dirty.updated.length, 0);
   assert.ok(dirty.skipped.some((entry) => /dirty/.test(entry.reason)), JSON.stringify(dirty.skipped));
+  rmSync(root, { recursive: true, force: true });
+});
+
+function gitRoot(prefix) {
+  const root = mkdtempSync(join(tmpdir(), prefix));
+  const run = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  const commit = (message) => {
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"]);
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message]);
+    return run(["rev-parse", "HEAD"]).slice(0, 7);
+  };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "package.json"), JSON.stringify({ scripts: { "test:state": "x" } }));
+  writeFileSync(join(root, "test", "proof.test.mjs"), 'import test from "node:test";\ntest("probe", () => {});\n');
+  run(["init", "-q"]);
+  return { root, run, commit };
+}
+
+test("reanchor rewrites only the falsifier cell", () => {
+  const { root, commit } = gitRoot("krn-reanchor-cell-");
+  const first = commit("one");
+  const token = `test/proof.test.mjs::probe@${first}`;
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), `| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| A | reruns \`${token}\` | \`test:state\` | | \`${token}\` | | |\n`);
+  commit("two");
+  writeFileSync(join(root, "test", "proof.test.mjs"), 'import test from "node:test";\ntest("probe", () => {});\n// touched\n');
+  const latest = commit("three");
+  const report = reanchorLessons({ root });
+  assert.equal(report.updated.length, 1, JSON.stringify(report));
+  const page = readFileSync(join(root, "docs", "research", "workflow-lessons.md"), "utf8");
+  assert.ok(page.includes(`| reruns \`${token}\` |`), "the evidence cell keeps the old anchor");
+  assert.ok(page.includes(`\`test/proof.test.mjs::probe@${latest}\` | | |`), "the falsifier cell is bumped");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("reanchor matches a lesson name containing an escaped pipe", () => {
+  const { root, commit } = gitRoot("krn-reanchor-pipe-");
+  const first = commit("one");
+  const token = `test/proof.test.mjs::probe@${first}`;
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), `| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| A \\| B | probe | \`test:state\` | | \`${token}\` | | |\n`);
+  commit("two");
+  writeFileSync(join(root, "test", "proof.test.mjs"), 'import test from "node:test";\ntest("probe", () => {});\n// touched\n');
+  const latest = commit("three");
+  const report = reanchorLessons({ root });
+  assert.equal(report.updated.length, 1, JSON.stringify(report));
+  assert.ok(readFileSync(join(root, "docs", "research", "workflow-lessons.md"), "utf8").includes(`probe@${latest}`));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an unterminated code fence fails the lesson page", () => {
+  const root = makeRoot('import test from "node:test";\ntest("probe", () => {});\n');
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "```\n| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n| A | probe | `test:state` | 2026-01-01@abcdef1 | |\n");
+  const report = checkLessons({ root });
+  assert.ok(report.errors.some((error) => error.includes("unterminated code fence")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an invalid trigger glob is a row error, not an abort", () => {
+  const root = makeRoot('import test from "node:test";\ntest("probe", () => {});\n');
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| A | probe | `test:state` | 2026-01-01@abcdef1 | | path:[a-Z] |\n");
+  const report = checkLessons({ root });
+  assert.ok(report.errors.some((error) => error.includes("invalid trigger glob")), JSON.stringify(report.errors));
+  assert.doesNotThrow(() => recallLessons({ root, files: ["scripts/x.mjs"] }));
   rmSync(root, { recursive: true, force: true });
 });

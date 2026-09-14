@@ -54,20 +54,20 @@ export function parseLessonText(text) {
     }
     rows.push({ lesson: cells[0], evidence: cells[1], gate: cells[2], occurrences, falsifier: cells[4] ?? "", trigger: cells[5] ?? "", status: (cells[6] ?? "").trim(), columns: cells.length });
   }
-  return { rows, malformed, headerColumns };
+  return { rows, malformed, headerColumns, unbalancedFence: fenced };
 }
 
 export function parseLessons(file) {
-  if (!fs.existsSync(file)) return { rows: [], malformed: [], budget: LESSON_BUDGET, headerColumns: null };
-  const { rows, malformed, headerColumns } = parseLessonText(fs.readFileSync(file, "utf8"));
-  return { rows, malformed, budget: LESSON_BUDGET, headerColumns };
+  if (!fs.existsSync(file)) return { rows: [], malformed: [], budget: LESSON_BUDGET, headerColumns: null, unbalancedFence: false };
+  const { rows, malformed, headerColumns, unbalancedFence } = parseLessonText(fs.readFileSync(file, "utf8"));
+  return { rows, malformed, budget: LESSON_BUDGET, headerColumns, unbalancedFence };
 }
 
 const FALSIFIER = /^(test\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
 
 const RETIRE = /^retired@([0-9a-f]{7})(?:;\s*superseded-by:\s*(\S.*?))?$/i;
 
-function globToRegex(glob) {
+function compileGlob(glob) {
   let out = "^";
   for (let index = 0; index < glob.length; index += 1) {
     const char = glob[index];
@@ -103,6 +103,15 @@ function globToRegex(glob) {
   }
   return new RegExp(`${out}$`);
 }
+
+const NEVER_MATCHES = /(?!x)x/;
+const globToRegex = (glob) => {
+  try {
+    return compileGlob(glob);
+  } catch {
+    return NEVER_MATCHES;
+  }
+};
 
 function triggerEntries(trigger, prefix) {
   return (trigger ?? "")
@@ -220,8 +229,9 @@ function resolveReference(root, scripts, reference) {
 
 export function checkLessons({ root, git = runGit }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
-  const { rows, malformed, budget, headerColumns } = parseLessons(file);
+  const { rows, malformed, budget, headerColumns, unbalancedFence } = parseLessons(file);
   const errors = malformed.map((row) => `malformed lesson row: ${row.trim()}`);
+  if (unbalancedFence) errors.push("workflow-lessons.md has an unterminated code fence; lesson rows cannot be trusted");
   const warnings = [];
   const lessons = [];
   const maxColumns = rows.reduce((widest, row) => Math.max(widest, row.columns ?? 0), 0);
@@ -253,6 +263,13 @@ export function checkLessons({ root, git = runGit }) {
     const invalidTrigger = (row.trigger ?? "").split(/[;,]/).map((entry) => entry.trim()).filter(Boolean).find((entry) => !/^(path|symbol|churn):/.test(entry));
     if (invalidTrigger) {
       errors.push(`lesson "${row.lesson}": unknown trigger "${invalidTrigger}"; use path:, symbol:, or churn:`);
+      continue;
+    }
+    const badGlob = [...triggerEntries(row.trigger, "path:"), ...triggerEntries(row.trigger, "churn:")].find((glob) => {
+      try { compileGlob(glob); return false; } catch { return true; }
+    });
+    if (badGlob) {
+      errors.push(`lesson "${row.lesson}": invalid trigger glob "${badGlob}"`);
       continue;
     }
     if (row.status) {

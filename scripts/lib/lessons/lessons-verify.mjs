@@ -129,14 +129,31 @@ export function reanchorLessons({ root, timeout = 120000, runner = runCase, gitI
       continue;
     }
     const from = `${file}::${name}@${sha}`;
+    const to = `${file}::${name}@${latest}`;
+    const replaceInFalsifierCell = (line) => {
+      const leading = line.startsWith("|") ? 1 : 0;
+      const inner = line.slice(leading, line.endsWith("|") ? line.length - 1 : line.length);
+      const spans = [];
+      let start = 0;
+      for (let index = 0; index < inner.length; index += 1) {
+        if (inner[index] === "\\" && inner[index + 1] === "|") { index += 1; continue; }
+        if (inner[index] === "|") { spans.push({ start, end: index }); start = index + 1; }
+      }
+      spans.push({ start, end: inner.length });
+      const span = spans[4];
+      if (!span) return null;
+      const cell = inner.slice(span.start, span.end);
+      if (!cell.includes(from)) return null;
+      return line.slice(0, leading + span.start) + cell.replace(from, () => to) + line.slice(leading + span.end);
+    };
     const lines = text.split("\n");
     let replaced = false;
     for (let index = 0; index < lines.length; index += 1) {
-      if (lines[index].startsWith(`| ${lesson.lesson} `) && lines[index].includes(from)) {
-        lines[index] = lines[index].replace(from, () => `${file}::${name}@${latest}`);
-        replaced = true;
-        break;
-      }
+      const next = replaceInFalsifierCell(lines[index]);
+      if (next === null) continue;
+      lines[index] = next;
+      replaced = true;
+      break;
     }
     if (replaced) {
       text = lines.join("\n");
