@@ -90,6 +90,20 @@ test("an assignment-shaped array element is not a real assignment", () => {
   assert.ok(![...directAssignments(doc, mcp).keys()].includes("x"), JSON.stringify([...directAssignments(doc, mcp).keys()]));
 });
 
+test("a bracket inside a multi-line string body is not a structural bracket", () => {
+  const source = "note = '''it's [draft\n'''\n[features]\nhooks = false\n";
+  const doc = parseDocument(source);
+  assert.ok(doc.blocks.some((block) => block.kind === "other"), JSON.stringify(doc.blocks));
+  assert.deepEqual([...directAssignments(doc, doc.blocks.at(-1)).keys()], ["hooks"]);
+});
+
+test("a close-then-reopen multi-line string does not inflate array depth", () => {
+  const source = 'a = [\n"""x\ny""", """it"s [z"""\n]\n[features]\nhooks = false\n';
+  const doc = parseDocument(source);
+  assert.deepEqual(doc.blocks.map((block) => block.kind), ["other"]);
+  assert.deepEqual([...directAssignments(doc, doc.blocks[0]).keys()], ["hooks"]);
+});
+
 test("an escaped delimiter inside a multi-line string does not inflate array depth", () => {
   const source = `[mcp_servers.alpha]\ncommand = """\nescaped \\""" [x\n"""\nenabled = false\n`;
   const doc = parseDocument(source);

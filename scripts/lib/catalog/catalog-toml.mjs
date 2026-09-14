@@ -193,27 +193,31 @@ export function parseHeader(content) {
   return { kind: "other" };
 }
 
-function advanceMultilineState(content, mode) {
+// Single pass over a line: resolve multi-line string state and bracket balance
+// together, counting brackets only outside strings/comments. Handles an opening
+// line whose string body contains brackets, and close-then-reopen on one line.
+function scanLine(content, mode) {
+  let depth = 0;
+  let state = mode;
   let index = 0;
-  let current = mode;
   while (index < content.length) {
-    if (current === "'''") {
+    if (state === "'''") {
       const close = content.indexOf("'''", index);
-      if (close === -1) return current;
+      if (close === -1) return { delta: depth, next: "'''" };
       index = close + 3;
-      current = null;
+      state = null;
       continue;
     }
-    if (current === "\"\"\"") {
+    if (state === "\"\"\"") {
       if (content[index] === "\\") index += 2;
-      else if (content.startsWith("\"\"\"", index)) { index += 3; current = null; }
+      else if (content.startsWith("\"\"\"", index)) { index += 3; state = null; }
       else index += 1;
       continue;
     }
     const character = content[index];
-    if (character === "#") return null;
+    if (character === "#") break;
     if (character === "\"") {
-      if (content.startsWith("\"\"\"", index)) { current = "\"\"\""; index += 3; continue; }
+      if (content.startsWith("\"\"\"", index)) { state = "\"\"\""; index += 3; continue; }
       index += 1;
       while (index < content.length) {
         if (content[index] === "\\") index += 2;
@@ -223,15 +227,17 @@ function advanceMultilineState(content, mode) {
       continue;
     }
     if (character === "'") {
-      if (content.startsWith("'''", index)) { current = "'''"; index += 3; continue; }
+      if (content.startsWith("'''", index)) { state = "'''"; index += 3; continue; }
       index += 1;
       while (index < content.length && content[index] !== "'") index += 1;
       if (index < content.length) index += 1;
       continue;
     }
+    if (character === "[") depth += 1;
+    else if (character === "]") depth -= 1;
     index += 1;
   }
-  return current;
+  return { delta: depth, next: state };
 }
 
 export function parseDocument(source) {
@@ -248,8 +254,6 @@ export function parseDocument(source) {
     const wasInside = multiline !== null;
     insideMultiline[index] = wasInside;
     insideArray[index] = arrayDepth > 0;
-    const next = advanceMultilineState(content, multiline);
-    const closes = wasInside && next === null;
     if (!wasInside && arrayDepth === 0) {
       const header = parseHeader(content);
       if (header) {
@@ -262,17 +266,9 @@ export function parseDocument(source) {
         );
       }
     }
-    if (!wasInside) {
-      const delta = bracketDelta(content);
-      if (delta !== 0) arrayDepth = Math.max(0, arrayDepth + delta);
-    } else if (closes) {
-      // The multi-line string closed on this line; count any brackets after it.
-      const closer = findMultilineCloser(content, multiline);
-      const tail = closer === -1 ? "" : content.slice(closer + 3);
-      const delta = bracketDelta(tail);
-      if (delta !== 0) arrayDepth = Math.max(0, arrayDepth + delta);
-    }
-    multiline = next;
+    const scanned = scanLine(content, multiline);
+    if (scanned.delta !== 0) arrayDepth = Math.max(0, arrayDepth + scanned.delta);
+    multiline = scanned.next;
   }
 
   const blocks = headers.map((header, index) => {
@@ -294,38 +290,9 @@ export function parseDocument(source) {
 }
 
 // Escape-aware search for a multi-line string's closer on a line.
-function findMultilineCloser(content, delim) {
-  let index = 0;
-  while (index < content.length) {
-    if (delim === "\"\"\"" && content[index] === "\\") {
-      index += 2;
-      continue;
-    }
-    if (content.startsWith(delim, index)) return index;
-    index += 1;
-  }
-  return -1;
-}
 
 // Bracket balance outside strings and comments; a table header line balances to
 // zero, so only multi-line array bodies move the depth.
-function bracketDelta(line) {
-  let depth = 0;
-  let quote = null;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (quote) {
-      if (quote === "\"" && char === "\\") index += 1;
-      else if (char === quote) quote = null;
-      continue;
-    }
-    if (char === "\"" || char === "'") quote = char;
-    else if (char === "#") break;
-    else if (char === "[") depth += 1;
-    else if (char === "]") depth -= 1;
-  }
-  return depth;
-}
 
 function looksLikeManagedRootAssignment(content) {
   const trimmed = content.trimStart();
