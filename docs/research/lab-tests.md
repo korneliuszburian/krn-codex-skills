@@ -35,7 +35,7 @@ are durable.
 | LT-3 | The change-contract gate blocks self-authored, redefined, and unmet checks before publication. | Deterministic: a self-authored/unmet lane vs the satisfied lane (a changed, pre-existing check). | The gate blocks a check introduced or redefined in the range and an unmet prediction, and passes the satisfied lane. | A self-authored or redefined check passes the gate. | lab-test | Run as a deterministic check, not a human pilot. It does not block a change paired with an unrelated pre-existing green check: the before-state is declared, not executed, so a determined author can still pair a change with an unrelated green check. That residual is recorded in `orchestration.md`. The frozen observer compares TAP case names, so a same-name replacement that weakens the body can still mask a dropped assertion. It also does not follow a declared script's imports, so a changed `test/**` file reached through an unchanged launcher is not flagged as self-authorized. |
 | LT-4 | A lesson whose evidence record was superseded is stale even when its own gate still passes, so recall should re-resolve the anchor against current records. | Deterministic differential. Control: a lesson whose referenced record is current. Treatment: a byte-identical lesson row whose referenced record was superseded, differing only by a marker-free supersession link. | The treatment lane is blocked or flagged while the control lane stays green. | The lanes are indistinguishable, or the control blocks. | retired | Retired 2026-09-12 without a differential. The proposed rule (Evidence cell names a path whose `git log <Falsifier-sha>..HEAD -- <path>` is non-empty, fired only for triggered rows) is rejected: Evidence is free prose naming symbols, module basenames, commits, and error strings, not owned paths, so parsing is inert or coincidental; only one row carries a Trigger, so fail-closed coverage is ~1; parsed Evidence paths nearly always coincide with the already-resolved enforcing gate, duplicating `stale-anchor`; and a later commit to a file is proof drift, not the ranked-record supersession StaleBench measures. Git history is not a ranked store and `recallLessons` is unranked, so a fixture would pass for the wrong reason. What is proven: `stale-anchor` fails a triggered row whose Falsifier or enforcing gate changed after the proof. What is not: that a superseded evidence record invalidates an otherwise green lesson. Grounded in StaleBench (ACL ARR 2026 August, OpenReview `1zCrxCUNtW`, unverified preprint), whose lower-rank mechanism stays unobservable here. Residual: KRN has no ranked retrieval consumer; reopen only when a ranked store and a historical-query consumer exist, with a real pairwise supersession fixture. |
 
-| LT-5 | The content-vs-enforcement memory effect survives a neutral stratum, repeats, and a third model family. | Registered 2026-09-13. Start with a one-decisive plus one-neutral separation gate (six runs) before scaling to eight frozen tasks in two strata (decisive where a lesson applies implicitly, neutral of equal shape where none does), three arms (A ablation, B content, C forced reconstruction), at least three reps for A as well as B/C to estimate variance and a minimum detectable effect, and a length-matched irrelevant (placebo) row as an arm-B control. A third family (opencode-go/glm-5.3) runs all arms, but it shares a provider/SDK with the decider, so decider independence is a stated non-proof; the single blinded decider sees anonymized, left/right-randomized, trailer-stripped packets. Explicit bwrap binds only, fixture and answer key outside every bind with a committed salted hash manifest for retention, held-out check copied in only after the agent exits, per-run sentinel; host-root exposure is defined as access to `/` or host `$HOME` outside the declared binds. bwrap must be >= 0.12.0 (CVE-2026-87766, GHSA-pxhw-h44j-8pfx: setup-time creation follows a parent symlink onto /oldroot and writes on the host outside every bind); the pre-run assertion must check `bwrap --version` and run a setup-write probe, and the 0.11.2 host is a stated confound. The MDE must come from the paired-binary required-N (McNemar) with a cluster design effect over the 8 tasks and 2 strata; three reps are repeated measures. `/run` exposes only name resolution (a static resolv.conf or the resolved subpath) with a private `/run/user`, and a pre-run probe must show `busctl --user` and `flatpak-spawn --host` fail inside the sandbox. Arm C runs the harness read-only via --root with a git shim that fires only on `unreconstructed-recall` and holds the change-contract obligation constant across B/C, so a C effect is attributable to recall enforcement. A mechanical pre-run assertion requires `memory recall` to return zero hits for every neutral changed path, and arm A's neutral pass rate strictly between 0 and 1. | Held-out pass by arm and stratum, wall time, tokens in/out, delivered context (not nominal budget; arXiv:2608.31057), diff size, decider score, sentinel leak, host-root exposure. | Content is generic priming, not memory: the decisive difference-in-differences over the neutral stratum does not clear the estimated minimum detectable effect (not a fixed 0.25). Enforcement is unattributable if pass(C) beats pass(B) only with material extra cost or if the shim fires on a neutral task. Promotion kill: sentinel leak, declared host-root or answer-key read, held-out reachability during execution, or a neutral path that matches a trigger. | lab-test | Protocol registered 2026-09-13; isolation dry-run validated and the separation gate was run (N=3, a content effect but non-promoting; see below). Non-proofs: no result; arms and strata are designed but no run has produced evidence, so no mechanism is promoted on this row. The codex lane is not hermetic here (npx/mise wrapper) and is a stated non-proof unless pinned by hash; the decider shares a provider with the third family; and a definitional ablation without a placebo cannot separate content from added context on its own. Dry-run findings: `opencode --version` runs under explicit binds only with `/run` and `/sys` bound (omitting `/run` gives an API connect error), a fresh share dir without an auth seed fails (`UnknownError`), and with those fixed a one-prompt run exited 0 with token usage captured from `events.jsonl` (9,427 in / 2 out) while a `$HOME` canary and `/mnt` stayed invisible. Seed only the auth file into the isolated share, never the whole 31 GB host share. The dry-run used the host's 0.11.2; a locally built 0.12.0 is now staged and probe-validated, so the dry-run alone still does not evidence isolation. |
+| LT-5 | The content-vs-enforcement memory effect survives a neutral stratum, repeats, and a third model family. | Registered 2026-09-13. Start with a one-decisive plus one-neutral separation gate (six runs) before scaling to eight frozen tasks in two strata (decisive where a lesson applies implicitly, neutral of equal shape where none does), three arms (A ablation, B content, C forced reconstruction), at least three reps for A as well as B/C to estimate variance and a minimum detectable effect, and a length-matched irrelevant (placebo) row as an arm-B control. The authorized families are `opencode-go/deepseek-v4.1-flash` (first, the opencode lab agent) and `gpt-6-astra` (second, via `codex exec`); only those two may run, and the runner now refuses any model outside `ALLOWED_MODELS`. An earlier run used `opencode-go/glm-5.3` in error: the host serves it and the model list shows it, but it is not an authorized family, so those runs are quarantined and do not count as a family replication. The codex family is not hermetic here (npx/mise wrapper) and is a stated non-proof unless pinned by hash; the decider shares a provider with any opencode family, so decider independence is a stated non-proof; the single blinded decider sees anonymized, left/right-randomized, trailer-stripped packets. Explicit bwrap binds only, fixture and answer key outside every bind with a committed salted hash manifest for retention, held-out check copied in only after the agent exits, per-run sentinel; host-root exposure is defined as access to `/` or host `$HOME` outside the declared binds. bwrap must be >= 0.12.0 (CVE-2026-87766, GHSA-pxhw-h44j-8pfx: setup-time creation follows a parent symlink onto /oldroot and writes on the host outside every bind); the pre-run assertion must check `bwrap --version` and run a setup-write probe, and the 0.11.2 host is a stated confound. The MDE must come from the paired-binary required-N (McNemar) with a cluster design effect over the 8 tasks and 2 strata; three reps are repeated measures. `/run` exposes only name resolution (a static resolv.conf or the resolved subpath) with a private `/run/user`, and a pre-run probe must show `busctl --user` and `flatpak-spawn --host` fail inside the sandbox. Arm C runs the harness read-only via --root with a git shim that fires only on `unreconstructed-recall` and holds the change-contract obligation constant across B/C, so a C effect is attributable to recall enforcement. A mechanical pre-run assertion requires `memory recall` to return zero hits for every neutral changed path, and arm A's neutral pass rate strictly between 0 and 1. | Held-out pass by arm and stratum, wall time, tokens in/out, delivered context (not nominal budget; arXiv:2608.31057), diff size, decider score, sentinel leak, host-root exposure. | Content is generic priming, not memory: the decisive difference-in-differences over the neutral stratum does not clear the estimated minimum detectable effect (not a fixed 0.25). Enforcement is unattributable if pass(C) beats pass(B) only with material extra cost or if the shim fires on a neutral task. Promotion kill: sentinel leak, declared host-root or answer-key read, held-out reachability during execution, or a neutral path that matches a trigger. | lab-test | Protocol registered 2026-09-13; isolation dry-run validated and the separation gate was run (N=3, a content effect but non-promoting; see below). Non-proofs: no result; arms and strata are designed but no run has produced evidence, so no mechanism is promoted on this row. The codex lane is not hermetic here (npx/mise wrapper) and is a stated non-proof unless pinned by hash; the decider shares a provider with the opencode family; and a definitional ablation without a placebo cannot separate content from added context on its own. Dry-run findings: `opencode --version` runs under explicit binds only with `/run` and `/sys` bound (omitting `/run` gives an API connect error), a fresh share dir without an auth seed fails (`UnknownError`), and with those fixed a one-prompt run exited 0 with token usage captured from `events.jsonl` (9,427 in / 2 out) while a `$HOME` canary and `/mnt` stayed invisible. Seed only the auth file into the isolated share, never the whole 31 GB host share. The dry-run used the host's 0.11.2; a locally built 0.12.0 is now staged and probe-validated, so the dry-run alone still does not evidence isolation. |
 
 ## LT-5 design additions (2026-09-13)
 
@@ -127,9 +127,9 @@ only after the agent exits.
 | P (placebo) | 0/3 | 3/3 | 71 / 31 | 49161 / 15539 |
 | C (forced recall) | 3/3 | 3/3 | 15 / 18 | 10824 / 10330 |
 
-Second-family replication (2026-09-13, `opencode-go/glm-5.3`, arms A/B/P, same
-fixture and one decisive plus one neutral task, three runs per cell, family-scoped
-retained output; P is the repaired already-satisfied-convention row): decisive
+Out-of-scope family run, retained for the record only (2026-09-13,
+`opencode-go/glm-5.3`, an unauthorized family, arms A/B/P, same fixture and one
+decisive plus one neutral task, three runs per cell): decisive
 A 0/3, B 3/3, P 0/3; neutral A 0/3, B 2/3, P 1/3. The decisive contrast reproduces
 (the coupled lesson flips only B), and P stays at zero on the decisive task, so the
 decisive effect is not explained by the wrong-content row; on the neutral task B
@@ -162,8 +162,7 @@ until it is run in the powered design.
 
 Open controls after the round-54 review and this run. Done: the same-shape neutral
 fixture with an interior arm-A rate; a same-trigger/same-shape placebo arm repaired
-to a non-confusing, already-satisfied convention; and a first second-family pilot
-(glm-5.3, A/B/P, family-scoped output) that reproduces the decisive contrast. Still
+to a non-confusing, already-satisfied convention. Still
 open, each with a falsifier: (1) a length- and token-matched placebo confirmed
 neutral in a powered design, with a decisive-specific B−P advantage; (2)
 preregistered power for the difference-in-differences itself, inflating for task
@@ -232,47 +231,36 @@ offset, so the live run hit a syntax error at the aggregate step (glm 68/72,
 deepseek 72/72 executions, no aggregate). Both families were rerun from scratch
 (`results-calib2-*`) on the fixed fixtures with the frozen script; the aborted
 pass is retained as `results-calib1-*`. Rule learned and applied: freeze a runner
-script before launching it, and never edit it mid-run. The in-progress
-144-execution run (4 tasks ×
-2 strata × 3 arms × 3 reps, `glm-5.3` and `deepseek-v4.1-flash`) is declared
-**calibration**, not confirmation: N is unresolved (no power/type-I simulation),
-and it was launched with consecutive arm batches before the gate fix. `gate-tasks`
-now re-permutes arms inside every repetition block for future runs. Before any
-confirmation run, preregister the designation (calibration vs frozen
-confirmation), the final N and stopping rule, and the simulated ≥80% power / ≤5%
-null-rejection evidence.
+script before launching it, and never edit it mid-run. The multi-task runs (4 tasks
+× 2 strata × 3 arms × 3 reps) are declared **calibration**, not confirmation: N is
+unresolved (no power/type-I simulation), and they were launched with consecutive
+arm batches before the gate fix. `gate-tasks` now re-permutes arms inside every
+repetition block for future runs. Before any confirmation run, preregister the
+designation (calibration vs frozen confirmation), the final N and stopping rule,
+and the simulated ≥80% power / ≤5% null-rejection evidence, using only an
+authorized family.
 
 Second multi-task calibration (2026-09-14, fixed neutral fixtures, frozen
 `gate-tasks.sh` re-permuting arms per repetition block, four tasks × two strata ×
-A/B/P × three reps, `results-calib2-*`): `glm-5.3` decisive A 3/12, **B 12/12**,
-P 4/12; neutral A 6/12, B 2/12, P 6/12. `deepseek-v4.1-flash` decisive A 11/12,
-B 12/12, P 12/12; neutral A 12/12, B 10/12, P 10/12. Family verification: the
-served model is proven from each run's own `share/opencode/log/opencode.log`,
-which records `providerID=<p> modelID=<m>` (calib2 glm runs
-`providerID=opencode-go modelID=glm-5.3`, deepseek runs
-`... modelID=deepseek-v4.1-flash`); the runner now extracts that line, prints
-`served_model=`, fails closed as `model_mismatch=YES` on a mismatch, and
-`gate-tasks` kills a batch not proven all `model_mismatch=no`. Reading: glm
-separates
-content from ablation and from the wrong-content placebo on the decisive stratum
-(12/12 vs 3/12 and 4/12) with a `(B−P)` DiD of 0.667 − (−0.333) = 1.0, but B is
-**below** A on its neutral stratum (2/12 vs 6/12), which is unexpected and not
-explained by the design, so the neutral contrast is noisy at three reps; deepseek
-is at ceiling on both strata (A 11–12/12), so it has no separation power on this
-task set. Still calibration, not confirmation: N is unfrozen (no power simulation),
-the shapes are structure-matched, and the neutral anomaly needs a larger neutral
-sample before the interaction is read.
+A/B/P × three reps, `results-calib2-*`): on the **authorized** family
+`deepseek-v4.1-flash`, decisive A 11/12, B 12/12, P 12/12; neutral A 12/12, B
+10/12, P 10/12 — i.e. at ceiling on both strata, so it has no separation power on
+this task set. The same batch also ran an **unauthorized** `glm-5.3` arm
+(decisive A 3/12, B 12/12, P 4/12; neutral A 6/12, B 2/12, P 6/12); that arm is
+quarantined and does not count as a family replication or as evidence, because
+`glm-5.3` is not an authorized model for this work. Served-model verification:
+each run's own `share/opencode/log/opencode.log` records `providerID=<p>
+modelID=<m>`; the runner now extracts it, prints `served_model=`, fails closed as
+`model_mismatch=YES` on a mismatch, and `gate-tasks` kills a batch not proven all
+`model_mismatch=no`. Still calibration, not confirmation: N is unfrozen, the shapes
+are structure-matched, the authorized second family (codex `gpt-6-astra`) is not
+yet run as a lab agent, and the neutral stratum needs a larger sample.
 
-First multi-task pilot (2026-09-14, `opencode-go/glm-5.3`, A/B/P, `REPS=1`, four
-tasks per stratum, family-scoped output): decisive A 1/4, B 4/4, P 2/4; neutral
-A 3/4, B 4/4, P 2/4. The decisive arm-A rate is now interior (1/4), so the
-difference-in-differences is identifiable at the task level: `(B−A)_decisive −
-(B−A)_neutral = 0.75 − 0.25 = 0.50`; the placebo-specific contrast `(B−P)` is 0.50
-on both strata (DiD 0.00), so this pilot separates content (B−A) but not content
-from the wrong-content row at N=1. This is a calibration point, not a powered
-estimate (one family, one rep, four tasks); it is the basis for the planned
-powered run and shows the multi-task fixtures behave as intended (interior A,
-B above A, gold passes, neutral triggers zero).
+Earlier multi-task pilot (2026-09-14, unauthorized `opencode-go/glm-5.3`, A/B/P,
+`REPS=1`, four tasks per stratum): decisive A 1/4, B 4/4, P 2/4; neutral A 3/4,
+B 4/4, P 2/4. Retained only to show the fixtures behave as intended (interior
+decisive A, B above A, gold passes, neutral triggers zero); it is **not**
+promotion evidence because the family is unauthorized.
 
 Confounds fixed across the LT-5 passes, recorded honestly: the first pass required
 an external-directory permission for `/harness`, so arms no-op'd; a second aborted
