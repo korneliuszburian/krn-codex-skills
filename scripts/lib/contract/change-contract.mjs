@@ -477,7 +477,10 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       }
     }
     const falsifiable = contract.contracts.some((entry) => entry.before === "red" && entry.after === "green");
-    if (surface && !falsifiable) {
+    // A behavior-preserving surface change keeps an unchanged check green and must
+    // not fabricate a flip; a behavioral change must show a red->green.
+    const preserved = contract.contracts.length > 0 && contract.contracts.every((entry) => entry.before === "green" && entry.after === "green");
+    if (surface && !falsifiable && !preserved) {
       errors.push(contract.contracts.length === 0
         ? { rule: "missing-change-contract", commit: commit.sha, detail: files.filter((file) => SURFACE.some((pattern) => pattern.test(file))).join(", ") }
         : { rule: "non-falsifiable-prediction", commit: commit.sha, detail: "declare a red->green flip" });

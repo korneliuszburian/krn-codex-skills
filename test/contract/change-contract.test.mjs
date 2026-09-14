@@ -606,14 +606,16 @@ test("a surface commit without a contract fails closed", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test("a surface commit cannot be excused by No-check or a green->green contract", () => {
+test("a green->green contract is accepted for a behavior-preserving surface change, but No-check is not", () => {
   const root = makeRoot();
-  const nonFalsifiable = fakeGit({
+  const preserved = fakeGit({
     commits: [{ sha: "a1", subject: "chore: tidy", body: "Change-contract: test:lessons:green->green" }],
     files: { a1: ["scripts/lib/lessons/lessons.mjs"] },
     baseScripts: { "test:lessons": "x" },
   });
-  assert.ok(checkChangeContract({ root, base: "base", git: nonFalsifiable, run: green, strictRecall: true }).errors.some((error) => error.rule === "non-falsifiable-prediction"));
+  const report = checkChangeContract({ root, base: "base", git: preserved, run: green, strictRecall: true });
+  assert.ok(!report.errors.some((error) => error.rule === "non-falsifiable-prediction"), JSON.stringify(report.errors));
+  assert.ok(!report.errors.some((error) => error.rule === "unmet-prediction"), JSON.stringify(report.errors));
   const escaped = fakeGit({
     commits: [{ sha: "a1", subject: "chore: tidy", body: "No-check: whatever\nAt-risk: test:lib" }],
     files: { a1: ["scripts/lib/lessons/lessons.mjs"] },
@@ -1393,5 +1395,24 @@ test("a same-ref base and head is a vacuous range", () => {
   execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", "seed"]);
   const report = checkChangeContract({ root, base: "HEAD", head: "HEAD" });
   assert.ok(report.errors.some((error) => error.rule === "vacuous-range"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a behavior-preserving surface change may declare green->green", () => {
+  const root = makeRoot();
+  const run = (args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  const commit = (message) => {
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"]);
+    execFileSync("git", ["-C", root, "-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message]);
+    return run(["rev-parse", "HEAD"]);
+  };
+  run(["init", "-q"]);
+  commit("base");
+  const base = run(["rev-parse", "HEAD"]);
+  writeFileSync(join(root, "README.md"), "behavior-preserving docs\n");
+  commit("docs\n\nChange-contract: test:lessons:green->green");
+  const report = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true, run: () => ({ ok: true, status: 0, spawnFailed: false, output: "" }) });
+  assert.ok(!report.errors.some((error) => error.rule === "non-falsifiable-prediction"), JSON.stringify(report.errors));
+  assert.ok(!report.errors.some((error) => error.rule === "before-state-not-red"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
