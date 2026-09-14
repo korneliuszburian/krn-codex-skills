@@ -219,6 +219,17 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       if (friction && stripMarkup(friction) !== "none") {
         errors.push({ id: entry.name, rule: "complete-with-friction", detail: stripMarkup(friction) });
       }
+      const review = fields["Review fixed point and Standards / Spec disposition"];
+      const reviewText = review ? stripMarkup(review) : "";
+      if (/^pending$/i.test(reviewText)) {
+        errors.push({ id: entry.name, rule: "complete-with-pending-review", detail: reviewText });
+      } else if (
+        review &&
+        !/^(none|not-applicable)$/i.test(reviewText) &&
+        !/evidence=/.test(review)
+      ) {
+        errors.push({ id: entry.name, rule: "complete-review-without-evidence", detail: reviewText });
+      }
       const participants = fields["Native Goal identity/state and configured tracker item/state"];
       if (participants && /\bstate\s*[=:]\s*["\']?(active|open|in[ _-]?progress|blocked|deferred)\b/i.test(stripMarkup(participants))) {
         errors.push({ id: entry.name, rule: "complete-with-active-participant", detail: stripMarkup(participants) });
