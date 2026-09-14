@@ -65,3 +65,24 @@ test("a postfix operator before a slash is division, so a trailing comment is st
   assert.equal(stripComments("let n = 0; n++ / 2; // secret").includes("secret"), false);
   assert.equal(maskLiterals("let n = 0; x++ / 'sk_live_AA/BB';").includes("sk_live_AA"), false);
 });
+
+test("a control keyword inside a string cannot fake a control head", () => {
+  assert.equal(maskLiterals('const x = fn("if(") / 2; // sk_live_SECRET\n').includes("sk_live_SECRET"), false);
+  assert.equal(stripComments('const x = fn("if(") / 2; // sk_live_SECRET\n').includes("sk_live_SECRET"), false);
+});
+
+test("an identifier named like a keyword is not treated as one", () => {
+  assert.ok(maskLiterals("const of = 1;\nconst half = of / 2;\n").includes("2"));
+  assert.ok(maskLiterals("const y = obj.in / 2;\n").includes("2"));
+});
+
+test("a leading parenthesized expression is a value position, not a control head", () => {
+  assert.ok(maskLiterals("(a) / 2;\n").includes("2"));
+  assert.equal(stripComments("(a) / 2; // sk_live_SECRET\n").includes("sk_live_SECRET"), false);
+});
+
+test("a regex after a unary sign pair is not read as division", () => {
+  assert.equal(stripComments("const x = a - -/}/; // secret\n").includes("secret"), false);
+  assert.ok(maskLiterals("const x = a - -/}/;\nconst y = 2;\n").includes("2"));
+  assert.equal(maskLiterals("let n = 0; n++ / 2; // secret").includes("secret"), false);
+});

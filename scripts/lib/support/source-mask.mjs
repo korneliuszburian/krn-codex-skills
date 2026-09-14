@@ -1,57 +1,69 @@
 const REGEX_START = /[([{=,:;!&|?+\-*%~^<>]/;
-const REGEX_KEYWORDS = new Set(["return", "typeof", "case", "in", "of", "instanceof", "void", "delete", "do", "else", "yield", "await"]);
+const REGEX_KEYWORDS = new Set(["return", "typeof", "case", "yield", "await", "do", "else"]);
 const CONTROL_KEYWORDS = new Set(["if", "while", "for", "with", "switch", "catch"]);
 const WORD = /[A-Za-z0-9_$]/;
 
-const previousSignificant = (source, index) => {
+const previousSignificant = (text, index) => {
   let cursor = index - 1;
-  while (cursor >= 0 && /\s/.test(source[cursor])) cursor -= 1;
+  while (cursor >= 0 && /\s/.test(text[cursor])) cursor -= 1;
   return cursor;
 };
 
-const wordBefore = (source, index) => {
+const wordBefore = (view, index) => {
   let cursor = index;
-  while (cursor >= 0 && WORD.test(source[cursor])) cursor -= 1;
-  return source.slice(cursor + 1, index + 1);
+  while (cursor >= 0 && WORD.test(view[cursor])) cursor -= 1;
+  return view.slice(cursor + 1, index + 1).join("");
 };
 
-// A `/` starts a regex literal only in value position. Deciding from the single
-// previous character is wrong for `if (x) /re/` (regex after a control head) and
-// for `n++ / 2` (division after a postfix operator), so scan back over the
-// matching `(` or the postfix pair.
-function regexStart(source, index) {
-  const last = previousSignificant(source, index);
+// A `/` starts a regex literal only in value position. The decision reads the
+// masked view so a string such as `fn("if(")` cannot fake a control head, and
+// it scans back over the matching `(` or postfix pair instead of only the
+// previous character.
+function regexStart(view, index) {
+  const last = previousSignificant(view, index);
   if (last < 0) return true;
-  const char = source[last];
+  const char = view[last];
   if (char === "+" || char === "-") {
-    const prior = previousSignificant(source, last);
-    if (prior >= 0 && source[prior] === char) {
-      const before = previousSignificant(source, prior);
-      if (before >= 0 && (WORD.test(source[before]) || source[before] === ")" || source[before] === "]")) return false;
+    const prior = previousSignificant(view, last);
+    if (prior >= 0 && view[prior] === char) {
+      if (prior !== last - 1) return true;
+      const before = previousSignificant(view, prior);
+      if (before >= 0 && (WORD.test(view[before]) || view[before] === ")" || view[before] === "]")) return false;
     }
     return true;
   }
-  if (WORD.test(char)) return REGEX_KEYWORDS.has(wordBefore(source, last));
+  if (WORD.test(char)) {
+    const back = previousSignificant(view, last - wordBefore(view, last).length);
+    if (back >= 0 && view[back] === ".") return false;
+    return REGEX_KEYWORDS.has(wordBefore(view, last));
+  }
   if (char === ")") {
     let depth = 0;
     let cursor = last;
     for (; cursor >= 0; cursor -= 1) {
-      if (source[cursor] === ")") depth += 1;
-      else if (source[cursor] === "(") {
+      if (view[cursor] === ")") depth += 1;
+      else if (view[cursor] === "(") {
         depth -= 1;
         if (depth === 0) break;
       }
     }
     if (cursor < 0) return false;
-    const head = previousSignificant(source, cursor);
-    if (head < 0) return true;
-    return CONTROL_KEYWORDS.has(wordBefore(source, head));
+    const head = previousSignificant(view, cursor);
+    if (head < 0) return false;
+    return CONTROL_KEYWORDS.has(wordBefore(view, head));
   }
   return REGEX_START.test(char);
 }
 
 function scan(source, { literals = false } = {}) {
-  let out = "";
+  const out = [];
+  const view = [];
+  const emit = (actual, masked = actual) => {
+    for (let offset = 0; offset < actual.length; offset += 1) {
+      out.push(actual[offset]);
+      view.push(masked[offset] ?? " ");
+    }
+  };
   let index = 0;
   let state = "code";
   const frames = [];
@@ -64,15 +76,27 @@ function scan(source, { literals = false } = {}) {
         const frame = frames.pop();
         state = frame.state;
         braceDepth = frame.braceDepth;
-        out += char;
+        emit(char);
         index += 1;
         continue;
       }
       if (frames.length > 0 && char === "{") braceDepth += 1;
       else if (frames.length > 0 && char === "}") braceDepth -= 1;
-      if (char === "/" && next === "/") { state = "line"; out += "  "; index += 2; continue; }
-      if (char === "/" && next === "*") { state = "block"; out += "  "; index += 2; continue; }
-      if (char === "/" && regexStart(source, index)) {
+      if (char === "/" && next === "/") {
+        emit(" ", " ");
+        emit(" ", " ");
+        state = "line";
+        index += 2;
+        continue;
+      }
+      if (char === "/" && next === "*") {
+        emit(" ", " ");
+        emit(" ", " ");
+        state = "block";
+        index += 2;
+        continue;
+      }
+      if (char === "/" && regexStart(view, index)) {
         let cursor = index + 1;
         let inClass = false;
         while (cursor < source.length) {
@@ -84,52 +108,56 @@ function scan(source, { literals = false } = {}) {
           if (current === "\n") break;
           cursor += 1;
         }
-        out += literals ? " ".repeat(cursor - index) : source.slice(index, cursor);
+        const literal = source.slice(index, cursor);
+        emit(literals ? " ".repeat(literal.length) : literal, " ".repeat(literal.length));
         index = cursor;
         continue;
       }
       if (char === "'") state = "single";
       else if (char === '"') state = "double";
       else if (char === "`") state = "template";
-      out += char;
+      emit(char);
       index += 1;
       continue;
     }
     if (state === "line") {
-      if (char === "\n") { state = "code"; out += char; } else out += " ";
+      if (char === "\n") { state = "code"; emit(char, char); } else emit(" ", " ");
       index += 1; continue;
     }
     if (state === "block") {
-      if (char === "*" && next === "/") { state = "code"; out += "  "; index += 2; }
-      else { out += char === "\n" ? "\n" : " "; index += 1; }
+      if (char === "*" && next === "/") { state = "code"; emit(" ", " "); emit(" ", " "); index += 2; }
+      else { emit(char === "\n" ? "\n" : " ", char === "\n" ? "\n" : " "); index += 1; }
       continue;
     }
     if (state === "template" && char === "$" && next === "{") {
       frames.push({ state: "template", braceDepth });
       braceDepth = 0;
       state = "code";
-      out += "${";
+      emit("${");
       index += 2;
       continue;
     }
-    const blank = literals;
-    if (char === "\\") { out += blank ? "  " : char + (next ?? ""); index += 2; continue; }
+    if (char === "\\") {
+      emit((literals ? "  " : char + (next ?? "")), "  ");
+      index += 2;
+      continue;
+    }
     if ((state === "single" && char === "'") || (state === "double" && char === '"') || (state === "template" && char === "`")) {
       state = "code";
-      out += char;
+      emit(char);
       index += 1;
       continue;
     }
-    out += blank ? (char === "\n" ? "\n" : " ") : char;
+    emit(literals ? (char === "\n" ? "\n" : " ") : char, char === "\n" ? "\n" : " ");
     index += 1;
   }
-  return out;
+  return { out: out.join(""), view: view.join("") };
 }
 
 export function stripComments(source) {
-  return scan(source, {});
+  return scan(source, {}).out;
 }
 
 export function maskLiterals(source) {
-  return scan(source, { literals: true });
+  return scan(source, { literals: true }).out;
 }

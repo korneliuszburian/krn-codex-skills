@@ -147,3 +147,10 @@ test("a removed line beginning with -- is not treated as a file header", () => {
   assert.ok(specs.length > 0, "a diff is parsed");
   assert.ok(specs.every((spec) => spec === "abc1234:x.mjs" || spec === "abc1234^:x.mjs"), JSON.stringify(specs));
 });
+
+test("a unary sign before a regex does not understate the enclosing span", () => {
+  assert.deepEqual(
+    extractSymbols("export function f() {\n  const x = a - -/}/;\n  return 1;\n}\n"),
+    [{ name: "f", kind: "function", start: 1, end: 4 }],
+  );
+});
