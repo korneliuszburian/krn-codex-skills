@@ -33,3 +33,9 @@ test("a neutral task that triggers a lesson is rejected", () => {
   const errors = fixtureManifestErrors(manifest({ tasks: [{ id: "n1", stratum: "neutral", fixture_hash: "11112222", answer_hash: "33334444", zero_trigger_hits: false }] }));
   assert.ok(errors.some((error) => error.includes("zero trigger hits")), JSON.stringify(errors));
 });
+
+test("an empty or duplicate-id manifest is rejected, not passed", () => {
+  assert.deepEqual(fixtureManifestErrors({ tasks: [], placebo: { length_matched: true, already_satisfied: true } }), ["manifest.tasks must not be empty"]);
+  const dup = manifest({ tasks: [{ id: "n1", stratum: "neutral", fixture_hash: "11112222", answer_hash: "33334444", zero_trigger_hits: true }, { id: "n1", stratum: "neutral", fixture_hash: "11112222", answer_hash: "33334444", zero_trigger_hits: true }] });
+  assert.ok(fixtureManifestErrors(dup).some((error) => error.includes("duplicate id")), JSON.stringify(fixtureManifestErrors(dup)));
+});

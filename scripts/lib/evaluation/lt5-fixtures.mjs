@@ -4,6 +4,9 @@ export function lt5FixtureManifestErrors(manifest) {
   if (!manifest || typeof manifest !== "object") return ["manifest must be an object"];
   const errors = [];
   if (!Array.isArray(manifest.tasks)) return ["manifest.tasks must be an array"];
+  if (manifest.tasks.length === 0) return ["manifest.tasks must not be empty"];
+  const duplicateId = manifest.tasks.map((task) => task?.id).find((id, index, all) => typeof id === "string" && all.indexOf(id) !== index);
+  if (duplicateId) return [`manifest.tasks has a duplicate id: ${duplicateId}`];
   const byId = new Map(manifest.tasks.map((task) => [task?.id, task]));
   const mechanisms = new Map();
   for (const task of manifest.tasks) {

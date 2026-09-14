@@ -43,3 +43,9 @@ test("a self-partner or a decisive partner is not a neutral partner", () => {
   ] }));
   assert.ok(errors.some((error) => error.includes("matched neutral partner")), JSON.stringify(errors));
 });
+
+test("an empty or duplicate-id manifest is rejected, not passed", () => {
+  assert.deepEqual(lt5FixtureManifestErrors({ tasks: [], placebo: { already_satisfied: true } }), ["manifest.tasks must not be empty"]);
+  const dup = manifest({ tasks: [{ id: "n1", mechanism: "serialization", stratum: "neutral", fixture_hash: "11112222", answer_hash: "33334444", zero_trigger_hits: true }, { id: "n1", mechanism: "routing", stratum: "neutral", fixture_hash: "11112222", answer_hash: "33334444", zero_trigger_hits: true }] });
+  assert.ok(lt5FixtureManifestErrors(dup).some((error) => error.includes("duplicate id")), JSON.stringify(lt5FixtureManifestErrors(dup)));
+});
