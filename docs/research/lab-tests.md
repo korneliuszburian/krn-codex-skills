@@ -168,13 +168,40 @@ open, each with a falsifier: (1) a length- and token-matched placebo confirmed
 neutral in a powered design, with a decisive-specific B−P advantage; (2)
 preregistered power for the difference-in-differences itself, inflating for task
 clustering `1+(r−1)ρ` (illustrative `p10=.375/p01=.125`, δ=.25, q=.50 reaches 80%
-only near 85 independent pairs at α=.05/3), so multiple independently authored
-tasks per stratum must be piloted (the second-family pilot used one task per
-stratum, so its neutral B-vs-A gap is not powered); (3) the exact git-shim C
-mechanism with B/C parity (identical prompt, recall content, access, and timing,
-corpus outside agent-readable binds) showing an unreconstructed decisive commit
-clears B's boundary and fails C's, reconstruction clears C, and a neutral commit
-never triggers it.
+only near 85 independent pairs at α=.05/3); (3) the exact git-shim C mechanism with
+B/C parity (identical prompt, recall content, access, and timing, corpus outside
+agent-readable binds) showing an unreconstructed decisive commit clears B's
+boundary and fails C's, reconstruction clears C, and a neutral commit never
+triggers it.
+
+Round-64 lab-test-design plan, registered before execution. Replace the two pilot
+tasks with four independently authored tasks per stratum sharing one of four
+matched coupling shapes (output text → revision, serialized key → schema entry,
+route → registered target, media type → accepted type); decisive dependencies live
+in the lesson, neutral dependencies in ordinary source documentation with zero
+lesson triggers; hold file count, dependency depth, two-scalar-edit patch size,
+prompt structure, doc placement, and visible-test strength constant; author the
+contracts and gold patches first and freeze before observing outcomes. Primary
+estimand `θ = mean(B−P | decisive) − mean(B−P | neutral)` on paired binary held-out
+outcomes, averaged within tasks and estimated with task-clustered small-sample
+inference; B−A stays secondary; family is fixed and a task repeated across families
+keeps its cluster; a logistic interaction coefficient alone does not estimate this
+probability-scale effect. Run 8 tasks × 3 arms (drop C, whose prompt does not
+isolate the git-shim mechanism) × 3 reps × 2 existing families, randomized within
+task/family/rep blocks rather than consecutive arm batches. N is not yet fixed:
+the planning example (one family, α=.05, 80%, θ=.25, q≤.50, ICC=.20, DE=1.4) gives
+~126 B/P pairs per stratum, ~59 tasks per stratum, ~1,062 executions per family,
+conditional not established; use the eight-task calibration plus conservative
+ICC/discordance sensitivity to simulate the analysis and freeze N. Falsifier for
+each authored item: its gold patch passes, a requested-change-only patch fails
+solely on the coupled value, and neutral recall returns zero hits; reject a
+proposed N unless simulation shows ≥80% power at the registered effect and ≤5%
+null rejection across the declared nuisance bounds; in the frozen run a CI spanning
+zero leaves the interaction unconfirmed and an upper bound below .25 rules out the
+registered effect. The current placebo still needs repair: `setup-fixture.sh`
+asserts a trailing newline but `src/edition.mjs` returns `"Built"` and
+`test/edition.test.mjs` accepts its absence, so that convention is not actually
+enforced in the visible test.
 
 Confounds fixed across the LT-5 passes, recorded honestly: the first pass required
 an external-directory permission for `/harness`, so arms no-op'd; a second aborted
