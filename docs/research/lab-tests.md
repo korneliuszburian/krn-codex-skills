@@ -261,9 +261,13 @@ tuple set only as narrative; edit `AUTHORIZED_FAMILIES` when the rule moves). A
 record is built from the runner's `providerID=<p> modelID=<m>` line with
 `recordFromRun`, which derives the transport from `providerID`
 (`opencode-go`→`opencode`, `codex`→`codex`) instead of trusting a caller label,
-so `providerID=opencode-go modelID=gpt-5.6-luna` stays unauthorized; the
+so `providerID=opencode-go modelID=gpt-5.6-luna` stays unauthorized; a record must
+carry its `provider` and the module rejects any whose `transport` disagrees with
+it, so a hand-built `codex` label over an `opencode-go` provider cannot pass. The
 isolation tokens (`no`/`YES`) are normalized to booleans; and
-`partitionAdmissible` drops inadmissible records before pooling. Bounded: this
+`partitionAdmissible` drops inadmissible records before pooling and, when given a
+target `{designation, family}`, also rejects a calibration row or a second family
+so a confirmation pool cannot absorb them. Bounded: this
 boundary checks family/transport, `designation`, and the isolation flags only —
 it does not verify fixture/answer hashes, a runner or codex package pin, the
 bwrap version, or decider blinding, which stay the aggregator's preconditions
@@ -295,10 +299,12 @@ neutral]` on paired binary held-out outcomes, paired within task/repetition bloc
 averaged within tasks with equal task weights, and a two-sided 95% CI under
 task-clustered small-sample inference; B-A is secondary and C is omitted; arms are
 randomized within every block. Conditional planning N for `theta*=0.25`, alpha=.05,
-80% power, three reps, ICC<=.20 (DE=1.4), and **hypothetical** discordances
-`q_D`, `q_N` chosen independently of the quarantined runs (the only authorized
-calibration, deepseek, is at ceiling, so it yields `q_D=0` and no finite N); with
-the illustrative `q_D=11/12`, `q_N in [1/12,3/12]` the formula gives about
+80% power, three reps, ICC<=.20 (DE=1.4), and illustrative discordances
+`q_D`, `q_N` chosen only to exercise the formula — they are not derived from any
+run, and their resemblance to the quarantined luna counts is coincidence, not
+provenance (the only authorized calibration, deepseek, is at ceiling, so it yields
+`q_D=0` and no finite N). With the illustrative `q_D=11/12`, `q_N in [1/12,3/12]`
+the formula gives about
 `(1.96+0.842)^2*(11/12+3/12)/0.25^2*1.4 ~= 206` pairs per stratum, i.e. about 69
 tasks per stratum with three reps (~1,242 A/B/P executions); this is a planning
 candidate, not established power, and the final N is frozen only after a

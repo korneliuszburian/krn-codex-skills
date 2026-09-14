@@ -43,8 +43,13 @@ export const admissibilityErrors = (record) => {
   const errors = [];
   const transport = typeof record.transport === "string" ? record.transport.trim() : "";
   const model = typeof record.served_model === "string" ? record.served_model.trim() : "";
+  const provider = typeof record.provider === "string" ? record.provider.trim() : "";
   if (!transport) errors.push("missing transport");
   if (!model) errors.push("missing served_model");
+  if (!provider) errors.push("missing provider");
+  else if (transport && transportFromProvider(provider) !== transport) {
+    errors.push(`transport does not match provider: ${transport}/${provider}`);
+  }
   if (transport && model && !authorized(record)) errors.push(`unauthorized family/transport: ${transport}/${model}`);
   if (record.designation !== "calibration" && record.designation !== "confirmation") {
     errors.push("designation must be calibration or confirmation");
@@ -58,11 +63,17 @@ export const admissibilityErrors = (record) => {
 
 export const isAdmissible = (record) => admissibilityErrors(record).length === 0;
 
-export const partitionAdmissible = (records) => {
+export const partitionAdmissible = (records, { designation, family } = {}) => {
   const admissible = [];
   const rejected = [];
   for (const record of Array.isArray(records) ? records : []) {
     const errors = admissibilityErrors(record);
+    if (errors.length === 0 && designation && record.designation !== designation) {
+      errors.push(`designation ${record.designation} is not ${designation}`);
+    }
+    if (errors.length === 0 && family && familyOf(record) !== family) {
+      errors.push(`family ${familyOf(record) ?? "<unknown>"} is not ${family}`);
+    }
     if (errors.length === 0) admissible.push(record);
     else rejected.push({ record, errors });
   }

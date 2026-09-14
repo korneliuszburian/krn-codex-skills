@@ -16,17 +16,20 @@ import {
 
 const record = (over = {}) => ({
   transport: "opencode",
+  provider: "opencode-go",
   served_model: "deepseek-v4.1-flash",
   designation: "calibration",
   isolation: { ok: true, sentinel_leak: false, model_mismatch: false },
   ...over,
 });
 
+const lunaRecord = (over = {}) => record({ transport: "codex", provider: "codex", served_model: "gpt-5.6-luna", ...over });
+
 test("admits only the two authorized family/transport pairs", () => {
   assert.deepEqual(admissibilityErrors(record()), []);
-  assert.deepEqual(admissibilityErrors(record({ transport: "codex", served_model: "gpt-5.6-luna" })), []);
+  assert.deepEqual(admissibilityErrors(lunaRecord()), []);
   assert.equal(familyOf(record()), "deepseek");
-  assert.equal(familyOf(record({ transport: "codex", served_model: "gpt-5.6-luna" })), "luna");
+  assert.equal(familyOf(lunaRecord()), "luna");
   assert.equal(AUTHORIZED_FAMILIES.length, 2);
 });
 
@@ -56,6 +59,12 @@ test("derives the transport from providerID, so luna-via-opencode stays quaranti
   assert.deepEqual(admissibilityErrors(quarantined), ["unauthorized family/transport: opencode/gpt-5.6-luna"]);
 });
 
+test("a hand-built transport cannot contradict its provider", () => {
+  const spoof = { transport: "codex", provider: "opencode-go", served_model: "gpt-5.6-luna", designation: "confirmation", isolation: { ok: true, sentinel_leak: false, model_mismatch: false } };
+  assert.deepEqual(admissibilityErrors(spoof), ["transport does not match provider: codex/opencode-go"]);
+  assert.deepEqual(admissibilityErrors(record({ provider: "" })).includes("missing provider"), true);
+});
+
 test("normalizes the runner's no/YES tokens at the producer boundary", () => {
   assert.equal(normalizeFlag("no"), false);
   assert.equal(normalizeFlag("YES"), true);
@@ -73,15 +82,9 @@ test("admits a record built from the documented runner line", () => {
 });
 
 test("rejects a model on the wrong transport or outside the authorized set", () => {
-  assert.deepEqual(
-    admissibilityErrors(record({ transport: "opencode", served_model: "gpt-5.6-luna" })),
-    ["unauthorized family/transport: opencode/gpt-5.6-luna"],
-  );
-  assert.deepEqual(
-    admissibilityErrors(record({ transport: "codex", served_model: "gpt-6-astra" })),
-    ["unauthorized family/transport: codex/gpt-6-astra"],
-  );
-  assert.equal(isAdmissible(record({ transport: "opencode", served_model: "glm-5.3" })), false);
+  assert.deepEqual(admissibilityErrors(record({ served_model: "gpt-5.6-luna" })), ["unauthorized family/transport: opencode/gpt-5.6-luna"]);
+  assert.deepEqual(admissibilityErrors(lunaRecord({ served_model: "gpt-6-astra" })), ["unauthorized family/transport: codex/gpt-6-astra"]);
+  assert.equal(isAdmissible(record({ served_model: "glm-5.3" })), false);
 });
 
 test("rejects missing provenance, wrong designation, and false isolation claims", () => {
@@ -98,10 +101,22 @@ test("rejects missing provenance, wrong designation, and false isolation claims"
 
 test("partitions a mixed record set before pooling", () => {
   const good = record();
-  const bad = record({ transport: "opencode", served_model: "glm-5.3" });
+  const bad = record({ served_model: "glm-5.3" });
   const { admissible, rejected } = partitionAdmissible([good, bad]);
   assert.deepEqual(admissible, [good]);
   assert.equal(rejected.length, 1);
   assert.deepEqual(rejected[0].errors, ["unauthorized family/transport: opencode/glm-5.3"]);
   assert.deepEqual(partitionAdmissible(undefined), { admissible: [], rejected: [] });
+});
+
+test("partitions by a target designation and family", () => {
+  const calibration = record({ designation: "calibration" });
+  const confirmation = record({ designation: "confirmation" });
+  const otherFamily = lunaRecord({ designation: "confirmation" });
+  const { admissible, rejected } = partitionAdmissible([calibration, confirmation, otherFamily], { designation: "confirmation", family: "deepseek" });
+  assert.deepEqual(admissible, [confirmation]);
+  assert.deepEqual(rejected.map((entry) => entry.errors).flat(), [
+    "designation calibration is not confirmation",
+    "family luna is not deepseek",
+  ]);
 });
