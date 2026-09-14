@@ -211,8 +211,18 @@ main file plus one version file, the same visible-test shape, and the same promp
 structure. `gate-tasks.sh` runs A/B/P over them with per-task-scoped preflight
 (asserting decisive ≥1 and neutral = 0 hits), shuffled arms, family-scoped
 results, and the isolation probe; a gold patch passes every held-out and a
-requested-change-only patch fails only the coupling. A first multi-task pilot runs
-on `opencode-go/glm-5.3` with `REPS=1`.
+requested-change-only patch fails only the coupling.
+
+First multi-task pilot (2026-09-14, `opencode-go/glm-5.3`, A/B/P, `REPS=1`, four
+tasks per stratum, family-scoped output): decisive A 1/4, B 4/4, P 2/4; neutral
+A 3/4, B 4/4, P 2/4. The decisive arm-A rate is now interior (1/4), so the
+difference-in-differences is identifiable at the task level: `(B−A)_decisive −
+(B−A)_neutral = 0.75 − 0.25 = 0.50`; the placebo-specific contrast `(B−P)` is 0.50
+on both strata (DiD 0.00), so this pilot separates content (B−A) but not content
+from the wrong-content row at N=1. This is a calibration point, not a powered
+estimate (one family, one rep, four tasks); it is the basis for the planned
+powered run and shows the multi-task fixtures behave as intended (interior A,
+B above A, gold passes, neutral triggers zero).
 
 Confounds fixed across the LT-5 passes, recorded honestly: the first pass required
 an external-directory permission for `/harness`, so arms no-op'd; a second aborted
