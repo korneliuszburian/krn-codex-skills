@@ -369,12 +369,13 @@ async function main() {
     return;
   }
 
-  const homeDirectory = os.homedir();
+  const homeDirectory = path.resolve(os.homedir());
   const codexHome = path.resolve(process.env.CODEX_HOME || path.join(homeDirectory, ".codex"));
   const agentsHome = path.resolve(process.env.AGENTS_HOME || path.join(homeDirectory, ".agents"));
   const configPath = path.resolve(options.configPath || path.join(codexHome, "config.toml"));
   const sessionsRoot = path.resolve(options.sessionsRoot || path.join(codexHome, "sessions"));
-  const profileDocument = await loadCapabilityProfiles(options.profilesPath);
+  const profilesPath = options.profilesPath === undefined ? undefined : path.resolve(options.profilesPath);
+  const profileDocument = await loadCapabilityProfiles(profilesPath);
   const command = positional[0];
 
   if (command === "profile") {

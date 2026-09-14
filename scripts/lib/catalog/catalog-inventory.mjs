@@ -53,11 +53,13 @@ export async function loadCapabilityProfiles(filePath = DEFAULT_PROFILES_PATH) {
 }
 
 export async function inventoryCapabilities(options = {}) {
-  const homeDirectory = options.homeDirectory ?? homedir();
-  const codexHome =
-    options.codexHome ?? process.env.CODEX_HOME ?? join(homeDirectory, ".codex");
-  const agentsHome =
-    options.agentsHome ?? process.env.AGENTS_HOME ?? join(homeDirectory, ".agents");
+  const homeDirectory = resolve(options.homeDirectory ?? homedir());
+  const codexHome = resolve(
+    options.codexHome ?? process.env.CODEX_HOME ?? join(homeDirectory, ".codex"),
+  );
+  const agentsHome = resolve(
+    options.agentsHome ?? process.env.AGENTS_HOME ?? join(homeDirectory, ".agents"),
+  );
   const { skillRoots, pluginCacheRoots } = resolveInventoryRoots({
     skillRoots: options.skillRoots,
     pluginCacheRoots: options.pluginCacheRoots,

@@ -1,8 +1,32 @@
 import assert from "node:assert/strict";
-import { join } from "node:path";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { isAbsolute, join } from "node:path";
 import test from "node:test";
 
 import { resolveInventoryRoots } from "../../scripts/lib/catalog/catalog-inventory-roots.mjs";
+import { inventoryCapabilities } from "../../scripts/lib/catalog/catalog-inventory.mjs";
+
+test("inventoryCapabilities resolves a relative CODEX_HOME to absolute paths", async () => {
+  const base = mkdtempSync(join(tmpdir(), "krn-inv-relative-"));
+  const previous = process.env.CODEX_HOME;
+  const cwd = process.cwd();
+  try {
+    mkdirSync(join(base, "relcodex", "skills", "demo"), { recursive: true });
+    writeFileSync(join(base, "relcodex", "skills", "demo", "SKILL.md"), "---\nname: demo\ndescription: d\n---\n");
+    process.env.CODEX_HOME = "relcodex";
+    process.chdir(base);
+    const inventory = await inventoryCapabilities();
+    const demo = inventory.skills.find((skill) => skill.id === "demo");
+    assert.ok(demo, JSON.stringify(inventory.skills.map((skill) => skill.id)));
+    assert.ok(isAbsolute(demo.path), demo.path);
+  } finally {
+    process.chdir(cwd);
+    if (previous === undefined) delete process.env.CODEX_HOME;
+    else process.env.CODEX_HOME = previous;
+    rmSync(base, { recursive: true, force: true });
+  }
+});
 
 test("resolveInventoryRoots derives the default codex and agent roots", () => {
   const { skillRoots, pluginCacheRoots } = resolveInventoryRoots({
