@@ -19,16 +19,33 @@ export function splitLines(source) {
   return lines;
 }
 
+const SIMPLE_ESCAPES = { b: "\b", t: "\t", n: "\n", f: "\f", r: "\r", "\"": "\"", "\\": "\\" };
+
 export function parseTomlString(token, target) {
   if (token.startsWith("'")) return token.slice(1, -1);
-  try {
-    return JSON.parse(token);
-  } catch (error) {
-    throw new ConfigReconcileError(`Invalid TOML string for ${target}`, {
-      cause: error,
-      target,
-    });
+  if (!token.startsWith("\"") || !token.endsWith("\"")) {
+    throw new ConfigReconcileError(`Invalid TOML string for ${target}`, { target });
   }
+  const body = token.slice(1, -1);
+  let out = "";
+  for (let index = 0; index < body.length; index += 1) {
+    const char = body[index];
+    if (char !== "\\") { out += char; continue; }
+    const escape = body[index + 1];
+    if (Object.hasOwn(SIMPLE_ESCAPES, escape)) { out += SIMPLE_ESCAPES[escape]; index += 1; continue; }
+    const width = escape === "u" ? 4 : escape === "U" ? 8 : 0;
+    const hex = body.slice(index + 2, index + 2 + width);
+    if (width === 0 || hex.length !== width || !/^[0-9a-fA-F]+$/.test(hex)) {
+      throw new ConfigReconcileError(`Invalid TOML string for ${target}`, { target });
+    }
+    const code = Number.parseInt(hex, 16);
+    if (code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) {
+      throw new ConfigReconcileError(`Invalid TOML string for ${target}`, { target });
+    }
+    out += String.fromCodePoint(code);
+    index += 1 + width;
+  }
+  return out;
 }
 
 export function splitHeader(content) {
@@ -202,16 +219,22 @@ function scanLine(content, mode) {
   let index = 0;
   while (index < content.length) {
     if (state === "'''") {
-      const close = content.indexOf("'''", index);
-      if (close === -1) return { delta: depth, next: "'''" };
-      index = close + 3;
-      state = null;
+      if (content[index] === "'") {
+        let run = 0;
+        while (content[index + run] === "'") run += 1;
+        index += run;
+        if (run >= 3) state = null;
+      } else index += 1;
       continue;
     }
     if (state === "\"\"\"") {
-      if (content[index] === "\\") index += 2;
-      else if (content.startsWith("\"\"\"", index)) { index += 3; state = null; }
-      else index += 1;
+      if (content[index] === "\\") { index += 2; continue; }
+      if (content[index] === "\"") {
+        let run = 0;
+        while (content[index + run] === "\"") run += 1;
+        index += run;
+        if (run >= 3) state = null;
+      } else index += 1;
       continue;
     }
     const character = content[index];

@@ -90,6 +90,22 @@ test("an assignment-shaped array element is not a real assignment", () => {
   assert.ok(![...directAssignments(doc, mcp).keys()].includes("x"), JSON.stringify([...directAssignments(doc, mcp).keys()]));
 });
 
+test("a four-quote multi-line string ending does not hide a later assignment", () => {
+  const source = '[mcp_servers.demo]\nargs = ["""hello""""]\nenabled = true\n';
+  const doc = parseDocument(source);
+  const mcp = doc.blocks.find((block) => block.kind === "mcp");
+  assert.deepEqual([...directAssignments(doc, mcp).keys()], ["args", "enabled"]);
+});
+
+test("parseTomlString decodes TOML escapes", () => {
+  assert.equal(parseTomlString('"\\U00000068ooks"', "key"), "hooks");
+  assert.equal(parseTomlString('"\\u0068i"', "key"), "hi");
+  assert.equal(parseTomlString('"a\\tb\\n\\"c\\\\d"', "key"), 'a\tb\n"c\\d');
+  assert.equal(parseTomlString("'literal\\n'", "key"), "literal\\n");
+  assert.throws(() => parseTomlString('"\\q"', "key"), /Invalid TOML string/);
+  assert.throws(() => parseTomlString('"\\u006"', "key"), /Invalid TOML string/);
+});
+
 test("a bracket inside a multi-line string body is not a structural bracket", () => {
   const source = "note = '''it's [draft\n'''\n[features]\nhooks = false\n";
   const doc = parseDocument(source);

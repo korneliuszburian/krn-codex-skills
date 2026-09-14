@@ -107,6 +107,10 @@ test("managedHookPolicy is not confused by array contents or a quoted single key
   withRequirements(`note = '''it's [draft\n'''\n[features]\nhooks = false\n`, (file) => {
     assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
   });
+  // A TOML unicode escape in the key decodes to the managed key.
+  withRequirements('[features]\n"\\U00000068ooks" = false\n', (file) => {
+    assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hook_inert_features_disabled");
+  });
   withRequirements('"features.hooks" = false\n', (file) => {
     assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active");
   });
