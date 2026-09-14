@@ -73,3 +73,19 @@ test("every discovered test file is run by a gate suite", () => {
     assert.ok(covered.has(file), `${file} is not run by the gate`);
   }
 });
+
+test("the workflow runs every step of the aggregate gate script", () => {
+  // The gate script is the executable owner of the sequence; CI must not omit a step.
+  const scripts = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts;
+  const gateSteps = new Set([...String(scripts.gate ?? "").matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
+  assert.ok(gateSteps.size >= 15, `expected the gate script to parse, found ${gateSteps.size}`);
+  const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
+  const steps = new Set([...workflow.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
+  if (/krn-codex\.mjs changes check/.test(workflow)) steps.add("changes:check");
+  for (const step of gateSteps) {
+    if (["gate", "test"].includes(step)) continue;
+    assert.ok(steps.has(step), `gate step ${step} is missing from the workflow`);
+  }
+  assert.match(workflow, /bash -n scripts\/install\.sh/, "the workflow must keep the shell syntax checks");
+  assert.match(workflow, /git diff --check/, "the workflow must keep the diff hygiene check");
+});
