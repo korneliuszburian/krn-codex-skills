@@ -130,7 +130,7 @@ async function inventorySkillRoot(root, records, quarantine) {
       if (quarantine.matches(target) || quarantine.matches(resolvedTarget)) {
         quarantine.add(
           "skill",
-          quarantine.familyFor(resolvedTarget) ?? entry.name,
+          quarantine.familyFor(target) ?? quarantine.familyFor(resolvedTarget) ?? entry.name,
           "symlink-target",
           root.id,
           resolve(entryPath, "SKILL.md"),
@@ -174,7 +174,7 @@ async function inventorySkillRoot(root, records, quarantine) {
       if (quarantine.matches(target) || quarantine.matches(resolvedTarget)) {
         quarantine.add(
           "skill",
-          quarantine.familyFor(resolvedTarget) ?? entry.name,
+          quarantine.familyFor(target) ?? quarantine.familyFor(resolvedTarget) ?? entry.name,
           "symlink-target",
           root.id,
           resolve(skillPath),

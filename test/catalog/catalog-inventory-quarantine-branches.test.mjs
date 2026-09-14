@@ -287,3 +287,17 @@ test("a chained file symlink whose final target is missing is not inventoried", 
     );
   });
 });
+
+test("a symlink target that traverses a quarantined family keeps its evidence id", async () => {
+  await withRoot("krn-inv-symlink-traverse-", async (root) => {
+    mkdirSync(path.join(root, "nested", "superpowers"), { recursive: true });
+    mkdirSync(path.join(root, "clean"), { recursive: true });
+    writeFileSync(path.join(root, "clean", "SKILL.md"), "---\nname: clean\ndescription: clean\n---\n");
+    symlinkSync("nested/superpowers/../clean", path.join(root, "demo"));
+    const inventory = await inventoryCapabilities({ skillRoots: [{ id: "root", path: root, scope: "user" }], pluginCacheRoots: [] });
+    assert.ok(
+      inventory.hardQuarantine.some((record) => record.evidence === "symlink-target" && record.id === "superpowers"),
+      JSON.stringify(inventory.hardQuarantine),
+    );
+  });
+});
