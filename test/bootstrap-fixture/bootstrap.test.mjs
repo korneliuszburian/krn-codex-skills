@@ -170,6 +170,15 @@ test("installed CLI bootstraps a target repository through its public seam", () 
     const capability = invoke(installedCli, ["capability", "inventory", "--json"], root);
     assert.equal(capability.status, 0, capability.stderr);
     assert.equal(JSON.parse(capability.stdout).capability_states.inventory, "discovered_candidate");
+
+    // The installed release wires the public `skills export` command: it loads
+    // from the archive and fails closed on the missing upstream checkout. The
+    // archive-as-source acceptance (no `.git`, provenance from `.krn-release.json`)
+    // is locked by test/install/skills-export.test.mjs, which can supply a pinned
+    // upstream and therefore reaches the source check; the smoke cannot.
+    const exportFromRelease = invoke(installedCli, ["skills", "export", "--root", target, "--upstream", path.join(root, "no-upstream")], root);
+    assert.equal(exportFromRelease.status, 64, exportFromRelease.stdout + exportFromRelease.stderr);
+    assert.match(exportFromRelease.stderr, /upstream checkout missing/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
