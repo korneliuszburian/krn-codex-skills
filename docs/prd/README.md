@@ -14,6 +14,8 @@ can implement a batch on a branch without spending Codex quota on exploration.
 - [0001 blind-mutation evaluation](0001-blind-mutation-evaluation.md) — score the judge swarm with seeded faults.
 - [0002 LT-5 power simulation](0002-lt5-power-simulation.md) — test the promotion statistic before buying runs.
 - [0003 LT-5 fixture mechanism diversity](0003-lt5-fixture-mechanism-diversity.md) — mechanism-distinct fixtures.
+- [0004 cost-paired memory measurement](0004-cost-paired-measurement.md) — cost per success, paired within task.
+- [0005 reproducible LT-1 scale-up](0005-lt1-scaling.md) — retained fixture/key hashes, neutral stratum, reps.
 
 ## Lifecycle
 
