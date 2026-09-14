@@ -567,6 +567,8 @@ test("recallBindings binds manual and bare-script gates and multi-word falsifier
     recallBindings({ hit: multiword, lines: ["test:state => test/audit/quality-audit.test.mjs::the audit catches a cross-file call that is never imported@6123ea8"] }).reconstructed,
     true,
   );
+  const commaSpaced = { gate: "`test:state`", falsifier: "", matched: ["test/has space.test.mjs"] };
+  assert.equal(recallBindings({ hit: commaSpaced, lines: ["test:state => other.mjs,test/has space.test.mjs"] }).reconstructed, true);
 });
 
 test("retirement supersession requires an exact anchor", () => {

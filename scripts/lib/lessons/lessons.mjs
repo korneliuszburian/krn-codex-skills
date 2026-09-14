@@ -360,9 +360,13 @@ export function recallBindings({ hit, lines }) {
       const suffix = FALSIFIER_SUFFIX.exec(token);
       return Boolean(suffix && targets.has(suffix[1]));
     };
-    if (matchToken(right)) return true;
-    if ([...targets].some((target) => target && (right.startsWith(`${target},`) || right.endsWith(`, ${target}`) || right.includes(`, ${target},`)))) return true;
-    return right.split(/\s*[,;]\s*|\s+/).some(matchToken);
+    // Comma/semicolon splitting preserves targets that contain spaces; the
+    // whitespace split is a fallback for space-separated lists.
+    return [
+      right,
+      ...right.split(/\s*[,;]\s*/),
+      ...right.split(/\s*[,;]\s*|\s+/),
+    ].some(matchToken);
   });
   return { falsifierFile, named: [...fileNames, ...scriptNames], reconstructed };
 }
