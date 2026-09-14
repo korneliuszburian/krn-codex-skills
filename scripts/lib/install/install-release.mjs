@@ -73,7 +73,7 @@ export function declaredRuntimePaths(manifest) {
   if (!Array.isArray(manifest.runtime_paths) || manifest.runtime_paths.length === 0) {
     fail("manifest is missing runtime_paths", EXIT_SOURCE);
   }
-  return Array.isArray(manifest.runtime_paths) ? [...manifest.runtime_paths].sort() : [];
+  return [...manifest.runtime_paths].sort();
 }
 
 function runtimePaths(root, manifest) {

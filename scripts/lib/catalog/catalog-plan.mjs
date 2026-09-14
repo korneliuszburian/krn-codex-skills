@@ -162,12 +162,6 @@ export function planCatalogConfig({
     }
 
     if (lexicalQuarantine) {
-      if (!skillPath) {
-        throw new ConfigReconcileError(
-          "Hard-quarantined skills.config block has an ambiguous path",
-          { code: "CONFIG_AMBIGUOUS_QUARANTINE_PATH" },
-        );
-      }
       setEnabled({
         document,
         block,

@@ -58,7 +58,7 @@ export function parseCleanup(value) {
   if (!trimmedValue.startsWith("[")) return { entries: [], malformed: [value] };
   const open = value.indexOf("[");
   const close = value.lastIndexOf("]");
-  if (open === -1 || close <= open) return { entries: [], malformed: [value] };
+  if (close <= open) return { entries: [], malformed: [value] };
   if (value.slice(close + 1).trim() !== "") return { entries: [], malformed: [value] };
   const entries = [];
   const malformed = [];
