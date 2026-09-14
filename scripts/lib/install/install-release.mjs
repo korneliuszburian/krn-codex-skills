@@ -73,15 +73,15 @@ export function declaredRuntimePaths(manifest) {
   if (!Array.isArray(manifest.runtime_paths) || manifest.runtime_paths.length === 0) {
     fail("manifest is missing runtime_paths", EXIT_SOURCE);
   }
-  return [...manifest.runtime_paths].sort();
+  return Array.isArray(manifest.runtime_paths) ? [...manifest.runtime_paths].sort() : [];
 }
 
 function runtimePaths(root, manifest) {
   const files = new Set(declaredRuntimePaths(manifest));
   for (const candidate of [manifest.global_agents, manifest.global_hooks]) files.add(candidate);
-  for (const hook of manifest.global_hook_files) files.add(hook.path);
-  for (const bin of manifest.bins) files.add(bin.path);
-  for (const skill of manifest.skills) files.add(skill.path);
+  for (const hook of Array.isArray(manifest.global_hook_files) ? manifest.global_hook_files : []) files.add(hook.path);
+  for (const bin of Array.isArray(manifest.bins) ? manifest.bins : []) files.add(bin.path);
+  for (const skill of Array.isArray(manifest.skills) ? manifest.skills : []) files.add(skill.path);
   for (const relative of files) {
     if (!safeRelativePath(relative) || !fs.existsSync(path.join(root, relative))) {
       fail(`manifest runtime path is absent or unsafe: ${relative}`, EXIT_SOURCE);
@@ -183,19 +183,20 @@ function managedTargets(plan) {
   const codexHome = path.dirname(plan.releaseRoot);
   const targets = [];
   const add = (label, root, name, relative) => {
-    const target = path.join(root, name);
-    if (path.dirname(target) !== root || name === "." || name === "..") fail(`unsafe managed destination: ${name}`, EXIT_SOURCE);
+    const normalizedRoot = path.resolve(root);
+    const target = path.join(normalizedRoot, name);
+    if (path.dirname(target) !== normalizedRoot || name === "." || name === "..") fail(`unsafe managed destination: ${name}`, EXIT_SOURCE);
     targets.push({ label, target, relative });
   };
-  for (const skill of plan.manifest.skills) {
+  for (const skill of Array.isArray(plan.manifest.skills) ? plan.manifest.skills : []) {
     add(`skill__${skill.name}`, skillDest, skill.name, skill.path);
   }
-  for (const bin of plan.manifest.bins) {
+  for (const bin of Array.isArray(plan.manifest.bins) ? plan.manifest.bins : []) {
     add(`bin__${bin.name}`, binDest, bin.name, bin.path);
   }
   targets.push({ label: "global__AGENTS.md", target: path.join(codexHome, "AGENTS.md"), relative: plan.manifest.global_agents });
   targets.push({ label: "global__hooks.json", target: path.join(codexHome, "hooks.json"), relative: plan.manifest.global_hooks });
-  for (const hook of plan.manifest.global_hook_files) {
+  for (const hook of Array.isArray(plan.manifest.global_hook_files) ? plan.manifest.global_hook_files : []) {
     add(`hook__${hook.name}`, path.join(codexHome, "hooks"), hook.name, hook.path);
   }
   return targets;
@@ -670,6 +671,17 @@ export function pruneReleases({ codexHome = process.env.CODEX_HOME || path.join(
   const releaseRoot = path.join(canonicalPath(codexHome), "krn");
   const releasesDir = path.join(releaseRoot, "releases");
   if (!fs.existsSync(releasesDir)) return { removed: [], kept: [] };
+  const releasesStat = fs.lstatSync(releasesDir, { throwIfNoEntry: false });
+  const resolvedReleases = releasesStat ? fs.realpathSync(releasesDir) : null;
+  if (
+    !releasesStat ||
+    !releasesStat.isDirectory() ||
+    releasesStat.isSymbolicLink() ||
+    resolvedReleases !== releasesDir ||
+    !isInside(releaseRoot, resolvedReleases)
+  ) {
+    return { removed: [], kept: [] };
+  }
   const currentTarget = resolvedLink(path.join(releaseRoot, "current"));
   const candidates = fs.readdirSync(releasesDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())

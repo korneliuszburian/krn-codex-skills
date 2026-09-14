@@ -186,3 +186,25 @@ test("inspectInstall reports a symlinked managed destination root as a collision
     assert.equal(inspectInstall({ codexHome: home }).filesystem.status, "foreign_collision");
   });
 });
+
+test("pruneReleases refuses a symlinked releases root and a non-directory", () => {
+  const base = fs.realpathSync(mkdtempSync(join(tmpdir(), "krn-prune-")));
+  const home = join(base, "home");
+  mkdirSync(join(home, "krn"), { recursive: true });
+  mkdirSync(join(base, "victim", "old"), { recursive: true });
+  symlinkSync(join(base, "victim"), join(home, "krn", "releases"));
+  assert.deepEqual(pruneReleases({ codexHome: home, keep: 1 }), { removed: [], kept: [] });
+  assert.ok(fs.existsSync(join(base, "victim", "old")), "a symlinked releases root must not delete outside the store");
+  rmSync(join(home, "krn", "releases"), { force: true });
+  writeFileSync(join(home, "krn", "releases"), "not a directory");
+  assert.doesNotThrow(() => pruneReleases({ codexHome: home }));
+  rmSync(base, { recursive: true, force: true });
+});
+
+test("a managed destination root with a trailing slash is accepted", () => {
+  withHome(({ base, home }) => {
+    const source = cleanSource(base);
+    process.env.KRN_SKILLS_DEST = `${process.env.KRN_SKILLS_DEST}/`;
+    assert.doesNotThrow(() => applyInstall(createInstallPlan({ source, cwd: source, codexHome: home })));
+  });
+});
