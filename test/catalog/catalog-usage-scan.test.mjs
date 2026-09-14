@@ -4,8 +4,19 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { MAX_ROLLOUT_RECORD_BYTES } from "../../scripts/lib/catalog/catalog-usage.mjs";
-import { scanCatalogUsage } from "../../scripts/lib/catalog/catalog-usage.mjs";
+import {
+  MAX_ROLLOUT_RECORD_BYTES,
+  assertAllowedRoot,
+  canonicalSkillEntries,
+  canonicalSkills,
+  consumeLines,
+  derivedRolloutDay,
+  forbiddenName,
+  isCandidateRecordLine,
+  isRolloutFile,
+  scanCatalogUsage,
+} from "../../scripts/lib/catalog/catalog-usage.mjs";
+
 
 const line = (value) => `${JSON.stringify(value)}\n`;
 
@@ -320,4 +331,154 @@ test("an unreadable rollout file degrades to partial evidence instead of abortin
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+async function* chunks(...buffers) {
+  for (const buffer of buffers) yield buffer;
+}
+
+test("consumeLines joins chunks, strips CR, and reports byte counts", async () => {
+  const lines = [];
+  const oversized = [];
+  let bytes = 0;
+  await consumeLines(
+    chunks(Buffer.from("alpha\r\nbe"), Buffer.from("ta\ngamma")),
+    (line) => lines.push(line.toString("utf8")),
+    (count) => (bytes += count),
+    (candidate) => oversized.push(candidate),
+  );
+  assert.deepEqual(lines, ["alpha", "beta", "gamma"]);
+  assert.equal(bytes, 17);
+  assert.deepEqual(oversized, []);
+});
+
+test("isCandidateRecordLine matches call markers regardless of JSON spacing", () => {
+  assert.equal(isCandidateRecordLine(Buffer.from('{"type":"function_call"}')), true);
+  assert.equal(isCandidateRecordLine(Buffer.from('{"type":"function_call_output"}')), true);
+  assert.equal(isCandidateRecordLine(Buffer.from('{"type": "function_call"}')), true);
+  assert.equal(isCandidateRecordLine(Buffer.from("plain")), false);
+});
+
+test("consumeLines flags oversized records and candidate presence", async () => {
+  const candidate = [];
+  await consumeLines(
+    chunks(Buffer.concat([Buffer.alloc(MAX_ROLLOUT_RECORD_BYTES, 97), Buffer.from('{"type":"function_call"}\n')])),
+    () => candidate.push("line"),
+    () => {},
+    (isCandidate) => candidate.push(isCandidate),
+  );
+  assert.deepEqual(candidate, [true]);
+
+  const plain = [];
+  await consumeLines(
+    chunks(Buffer.concat([Buffer.alloc(MAX_ROLLOUT_RECORD_BYTES + 1, 97), Buffer.from("\n")])),
+    () => plain.push("line"),
+    () => {},
+    (isCandidate) => plain.push(isCandidate),
+  );
+  assert.deepEqual(plain, [false]);
+});
+
+test("canonicalSkillEntries drops target paths that are not canonical SKILL.md paths", () => {
+  const entries = canonicalSkillEntries({
+    skills: [
+      { id: "shared", path: "/x/shared/SKILL.md", targetPath: "/x/shared-skill.md" },
+      { id: "linked", path: "/x/linked/SKILL.md", targetPath: "/x/real/SKILL.md" },
+      { id: "hist", path: "/x/hist/SKILL.md", targetPath: "/x/history/SKILL.md" },
+    ],
+    plugins: [],
+  });
+  assert.deepEqual(entries, [
+    { id: "shared", path: "/x/shared/SKILL.md" },
+    { id: "linked", path: "/x/linked/SKILL.md" },
+    { id: "linked", path: "/x/real/SKILL.md" },
+    { id: "hist", path: "/x/hist/SKILL.md" },
+  ]);
+  assert.doesNotThrow(() => canonicalSkills(entries));
+});
+
+test("canonicalSkillEntries id acceptance matches canonicalSkills", () => {
+  const ids = ["ok", "9ok", "a@b.c:d", "a".repeat(160), "a".repeat(161), "with space", "_leading", "", "a/b"];
+  for (const id of ids) {
+    const entries = canonicalSkillEntries({ skills: [{ id, path: `/x/${id}/SKILL.md` }], plugins: [] });
+    let acceptedBySkills = true;
+    try {
+      canonicalSkills([{ id, path: `/x/${id}/SKILL.md` }]);
+    } catch {
+      acceptedBySkills = false;
+    }
+    assert.equal(entries.length === 1, acceptedBySkills, id);
+  }
+});
+
+test("canonicalSkillEntries drops ids that canonicalSkills would reject", () => {
+  const entries = canonicalSkillEntries({
+    skills: [{ id: "my skill", path: "/x/my skill/SKILL.md" }],
+    plugins: [{ id: "demo@my market", allSkillPaths: ["/cache/my market/demo/1.0.0/skills/alpha/SKILL.md"] }],
+  });
+  assert.deepEqual(entries, []);
+  assert.doesNotThrow(() => canonicalSkills(entries));
+});
+
+test("canonicalSkillEntries drops non-canonical plugin and primary paths without throwing", () => {
+  const entries = canonicalSkillEntries({
+    skills: [{ id: "bad", path: "/x/logs/SKILL.md", targetPath: "/x/shared-skill.md" }],
+    plugins: [
+      {
+        id: "demo@market",
+        allSkillPaths: [
+          "/cache/market/demo/1.0.0/skills/logs/SKILL.md",
+          "/cache/market/demo/1.0.0/skills/ok/SKILL.md",
+        ],
+      },
+    ],
+  });
+  assert.deepEqual(entries, [
+    { id: "demo@market:ok", path: "/cache/market/demo/1.0.0/skills/ok/SKILL.md" },
+  ]);
+  assert.doesNotThrow(() => canonicalSkills(entries));
+});
+
+test("forbiddenName flags quarantined and private path families", () => {
+  for (const name of ["superpowers", "logs", "history.jsonl", "state.db", "state.sqlite-wal"]) {
+    assert.equal(forbiddenName(name), true, name);
+  }
+  assert.equal(forbiddenName("skills"), false);
+});
+
+test("assertAllowedRoot rejects forbidden segments", () => {
+  assert.doesNotThrow(() => assertAllowedRoot("/home/u/.codex/sessions"));
+  assert.throws(
+    () => assertAllowedRoot("/home/u/.codex/logs/sessions"),
+    /forbidden path family/,
+  );
+});
+
+test("isRolloutFile matches rollout jsonl names", () => {
+  assert.equal(isRolloutFile("rollout-2026-01-02T00-00-00.jsonl"), true);
+  assert.equal(isRolloutFile("other.jsonl"), false);
+});
+
+test("derivedRolloutDay derives a single dated day", () => {
+  const root = "/sessions";
+  assert.equal(
+    derivedRolloutDay(root, path.join(root, "2026", "01", "02", "rollout-2026-01-02T00-00-00.jsonl")),
+    "2026-01-02",
+  );
+  assert.equal(
+    derivedRolloutDay(root, path.join(root, "2026", "01", "02", "rollout-2026-01-03T00-00-00.jsonl")),
+    null,
+  );
+});
+
+test("canonicalSkills normalizes absolute SKILL.md paths", () => {
+  const byPath = canonicalSkills([
+    "/skills/alpha/SKILL.md",
+    { id: "beta-id", path: "/skills/beta/SKILL.md" },
+  ]);
+  assert.equal(byPath.get(path.normalize("/skills/alpha/SKILL.md")), "alpha");
+  assert.equal(byPath.get(path.normalize("/skills/beta/SKILL.md")), "beta-id");
+  assert.throws(() => canonicalSkills(["relative/SKILL.md"]), /absolute SKILL.md path/);
+  assert.throws(() => canonicalSkills([{ id: "bad id", path: "/skills/b/SKILL.md" }]), /safe catalog identifier/);
+  assert.throws(() => canonicalSkills(["/logs/alpha/SKILL.md"]), /forbidden path family/);
 });
