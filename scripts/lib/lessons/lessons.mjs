@@ -185,7 +185,8 @@ function resolveReference(root, scripts, reference) {
     const absolute = path.resolve(root, candidate);
     const rel = path.relative(root, absolute);
     if (rel && !rel.startsWith("..") && !path.isAbsolute(rel)) {
-      const stat = fs.statSync(absolute, { throwIfNoEntry: false });
+      let stat;
+      try { stat = fs.statSync(absolute, { throwIfNoEntry: false }); } catch { stat = null; }
       if (stat?.isFile()) {
         const realRel = posixRelative(fs.realpathSync(root), fs.realpathSync(absolute));
         if (realRel && !realRel.startsWith("..") && !path.isAbsolute(realRel)) {
@@ -254,14 +255,13 @@ export function checkLessons({ root, git = runGit }) {
         });
         if (!target) errors.push(`lesson "${row.lesson}": superseded-by "${anchor}" resolves to no active row`);
       } else {
-        const tokens = new Map();
-        for (const match of row.gate.matchAll(/`([^`]+)`/g)) tokens.set(match[1].trim(), true);
-        for (const token of row.gate.replace(/`/g, " ").split(/\s+/)) {
-          const reference = token.trim();
-          if (reference && !tokens.has(reference)) tokens.set(reference, false);
-        }
-        const live = [...tokens.keys()]
-          .filter((reference) => reference && resolveReference(root, scripts, reference).ok);
+        const gate = row.gate.trim();
+        const tokens = [...gate.matchAll(/`([^`]+)`/g)]
+          .map((match) => match[1].trim())
+          .filter(Boolean);
+        if (tokens.length === 0 && gate) tokens.push(gate);
+        const live = tokens
+          .filter((reference) => resolveReference(root, scripts, reference).ok);
         if (live.length > 0) errors.push(`lesson "${row.lesson}": retired with a live gate (${live.join(", ")}); remove the enforcement or name superseded-by`);
       }
       lessons.push({ lesson: row.lesson, resolved: [], occurrences: row.occurrences, falsifier: row.falsifier, trigger: row.trigger, status: row.status });

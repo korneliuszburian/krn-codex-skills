@@ -546,6 +546,15 @@ test("a retired row cannot keep an unbackticked live gate", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a retired row's prose gate is not mistaken for a live script", () => {
+  const root = makeRoot();
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n";
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), `${header}| Old | probe | validate the output before shipping | | | | retired@abcdef0 |\n`);
+  const report = checkLessons({ root });
+  assert.ok(!report.errors.some((error) => error.includes("retired with a live gate")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a retired row cannot keep a bare npm-script name without separators", () => {
   const root = makeRoot();
   const file = join(root, "package.json");

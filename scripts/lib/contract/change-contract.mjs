@@ -126,6 +126,10 @@ function explicitTestOperands(command) {
 const CODE_EXT = "mjs|js|cjs|sh|ts|mts|cts";
 const TEST_FILE_RE = new RegExp(`(?:^|/)(?:test/.+|[^/]*\\.test|[^/]*-test|[^/]*_test|test-[^/]*|test)\\.(?:${CODE_EXT})$`);
 const isTestFile = (rel) => TEST_FILE_RE.test(rel);
+const normalizeRef = (ref) => {
+  const value = String(ref ?? "").trim();
+  return (value.startsWith("npm run ") ? value.slice("npm run ".length).trim() : value).replace(/^\.\//, "");
+};
 
 const SETUP_FLAGS = new Set(["--import", "-r", "--require", "--loader", "--experimental-loader"]);
 function unquote(value) {
@@ -439,11 +443,12 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       if (!reconstructed) {
         record.push({ rule: "unreconstructed-recall", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add Recall: <${named.join(" or ") || "gate"}> => <changed file or symbol>` });
       } else {
-        const testRefs = named.flatMap((value) => [...value.matchAll(/\.?\/?[A-Za-z0-9_./-]*\.mjs/g)].map((match) => match[0].replace(/^\.\//, "")));
-        const requiredTests = [...new Set([falsifierFile, ...testRefs].filter(Boolean))];
+        const testRefs = named.flatMap((value) => [...value.matchAll(/\.?\/?[A-Za-z0-9_./-]*\.mjs/g)].map((match) => match[0].replace(/^\.\//, "")))
+          .filter((reference) => isTestFile(reference));
+        const requiredTests = [...new Set([falsifierFile, ...testRefs].filter(Boolean))].map(normalizeRef);
         const declaredRefs = [
-          ...contract.contracts.filter((entry) => entry.after === "green").map((entry) => entry.ref),
-          ...contract.atRisk,
+          ...contract.contracts.filter((entry) => entry.after === "green").map((entry) => normalizeRef(entry.ref)),
+          ...contract.atRisk.map((ref) => normalizeRef(ref)),
         ];
         if (requiredTests.length > 0 && !requiredTests.some((test) => declaredRefs.includes(test))) {
           record.push({ rule: "unused-recall", commit: commit.sha, ref: hit.lesson, detail: `declare At-risk: ${requiredTests.join(" or ")} so the recalled lesson's test is exercised` });
