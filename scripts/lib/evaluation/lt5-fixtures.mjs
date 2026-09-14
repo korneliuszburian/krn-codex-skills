@@ -4,7 +4,7 @@ export function lt5FixtureManifestErrors(manifest) {
   if (!manifest || typeof manifest !== "object") return ["manifest must be an object"];
   const errors = [];
   if (!Array.isArray(manifest.tasks)) return ["manifest.tasks must be an array"];
-  const ids = new Set(manifest.tasks.map((task) => task?.id));
+  const byId = new Map(manifest.tasks.map((task) => [task?.id, task]));
   const mechanisms = new Map();
   for (const task of manifest.tasks) {
     const id = task?.id;
@@ -20,7 +20,8 @@ export function lt5FixtureManifestErrors(manifest) {
     if (task.stratum === "decisive") {
       if (task.gold_passes !== true) errors.push(`${id}: gold solution must pass`);
       if (task.change_only_fails_on_dependency !== true) errors.push(`${id}: requested change must fail solely on the omitted dependency`);
-      if (typeof task.neutral_partner !== "string" || !ids.has(task.neutral_partner)) errors.push(`${id}: decisive task needs a matched neutral partner`);
+      const partner = byId.get(task.neutral_partner);
+      if (!partner || partner.stratum !== "neutral" || partner.id === id) errors.push(`${id}: decisive task needs a matched neutral partner`);
       const seen = mechanisms.get(task.mechanism) ?? [];
       if (task.mechanism && seen.length > 0) errors.push(`${id}: mechanism ${task.mechanism} is already used by ${seen.join(", ")}`);
       if (task.mechanism) mechanisms.set(task.mechanism, [...seen, id]);

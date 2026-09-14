@@ -30,7 +30,11 @@ export function costPaired(records = []) {
   const byTask = new Map();
   for (const record of measured) {
     const entry = byTask.get(record.task) ?? new Map();
-    entry.set(record.arm, record);
+    const aggregate = entry.get(record.arm) ?? { tokens: 0, passes: 0, reps: 0 };
+    aggregate.tokens += record.tokens_in + record.tokens_out;
+    aggregate.passes += record.held_out_pass === true ? 1 : 0;
+    aggregate.reps += 1;
+    entry.set(record.arm, aggregate);
     byTask.set(record.task, entry);
   }
   const armNames = [...arms.keys()].sort();
@@ -43,10 +47,10 @@ export function costPaired(records = []) {
         if (!from || !to) continue;
         paired.push({
           task,
-          from: from.arm,
-          to: to.arm,
-          token_delta: to.tokens_in + to.tokens_out - (from.tokens_in + from.tokens_out),
-          pass_delta: (to.held_out_pass === true ? 1 : 0) - (from.held_out_pass === true ? 1 : 0),
+          from: armNames[left],
+          to: armNames[right],
+          token_delta: to.tokens - from.tokens,
+          pass_delta: to.passes / to.reps - from.passes / from.reps,
         });
       }
     }

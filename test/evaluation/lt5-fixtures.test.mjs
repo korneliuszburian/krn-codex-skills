@@ -36,3 +36,10 @@ test("a claim that gold passes or a key inside a bind is rejected", () => {
   assert.ok(errors.some((error) => error.includes("inside an agent-readable bind")), JSON.stringify(errors));
   assert.ok(errors.some((error) => error.includes("placebo")), JSON.stringify(errors));
 });
+
+test("a self-partner or a decisive partner is not a neutral partner", () => {
+  const errors = lt5FixtureManifestErrors(manifest({ tasks: [
+    { id: "d1", mechanism: "serialization", stratum: "decisive", fixture_hash: "abcd1234", answer_hash: "efab5678", gold_passes: true, change_only_fails_on_dependency: true, neutral_partner: "d1" },
+  ] }));
+  assert.ok(errors.some((error) => error.includes("matched neutral partner")), JSON.stringify(errors));
+});

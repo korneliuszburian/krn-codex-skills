@@ -4,7 +4,7 @@ export function fixtureManifestErrors(manifest) {
   if (!manifest || typeof manifest !== "object") return ["manifest must be an object"];
   const errors = [];
   if (!Array.isArray(manifest.tasks)) return ["manifest.tasks must be an array"];
-  const ids = new Set(manifest.tasks.map((task) => task?.id));
+  const byId = new Map(manifest.tasks.map((task) => [task?.id, task]));
   for (const task of manifest.tasks) {
     const id = task?.id;
     if (typeof id !== "string" || id === "") {
@@ -15,9 +15,11 @@ export function fixtureManifestErrors(manifest) {
     if (!HASH.test(task.answer_hash ?? "")) errors.push(`${id}: missing retained answer-key hash`);
     if (task.answer_key_inside_bind === true) errors.push(`${id}: answer key sits inside an agent-readable bind`);
     if (task.stratum !== "decisive" && task.stratum !== "neutral") errors.push(`${id}: stratum must be decisive or neutral`);
+    if (task.stratum === "neutral" && task.zero_trigger_hits !== true) errors.push(`${id}: neutral task must return zero trigger hits`);
     if (task.stratum === "decisive") {
       if (!Number.isInteger(task.reps) || task.reps < 3) errors.push(`${id}: decisive task needs at least 3 planned reps`);
-      if (typeof task.neutral_partner !== "string" || !ids.has(task.neutral_partner)) {
+      const partner = byId.get(task.neutral_partner);
+      if (!partner || partner.stratum !== "neutral" || partner.id === id) {
         errors.push(`${id}: decisive task needs a matched neutral partner`);
       }
     }

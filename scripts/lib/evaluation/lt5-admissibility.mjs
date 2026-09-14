@@ -5,8 +5,10 @@ export const AUTHORIZED_FAMILIES = Object.freeze([
 
 const PROVIDER_TRANSPORT = Object.freeze({ "opencode-go": "opencode", codex: "codex" });
 
-export const transportFromProvider = (provider) =>
-  PROVIDER_TRANSPORT[typeof provider === "string" ? provider.trim() : ""] ?? "";
+export const transportFromProvider = (provider) => {
+  const key = typeof provider === "string" ? provider.trim() : "";
+  return Object.hasOwn(PROVIDER_TRANSPORT, key) ? PROVIDER_TRANSPORT[key] : "";
+};
 
 export const parseServedLine = (line) => {
   const text = typeof line === "string" ? line : "";
