@@ -292,7 +292,7 @@ export function touchedSymbolFiles({ root, git, sha }) {
       flush();
       before = headerPath(line, "--- ");
       inHeader = true;
-    } else if (inHeader && line.startsWith("+++ ") && isPath(line)) {
+    } else if (line.startsWith("+++ ") && isPath(line) && (inHeader || (before === null && after === null))) {
       after = headerPath(line, "+++ ");
       inHeader = false;
     } else if (line.startsWith("@@")) {
