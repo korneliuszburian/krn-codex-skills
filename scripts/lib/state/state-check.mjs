@@ -1,4 +1,4 @@
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, realpathSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
@@ -221,6 +221,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   if (existsSync(lessonsFile)) {
     let parsedLessons;
     try {
+      if (!statSync(lessonsFile).isFile()) throw new Error("not a file");
       parsedLessons = parseLessons(lessonsFile);
     } catch {
       errors.push({ id: "workflow-lessons", rule: "unreadable-lessons", detail: "docs/research/workflow-lessons.md" });
