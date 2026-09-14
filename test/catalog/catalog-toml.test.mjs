@@ -83,6 +83,20 @@ test("a nested array element is not a phantom table header", () => {
   assert.deepEqual([...directAssignments(doc, mcp[0]).keys()], ["command", "args", "enabled"]);
 });
 
+test("an assignment-shaped array element is not a real assignment", () => {
+  const source = '[mcp_servers.demo]\ncommand = "npx"\nargs = [\n  x = 1,\n]\nenabled = false\n';
+  const doc = parseDocument(source);
+  const mcp = doc.blocks.find((block) => block.kind === "mcp");
+  assert.ok(![...directAssignments(doc, mcp).keys()].includes("x"), JSON.stringify([...directAssignments(doc, mcp).keys()]));
+});
+
+test("an escaped delimiter inside a multi-line string does not inflate array depth", () => {
+  const source = `[mcp_servers.alpha]\ncommand = """\nescaped \\""" [x\n"""\nenabled = false\n`;
+  const doc = parseDocument(source);
+  const mcp = doc.blocks.find((block) => block.kind === "mcp");
+  assert.deepEqual([...directAssignments(doc, mcp).keys()], ["command", "enabled"]);
+});
+
 test("a fully quoted dotted root key is not a managed assignment", () => {
   assert.doesNotThrow(() => parseDocument('"plugins.x" = 1\n'));
   assert.throws(() => parseDocument("plugins.x = 1\n"), /Managed TOML owners must use supported table syntax/);

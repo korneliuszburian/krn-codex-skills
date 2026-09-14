@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { isInside, isSafeRelativePath as safeRelativePath } from "../support/path-rules.mjs";
 import { readJson } from "../support/read-json.mjs";
-import { bracketDelta, parseAssignment, parseDocument, parseDottedHeaderKey, parseTomlString, splitHeader } from "../catalog/catalog-toml.mjs";
+import { parseAssignment, parseDocument, parseDottedHeaderKey, parseTomlString, splitHeader } from "../catalog/catalog-toml.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
@@ -564,54 +564,40 @@ export function managedHookPolicy({
   }
   const ARRAY_TABLE = "\u0000array";
   let table = null;
-  let arrayDepth = 0;
-  let multilineDelim = null;
   try {
     for (let index = 0; index < document.lines.length; index += 1) {
+      // Lines inside a multi-line string or an array body are values, not keys.
+      if (document.insideMultiline?.[index] || document.insideArray?.[index]) continue;
       const content = document.lines[index].content;
-      if (!document.insideMultiline?.[index] && document.insideMultiline?.[index + 1]) {
-        multilineDelim = content.includes("\"\"\"") ? "\"\"\"" : "'''";
-      }
-      if (document.insideMultiline?.[index]) {
-        if (!document.insideMultiline?.[index + 1] && multilineDelim) {
-          const closer = content.indexOf(multilineDelim);
-          arrayDepth += bracketDelta(closer === -1 ? "" : content.slice(closer + multilineDelim.length));
-          if (arrayDepth < 0) arrayDepth = 0;
-          multilineDelim = null;
-        }
-        continue;
-      }
-      const header = arrayDepth === 0 ? splitHeader(content) : undefined;
+      const header = splitHeader(content);
       if (header) {
         if (header.validTail) {
           table = header.array ? ARRAY_TABLE : (parseDottedHeaderKey(header.inner)?.join(".") ?? ARRAY_TABLE);
         }
-      } else {
-        const assignment = parseAssignment(content);
-        if (assignment) {
-          const segments = parseDottedHeaderKey(assignment.prefix.replace(/\s*=\s*$/, "").trim()) ?? [assignment.key];
-          const enabled = tomlBoolean(assignment.value);
-          if (table === null && segments.length === 1 && segments[0] === "allow_managed_hooks_only" && enabled === true) {
-            return {
-              status: "hook_inert_by_managed_policy",
-              path: requirementsPath,
-              detail: "top-level allow_managed_hooks_only = true",
-            };
-          }
-          const featuresDisabled = table === "features" && segments.length === 1 && segments[0] === "hooks" && enabled === false;
-          const dottedDisabled = table === null && segments.length === 2 && segments[0] === "features" && segments[1] === "hooks" && enabled === false;
-          const inlineDisabled = table === null && segments.length === 1 && segments[0] === "features" && inlineFeaturesHooksDisabled(assignment.value);
-          if (featuresDisabled || dottedDisabled || inlineDisabled) {
-            return {
-              status: "hook_inert_features_disabled",
-              path: requirementsPath,
-              detail: "[features] hooks = false",
-            };
-          }
+        continue;
+      }
+      const assignment = parseAssignment(content);
+      if (assignment) {
+        const segments = parseDottedHeaderKey(assignment.prefix.replace(/\s*=\s*$/, "").trim()) ?? [assignment.key];
+        const enabled = tomlBoolean(assignment.value);
+        if (table === null && segments.length === 1 && segments[0] === "allow_managed_hooks_only" && enabled === true) {
+          return {
+            status: "hook_inert_by_managed_policy",
+            path: requirementsPath,
+            detail: "top-level allow_managed_hooks_only = true",
+          };
+        }
+        const featuresDisabled = table === "features" && segments.length === 1 && segments[0] === "hooks" && enabled === false;
+        const dottedDisabled = table === null && segments.length === 2 && segments[0] === "features" && segments[1] === "hooks" && enabled === false;
+        const inlineDisabled = table === null && segments.length === 1 && segments[0] === "features" && inlineFeaturesHooksDisabled(assignment.value);
+        if (featuresDisabled || dottedDisabled || inlineDisabled) {
+          return {
+            status: "hook_inert_features_disabled",
+            path: requirementsPath,
+            detail: "[features] hooks = false",
+          };
         }
       }
-      arrayDepth += bracketDelta(content);
-      if (arrayDepth < 0) arrayDepth = 0;
     }
   } catch (error) {
     return { status: "requirements_unreadable", path: requirementsPath, detail: error.message };

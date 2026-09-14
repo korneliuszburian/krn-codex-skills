@@ -245,9 +245,12 @@ export function parseDocument(source) {
 
   for (let index = 0; index < lines.length; index += 1) {
     const content = lines[index].content;
-    insideMultiline[index] = multiline !== null;
+    const wasInside = multiline !== null;
+    insideMultiline[index] = wasInside;
     insideArray[index] = arrayDepth > 0;
-    if (multiline === null && arrayDepth === 0) {
+    const next = advanceMultilineState(content, multiline);
+    const closes = wasInside && next === null;
+    if (!wasInside && arrayDepth === 0) {
       const header = parseHeader(content);
       if (header) {
         insideTable = true;
@@ -259,17 +262,17 @@ export function parseDocument(source) {
         );
       }
     }
-    if (multiline === null) {
+    if (!wasInside) {
       const delta = bracketDelta(content);
       if (delta !== 0) arrayDepth = Math.max(0, arrayDepth + delta);
-    } else if (!insideMultiline[index + 1]) {
+    } else if (closes) {
       // The multi-line string closed on this line; count any brackets after it.
-      const closer = multiline === "\"\"\"" ? content.indexOf("\"\"\"") : content.indexOf("'''");
+      const closer = findMultilineCloser(content, multiline);
       const tail = closer === -1 ? "" : content.slice(closer + 3);
       const delta = bracketDelta(tail);
       if (delta !== 0) arrayDepth = Math.max(0, arrayDepth + delta);
     }
-    multiline = advanceMultilineState(content, multiline);
+    multiline = next;
   }
 
   const blocks = headers.map((header, index) => {
@@ -290,9 +293,23 @@ export function parseDocument(source) {
   return { source, lines, blocks, eol, insideMultiline, insideArray };
 }
 
+// Escape-aware search for a multi-line string's closer on a line.
+function findMultilineCloser(content, delim) {
+  let index = 0;
+  while (index < content.length) {
+    if (delim === "\"\"\"" && content[index] === "\\") {
+      index += 2;
+      continue;
+    }
+    if (content.startsWith(delim, index)) return index;
+    index += 1;
+  }
+  return -1;
+}
+
 // Bracket balance outside strings and comments; a table header line balances to
 // zero, so only multi-line array bodies move the depth.
-export function bracketDelta(line) {
+function bracketDelta(line) {
   let depth = 0;
   let quote = null;
   for (let index = 0; index < line.length; index += 1) {
