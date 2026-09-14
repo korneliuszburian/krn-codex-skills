@@ -18,6 +18,10 @@ hosts own their mechanics and policy.
    when the user explicitly requested persistent autonomous progress; otherwise
    the accepted request is the outcome authority. Reconcile a pre-existing goal
    with repository and tracker truth before continuing.
+   Before mutating, once the intended paths or symbols are known, read the
+   triggered lesson with `krn-codex memory recall --root . --changed <path>`
+   (or `--symbol <name>`) and repeat when the scope changes; a neutral path
+   returns no hit. This is advisory delivery, not an enforcement gate.
 
    Keep exactly one compact working record and replace its fields in place:
 
