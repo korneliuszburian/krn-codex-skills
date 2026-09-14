@@ -485,6 +485,42 @@ Parallelism is contextual:
 This replaces the old universal “WIP exactly one” rule with the invariant the
 evidence actually supports: no concurrent mutation of the same outcome state.
 
+## 2026-09 harness review (Astra, read-only)
+
+A single read-only Astra pass audited the harness at `0dd448a` against its own
+standards and the official OpenAI prompting and Memory/Compaction guidance. Verdict:
+a coherent runtime with an **accreted verification layer**. The measured complexity
+split is **84% installed runtime (7,613 LOC) / 16% development-only (1,434 LOC)** —
+a deployment split, not a waste ratio; the catalog's TOML, identity, quarantine, and
+usage surfaces are three capability domains (discovery, reconciliation, evidence),
+not five. Maturity blockers, worst first: declared proof offered as observed proof
+(CI omits `--before`); recall missing before edits; review independence still
+cooperative; memory effect unmeasured; duplicated gate administration.
+
+Durable decisions from the pass (each transports into the steps below):
+
+- Target **catalog 19 → 13 modules** and **~42 library modules** by merging the
+  document editor into the planner, profiles into one module, quarantine into
+  inventory, and the six usage files into three; do not bury TOML, which install
+  shares.
+- Target **~49 test files at a 1.0–1.1 test:lib ratio**, by merging the catalog
+  document/usage/quarantine suites and folding the recursive guard-inheritance
+  wrapper into existing CLI coverage — only where the same faults stay detectable.
+- Distinguish two change kinds: **behavior changes need an observed red->green
+  (`--before`)**; behavior-preserving changes need unchanged checks to stay green.
+- Dogfood memory: add one advisory pre-edit recall route and record **actual
+  delivery** (path/symbol), not reconstructed Git trailers; `memory usage`
+  currently reports lessons with zero bindings.
+- Leave development-only validators unshipped and document the
+  config check-to-rename residual; do not claim string validation proves reviewer
+  independence.
+
+Ordered plan (safest first): (1) correct guarantee language, (2) advisory pre-edit
+recall, (3) proof modes (`--before`), (4) completion review-evidence relationship,
+(5) incremental catalog/test consolidation, (6) one executable owner of the gate
+sequence, (7) the selected LT measurement lane — only (7) waits on the LT-5
+transport decision.
+
 ## Rejected alternatives
 
 | Alternative | Disposition | Reason |
