@@ -213,3 +213,18 @@ test("referenceLinkErrors ignores ~~~ fenced mentions", () => {
     ["s: references/a.md is not linked directly from SKILL.md"],
   );
 });
+
+test("fenced examples are not validated as pointers", () => {
+  assert.deepEqual(skillPointerErrors("```\n[x](references/missing.md)\n```", { skillPath: "p", resolveTarget: () => false }), []);
+  assert.deepEqual(skillContentErrors("```\n[x](../other/SKILL.md)\n```", { skillPath: "p" }), []);
+});
+
+test("an angle-bracket pointer is validated", () => {
+  assert.deepEqual(skillPointerErrors("[x](<references/missing.md>)", { skillPath: "p", resolveTarget: () => false }), ["p: broken direct pointer ](<references/missing.md>)"]);
+});
+
+test("referenceLinkErrors accepts a single-quoted title and a reference definition", () => {
+  assert.deepEqual(referenceLinkErrors("[n](references/a.md 'usage')", { skillPath: "s", references: ["references/a.md"] }), []);
+  assert.deepEqual(referenceLinkErrors("[d]: references/a.md\nSee [x][d].", { skillPath: "s", references: ["references/a.md"] }), []);
+  assert.deepEqual(referenceLinkErrors("`(references/a.md)`", { skillPath: "s", references: ["references/a.md"] }), ["s: references/a.md is not linked directly from SKILL.md"]);
+});

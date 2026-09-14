@@ -75,13 +75,14 @@ export function openaiYamlErrors(metadata, { name, implicit, skillPath }) {
 
 export function skillContentErrors(content, { skillPath }) {
   const errors = [];
+  const unfenced = unfencedLines(content).map((entry) => entry.line).join("\n");
   if (/disable-model-invocation/.test(content)) {
     errors.push(`${skillPath}: Claude-only invocation frontmatter is not canonical`);
   }
   if (/TODO|\[TODO|Structuring This Skill/i.test(content)) {
     errors.push(`${skillPath}: unresolved scaffold text`);
   }
-  if (/\]\(\.\.\//.test(content) || /^\[[^\]]+\]:\s*\.\.\//m.test(content)) {
+  if (/\]\(\.\.\//.test(unfenced) || /^\[[^\]]+\]:\s*\.\.\//m.test(unfenced)) {
     errors.push(`${skillPath}: cross-skill relative pointers are not allowed`);
   }
   return errors;
@@ -89,7 +90,8 @@ export function skillContentErrors(content, { skillPath }) {
 
 export function skillPointerErrors(content, { skillPath, resolveTarget }) {
   const errors = [];
-  for (const match of content.matchAll(/\]\((references|scripts)\/([^)\s#]+)[^)]*\)/g)) {
+  const code = unfencedLines(content).map((entry) => entry.line.replace(/`[^`]*`/g, "")).join("\n");
+  for (const match of code.matchAll(/\]\(<?(references|scripts)\/([^)\s#>]+)[^)]*\)/g)) {
     if (!resolveTarget(match[1], match[2])) {
       errors.push(`${skillPath}: broken direct pointer ${match[0]}`);
     }
@@ -141,9 +143,12 @@ export function skillIdentityErrors(fields, skill) {
 
 export function referenceLinkErrors(content, { skillPath, references }) {
   const errors = [];
-  const unfenced = unfencedLines(content).map((entry) => entry.line).join("\n");
+  const unfenced = unfencedLines(content).map((entry) => entry.line.replace(/`[^`]*`/g, "")).join("\n");
   const targets = new Set();
-  for (const match of unfenced.matchAll(/\(<?([^)\s>#]+)(?:#[^)\s>]*)?(?:\s+"[^"]*")?\s*>?\)/g)) {
+  for (const match of unfenced.matchAll(/\(<?([^)\s>#]+)(?:#[^)\s>]*)?(?:\s+(?:"[^"]*"|'[^']*'))?\s*>?\)/g)) {
+    targets.add(match[1]);
+  }
+  for (const match of unfenced.matchAll(/^\s*\[[^\]]+\]:\s*<?([^)\s>#]+)/gm)) {
     targets.add(match[1]);
   }
   for (const pointer of references) {
