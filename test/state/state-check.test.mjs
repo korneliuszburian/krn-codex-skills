@@ -671,3 +671,19 @@ test("an active state written with a space separator is caught", () => {
   assert.ok(rules(report).includes("complete-with-active-participant"), rules(report).join(","));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a non-commit fixed-point token is invalid", () => {
+  const { root } = makeRepo();
+  writeCapsule(root, capsule({ fixedPoint: "base=main; dirty=clean" }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("invalid-fixed-point"), rules(report).join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an empty base/HEAD token is a missing fixed point", () => {
+  const { root } = makeRepo();
+  writeCapsule(root, capsule({ fixedPoint: "HEAD=; dirty=clean" }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("missing-fixed-point"), rules(report).join(","));
+  rmSync(root, { recursive: true, force: true });
+});

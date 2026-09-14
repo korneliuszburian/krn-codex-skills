@@ -172,3 +172,20 @@ test("removeBlock drops the removed block's own trailing comment", () => {
   removeBlock({ document: parseDocument(blankSeparated), block: blockFor(blankSeparated, "mcp", "a"), allowedKeys: MCP_SERVER_KEYS, target: "a", resource: "mcp", reason: "t", operations: ops2, actions: [] });
   assert.equal(applyOperations(blankSeparated, ops2), "[mcp_servers.b]\nenabled = true\n");
 });
+
+test("block boundaries ignore comment-looking lines inside a multiline string", () => {
+  const src = '[mcp_servers.a]\ncommand = """\necho hi\n# done """\n[mcp_servers.b]\nenabled = true\n';
+  const ops = [];
+  removeBlock({ document: parseDocument(src), block: blockFor(src, "mcp", "a"), allowedKeys: MCP_SERVER_KEYS, target: "a", resource: "mcp", reason: "t", operations: ops, actions: [] });
+  assert.equal(applyOperations(src, ops), '[mcp_servers.b]\nenabled = true\n');
+  const insert = [];
+  setEnabled({ document: parseDocument(src), block: blockFor(src, "mcp", "a"), enabled: true, allowedKeys: MCP_SERVER_KEYS, target: "a", resource: "mcp", reason: "t", operations: insert, actions: [] });
+  assert.equal(applyOperations(src, insert), '[mcp_servers.a]\ncommand = """\necho hi\n# done """\nenabled = true\n[mcp_servers.b]\nenabled = true\n');
+});
+
+test("removeBlock drops the block's own leading comment", () => {
+  const src = '[mcp_servers.a]\ncommand = "x"\n# docs for b\n[mcp_servers.b]\nenabled = true\n';
+  const ops = [];
+  removeBlock({ document: parseDocument(src), block: blockFor(src, "mcp", "b"), allowedKeys: MCP_SERVER_KEYS, target: "b", resource: "mcp", reason: "t", operations: ops, actions: [] });
+  assert.equal(applyOperations(src, ops), '[mcp_servers.a]\ncommand = "x"\n');
+});

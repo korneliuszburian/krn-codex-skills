@@ -123,14 +123,31 @@ export function skillPathContainsQuarantine(document, block, skillPath, families
   });
 }
 
+const isCommentLine = (document, index) =>
+  document.lines[index].content.trim().startsWith("#") &&
+  !document.insideMultiline?.[index] &&
+  !document.insideArray?.[index];
+
+// The last line the block owns. A run of comment lines directly above the next
+// header documents that header, so it is not owned; a blank line ends the run, so
+// a comment separated from the next header by a blank belongs to this block. At
+// end of file there is no following header, so only trailing blanks are excluded.
 function ownedEndLine(document, block) {
   let cursor = block.endLineIndex - 1;
   if (block.endLineIndex < document.lines.length) {
-    while (cursor > block.startLineIndex && document.lines[cursor].content.trim().startsWith("#")) cursor -= 1;
+    while (cursor > block.startLineIndex && isCommentLine(document, cursor)) cursor -= 1;
     return cursor;
   }
   while (cursor > block.startLineIndex && document.lines[cursor].content.trim() === "") cursor -= 1;
   return cursor;
+}
+
+// A comment run directly above a header is that header's own documentation, so it
+// is owned (and removed) by the block it precedes.
+function leadingCommentStart(document, block) {
+  let cursor = block.startLineIndex - 1;
+  while (cursor >= 0 && isCommentLine(document, cursor)) cursor -= 1;
+  return cursor + 1;
 }
 
 function insertionAtBlockEnd(document, block, text) {
@@ -156,10 +173,11 @@ function replaceEnabledOperation(document, lineIndex, enabled) {
 }
 
 function deletionOperation(document, block) {
+  const firstOwnedLine = leadingCommentStart(document, block);
   const lastOwnedLine = ownedEndLine(document, block);
 
   return {
-    start: block.start,
+    start: document.lines[firstOwnedLine]?.start ?? block.start,
     end: document.lines[lastOwnedLine]?.end ?? block.end,
     text: "",
   };
