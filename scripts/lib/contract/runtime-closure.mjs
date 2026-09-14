@@ -9,7 +9,14 @@ function relativePath(root, from, specifier) {
 }
 
 function runtimeClosure({ root, manifest }) {
-  const queue = (manifest.bins ?? []).map((bin) => [null, bin.path]).filter(([, file]) => file.endsWith(".mjs"));
+  const queue = [
+    ...(manifest.bins ?? []).map((bin) => bin.path),
+    manifest.global_agents,
+    manifest.global_hooks,
+    ...(manifest.global_hook_files ?? []).map((hook) => hook.path),
+  ]
+    .filter((file) => typeof file === "string" && file.endsWith(".mjs"))
+    .map((file) => [null, file]);
   const reachable = new Set();
   const missing = new Map();
   while (queue.length > 0) {

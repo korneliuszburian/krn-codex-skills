@@ -101,3 +101,18 @@ test("an identifier ending in from is not treated as an import", () => {
   assert.deepEqual(runtimeClosureErrors({ root, manifest }), []);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a .mjs hook file is a closure entrypoint", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-closure-hook-"));
+  mkdirSync(join(root, "scripts", "lib"), { recursive: true });
+  writeFileSync(join(root, "scripts", "a.mjs"), 'import { b } from "./lib/b.mjs";\nexport const a = b;\n');
+  writeFileSync(join(root, "scripts", "lib", "b.mjs"), "export const b = 1;\n");
+  writeFileSync(join(root, "scripts", "h.mjs"), 'import { b } from "./lib/b.mjs";\nexport const h = b;\n');
+  const manifest = {
+    bins: [{ path: "scripts/a.mjs" }],
+    global_hook_files: [{ path: "scripts/h.mjs" }],
+    runtime_paths: ["scripts/a.mjs", "scripts/lib/b.mjs", "scripts/h.mjs"],
+  };
+  assert.deepEqual(runtimeClosureErrors({ root, manifest }), []);
+  rmSync(root, { recursive: true, force: true });
+});
