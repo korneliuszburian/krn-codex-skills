@@ -1,4 +1,4 @@
-const FENCE = /^( {0,3})(`{3,}|~{3,})(.*)$/;
+const FENCE = /^( {0,3})(`{3,}|~{3,})([^\r\n]*)\r?$/;
 
 const scan = (content) => {
   const lines = [];

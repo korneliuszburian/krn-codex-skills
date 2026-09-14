@@ -123,7 +123,7 @@ export function semanticXmlErrors(content, label) {
 
 export function readmeSkillsTableErrors(content, { label, skills }) {
   const errors = [];
-  const lines = content.split("\n");
+  const lines = fenceLines(content).map((entry) => (entry.fenced ? "" : entry.line));
   const headings = lines
     .map((line, index) => (line.trim() === "## Skills" ? index : -1))
     .filter((index) => index !== -1);

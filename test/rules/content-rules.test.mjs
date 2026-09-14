@@ -185,3 +185,24 @@ test("a reserved frontmatter key is rejected", () => {
   );
   assert.deepEqual(parseFrontmatterFields("---\nname: a\ndescription: b\n---\n", "SKILL.md").errors, []);
 });
+
+test("fenced CRLF content is hidden and fenced README rows are ignored", () => {
+  assert.deepEqual(
+    markdownLinkErrors("```\r\n[x](missing.md)\r\n```\r\n", { label: "d.md", resolveTarget: () => false }),
+    [],
+  );
+  const content = [
+    "## Skills",
+    "",
+    "| Skill | Invocation | Owns |",
+    "| --- | --- | --- |",
+    "| [`alpha`](skills/g/alpha/SKILL.md) | explicit only | thing |",
+    "~~~",
+    "| X | explicit only | y |",
+    "~~~",
+  ].join("\n");
+  assert.deepEqual(
+    readmeSkillsTableErrors(content, { label: "README.md", skills: [{ name: "alpha", path: "skills/g/alpha/SKILL.md", implicit: false }] }),
+    [],
+  );
+});
