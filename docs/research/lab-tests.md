@@ -226,7 +226,14 @@ B run could be handed the coupling by the page; neutral templates now carry no
 coupling row and document the coupling only in the task source, while decisive
 templates keep the triggering row. The running calibration used the contaminated
 neutral fixtures, so its neutral B/P cells are not clean; the fix applies to the
-confirmation run. The in-progress 144-execution run (4 tasks ×
+confirmation run. That first calibration was also aborted: `gate-tasks.sh` was
+edited while the deepseek run was executing, and bash reads a script by byte
+offset, so the live run hit a syntax error at the aggregate step (glm 68/72,
+deepseek 72/72 executions, no aggregate). Both families were rerun from scratch
+(`results-calib2-*`) on the fixed fixtures with the frozen script; the aborted
+pass is retained as `results-calib1-*`. Rule learned and applied: freeze a runner
+script before launching it, and never edit it mid-run. The in-progress
+144-execution run (4 tasks ×
 2 strata × 3 arms × 3 reps, `glm-5.3` and `deepseek-v4.1-flash`) is declared
 **calibration**, not confirmation: N is unresolved (no power/type-I simulation),
 and it was launched with consecutive arm batches before the gate fix. `gate-tasks`
