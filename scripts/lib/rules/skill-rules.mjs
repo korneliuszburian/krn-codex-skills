@@ -1,5 +1,6 @@
 import { basename, join } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
+import { unfencedLines } from "./content-rules.mjs";
 
 const INTERFACE_REQUIRED = ["display_name", "short_description", "default_prompt"];
 const INTERFACE_OPTIONAL = new Set(["icon_small", "icon_large", "brand_color"]);
@@ -140,7 +141,7 @@ export function skillIdentityErrors(fields, skill) {
 
 export function referenceLinkErrors(content, { skillPath, references }) {
   const errors = [];
-  const unfenced = content.replace(/^```[\s\S]*?^```/gm, "");
+  const unfenced = unfencedLines(content).map((entry) => entry.line).join("\n");
   const targets = new Set();
   for (const match of unfenced.matchAll(/\(<?([^)\s>#]+)(?:#[^)\s>]*)?(?:\s+"[^"]*")?\s*>?\)/g)) {
     targets.add(match[1]);

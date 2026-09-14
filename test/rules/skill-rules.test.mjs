@@ -206,3 +206,10 @@ test("the always-loaded contract stays within its information budget", () => {
   const text = readFileSync(join("config", "AGENTS.md"), "utf8");
   assert.deepEqual(contractBudgetErrors({ label: "config/AGENTS.md", text, maxLineChars: 320, maxWords: 620, maxChars: 5200 }), []);
 });
+
+test("referenceLinkErrors ignores ~~~ fenced mentions", () => {
+  assert.deepEqual(
+    referenceLinkErrors("~~~\n[n](references/a.md)\n~~~", { skillPath: "s", references: ["references/a.md"] }),
+    ["s: references/a.md is not linked directly from SKILL.md"],
+  );
+});

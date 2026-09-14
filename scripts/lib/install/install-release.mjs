@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { gitText as git } from "../support/git-cli.mjs";
+import { gitText as git, runGitRaw } from "../support/git-cli.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -46,9 +46,10 @@ function resolveSource({ source, cwd = process.cwd() } = {}) {
   const { root, ref } = sourceRootFromLocator(source, cwd);
   const commit = git(root, ["rev-parse", "--verify", `${ref}^{commit}`]);
   const head = git(root, ["rev-parse", "--verify", "HEAD"]);
-  const dirty = git(root, ["status", "--porcelain", "--untracked-files=all"]);
+  const status = runGitRaw(root, ["status", "--porcelain", "--untracked-files=all"]);
   if (!commit || !head) fail(`cannot resolve source revision: ${ref}`, EXIT_SOURCE);
-  if (dirty) fail(`source checkout is dirty: ${root}`, EXIT_SOURCE);
+  if (!status.ok) fail(`source checkout status is unreadable: ${root}`, EXIT_SOURCE);
+  if (status.out.trim() !== "") fail(`source checkout is dirty: ${root}`, EXIT_SOURCE);
   if (commit !== head) {
     fail(`source ref must be the checked-out HEAD: ${ref} resolves to ${commit}, HEAD is ${head}`, EXIT_SOURCE);
   }
@@ -446,6 +447,10 @@ function verifyInstalledCli(plan) {
 }
 
 function itemStatus(plan, item) {
+  const parentStat = fs.lstatSync(path.dirname(item.target), { throwIfNoEntry: false });
+  if (parentStat && (parentStat.isSymbolicLink() || !parentStat.isDirectory())) {
+    return { target: item.target, status: "foreign_collision" };
+  }
   const stat = fs.lstatSync(item.target, { throwIfNoEntry: false });
   if (!stat) return { target: item.target, status: "missing" };
   if (!stat.isSymbolicLink()) return { target: item.target, status: "foreign_collision" };
@@ -454,7 +459,7 @@ function itemStatus(plan, item) {
   const kind = classifyTarget(plan, item, linked);
   const status = kind === "current"
     ? "filesystem_installed"
-    : kind === "prior_release" || kind === "other_release"
+    : kind === "prior_release"
       ? "stable_link_bypasses_current"
       : kind === "legacy_source"
         ? "legacy_mutable_source"

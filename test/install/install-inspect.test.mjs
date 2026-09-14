@@ -175,3 +175,14 @@ test("pruneReleases retains a release referenced by a managed link", () => {
     assert.ok(fs.existsSync(join(releases, "old")));
   });
 });
+
+test("inspectInstall reports a symlinked managed destination root as a collision", () => {
+  withHome(({ base, home }) => {
+    const source = cleanSource(base);
+    applyInstall(createInstallPlan({ source, cwd: source, codexHome: home }));
+    const dest = process.env.KRN_SKILLS_DEST;
+    fs.renameSync(dest, `${dest}-real`);
+    symlinkSync(`${dest}-real`, dest);
+    assert.equal(inspectInstall({ codexHome: home }).filesystem.status, "foreign_collision");
+  });
+});
