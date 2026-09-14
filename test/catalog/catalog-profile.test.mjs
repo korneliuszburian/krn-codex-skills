@@ -30,6 +30,15 @@ test("a plugin disable selector resolves to the real plugin id", () => {
   assert.deepEqual(result.unresolved.plugins, []);
 });
 
+test("a plugin disable selector matches the manifest name (no name key)", () => {
+  const result = resolveProfile(
+    profile({ plugins: { disable: ["Demo Plugin"] } }),
+    inventory({ plugins: [{ id: "demo-family@market", family: "demo-family", manifestName: "Demo Plugin", skillPaths: [], allSkillPaths: [] }] }),
+  );
+  assert.deepEqual(result.desired.plugins, { "demo-family@market": false });
+  assert.deepEqual(result.unresolved.plugins, []);
+});
+
 test("resolves plugin selectors and reports unresolved ones", () => {
   const result = resolveProfile(
     profile({ plugins: { enable: ["demo@market"], disable: ["ghost@market"] } }),

@@ -2,7 +2,7 @@ import { pluginFamilyFromId } from "./plugin-identity.mjs";
 
 function selectorMatches(record, selectors = []) {
   return selectors.some((selector) =>
-    [record.id, record.name, record.family].includes(selector),
+    [record.id, record.name, record.manifestName, record.family].includes(selector),
   );
 }
 

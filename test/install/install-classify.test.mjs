@@ -79,6 +79,18 @@ test("classifyTarget recognizes the current release and a prior release", () => 
   }
 });
 
+test("classifyTarget recognizes a legacy catalog bin link in the source checkout", () => {
+  const plan = {
+    source: "",
+    releaseRoot: join(tmpdir(), "krn-classify-absent"),
+    current: join(tmpdir(), "krn-classify-absent", "current"),
+    release: join(tmpdir(), "krn-classify-absent", "releases", "x"),
+    allowLegacySource: true,
+  };
+  const item = { label: "bin__krn-codex-catalog", target: join(tmpdir(), "cat-link"), relative: "scripts/krn-codex-catalog.mjs" };
+  assert.equal(classifyTarget(plan, item, fs.realpathSync(join(sourceRoot, "scripts", "catalog.mjs"))), "legacy_source");
+});
+
 test("classifyTarget refuses a matching file from an unrelated checkout", () => {
   const base = fs.realpathSync(mkdtempSync(join(tmpdir(), "krn-classify-fork-")));
   const source = join(base, "source");

@@ -272,9 +272,11 @@ export function classifyTarget(plan, item, linked) {
     return isPriorReleasePath(plan, item, linked) ? "prior_release" : "other_release";
   }
   const sourceRoot = git(path.dirname(linked), ["rev-parse", "--show-toplevel"]);
+  const linkedRelative = sourceRoot ? path.relative(sourceRoot, linked) : null;
+  const legacyRelative = item.label === "bin__krn-codex-catalog" ? "scripts/catalog.mjs" : null;
   if (
     sourceRoot
-    && path.relative(sourceRoot, linked) === item.relative
+    && (linkedRelative === item.relative || linkedRelative === legacyRelative)
     && (plan.source
       ? path.resolve(sourceRoot) === path.resolve(plan.source)
       : plan.allowLegacySource === true && fs.existsSync(path.join(sourceRoot, "scripts", "krn-codex.mjs")))
