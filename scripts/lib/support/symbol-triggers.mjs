@@ -1,8 +1,10 @@
 // Lexical approximation, not a full parser. Known gaps (documented bounds):
-// a regex literal in a declaration body can still mis-scope a span, a
-// destructuring identifier inside a default expression is still reported,
+// a destructuring identifier inside a default expression is still reported,
 // class/object methods and getters/setters are not extracted, and an
 // export alias (`local as exported`) maps to the exported name's span.
+
+import { maskLiterals } from "./source-mask.mjs";
+
 const DECL = /^\s*export\s+(?:default\s+)?(?:async\s+)?(function\*?|class|const|let|var)\s+([A-Za-z_$][\w$]*)/;
 const DESTRUCT_START = /^\s*export\s+(?:const|let|var)\s+([\[{])/;
 
@@ -89,41 +91,9 @@ function additionalDeclarators(text) {
 }
 
 function codeMask(source) {
-  const mask = new Array(source.length).fill(true);
-  let index = 0;
-  while (index < source.length) {
-    const char = source[index];
-    const next = source[index + 1];
-    if (char === "/" && next === "/") {
-      while (index < source.length && source[index] !== "\n") mask[index++] = false;
-    } else if (char === "/" && next === "*") {
-      mask[index++] = false;
-      mask[index++] = false;
-      while (index < source.length && !(source[index] === "*" && source[index + 1] === "/")) mask[index++] = false;
-      if (index < source.length) {
-        mask[index++] = false;
-        mask[index++] = false;
-      }
-    } else if (char === '"' || char === "'" || char === "`") {
-      mask[index++] = false;
-      while (index < source.length) {
-        mask[index] = false;
-        if (source[index] === "\\") {
-          index += 1;
-          if (index < source.length) mask[index] = false;
-          index += 1;
-          continue;
-        }
-        if (source[index] === char) {
-          index += 1;
-          break;
-        }
-        index += 1;
-      }
-    } else {
-      index += 1;
-    }
-  }
+  const masked = maskLiterals(source);
+  const mask = new Array(source.length).fill(false);
+  for (let index = 0; index < source.length; index += 1) mask[index] = masked[index] !== " ";
   return mask;
 }
 
@@ -231,7 +201,7 @@ export function extractSymbols(source) {
       const name = part.trim().split(/\s+as\s+/).pop().trim();
       if (!/^[A-Za-z_$][\w$]*$/.test(name) || symbols.some((symbol) => symbol.name === name)) continue;
       const escaped = name.replace(/\$/g, "\\$");
-      const localLine = lines.findIndex((text, index) => new RegExp(`(?:function\\*?|const|let|var)\\s+${escaped}\\b`).test(text) && mask[lineStart[index]]);
+      const localLine = lines.findIndex((text, index) => new RegExp(`(?:function\\*?|class|const|let|var)\\s+${escaped}\\b`).test(text) && mask[lineStart[index]]);
       if (localLine >= 0) symbols.push({ name, kind: "local", start: localLine + 1, end: scanSpan(localLine) });
       else symbols.push({ name, kind: "export", start: exportLine + 1, end: exportLine + 1 });
     }
@@ -313,10 +283,10 @@ export function touchedSymbolFiles({ root, git, sha }) {
     hunks = [];
   };
   for (const line of diff.out.split("\n")) {
-    if (line.startsWith("--- ")) {
+    if (hunks.length === 0 && line.startsWith("--- ") && /^(?:"|[ab]\/|\/dev\/null)/.test(line.slice(4))) {
       flush();
       before = headerPath(line, "--- ");
-    } else if (line.startsWith("+++ ")) {
+    } else if (hunks.length === 0 && line.startsWith("+++ ") && /^(?:"|[ab]\/|\/dev\/null)/.test(line.slice(4))) {
       after = headerPath(line, "+++ ");
     } else if (line.startsWith("@@")) {
       hunks.push(line);

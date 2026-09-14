@@ -116,3 +116,34 @@ test("touchedSymbols handles a path with spaces", () => {
   });
   assert.deepEqual(touchedSymbols({ root: ".", git, sha: "abc" }), ["spaced"]);
 });
+
+test("a class exported through an export list gets its body span", () => {
+  assert.deepEqual(
+    extractSymbols("class Widget {\n  run() {}\n}\nexport { Widget };\n"),
+    [{ name: "Widget", kind: "local", start: 1, end: 3 }],
+  );
+});
+
+test("nested template interpolation does not close the enclosing declaration", () => {
+  assert.deepEqual(
+    extractSymbols("export function f() {\n  const s = `a${ `}` }b`;\n  return 1;\n}\n"),
+    [{ name: "f", kind: "function", start: 1, end: 4 }],
+  );
+});
+
+test("a comma inside a regex literal does not create a phantom symbol", () => {
+  assert.deepEqual(extractSymbols("export const re = /a,b/;\n").map((symbol) => symbol.name), ["re"]);
+});
+
+test("a removed line beginning with -- is not treated as a file header", () => {
+  const diff = ["--- a/x.mjs", "+++ b/x.mjs", "@@ -1,3 +1,3 @@", "--- old --", "-export function f() {", "}", " export const g = 1;"].join("\n");
+  const specs = [];
+  const git = (_root, args) => {
+    if (args.includes("--unified=0")) return { ok: true, out: diff };
+    if (args[0] === "show" && args.length === 2) { specs.push(args[1]); return { ok: false, out: "" }; }
+    return { ok: false, out: "" };
+  };
+  touchedSymbolFiles({ root: ".", git, sha: "abc1234" });
+  assert.ok(specs.length > 0, "a diff is parsed");
+  assert.ok(specs.every((spec) => spec === "abc1234:x.mjs" || spec === "abc1234^:x.mjs"), JSON.stringify(specs));
+});

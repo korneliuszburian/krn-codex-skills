@@ -54,3 +54,14 @@ test("a regex after a keyword is recognized and does not swallow code", () => {
   const literals = maskLiterals(`${source}\nphantom();`);
   assert.ok(literals.includes("phantom();"), literals);
 });
+
+test("a regex after a control-flow head is not read as division", () => {
+  const masked = maskLiterals("if (ok) /['\"]/.test(x);\nimport real from './real.mjs';\n");
+  assert.ok(masked.includes("import real from"), "the import after the control head is preserved");
+  assert.ok(stripComments("while (x) /a/.test(y);\n").includes("/a/"), "the regex literal is kept as code");
+});
+
+test("a postfix operator before a slash is division, so a trailing comment is stripped", () => {
+  assert.equal(stripComments("let n = 0; n++ / 2; // secret").includes("secret"), false);
+  assert.equal(maskLiterals("let n = 0; x++ / 'sk_live_AA/BB';").includes("sk_live_AA"), false);
+});
