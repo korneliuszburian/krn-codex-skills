@@ -32,10 +32,6 @@ export function runDirectoriesDetailed(root) {
   return { runs, errors };
 }
 
-export function runDirectories(root) {
-  return runDirectoriesDetailed(root).runs;
-}
-
 export function capsuleStoreReport(root) {
   const base = join(root, ".krn", "runs", "delivery-loop");
   const storeErrors = [];
@@ -101,6 +97,4 @@ export function capsuleIdsDetailed(root) {
   return { ids: [...seen.values()].map((entry) => entry.id).sort((a, b) => a.localeCompare(b)), errors };
 }
 
-export function capsuleIds(root) {
-  return capsuleIdsDetailed(root).ids;
-}
+

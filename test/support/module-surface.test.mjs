@@ -51,9 +51,9 @@ const cases = [
   },
   {
     module: "../../scripts/lib/state/spine-runs.mjs",
-    present: ["runDirectories", "capsuleIds"],
-    absent: [],
-    exact: ["capsuleIds", "capsuleIdsDetailed", "capsuleStoreReport", "runDirectories", "runDirectoriesDetailed"],
+    present: ["capsuleIdsDetailed", "capsuleStoreReport", "runDirectoriesDetailed"],
+    absent: ["runDirectories", "capsuleIds"],
+    exact: ["capsuleIdsDetailed", "capsuleStoreReport", "runDirectoriesDetailed"],
   },
   {
     module: "../../scripts/lib/contract/runtime-closure.mjs",

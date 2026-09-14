@@ -59,7 +59,7 @@ function resolveCheck(root, scripts, ref) {
   const name = ref.startsWith("npm run ") ? ref.slice("npm run ".length).trim() : ref;
   if (DENY.has(ref) || DENY.has(name)) return null;
   if (Object.hasOwn(scripts, name)) return { kind: "script", name };
-  const rel = name.replace(/^\.\//, "");
+  const rel = normalizeRef(name);
   if (/^(test|scripts)\/.+\.mjs$/.test(rel) && !rel.includes("..")) {
     let real;
     try {
@@ -445,8 +445,8 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       } else {
         const testRefs = named.flatMap((value) => {
           const whole = normalizeRef(value);
-          if (!/\s/.test(whole) && isTestFile(whole)) return [whole];
-          return [...value.matchAll(/\.?\/?[A-Za-z0-9_./-]*\.mjs/g)]
+          if (!/^[A-Za-z][\w-]*\s/.test(whole) && isTestFile(whole)) return [whole];
+          return [...whole.matchAll(/[\w./-]+\.mjs/g)]
             .map((match) => normalizeRef(match[0]))
             .filter((reference) => isTestFile(reference));
         });

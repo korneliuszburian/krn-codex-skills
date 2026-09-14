@@ -352,7 +352,9 @@ export function recallBindings({ hit, lines }) {
       && /^(?:npm run|node|--test|test)\b/.test(left)
       && gateScriptIds.some((id) => namesId(loose, id));
     if (!namedLeft && !normalizedLeft) return false;
-    return cleanRef(rawRight).split(/[\s,;]+/).filter(Boolean).some((target) => relevant.includes(target));
+    const right = cleanRef(rawRight);
+    if (relevant.includes(right)) return true;
+    return right.split(/[\s,;]+/).filter(Boolean).some((target) => relevant.includes(target));
   });
   return { falsifierFile, named, reconstructed };
 }
