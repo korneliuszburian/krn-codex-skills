@@ -353,9 +353,17 @@ export function recallBindings({ hit, lines }) {
       && gateScriptIds.some((id) => namesId(loose, id));
     if (!namedLeft && !normalizedLeft) return false;
     const right = cleanRef(rawRight);
-    const namesTarget = (value) => relevant.some((target) => target && namesId(value, target));
-    if (relevant.includes(right) || namesTarget(right)) return true;
-    return right.split(/\s*[,;]\s*|\s+/).filter(Boolean).some((target) => relevant.includes(target) || namesTarget(target));
+    const targets = new Set(relevant);
+    if (targets.has(right)) return true;
+    if ([...targets].some((target) => target && (right === target || right.startsWith(`${target},`) || right.endsWith(`, ${target}`) || right.includes(`, ${target},`)))) return true;
+    if (right.split(/\s*[,;]\s*|\s+/).some((token) => token && targets.has(token))) return true;
+    // A token is a changed path/symbol when it names one exactly, or when it
+    // carries a trailing `::case@sha` falsifier suffix. Exact equality keeps a
+    // superstring (`xpath`, `path$`) from satisfying the recall.
+    return right.split(/\s*[,;]\s*|\s+/).some((token) => {
+      const [head] = token.split("::");
+      return head && targets.has(head);
+    });
   });
   return { falsifierFile, named, reconstructed };
 }

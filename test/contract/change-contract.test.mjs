@@ -731,9 +731,14 @@ test("a change that triggers a lesson requires a Recall trailer", () => {
   assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(base), run: green, strictRecall: true }).errors.some((error) => error.rule === "unreconstructed-recall"));
   const junk = {
     ...base,
-    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: contest:scripts/lib/support/git-cli.mjs" }],
+    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/support/git-cli.mjs => contest:scripts/lib/support/git-cli.mjs" }],
   };
   assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(junk), run: green, strictRecall: true }).errors.some((error) => error.rule === "unreconstructed-recall"), "a superstring must not satisfy the recall");
+  const suffixed = {
+    ...base,
+    commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/support/git-cli.mjs => scripts/lib/support/git-cli.mjs.bak" }],
+  };
+  assert.ok(checkChangeContract({ root, base: "base", git: fakeGit(suffixed), run: green, strictRecall: true }).errors.some((error) => error.rule === "unreconstructed-recall"), "a suffixed target must not satisfy the recall");
   const misbound = {
     ...base,
     commits: [{ sha: "a1", subject: "fix: cli", body: "Change-contract: test:lessons:red->green\nRecall: scripts/lib/support/git-cli.mjs => docs/other.md" }],
