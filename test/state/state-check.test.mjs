@@ -687,3 +687,15 @@ test("an empty base/HEAD token is a missing fixed point", () => {
   assert.ok(rules(report).includes("missing-fixed-point"), rules(report).join(","));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("state check reports an invalid lesson Status through the shared validator", () => {
+  const { root } = makeRepo();
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Good | probe | `test:state` | | | | |\n| Bad | probe | `test:state` | | | | bogus |\n",
+  );
+  const report = inspectSpineState({ repo: root });
+  assert.ok(report.errors.some((error) => error.rule === "malformed-lesson"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

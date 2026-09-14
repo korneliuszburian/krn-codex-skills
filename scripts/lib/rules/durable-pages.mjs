@@ -3,7 +3,7 @@ import { posixRelative } from "../support/path-rules.mjs";
 import { escapeRegExp } from "../support/regexp.mjs";
 import path from "node:path";
 
-import { parseLessons } from "../lessons/lessons.mjs";
+import { lessonStructureFindings } from "../lessons/lessons.mjs";
 import { fenceLines, unfencedLines } from "./content-rules.mjs";
 
 const HEADER_RULES = [
@@ -107,13 +107,8 @@ export function checkDurablePages({ root }) {
 
   const lessonsFile = path.join(researchDirectory, "workflow-lessons.md");
   if (fs.existsSync(lessonsFile)) {
-    const parsed = parseLessons(lessonsFile);
-    const active = parsed.rows.filter((row) => !row.status).length;
-    if (active > parsed.budget) {
-      errors.push(`docs/research/workflow-lessons.md exceeds ${parsed.budget} active lesson rows; displace, condense, or retire`);
-    }
-    for (const row of parsed.malformed) {
-      errors.push(`docs/research/workflow-lessons.md: a lesson row needs non-empty Lesson, Evidence, and Enforced by cells: ${row.trim()}`);
+    for (const finding of lessonStructureFindings({ root }).findings) {
+      errors.push(`docs/research/workflow-lessons.md: ${finding.message}`);
     }
   }
 

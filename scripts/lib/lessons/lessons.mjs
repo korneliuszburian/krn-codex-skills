@@ -228,16 +228,14 @@ function resolveReference(root, scripts, reference) {
   return { ok: false, reason: `no npm script or owned path at ${reference}` };
 }
 
-export function checkLessons({ root, git = runGit }) {
+export function lessonStructureFindings({ root }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
   const { rows, malformed, budget, headerColumns, unbalancedFence } = parseLessons(file);
-  const errors = malformed.map((row) => `malformed lesson row: ${row.trim()}`);
-  if (unbalancedFence) errors.push("workflow-lessons.md has an unterminated code fence; lesson rows cannot be trusted");
-  const warnings = [];
-  const lessons = [];
+  const findings = malformed.map((row) => ({ rule: "malformed-row", message: `malformed lesson row: ${row.trim()}` }));
+  if (unbalancedFence) findings.push({ rule: "unbalanced-fence", message: "workflow-lessons.md has an unterminated code fence; lesson rows cannot be trusted" });
   const maxColumns = rows.reduce((widest, row) => Math.max(widest, row.columns ?? 0), 0);
   if (headerColumns !== null && maxColumns > headerColumns) {
-    errors.push(`workflow-lessons.md header declares ${headerColumns} columns but a row uses ${maxColumns}; widen the header`);
+    findings.push({ rule: "header-columns", message: `workflow-lessons.md header declares ${headerColumns} columns but a row uses ${maxColumns}; widen the header` });
   }
   const activeRows = rows.filter((row) => !row.status);
   const retiredRows = rows.filter((row) => row.status);
@@ -248,13 +246,28 @@ export function checkLessons({ root, git = runGit }) {
     }
   }
   for (const [trigger, owners] of triggerOwners) {
-    if (owners.length > 1) {
-      errors.push(`lessons ${owners.map((owner) => `"${owner}"`).join(" and ")} share trigger ${trigger}`);
-    }
+    if (owners.length > 1) findings.push({ rule: "duplicate-trigger", message: `lessons ${owners.map((owner) => `"${owner}"`).join(" and ")} share trigger ${trigger}` });
   }
-  if (activeRows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} active lesson rows; displace, condense, or retire`);
-  if (retiredRows.length > budget) errors.push(`workflow-lessons.md exceeds ${budget} archived rows; consolidate the archive`);
-  if (!fs.existsSync(file)) return { root, lessons, errors, warnings: ["no workflow-lessons page; memory is not adopted at this root"], skipped: true };
+  if (activeRows.length > budget) findings.push({ rule: "over-budget-active", message: `workflow-lessons.md exceeds ${budget} active lesson rows; displace, condense, or retire` });
+  if (retiredRows.length > budget) findings.push({ rule: "over-budget-archived", message: `workflow-lessons.md exceeds ${budget} archived rows; consolidate the archive` });
+  for (const row of rows) {
+    const invalidTrigger = (row.trigger ?? "").split(/[;,]/).map((entry) => entry.trim()).filter(Boolean).find((entry) => !/^(path|symbol|churn):/.test(entry));
+    if (invalidTrigger) { findings.push({ rule: "invalid-trigger", message: `lesson "${row.lesson}": unknown trigger "${invalidTrigger}"; use path:, symbol:, or churn:` }); continue; }
+    const badGlob = [...triggerEntries(row.trigger, "path:"), ...triggerEntries(row.trigger, "churn:")].find((glob) => {
+      try { compileGlob(glob); return false; } catch { return true; }
+    });
+    if (badGlob) { findings.push({ rule: "invalid-glob", message: `lesson "${row.lesson}": invalid trigger glob "${badGlob}"` }); continue; }
+    if (row.status && !RETIRE.exec(row.status)) findings.push({ rule: "invalid-status", message: `lesson "${row.lesson}": invalid Status "${row.status}"; use retired@<7-hex>[; superseded-by:<anchor>]` });
+  }
+  return { findings, rows, activeRows, budget, exists: fs.existsSync(file) };
+}
+
+export function checkLessons({ root, git = runGit }) {
+  const { findings, rows, activeRows, exists } = lessonStructureFindings({ root });
+  const errors = findings.map((finding) => finding.message);
+  const warnings = [];
+  const lessons = [];
+  if (!exists) return { root, lessons, errors, warnings: ["no workflow-lessons page; memory is not adopted at this root"], skipped: true };
   const packageFile = path.join(root, "package.json");
   let scripts = {};
   if (fs.existsSync(packageFile)) {
@@ -262,23 +275,14 @@ export function checkLessons({ root, git = runGit }) {
   }
   for (const row of rows) {
     const invalidTrigger = (row.trigger ?? "").split(/[;,]/).map((entry) => entry.trim()).filter(Boolean).find((entry) => !/^(path|symbol|churn):/.test(entry));
-    if (invalidTrigger) {
-      errors.push(`lesson "${row.lesson}": unknown trigger "${invalidTrigger}"; use path:, symbol:, or churn:`);
-      continue;
-    }
+    if (invalidTrigger) continue;
     const badGlob = [...triggerEntries(row.trigger, "path:"), ...triggerEntries(row.trigger, "churn:")].find((glob) => {
       try { compileGlob(glob); return false; } catch { return true; }
     });
-    if (badGlob) {
-      errors.push(`lesson "${row.lesson}": invalid trigger glob "${badGlob}"`);
-      continue;
-    }
+    if (badGlob) continue;
     if (row.status) {
       const retirement = RETIRE.exec(row.status);
-      if (!retirement) {
-        errors.push(`lesson "${row.lesson}": invalid Status "${row.status}"; use retired@<7-hex>[; superseded-by:<anchor>]`);
-        continue;
-      }
+      if (!retirement) continue; // invalid Status is reported by lessonStructureFindings
       if ((row.trigger ?? "").trim()) errors.push(`lesson "${row.lesson}": a retired row cannot carry a Trigger`);
       const sha = retirement[1];
       if (git(root, ["rev-parse", "--git-dir"]).ok && git(root, ["cat-file", "-e", `${sha}^{commit}`]).ok && !git(root, ["merge-base", "--is-ancestor", sha, "HEAD"]).ok) {

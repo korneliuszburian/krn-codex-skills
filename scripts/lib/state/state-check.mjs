@@ -12,7 +12,7 @@ import {
   stripMarkup,
 } from "./capsule-abi.mjs";
 import { runGit as git } from "../support/git-cli.mjs";
-import { parseLessons } from "../lessons/lessons.mjs";
+import { lessonStructureFindings } from "../lessons/lessons.mjs";
 import { capsuleStoreReport, runDirectoriesDetailed } from "./spine-runs.mjs";
 import { isInside } from "../support/path-rules.mjs";
 import { resolveRepositoryRoot } from "../support/repo-root.mjs";
@@ -231,20 +231,17 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
 
   const lessonsFile = join(root, "docs", "research", "workflow-lessons.md");
   if (existsSync(lessonsFile)) {
-    let parsedLessons;
+    let readable = true;
     try {
       if (!statSync(lessonsFile).isFile()) throw new Error("not a file");
-      parsedLessons = parseLessons(lessonsFile);
     } catch {
+      readable = false;
       errors.push({ id: "workflow-lessons", rule: "unreadable-lessons", detail: "docs/research/workflow-lessons.md" });
     }
-    if (parsedLessons) {
-      const activeLessons = parsedLessons.rows.filter((row) => !row.status).length;
-      if (activeLessons > parsedLessons.budget) {
-        errors.push({ id: "workflow-lessons", rule: "lessons-over-budget", detail: `${activeLessons} rows` });
-      }
-      for (const row of parsedLessons.malformed) {
-        errors.push({ id: "workflow-lessons", rule: "malformed-lesson", detail: row.trim() });
+    if (readable) {
+      for (const finding of lessonStructureFindings({ root }).findings) {
+        const rule = finding.rule === "over-budget-active" ? "lessons-over-budget" : "malformed-lesson";
+        errors.push({ id: "workflow-lessons", rule, detail: finding.message });
       }
     }
   }
