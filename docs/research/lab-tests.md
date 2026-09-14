@@ -219,7 +219,14 @@ mechanism-independent** — each shape is the same "constant plus revision const
 coupling with different names and topics, so a theta that generalized across
 shapes would still not generalize across coupling mechanisms; making the four
 shapes genuinely distinct executable contracts (serialization, routing, media
-membership) is the next fixture task. The in-progress 144-execution run (4 tasks ×
+membership) is the next fixture task. A second fixture confound was found and
+fixed after the calibration launch: the neutral templates also carried a coupling
+lesson row (non-matching trigger, but naming the neutral variable), so a neutral
+B run could be handed the coupling by the page; neutral templates now carry no
+coupling row and document the coupling only in the task source, while decisive
+templates keep the triggering row. The running calibration used the contaminated
+neutral fixtures, so its neutral B/P cells are not clean; the fix applies to the
+confirmation run. The in-progress 144-execution run (4 tasks ×
 2 strata × 3 arms × 3 reps, `glm-5.3` and `deepseek-v4.1-flash`) is declared
 **calibration**, not confirmation: N is unresolved (no power/type-I simulation),
 and it was launched with consecutive arm batches before the gate fix. `gate-tasks`
