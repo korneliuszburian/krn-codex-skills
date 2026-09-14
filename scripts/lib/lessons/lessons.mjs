@@ -126,10 +126,15 @@ function resolveFalsifier(root, cell, git = runGit) {
   const absolute = path.resolve(root, rel);
   const relCheck = path.relative(root, absolute);
   if (!relCheck || relCheck.startsWith("..") || path.isAbsolute(relCheck)) return { ok: false, reason: `falsifier path escapes the repository: ${rel}` };
-  if (!fs.statSync(absolute, { throwIfNoEntry: false })?.isFile()) return { ok: false, reason: `falsifier file not found: ${rel}` };
-  const realRel = posixRelative(fs.realpathSync(root), fs.realpathSync(absolute));
+  let stat;
+  try { stat = fs.statSync(absolute, { throwIfNoEntry: false }); } catch { stat = null; }
+  if (!stat?.isFile()) return { ok: false, reason: `falsifier file not found: ${rel}` };
+  let realRel;
+  try { realRel = posixRelative(fs.realpathSync(root), fs.realpathSync(absolute)); } catch { return { ok: false, reason: `falsifier file not found: ${rel}` }; }
   if (!realRel || realRel.startsWith("..") || path.isAbsolute(realRel)) return { ok: false, reason: `falsifier path escapes the repository through a link: ${rel}` };
-  if (!fs.readFileSync(absolute, "utf8").includes(caseName)) {
+  let falsifierText;
+  try { falsifierText = fs.readFileSync(absolute, "utf8"); } catch { return { ok: false, reason: `falsifier file not found: ${rel}` }; }
+  if (!falsifierText.includes(caseName)) {
     return { ok: false, reason: `falsifier case "${caseName}" is not present in ${rel}` };
   }
   if (git(root, ["rev-parse", "--git-dir"]).ok) {
@@ -317,13 +322,14 @@ export function recallLines(text) {
 }
 
 export function recallBindings({ hit, lines }) {
-  const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
+  const cleanRef = (value) => String(value ?? "").trim().replace(/^npm run test\s+/, "test ").replace(/^node\s+/, "").replace(/^--test\s+/, "").replace(/^test\s+/, "").replace(/^\.\//, "");
+  const ids = [...hit.gate.matchAll(/`([^`]+)`/g)].map((match) => cleanRef(match[1]));
   const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(hit.falsifier) ?? [])[1];
   const named = [...ids, falsifierFile].filter(Boolean);
-  const namesId = (text, id) => new RegExp(`(^|[\\s,;])${escapeRegExp(id)}([\\s,;]|$)`).test(text);
+  const namesId = (text, id) => new RegExp(`(^|[\\s,;"'\`])${escapeRegExp(id)}([\\s,;"'\`]|$)`).test(text);
   const relevant = hit.matched ?? [];
   const reconstructed = lines.some((line) => {
-    const [left, right] = line.split("=>").map((part) => part?.trim() ?? "");
+    const [left, right] = line.split("=>").map((part) => cleanRef(part));
     if (!right || !named.some((id) => namesId(left, id))) return false;
     return right.split(/[\s,;]+/).filter(Boolean).some((target) => relevant.includes(target));
   });

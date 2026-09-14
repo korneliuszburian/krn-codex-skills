@@ -443,8 +443,13 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       if (!reconstructed) {
         record.push({ rule: "unreconstructed-recall", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add Recall: <${named.join(" or ") || "gate"}> => <changed file or symbol>` });
       } else {
-        const testRefs = named.flatMap((value) => [...value.matchAll(/\.?\/?[A-Za-z0-9_./-]*\.mjs/g)].map((match) => match[0].replace(/^\.\//, "")))
-          .filter((reference) => isTestFile(reference));
+        const testRefs = named.flatMap((value) => {
+          const whole = normalizeRef(value);
+          if (isTestFile(whole)) return [whole];
+          return [...value.matchAll(/\.?\/?[A-Za-z0-9_./-]*\.mjs/g)]
+            .map((match) => normalizeRef(match[0]))
+            .filter((reference) => isTestFile(reference));
+        });
         const requiredTests = [...new Set([falsifierFile, ...testRefs].filter(Boolean))].map(normalizeRef);
         const declaredRefs = [
           ...contract.contracts.filter((entry) => entry.after === "green").map((entry) => normalizeRef(entry.ref)),

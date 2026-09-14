@@ -877,6 +877,7 @@ test("a recalled lesson's test declared as a green obligation counts as exercise
   };
   const body = "Change-contract: test:lessons:red->green, test/gate.test.mjs:red->green\nRecall: ./test/gate.test.mjs => scripts/lib/support/git-cli.mjs";
   const report = checkChangeContract({ root, base: "base", git: gitFor(body), run: green, strictRecall: true });
+  assert.ok(!report.errors.some((error) => error.rule === "unreconstructed-recall"), JSON.stringify(report.errors));
   assert.ok(!report.errors.some((error) => error.rule === "unused-recall"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
