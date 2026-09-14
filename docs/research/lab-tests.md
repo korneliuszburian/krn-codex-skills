@@ -213,6 +213,21 @@ structure. `gate-tasks.sh` runs A/B/P over them with per-task-scoped preflight
 results, and the isolation probe; a gold patch passes every held-out and a
 requested-change-only patch fails only the coupling.
 
+Pre-results registration for the multi-task runs (2026-09-14, before reading any
+powered result): the four-shape fixtures are **structure-matched, not
+mechanism-independent** — each shape is the same "constant plus revision constant"
+coupling with different names and topics, so a theta that generalized across
+shapes would still not generalize across coupling mechanisms; making the four
+shapes genuinely distinct executable contracts (serialization, routing, media
+membership) is the next fixture task. The in-progress 144-execution run (4 tasks ×
+2 strata × 3 arms × 3 reps, `glm-5.3` and `deepseek-v4.1-flash`) is declared
+**calibration**, not confirmation: N is unresolved (no power/type-I simulation),
+and it was launched with consecutive arm batches before the gate fix. `gate-tasks`
+now re-permutes arms inside every repetition block for future runs. Before any
+confirmation run, preregister the designation (calibration vs frozen
+confirmation), the final N and stopping rule, and the simulated ≥80% power / ≤5%
+null-rejection evidence.
+
 First multi-task pilot (2026-09-14, `opencode-go/glm-5.3`, A/B/P, `REPS=1`, four
 tasks per stratum, family-scoped output): decisive A 1/4, B 4/4, P 2/4; neutral
 A 3/4, B 4/4, P 2/4. The decisive arm-A rate is now interior (1/4), so the
