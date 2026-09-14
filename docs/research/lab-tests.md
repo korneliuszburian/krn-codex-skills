@@ -269,6 +269,33 @@ B 4/4, P 2/4. Retained as raw history only: because the family is unauthorized a
 the run predates the fixture and runner fixes, **no** behavioral or fixture-quality
 claim is drawn from these counts.
 
+Confirmation preregistration (registered 2026-09-14, before any confirmation run).
+Designation: a frozen, single-family confirmation in an authorized transport; the
+opencode transport may carry only deepseek, and gpt-5.6-luna must run through
+`codex exec`, so the luna transport runner and a pinned codex package (version +
+hash) are prerequisites. Primary estimand `theta = E[B-P | decisive] - E[B-P |
+neutral]` on paired binary held-out outcomes, paired within task/repetition blocks,
+averaged within tasks with equal task weights, and a two-sided 95% CI under
+task-clustered small-sample inference; B-A is secondary and C is omitted; arms are
+randomized within every block. Conditional planning N for `theta*=0.25`, alpha=.05,
+80% power, three reps, ICC<=.20 (DE=1.4), and the calibration discordances
+`q_D=11/12`, `q_N in [1/12,3/12]`: about
+`(1.96+0.842)^2*(11/12+3/12)/0.25^2*1.4 ~= 206` pairs per stratum, i.e. about 69
+tasks per stratum with three reps (~1,242 A/B/P executions); this is a planning
+candidate, not established power, and the final N is frozen only after a
+simulation shows >=80% power and <=5% null rejection across the declared
+discordance/ICC bounds. Stopping: complete the frozen N with no efficacy peeking or
+outcome-dependent expansion; abort on any isolation, trigger, or served-model
+violation. Decision: a CI lower bound above 0 confirms a positive interaction, above
+0.25 establishes the target effect, an upper bound below 0.25 kills the registered
+effect size, and a CI spanning zero leaves positivity unconfirmed. Preconditions
+before confirmation: mechanism-independent fixtures (not renamed
+constant/revision pairs), gold-pass plus requested-change-only-fail checks,
+uncontaminated neutral source docs with zero recall hits, an independently
+calibrated neutral with an interior arm-A rate, and a length/token-matched
+non-harmful placebo; until then the claim is only "correct versus wrong content",
+not a memory effect.
+
 Confounds fixed across the LT-5 passes, recorded honestly: the first pass required
 an external-directory permission for `/harness`, so arms no-op'd; a second aborted
 on transient provider `UnknownError`s; the original in-repo test pinned the old
