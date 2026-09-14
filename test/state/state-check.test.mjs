@@ -613,3 +613,33 @@ test("an unreadable lessons file is reported, not thrown", () => {
   assert.ok(report.errors.some((error) => error.rule === "unreadable-lessons"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a COMPLETE capsule with an active Goal or tracker is divergent", () => {
+  const { root, head } = makeRepo();
+  writeCapsule(
+    root,
+    capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(
+      "Native Goal identity/state and configured tracker item/state: none",
+      "Native Goal identity/state and configured tracker item/state: goal=goal_1 state=ACTIVE; tracker=issue_9 state=open",
+    ),
+  );
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("complete-with-active-participant"), rules(report).join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an ACTIVE capsule with no fixed-point token is divergent", () => {
+  const { root } = makeRepo();
+  writeCapsule(root, capsule({ fixedPoint: "none" }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("missing-fixed-point"), rules(report).join(","));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a fingerprint-only fixed point is a real anchor", () => {
+  const { root } = makeRepo();
+  writeCapsule(root, capsule({ fixedPoint: "fingerprint=working-tree" }));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(!rules(report).includes("missing-fixed-point"), rules(report).join(","));
+  rmSync(root, { recursive: true, force: true });
+});

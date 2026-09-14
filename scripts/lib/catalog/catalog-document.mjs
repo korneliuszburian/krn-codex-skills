@@ -123,11 +123,16 @@ export function skillPathContainsQuarantine(document, block, skillPath, families
   });
 }
 
+function isTrivia(line) {
+  const trimmed = line.content.trim();
+  return trimmed === "" || trimmed.startsWith("#");
+}
+
 function insertionAtBlockEnd(document, block, text) {
   let insertLineIndex = block.endLineIndex;
   while (
     insertLineIndex > block.startLineIndex + 1 &&
-    document.lines[insertLineIndex - 1].content.trim() === ""
+    isTrivia(document.lines[insertLineIndex - 1])
   ) {
     insertLineIndex -= 1;
   }
@@ -155,7 +160,7 @@ function deletionOperation(document, block) {
   let lastOwnedLine = block.endLineIndex - 1;
   while (
     lastOwnedLine > block.startLineIndex &&
-    document.lines[lastOwnedLine].content.trim() === ""
+    isTrivia(document.lines[lastOwnedLine])
   ) {
     lastOwnedLine -= 1;
   }
@@ -220,7 +225,7 @@ export function appendPrefix(source, eol) {
 }
 
 export function quoteToml(value) {
-  return JSON.stringify(value);
+  return JSON.stringify(value).replace(/\u007f/g, "\\u007F");
 }
 
 export function applyOperations(source, operations) {

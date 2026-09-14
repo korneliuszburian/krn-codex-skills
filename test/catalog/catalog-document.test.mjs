@@ -137,3 +137,26 @@ test("indexNamedBlocks groups by id and assertSingleBlock rejects duplicates", (
   assert.equal(index.get("a").length, 2);
   assert.throws(() => assertSingleBlock(index.get("a"), "mcp"), /Duplicate managed config block/);
 });
+
+const trailingComment = '[mcp_servers.a]\ncommand = "x"\n# docs for b\n[mcp_servers.b]\nenabled = true\n';
+
+test("removeBlock keeps the next block's leading comment", () => {
+  const document = parseDocument(trailingComment);
+  const blockA = assertSingleBlock(indexNamedBlocks(document.blocks, "mcp").get("a"));
+  const operations = [];
+  removeBlock({ document, block: blockA, allowedKeys: MCP_SERVER_KEYS, target: "a", resource: "mcp", reason: "t", operations, actions: [] });
+  assert.equal(applyOperations(trailingComment, operations), "# docs for b\n[mcp_servers.b]\nenabled = true\n");
+});
+
+test("setEnabled inserts before the next block's leading comment", () => {
+  const document = parseDocument(trailingComment);
+  const blockA = assertSingleBlock(indexNamedBlocks(document.blocks, "mcp").get("a"));
+  const operations = [];
+  setEnabled({ document, block: blockA, enabled: true, allowedKeys: MCP_SERVER_KEYS, target: "a", resource: "mcp", reason: "t", operations, actions: [] });
+  assert.equal(applyOperations(trailingComment, operations), '[mcp_servers.a]\ncommand = "x"\nenabled = true\n# docs for b\n[mcp_servers.b]\nenabled = true\n');
+});
+
+test("quoteToml escapes U+007F", () => {
+  assert.ok(!/\u007f/.test(quoteToml("a\u007fb")));
+  assert.ok(quoteToml("a\u007fb").includes("\\u007F"));
+});

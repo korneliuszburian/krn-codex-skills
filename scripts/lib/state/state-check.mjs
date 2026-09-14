@@ -178,6 +178,11 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       }
       const commits = [...fixedPoint.replace(/[<>`]/g, "").matchAll(/\b(base|HEAD)\s*=\s*([0-9a-f]{40}|[0-9a-f]{64})\b/gi)].map((match) => match[2].toLowerCase());
       const anchorHead = fixedPointAnchors(fixedPoint).head;
+      if (!/\b(base|HEAD|fingerprint)\s*=/i.test(stripMarkup(fixedPoint))) {
+        const finding = { id: entry.name, rule: "missing-fixed-point", detail: stripMarkup(fixedPoint) };
+        if (outcome && stripMarkup(outcome) === "ACTIVE") errors.push(finding);
+        else warnings.push(finding);
+      }
       if (outcome && stripMarkup(outcome) === "COMPLETE" && commits.length === 0) {
         errors.push({ id: entry.name, rule: "complete-without-commit-anchor", detail: stripMarkup(fixedPoint) });
       }
@@ -203,6 +208,10 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       const friction = fields["Workflow friction and lesson candidates"];
       if (friction && stripMarkup(friction) !== "none") {
         errors.push({ id: entry.name, rule: "complete-with-friction", detail: stripMarkup(friction) });
+      }
+      const participants = fields["Native Goal identity/state and configured tracker item/state"];
+      if (participants && /=\s*(active|open|in[_-]?progress|blocked|deferred)\b/i.test(stripMarkup(participants))) {
+        errors.push({ id: entry.name, rule: "complete-with-active-participant", detail: stripMarkup(participants) });
       }
     }
   }
