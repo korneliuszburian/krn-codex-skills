@@ -555,6 +555,20 @@ test("recallBindings requires the exact script gate and a well-formed falsifier 
   assert.equal(recallBindings({ hit: spaced, lines: ["test:state => test/has space.test.mjs::probe@abcdef0"] }).reconstructed, true);
 });
 
+test("recallBindings binds manual and bare-script gates and multi-word falsifier cases", () => {
+  const manual = { gate: "`manual:review`", falsifier: "", matched: ["scripts/x.mjs"] };
+  assert.equal(recallBindings({ hit: manual, lines: ["manual:review => scripts/x.mjs"] }).reconstructed, true);
+  const bare = { gate: "`validate`", falsifier: "", matched: ["scripts/x.mjs"] };
+  assert.equal(recallBindings({ hit: bare, lines: ["validate => scripts/x.mjs"] }).reconstructed, true);
+  const spaced = { gate: "`npm run test`", falsifier: "", matched: ["greet.mjs"] };
+  assert.equal(recallBindings({ hit: spaced, lines: ["npm  run test => greet.mjs"] }).reconstructed, true);
+  const multiword = { gate: "`test:state`", falsifier: "", matched: ["test/audit/quality-audit.test.mjs"] };
+  assert.equal(
+    recallBindings({ hit: multiword, lines: ["test:state => test/audit/quality-audit.test.mjs::the audit catches a cross-file call that is never imported@6123ea8"] }).reconstructed,
+    true,
+  );
+});
+
 test("retirement supersession requires an exact anchor", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

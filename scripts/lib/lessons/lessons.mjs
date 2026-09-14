@@ -324,6 +324,7 @@ export function recallLines(text) {
 export function recallBindings({ hit, lines }) {
   const cleanRef = (value) => String(value ?? "")
     .trim()
+    .replace(/\s+/g, " ")
     .replace(/^(?:npm run|node)\s+/, "")
     .replace(/^--test\s+/, "")
     .replace(/^test\s+/, "")
@@ -339,7 +340,7 @@ export function recallBindings({ hit, lines }) {
   const fileNames = [...new Set([...ids, falsifierFile])].filter(Boolean);
   const scriptNames = [...new Set(scriptRefs)].filter(Boolean);
   const namesId = (text, id) => new RegExp(`(?<![A-Za-z0-9_./-])${escapeRegExp(id)}(?![A-Za-z0-9_./-])`).test(text);
-  const FALSIFIER_SUFFIX = /^(.+?)::[^@\s]+@[0-9a-f]{7}$/;
+  const FALSIFIER_SUFFIX = /^(.+?)::[^@]+@[0-9a-f]{7}$/;
   const relevant = hit.matched ?? [];
   const reconstructed = lines.some((line) => {
     const [rawLeft, rawRight] = line.split("=>");
@@ -349,7 +350,7 @@ export function recallBindings({ hit, lines }) {
     // A file/falsifier gate matches on a path boundary; a script gate must be
     // the whole token, so `npm run test` is not satisfied by `test:extra`.
     const fileLeft = fileNames.some((id) => namesId(left, id) || namesId(loose, id));
-    const scriptLeft = /^(?:npm run|node|--test|test)\b/.test(left) && scriptNames.some((id) => id === loose);
+    const scriptLeft = scriptNames.some((id) => id === loose);
     if (!fileLeft && !scriptLeft) return false;
     const right = cleanRef(rawRight);
     const targets = new Set(relevant);
