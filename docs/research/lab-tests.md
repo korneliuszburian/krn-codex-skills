@@ -385,6 +385,16 @@ noise but add no independent task: `clustersFor` is the task count and never gro
 with reps, so repeated measures cannot inflate the effective sample size. Bounded:
 the simulation sizes a design; it does not run LT-5 or fix the confirmation N.
 
+## LT-5 fixture mechanism diversity
+
+`scripts/lib/evaluation/lt5-fixtures.mjs` (`docs/prd/0003`) validates the
+mechanism-distinct fixture manifest: each decisive task declares a dependency
+mechanism that no other decisive task reuses, its gold passes and the
+requested change fails solely on the omitted dependency, each has a matched
+neutral that returns zero trigger hits, every fixture and answer key is hashed and
+kept outside an agent-readable bind, and the placebo is already satisfied. Bounded:
+only the manifest check is landed; no fixture set is authored or run here.
+
 ## Decision
 
 `$source-to-decision` reads this page before promoting a behavioral mechanism.
