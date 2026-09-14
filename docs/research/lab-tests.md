@@ -346,6 +346,18 @@ forced-reconstruction prompt is a proxy for the registered git-shim
 rather than neutral; the neutral is one task with an interior but possibly
 task-specific arm-A rate; and the runs are one model family with N=3.
 
+## Judge sensitivity (blind mutations)
+
+A judge round that returns `NO FINDINGS` is not evidence the harness is clean
+until the swarm's detection rate is measured. `scripts/lib/evaluation/blind-mutations.mjs`
+is the single owner of that measurement: given a set of seeded mutants, matched
+clean controls, and the judge's per-id verdicts, `scoreVerdicts` counts a missed
+mutant as a false negative and a fault reported on a clean control as a false
+positive, and `summarizeSensitivity` fails a round whose sensitivity is unmeasured
+or below the declared floor. Bounded: only the scorer is landed; the seeded
+mutant/control manifest and the key-hiding replay harness are not, so the current
+clean rounds remain unmeasured (open in `docs/prd/0001-blind-mutation-evaluation.md`).
+
 ## Decision
 
 `$source-to-decision` reads this page before promoting a behavioral mechanism.
