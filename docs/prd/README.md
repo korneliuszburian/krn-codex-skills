@@ -22,7 +22,10 @@ can implement a batch on a branch without spending Codex quota on exploration.
 A PRD is current work, not durable knowledge. Delete its file and its index row
 once the artifact lands or the task is rejected; the landed code, its test, and
 any ADR are then the owner. Never keep a landed PRD as a second description of
-shipped behavior.
+shipped behavior. An evaluation or LT PRD whose instrument was implemented and
+then retired with no consumer stays as a design spec until a named lab consumer
+absorbs it, so `0001`–`0005` are retained on that basis and their falsifier
+command runs only after re-implementation.
 
 ## Handoff contract
 
@@ -40,8 +43,9 @@ not push to `main`.
    must also name it in a script, so the touched script and the new test are
    both self-authorized; declare a different unchanged check (for example
    `test:catalog`) instead, or run `changes check --before` with a frozen
-   observer. The `red->green` is declared, not executed — the LT-3 residual
-   recorded in `docs/research/lab-tests.md`.
+   observer. A declared `red->green` is base-executed under `--before`, but a
+   `green->green` obligation is not — the LT-3 residual recorded in
+   `docs/research/lab-tests.md`.
 4. Open a pull request; CI (`validate`) must pass on the head. The Codex Astra
    lane then verifies the diff and merges.
 
