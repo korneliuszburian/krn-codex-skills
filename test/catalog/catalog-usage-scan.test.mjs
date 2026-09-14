@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, mkdirSync, rmSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -301,6 +301,22 @@ test("scanCatalogUsage counts oversized candidate records without parsing them",
     assert.equal(report.coverage.oversized_lines, 1);
     assert.equal(report.coverage.oversized_candidate_lines, 1);
     assert.deepEqual(report.aggregates, []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("an unreadable rollout file degrades to partial evidence instead of aborting", async () => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-usage-unreadable-")));
+  try {
+    const dayDirectory = path.join(root, "2026", "01", "02");
+    mkdirSync(dayDirectory, { recursive: true });
+    const unreadable = path.join(dayDirectory, "rollout-2026-01-02T00-00-00.jsonl");
+    writeFileSync(unreadable, line({ timestamp: "2026-01-02T00:00:00.000Z", type: "response_item", payload: { type: "function_call", call_id: "c1", name: "exec" } }));
+    chmodSync(unreadable, 0o000);
+    const report = await scanCatalogUsage({ sessionsRoot: root, canonicalSkillPaths: [], sinceDay: "2026-01-01" });
+    assert.equal(report.coverage.skipped_unreadable_files, 1);
+    assert.equal(report.scanned_files, 0);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

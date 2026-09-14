@@ -16,17 +16,17 @@ export function parseObject(value) {
 
 export function balancedJsonObject(source, start) {
   let depth = 0;
-  let inString = false;
+  let quote = null;
   let escaped = false;
   for (let index = start; index < source.length; index += 1) {
     const character = source[index];
-    if (inString) {
+    if (quote) {
       if (escaped) escaped = false;
       else if (character === "\\") escaped = true;
-      else if (character === '"') inString = false;
+      else if (character === quote) quote = null;
       continue;
     }
-    if (character === '"') inString = true;
+    if (character === '"' || character === "'") quote = character;
     else if (character === "{") depth += 1;
     else if (character === "}") {
       depth -= 1;
@@ -57,23 +57,21 @@ export function parseFlatExecLiteral(source) {
     while (/\s/.test(source[index] ?? "")) index += 1;
   };
   const readJsonString = () => {
-    if (source[index] !== '"') return null;
-    const start = index;
+    const quote = source[index];
+    if (quote !== '"' && quote !== "'") return null;
     index += 1;
-    let escaped = false;
+    let out = "";
     while (index < source.length) {
       const character = source[index];
-      index += 1;
-      if (escaped) escaped = false;
-      else if (character === "\\") escaped = true;
-      else if (character === '"') {
-        try {
-          const value = JSON.parse(source.slice(start, index));
-          return typeof value === "string" ? value : null;
-        } catch {
-          return null;
-        }
+      if (character === "\\") {
+        const next = source[index + 1];
+        index += 2;
+        out += next === "n" ? "\n" : next === "t" ? "\t" : next === "r" ? "\r" : (next ?? "");
+        continue;
       }
+      index += 1;
+      if (character === quote) return out;
+      out += character;
     }
     return null;
   };

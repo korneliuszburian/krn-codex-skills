@@ -111,6 +111,7 @@ export async function scanCatalogUsage({
       source: window.source,
       skipped_files_before_window: 0,
       skipped_files_after_window: 0,
+      skipped_unreadable_files: 0,
       undated_rollout_files_scanned: 0,
       records_without_usable_date: 0,
       max_record_bytes: MAX_ROLLOUT_RECORD_BYTES,
@@ -137,7 +138,6 @@ export async function scanCatalogUsage({
     }
     if (fileDay === null) report.coverage.undated_rollout_files_scanned += 1;
 
-    const stream = createReadStream(filePath);
     const pending = new Map();
     const processLine = (line) => {
       if (line.length === 0 || !isCandidateRecordLine(line)) return;
@@ -215,12 +215,22 @@ export async function scanCatalogUsage({
         });
       }
     };
-    await consumeLines(stream, processLine, (bytes) => {
-      report.scanned_bytes += bytes;
-    }, (candidate) => {
-      report.coverage.oversized_lines += 1;
-      if (candidate) report.coverage.oversized_candidate_lines += 1;
-    });
+    let stream;
+    try {
+      stream = createReadStream(filePath);
+      await consumeLines(stream, processLine, (bytes) => {
+        report.scanned_bytes += bytes;
+      }, (candidate) => {
+        report.coverage.oversized_lines += 1;
+        if (candidate) report.coverage.oversized_candidate_lines += 1;
+      });
+    } catch {
+      // A file that becomes unreadable or vanishes mid-scan degrades to partial
+      // evidence instead of aborting the whole scan.
+      report.coverage.skipped_unreadable_files += 1;
+      stream?.destroy?.();
+      continue;
+    }
     report.scanned_files += 1;
   }
 

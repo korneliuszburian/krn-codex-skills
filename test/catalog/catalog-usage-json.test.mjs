@@ -39,3 +39,10 @@ test("nestedExecCommands extracts exec_command literals only", () => {
   assert.deepEqual(nestedExecCommands('tools.exec_command({"cmd":"ls","workdir":"/tmp"})'), [{ cmd: "ls", workdir: "/tmp" }]);
   assert.deepEqual(nestedExecCommands('tools.other({"cmd":"ls"})'), []);
 });
+
+test("nested exec literals accept single-quoted strings", () => {
+  assert.deepEqual(nestedExecCommands("tools.exec_command({cmd: 'cat /x'})"), [{ cmd: "cat /x", workdir: undefined }]);
+  assert.deepEqual(nestedExecCommands("tools.exec_command({cmd: \"cat /x\"})"), [{ cmd: "cat /x", workdir: undefined }]);
+  assert.deepEqual(balancedJsonObject("{cmd: '}'}", 0), { end: 10, source: "{cmd: '}'}" });
+  assert.equal(nestedExecCommands("tools.exec_command({cmd: 'a'})")[0].cmd, "a");
+});
