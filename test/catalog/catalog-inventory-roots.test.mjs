@@ -67,3 +67,11 @@ test("resolveInventoryRoots rejects invalid roots", () => {
     /needs string id and path/,
   );
 });
+
+test("resolveInventoryRoots resolves provided relative roots", () => {
+  const { skillRoots } = resolveInventoryRoots({
+    skillRoots: [{ id: "rel", path: "rel/skills", scope: "user" }],
+    pluginCacheRoots: [],
+  });
+  assert.ok(isAbsolute(skillRoots[0].path), skillRoots[0].path);
+});

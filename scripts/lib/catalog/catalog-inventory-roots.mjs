@@ -1,4 +1,4 @@
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 
 const ALLOWED_ROOT_SCOPES = new Set([
@@ -67,13 +67,14 @@ export function resolveInventoryRoots({
 } = {}) {
   if (skillRoots !== undefined) validateSkillRoots(skillRoots);
   if (pluginCacheRoots !== undefined) validateCacheRoots(pluginCacheRoots);
-  const resolvedSkillRoots = skillRoots ?? defaultSkillRoots({ codexHome, agentsHome, opencodeHome });
-  const resolvedPluginCacheRoots = pluginCacheRoots ?? [
+  const resolvedSkillRoots = (skillRoots ?? defaultSkillRoots({ codexHome, agentsHome, opencodeHome }))
+    .map((root) => ({ ...root, path: resolve(root.path) }));
+  const resolvedPluginCacheRoots = (pluginCacheRoots ?? [
     {
       id: "codex-plugin-cache",
       path: join(codexHome, "plugins", "cache"),
     },
-  ];
+  ]).map((root) => ({ ...root, path: resolve(root.path) }));
   return {
     skillRoots: resolvedSkillRoots,
     pluginCacheRoots: resolvedPluginCacheRoots,
