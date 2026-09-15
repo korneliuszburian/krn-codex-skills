@@ -208,9 +208,12 @@ try {
     } else {
       rejectForeignOptions(options, ["root", "changed", "symbols"]);
       if (!(options.changed?.length || options.symbols?.length)) fail(usage);
-      const changed = (options.changed ?? [])
-        .map((entry) => posixRelative(path.resolve(options.root), path.resolve(options.root, entry)))
-        .filter((entry) => entry && !entry.startsWith(".."));
+      const changed = [];
+      for (const entry of options.changed ?? []) {
+        const rel = posixRelative(path.resolve(options.root), path.resolve(options.root, entry));
+        if (!rel || rel.startsWith("..")) fail(`memory recall --changed ${entry} is empty or outside --root`);
+        changed.push(rel);
+      }
       const hot = changed.length > 0 ? churnHot({ root: options.root, git: runGit, sha: "HEAD", files: changed }) : [];
       const hits = recallLessons({ root: options.root, files: changed, symbols: options.symbols ?? [], hot });
       if (options.json) print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits }, true);

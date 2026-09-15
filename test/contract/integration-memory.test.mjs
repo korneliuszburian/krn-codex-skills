@@ -82,3 +82,15 @@ test("memory recall normalizes a ./-prefixed changed path", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("memory recall fails a changed path outside --root instead of dropping it", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-int-outside-"));
+  try {
+    mkdirSync(join(root, "docs", "research"), { recursive: true });
+    const result = spawnSync(process.execPath, [cli, "memory", "recall", "--root", root, "--changed", "../outside.mjs"], { encoding: "utf8" });
+    assert.equal(result.status, 64, result.stdout + result.stderr);
+    assert.match(result.stderr, /outside --root/, result.stderr);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
