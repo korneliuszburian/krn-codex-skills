@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -15,7 +15,8 @@ test("resolveRepositoryRoot returns a controlled error for malformed inputs", ()
     assert.throws(() => resolveRepositoryRoot(join(dir, "missing")), /repository path does not exist/);
 
     const file = join(dir, "file");
-    assert.throws(() => resolveRepositoryRoot(file, { label: "state" }), /repository path does not exist/);
+    writeFileSync(file, "");
+    assert.throws(() => resolveRepositoryRoot(file, { label: "state" }), /expects a repository directory, got a file/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
