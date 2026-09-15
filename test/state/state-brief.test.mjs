@@ -263,6 +263,9 @@ test("a base-only capsule reports headMoved false and a pending missing run is c
   writeCapsule(root, `base=${head}; dirty=clean`, "[.krn/runs/slice-work/gone; slice-work; x; closes; CLEANUP_PENDING]");
   const report = resumeBrief({ repo: root });
   assert.equal(report.capsules[0].headMoved, false);
+  assert.equal(report.capsules[0].headRecorded, false);
+  assert.doesNotMatch(report.text, /\(unchanged\)/, report.text);
+  assert.match(report.text, /no recorded HEAD/, report.text);
   assert.equal(report.capsules[0].missingRuns.length, 1, JSON.stringify(report.capsules[0].missingRuns));
   rmSync(root, { recursive: true, force: true });
 });
@@ -355,5 +358,15 @@ test("resume records a fingerprint-only fixed point", () => {
   writeCapsule(root, "fingerprint=abcdef0123456789abcdef0123456789abcdef01");
   const report = resumeBrief({ repo: root });
   assert.match(report.text, /abcdef0123456789abcdef0123456789abcdef01/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a run reached through a symlink alias is not reported unlisted", () => {
+  const { root, head } = makeRepo();
+  mkdirSync(join(root, ".krn", "runs", "slice-work", "one"), { recursive: true });
+  symlinkSync("slice-work", join(root, ".krn", "runs", "slice-link"));
+  writeCapsule(root, `base=${head}; HEAD=${head}; dirty=clean`, "[.krn/runs/slice-work/one; slice-work; x; closes; ACTIVE]");
+  const report = resumeBrief({ repo: root });
+  assert.deepEqual(report.capsules[0].unlistedRuns, [], JSON.stringify(report.capsules[0].unlistedRuns));
   rmSync(root, { recursive: true, force: true });
 });
