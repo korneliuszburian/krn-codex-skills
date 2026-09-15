@@ -131,8 +131,9 @@ test("catalog profile show prints a resolved profile", () => {
     const profile = JSON.parse(result.stdout);
     assert.equal(profile.name, "minimal");
     assert.equal(typeof profile.description, "string");
+    assert.ok(profile.description.length > 0, "the profile description is not empty");
     assert.equal(profile.capability_states.profile, "declared");
-    assert.ok(Array.isArray(profile.plugins.disable));
+    assert.ok(profile.plugins.disable.includes("remember@claude-plugins-official"), JSON.stringify(profile.plugins.disable));
   } finally {
     rmSync(base, { recursive: true, force: true });
   }
@@ -158,6 +159,7 @@ test("catalog usage reports aggregates and the usage state contract", () => {
       [{ kind: "tool", id: "exec_command", confirmed_calls: 1 }],
     );
     assert.ok(Array.isArray(usage.capability_states.optional_capabilities));
+    assert.ok(usage.capability_states.optional_capabilities.length > 0, "optional capabilities are resolved, not empty");
     assert.equal(usage.capability_states.evidence_window.through_day, new Date().toISOString().slice(0, 10));
   } finally {
     rmSync(base, { recursive: true, force: true });

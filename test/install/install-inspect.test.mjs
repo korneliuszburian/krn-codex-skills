@@ -84,6 +84,7 @@ test("applyInstall rolls back reconciled targets when a later step fails", () =>
     const after = inspectInstall({ codexHome: home });
     assert.equal(after.filesystem.status, "filesystem_installed");
     assert.equal(after.commit, first.commit);
+    assert.ok(after.targets.length > 0, "the rollback still enumerates targets");
     assert.ok(after.targets.every((target) => target.status === "filesystem_installed"));
   });
 });

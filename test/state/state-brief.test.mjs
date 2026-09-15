@@ -143,6 +143,9 @@ test("resume detects dirty scope, a moved HEAD, and unlisted runs", () => {
   writeCapsule(root, `base=${head}; HEAD=${head}; dirty=clean`);
   const clean = resumeBrief({ repo: root });
   assert.equal(clean.capsules[0].headMoved, false);
+  assert.equal(clean.capsules[0].headRecorded, true);
+  assert.ok(clean.capsules[0].recordedCommits.includes(head));
+  assert.match(clean.text, /\(unchanged\)/);
   assert.equal(clean.capsules[0].liveDirty.length, 0);
 
   writeFileSync(join(root, "dirty.txt"), "wip\n");
@@ -255,6 +258,7 @@ test("headMoved is true when the recorded HEAD differs even if base matches", ()
   writeCapsule(root, `base=${live}; HEAD=${head}; dirty=clean`);
   const report = resumeBrief({ repo: root });
   assert.equal(report.capsules[0].headMoved, true);
+  assert.match(report.text, /MOVED/);
   rmSync(root, { recursive: true, force: true });
 });
 
