@@ -85,7 +85,7 @@ function runCase({ candidate, entry, workRoot = os.tmpdir() }) {
       for (const [relative, content] of Object.entries(entry.after)) {
         const target = path.join(dir, relative);
         fs.mkdirSync(path.dirname(target), { recursive: true });
-        fs.writeFileSync(target, content.replaceAll("{{HEAD}}", sha));
+        fs.writeFileSync(target, content.replaceAll("{{HEAD}}", sha).replaceAll("{{HEAD7}}", sha.slice(0, 7)));
       }
     }
     const program = path.join(candidate, "scripts", "krn-codex.mjs");

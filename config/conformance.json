@@ -257,6 +257,46 @@
         "exit": 0,
         "stdoutExcludes": ["Coupling must be kept."]
       }
+    },
+    {
+      "id": "lessons-verify-runs-the-named-proof",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{\"test:lib\":\"x\"}}\n",
+            "test/proof.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\ntest(\"the coupling stays\", () => { assert.equal(1, 1); });\n"
+          }
+        }
+      ],
+      "after": {
+        "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Keep the coupling. | probe | `test:lib` | | `test/proof.test.mjs::the coupling stays@{{HEAD7}}` | | |\n"
+      },
+      "run": ["lessons", "verify"],
+      "expect": {
+        "exit": 0,
+        "stdoutIncludes": ["the coupling stays"]
+      }
+    },
+    {
+      "id": "lessons-verify-detects-a-failing-proof",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{\"test:lib\":\"x\"}}\n",
+            "test/proof.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\ntest(\"a broken coupling\", () => { assert.equal(1, 2); });\n"
+          }
+        }
+      ],
+      "after": {
+        "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Keep the coupling. | probe | `test:lib` | | `test/proof.test.mjs::a broken coupling@{{HEAD7}}` | | |\n"
+      },
+      "run": ["lessons", "verify"],
+      "expect": {
+        "exit": 1,
+        "stderrIncludes": ["proof failed"]
+      }
     }
   ]
 }
