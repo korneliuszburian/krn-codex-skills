@@ -290,3 +290,32 @@ test("run-opinion records elapsed time and token usage in meta.json", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("gate-check treats a slash-wrapped EXPECT as exact, not a regex", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-gate-exact-"));
+  try {
+    const ledger = join(root, "GATES.md");
+    const approvals = join(root, "approvals");
+    writeFileSync(ledger, ["- [ ] trap: x", "  CHECK: printf 'not ok'", "  EXPECT: /ok/", "  EVIDENCE: pending", ""].join("\n"));
+    const result = run(gateCheck, ["--approve", ledger, "--approval-dir", approvals]);
+    assert.equal(result.status, 1, result.stdout);
+    assert.doesNotMatch(readFileSync(ledger, "utf8"), /^- \[x\] trap/m);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("gate-check refuses to write evidence when git cannot be probed", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-gate-nogit-"));
+  try {
+    const ledger = join(root, "GATES.md");
+    const empty = join(root, "emptybin");
+    mkdirSync(empty);
+    writeFileSync(ledger, ["- [ ] runnable: x", "  CHECK: echo hi", "  EXPECT: hi", "  EVIDENCE: pending", ""].join("\n"));
+    const result = spawnSync(process.execPath, [gateCheck, "--approve", ledger, "--approval-dir", join(root, "approvals")], { encoding: "utf8", env: { ...process.env, PATH: empty } });
+    assert.equal(result.status, 2, result.stdout + result.stderr);
+    assert.match(result.stderr, /git could not be probed/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

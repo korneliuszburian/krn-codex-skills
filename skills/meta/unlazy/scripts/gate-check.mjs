@@ -116,9 +116,14 @@ function approvalDirectory(options) {
     path.join(process.env.XDG_STATE_HOME || path.join(os.homedir(), ".local", "state"), "krn-unlazy", "approvals");
 }
 
-function repositoryRootFor(ledgerPath) {
+function gitTopLevelProbe(ledgerPath) {
   const result = spawnSync("git", ["-C", path.dirname(ledgerPath), "rev-parse", "--show-toplevel"], { encoding: "utf8" });
-  return result.status === 0 ? result.stdout.trim() : null;
+  if (result.error || result.status === null) return { failed: true, root: null };
+  return { failed: false, root: result.status === 0 ? result.stdout.trim() : null };
+}
+
+function repositoryRootFor(ledgerPath) {
+  return gitTopLevelProbe(ledgerPath).root;
 }
 
 function isWithin(root, candidate) {
@@ -193,10 +198,6 @@ function readApproval(directory, binding) {
 }
 
 function expectedMatches(expect, output) {
-  const regex = expect.match(/^\/([\s\S]*)\/([dgimsuvy]*)$/);
-  if (regex) {
-    try { return new RegExp(regex[1], regex[2]).test(output); } catch { return false; }
-  }
   const want = expect.trim();
   if (want === "") return false;
   const trimmed = output.trim();
@@ -270,7 +271,12 @@ function main() {
   if (parsedArgs.help) { console.log(HELP); return 0; }
   if (parsedArgs.error) { fail(parsedArgs.error); return 2; }
   const { options, ledger } = parsedArgs;
-  const repositoryRoot = repositoryRootFor(ledger);
+  const probe = gitTopLevelProbe(ledger);
+  if (probe.failed) {
+    fail("git could not be probed; refusing to write evidence without the repository guards");
+    return 2;
+  }
+  const repositoryRoot = probe.root;
   const approvals = approvalDirectory(options);
   if (repositoryRoot && isWithin(repositoryRoot, approvals)) {
     fail("approval directory must be outside the repository");
