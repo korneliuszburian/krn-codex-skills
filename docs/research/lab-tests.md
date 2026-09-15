@@ -201,6 +201,8 @@ Reading: removing the ordinary-doc cue gives the second authorized family separa
 
 gpt-5.6-luna on the same v5 set (72 executions, zero retries, all served, no mismatch or leak): decisive text/key/route A 0/3 B 3/3 P 0/3 and media A 0/3 B 1/3 P 0/3; neutral at the floor (key/neutral P 1/3 is the only arm pass); `theta = 0.917`, cluster-bootstrap 95% CI [0.500, 1.250]. The cue-free set makes luna's ablation fail on **every** mechanism (including schema, which was partly inferable in v4b), while media's lesson succeeds only 1/3 — a hint that the digest mechanism is harder to repair from the lesson alone. Two authorized families now separate on the same cue-free fixtures with bootstrap CIs above zero, which is the strongest two-family reading so far, still non-promoting on the unresolved prerequisites.
 
+A candidate calibration pack for the reopen is built in the lab: the cue-free v5 tasks, a character-length-matched inert placebo (`make-placebos.sh` emits rows of 190/185/186/187 characters matching each decisive coupling row, reusing its trigger but with an already-satisfied `manual:review` gate), and a design for an interior neutral; none of it is run as a confirmation yet.
+
 ## LT-5 separation gate (2026-09-13)
 
 One decisive plus one neutral task, arms A (lesson row removed), B (real
