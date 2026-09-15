@@ -103,13 +103,18 @@ test("check-opinion.sh classifies pending, completed, failed, and invalid runs",
     assert.match(bash(checkOpinion, [runDir]).stdout, /pending/);
 
     writeFileSync(join(runDir, "opinion.md"), "opinion\n");
-    assert.equal(bash(checkOpinion, [runDir]).status, 64);
+    const partial = bash(checkOpinion, [runDir]);
+    assert.equal(partial.status, 2, partial.stdout + partial.stderr);
+    assert.match(partial.stdout, /pending/);
 
     writeFileSync(join(runDir, "raw.jsonl"), "{}\n");
     writeFileSync(join(runDir, "meta.json"), "{}\n");
     const completed = bash(checkOpinion, [runDir]);
     assert.equal(completed.status, 0, completed.stderr);
     assert.match(completed.stdout, /completed/);
+
+    writeFileSync(join(runDir, "failure.txt"), "boom\n");
+    assert.equal(bash(checkOpinion, [runDir]).status, 64);
 
     mkdirSync(join(root, ".krn", "runs", "opencode-second-opinion", "run-2"));
     writeFileSync(join(root, ".krn", "runs", "opencode-second-opinion", "run-2", "failure.txt"), "boom\n");

@@ -31,8 +31,14 @@ if [[ -e "$opinion" || -e "$raw" || -e "$meta" ]]; then
     echo "completed: $opinion"
     exit 0
   fi
-  echo "invalid: completed artifacts are incomplete or conflict with failure artifacts" >&2
-  exit 64
+  if [[ -e "$failure" || -e "$failed_raw" ]]; then
+    echo "invalid: completed artifacts conflict with failure artifacts" >&2
+    exit 64
+  fi
+  # The runner can still be finalizing after the host yields, so a partial
+  # artifact set without failure artifacts is pending, not malformed.
+  echo "pending: $run_dir"
+  exit 2
 fi
 
 if [[ -e "$failure" || -e "$failed_raw" ]]; then
