@@ -212,3 +212,8 @@ test("a managed destination root with a trailing slash is accepted", () => {
     assert.doesNotThrow(() => applyInstall(createInstallPlan({ source, cwd: source, codexHome: home })));
   });
 });
+
+test("managedTargets tolerates a missing manifest", async () => {
+  const { managedTargets } = await import("../../scripts/lib/install/install-release.mjs");
+  assert.deepEqual(managedTargets({ releaseRoot: "/tmp/krn-none", manifest: null }), []);
+});

@@ -177,7 +177,8 @@ function copyRuntime(plan, staging) {
   return metadata;
 }
 
-function managedTargets(plan) {
+export function managedTargets(plan) {
+  if (!plan.manifest) return [];
   const skillDest = process.env.KRN_SKILLS_DEST || path.join(os.homedir(), ".agents", "skills");
   const binDest = process.env.KRN_BIN_DEST || path.join(os.homedir(), ".local", "bin");
   const codexHome = path.dirname(plan.releaseRoot);
@@ -188,7 +189,7 @@ function managedTargets(plan) {
     if (path.dirname(target) !== normalizedRoot || name === "." || name === "..") fail(`unsafe managed destination: ${name}`, EXIT_SOURCE);
     targets.push({ label, target, relative });
   };
-  for (const skill of Array.isArray(plan.manifest.skills) ? plan.manifest.skills : []) {
+  for (const skill of Array.isArray(plan.manifest?.skills) ? plan.manifest.skills : []) {
     add(`skill__${skill.name}`, skillDest, skill.name, skill.path);
   }
   for (const bin of Array.isArray(plan.manifest.bins) ? plan.manifest.bins : []) {
@@ -650,6 +651,7 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   let metadata;
   try { metadata = verifyRelease(currentTarget, path.basename(currentTarget)); }
   catch (error) { return { ...base, filesystem: { status: "broken_link", detail: error.message }, targets: [] }; }
+  if (!manifest) return { ...base, filesystem: { status: "broken_link", detail: "release manifest is missing or unreadable" }, targets: [] };
   const plan = { releaseRoot, current, manifest, source: "", allowLegacySource: true, release: currentTarget };
   const targets = managedTargets(plan).map((item) => itemStatus(plan, item));
   for (const orphan of orphanManagedLinks(plan)) targets.push({ target: orphan, status: "orphaned_link" });
