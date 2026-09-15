@@ -272,6 +272,7 @@ test("run-opinion records elapsed time and token usage in meta.json", () => {
     const stub = join(bin, "opencode");
     writeFileSync(stub, [
       "#!/usr/bin/env bash",
+      "sleep 1",
       'printf \'%s\\n\' \'{"type":"text","part":{"messageID":"m1","text":"Final answer"}}\'',
       'printf \'%s\\n\' \'{"type":"step_finish","part":{"reason":"stop","messageID":"m1","tokens":{"input":11,"output":22,"reasoning":3,"total":36,"cache":{"read":4,"write":5}}}}\'',
       "exit 0",
@@ -284,7 +285,7 @@ test("run-opinion records elapsed time and token usage in meta.json", () => {
     assert.equal(meta.usage.input, 11);
     assert.equal(meta.usage.output, 22);
     assert.equal(meta.usage.cacheRead, 4);
-    assert.ok(Number.isInteger(meta.elapsedSeconds) && meta.elapsedSeconds >= 0, JSON.stringify(meta));
+    assert.ok(Number.isInteger(meta.elapsedSeconds) && meta.elapsedSeconds >= 1, JSON.stringify(meta));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

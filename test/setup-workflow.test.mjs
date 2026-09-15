@@ -75,13 +75,19 @@ test("setup rejects bad arguments and enums with usage exit", () => {
 
 test("setup rejects malformed managed markers", () => {
   withRoot(`# Repo\n\n${START}\n`, (root) => {
-    assert.match(apply(root).output, /incomplete managed block/);
+    const result = apply(root);
+    assert.equal(result.status, 64);
+    assert.match(result.output, /incomplete managed block/);
   });
   withRoot(`# Repo\n\n${END}\nbody\n${START}\n`, (root) => {
-    assert.match(apply(root).output, /reversed managed block markers/);
+    const result = apply(root);
+    assert.equal(result.status, 64);
+    assert.match(result.output, /reversed managed block markers/);
   });
   withRoot(`# Repo\n\n${START}\na\n${END}\n${START}\nb\n${END}\n`, (root) => {
-    assert.match(apply(root).output, /duplicate managed blocks/);
+    const result = apply(root);
+    assert.equal(result.status, 64);
+    assert.match(result.output, /duplicate managed blocks/);
   });
 });
 

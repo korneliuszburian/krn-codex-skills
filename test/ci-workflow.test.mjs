@@ -19,7 +19,7 @@ test("the validation workflow runs on every main push as well as pull requests",
 
 test("the declared Node engine floor excludes the EOL Node 20 line", () => {
   const engines = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).engines?.node;
-  assert.match(String(engines), /^>=\s*(2[2-9]|[3-9]\d)/, "engines.node must not allow an end-of-life Node line");
+  assert.equal(String(engines).replace(/\s+/g, ""), ">=22", "engines.node must be exactly >=22");
   const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
   const tested = Number(/node-version:\s*(\d+)/.exec(workflow)?.[1]);
   assert.ok(tested >= 22, `CI must exercise a supported LTS, found ${tested}`);
@@ -29,7 +29,8 @@ test("every gate named in AGENTS.md runs in the workflow", () => {
   const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
   const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
   const gates = new Set([...agents.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
-  assert.ok(gates.size >= 15, `expected the AGENTS.md gate block to parse, found ${gates.size}`);
+  const canonical = ["changes:check", "gate", "lessons:verify", "skills:check", "test:bootstrap", "test:catalog", "test:change-contract", "test:durable-pages", "test:hooks", "test:install", "test:lessons", "test:lessons-verify", "test:lib", "test:setup", "test:skill-scripts", "test:skills", "test:state", "validate"];
+  assert.deepEqual([...gates].sort(), canonical, "the AGENTS.md gate block must list the canonical gate set exactly");
   const steps = new Set([...workflow.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
   if (/krn-codex\.mjs changes check/.test(workflow)) steps.add("changes:check");
   const aggregates = new Set(["gate", "test"]);
