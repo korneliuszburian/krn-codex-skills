@@ -13,8 +13,12 @@ const casesFile = join(root, "config", "conformance.json");
 
 test("the frozen case set loads and every case is complete", () => {
   const cases = loadCases(casesFile);
-  assert.ok(cases.length >= 4, `expected the frozen set, found ${cases.length}`);
-  assert.deepEqual(caseIds(casesFile).has("changes-docs-only-accepted"), true);
+  assert.ok(cases.length >= 7, `expected the frozen set, found ${cases.length}`);
+  const groups = new Set(cases.map((entry) => entry.run[0]));
+  for (const group of ["changes", "lessons", "memory"]) {
+    assert.ok(groups.has(group), `the frozen set must cover the ${group} seam`);
+  }
+  assert.equal(caseIds(casesFile).has("changes-docs-only-accepted"), true);
 });
 
 test("an incomplete case is rejected rather than silently skipped", () => {

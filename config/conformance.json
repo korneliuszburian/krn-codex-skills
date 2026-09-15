@@ -95,6 +95,56 @@
         "exit": 1,
         "stderrIncludes": ["unknown-check"]
       }
+    },
+    {
+      "id": "lessons-gate-resolves",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{\"test:lib\":\"x\"}}\n",
+            "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Keep the gate resolvable. | probe | `test:lib` | | | | |\n"
+          }
+        }
+      ],
+      "run": ["lessons", "check"],
+      "expect": {
+        "exit": 0
+      }
+    },
+    {
+      "id": "lessons-gate-unresolved",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{\"test:lib\":\"x\"}}\n",
+            "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Keep the gate resolvable. | probe | `test:missing` | | | | |\n"
+          }
+        }
+      ],
+      "run": ["lessons", "check"],
+      "expect": {
+        "exit": 1,
+        "stdoutIncludes": ["no resolvable gate reference"]
+      }
+    },
+    {
+      "id": "memory-delivers-a-triggered-lesson",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{\"test:lib\":\"x\"}}\n",
+            "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Coupling must be kept. | probe | `test:lib` | | | path:src/x.mjs | |\n"
+          }
+        }
+      ],
+      "run": ["memory", "recall", "--changed", "src/x.mjs"],
+      "expect": {
+        "exit": 0,
+        "stdoutIncludes": ["Coupling must be kept.", "matched src/x.mjs"]
+      }
     }
   ]
 }
