@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 
 import { checkLessons } from "./lessons.mjs";
 import { tapName } from "../support/tap.mjs";
-import { gitText as git } from "../support/git-cli.mjs";
+import { gitText as git, runGit } from "../support/git-cli.mjs";
 
 const ALLOWED = /^test\/[A-Za-z0-9_./-]+\.mjs$/;
 const TOKEN = /^((?:test|scripts)\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
@@ -87,7 +87,11 @@ export function reanchorLessons({ root, timeout = 120000, runner = runCase, gitI
   const skipped = [];
   if (!fs.existsSync(pageFile)) return { root, updated, skipped, errors: report.errors ?? [] };
   let text = fs.readFileSync(pageFile, "utf8");
-  const dirty = String(gitImpl(root, ["status", "--porcelain"]) ?? "").trim();
+  const status = runGit(root, ["status", "--porcelain"]);
+  if (!status.ok) {
+    return { root, updated, skipped: [{ reason: "working-tree status is unreadable; fix the checkout before reanchor", blocking: true }], errors: report.errors ?? [] };
+  }
+  const dirty = status.out.trim();
   if (dirty) return { root, updated, skipped: [{ reason: "working tree is dirty; commit before reanchor", blocking: true }], errors: report.errors ?? [] };
   for (const lesson of report.lessons.filter((entry) => !entry.status)) {
     const raw = (lesson.falsifier ?? "").replace(/`/g, "").trim();

@@ -327,3 +327,13 @@ test("an invalid trigger glob is a row error, not an abort", () => {
   assert.doesNotThrow(() => recallLessons({ root, files: ["scripts/x.mjs"] }));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("reanchorLessons blocks when the working-tree status is unreadable", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-reanchor-nogit-"));
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by |\n|---|---|---|\n");
+  const report = reanchorLessons({ root });
+  assert.equal(report.updated.length, 0, JSON.stringify(report));
+  assert.ok(report.skipped.some((entry) => entry.blocking), JSON.stringify(report.skipped));
+  rmSync(root, { recursive: true, force: true });
+});
