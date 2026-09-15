@@ -401,3 +401,44 @@ test("the audit catches a cross-file call hidden by an aliased import", () => {
     },
   );
 });
+
+test("a dead re-export is not excused by a same-named module elsewhere", () => {
+  withRepo(
+    {
+      "scripts/lib/origin.mjs": "export const a = 1;\n",
+      "scripts/lib/barrel.mjs": "export { a } from \"./origin.mjs\";\n",
+      "scripts/other/barrel.mjs": "export const a = 1;\n",
+      "scripts/other/use.mjs": "import { a } from \"./barrel.mjs\";\nexport const v = a;\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("barrel.mjs: dead re-export a")), JSON.stringify(errors));
+    },
+  );
+});
+
+test("an aliased import consumes the source name, not the local name", () => {
+  withRepo(
+    {
+      "scripts/lib/m.mjs": "export function foo() {\n  return 1;\n}\nexport function bar() {\n  return 2;\n}\n",
+      "scripts/lib/c.mjs": "import { foo as bar } from \"./m.mjs\";\nexport const v = bar();\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("m.mjs: dead export bar")), JSON.stringify(errors));
+    },
+  );
+});
+
+test("destructured bindings with defaults are all seen", () => {
+  withRepo(
+    {
+      "scripts/lib/d.mjs": "export const { c = 1, d = 2 } = {};\n",
+      "scripts/lib/use.mjs": "import { c } from \"./d.mjs\";\nexport const v = c;\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(errors.some((message) => message.includes("d.mjs: dead export d")), JSON.stringify(errors));
+    },
+  );
+});

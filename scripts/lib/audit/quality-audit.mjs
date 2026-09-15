@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
 import { maskLiterals, stripComments } from "../support/source-mask.mjs";
@@ -19,21 +19,40 @@ const functionDeclarations = (source) =>
   [...source.matchAll(/(?:export\s+)?(?:async\s+)?function\*?\s+([A-Za-z0-9_$]+)\s*\(/g)].map((m) => m[1]);
 
 const bindingNames = (text) => {
-  const parts = [];
-  let depth = 0;
-  let current = "";
-  for (const char of text) {
-    if ("{[(".includes(char)) depth += 1;
-    else if ("}])".includes(char)) depth -= 1;
-    if (char === "," && depth === 0) {
-      parts.push(current);
-      current = "";
-      continue;
+  const splitTop = (body) => {
+    const elements = [];
+    let depth = 0;
+    let current = "";
+    for (const char of body) {
+      if ("{[(".includes(char)) depth += 1;
+      else if ("}])".includes(char)) depth -= 1;
+      if (char === "," && depth === 0) { elements.push(current); current = ""; continue; }
+      current += char;
     }
-    current += char;
-  }
-  parts.push(current);
-  return parts.flatMap((part) => [...part.split("=")[0].matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)].map((match) => match[0]));
+    elements.push(current);
+    return elements;
+  };
+  const stripInitializer = (part) => {
+    let depth = 0;
+    for (let index = 0; index < part.length; index += 1) {
+      const char = part[index];
+      if ("{[(".includes(char)) depth += 1;
+      else if ("}])".includes(char)) depth -= 1;
+      else if (char === "=" && depth === 0) return part.slice(0, index);
+    }
+    return part;
+  };
+  return splitTop(text).flatMap((part) => {
+    const binding = stripInitializer(part).trim();
+    const destructured = binding.match(/^[\[{]([\s\S]*)[\]}]$/);
+    const body = destructured ? destructured[1] : binding;
+    return splitTop(body).flatMap((element) => {
+      let name = stripInitializer(element).trim();
+      const rename = name.lastIndexOf(":");
+      if (rename >= 0) name = name.slice(rename + 1);
+      return [...name.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)].map((match) => match[0]);
+    });
+  });
 };
 
 const exportedNames = (rawSource) => {
@@ -81,10 +100,10 @@ const clauseNames = (clause) => {
   const named = clause.match(/\{([\s\S]*?)\}/);
   if (named) {
     for (const part of named[1].split(",")) {
-      for (const piece of part.split(/\s+as\s+/)) {
-        const name = piece.trim();
-        if (/^[A-Za-z0-9_$]+$/.test(name)) names.add(name);
-      }
+      // Consumption binds the source name: in `import { foo as bar }` the export
+      // that is consumed is `foo`, whatever local name it takes.
+      const sourceName = part.split(/\s+as\s+/)[0].trim();
+      if (/^[A-Za-z0-9_$]+$/.test(sourceName)) names.add(sourceName);
     }
   }
   const bare = clause.replace(/\{[\s\S]*?\}/, "").replace(/,/g, " ").trim();
@@ -260,14 +279,13 @@ export function auditRepository(root) {
   for (const file of runtime.filter((candidate) => label(candidate).startsWith(`scripts${sep}lib${sep}`))) {
     if (isSelf(file)) continue;
     const source = stripComments(sources.get(file));
-    const base = basename(file);
     for (const match of source.matchAll(/export\s*\{([^}]*)\}\s*from\s*["'](\.[^"']+)["']/g)) {
       const names = match[1].split(",").map((part) => part.split(/\s+as\s+/).pop().trim()).filter(Boolean);
       for (const name of names) {
         const imported = [...sources.entries()].some(([other, otherSource]) => {
           if (other === file) return false;
           for (const spec of stripComments(otherSource).matchAll(/(?:import|export)\s+([^;]*?)\s+from\s+["'](\.[^"']+)["']/g)) {
-            if (basename(spec[2]) !== base) continue;
+            if (resolve(dirname(other), spec[2]) !== resolve(file)) continue;
             const braces = spec[1].match(/\{([\s\S]*?)\}/);
             if (!braces) continue;
             const locals = braces[1].split(",").map((part) => part.split(/\s+as\s+/).pop().trim());
