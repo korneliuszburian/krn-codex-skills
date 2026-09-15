@@ -680,7 +680,7 @@ export function pruneReleases({ codexHome = process.env.CODEX_HOME || path.join(
     resolvedReleases !== releasesDir ||
     !isInside(releaseRoot, resolvedReleases)
   ) {
-    return { removed: [], kept: [] };
+    return { removed: [], kept: [], refused: "releases-root-unresolvable" };
   }
   const currentTarget = resolvedLink(path.join(releaseRoot, "current"));
   const candidates = fs.readdirSync(releasesDir, { withFileTypes: true })

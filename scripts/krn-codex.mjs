@@ -253,7 +253,9 @@ try {
       rejectForeignOptions(options, ["keep"]);
       const keep = options.keep ? Number(options.keep) : 3;
       if (!Number.isInteger(keep) || keep < 1) fail("install prune --keep must be a positive integer");
-      print(pruneReleases({ keep }), options.json);
+      const pruneReport = pruneReleases({ keep });
+      print(pruneReport, options.json);
+      if (pruneReport.refused) process.exitCode = 3;
     } else if (command === "plan" || command === "apply") {
       rejectForeignOptions(options, command === "apply" ? ["source", "yes"] : ["source"]);
       if (command === "apply" && !options.yes) fail("install apply requires --yes");

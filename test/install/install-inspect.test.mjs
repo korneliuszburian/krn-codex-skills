@@ -193,11 +193,15 @@ test("pruneReleases refuses a symlinked releases root and a non-directory", () =
   mkdirSync(join(home, "krn"), { recursive: true });
   mkdirSync(join(base, "victim", "old"), { recursive: true });
   symlinkSync(join(base, "victim"), join(home, "krn", "releases"));
-  assert.deepEqual(pruneReleases({ codexHome: home, keep: 1 }), { removed: [], kept: [] });
+  const symlinked = pruneReleases({ codexHome: home, keep: 1 });
+  assert.deepEqual(symlinked.removed, []);
+  assert.ok(symlinked.refused, JSON.stringify(symlinked));
   assert.ok(fs.existsSync(join(base, "victim", "old")), "a symlinked releases root must not delete outside the store");
   rmSync(join(home, "krn", "releases"), { force: true });
   writeFileSync(join(home, "krn", "releases"), "not a directory");
-  assert.doesNotThrow(() => pruneReleases({ codexHome: home }));
+  let notDirectory;
+  assert.doesNotThrow(() => { notDirectory = pruneReleases({ codexHome: home }); });
+  assert.ok(notDirectory.refused, JSON.stringify(notDirectory));
   rmSync(base, { recursive: true, force: true });
 });
 
