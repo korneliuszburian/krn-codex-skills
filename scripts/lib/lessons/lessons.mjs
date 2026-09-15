@@ -237,8 +237,12 @@ function resolveReference(root, scripts, reference) {
 
 export function lessonStructureFindings({ root }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
+  let stat = null;
+  try { stat = fs.statSync(file, { throwIfNoEntry: false }); } catch { stat = null; }
+  const isFile = stat?.isFile() === true;
   const { rows, malformed, budget, headerColumns, unbalancedFence } = parseLessons(file);
   const findings = malformed.map((row) => ({ rule: "malformed-row", message: `malformed lesson row: ${row.trim()}` }));
+  if (stat && !isFile) findings.push({ rule: "unreadable-lessons", message: "docs/research/workflow-lessons.md exists but is not a regular file" });
   if (unbalancedFence) findings.push({ rule: "unbalanced-fence", message: "workflow-lessons.md has an unterminated code fence; lesson rows cannot be trusted" });
   const maxColumns = rows.reduce((widest, row) => Math.max(widest, row.columns ?? 0), 0);
   if (headerColumns !== null && maxColumns > headerColumns) {
@@ -267,7 +271,7 @@ export function lessonStructureFindings({ root }) {
     if (badGlob) { findings.push({ rule: "invalid-glob", message: `lesson "${row.lesson}": invalid trigger glob "${badGlob}"` }); continue; }
     if (row.status && !RETIRE.exec(row.status)) findings.push({ rule: "invalid-status", message: `lesson "${row.lesson}": invalid Status "${row.status}"; use retired@<7-hex>[; superseded-by:<anchor>]` });
   }
-  return { findings, rows, activeRows, budget, exists: fs.existsSync(file) };
+  return { findings, rows, activeRows, budget, exists: isFile };
 }
 
 export function checkLessons({ root, git = runGit }) {

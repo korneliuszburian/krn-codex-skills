@@ -686,3 +686,11 @@ test("a leading ./ does not hide a duplicate trigger", () => {
   assert.ok(errors.some((error) => error.includes("share trigger")), JSON.stringify(errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a non-file workflow-lessons page fails closed", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "docs", "research", "workflow-lessons.md"), { recursive: true });
+  const report = checkLessons({ root });
+  assert.ok(report.errors.some((error) => error.includes("not a regular file")), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
