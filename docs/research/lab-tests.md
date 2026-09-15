@@ -146,6 +146,18 @@ lacks the knowledge. Neither family promotes: the neutral contrast is 0 for both
 luna neutral has zero variance at N=3, and one task per stratum is a separation probe,
 not a frozen confirmation.
 
+### Frozen multi-shape replication v3 (2026-09-14, `results-codex-gpt-5.6-luna-v3`)
+
+Fixture-integrity repair before the run: in v1/v2 the neutral templates carried an empty lesson table, so the A (row removed) / B (kept) / P (placebo) manipulation was a no-op there and the neutral A/B/P files were byte-identical — the neutral contrast was pure noise. `setup-tasks.sh` now writes a shape-matched, task-irrelevant row (a changelog/release coupling with trigger `path:CHANGELOG.md`, never matching the changed src path) for every neutral, and the earlier disclosed-coupling visible test is removed, so all four neutrals are consistent and the arm manipulation is a real file change in both strata.
+
+`check-tasks.sh` (new) is the fixture falsifier, 8/8: the gold patch passes every held-out; the requested-change-only patch passes the visible `node --test` but fails the held-out coupling; decisive recall is 1 and neutral recall 0; and the staged A/B/P lesson files differ in both strata. Frozen identity: salt `fe3deb2f82f07d4a`, tree ROOT `fbdfe527c50aadcd` over 80 files (`manifest-tasks.sh`), runner hashes `gate-tasks-codex.sh 96cfb547…`, `isolation-run-codex.sh 6074a3e6…`.
+
+Result (gpt-5.6-luna via codex, 4 shapes × 2 strata × A/B/P × 3 reps = 72 executions, zero retries): decisive A 0/12, B 12/12, P 0/12; neutral A/B/P 0/12; `theta = 1.000`. All 72 `served_model=gpt-5.6-luna`, `model_mismatch=no`; `sentinel_leak=no` in all 72 `.out` files.
+
+Self-found gate defect fixed here: `gate-tasks*.sh` ran a `sentinel_leak=YES` promotion-kill but never wrote `sentinel_leak=` into `runs.txt`, so the check was vacuous (it passed on any output). Both scripts now extract and record `sentinel_leak=`, and the kill fails closed on `YES` or on a missing field; re-freeze the scripts before any future run. The luna v3 sentinel is verified post-hoc from the 72 `.out` files.
+
+Bound and non-promotion: the neutral is degenerate at the floor (no arm passes), so `theta` is identified by construction rather than by an informative control and the registered interior arm-A rate is still unmet; the four shapes are structure-matched (constant plus revision constant), not mechanism-independent; and this is one family at N=3 with no frozen power analysis. No promotion; mechanism-independent fixtures (PRD 0003) and the power simulation (PRD 0002) remain the prerequisites before a confirmation. The same frozen set is being run on the authorized deepseek family (`results-deepseek-v3`) for cross-family comparability.
+
 ## LT-5 separation gate (2026-09-13)
 
 One decisive plus one neutral task, arms A (lesson row removed), B (real
