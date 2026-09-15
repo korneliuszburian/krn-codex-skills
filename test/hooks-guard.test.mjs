@@ -88,3 +88,9 @@ test("a destructive pipe without expansion keeps the composition message", () =>
   assert.match(reason, /shell composition/, reason);
 });
 
+test("a read-only writer under a || fallback is allowed, a protected one is not", () => {
+  assert.equal(decision("Bash", "sed -n 1,5p README.md || true"), null, "a read-only sed || true must be allowed");
+  assert.ok(decision("Bash", "tee .env || true"), "a protected writer under || must stay denied");
+  assert.ok(decision("Bash", "rm -rf .git || true"), "a protected rm under || must stay denied");
+});
+

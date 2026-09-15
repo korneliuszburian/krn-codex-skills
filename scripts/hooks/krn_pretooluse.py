@@ -268,12 +268,13 @@ def static_simple_words(command: str) -> tuple[str, ...] | None:
 
 
 def split_safe_and_chain(command: str) -> tuple[str, ...] | None:
-    """Split a chain only when its sole shell operator is literal ``&&``.
+    """Split a chain only when its shell operators are literal ``&&`` or ``||``.
 
     The hook still refuses pipes, redirects, substitutions, globs, and other
-    shell composition.  Allowing a concrete ``&&`` chain lets normal cleanup
-    such as ``rm -rf build && npm run check`` proceed while every destructive
-    segment is checked independently.
+    shell composition.  Allowing a concrete ``&&``/``||`` chain lets normal
+    cleanup such as ``rm -rf build && npm run check`` or a read-only probe
+    guarded by ``... || true`` proceed while every segment is checked
+    independently.  A lone ``|``, ``;``, or redirect still returns ``None``.
     """
 
     segments: list[str] = []
@@ -314,7 +315,17 @@ def split_safe_and_chain(command: str) -> tuple[str, ...] | None:
             index += 2
             segment_start = index
             continue
-        if character in {";", "|", "<", ">", "(", ")", "{", "}", "\n", "\r", "$", "`", "*", "?", "["}:
+        if character == "|":
+            if index + 1 >= len(command) or command[index + 1] != "|":
+                return None
+            segment = command[segment_start:index].strip()
+            if not segment:
+                return None
+            segments.append(segment)
+            index += 2
+            segment_start = index
+            continue
+        if character in {";", "<", ">", "(", ")", "{", "}", "\n", "\r", "$", "`", "*", "?", "["}:
             return None
         index += 1
     if quote is not None:
