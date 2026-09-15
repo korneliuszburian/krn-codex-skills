@@ -753,3 +753,14 @@ test("a COMPLETE capsule cannot carry pending or unevidenced review", () => {
   assert.ok(sneakyBare.errors.some((error) => error.rule === "complete-review-without-evidence"), JSON.stringify(sneakyBare.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a restart pointer through an in-repo symlink outside the repo is divergent", () => {
+  const { root, head } = makeRepo();
+  const outside = mkdtempSync(join(tmpdir(), "krn-outside-"));
+  symlinkSync(outside, join(root, "link"));
+  writeCapsule(root, capsule({ fixedPoint: `HEAD=${head}` }).replace("Restart state: ABSENT", "Restart state: link"));
+  const report = inspectSpineState({ repo: root });
+  assert.ok(rules(report).includes("restart-path-outside-repo"), rules(report).join(","));
+  rmSync(root, { recursive: true, force: true });
+  rmSync(outside, { recursive: true, force: true });
+});

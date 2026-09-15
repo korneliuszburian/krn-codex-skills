@@ -70,6 +70,15 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
 
   const currentHead = usableGit ? git(root, ["rev-parse", "HEAD"]) : { ok: false, out: "" };
   const seenDirectories = new Set();
+  const realRoot = (() => { try { return realpathSync(root); } catch { return root; } })();
+  const containedInRepo = (relative) => {
+    if (!isInside(root, relative)) return false;
+    try {
+      return isInside(realRoot, realpathSync(resolve(root, relative)));
+    } catch {
+      return true;
+    }
+  };
 
   for (const entry of candidates) {
     if (entry.kind === "resolve") {
@@ -150,7 +159,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
 
     if (restart && stripMarkup(restart) !== "ABSENT") {
       const restartPath = stripMarkup(restart);
-      if (!isInside(root, restartPath)) {
+      if (!containedInRepo(restartPath)) {
         errors.push({ id: entry.name, rule: "restart-path-outside-repo", detail: restartPath });
       } else if (!existsSync(resolve(root, restartPath))) {
         errors.push({ id: entry.name, rule: "restart-path-missing", detail: restartPath });
@@ -173,7 +182,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
           runOwners.set(ownerKey, entry.name);
         }
         listedRunPointers.add(normalizedPointer);
-        if (!isInside(root, parsedEntry.pointer)) {
+        if (!containedInRepo(parsedEntry.pointer)) {
           errors.push({ id: entry.name, rule: "cleanup-pointer-outside-repo", detail: parsedEntry.pointer });
         } else if ((parsedEntry.state === "ACTIVE" || parsedEntry.state === "BLOCKED") && !existsSync(resolve(root, parsedEntry.pointer))) {
           errors.push({ id: entry.name, rule: "ghost-cleanup-entry", detail: `${parsedEntry.pointer} (${parsedEntry.state})` });
