@@ -16,16 +16,26 @@ export function loadCases(file) {
   const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
   const cases = parsed?.cases;
   if (!Array.isArray(cases) || cases.length === 0) throw new Error(`${file} declares no conformance cases`);
+  const program = parsed.program ?? "scripts/krn-codex.mjs";
+  if (typeof program !== "string" || !program.trim()) throw new Error(`${file}: program must be a non-empty relative path`);
+  const rootArg = parsed.rootArg === undefined ? "--root" : parsed.rootArg;
+  if (rootArg !== null && (typeof rootArg !== "string" || !rootArg.trim())) throw new Error(`${file}: rootArg must be a flag string or null`);
   const ids = new Set();
   for (const entry of cases) {
     if (!entry || typeof entry.id !== "string" || !entry.id.trim()) throw new Error(`${file}: a case needs a non-empty id`);
     if (!Array.isArray(entry.steps) || entry.steps.length === 0) throw new Error(`${file}: case ${entry.id} needs steps`);
-    if (!Array.isArray(entry.run) || entry.run.length === 0) throw new Error(`${file}: case ${entry.id} needs run argv`);
+    if (!Array.isArray(entry.run)) throw new Error(`${file}: case ${entry.id} needs run argv`);
     if (!entry.expect || typeof entry.expect.exit !== "number") throw new Error(`${file}: case ${entry.id} needs expect.exit`);
+    if (entry.program !== undefined && (typeof entry.program !== "string" || !entry.program.trim())) throw new Error(`${file}: case ${entry.id} program must be a non-empty relative path`);
+    if (entry.rootArg !== undefined && entry.rootArg !== null && (typeof entry.rootArg !== "string" || !entry.rootArg.trim())) throw new Error(`${file}: case ${entry.id} rootArg must be a flag string or null`);
     if (ids.has(entry.id)) throw new Error(`${file}: duplicate case id ${entry.id}`);
     ids.add(entry.id);
   }
-  return cases;
+  return cases.map((entry) => ({
+    ...entry,
+    program: entry.program ?? program,
+    rootArg: entry.rootArg === undefined ? rootArg : entry.rootArg,
+  }));
 }
 
 export function caseIds(file) {
@@ -88,8 +98,10 @@ function runCase({ candidate, entry, workRoot = os.tmpdir() }) {
         fs.writeFileSync(target, content.replaceAll("{{HEAD}}", sha).replaceAll("{{HEAD7}}", sha.slice(0, 7)));
       }
     }
-    const program = path.join(candidate, "scripts", "krn-codex.mjs");
-    const run = spawnSync(process.execPath, [program, ...entry.run, "--root", dir], {
+    const program = path.join(candidate, entry.program ?? "scripts/krn-codex.mjs");
+    const rootArg = entry.rootArg === undefined ? "--root" : entry.rootArg;
+    const argv = rootArg ? [...entry.run, rootArg, dir] : [...entry.run];
+    const run = spawnSync(process.execPath, [program, ...argv], {
       cwd: dir,
       encoding: "utf8",
       timeout: entry.timeoutMs ?? 120000,

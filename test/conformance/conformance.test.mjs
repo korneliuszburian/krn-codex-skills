@@ -39,6 +39,25 @@ test("a positive public-seam case passes against this checkout", () => {
   assert.deepEqual(results, [{ id: "changes-docs-only-accepted", ok: true, detail: "", exit: 0 }]);
 });
 
+test("a case can name its own program and skip the root flag", () => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-conformance-prog-"));
+  const candidate = join(dir, "candidate");
+  mkdirSync(candidate, { recursive: true });
+  writeFileSync(join(candidate, "tool.mjs"), "process.stdout.write(JSON.stringify(process.argv.slice(2)) + \"\\n\");\n");
+  const file = join(dir, "cases.json");
+  writeFileSync(file, JSON.stringify({
+    program: "tool.mjs",
+    rootArg: null,
+    cases: [{ id: "argv", steps: [{ files: { "marker.txt": "x\n" }, message: "chore" }], run: ["Ada"], expect: { exit: 0, stdoutIncludes: ["Ada"] } }],
+  }));
+  const cases = loadCases(file);
+  assert.equal(cases[0].program, "tool.mjs");
+  assert.equal(cases[0].rootArg, null);
+  const results = runConformance({ candidate, cases });
+  assert.deepEqual(results, [{ id: "argv", ok: true, detail: "", exit: 0 }]);
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test("a candidate whose CLI misbehaves is reported as a failure", () => {
   const candidate = mkdtempSync(join(tmpdir(), "krn-conformance-bad-"));
   mkdirSync(join(candidate, "scripts"), { recursive: true });
