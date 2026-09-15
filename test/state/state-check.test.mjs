@@ -215,6 +215,7 @@ test("a symlinked capsule directory inside the repo is followed", () => {
   assert.equal(report.capsules.length, 1);
   assert.equal(report.status, "divergent");
   assert.ok(rules(report).includes("invalid-outcome-state"));
+  assert.ok(rules(report).includes("runs-not-ignored"), rules(report).join(","));
   rmSync(root, { recursive: true, force: true });
 });
 

@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
 
 import { isInside } from "../support/path-rules.mjs";
 
@@ -79,7 +79,7 @@ export function capsuleStoreReport(root) {
     if (!isInside(realRoot, resolvedState)) { entries.push({ id: entry.name, link, resolvedDirectory: real, error: { rule: "capsule-outside-repo", detail: resolvedState } }); continue; }
     let text;
     try { text = readFileSync(file, "utf8"); } catch { entries.push({ id: entry.name, link, resolvedDirectory: real, error: { rule: "unreadable-capsule", detail: relativePath } }); continue; }
-    entries.push({ id: entry.name, link, resolvedDirectory: real, state: { relativePath, text } });
+    entries.push({ id: entry.name, link, resolvedDirectory: real, state: { relativePath, resolvedRelativePath: relative(realRoot, resolvedState).split(sep).join("/"), text } });
   }
   return { storeErrors, entries };
 }

@@ -62,7 +62,7 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
   const { storeErrors, entries } = capsuleStoreReport(root);
   for (const error of storeErrors) errors.push({ id: "runs", rule: error.rule, detail: error.detail });
   const candidates = [...entries]
-    .map((entry) => ({ ...entry, name: entry.id, relativePath: entry.state?.relativePath, text: entry.state?.text }))
+    .map((entry) => ({ ...entry, name: entry.id, relativePath: entry.state?.relativePath, resolvedRelativePath: entry.state?.resolvedRelativePath, text: entry.state?.text }))
     .sort(
       (left, right) =>
         Number(Boolean(left.link)) - Number(Boolean(right.link)) || left.name.localeCompare(right.name),
@@ -93,13 +93,14 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     } else if (!hasGit) {
       errors.push({ id: entry.name, rule: "git-unavailable", detail: "git is not on PATH" });
     } else {
-      const ignore = git(root, ["check-ignore", "-q", relativePath]);
+      const ignorePath = entry.resolvedRelativePath ?? relativePath;
+      const ignore = git(root, ["check-ignore", "-q", ignorePath]);
       const isIgnored = ignore.ok;
       const ignorable = ignore.ok || ignore.status === 1;
       ignored.checked += 1;
       if (isIgnored) ignored.ignored += 1;
-      else if (ignorable) errors.push({ id: entry.name, rule: "runs-not-ignored", detail: `${relativePath} is not git-ignored` });
-      else warnings.push({ id: entry.name, rule: "gitignore-unverified", detail: `${relativePath}: git check-ignore failed` });
+      else if (ignorable) errors.push({ id: entry.name, rule: "runs-not-ignored", detail: `${ignorePath} is not git-ignored` });
+      else warnings.push({ id: entry.name, rule: "gitignore-unverified", detail: `${ignorePath}: git check-ignore failed` });
     }
 
     const fields = Object.fromEntries(ABI_LABELS.map((label) => [label, fieldLine(text, label)]));
