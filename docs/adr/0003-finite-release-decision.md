@@ -67,6 +67,28 @@ recorded.
   `--frozen`, so a change is judged by the acceptance rules that preceded it and a
   case cannot be weakened in place.
 
+## Release decision checklist
+
+The fixed-point review checks each claimed boundary against the frozen SHA. The
+frozen set lives in `config/conformance.json` and runs with
+`npm run test:conformance`; CI also runs the base ref's copy against the
+candidate (`--frozen`), so a case cannot be weakened in place.
+
+| Claimed boundary | Positive case | Negative case |
+|---|---|---|
+| Change contract | `changes-docs-only-accepted` | `changes-surface-without-contract`, `changes-unknown-check` |
+| Applicability withdrawal | (guarded by the same rule) | `changes-applicability-withdrawn` |
+| Lesson gate resolution | `lessons-gate-resolves` | `lessons-gate-unresolved` |
+| Lesson proof execution | `lessons-verify-runs-the-named-proof` | `lessons-verify-detects-a-failing-proof` |
+| Trigger delivery | `memory-delivers-a-triggered-lesson` | `memory-ignores-an-unrelated-change` |
+| Completion evidence | `state-complete-with-evidence` | `state-complete-without-evidence`, `state-complete-evidence-unresolved` |
+| Interrupted / resumed continuity | `state-resume-carries-next-action` | (single direction) |
+| Skill export | (non-hermetic) | `skills-check-missing-export` |
+
+The fixed-point review's remaining obligations: run `npm run gate` on the frozen
+SHA; confirm the CI frozen step ran the base copy; and accept or reject the
+residual bounds below.
+
 ## Residual bounds
 
 - This is a single-writer repository, so "independent" can only mean a verifier
