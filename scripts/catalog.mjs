@@ -157,6 +157,8 @@ function usageStateContract(result) {
     result.malformed_lines +
     (result.coverage.oversized_candidate_lines || 0) +
     (result.coverage.records_without_usable_date || 0) +
+    (result.coverage.skipped_unreadable_files || 0) +
+    (result.coverage.skipped_unreadable_directories || 0) +
     // A file named for a day before the window is skipped, but a resumed session
     // appends in-window records to it, so its records are unaccounted for.
     (result.coverage.skipped_files_before_window || 0);
@@ -171,6 +173,8 @@ function usageStateContract(result) {
       malformed_lines: result.malformed_lines,
       oversized_candidate_lines: result.coverage.oversized_candidate_lines || 0,
       records_without_usable_date: result.coverage.records_without_usable_date || 0,
+      skipped_unreadable_files: result.coverage.skipped_unreadable_files || 0,
+      skipped_unreadable_directories: result.coverage.skipped_unreadable_directories || 0,
       skipped_files_before_window: result.coverage.skipped_files_before_window || 0,
     },
     ...externalStateBoundary(),

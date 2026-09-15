@@ -31,7 +31,7 @@ function timestampMs(record) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-async function* rolloutFiles(sessionsRoot) {
+async function* rolloutFiles(sessionsRoot, coverage) {
   const pendingDirectories = [sessionsRoot];
 
   while (pendingDirectories.length > 0) {
@@ -40,7 +40,10 @@ async function* rolloutFiles(sessionsRoot) {
     try {
       directory = await opendir(directoryPath);
     } catch (error) {
-      if (error?.code === "ENOENT" || error?.code === "EACCES" || error?.code === "EPERM") continue;
+      if (error?.code === "ENOENT" || error?.code === "EACCES" || error?.code === "EPERM") {
+        if (coverage && error.code !== "ENOENT") coverage.skipped_unreadable_directories += 1;
+        continue;
+      }
       throw error;
     }
 
@@ -102,6 +105,7 @@ export async function scanCatalogUsage({
       skipped_files_before_window: 0,
       skipped_files_after_window: 0,
       skipped_unreadable_files: 0,
+      skipped_unreadable_directories: 0,
       undated_rollout_files_scanned: 0,
       records_without_usable_date: 0,
       max_record_bytes: MAX_ROLLOUT_RECORD_BYTES,
@@ -116,7 +120,7 @@ export async function scanCatalogUsage({
     return { aggregates: finalAggregates(aggregates), ...report };
   }
 
-  for await (const filePath of rolloutFiles(sessionsRoot)) {
+  for await (const filePath of rolloutFiles(sessionsRoot, report.coverage)) {
     const fileDay = derivedRolloutDay(sessionsRoot, filePath);
     if (fileDay !== null && fileDay < window.fromDay) {
       report.coverage.skipped_files_before_window += 1;
@@ -394,12 +398,14 @@ export function canonicalSkillEntries(inventory) {
     if (!validId) return [];
     return [skillPath, targetPath].filter(isCanonicalSkillPath).map((path) => ({ id: validId, path }));
   });
-  const plugins = (inventory?.plugins ?? []).flatMap((plugin) =>
-    (plugin.allSkillPaths || plugin.skillPaths || [])
+  const plugins = (inventory?.plugins ?? []).flatMap((plugin) => {
+    const pluginId = typeof plugin.id === "string" ? safeId(plugin.id) : null;
+    if (!pluginId) return [];
+    return (plugin.allSkillPaths || plugin.skillPaths || [])
       .filter(isCanonicalSkillPath)
-      .map((skillPath) => ({ id: `${plugin.id}:${path.basename(path.dirname(skillPath))}`, path: skillPath }))
-      .filter((entry) => safeId(entry.id)),
-  );
+      .map((skillPath) => ({ id: `${pluginId}:${path.basename(path.dirname(skillPath))}`, path: skillPath }))
+      .filter((entry) => safeId(entry.id));
+  });
   return [...skills, ...plugins];
 }
 

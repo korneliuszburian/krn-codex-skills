@@ -482,3 +482,10 @@ test("canonicalSkills normalizes absolute SKILL.md paths", () => {
   assert.throws(() => canonicalSkills([{ id: "bad id", path: "/skills/b/SKILL.md" }]), /safe catalog identifier/);
   assert.throws(() => canonicalSkills(["/logs/alpha/SKILL.md"]), /forbidden path family/);
 });
+
+test("canonicalSkillEntries ignores a plugin without a valid id", () => {
+  const missing = canonicalSkillEntries({ skills: [], plugins: [{ allSkillPaths: ["/cache/market/demo/1.0.0/skills/alpha/SKILL.md"] }] });
+  assert.deepEqual(missing, []);
+  const valid = canonicalSkillEntries({ skills: [], plugins: [{ id: "demo@market", allSkillPaths: ["/cache/market/demo/1.0.0/skills/alpha/SKILL.md"] }] });
+  assert.deepEqual(valid.map((entry) => entry.id), ["demo@market:alpha"]);
+});
