@@ -62,6 +62,7 @@ test("a gate must be an owned path, not a traversal, escape, or directory", () =
   mkdirSync(join(root, "scripts"), { recursive: true });
   writeFileSync(join(root, "scripts", "validate.mjs"), "// gate\n");
   mkdirSync(join(root, "docs", "fakedir.mjs"), { recursive: true });
+  writeFileSync(join(root, "README.md"), "root readme\n");
 
   const resolveLesson = (gate) => {
     writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), `| Lesson | Evidence | Enforced by |\n|---|---|---|\n| A | probe | \`${gate}\` |\n`);

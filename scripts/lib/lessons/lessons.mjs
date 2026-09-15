@@ -223,12 +223,13 @@ function resolveReference(root, scripts, reference) {
   if (/^(scripts|test|skills|config|docs|\.github)\//.test(candidate)) {
     const absolute = path.resolve(root, candidate);
     const rel = path.relative(root, absolute);
-    if (rel && !rel.startsWith("..") && !path.isAbsolute(rel)) {
+    const owned = (value) => value && !value.startsWith("..") && !path.isAbsolute(value) && /^(scripts|test|skills|config|docs|\.github)\//.test(value.split(path.sep).join("/"));
+    if (owned(rel)) {
       let stat;
       try { stat = fs.statSync(absolute, { throwIfNoEntry: false }); } catch { stat = null; }
       if (stat?.isFile()) {
         const realRel = posixRelative(fs.realpathSync(root), fs.realpathSync(absolute));
-        if (realRel && !realRel.startsWith("..") && !path.isAbsolute(realRel)) {
+        if (owned(realRel)) {
           return { ok: true, kind: "path", path: realRel };
         }
       }
