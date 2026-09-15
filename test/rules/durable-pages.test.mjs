@@ -44,7 +44,7 @@ test("a contract referencing a missing repo path is reported", () => {
   assert.ok(errors.some((error) => error.includes("docs/research/missing.md")), JSON.stringify(errors));
   assert.ok(errors.some((error) => error.includes("config/missing.toml")), "any extension is checked");
   assert.ok(!errors.some((error) => error.includes("topic.md")), "an existing path is fine");
-  assert.ok(!errors.some((error) => error.includes("docs/research/ ")), "an existing directory is fine");
+  assert.ok(!errors.some((error) => error.endsWith("missing path: docs/research/")), "an existing directory is fine");
   assert.ok(!errors.some((error) => error.includes(".codex/config.toml")), "an installed path is excluded");
   rmSync(root, { recursive: true, force: true });
 });

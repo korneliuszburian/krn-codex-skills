@@ -84,6 +84,7 @@ test("a leading parenthesized expression is a value position, not a control head
 test("a regex after a unary sign pair is not read as division", () => {
   assert.equal(stripComments("const x = a - -/}/; // secret\n").includes("secret"), false);
   assert.ok(maskLiterals("const x = a - -/}/;\nconst y = 2;\n").includes("2"));
+  assert.ok(!maskLiterals("const x = a - -/}/;\n").includes("}"), "the /}/ body is masked as a literal");
   assert.equal(maskLiterals("let n = 0; n++ / 2; // secret").includes("secret"), false);
 });
 

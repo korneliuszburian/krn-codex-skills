@@ -136,7 +136,7 @@ test("a comma inside a regex literal does not create a phantom symbol", () => {
 });
 
 test("a removed line beginning with -- is not treated as a file header", () => {
-  const diff = ["diff --git a/x.mjs b/x.mjs", "--- a/x.mjs", "+++ b/x.mjs", "@@ -1,3 +1,3 @@", "--- old --", "-export function f() {", "}", " export const g = 1;"].join("\n");
+  const diff = ["diff --git a/x.mjs b/x.mjs", "--- a/x.mjs", "+++ b/x.mjs", "@@ -1,3 +1,3 @@", "--- a/ghost.mjs", "-export function f() {", "}", " export const g = 1;"].join("\n");
   const specs = [];
   const git = (_root, args) => {
     if (args.includes("--unified=0")) return { ok: true, out: diff };
@@ -146,6 +146,7 @@ test("a removed line beginning with -- is not treated as a file header", () => {
   touchedSymbolFiles({ root: ".", git, sha: "abc1234" });
   assert.ok(specs.length > 0, "a diff is parsed");
   assert.ok(specs.every((spec) => spec === "abc1234:x.mjs" || spec === "abc1234^:x.mjs"), JSON.stringify(specs));
+  assert.ok(!specs.some((spec) => spec.includes("ghost")), JSON.stringify(specs));
 });
 
 test("a unary sign before a regex does not understate the enclosing span", () => {
