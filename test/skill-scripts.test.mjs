@@ -80,6 +80,15 @@ test("gate-check requires approval and rewrites the ledger on approve and reveri
     const mismatch = run(gateCheck, ["--reverify", ledger, "--approval-dir", approvals]);
     assert.equal(mismatch.status, 1);
     assert.match(mismatch.stdout, /approval invalid: binding differs/);
+
+    const trap = join(root, "trap.md");
+    writeFileSync(
+      trap,
+      ["- [ ] trap: a substring trap", "  CHECK: printf 'not ok'", "  EXPECT: ok", "  EVIDENCE: pending", ""].join("\n"),
+    );
+    const trapped = run(gateCheck, ["--approve", trap, "--approval-dir", approvals]);
+    assert.equal(trapped.status, 1, trapped.stdout);
+    assert.doesNotMatch(readFileSync(trap, "utf8"), /^- \[x\] trap/m);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

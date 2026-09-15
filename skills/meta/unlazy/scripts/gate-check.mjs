@@ -197,7 +197,10 @@ function expectedMatches(expect, output) {
   if (regex) {
     try { return new RegExp(regex[1], regex[2]).test(output); } catch { return false; }
   }
-  return output.includes(expect);
+  const want = expect.trim();
+  if (want === "") return false;
+  const trimmed = output.trim();
+  return trimmed === want || trimmed.split(/\r?\n/).some((line) => line.trim() === want);
 }
 
 function compactOutput(output) {
