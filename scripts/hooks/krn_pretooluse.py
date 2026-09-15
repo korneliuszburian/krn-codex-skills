@@ -95,6 +95,7 @@ WRAPPER_VALUE_FLAGS = {
     "doas": {"-u", "-C"},
 }
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+EXPANSION_OR_GLOB = re.compile(r"[*?\[]|\$\(|\$\{|\$[A-Za-z_]|`")
 
 
 def strip_wrappers(words: tuple[str, ...]) -> tuple[str, ...]:
@@ -559,6 +560,11 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
         return None
 
     if not effective or direct_destructive_kind(effective) is None:
+        if EXPANSION_OR_GLOB.search(literal_text):
+            return (
+                "destructive command with an expansion or glob target is blocked; "
+                "name one concrete path"
+            )
         return (
             "literal destructive text appears in shell composition or an "
             "unsupported command; rewrite it as one reviewed direct command"

@@ -72,3 +72,19 @@ test("clustered sed -i, bare git checkout ., and rtk-prefixed writers are denied
   assert.ok(decision("Bash", "git checkout ."), "git checkout . must be denied");
   assert.ok(decision("Bash", "rtk proxy mv /tmp/x .env"), "rtk proxy mv must be denied");
 });
+
+test("a destructive glob or expansion target names the concrete-path rule", () => {
+  const glob = decision("Bash", "rm -rf build/*");
+  assert.ok(glob, "rm with a glob must stay blocked");
+  assert.match(glob, /name one concrete path/, glob);
+  const expansion = decision("Bash", 'rm -rf "$TARGET"');
+  assert.ok(expansion, "rm with an expansion must stay blocked");
+  assert.match(expansion, /name one concrete path/, expansion);
+});
+
+test("a destructive pipe without expansion keeps the composition message", () => {
+  const reason = decision("Bash", "rm -rf build | tee log");
+  assert.ok(reason, "a destructive pipe must stay blocked");
+  assert.match(reason, /shell composition/, reason);
+});
+
