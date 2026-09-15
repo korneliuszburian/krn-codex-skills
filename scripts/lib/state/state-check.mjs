@@ -232,8 +232,12 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         }
       }
       const participants = fields["Native Goal identity/state and configured tracker item/state"];
-      if (participants && /\bstate\s*[=:]\s*["\']?(active|open|in[ _-]?progress|blocked|deferred)\b/i.test(stripMarkup(participants))) {
-        errors.push({ id: entry.name, rule: "complete-with-active-participant", detail: stripMarkup(participants) });
+      const participantText = participants ? stripMarkup(participants) : "";
+      const activeParticipant =
+        /\bstate\s*[=:]\s*["']?(active|open|in[ _-]?progress|blocked|deferred|running)\b/i.test(participantText)
+        || /\((?:active|open|in[ _-]?progress|blocked|deferred|running)\)/i.test(participantText);
+      if (participants && activeParticipant) {
+        errors.push({ id: entry.name, rule: "complete-with-active-participant", detail: participantText });
       }
     }
   }

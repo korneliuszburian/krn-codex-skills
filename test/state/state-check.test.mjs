@@ -626,6 +626,15 @@ test("a COMPLETE capsule with an active Goal or tracker is divergent", () => {
   );
   const report = inspectSpineState({ repo: root });
   assert.ok(rules(report).includes("complete-with-active-participant"), rules(report).join(","));
+  writeCapsule(
+    root,
+    capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(
+      "Native Goal identity/state and configured tracker item/state: none",
+      "Native Goal identity/state and configured tracker item/state: goal=goal_1 (running); tracker=issue_9 open",
+    ),
+  );
+  const loose = inspectSpineState({ repo: root });
+  assert.ok(rules(loose).includes("complete-with-active-participant"), rules(loose).join(","));
   rmSync(root, { recursive: true, force: true });
 });
 
