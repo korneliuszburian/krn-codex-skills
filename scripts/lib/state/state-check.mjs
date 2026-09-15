@@ -220,15 +220,15 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         errors.push({ id: entry.name, rule: "complete-with-friction", detail: stripMarkup(friction) });
       }
       const review = fields["Review fixed point and Standards / Spec disposition"];
-      const reviewText = review ? stripMarkup(review) : "";
-      if (/^pending$/i.test(reviewText)) {
+      const reviewText = review ? stripMarkup(review).trim() : "";
+      const pendingReview = /^(pending|unreviewed|not[ _-]?reviewed|tbd)\b/i.test(reviewText);
+      if (pendingReview) {
         errors.push({ id: entry.name, rule: "complete-with-pending-review", detail: reviewText });
-      } else if (
-        review &&
-        !/^(none|not-applicable)$/i.test(reviewText) &&
-        !/evidence=/.test(review)
-      ) {
-        errors.push({ id: entry.name, rule: "complete-review-without-evidence", detail: reviewText });
+      } else if (review && !/^(none|not-applicable)$/i.test(reviewText)) {
+        const evidence = review.match(/evidence\s*=\s*([^\s;,`]+)/i);
+        if (!evidence || /^(none|n\/a|na|tbd|-|pending)$/i.test(evidence[1])) {
+          errors.push({ id: entry.name, rule: "complete-review-without-evidence", detail: reviewText });
+        }
       }
       const participants = fields["Native Goal identity/state and configured tracker item/state"];
       if (participants && /\bstate\s*[=:]\s*["\']?(active|open|in[ _-]?progress|blocked|deferred)\b/i.test(stripMarkup(participants))) {

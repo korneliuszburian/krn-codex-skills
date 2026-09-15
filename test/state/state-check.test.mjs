@@ -735,5 +735,11 @@ test("a COMPLETE capsule cannot carry pending or unevidenced review", () => {
   writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(`${field}: none`, `${field}: evidence=test:state exit=0`));
   const evidenced = inspectSpineState({ repo: root });
   assert.ok(!evidenced.errors.some((error) => error.rule.startsWith("complete-review")), JSON.stringify(evidenced.errors));
+  writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(`${field}: none`, `${field}: pending; evidence=none`));
+  const sneakyPending = inspectSpineState({ repo: root });
+  assert.ok(sneakyPending.errors.some((error) => error.rule === "complete-with-pending-review"), JSON.stringify(sneakyPending.errors));
+  writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(`${field}: none`, `${field}: inspected; evidence=none`));
+  const sneakyBare = inspectSpineState({ repo: root });
+  assert.ok(sneakyBare.errors.some((error) => error.rule === "complete-review-without-evidence"), JSON.stringify(sneakyBare.errors));
   rmSync(root, { recursive: true, force: true });
 });
