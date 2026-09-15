@@ -664,3 +664,25 @@ test("lesson parsing uses the common fence rules for mixed fences", () => {
   ].join("\n");
   assert.deepEqual(parseLessonText(page).rows.map((row) => row.lesson), ["Real"]);
 });
+
+test("a trigger value with leading whitespace is trimmed and still matches", () => {
+  const root = makeRoot();
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| L | probe | `test:state` | | | path: scripts/x.mjs |\n",
+  );
+  const hits = recallLessons({ root, files: ["scripts/x.mjs"] });
+  assert.equal(hits.length, 1, JSON.stringify(hits));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a leading ./ does not hide a duplicate trigger", () => {
+  const root = makeRoot();
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| A | probe | `test:state` | | | path:./scripts/x.mjs |\n| B | probe | `test:state` | | | path:scripts/x.mjs |\n",
+  );
+  const { errors } = checkLessons({ root });
+  assert.ok(errors.some((error) => error.includes("share trigger")), JSON.stringify(errors));
+  rmSync(root, { recursive: true, force: true });
+});

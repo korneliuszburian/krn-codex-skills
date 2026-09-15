@@ -113,12 +113,20 @@ const globToRegex = (glob) => {
   }
 };
 
+function normalizeTriggerEntry(entry) {
+  const trimmed = entry.trim();
+  const scoped = trimmed.match(/^(path|churn|symbol):(.*)$/);
+  if (!scoped) return trimmed;
+  return `${scoped[1]}:${scoped[2].trim().replace(/^\.\//, "")}`;
+}
+
 function triggerEntries(trigger, prefix) {
   return (trigger ?? "")
     .split(/[;,]/)
     .map((entry) => entry.trim())
     .filter((entry) => entry.startsWith(prefix))
-    .map((entry) => entry.slice(prefix.length).replace(/^\.\//, ""));
+    .map((entry) => entry.slice(prefix.length).trim().replace(/^\.\//, ""))
+    .filter(Boolean);
 }
 
 export function recallLessons({ root, files = [], symbols = [], hot = [], symbolFiles = new Map() }) {
@@ -241,7 +249,8 @@ export function lessonStructureFindings({ root }) {
   const triggerOwners = new Map();
   for (const row of activeRows) {
     for (const entry of (row.trigger ?? "").split(/[;,]/).map((value) => value.trim()).filter(Boolean)) {
-      triggerOwners.set(entry, [...(triggerOwners.get(entry) ?? []), row.lesson]);
+      const normalized = normalizeTriggerEntry(entry);
+      triggerOwners.set(normalized, [...(triggerOwners.get(normalized) ?? []), row.lesson]);
     }
   }
   for (const [trigger, owners] of triggerOwners) {
