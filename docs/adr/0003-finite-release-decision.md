@@ -73,12 +73,15 @@ recorded.
   pinned at a fixed ref and a fixture set not authored in the same range as the
   code; true third-party approval is unavailable, and the producer still controls
   which obligations exist.
-- The state-evidence and lesson-anchor weaknesses are recorded, not yet guarded.
-  A probe of the four legacy rows carrying recorded occurrences found the
-  falsifier test file absent at the occurrence commits, so "the case was red at
-  the witnessed failure" is not mechanizable for them; `lessons verify` proves
-  only green at HEAD, and requiring red at the occurrence would fail closed on
-  every row whose test was authored after the failure.
+- The lesson-anchor weakness is recorded, not guarded. The state-evidence
+  weakness is now partly guarded: an `evidence=` token that names an artifact
+  must exist under the repository and `case:<id>` must be a frozen conformance
+  case, though the token is still not bound to an independently produced result
+  at the exact HEAD. A probe of the four legacy rows carrying recorded
+  occurrences found the falsifier test file absent at the occurrence commits, so
+  "the case was red at the witnessed failure" is not mechanizable for them;
+  `lessons verify` proves only green at HEAD, and requiring red at the occurrence
+  would fail closed on every row whose test was authored after the failure.
 - The conformance ratchet fails closed when a case is removed, so retiring one
   needs a visible workflow edit; the frozen set covers the `changes check`,
   `lessons check`, `memory recall`, `skills check`, and `state` (check/resume)
