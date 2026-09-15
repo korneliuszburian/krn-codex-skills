@@ -61,6 +61,11 @@ recorded.
   exhaustion→fresh-scan→swarm policy.
 - The blind spot is now mechanical for the trigger case and documented for the
   text and evidence cases.
+- The conformance gate is implemented: `config/conformance.json` holds the frozen
+  public-seam cases, `krn-codex conformance check` runs them against a candidate
+  checkout, and CI runs the base ref's own copy against the candidate with
+  `--frozen`, so a change is judged by the acceptance rules that preceded it and a
+  case cannot be weakened in place.
 
 ## Residual bounds
 
@@ -69,6 +74,9 @@ recorded.
   code; true third-party approval is unavailable, and the producer still controls
   which obligations exist.
 - The state-evidence and lesson-anchor weaknesses are recorded, not yet guarded.
+- The conformance ratchet fails closed when a case is removed, so retiring one
+  needs a visible workflow edit; the case set covers the `changes check`
+  acceptance seam only, not every public command.
 
 ## Rejected alternatives
 

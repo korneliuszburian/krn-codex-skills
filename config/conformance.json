@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "frozen": "2026-09-15",
+  "cases": [
+    {
+      "id": "changes-docs-only-accepted",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{}}\n",
+            "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by |\n|---|---|---|\n",
+            "README.md": "one\n"
+          }
+        },
+        {
+          "message": "docs: update readme",
+          "files": {
+            "README.md": "two\n"
+          }
+        }
+      ],
+      "run": ["changes", "check", "--base", "HEAD~1", "--head", "HEAD"],
+      "expect": {
+        "exit": 0
+      }
+    },
+    {
+      "id": "changes-surface-without-contract",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{}}\n",
+            "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by |\n|---|---|---|\n",
+            "scripts/x.mjs": "export const x = 1;\n"
+          }
+        },
+        {
+          "message": "feat: bump x",
+          "files": {
+            "scripts/x.mjs": "export const x = 2;\n"
+          }
+        }
+      ],
+      "run": ["changes", "check", "--base", "HEAD~1", "--head", "HEAD"],
+      "expect": {
+        "exit": 1,
+        "stderrIncludes": ["missing-change-contract"]
+      }
+    },
+    {
+      "id": "changes-applicability-withdrawn",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{}}\n",
+            "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Couple X | probe | test:lessons | | | path:scripts/x.mjs, symbol:foo | |\n"
+          }
+        },
+        {
+          "message": "docs: narrow the trigger",
+          "files": {
+            "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Couple X | probe | test:lessons | | | path:scripts/x.mjs | |\n"
+          }
+        }
+      ],
+      "run": ["changes", "check", "--base", "HEAD~1", "--head", "HEAD"],
+      "expect": {
+        "exit": 1,
+        "stderrIncludes": ["applicability-withdrawn"]
+      }
+    },
+    {
+      "id": "changes-unknown-check",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{}}\n",
+            "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by |\n|---|---|---|\n",
+            "scripts/x.mjs": "export const x = 1;\n"
+          }
+        },
+        {
+          "message": "feat: bump x\n\nChange-contract: test:nope:red->green",
+          "files": {
+            "scripts/x.mjs": "export const x = 2;\n"
+          }
+        }
+      ],
+      "run": ["changes", "check", "--base", "HEAD~1", "--head", "HEAD"],
+      "expect": {
+        "exit": 1,
+        "stderrIncludes": ["unknown-check"]
+      }
+    }
+  ]
+}

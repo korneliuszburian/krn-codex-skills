@@ -15,6 +15,7 @@ import { churnHot } from "./lib/support/churn.mjs";
 import { runGit } from "./lib/support/git-cli.mjs";
 import { reanchorLessons, verifyLessons } from "./lib/lessons/lessons-verify.mjs";
 import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
+import { caseIds, loadCases, runConformance } from "./lib/conformance/conformance.mjs";
 import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
 
 process.stdout.on("error", (error) => {
@@ -37,6 +38,7 @@ const usage = `Usage:
   krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
   krn-codex lessons <check|verify|reanchor> --root DIR [--json]
   krn-codex changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
+  krn-codex conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]`;
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
@@ -59,6 +61,7 @@ function parseOptions(args) {
     else if (arg === "--yes") options.yes = true;
     else if (arg === "--before") options.before = true;
     else if (arg === "--strict-recall") options.strictRecall = true;
+    else if (arg === "--frozen") options.frozen = true;
     else if (arg === "--source") setOnce("source", "--source", take(index++, "--source"));
     else if (arg === "--root") setOnce("root", "--root", take(index++, "--root"));
     else if (arg === "--base") setOnce("base", "--base", take(index++, "--base"));
@@ -68,6 +71,8 @@ function parseOptions(args) {
       options.symbols = [...(options.symbols ?? []), ...take(index++, "--symbol").split(",").map((entry) => entry.trim()).filter(Boolean)];
     } else if (arg === "--keep") setOnce("keep", "--keep", take(index++, "--keep"));
     else if (arg === "--head") setOnce("head", "--head", take(index++, "--head"));
+    else if (arg === "--candidate") setOnce("candidate", "--candidate", take(index++, "--candidate"));
+    else if (arg === "--filter") setOnce("filter", "--filter", take(index++, "--filter"));
     else if (arg === "--upstream") setOnce("upstream", "--upstream", take(index++, "--upstream"));
     else if (arg.startsWith("--")) fail(`unknown option: ${arg}`);
     else positional.push(arg);
@@ -88,6 +93,9 @@ const OPTION_FLAG = {
   changed: "--changed",
   keep: "--keep",
   head: "--head",
+  candidate: "--candidate",
+  filter: "--filter",
+  frozen: "--frozen",
   upstream: "--upstream",
   before: "--before",
   yes: "--yes",
@@ -219,6 +227,37 @@ try {
       if (options.json) print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits }, true);
       else for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
     }
+  } else if (raw[0] === "conformance") {
+    const { positional, options } = parseOptions(raw.slice(1));
+    rejectForeignOptions(options, ["root", "candidate", "filter", "frozen"]);
+    if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
+    const casesRoot = path.resolve(options.root);
+    const candidate = path.resolve(options.candidate ?? options.root);
+    requireDirectory(casesRoot);
+    requireDirectory(candidate);
+    const casesFile = path.join(casesRoot, "config", "conformance.json");
+    let cases;
+    try {
+      cases = loadCases(casesFile);
+    } catch (error) {
+      fail(error.message, EXIT_CODES.USAGE);
+    }
+    const selected = options.filter ? cases.filter((entry) => entry.id === options.filter) : cases;
+    if (selected.length === 0) fail(`no conformance case matched: ${options.filter ?? ""}`, EXIT_CODES.USAGE);
+    const results = runConformance({ candidate, cases: selected });
+    if (options.frozen === true) {
+      const present = caseIds(path.join(candidate, "config", "conformance.json"));
+      if (present === null) {
+        results.unshift({ id: "candidate-manifest", ok: false, detail: "the candidate has no config/conformance.json; the frozen acceptance set cannot be applied", exit: -1 });
+      } else {
+        for (const entry of selected) {
+          if (!present.has(entry.id)) results.unshift({ id: entry.id, ok: false, detail: "case removed from the candidate manifest", exit: -1 });
+        }
+      }
+    }
+    if (options.json) print({ root: options.root, candidate, frozen: options.frozen === true, results }, true);
+    else for (const result of results) process.stdout.write(`${result.ok ? "ok" : "not ok"} ${result.id}${result.detail ? ` - ${result.detail}` : ""}\n`);
+    if (results.some((result) => !result.ok)) process.exitCode = 1;
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));
     rejectForeignOptions(options, ["root"]);

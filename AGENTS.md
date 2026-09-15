@@ -53,6 +53,7 @@ npm run changes:check
 npm run test:lessons
 npm run test:lessons-verify
 npm run test:change-contract
+npm run test:conformance
 npm run test:durable-pages
 npm run test:catalog
 npm run test:setup

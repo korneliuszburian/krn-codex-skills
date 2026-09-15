@@ -55,6 +55,24 @@ jobs:
           node scripts/krn-codex.mjs changes check --root . --base "$base" --head HEAD --before
       - name: Test change-contract gate
         run: npm run test:change-contract
+      - name: Test the frozen acceptance conformance gate
+        run: npm run test:conformance
+      - name: Apply the frozen conformance set from the base
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE: ${{ github.event.before }}
+        run: |
+          base="${PR_BASE:-$PUSH_BASE}"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            base="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
+          fi
+          if git cat-file -e "$base:config/conformance.json" 2>/dev/null; then
+            git worktree add --detach /tmp/krn-conformance "$base"
+            node /tmp/krn-conformance/scripts/krn-codex.mjs conformance check --root /tmp/krn-conformance --candidate "$PWD" --frozen
+          else
+            echo "base $base predates the conformance set; running the candidate copy"
+            node scripts/krn-codex.mjs conformance check --root . --frozen
+          fi
       - name: Test validator rule modules
         run: npm run test:durable-pages
       - name: Test the capability CLI
