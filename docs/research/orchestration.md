@@ -515,17 +515,20 @@ Durable decisions from the pass (each transports into the steps below):
   config check-to-rename residual; do not claim string validation proves reviewer
   independence.
 
-Progress against the plan: step 1 (guarantee language corrected; status
-scaffolding reduced), step 2 (advisory pre-edit recall route in `$delivery-loop`),
-and step 3 (observed before-state: `changes:check`/`changes:push`/CI pass `--before`;
-a behavior-preserving surface change declares `green->green`, a behavioral change
-needs the observed `red->green`). Steps 4-6 and the LT lane remain.
+Progress against the plan: steps 1-6 landed — (1) guarantee language corrected and
+status scaffolding reduced; (2) advisory pre-edit recall route in `$delivery-loop`;
+(3) observed before-state (`changes:check`/`changes:push`/CI pass `--before`; a
+behavior-preserving surface change declares `green->green`, a behavioral change
+needs the observed `red->green`); (4) completion now requires review evidence
+(`62402aa`); (5) catalog 19→13, library 48→42, ~49 test files; (6) the gate script
+owns the CI sequence (`397a0e1`). The LT lane (7) is underway: the codex-transport
+runner is built and the frozen luna v3 separation run is recorded as non-promoting.
 
 Ordered plan (safest first): (1) correct guarantee language, (2) advisory pre-edit
 recall, (3) proof modes (`--before`), (4) completion review-evidence relationship,
 (5) incremental catalog/test consolidation, (6) one executable owner of the gate
-sequence, (7) the selected LT measurement lane — only (7) waits on the LT-5
-transport decision.
+sequence, (7) the LT measurement lane — now unblocked (codex transport built; luna
+v3 recorded), with the confirmation prerequisites still open.
 
 ## Rejected alternatives
 
