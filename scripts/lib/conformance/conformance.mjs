@@ -75,6 +75,16 @@ function runCase({ candidate, entry, workRoot = os.tmpdir() }) {
   const dir = fs.mkdtempSync(path.join(workRoot, "krn-conformance-"));
   try {
     buildFixture(dir, entry.steps);
+    if (entry.after) {
+      const head = git(dir, ["rev-parse", "HEAD"]);
+      const sha = head.status === 0 ? head.stdout.trim() : "";
+      if (!sha) throw new Error("fixture has no HEAD to substitute");
+      for (const [relative, content] of Object.entries(entry.after)) {
+        const target = path.join(dir, relative);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, content.replaceAll("{{HEAD}}", sha));
+      }
+    }
     const program = path.join(candidate, "scripts", "krn-codex.mjs");
     const run = spawnSync(process.execPath, [program, ...entry.run, "--root", dir], {
       cwd: dir,
