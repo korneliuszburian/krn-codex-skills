@@ -543,10 +543,19 @@ needs the observed `red->green`); (4) completion now requires review evidence
 (`62402aa`); (5) catalog 19→13, library 48→42, ~49 test files; (6) the gate script
 owns the CI sequence (`397a0e1`). The LT lane (7) is underway: the codex-transport
 runner is built and the frozen luna v3 separation run is recorded as non-promoting.
-Status 2026-09-15: the polishing loop is **paused** pending an external read-only
-review (`.krn/runs/external-review-brief.md`); the harness is frozen at a clean,
-green HEAD; LT-5 stands as documented non-promotion; all identified findings are
-disposed (the last two unlazy-port bounds were fixed in `7132be6`).
+The 2026-09-15 external read-only review at `6e7e616` judged the harness fit for
+cooperative single-writer memory+gates but found the acceptance criteria
+producer-controlled; its four code findings were verified in source (the erasable
+lesson trigger is now guarded, and an `evidence=` token that names an artifact or
+a conformance case must resolve). The open-ended judge-swarm loop is retired for
+the finite release decision in `docs/adr/0003`, and the conformance gate it names
+is built: `config/conformance.json` holds 12 frozen public-seam cases across
+`changes check`, `lessons check`, `memory recall`, `skills check`, and `state`
+(check/resume), and CI runs the base ref's own copy against the candidate so a
+case cannot be weakened in place. LT-5 closes as documented non-promotion. All
+identified findings are disposed; the open bounds are the lesson falsifier anchor
+(not mechanizable for the four legacy rows) and the unhermetic `install` and
+`capability` seams.
 
 Ordered plan (safest first): (1) correct guarantee language, (2) advisory pre-edit
 recall, (3) proof modes (`--before`), (4) completion review-evidence relationship,
