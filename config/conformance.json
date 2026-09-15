@@ -184,6 +184,42 @@
         "exit": 1,
         "stderrIncludes": ["complete-review-without-evidence"]
       }
+    },
+    {
+      "id": "state-resume-carries-next-action",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{}}\n",
+            ".krn/runs/.gitignore": "*\n!.gitignore\n"
+          }
+        }
+      ],
+      "after": {
+        ".krn/runs/delivery-loop/out-1/state.md": "Outcome and observable acceptance: the resume case is exercised\nCurrent workflow owner and sole writer: $delivery-loop\nOutcome state: ACTIVE\nPublication state: LOCAL_ONLY\nRepository base, HEAD or working-tree fingerprint, and dirty-state scope: base={{HEAD}}, HEAD={{HEAD}}, dirty=clean\nNative Goal identity/state and configured tracker item/state: none\nRestart state: ABSENT\nOutstanding workflow-run cleanup: none\nAuthority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none\nEvidence observed: none\nExplicit non-proofs: none\nReview fixed point and Standards / Spec disposition: none\nOpen unknowns and blockers with owners: none\nWorkflow friction and lesson candidates: none\nDurable CONTEXT / ADR / research references: none\nNext bounded owner and action: hand the capsule to the next session\n"
+      },
+      "run": ["state", "resume"],
+      "expect": {
+        "exit": 0,
+        "stdoutIncludes": ["capsule out-1", "hand the capsule to the next session"]
+      }
+    },
+    {
+      "id": "skills-check-missing-export",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{}}\n"
+          }
+        }
+      ],
+      "run": ["skills", "check"],
+      "expect": {
+        "exit": 1,
+        "stdoutIncludes": [".agents/skills"]
+      }
     }
   ]
 }

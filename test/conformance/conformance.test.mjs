@@ -13,9 +13,9 @@ const casesFile = join(root, "config", "conformance.json");
 
 test("the frozen case set loads and every case is complete", () => {
   const cases = loadCases(casesFile);
-  assert.ok(cases.length >= 9, `expected the frozen set, found ${cases.length}`);
+  assert.ok(cases.length >= 11, `expected the frozen set, found ${cases.length}`);
   const groups = new Set(cases.map((entry) => entry.run[0]));
-  for (const group of ["changes", "lessons", "memory", "state"]) {
+  for (const group of ["changes", "lessons", "memory", "skills", "state"]) {
     assert.ok(groups.has(group), `the frozen set must cover the ${group} seam`);
   }
   assert.equal(caseIds(casesFile).has("changes-docs-only-accepted"), true);
