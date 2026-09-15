@@ -106,7 +106,7 @@ export function binErrors(bins, { isSafeRelativePath, inspectTarget }) {
   return { errors, names };
 }
 
-export function pretoolUseHookErrors(hooks, label) {
+export function pretoolUseHookErrors(hooks, label, hookFileNames) {
   const errors = [];
   if (!hooks || typeof hooks !== "object") {
     errors.push(`${label}: expected one PreToolUse matcher group`);
@@ -134,6 +134,13 @@ export function pretoolUseHookErrors(hooks, label) {
     !handler.command.includes("/hooks/krn_pretooluse.py")
   ) {
     errors.push(`${label}: invalid global PreToolUse handler`);
+  } else if (
+    hookFileNames &&
+    ![...hookFileNames].some((name) => handler.command.includes(`/hooks/${name}`))
+  ) {
+    errors.push(
+      `${label}: the PreToolUse hook command names a file that is not in global_hook_files`,
+    );
   }
   return errors;
 }

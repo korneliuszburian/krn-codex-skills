@@ -243,6 +243,10 @@ test("pretoolUseHookErrors accepts the canonical hook and rejects drift", () => 
     ),
     ["hooks.json: invalid global PreToolUse handler"],
   );
+  assert.deepEqual(pretoolUseHookErrors(valid, "hooks.json", new Set(["krn_pretooluse.py"])), []);
+  assert.deepEqual(pretoolUseHookErrors(valid, "hooks.json", new Set(["renamed.py"])), [
+    "hooks.json: the PreToolUse hook command names a file that is not in global_hook_files",
+  ]);
 });
 
 test("retirementErrors validates retired skill metadata", () => {

@@ -178,22 +178,26 @@ const inspectCatalogTarget = (relative) => {
   return { exists, isFile, executable };
 };
 
+let globalHookFileNames = new Set();
 {
-  const { errors: hookProblems, names: hookFileNames } = hookFileErrors(
+  let hookFileNames = new Set();
+  const { errors: hookProblems, names } = hookFileErrors(
     manifest.global_hook_files,
     { isSafeRelativePath: safeRelativePath, inspectTarget: inspectCatalogTarget },
   );
+  hookFileNames = names;
   for (const message of hookProblems) fail(message);
   const { errors: legacyProblems } = legacyHookPathErrors(
     manifest.legacy_global_hook_paths,
     { isSafeRelativePath: safeRelativePath, hookNames: hookFileNames },
   );
   for (const message of legacyProblems) fail(message);
+  globalHookFileNames = hookFileNames;
 }
 
 if (globalHooksPathSafe) {
   const hooks = json(path.join(root, manifest.global_hooks));
-  for (const message of pretoolUseHookErrors(hooks, manifest.global_hooks)) {
+  for (const message of pretoolUseHookErrors(hooks, manifest.global_hooks, globalHookFileNames)) {
     fail(message);
   }
 }
