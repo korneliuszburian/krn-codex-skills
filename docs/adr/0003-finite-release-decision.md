@@ -116,6 +116,18 @@ residual bounds below.
   measured real consumer, its source directory was removed, and its port record
   was marked `reject`; the host index is pruned by the recovered `install apply`.
 
+## Closure
+
+The fixed-point review ran on 2026-09-15 at `bcba2a5` and accepted the decision:
+the aggregate gate passes on the frozen SHA, CI ran the base ref's conformance
+copy against the candidate, every finding is dispositioned above, and the
+residual bounds are accepted. The host install was recovered in the same pass —
+the corrupt release was deleted with the stale `current` and its sixteen managed
+links, `install apply` recreated them at `bcba2a5`, `doctor` reports
+`filesystem_installed`, and the retired `unlazy` no longer appears in the
+installed index. The program is closed; reopen only through the supersession rule
+or the named bounds.
+
 ## Rejected alternatives
 
 - Continue the open-ended loop until it reaches "no findings": the loop is
