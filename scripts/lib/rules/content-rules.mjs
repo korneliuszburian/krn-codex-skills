@@ -65,7 +65,10 @@ function linkTargets(line) {
 export function markdownLinkErrors(content, { label, resolveTarget }) {
   const errors = [];
   for (const { line, number } of unfencedLines(content)) {
-    for (const match of linkTargets(line)) {
+    const targets = [...linkTargets(line)];
+    const definition = line.match(/^\s*\[[^\]]+\]:\s*(\S+)/);
+    if (definition) targets.push(definition[1]);
+    for (const match of targets) {
       const raw = match.trim();
       if (!raw) continue;
       let target;

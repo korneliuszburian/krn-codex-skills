@@ -228,3 +228,14 @@ test("readmeSourceOnlyPointerErrors ignores pointers inside fenced examples", ()
     JSON.stringify(errors),
   );
 });
+
+test("markdownLinkErrors resolves reference-style definitions", () => {
+  const errors = markdownLinkErrors("[ghost]: docs/does-not-exist.md\n", {
+    label: "CONTEXT.md",
+    resolveTarget: () => false,
+  });
+  assert.ok(
+    errors.some((error) => error.includes("broken Markdown link")),
+    JSON.stringify(errors),
+  );
+});
