@@ -412,7 +412,7 @@ test("check reports a malformed upstream lock instead of throwing", () => {
   fs.writeFileSync(path.join(f.source, "config", "upstream-sources.json"), "{\"sources\":[null]}\n");
   let check;
   assert.doesNotThrow(() => { check = checkSkills({ root: f.source }); });
-  assert.ok(Array.isArray(check.errors));
+  assert.ok(check.errors.some((error) => error.includes("must equal the pinned harness_paths")), JSON.stringify(check.errors));
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 

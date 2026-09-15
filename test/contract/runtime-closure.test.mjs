@@ -116,3 +116,11 @@ test("a .mjs hook file is a closure entrypoint", () => {
   assert.deepEqual(runtimeClosureErrors({ root, manifest }), []);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a literal parenthesized dynamic import of a missing module is reported", () => {
+  const { root, manifest } = makeRepo(["scripts/a.mjs"]);
+  writeFileSync(join(root, "scripts", "a.mjs"), 'export const m = await import("./lib/c.mjs");\n');
+  const errors = runtimeClosureErrors({ root, manifest });
+  assert.ok(errors.some((error) => error.includes("c.mjs")), JSON.stringify(errors));
+  rmSync(root, { recursive: true, force: true });
+});

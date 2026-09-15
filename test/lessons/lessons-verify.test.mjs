@@ -96,7 +96,7 @@ test("a traversal out of the test directory fails closed", () => {
   mkdirSync(join(root, "docs", "research"), { recursive: true });
   mkdirSync(join(root, "scripts"), { recursive: true });
   writeFileSync(join(root, "package.json"), '{\n  "scripts": { "test:state": "x" }\n}\n');
-  writeFileSync(join(root, "scripts", "x.mjs"), "// probe\n");
+  writeFileSync(join(root, "scripts", "x.mjs"), 'import test from "node:test";\ntest("probe", () => {});\n');
   writeFileSync(
     join(root, "docs", "research", "workflow-lessons.md"),
     "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n| A | probe | `test:state` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | `test/../scripts/x.mjs::probe@abcdef0` |\n",
@@ -122,7 +122,7 @@ test("a proof outside test/ is rejected and never executed", () => {
   mkdirSync(join(root, "docs", "research"), { recursive: true });
   mkdirSync(join(root, "scripts"), { recursive: true });
   writeFileSync(join(root, "package.json"), '{\n  "scripts": { "test:state": "x" }\n}\n');
-  writeFileSync(join(root, "scripts", "x.mjs"), "// probe\n");
+  writeFileSync(join(root, "scripts", "x.mjs"), 'import test from "node:test";\ntest("probe", () => {});\n');
   writeFileSync(
     join(root, "docs", "research", "workflow-lessons.md"),
     "| Lesson | Evidence | Enforced by | Occurrences | Falsifier |\n|---|---|---|---|---|\n| A | probe | `test:state` | 2026-01-01@abcdef1, 2026-01-02@abcdef2 | `scripts/x.mjs::probe@abcdef0` |\n",

@@ -29,8 +29,8 @@ test("planCatalogConfig refuses enabling a hard-quarantined target", () => {
 test("planCatalogConfig reads a managed skills.config path without crashing", () => {
   const skillsSource = '[[skills.config]]\npath = "/opt/skills/alpha/SKILL.md"\nenabled = true\n';
   const plan = planCatalogConfig({ source: skillsSource, desired: {} });
-  assert.equal(typeof plan.originalHash, "string");
-  assert.equal(typeof plan.nextSource, "string");
+  assert.equal(plan.changed, false);
+  assert.equal(plan.nextSource, skillsSource);
 });
 
 // Merged from catalog-document.test.mjs.
