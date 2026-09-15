@@ -55,3 +55,20 @@ test("mv/ln target-directory into a protected path is denied", () => {
 test("a glob writer target fails closed", () => {
   assert.ok(decision("Bash", "chmod -R 000 .git/*"), "a glob target must not be skipped");
 });
+
+test("leading assignments and wrapper option values do not hide a writer", () => {
+  assert.ok(decision("Bash", "X=1 tee .env"), "X=1 tee .env must be denied");
+  assert.ok(decision("Bash", "env -u FOO tee .env"), "env -u FOO tee .env must be denied");
+  assert.ok(decision("Bash", "sudo -u root mv /tmp/x .env"), "sudo -u root mv must be denied");
+});
+
+test("eval inspects all of its operands", () => {
+  assert.ok(decision("Bash", "eval rm -rf .env"), "eval rm -rf .env must be denied");
+});
+
+test("clustered sed -i, bare git checkout ., and rtk-prefixed writers are denied", () => {
+  assert.ok(decision("Bash", "sed -ni s/a/b/ .env"), "sed -ni must be denied");
+  assert.ok(decision("Bash", "sed -Ei s/a/b/ .env"), "sed -Ei must be denied");
+  assert.ok(decision("Bash", "git checkout ."), "git checkout . must be denied");
+  assert.ok(decision("Bash", "rtk proxy mv /tmp/x .env"), "rtk proxy mv must be denied");
+});

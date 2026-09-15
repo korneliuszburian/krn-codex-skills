@@ -77,27 +77,52 @@ def executable_name(token: str) -> str:
 
 COMMAND_WRAPPERS = {
     "builtin", "busybox", "command", "doas", "env", "exec", "ionice", "nice",
-    "nohup", "setsid", "stdbuf", "sudo", "time", "timeout",
+    "nohup", "rtk", "setsid", "stdbuf", "sudo", "time", "timeout",
 }
 SHELL_INTERPRETERS = {"sh", "bash", "dash", "zsh", "ash", "ksh"}
 WRITER_EXECUTABLES = {
     "chmod", "chown", "cp", "install", "ln", "mv", "rsync", "sed", "tee",
     "truncate",
 }
+WRAPPER_VALUE_FLAGS = {
+    "env": {"-u", "--unset", "-C", "--chdir", "-S", "--split-string"},
+    "sudo": {"-u", "--user", "-g", "--group", "-p", "--prompt", "-C", "--close-from", "-h", "--host", "-r", "--role", "-t", "--type", "-D", "--chdir"},
+    "nice": {"-n", "--adjustment"},
+    "ionice": {"-c", "--class", "-n", "--classdata", "-p", "--pid"},
+    "timeout": {"-s", "--signal", "-k", "--kill-after"},
+    "stdbuf": {"-i", "--input", "-o", "--output", "-e", "--error"},
+    "time": {"-f", "--format", "-o", "--output"},
+    "doas": {"-u", "-C"},
+}
+ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 
 
 def strip_wrappers(words: tuple[str, ...]) -> tuple[str, ...]:
     tokens = list(words)
+
+    def drop_assignments(items: list[str]) -> list[str]:
+        while items and ASSIGNMENT.match(items[0]):
+            items = items[1:]
+        return items
+
+    tokens = drop_assignments(tokens)
     while tokens and executable_name(tokens[0]) in COMMAND_WRAPPERS:
         wrapper = executable_name(tokens[0])
-        tokens = tokens[1:]
-        while tokens and (
-            tokens[0].startswith("-")
-            or re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tokens[0])
-        ):
-            tokens = tokens[1:]
+        tokens = drop_assignments(tokens[1:])
+        value_flags = WRAPPER_VALUE_FLAGS.get(wrapper, set())
+        while tokens:
+            token = tokens[0]
+            if token in value_flags:
+                tokens = tokens[2:] if len(tokens) > 1 else tokens[1:]
+                tokens = drop_assignments(tokens)
+                continue
+            if token.startswith("-") or ASSIGNMENT.match(token) or (wrapper == "rtk" and token == "proxy"):
+                tokens = tokens[1:]
+                continue
+            break
         if wrapper == "timeout" and tokens and re.match(r"^\d+(?:\.\d+)?[smhd]?$", tokens[0]):
             tokens = tokens[1:]
+        tokens = drop_assignments(tokens)
     return tuple(tokens)
 
 
@@ -394,7 +419,9 @@ def git_static_risk(args: tuple[str, ...]) -> bool:
             return True
         if token == "reset" and "--hard" in rest:
             return True
-        if token == "checkout" and ("--" in rest or "-f" in rest or "--force" in rest):
+        if token == "checkout" and ("--" in rest or "-f" in rest or "--force" in rest or "." in rest):
+            return True
+        if token == "switch" and "--discard-changes" in rest:
             return True
         if token == "restore" and not (
             any(option in {"--staged", "-S"} for option in rest)
@@ -502,7 +529,7 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
                         return bash_denial_reason(effective[script_index], cwd)
                     break
         if executable == "eval" and len(effective) >= 2:
-            return bash_denial_reason(effective[1], cwd)
+            return bash_denial_reason(" ".join(effective[1:]), cwd)
     forbidden = references_forbidden_capability(lexical_text)
     literal_risk = (
         DESTRUCTIVE_LITERAL.search(literal_text) is not None

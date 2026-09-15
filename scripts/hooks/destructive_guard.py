@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import re
 import stat
 
 
@@ -95,8 +96,8 @@ def resolve_target(raw_target: str, cwd: Path) -> Path | None:
 def is_protected_file(path: Path) -> bool:
     lowered_name = path.name.lower()
     return (
-        path.name in PROTECTED_FILE_NAMES
-        or path.name.startswith(".env.")
+        lowered_name in {name.lower() for name in PROTECTED_FILE_NAMES}
+        or lowered_name.startswith(".env.")
         or path.suffix.lower() in PROTECTED_FILE_SUFFIXES
         or any(lowered_name.endswith(suffix) for suffix in PROTECTED_DATABASE_SIDECARS)
     )
@@ -376,10 +377,9 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
     elif executable == "tee":
         targets = arguments
     elif executable == "sed" and any(
-        word == "-i"
-        or word.startswith("-i")
-        or word == "--in-place"
+        word == "--in-place"
         or word.startswith("--in-place")
+        or re.fullmatch(r"-[A-Za-z]*i[A-Za-z]*", word)
         for word in words[1:]
     ):
         targets = arguments[1:]
