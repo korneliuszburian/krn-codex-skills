@@ -1422,3 +1422,24 @@ test("a behavior-preserving surface change may declare green->green", () => {
   assert.ok(!report.errors.some((error) => error.rule === "before-state-not-red"), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a script that merely takes --test is run via npm, not substituted", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-testflag-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => { git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A"); git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message); };
+  mkdirSync(join(root, "scripts", "lib"), { recursive: true });
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "package.json"), "{\"scripts\":{\"test:t\":\"node scripts/check.mjs --test\"}}\n");
+  writeFileSync(join(root, "scripts", "check.mjs"), "process.exit(1);\n");
+  writeFileSync(join(root, "scripts", "lib", "x.mjs"), "export const x = 1;\n");
+  writeFileSync(join(root, "test", "a.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { x } from "../scripts/lib/x.mjs";\ntest("x is two", () => assert.equal(x, 2));\n');
+  git("init", "-q"); commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(join(root, "scripts", "lib", "x.mjs"), "export const x = 2;\n");
+  commit("fix\n\nChange-contract: test:t:red->green");
+  const report = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+  assert.ok(report.errors.some((error) => error.rule === "unmet-prediction"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});

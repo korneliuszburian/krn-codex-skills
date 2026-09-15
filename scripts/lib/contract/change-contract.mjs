@@ -251,20 +251,25 @@ function scriptChangedFiles(root, base, git, command) {
 }
 
 function literalTestFiles(root, target) {
-  if (target.kind !== "script") return null;
+  if (target.kind !== "script") return { tests: null, bare: false };
   const command = scriptCommand(root, target);
-  if (typeof command !== "string" || scriptNonLiteral(root, command)) return null;
+  if (typeof command !== "string" || scriptNonLiteral(root, command)) return { tests: null, bare: false };
   const operands = explicitTestOperands(command);
-  if (operands.hasDirectory) return null;
+  if (operands.hasDirectory) return { tests: null, bare: false };
   const tests = operands.files.filter(isTestFile);
-  return tests.length > 0 ? tests : null;
+  return { tests: tests.length > 0 ? tests : null, bare: operands.files.length === 0 };
 }
 
 function frozenTestsFor(root, target, enumerate) {
   if (target.kind !== "script") return null;
   const command = scriptCommand(root, target);
-  if (command && testFlagPresent(command)) return literalTestFiles(root, target) ?? enumerate();
-  return null;
+  if (!command || !testFlagPresent(command)) return null;
+  const { tests, bare } = literalTestFiles(root, target);
+  if (tests) return tests;
+  // Only a bare `node --test` invocation is the tree's test suite; a command that
+  // merely takes `--test` as an argument (e.g. `node scripts/check.mjs --test`)
+  // is a different program and must run through `npm run <script>`.
+  return bare ? enumerate() : null;
 }
 
 function scriptCommand(root, target) {
