@@ -542,6 +542,11 @@ needs the observed `red->green`); (4) completion now requires review evidence
 (`62402aa`); (5) catalog 19→13, library 48→42, ~49 test files; (6) the gate script
 owns the CI sequence (`397a0e1`). The LT lane (7) is underway: the codex-transport
 runner is built and the frozen luna v3 separation run is recorded as non-promoting.
+Status 2026-09-15: the polishing loop is **paused** pending an external read-only
+review (`.krn/runs/external-review-brief.md`); the harness is frozen at a clean,
+green HEAD; LT-5 stands as documented non-promotion; two unlazy-port bounds
+(`gate-check` regex `EXPECT`, `repositoryRootFor` git-probe fail-open) are recorded
+in `unlazy-codex-port.md` and not yet fixed.
 
 Ordered plan (safest first): (1) correct guarantee language, (2) advisory pre-edit
 recall, (3) proof modes (`--before`), (4) completion review-evidence relationship,

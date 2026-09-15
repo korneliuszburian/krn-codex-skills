@@ -79,3 +79,15 @@ fixed-point checks.
 
 Reopen when the pilot has a second real consumer, a measured operator cost, and
 one observed completion error that the ledger catches.
+
+## Known open bounds (recorded 2026-09-15, not yet fixed)
+
+- `expectedMatches` in `gate-check.mjs` still treats a `/…/`-delimited `EXPECT`
+  as an unanchored regex, so `EXPECT: /ok/` passes on output `not ok`, while the
+  SKILL defines `EXPECT` as the exact success text. Drop the implicit regex
+  branch or anchor it, and document any regex form explicitly.
+- `repositoryRootFor` returns null on any failed `git rev-parse --show-toplevel`,
+  so a git error silently disables the ledger-ignored check, the in-repo
+  approval-dir rejection, and the repo-root CWD default instead of failing
+  closed; treat a failed probe as a hard failure or require an explicit
+  non-repo opt-in.
