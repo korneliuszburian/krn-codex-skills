@@ -342,9 +342,20 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
             return None
         targets = [arguments[-1]]
     elif executable in {"cp", "install"}:
-        if len(arguments) < 2:
-            return None
-        targets = [arguments[-1]]
+        rest = list(words[1:])
+        destination: str | None = None
+        for index, word in enumerate(rest):
+            if word in {"-t", "--target-directory"}:
+                if index + 1 < len(rest):
+                    destination = rest[index + 1]
+            elif word.startswith("--target-directory="):
+                destination = word.split("=", 1)[1]
+        if destination is None:
+            arguments = [word for word in rest if not word.startswith("-")]
+            if len(arguments) < 2:
+                return None
+            destination = arguments[-1]
+        targets = [destination]
     elif executable == "tee":
         targets = arguments
     elif executable == "sed" and any(

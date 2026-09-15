@@ -577,6 +577,7 @@ def patch_denial_reason(command: str, cwd: Path) -> str | None:
             return f"protected file deletion blocked: {reason}"
 
     moved_sources: list[str] = []
+    moved_destinations: list[str] = []
     current_update: str | None = None
     for line in command.splitlines():
         if line.startswith("*** Update File: "):
@@ -584,6 +585,7 @@ def patch_denial_reason(command: str, cwd: Path) -> str | None:
         elif line.startswith(("*** Add File: ", "*** Delete File: ")):
             current_update = None
         elif line.startswith("*** Move to: "):
+            moved_destinations.append(line.removeprefix("*** Move to: "))
             if current_update is not None:
                 moved_sources.append(current_update)
             current_update = None
@@ -594,6 +596,13 @@ def patch_denial_reason(command: str, cwd: Path) -> str | None:
         if source is None:
             return "file move source is not inspectable"
         reason = protected_path_reason(source, cwd, recursive=False)
+        if reason is not None:
+            return f"protected file move blocked: {reason}"
+    for raw_destination in moved_destinations:
+        destination = resolve_target(raw_destination.strip(), cwd)
+        if destination is None:
+            return "file move destination is not inspectable"
+        reason = protected_path_reason(destination, cwd, recursive=False)
         if reason is not None:
             return f"protected file move blocked: {reason}"
     return None
