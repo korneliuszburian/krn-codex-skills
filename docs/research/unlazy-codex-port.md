@@ -1,9 +1,10 @@
 # Unlazy port to Codex
 
-Status: `lab-test`. Consumer: `$delivery-loop` and long-running
-`$source-to-decision` runs. Owner: maintainer. Verified: 2026-08-24. This page
-records the mechanism and the bounded Codex port. It does not claim that the
-external skill is a sandbox or that the pilot proves better model quality.
+Status: `reject`. Consumer: the retired `unlazy` port design. Owner: maintainer.
+Verified: 2026-09-15. This page records the mechanism and the bounded Codex
+port. It does not claim that the external skill is a sandbox or that the pilot
+proves better model quality. The `unlazy` companion was retired on 2026-09-15
+(manifest `retired_skills`) pending a second measured real consumer.
 
 ## Source and question
 
@@ -34,9 +35,9 @@ completion mechanism.
 
 ## Codex port
 
-KRN adds an explicit-only `skills/meta/unlazy` skill. Its checker stores a run
-ledger under `.krn/runs/unlazy/<run-id>/` and approval records outside the
-repository. It binds approval to the command, expectation, CWD, shell, timeout,
+The retired port was an explicit-only `skills/meta/unlazy` skill (removed
+2026-09-15). Its checker stored a run ledger under `.krn/runs/unlazy/<run-id>/`
+and approval records outside the repository. It bound approval to the command, expectation, CWD, shell, timeout,
 `PATH`, platform, Node version, and an inherited environment hash. It refuses to
 write a ledger that Git can track and defaults gate commands to the repository
 root. It supports `--status`, `--approve`, and `--reverify`. It makes no sandbox
@@ -68,9 +69,11 @@ This is a transport/completion result, not a behavioral skill-quality result.
 
 ## Decision and falsifier
 
-Decision: `lab-test` the KRN port on one long real task before making it a
-default branch of every workflow. Keep it explicit-only. Do not install the
-full external unlazy repository or copy its Cursor Stop hook.
+Decision: `reject` and retire (2026-09-15). The port ran one long task and no
+second real consumer was measured, so the explicit-only `unlazy` skill was
+removed from the manifest (`retired_skills`) rather than expanded; the ledger
+mechanism stays recorded here. Do not install the full external unlazy
+repository or copy its Cursor Stop hook.
 
 Falsifier: if the port adds more than 30 minutes of operator work to a second
 long task without preventing a false completion, stale evidence, or a missed

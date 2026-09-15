@@ -1,6 +1,0 @@
-interface:
-  display_name: "Unlazy Gate Ledger"
-  short_description: "Keep long work honest with rerunnable completion gates"
-  default_prompt: "Use $unlazy to create and reverify a gate ledger for substantial work."
-policy:
-  allow_implicit_invocation: false

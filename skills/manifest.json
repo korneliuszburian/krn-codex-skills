@@ -119,11 +119,6 @@
       "implicit": true
     },
     {
-      "name": "unlazy",
-      "path": "skills/meta/unlazy",
-      "implicit": false
-    },
-    {
       "name": "unslop",
       "path": "skills/meta/unslop",
       "implicit": false
@@ -185,6 +180,10 @@
     },
     {
       "name": "reviewer-handoff",
+      "replacement": null
+    },
+    {
+      "name": "unlazy",
       "replacement": null
     }
   ]

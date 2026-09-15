@@ -13,12 +13,11 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/adr/0002-lifecycle-transition-table.md](docs/adr/0002-lifecycle-transition-table.md) — accepted condition → handler → return transition table.
 - [docs/adr/0003-finite-release-decision.md](docs/adr/0003-finite-release-decision.md) — accepted stop rule: a finite release decision replaces the open-ended bug hunt.
 - [docs/research/workflow-lessons.md](docs/research/workflow-lessons.md) — bounded cross-run workflow memory read at `$delivery-loop` bind.
-- The Matt Pocock skills audit and the unlazy/unslop lab-test pages are indexed under [docs/research/README.md](docs/research/README.md).
+- The Matt Pocock skills audit and the unslop lab-test page are indexed under [docs/research/README.md](docs/research/README.md).
 - [scripts/quality-audit.mjs](scripts/quality-audit.mjs) — mechanical slop, dead-code, and credential/env-dump audit gated in `npm run test:lib`.
 - [config/conformance.json](config/conformance.json) — frozen public-seam acceptance cases run by `krn-codex conformance check`; CI runs the base ref's copy against the candidate.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
-- [skills/meta/unlazy/SKILL.md](skills/meta/unlazy/SKILL.md) — explicit completion ledger with approved checks and re-verification; it does not own lifecycle state or sandbox commands.
 - [skills/meta/unslop/SKILL.md](skills/meta/unslop/SKILL.md) — explicit prose audit/rewrite with protected factual and technical fragments; it does not own publication or fact-checking.
 
 ## System vocabulary
@@ -124,7 +123,3 @@ Publication state is reported separately from semantic completion.
 
 **Decision** — `adopt`, `reject`, `lab-test`, or `defer` for a named consumer
 and falsifier. Sources support decisions; they do not override local evidence.
-
-**Completion ledger** — an optional `.krn/runs/unlazy/<run-id>/GATES.md` record
-of observable gates, command evidence, and manual blockers. `$unlazy` owns the
-ledger mechanics; `$delivery-loop` still owns lifecycle state and publication.

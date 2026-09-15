@@ -111,10 +111,10 @@ residual bounds below.
   negative-only because a valid export needs the pinned upstream checkout, and
   the `install` and `capability` seams are non-hermetic (they read `$CODEX_HOME`
   and host sessions).
-- The review's prune directive — retire the optional `unlazy` companion pending a
-  second measured real consumer rather than expanding overlapping completion
-  machinery — is recorded but not executed: retiring an installable skill is a
-  maintainer decision, and the host index apply is blocked separately.
+- The review's prune directive was executed on 2026-09-15: the optional `unlazy`
+  companion moved from manifest `skills` to `retired_skills` pending a second
+  measured real consumer, its source directory was removed, and its port record
+  was marked `reject`; the host index is pruned by the recovered `install apply`.
 
 ## Rejected alternatives
 

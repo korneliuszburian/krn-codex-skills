@@ -89,7 +89,7 @@ freshness, not permanence.
 | Capability surface | [capabilities.md](../capabilities.md) | named profiles and evidence-bounded reconciliation | catalog schema, runtime event, or trust boundary changes |
 | Current Matt Pocock skills audit | [mattpocock-skills-deep-audit.md](mattpocock-skills-deep-audit.md) | the current tree has 25 promoted skills plus 12 experimental/misc candidates; the pin already contains the promoted set and no candidate yet earns adoption | a later upstream diff or concrete KRN task changes a candidate's consumer, ownership collision, or falsifier |
 | Installation and migration | [migration.md](../migration.md) | collision-safe symlinks, explicit timestamped-backup authority, recoverable retirement | installer target or host layout changes |
-| Codex completion ledger | [unlazy-codex-port.md](unlazy-codex-port.md) | optional gate ledger with explicit approval and re-verification; no sandbox or lifecycle ownership | second real long-task pilot, measured operator cost, or a false-completion miss |
+| Codex completion ledger | [unlazy-codex-port.md](unlazy-codex-port.md) | the ledger companion was retired 2026-09-15; the port record stays as design evidence pending a measured second consumer | a real long-task consumer, measured operator cost, or a false-completion miss reopens the port |
 | Prose quality and unslop | [unslop-codex-port.md](unslop-codex-port.md) | explicit audit/rewrite candidate with protected facts and technical fragments; not an always-on humanizer | blinded pilot shows semantic drift, no preference gain, or unacceptable review cost |
 
 ## Primary source ledger

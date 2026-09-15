@@ -115,7 +115,6 @@ disagreement blocks the next transition until the owner records the resolution.
 | [`typescript-engineering`](skills/engineering/typescript-engineering/SKILL.md) | model or user | TypeScript inference, public APIs, compiler mechanics, and proof |
 | [`opencode-second-opinion`](skills/advisory/opencode-second-opinion/SKILL.md) | explicit only | bounded independent-model opinion on one explicit path, without diffs |
 | [`managing-codex-capabilities`](skills/meta/managing-codex-capabilities/SKILL.md) | model or user | global skill, plugin, MCP, and profile control |
-| [`unlazy`](skills/meta/unlazy/SKILL.md) | explicit only | machine-checked completion gates for long or multi-phase work |
 | [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
 
 The shared engineering and productivity flow is **composed from a clean
@@ -192,7 +191,7 @@ foreign link (a legacy mutable-source link is reported as
 `legacy_mutable_source`; `install apply` migrates it), and
 unknown/stale session loading.
 Start a fresh Codex session after installation. Discovery is session-scoped.
-`setup-repository-workflow`, `opencode-second-opinion`, `unlazy`, and `unslop`
+`setup-repository-workflow`, `opencode-second-opinion`, and `unslop`
 require an explicit `$skill-name` attachment. Descriptions route the task;
 manifest invocation mode decides auto-attachment, and many composed upstream
 owners are explicit-only — including `ask-matt`, `implement`,
