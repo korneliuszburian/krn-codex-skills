@@ -62,12 +62,10 @@ const importedNames = (rawSource) => {
     const named = clause.match(/\{([\s\S]*?)\}/);
     if (named) {
       for (const part of named[1].split(",")) {
-        // Record the original binding as well as the alias, so an idiomatic
-        // `import { foo as bar }` still counts as consuming `foo`.
-        for (const piece of part.split(/\s+as\s+/)) {
-          const name = piece.trim();
-          if (/^[A-Za-z0-9_$]+$/.test(name)) names.add(name);
-        }
+        // Only the local binding counts for the missing-import check: in
+        // `import { foo as bar }` the usable name is `bar`, not `foo`.
+        const local = part.split(/\s+as\s+/).pop().trim();
+        if (/^[A-Za-z0-9_$]+$/.test(local)) names.add(local);
       }
     }
     const bare = clause.replace(/\{[\s\S]*?\}/, "").replace(/,/g, " ").trim();

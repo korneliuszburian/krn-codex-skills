@@ -385,3 +385,19 @@ test("a module reachable only from tests is reported separately from the hard ru
     },
   );
 });
+
+test("the audit catches a cross-file call hidden by an aliased import", () => {
+  withRepo(
+    {
+      "scripts/lib/a.mjs": "export function helper() {\n  return 1;\n}\n",
+      "scripts/lib/b.mjs": "import { helper as h } from \"./a.mjs\";\nexport const v = h() + helper();\n",
+    },
+    (root) => {
+      const { errors } = auditRepository(root);
+      assert.ok(
+        errors.some((message) => message.includes("b.mjs: calls helper() but never imports it")),
+        JSON.stringify(errors),
+      );
+    },
+  );
+});
