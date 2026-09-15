@@ -158,12 +158,14 @@ function resolveFalsifier(root, cell, git = runGit) {
   const absolute = path.resolve(root, rel);
   const relCheck = path.relative(root, absolute);
   if (!relCheck || relCheck.startsWith("..") || path.isAbsolute(relCheck)) return { ok: false, reason: `falsifier path escapes the repository: ${rel}` };
+  if (!relCheck.split(path.sep).join("/").startsWith("test/")) return { ok: false, reason: `falsifier path is not under test/: ${rel}` };
   let stat;
   try { stat = fs.statSync(absolute, { throwIfNoEntry: false }); } catch { stat = null; }
   if (!stat?.isFile()) return { ok: false, reason: `falsifier file not found: ${rel}` };
   let realRel;
   try { realRel = posixRelative(fs.realpathSync(root), fs.realpathSync(absolute)); } catch { return { ok: false, reason: `falsifier file not found: ${rel}` }; }
   if (!realRel || realRel.startsWith("..") || path.isAbsolute(realRel)) return { ok: false, reason: `falsifier path escapes the repository through a link: ${rel}` };
+  if (!realRel.split(path.sep).join("/").startsWith("test/")) return { ok: false, reason: `falsifier path is not under test/ through a link: ${rel}` };
   let falsifierText;
   try { falsifierText = fs.readFileSync(absolute, "utf8"); } catch { return { ok: false, reason: `falsifier file not found: ${rel}` }; }
   if (!falsifierText.includes(caseName)) {
@@ -265,6 +267,8 @@ export function lessonStructureFindings({ root }) {
   for (const row of rows) {
     const invalidTrigger = (row.trigger ?? "").split(/[;,]/).map((entry) => entry.trim()).filter(Boolean).find((entry) => !/^(path|symbol|churn):/.test(entry));
     if (invalidTrigger) { findings.push({ rule: "invalid-trigger", message: `lesson "${row.lesson}": unknown trigger "${invalidTrigger}"; use path:, symbol:, or churn:` }); continue; }
+    const emptyScope = (row.trigger ?? "").split(/[;,]/).map((entry) => entry.trim()).filter(Boolean).find((entry) => /^(path|symbol|churn):$/.test(entry));
+    if (emptyScope) { findings.push({ rule: "invalid-trigger", message: `lesson "${row.lesson}": trigger "${emptyScope}" names no scope` }); continue; }
     const badGlob = [...triggerEntries(row.trigger, "path:"), ...triggerEntries(row.trigger, "churn:")].find((glob) => {
       try { compileGlob(glob); return false; } catch { return true; }
     });

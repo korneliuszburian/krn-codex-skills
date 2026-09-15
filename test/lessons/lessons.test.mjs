@@ -694,3 +694,27 @@ test("a non-file workflow-lessons page fails closed", () => {
   assert.ok(report.errors.some((error) => error.includes("not a regular file")), JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+test("a falsifier that only lexically starts with test/ is rejected", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  writeFileSync(join(root, "scripts", "probe.mjs"), "// probe\n");
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| L | probe | `test:state` | | `test/../scripts/probe.mjs::probe@abcdef0` | |\n",
+  );
+  const { errors } = checkLessons({ root });
+  assert.ok(errors.some((error) => /not under test\//.test(error)), JSON.stringify(errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a trigger with an empty scope is rejected", () => {
+  const root = makeRoot();
+  writeFileSync(
+    join(root, "docs", "research", "workflow-lessons.md"),
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| L | probe | `test:state` | | | path: |\n",
+  );
+  const { errors } = checkLessons({ root });
+  assert.ok(errors.some((error) => /names no scope/.test(error)), JSON.stringify(errors));
+  rmSync(root, { recursive: true, force: true });
+});
