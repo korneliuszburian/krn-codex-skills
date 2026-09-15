@@ -375,10 +375,19 @@ would create an ownership collision before it had a measured consumer.
 |---|---|---|---|
 | `unlazy` | `adopt` the explicit companion; `lab-test` its production benefit | keep the machine-checked gate ledger and re-verification; it does not own lifecycle, sandboxing, leases, or dispatch | a second long-running pilot shows duplicate state, extra ceremony, or no earlier detection; then revisit the explicit companion |
 | `ponytail` | `adopt` the heuristic in existing owners; `lab-test` its measured effect | make “needed → reuse → standard/native → installed dependency → smallest implementation” an explicit question for existing `to-spec` / `codebase-design` owners | a recurring overbuilt slice, missed reuse opportunity, or security/accessibility regression despite the question reopens whether the heuristic belongs in a stronger seam |
+| MCP-served skills (SEP-2640, `io.modelcontextprotocol/skills`) | `defer` | none; KRN skills stay filesystem/plugin-loaded and `$managing-codex-capabilities` stays the local owner | the SEP is Accepted but not Final and the incubator is experimental, and no host consumes MCP-served skills end to end (Claude Code treats MCP resources as user-mention attachments); reopen when a supported host loads and executes an MCP-served `SKILL.md` under content-bound approval, and re-run `$source-to-decision` with that host as the lab surface |
 
-Neither candidate is installed as a new global lifecycle owner by this
+No candidate here is installed as a new global lifecycle owner by this
 decision. The source claims are not a benchmark of KRN, and the lab-test setup
-is not adoption or proof of production isolation.
+is not adoption or proof of production isolation. The MCP 2026-07-28 spec also
+formalizes a feature lifecycle (Active/Deprecated/Removed with a >=12-month
+window and a deprecated registry) and a reverse-DNS extension framework; both
+parallel existing KRN mechanisms, so they change no local decision and the
+Skill-over-MCP transport is deferred on the evidence below. Sources: the
+2026-07-28 specification release (blog.modelcontextprotocol.io/posts/2026-07-28/)
+and the Skills Extension SEP (github.com/modelcontextprotocol/modelcontextprotocol/pull/2640);
+the defer rests on the SEP's "Accepted, not Final" status and the incubator
+repository's explicit experimental notice, not on a stable host consumer.
 
 ## Artifact taxonomy
 
