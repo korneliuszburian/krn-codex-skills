@@ -24,8 +24,10 @@ once the artifact lands or the task is rejected; the landed code, its test, and
 any ADR are then the owner. Never keep a landed PRD as a second description of
 shipped behavior. An evaluation or LT PRD whose instrument was implemented and
 then retired with no consumer stays as a design spec until a named lab consumer
-absorbs it, so `0001`–`0005` are retained on that basis and their falsifier
-command runs only after re-implementation.
+absorbs it; `0001`, `0004`, and `0005` are retained on that basis, while `0002`
+and `0003` were absorbed by the external LT-5 lab (`power-sim.mjs`,
+`setup-tasks-v4.sh`) and remain only as historical design notes. A retained
+falsifier command runs only after re-implementation.
 
 ## Handoff contract
 

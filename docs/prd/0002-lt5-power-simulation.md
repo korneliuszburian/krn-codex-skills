@@ -1,5 +1,7 @@
 # PRD 0002: test the LT-5 promotion statistic before buying runs
 
+Status: `absorbed` by the external LT-5 lab (`power-sim.mjs`, 2026-09-14); retained as a historical design note, not current work.
+
 ## Problem
 
 LT-5 confirmation decides whether the content effect clears a minimum detectable

@@ -1,5 +1,7 @@
 # PRD 0003: mechanism-distinct LT-5 fixtures
 
+Status: `absorbed` by the external LT-5 lab (`setup-tasks-v4.sh`, 2026-09-14); retained as a historical design note, not current work.
+
 ## Problem
 
 The LT-5 task shapes are structure-matched but not mechanism-distinct, so a

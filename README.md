@@ -129,7 +129,9 @@ consumer and falsifier. The curated harness subset named by `harness_skills` in
 `config/upstream-sources.json` are materialized into the
 generated, provenance-marked `.agents/skills/` by `krn-codex skills export`
 (the full pin stays in `config/upstream-sources.json`); regenerate instead of
-editing, and `npm run skills:check` fails on a foreign destination, a stale upstream pin (against `config/upstream-sources.json`), or an exported skill whose bytes differ from its source. `krn.commit` records the source HEAD when the export ran, which is the parent when the export accompanies a source change, so treat it as provenance, not a reproducible revision.
+editing, and `npm run skills:check` fails on a foreign destination, a stale upstream pin (against `config/upstream-sources.json`), or an exported KRN skill whose bytes differ from its source; upstream byte integrity is verified at export time against the pinned checkout (below), not re-verified at check time. `krn.commit` records the source HEAD when the export ran, which is the parent when the export accompanies a source change, so treat it as provenance, not a reproducible revision.
+
+Export-time upstream checks verify every *present* file against the pinned blob and reject symlinks, gitlinks, and untracked files, but they iterate the exported set, so a sparse or `skip-worktree` upstream checkout that silently omits a pinned file is not detected; a byte-complete checkout of the pinned commit is a precondition. The export marker and `skills:check` digests also cover path and bytes but not the executable bit, so mode drift is invisible.
 
 ### Source-only packs
 
