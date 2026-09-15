@@ -93,6 +93,9 @@ test("an accepted ADR missing from the knowledge map is reported", () => {
   writeFileSync(join(root, "CONTEXT.md"), "# Context\n[adr]: docs/adr/0001-record.md\n");
   assert.deepEqual(checkDurablePages({ root }).errors, [], "a reference-style link is a link");
 
+  writeFileSync(join(root, "CONTEXT.md"), "# Context\n[ADR](docs/adr/0001-record.md)\n-->\n");
+  assert.deepEqual(checkDurablePages({ root }).errors, [], "a stray --> does not delete the text before it");
+
   rmSync(join(root, "CONTEXT.md"));
   assert.ok(
     checkDurablePages({ root }).errors.some((error) => error.includes("knowledge map")),
@@ -162,5 +165,18 @@ test("a path only shown inside a fence in config/AGENTS.md is not a missing refe
   assert.ok(!checkDurablePages({ root }).errors.some((error) => error.includes("ghost.md")), JSON.stringify(checkDurablePages({ root }).errors));
   writeFileSync(join(root, "config", "AGENTS.md"), "# A\n\nsee `docs/research/ghost.md`\n");
   assert.ok(checkDurablePages({ root }).errors.some((error) => error.includes("ghost.md")), JSON.stringify(checkDurablePages({ root }).errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an escaped Topics link does not satisfy the curation ledger", () => {
+  const root = makeRoot({ topicsRows: "| T | \\[topic.md](topic.md) | state | reopen |\n| C | [capabilities.md](../capabilities.md) | state | reopen |\n| M | [migration.md](../migration.md) | state | reopen |\n" });
+  assert.ok(checkDurablePages({ root }).errors.some((error) => error.includes("topic is missing")), JSON.stringify(checkDurablePages({ root }).errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an unbalanced fence in a topic page is reported", () => {
+  const root = makeRoot();
+  writeFileSync(join(root, "docs", "research", "topic.md"), `# Topic\n\n${HEADER}\n\`\`\`\n${"x".repeat(4001)}\n`);
+  assert.ok(checkDurablePages({ root }).errors.some((error) => error.includes("unterminated code fence")), JSON.stringify(checkDurablePages({ root }).errors));
   rmSync(root, { recursive: true, force: true });
 });

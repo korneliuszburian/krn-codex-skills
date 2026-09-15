@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { lessonStructureFindings } from "../lessons/lessons.mjs";
 import { fenceLines, unfencedLines } from "./content-rules.mjs";
+import { unbalancedFence } from "../support/fences.mjs";
 
 const HEADER_RULES = [
   [/^Status: `(accepted|lab-test|defer|reject)`/m, "header needs a canonical Status enum (accepted|lab-test|defer|reject)"],
@@ -16,7 +17,7 @@ const HEADER_RULES = [
 export function checkDurablePages({ root }) {
   const errors = [];
   const linksTarget = (text, target) =>
-    new RegExp(`\\]\\(\\s*<?${escapeRegExp(target)}(?:[#?][^)\\s]*)?\\s*(?:"[^"]*"|'[^']*')?\\s*>?\\s*\\)`).test(text);
+    new RegExp(`(?<!\\\\)\\[[^\\]\\n]*\\]\\(\\s*<?${escapeRegExp(target)}(?:[#?][^)\\s]*)?\\s*(?:"[^"]*"|'[^']*')?\\s*>?\\s*\\)`).test(text);
   const relative = (file) => posixRelative(root, file);
   const stripHtmlComments = (text) => {
     let out = "";
@@ -34,6 +35,7 @@ export function checkDurablePages({ root }) {
         depth += 1;
         index = open + 4;
       } else {
+        if (depth === 0) out += text.slice(index, close);
         depth = Math.max(0, depth - 1);
         index = close + 3;
       }
@@ -75,6 +77,9 @@ export function checkDurablePages({ root }) {
     const topic = path.join(researchDirectory, entry.name);
     header(topic);
     const topicText = fs.readFileSync(topic, "utf8");
+    if (unbalancedFence(topicText)) {
+      errors.push(`${relative(topic)}: has an unterminated code fence; line-length and link checks cannot be trusted`);
+    }
     for (const { line, number } of unfencedLines(topicText)) {
       if (line.length > 4000) {
         errors.push(`${relative(topic)}:${number}: a non-fenced line is ${line.length} characters; keep run ledgers out of durable pages`);
