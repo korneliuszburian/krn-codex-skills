@@ -19,8 +19,9 @@ so a gate whose proof is missing or unreachable file fails closed; a proof
 commit absent from this checkout is treated as provenance and is not
 ancestry-checked (see `orchestration.md`).
 `lessons:check` fails a triggered row closed as `stale-anchor` when the proof
-commit predates later changes to the falsifier file or a resolved enforcing
-gate file, and warns for an
+commit predates later changes to the falsifier file or to a `path:` enforcing
+gate file; an npm-script or `manual:` gate is not resolved to the files its
+command runs, so drift there is not detected, and it warns for an
 untriggered row, and `lessons:verify` re-runs each named case: a failing case, or
 a pattern that matches no test, fails the command. A recurrence recorded after
 the proof commit fails closed as a gate that did not stick: the friction came
