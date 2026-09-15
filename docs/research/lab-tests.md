@@ -191,6 +191,14 @@ Reading: with mechanism-distinct fixtures and non-leaking prompts the content ef
 
 The same corrected v4 set on `deepseek-v4.1-flash` (opencode transport; 72 executions, two retried once on a transient provider error and recorded as `attempts=2`, zero INFRA, all `served_model=deepseek-v4.1-flash`, `model_mismatch=no`, `sentinel_leak=no`): every cell is at ceiling (A/B/P 1.0) except media/decisive P 0.667, so `theta = 0.083`, 95% CI [0.000, 0.250]. The second authorized family therefore has no separation power on the same fixtures — the base model solves every mechanism without the lesson. Cross-reading with luna (v4b `theta = 0.833`): the content effect appears where the base model lacks the knowledge and is invisible where it already has it, so the cross-family prerequisite is not met by raising difficulty alone; a confirmation needs mechanism-distinct tasks calibrated to each family's floor, or the claim stays single-family.
 
+### Cue-free decisive set v5 (2026-09-14, `results-deepseek-v5`; luna v5 running)
+
+The v4b decisive templates still stated the coupling in the companion's source comment and README sentence ("X and Y are coupled…"), so a base model that reads the code can infer the dependency without the lesson — deepseek v4b sat at ceiling. `setup-tasks-v5.sh` removes those ordinary-doc cues from both strata, leaving the coupling stated only in the decisive lesson row (the neutral has no cue), with the same prompts, tests, and hits; `check-tasks-v4.sh` over `tasks-v5` is 8/8 and the manifest salt is `34a880db94a05f66`, ROOT `7c736c77a19d9fee`.
+
+deepseek-v4.1-flash (72 executions, zero retries, all served, no mismatch or leak): decisive text A 0/3 B 3/3 P 1/3, key A 2/3 B 3/3 P 3/3, route A 1/3 B 3/3 P 0/3, media A 3/3 B 3/3 P 2/3; neutral noisy; `theta = 0.583`, cluster-bootstrap 95% CI [0.167, 1.083].
+
+Reading: removing the ordinary-doc cue gives the second authorized family separation power — deepseek now fails the decisive ablation on text and route and passes with the lesson where v4b was at ceiling — so the second-family prerequisite is materially advanced. It is not uniform: the key and media couplings stay inferable from code structure (arm A passes) even without the comment, so those mechanisms carry little content-specific signal for this family. Non-promotion is otherwise unchanged (N=4/stratum against the simulated ~32, a non-interior neutral, no length- or token-matched placebo, and an unfrozen confirmation).
+
 ## LT-5 separation gate (2026-09-13)
 
 One decisive plus one neutral task, arms A (lesson row removed), B (real
