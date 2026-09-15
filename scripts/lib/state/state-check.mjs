@@ -13,11 +13,33 @@ import {
 } from "./capsule-abi.mjs";
 import { runGit as git } from "../support/git-cli.mjs";
 import { lessonStructureFindings } from "../lessons/lessons.mjs";
+import { readJson } from "../support/read-json.mjs";
 import { capsuleStoreReport, runDirectoriesDetailed } from "./spine-runs.mjs";
 import { isInside } from "../support/path-rules.mjs";
 import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
 
+
+// Resolve an `evidence=` token that claims an artifact or a frozen acceptance
+// case: a claim that names something must name something that exists, so a
+// plausible token cannot stand in for evidence. Free-text tokens are unchanged.
+function reviewEvidenceUnresolved(root, token) {
+  if (token.startsWith("case:")) {
+    const id = token.slice("case:".length);
+    let ids = null;
+    try {
+      ids = new Set((readJson(join(root, "config", "conformance.json")).cases ?? []).map((entry) => entry?.id));
+    } catch {
+      ids = null;
+    }
+    return ids?.has(id) ? null : `evidence ${token} is not a frozen conformance case`;
+  }
+  if (!token.includes("/") && !/\.(mjs|md|json|txt|ya?ml|sh|log)$/i.test(token)) return null;
+  const target = resolve(root, token.replace(/^\.\//, ""));
+  let inside = false;
+  try { inside = isInside(root, target); } catch { inside = false; }
+  return inside && existsSync(target) ? null : `evidence ${token} does not exist in the repository`;
+}
 
 export function normalizeRunPointer(root, pointer) {
   // Resolve symlink aliases so one physical run reached by two names has one
@@ -238,6 +260,9 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         const evidence = review.match(/evidence\s*=\s*([^\s;,`]+)/i);
         if (!evidence || /^(none|n\/a|na|tbd|-|pending)$/i.test(evidence[1])) {
           errors.push({ id: entry.name, rule: "complete-review-without-evidence", detail: reviewText });
+        } else {
+          const unresolved = reviewEvidenceUnresolved(root, evidence[1].replace(/[<>]/g, ""));
+          if (unresolved) errors.push({ id: entry.name, rule: "complete-review-evidence-unresolved", detail: unresolved });
         }
       }
       const participants = fields["Native Goal identity/state and configured tracker item/state"];

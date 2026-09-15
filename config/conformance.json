@@ -220,6 +220,26 @@
         "exit": 1,
         "stdoutIncludes": [".agents/skills"]
       }
+    },
+    {
+      "id": "state-complete-evidence-unresolved",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{}}\n",
+            ".krn/runs/.gitignore": "*\n!.gitignore\n"
+          }
+        }
+      ],
+      "after": {
+        ".krn/runs/delivery-loop/out-1/state.md": "Outcome and observable acceptance: test\nCurrent workflow owner and sole writer: $delivery-loop\nOutcome state: COMPLETE\nPublication state: LOCAL_ONLY\nRepository base, HEAD or working-tree fingerprint, and dirty-state scope: base={{HEAD}}, HEAD={{HEAD}}, dirty=clean\nNative Goal identity/state and configured tracker item/state: none\nRestart state: ABSENT\nOutstanding workflow-run cleanup: none\nAuthority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none\nEvidence observed: none\nExplicit non-proofs: none\nReview fixed point and Standards / Spec disposition: inspected; evidence=docs/missing-report.md\nOpen unknowns and blockers with owners: none\nWorkflow friction and lesson candidates: none\nDurable CONTEXT / ADR / research references: none\nNext bounded owner and action: none\n"
+      },
+      "run": ["state", "check"],
+      "expect": {
+        "exit": 1,
+        "stderrIncludes": ["complete-review-evidence-unresolved"]
+      }
     }
   ]
 }

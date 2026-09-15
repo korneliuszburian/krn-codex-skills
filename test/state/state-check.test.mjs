@@ -754,6 +754,24 @@ test("a COMPLETE capsule cannot carry pending or unevidenced review", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a COMPLETE review evidence token that names a missing artifact is unresolved", () => {
+  const { root, head } = makeRepo();
+  const field = "Review fixed point and Standards / Spec disposition";
+  const reviewed = (value) => capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(`${field}: none`, `${field}: ${value}`);
+  writeCapsule(root, reviewed("inspected; evidence=docs/missing-report.md"));
+  const missing = inspectSpineState({ repo: root });
+  assert.ok(missing.errors.some((error) => error.rule === "complete-review-evidence-unresolved"), JSON.stringify(missing.errors));
+  mkdirSync(join(root, "config"), { recursive: true });
+  writeFileSync(join(root, "config", "conformance.json"), JSON.stringify({ cases: [{ id: "seam", steps: [{ files: {} }], run: ["state", "check"], expect: { exit: 0 } }] }));
+  writeCapsule(root, reviewed("inspected; evidence=case:seam"));
+  const bound = inspectSpineState({ repo: root });
+  assert.ok(!bound.errors.some((error) => error.rule === "complete-review-evidence-unresolved"), JSON.stringify(bound.errors));
+  writeCapsule(root, reviewed("inspected; evidence=case:absent"));
+  const unbound = inspectSpineState({ repo: root });
+  assert.ok(unbound.errors.some((error) => error.rule === "complete-review-evidence-unresolved"), JSON.stringify(unbound.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a restart pointer through an in-repo symlink outside the repo is divergent", () => {
   const { root, head } = makeRepo();
   const outside = mkdtempSync(join(tmpdir(), "krn-outside-"));
