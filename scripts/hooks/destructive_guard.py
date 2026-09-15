@@ -324,6 +324,24 @@ def redirection_denial_reason(command: str, cwd: Path) -> str | None:
     return None
 
 
+def _target_directory(rest: list[str]) -> str | None:
+    destination: str | None = None
+    for index, word in enumerate(rest):
+        if word in {"-t", "--target-directory"}:
+            if index + 1 < len(rest):
+                destination = rest[index + 1]
+        elif word.startswith("--target-directory="):
+            destination = word.split("=", 1)[1]
+        elif word.startswith("-") and not word.startswith("--") and "t" in word[1:]:
+            cluster = word[1:]
+            attached = cluster[cluster.index("t") + 1 :]
+            if attached:
+                destination = attached
+            elif index + 1 < len(rest):
+                destination = rest[index + 1]
+    return destination
+
+
 def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
     if not words:
         return None
@@ -332,37 +350,29 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
     if executable in {"mv", "ln"}:
         if not arguments:
             return None
+        targets = list(arguments)
+        directory = _target_directory(list(words[1:]))
+        if directory is not None:
+            targets.append(directory)
+    elif executable in {"chmod", "chown"}:
+        if not arguments:
+            return None
         targets = arguments
-    elif executable in {"chmod", "chown", "rsync"}:
+    elif executable == "rsync":
         if not arguments:
             return None
         targets = [arguments[-1]]
     elif executable == "truncate":
         if not arguments:
             return None
-        targets = [arguments[-1]]
+        targets = arguments
     elif executable in {"cp", "install"}:
-        rest = list(words[1:])
-        destination: str | None = None
-        for index, word in enumerate(rest):
-            if word in {"-t", "--target-directory"}:
-                if index + 1 < len(rest):
-                    destination = rest[index + 1]
-            elif word.startswith("--target-directory="):
-                destination = word.split("=", 1)[1]
-            elif word.startswith("-") and not word.startswith("--") and "t" in word[1:]:
-                cluster = word[1:]
-                attached = cluster[cluster.index("t") + 1 :]
-                if attached:
-                    destination = attached
-                elif index + 1 < len(rest):
-                    destination = rest[index + 1]
-        if destination is None:
-            arguments = [word for word in rest if not word.startswith("-")]
+        directory = _target_directory(list(words[1:]))
+        if directory is None:
             if len(arguments) < 2:
                 return None
-            destination = arguments[-1]
-        targets = [destination]
+            directory = arguments[-1]
+        targets = [directory]
     elif executable == "tee":
         targets = arguments
     elif executable == "sed" and any(
@@ -378,7 +388,10 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
     for raw_target in targets:
         target = resolve_target(raw_target, cwd)
         if target is None:
-            continue
+            return (
+                "overwrite of an expansion or glob target is blocked; "
+                "name one concrete path"
+            )
         if is_exempt_device(target):
             continue
         reason = protected_path_reason(target, cwd, recursive=False)

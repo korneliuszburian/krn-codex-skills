@@ -40,3 +40,18 @@ test("attached short -t target-directory into a protected path is denied", () =>
   assert.ok(decision("Bash", "install -t.git ./src"), "install -t.git must be denied");
   assert.ok(decision("Bash", "cp -vt.git ./src"), "cp -vt.git must be denied");
 });
+
+test("multi-operand permission commands check every protected operand", () => {
+  assert.ok(decision("Bash", "chmod 000 .git/config /tmp/decoy"), "chmod must check every operand");
+  assert.ok(decision("Bash", "chown root .git/config /tmp/decoy"), "chown must check every operand");
+  assert.ok(decision("Bash", "truncate -s 0 .env /tmp/decoy"), "truncate must check every operand");
+});
+
+test("mv/ln target-directory into a protected path is denied", () => {
+  assert.ok(decision("Bash", "mv --target-directory=.git authorized_keys"), "mv --target-directory must be denied");
+  assert.ok(decision("Bash", "mv -t.git authorized_keys"), "mv -t.git must be denied");
+});
+
+test("a glob writer target fails closed", () => {
+  assert.ok(decision("Bash", "chmod -R 000 .git/*"), "a glob target must not be skipped");
+});

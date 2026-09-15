@@ -80,6 +80,10 @@ COMMAND_WRAPPERS = {
     "nohup", "setsid", "stdbuf", "sudo", "time", "timeout",
 }
 SHELL_INTERPRETERS = {"sh", "bash", "dash", "zsh", "ash", "ksh"}
+WRITER_EXECUTABLES = {
+    "chmod", "chown", "cp", "install", "ln", "mv", "rsync", "sed", "tee",
+    "truncate",
+}
 
 
 def strip_wrappers(words: tuple[str, ...]) -> tuple[str, ...]:
@@ -437,9 +441,24 @@ def has_static_destructive_reference(words: tuple[str, ...] | None) -> bool:
     return git_static_risk(remaining[1:])
 
 
+def naive_writer_head(segment: str) -> str:
+    tokens = segment.strip().split()
+    index = 0
+    while index < len(tokens) and executable_name(tokens[index]) in COMMAND_WRAPPERS:
+        index += 1
+    return executable_name(tokens[index]) if index < len(tokens) else ""
+
+
 def pipe_writer_reason(command: str, cwd: Path) -> str | None:
     for segment in pipe_segments(command):
         words = static_simple_words(segment)
+        if words is None:
+            if naive_writer_head(segment) in WRITER_EXECUTABLES:
+                return (
+                    "writer command contains an expansion or glob target; "
+                    "name one concrete path"
+                )
+            continue
         if not words:
             continue
         reason = write_target_denial_reason(strip_wrappers(words), cwd)
