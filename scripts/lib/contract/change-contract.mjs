@@ -373,7 +373,16 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   }
   if (requireCleanHead && requestedHead.ok && checkoutHead.ok && requestedHead.out === checkoutHead.out) {
     const status = git(root, ["status", "--porcelain", "--untracked-files=no"]);
-    if (status.ok && status.out !== "") {
+    if (!status.ok) {
+      return {
+        root,
+        commits: [],
+        results: [],
+        errors: [{ rule: "unreadable-status", detail: "git status could not be read; fix the checkout before `changes check`" }],
+        warnings: [],
+      };
+    }
+    if (status.out !== "") {
       return {
         root,
         commits: [],

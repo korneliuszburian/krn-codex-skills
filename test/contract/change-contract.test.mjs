@@ -117,6 +117,9 @@ test("requireCleanHead refuses a dirty working tree", () => {
   assert.ok(report.errors.some((error) => error.rule === "dirty-tree"), JSON.stringify(report.errors));
   const aliased = checkChangeContract({ root, base: "base", head: "alias", git, run: green, strictRecall: true, requireCleanHead: true });
   assert.ok(aliased.errors.some((error) => error.rule === "dirty-tree"), JSON.stringify(aliased.errors));
+  const unreadable = (repo, args) => (args[0] === "status" ? { ok: false, out: "", status: 128 } : base(repo, args));
+  const unreadableReport = checkChangeContract({ root, base: "base", git: unreadable, run: green, strictRecall: true, requireCleanHead: true });
+  assert.ok(unreadableReport.errors.some((error) => error.rule === "unreadable-status"), JSON.stringify(unreadableReport.errors));
   rmSync(root, { recursive: true, force: true });
 });
 
