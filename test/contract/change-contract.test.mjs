@@ -1043,6 +1043,69 @@ test("deleting an active lesson row is detected as shrinkage", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("narrowing a lesson trigger without a declaration is rejected", () => {
+  const root = makeRoot();
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Narrow me | probe | `test:lessons` | | | path:scripts/lib/x.mjs | |\n");
+  const git = (_root, args) => {
+    if (args[0] === "log") return { ok: true, out: "a1\u001fdocs\u001f" };
+    if (args[0] === "show") {
+      const last = args[args.length - 1];
+      if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x" } }) };
+      if (last.includes(":docs/research/workflow-lessons.md")) return { ok: true, out: "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Narrow me | probe | `test:lessons` | | | path:scripts/lib/x.mjs, symbol:foo |\n" };
+      if (args.includes("--name-only")) return { ok: true, out: "docs/research/workflow-lessons.md\0" };
+      return { ok: true, out: "" };
+    }
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    if (args[0] === "rev-list") return { ok: true, out: "0" };
+    return { ok: false, out: "" };
+  };
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
+  assert.ok(report.errors.some((error) => error.rule === "applicability-withdrawn"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a declared applicability change carries the obligation", () => {
+  const root = makeRoot();
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Narrow me | probe | `test:lessons` | | | path:scripts/lib/x.mjs | |\n");
+  const git = (_root, args) => {
+    if (args[0] === "log") return { ok: true, out: "a1\u001fdocs\u001fApplicability-change: Narrow me: symbol retired with the module" };
+    if (args[0] === "show") {
+      const last = args[args.length - 1];
+      if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x" } }) };
+      if (last.includes(":docs/research/workflow-lessons.md")) return { ok: true, out: "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Narrow me | probe | `test:lessons` | | | path:scripts/lib/x.mjs, symbol:foo |\n" };
+      if (args.includes("--name-only")) return { ok: true, out: "docs/research/workflow-lessons.md\0" };
+      return { ok: true, out: "" };
+    }
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    if (args[0] === "rev-list") return { ok: true, out: "0" };
+    return { ok: false, out: "" };
+  };
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
+  assert.ok(!report.errors.some((error) => error.rule === "applicability-withdrawn"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("widening a lesson trigger stays allowed without a declaration", () => {
+  const root = makeRoot();
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Widen me | probe | `test:lessons` | | | path:scripts/lib/x.mjs, symbol:foo | |\n");
+  const git = (_root, args) => {
+    if (args[0] === "log") return { ok: true, out: "a1\u001fdocs\u001f" };
+    if (args[0] === "show") {
+      const last = args[args.length - 1];
+      if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x" } }) };
+      if (last.includes(":docs/research/workflow-lessons.md")) return { ok: true, out: "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| Widen me | probe | `test:lessons` | | | path:scripts/lib/x.mjs |\n" };
+      if (args.includes("--name-only")) return { ok: true, out: "docs/research/workflow-lessons.md\0" };
+      return { ok: true, out: "" };
+    }
+    if (args[0] === "cat-file") return { ok: true, out: "" };
+    if (args[0] === "rev-list") return { ok: true, out: "0" };
+    return { ok: false, out: "" };
+  };
+  const report = checkChangeContract({ root, base: "base", git, run: green, strictRecall: true });
+  assert.ok(!report.errors.some((error) => error.rule === "applicability-withdrawn"), JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("a denied check cannot be referenced through an npm run prefix", () => {
   const root = makeRoot({ "test:lessons": "x", "test:lib": "x", "changes:check": "x" });
   const git = fakeGit({

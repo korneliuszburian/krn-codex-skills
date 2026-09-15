@@ -27,6 +27,14 @@ const SURFACE = [
 const DENY = new Set(["changes:check"]);
 const CONTRACT = /^(?:Change-contract|Prediction):\s*(.+?)\s*$/i;
 const CONTRACT_PART = /^(.+?):\s*(red|green)\s*->\s*(red|green)\s*$/i;
+const APPLICABILITY_CHANGE = /^Applicability-change:\s*(.+?)\s*$/i;
+
+function triggerEntries(trigger) {
+  return [...new Set(String(trigger ?? "")
+    .split(/[;,]/)
+    .map((entry) => entry.trim().replace(/^\.\//, ""))
+    .filter(Boolean))];
+}
 
 export function contractSurface(files) {
   return files.some((file) => SURFACE.some((pattern) => pattern.test(file)));
@@ -444,9 +452,30 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const churnEnabled = lessonsExist && localLessons.rows.some((row) => (row.trigger ?? "").includes("churn:"));
   const basePage = git(root, ["show", `${base}:docs/research/workflow-lessons.md`]);
   if (basePage.ok && lessonsExist) {
-    const headTexts = new Set(localLessons.rows.map((row) => row.lesson));
+    const headByLesson = new Map();
+    for (const row of localLessons.rows) {
+      if (!headByLesson.has(row.lesson)) headByLesson.set(row.lesson, row);
+    }
+    const declared = [];
+    for (const commit of commits) {
+      for (const line of `${commit.subject}\n${commit.body}`.split("\n")) {
+        const match = APPLICABILITY_CHANGE.exec(line.trim());
+        if (match) declared.push(match[1]);
+      }
+    }
+    const permitted = (lesson) => declared.some((entry) => /^all$/i.test(entry) || entry.includes(lesson) || lesson.includes(entry));
     for (const row of parseLessonText(basePage.out).rows.filter((entry) => !entry.status)) {
-      if (!headTexts.has(row.lesson)) errors.push({ rule: "lesson-shrinkage", detail: row.lesson.slice(0, 60) });
+      const head = headByLesson.get(row.lesson);
+      if (!head) {
+        errors.push({ rule: "lesson-shrinkage", detail: row.lesson.slice(0, 60) });
+        continue;
+      }
+      // A preserved lesson text whose trigger loses an entry withdraws a recall
+      // obligation without changing the text, so require an explicit declaration.
+      const lost = triggerEntries(row.trigger).filter((entry) => !triggerEntries(head.trigger).includes(entry));
+      if (lost.length > 0 && !permitted(row.lesson)) {
+        errors.push({ rule: "applicability-withdrawn", detail: `${row.lesson.slice(0, 60)}: dropped ${lost.join(", ")}; declare Applicability-change: <reason>` });
+      }
     }
   }
   if (head !== "HEAD" && requestedHead.ok && checkoutHead.ok && requestedHead.out !== checkoutHead.out) {
