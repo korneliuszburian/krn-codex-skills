@@ -49,8 +49,9 @@ not a usage-canonical path, so reads of that target are not attributed. The same
 is listed once per scope and is not deduplicated, because scope drives profile
 reconciliation; this double-counts a name that two roots share. The always-loaded
 contract (`config/AGENTS.md`) is bounded by an information budget, not only a
-line count: `validate` caps it at 60 lines, 620 words, and 320 characters per
-line, so the always-loaded file cannot regrow through unwrapped prose.
+line count: `validate` caps it at 60 lines, 620 words, 320 characters per
+line, and 5200 characters in total (an information budget), so the always-loaded
+file cannot regrow through unwrapped prose.
 
 ## Profiles
 
