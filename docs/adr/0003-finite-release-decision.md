@@ -84,11 +84,11 @@ recorded.
   would fail closed on every row whose test was authored after the failure.
 - The conformance ratchet fails closed when a case is removed, so retiring one
   needs a visible workflow edit; the frozen set covers the `changes check`,
-  `lessons check`, `memory recall`, `skills check`, and `state` (check/resume)
-  seams, not every public command. The `skills check` case is negative-only
-  because a valid export needs the pinned upstream checkout, and the `install`
-  and `capability` seams are non-hermetic (they read `$CODEX_HOME` and host
-  sessions).
+  `lessons check`/`verify`, `memory recall`, `skills check`, and `state`
+  check/resume seams, not every public command. The `skills check` case is
+  negative-only because a valid export needs the pinned upstream checkout, and
+  the `install` and `capability` seams are non-hermetic (they read `$CODEX_HOME`
+  and host sessions).
 - The review's prune directive — retire the optional `unlazy` companion pending a
   second measured real consumer rather than expanding overlapping completion
   machinery — is recorded but not executed: retiring an installable skill is a
