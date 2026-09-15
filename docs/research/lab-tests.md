@@ -187,6 +187,10 @@ After removing the leak (v4b; corrected manifest salt `6607865f46aebc84`, ROOT `
 
 Reading: with mechanism-distinct fixtures and non-leaking prompts the content effect replicates — every mechanism's decisive B is 3/3 while the ablation and the wrong-content placebo mostly fail (placebo decisive 1/12 pooled), and it survives three genuinely different coupling mechanisms. It is not uniform: the schema-membership coupling is partly inferable (arm A passes 2/3) and its neutral is at the ceiling, so that mechanism carries the only non-degenerate interaction term. Non-promotion: one family with separation power (deepseek is at ceiling), the neutral stratum is still not interior (three floors, one ceiling), the placebo is wrong-content rather than length- or token-matched, and no frozen power analysis exists. The v4a artifact also shows how easily a prompt or page can hand the coupling over, so a confirmation must ship prompts and pages that state only the requested change.
 
+### Cross-family v4b (2026-09-14, `results-deepseek-v4b`)
+
+The same corrected v4 set on `deepseek-v4.1-flash` (opencode transport; 72 executions, two retried once on a transient provider error and recorded as `attempts=2`, zero INFRA, all `served_model=deepseek-v4.1-flash`, `model_mismatch=no`, `sentinel_leak=no`): every cell is at ceiling (A/B/P 1.0) except media/decisive P 0.667, so `theta = 0.083`, 95% CI [0.000, 0.250]. The second authorized family therefore has no separation power on the same fixtures — the base model solves every mechanism without the lesson. Cross-reading with luna (v4b `theta = 0.833`): the content effect appears where the base model lacks the knowledge and is invisible where it already has it, so the cross-family prerequisite is not met by raising difficulty alone; a confirmation needs mechanism-distinct tasks calibrated to each family's floor, or the claim stays single-family.
+
 ## LT-5 separation gate (2026-09-13)
 
 One decisive plus one neutral task, arms A (lesson row removed), B (real
@@ -425,10 +429,14 @@ designs remain as specs in `docs/prd/0001`–`0005`; re-implement them behind a
 named lab consumer, not ahead of it, and treat the recorded booleans as design
 intent rather than verified evidence.
 
+### Confirmation status (2026-09-14)
+
+Not run as a frozen confirmation. Met: mechanism-distinct fixtures (v4b, salted identity), the pinned codex package, the isolation probe, fail-closed sentinel/INFRA gates, and a power simulation. Not met: an interior neutral (three mechanisms floor, one ceiling), a length/token-matched placebo (P is wrong-content), a second family with separation power (deepseek at ceiling), and feasible N at the registered MDE (the simulation puts 80% power near 32 tasks per stratum against 4 authored). Disposition: **explicit non-promotion**, not a failed confirmation — the mechanism is neither promoted nor shown inert. Reopen by authoring the additional mechanism-distinct tasks (feasible engineering) or preregistering a larger MDE, building a difficulty-calibrated decisive set for the second family, and designing an interior neutral.
+
 ## Decision
 
 `$source-to-decision` reads this page before promoting a behavioral mechanism.
 `LT-3` is a deterministic check with a documented residual; `LT-4` is retired (its lower-rank mechanism needs a ranked store KRN forbids); the shipped proof-drift surrogate is `stale-anchor`; `LT-1` and `LT-2` are blinded
 pilots that must run before the memory harness or cross-repo transfer is
 described as effective rather than defensive; the `LT-1` content-vs-enforcement
-question is probed by the `LT-5` gate: on the frozen luna v3 set every decisive shape separates (A 0/12, B 12/12, P 0/12) and the neutral is degenerate at the floor, giving a boundary estimate `theta = 1.000` with an exact paired 95% lower bound near 0.74; on the mechanism-distinct v4 set (v4b, non-leaking prompts) the gate gives `theta = 0.833` (95% CI [0.500, 1.000]): the content effect replicates across the counter, registry, and digest mechanisms and is weaker on schema-membership, so the v3 effect is consistent with transfer across the three separating mechanisms once a prompt leak is corrected — but this is one family at N=3 with a non-interior neutral, not a generalizing confirmation. No mechanism is promoted (non-interior neutral, one family with separation power, unfrozen N).
+question is probed by the `LT-5` gate: on the frozen luna v3 set every decisive shape separates (A 0/12, B 12/12, P 0/12) and the neutral is degenerate at the floor, giving a boundary estimate `theta = 1.000` with an exact paired 95% lower bound near 0.74; on the mechanism-distinct v4 set (v4b, non-leaking prompts) the gate gives `theta = 0.833` (95% CI [0.500, 1.000]): the content effect replicates across the counter, registry, and digest mechanisms and is weaker on schema-membership, so the v3 effect is consistent with transfer across the three separating mechanisms once a prompt leak is corrected — but this is one family at N=3 with a non-interior neutral, not a generalizing confirmation. No mechanism is promoted (non-interior neutral, deepseek at ceiling so only one family has separation power, unfrozen N).
