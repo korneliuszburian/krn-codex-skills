@@ -48,6 +48,9 @@ test("validateManifestSkills reports skill metadata violations", () => {
       `expected ${pattern} in ${JSON.stringify(errors)}`,
     );
   }
+  const invalid = base();
+  invalid.skills[0].name = "Bad Name";
+  assert.deepEqual(validateManifestSkills(invalid).valid, [], "an invalid skill is not admitted as valid");
 });
 
 test("validateManifestSkills checks harness and runtime invariants", () => {

@@ -24,5 +24,8 @@ test("a skipped change-contract is reported instead of silently passing", () => 
 test("the CLI usage lists every changes-check option it accepts", () => {
   const cli = fileURLToPath(new URL("../../scripts/krn-codex.mjs", import.meta.url));
   const result = spawnSync(process.execPath, [cli, "--help"], { encoding: "utf8" });
-  assert.match(`${result.stdout}${result.stderr}`, /--strict-recall/);
+  const help = `${result.stdout}${result.stderr}`;
+  for (const option of ["--base", "--head", "--before", "--strict-recall", "--json", "--root"]) {
+    assert.ok(help.includes(option), `usage must list ${option}\n${help}`);
+  }
 });
