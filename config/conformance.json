@@ -240,6 +240,23 @@
         "exit": 1,
         "stderrIncludes": ["complete-review-evidence-unresolved"]
       }
+    },
+    {
+      "id": "memory-ignores-an-unrelated-change",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "package.json": "{\"scripts\":{\"test:lib\":\"x\"}}\n",
+            "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Coupling must be kept. | probe | `test:lib` | | | path:src/x.mjs | |\n"
+          }
+        }
+      ],
+      "run": ["memory", "recall", "--changed", "src/other.mjs"],
+      "expect": {
+        "exit": 0,
+        "stdoutExcludes": ["Coupling must be kept."]
+      }
     }
   ]
 }

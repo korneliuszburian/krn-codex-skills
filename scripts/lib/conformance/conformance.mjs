@@ -68,6 +68,9 @@ function evaluate(entry, outcome) {
   for (const needle of entry.expect.stdoutIncludes ?? []) {
     if (!outcome.stdout.includes(needle)) problems.push(`stdout missing "${needle}"`);
   }
+  for (const needle of entry.expect.stdoutExcludes ?? []) {
+    if (outcome.stdout.includes(needle)) problems.push(`stdout unexpectedly contains "${needle}"`);
+  }
   return problems;
 }
 
