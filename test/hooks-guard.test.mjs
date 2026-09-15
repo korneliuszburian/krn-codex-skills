@@ -34,3 +34,9 @@ test("cp target-directory into a protected path is denied", () => {
   assert.ok(decision("Bash", "cp -t .git ./src"), "cp -t .git must be denied");
   assert.ok(decision("Bash", "cp --target-directory=.git ./src"), "cp --target-directory=.git must be denied");
 });
+
+test("attached short -t target-directory into a protected path is denied", () => {
+  assert.ok(decision("Bash", "cp -t.git ./src"), "cp -t.git must be denied");
+  assert.ok(decision("Bash", "install -t.git ./src"), "install -t.git must be denied");
+  assert.ok(decision("Bash", "cp -vt.git ./src"), "cp -vt.git must be denied");
+});

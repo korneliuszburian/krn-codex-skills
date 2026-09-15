@@ -350,6 +350,13 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
                     destination = rest[index + 1]
             elif word.startswith("--target-directory="):
                 destination = word.split("=", 1)[1]
+            elif word.startswith("-") and not word.startswith("--") and "t" in word[1:]:
+                cluster = word[1:]
+                attached = cluster[cluster.index("t") + 1 :]
+                if attached:
+                    destination = attached
+                elif index + 1 < len(rest):
+                    destination = rest[index + 1]
         if destination is None:
             arguments = [word for word in rest if not word.startswith("-")]
             if len(arguments) < 2:
