@@ -445,6 +445,16 @@ outcome capsule writer, while specialist skills retain their procedures.
 implementation units. Resolve the implementation shape first, then return to
 ticket publication only when that remote mutation is separately authorized.
 
+Known duplicate implementations (recorded bounds; reopen on drift): the `SKILL.md`
+frontmatter grammar is implemented twice — strictly in `scripts/lib/rules/content-rules.mjs`
+`parseFrontmatterFields` (the validator rejects unknown keys) and leniently in
+`scripts/lib/install/skill-metadata.mjs` `readFrontmatter` (the exporter ignores
+them); and the plugin cache path grammar is decoded twice — strictly in
+`scripts/lib/catalog/plugin-identity.mjs` `pluginIdFromCachedSkillPath` and loosely
+in `scripts/catalog.mjs` `cachedPluginFamily` (display grouping only). Consolidate
+either when its grammar or a size/format assumption changes; each is a
+cooperative-readability split, not a safety boundary.
+
 ## Condensing expert material into skills
 
 The reusable unit is a mechanism, not a lesson, slogan, transcript, or copied

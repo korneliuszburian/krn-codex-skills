@@ -148,7 +148,6 @@ async function inventorySkillRoot(root, records, quarantine) {
       records.push(
         skillRecord({
           name: entry.name,
-          description: undefined,
           root,
           source: "symlink",
           path: join(entryPath, "SKILL.md"),
@@ -204,7 +203,7 @@ async function inventorySkillRoot(root, records, quarantine) {
   }
 }
 
-function skillRecord({ name, description, root, source, path, targetPath }) {
+function skillRecord({ name, root, source, path, targetPath }) {
   return {
     id: name,
     name,
@@ -214,7 +213,6 @@ function skillRecord({ name, description, root, source, path, targetPath }) {
     path,
     source,
     ...(targetPath ? { targetPath } : {}),
-    ...(description ? { description } : {}),
   };
 }
 
