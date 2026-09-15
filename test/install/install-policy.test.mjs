@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -135,4 +135,17 @@ test("managedHookPolicy ignores table headers inside multi-line strings", () => 
   withRequirements('note = """\n[features]\n"""\nhooks = false\n', (file) => {
     assert.equal(managedHookPolicy({ requirementsPath: file }).status, "hooks_active");
   });
+});
+
+test("managedHookPolicy reports unreadable for a non-regular requirements path", () => {
+  const dir = realpathSync(mkdtempSync(path.join(tmpdir(), "krn-req-")));
+  const target = path.join(dir, "real.toml");
+  writeFileSync(target, "[features]\nhooks = false\n");
+  const link = path.join(dir, "requirements.toml");
+  symlinkSync(target, link);
+  try {
+    assert.equal(managedHookPolicy({ requirementsPath: link }).status, "requirements_unreadable");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

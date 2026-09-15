@@ -407,6 +407,12 @@ function reconcileTargets(plan) {
 
 export function applyInstall(plan) {
   preflightTargets(plan);
+  for (const dir of [plan.releaseRoot, path.join(plan.releaseRoot, "releases")]) {
+    const stat = fs.lstatSync(dir, { throwIfNoEntry: false });
+    if (stat && (!stat.isDirectory() || stat.isSymbolicLink())) {
+      fail(`release store root must be a real directory, not a symlink: ${dir}`, EXIT_CORRUPT);
+    }
+  }
   fs.mkdirSync(path.dirname(plan.release), { recursive: true });
   const staging = fs.mkdtempSync(path.join(plan.releaseRoot, ".staging-"));
   try {
@@ -564,7 +570,8 @@ export function managedHookPolicy({
   requirementsPath = process.env.KRN_REQUIREMENTS_PATH || defaultRequirementsPath(),
 } = {}) {
   const stat = fs.lstatSync(requirementsPath, { throwIfNoEntry: false });
-  if (!stat || !stat.isFile()) return { status: "no_managed_requirements", path: requirementsPath };
+  if (!stat) return { status: "no_managed_requirements", path: requirementsPath };
+  if (!stat.isFile()) return { status: "requirements_unreadable", path: requirementsPath, detail: "requirements path is not a regular file" };
   let document;
   try {
     document = parseDocument(fs.readFileSync(requirementsPath, "utf8"));

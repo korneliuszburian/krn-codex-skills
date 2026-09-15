@@ -251,7 +251,8 @@ try {
       rejectForeignOptions(options, []);
       const report = inspectInstall();
       print(report, options.json);
-      if (report.filesystem.status !== "filesystem_installed" || report.hookPolicy?.status?.startsWith("hook_inert_")) process.exitCode = 3;
+      const hookPolicy = report.hookPolicy?.status;
+      if (report.filesystem.status !== "filesystem_installed" || (hookPolicy && hookPolicy !== "hooks_active" && hookPolicy !== "no_managed_requirements")) process.exitCode = 3;
     } else if (command === "prune") {
       rejectForeignOptions(options, ["keep"]);
       const keep = options.keep ? Number(options.keep) : 3;

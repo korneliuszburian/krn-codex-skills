@@ -218,3 +218,14 @@ test("managedTargets tolerates a missing manifest", async () => {
   const { managedTargets } = await import("../../scripts/lib/install/install-release.mjs");
   assert.deepEqual(managedTargets({ releaseRoot: "/tmp/krn-none", manifest: null }), []);
 });
+
+test("applyInstall refuses a symlinked release store root", () => {
+  withHome(({ base, home }) => {
+    mkdirSync(join(home, "krn"), { recursive: true });
+    mkdirSync(join(base, "evil"), { recursive: true });
+    symlinkSync(join(base, "evil"), join(home, "krn", "releases"));
+    const source = cleanSource(base);
+    const plan = createInstallPlan({ source, cwd: source, codexHome: home });
+    assert.throws(() => applyInstall(plan), /release store root must be a real directory/);
+  });
+});
