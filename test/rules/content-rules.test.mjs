@@ -206,3 +206,25 @@ test("fenced CRLF content is hidden and fenced README rows are ignored", () => {
     [],
   );
 });
+
+test("readmeSourceOnlyPointerErrors ignores pointers inside fenced examples", () => {
+  const content = [
+    "## Skills",
+    "### Source-only packs",
+    "These packs are not installed.",
+    "",
+    "```md",
+    "[pack](skills/g/pack/SKILL.md)",
+    "```",
+    "",
+  ].join("\n");
+  const errors = readmeSourceOnlyPointerErrors(content, {
+    label: "README.md",
+    skills: [{ name: "pack", path: "skills/g/pack" }],
+    installableSkills: [],
+  });
+  assert.ok(
+    errors.some((error) => error.includes("must have exactly one canonical pointer")),
+    JSON.stringify(errors),
+  );
+});

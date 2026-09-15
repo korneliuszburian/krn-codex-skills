@@ -244,20 +244,23 @@ export function readmeSourceOnlyPointerErrors(
       ? content.length
       : content.indexOf("\n## ", start + heading.length));
   if (start === -1) errors.push(`${label}: missing Source-only packs section`);
+  const sectionText = fenceLines(section)
+    .map((entry) => (entry.fenced ? "" : entry.line))
+    .join("\n");
   for (const skill of skills) {
     const pointer = `](${skill.path}/SKILL.md)`;
-    const count = section.split(pointer).length - 1;
+    const count = sectionText.split(pointer).length - 1;
     if (count !== 1) {
       errors.push(`${label}: source-only skill ${skill.name} must have exactly one canonical pointer`);
     }
   }
   for (const skill of installableSkills) {
     const pointer = `](${skill.path}/SKILL.md)`;
-    if (section.includes(pointer)) {
+    if (sectionText.includes(pointer)) {
       errors.push(`${label}: installable skill ${skill.name} must not appear in the Source-only packs section`);
     }
   }
-  if (skills.length > 0 && !/\bnot installed\b/i.test(section)) {
+  if (skills.length > 0 && !/\bnot installed\b/i.test(sectionText)) {
     errors.push(`${label}: Source-only packs section must state that the packs are not installed`);
   }
   return errors;
