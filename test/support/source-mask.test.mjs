@@ -86,3 +86,7 @@ test("a regex after a unary sign pair is not read as division", () => {
   assert.ok(maskLiterals("const x = a - -/}/;\nconst y = 2;\n").includes("2"));
   assert.equal(maskLiterals("let n = 0; n++ / 2; // secret").includes("secret"), false);
 });
+
+test("a division after a regex literal does not swallow the following comment", () => {
+  assert.ok(!stripComments("const q = /x/ / 2; // secret\n").includes("secret"));
+});

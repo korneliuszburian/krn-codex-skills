@@ -109,7 +109,8 @@ function scan(source, { literals = false } = {}) {
           cursor += 1;
         }
         const literal = source.slice(index, cursor);
-        emit(literals ? " ".repeat(literal.length) : literal, " ".repeat(literal.length));
+        const masked = " ".repeat(Math.max(0, literal.length - 1)) + "0";
+        emit(literals ? " ".repeat(literal.length) : literal, masked);
         index = cursor;
         continue;
       }
