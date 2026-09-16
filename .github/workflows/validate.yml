@@ -43,6 +43,8 @@ jobs:
         run: npm run test:lessons
       - name: Test lesson proof executor
         run: npm run test:lessons-verify
+      - name: Run the repository quality audit
+        run: npm run quality:audit
       - name: Check change contracts
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
