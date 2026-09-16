@@ -21,7 +21,7 @@ import { auditFacts } from "./lib/frontend/facts.mjs";
 import { approveEvidence, captureEvidence, gateEvidence } from "./lib/frontend/browser.mjs";
 import { parseDesign } from "./lib/frontend/design.mjs";
 import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
-import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText } from "./lib/ticket/ticket.mjs";
+import { runTicketCommand } from "./lib/ticket/ticket-cli.mjs";
 
 process.stdout.on("error", (error) => {
   if (error.code === "EPIPE") process.exit(0);
@@ -106,11 +106,6 @@ function parseOptions(args) {
     else positional.push(arg);
   }
   return { positional, options };
-}
-
-function ticketDirs(root, dir) {
-  if (!dir) return undefined;
-  return [path.isAbsolute(dir) ? path.relative(root, dir) : dir];
 }
 
 function requireDirectory(root) {
@@ -274,59 +269,7 @@ try {
       else for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
     }
   } else if (raw[0] === "ticket") {
-    const { positional, options } = parseOptions(raw.slice(1));
-    const command = positional[0];
-    if (command === "show") {
-      rejectForeignOptions(options, []);
-      if (positional.length !== 2 || options.source || options.yes) fail(usage);
-      const file = positional[1];
-      let text;
-      try {
-        text = fs.readFileSync(file, "utf8");
-      } catch {
-        fail(`cannot read ticket file: ${file}`);
-      }
-      const { fields, findings } = parseTicketText(text);
-      if (!fields || findings.length > 0) {
-        for (const finding of findings) process.stderr.write(`error: ${finding.message}\n`);
-        fail(`invalid ticket: ${file}`);
-      }
-      if (options.json) print(Object.fromEntries(fields), true);
-      else for (const [key, value] of fields) process.stdout.write(`${key}: ${value}\n`);
-    } else {
-      rejectForeignOptions(options, ["root", "path", "id", "worker", "session", "evidence", "resolution"]);
-      if (!["check", "next", "claim", "close"].includes(command) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
-      requireDirectory(options.root);
-      if (command === "claim" || command === "close") {
-        if (!options.id) fail(usage);
-        let file = "";
-        try {
-          file = findTicketFile({ root: options.root, dirs: ticketDirs(options.root, options.path), id: options.id });
-        } catch (error) {
-          fail(error.message, EXIT_CODES.USAGE);
-        }
-        try {
-          const result = command === "claim"
-            ? claimTicket({ file, worker: options.worker ?? "unknown", session: options.session ?? "" })
-            : closeTicket({ file, evidence: options.evidence ?? "none", resolution: options.resolution ?? "none" });
-          print(result, options.json);
-        } catch (error) {
-          fail(error.message, EXIT_CODES.USAGE);
-        }
-      } else if (command === "next") {
-        const report = checkTickets({ root: options.root, dirs: ticketDirs(options.root, options.path) });
-        if (options.json) print({ root: options.root, frontier: report.frontier }, true);
-        else for (const id of report.frontier) process.stdout.write(`${id}\n`);
-      } else {
-        const report = checkTickets({ root: options.root, dirs: ticketDirs(options.root, options.path) });
-        print(report, options.json);
-        if (!options.json) {
-          for (const warning of report.warnings) process.stderr.write(`warning: ${warning.rule}${warning.path ? ` ${warning.path}` : ""}: ${warning.message}\n`);
-          for (const error of report.errors) process.stderr.write(`error: ${error.rule}${error.path ? ` ${error.path}` : ""}: ${error.message}\n`);
-        }
-        if (report.errors.length) process.exitCode = 1;
-      }
-    }
+    runTicketCommand(raw.slice(1), { usage, requireDirectory });
   } else if (raw[0] === "conformance") {
     const { positional, options } = parseOptions(raw.slice(1));
     rejectForeignOptions(options, ["root", "candidate", "filter", "frozen"]);
