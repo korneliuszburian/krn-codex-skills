@@ -9,6 +9,8 @@ const VALUE_FLAGS = {
   "--root": "root",
   "--path": "path",
   "--id": "id",
+  "--base": "base",
+  "--head": "head",
   "--worker": "worker",
   "--session": "session",
   "--evidence": "evidence",
@@ -80,7 +82,7 @@ export function runTicketCommand(argv, { usage, requireDirectory }) {
     showTicket(positional, options, usage);
     return;
   }
-  rejectOptions(options, ["root", "path", "id", "worker", "session", "evidence", "resolution"]);
+  rejectOptions(options, ["root", "path", "id", "base", "head", "worker", "session", "evidence", "resolution"]);
   if (!COMMANDS.has(command) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage, EXIT_CODES.USAGE);
   requireDirectory(options.root);
   const dirs = ticketDirs(options.root, options.path);
@@ -102,7 +104,8 @@ export function runTicketCommand(argv, { usage, requireDirectory }) {
     }
     return;
   }
-  const report = checkTickets({ root: options.root, dirs });
+  const scope = command === "check" ? { id: options.id, base: options.base, head: options.head } : {};
+  const report = checkTickets({ root: options.root, dirs, ...scope });
   if (command === "next") {
     if (options.json) output({ root: options.root, frontier: report.frontier }, true);
     else for (const id of report.frontier) process.stdout.write(`${id}\n`);
