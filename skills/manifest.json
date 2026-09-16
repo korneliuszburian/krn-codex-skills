@@ -62,6 +62,7 @@
     "scripts/lib/support/tap.mjs",
     "skills/manifest.json",
     "scripts/lib/support/regexp.mjs",
+    "scripts/lib/ticket/ticket-cli.mjs",
     "scripts/lib/ticket/ticket.mjs"
   ],
   "global_agents": "config/AGENTS.md",
