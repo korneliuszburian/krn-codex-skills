@@ -317,6 +317,39 @@
         "exit": 1,
         "stderrIncludes": ["active-without-next"]
       }
+    },
+    {
+      "id": "frontend-inventory-lists-blocks",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "src/css/blocks/text.css": ".text[data-alignment=\"center\"] { text-align: center; }\n",
+            "src/css/compositions/flow.css": ".flow > * + * { margin-block-start: var(--flow-space, 1em); }\n"
+          }
+        }
+      ],
+      "run": ["frontend", "inventory"],
+      "expect": {
+        "exit": 0,
+        "stdoutIncludes": ["blocks: 1"]
+      }
+    },
+    {
+      "id": "frontend-audit-flags-a-height-floor",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "src/css/blocks/hero.css": ".hero { min-block-size: 20vh; }\n"
+          }
+        }
+      ],
+      "run": ["frontend", "audit"],
+      "expect": {
+        "exit": 1,
+        "stdoutIncludes": ["block-height"]
+      }
     }
   ]
 }

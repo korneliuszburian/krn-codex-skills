@@ -25,7 +25,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "gate": "npm run validate && npm run test:bootstrap && npm run test:install && npm run test:hooks && npm run test:state && npm run test:skills && npm run skills:check && npm run lessons:verify && npm run changes:check && npm run test:lessons && npm run test:lessons-verify && npm run test:change-contract && npm run test:conformance && npm run test:durable-pages && npm run test:catalog && npm run test:setup && npm run test:skill-scripts && npm run test:lib && bash -n scripts/install.sh && bash -n skills/advisory/opencode-second-opinion/scripts/check-opinion.sh && bash -n skills/advisory/opencode-second-opinion/scripts/run-opinion.sh && git diff --check",
+    "gate": "npm run validate && npm run test:bootstrap && npm run test:install && npm run test:hooks && npm run test:state && npm run test:skills && npm run skills:check && npm run lessons:verify && npm run changes:check && npm run test:lessons && npm run test:lessons-verify && npm run test:change-contract && npm run test:conformance && npm run test:frontend && npm run test:durable-pages && npm run test:catalog && npm run test:setup && npm run test:skill-scripts && npm run test:lib && bash -n scripts/install.sh && bash -n skills/advisory/opencode-second-opinion/scripts/check-opinion.sh && bash -n skills/advisory/opencode-second-opinion/scripts/run-opinion.sh && git diff --check",
     "catalog": "node scripts/catalog.mjs",
     "test:bootstrap": "node --test test/bootstrap-fixture/bootstrap.test.mjs",
     "test:hooks": "python3 -B -m unittest scripts/hooks/test_destructive_guard.py && node --test test/hooks-guard.test.mjs",
@@ -39,6 +39,7 @@
     "changes:push": "base=${KRN_PUSH_BASE:-$(git merge-base origin/main HEAD 2>/dev/null || true)}; [ \"$base\" = \"0000000000000000000000000000000000000000\" ] && base=''; resolved=$(git rev-parse --verify \"${base:-HEAD}^{commit}\" 2>/dev/null || true); if [ -z \"$base\" ] || [ -z \"$resolved\" ] || [ \"$resolved\" = \"$(git rev-parse HEAD)\" ]; then base=\"$(git rev-parse HEAD~1 2>/dev/null)\"; fi; if [ -z \"$base\" ]; then echo 'changes:push: no base range (root commit)' >&2; base=\"$(git rev-parse HEAD)\"; fi; node scripts/krn-codex.mjs changes check --root . --base \"$base\" --head HEAD --before",
     "test:change-contract": "node --test test/contract/change-contract.test.mjs",
     "test:conformance": "node --test test/conformance/conformance.test.mjs",
+    "test:frontend": "node --test test/frontend/frontend.test.mjs",
     "test:lessons": "node --test test/lessons/lessons.test.mjs",
     "test:lessons-verify": "node --test test/lessons/lessons-verify.test.mjs",
     "test:catalog": "node --test test/catalog/catalog-cli.test.mjs",

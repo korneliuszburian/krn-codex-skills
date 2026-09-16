@@ -16,6 +16,8 @@ import { runGit } from "./lib/support/git-cli.mjs";
 import { reanchorLessons, verifyLessons } from "./lib/lessons/lessons-verify.mjs";
 import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
 import { caseIds, loadCases, runConformance } from "./lib/conformance/conformance.mjs";
+import { auditTheme, inventoryTheme } from "./lib/frontend/theme.mjs";
+import { parseDesign } from "./lib/frontend/design.mjs";
 import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
 
 process.stdout.on("error", (error) => {
@@ -39,6 +41,8 @@ const usage = `Usage:
   krn-codex lessons <check|verify|reanchor> --root DIR [--json]
   krn-codex changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
   krn-codex conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
+  krn-codex frontend <inventory|audit> --root THEME [--json]
+  krn-codex frontend design [--variables FILE] [--metadata FILE] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]`;
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
@@ -71,6 +75,8 @@ function parseOptions(args) {
       options.symbols = [...(options.symbols ?? []), ...take(index++, "--symbol").split(",").map((entry) => entry.trim()).filter(Boolean)];
     } else if (arg === "--keep") setOnce("keep", "--keep", take(index++, "--keep"));
     else if (arg === "--head") setOnce("head", "--head", take(index++, "--head"));
+    else if (arg === "--variables") setOnce("variables", "--variables", take(index++, "--variables"));
+    else if (arg === "--metadata") setOnce("metadata", "--metadata", take(index++, "--metadata"));
     else if (arg === "--candidate") setOnce("candidate", "--candidate", take(index++, "--candidate"));
     else if (arg === "--filter") setOnce("filter", "--filter", take(index++, "--filter"));
     else if (arg === "--upstream") setOnce("upstream", "--upstream", take(index++, "--upstream"));
@@ -93,6 +99,8 @@ const OPTION_FLAG = {
   changed: "--changed",
   keep: "--keep",
   head: "--head",
+  variables: "--variables",
+  metadata: "--metadata",
   candidate: "--candidate",
   filter: "--filter",
   frozen: "--frozen",
@@ -258,6 +266,44 @@ try {
     if (options.json) print({ root: options.root, candidate, frozen: options.frozen === true, results }, true);
     else for (const result of results) process.stdout.write(`${result.ok ? "ok" : "not ok"} ${result.id}${result.detail ? ` - ${result.detail}` : ""}\n`);
     if (results.some((result) => !result.ok)) process.exitCode = 1;
+  } else if (raw[0] === "frontend") {
+    const { positional, options } = parseOptions(raw.slice(1));
+    rejectForeignOptions(options, ["root", "variables", "metadata"]);
+    const subcommand = positional[0];
+    if (!["inventory", "audit", "design"].includes(subcommand) || positional.length > 1 || options.source || options.yes) fail(usage);
+    if (subcommand === "design") {
+      if (!options.variables && !options.metadata) fail(usage);
+      const report = parseDesign({ variablesFile: options.variables, metadataFile: options.metadata });
+      if (options.json) print(report, true);
+      else {
+        process.stdout.write(`tokens: ${report.tokens.total} (${report.tokens.typography.length} typography, ${report.tokens.colors.length} colors)\n`);
+        process.stdout.write(`sections: ${report.sections.map((entry) => entry.name).join(", ") || "none"}\n`);
+        process.stdout.write(`components: ${report.components.length}\n`);
+        for (const entry of report.components.slice(0, 30)) process.stdout.write(`  ${entry.name}: ${entry.count}\n`);
+      }
+    } else {
+      if (!options.root) fail(usage);
+      requireDirectory(options.root);
+      if (subcommand === "inventory") {
+        const report = inventoryTheme({ root: options.root });
+        if (options.json) print(report, true);
+        else {
+          const { layers } = report;
+          process.stdout.write(`compositions: ${layers.compositions.length}  utilities: ${layers.utilities.length}  blocks: ${report.blocks.length}  global: ${layers.global.length}\n`);
+          process.stdout.write(`tokens: ${report.tokens.total} across ${Object.keys(report.tokens.groups).length} groups (${report.tokens.fluid} fluid)\n`);
+          process.stdout.write(`ACF layouts: ${report.acf.layouts.map((entry) => entry.layout).join(", ") || "none"}\n`);
+          for (const block of report.blocks) process.stdout.write(`  ${block.name.padEnd(16)} ${block.variants.join(", ") || "-"}\n`);
+        }
+      } else {
+        const report = auditTheme({ root: options.root });
+        if (options.json) print(report, true);
+        else {
+          for (const finding of report.findings) process.stdout.write(`${finding.severity}\t${finding.file}\t${finding.rule}\t${finding.detail}\n`);
+          process.stdout.write(report.hard > 0 ? `${report.hard} hard finding(s)\n` : "frontend audit clean\n");
+        }
+        if (report.hard > 0) process.exitCode = 1;
+      }
+    }
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));
     rejectForeignOptions(options, ["root"]);
