@@ -178,8 +178,9 @@ explicit manifest-owned runtime closure to
 lead through `current`, never to the source checkout. Existing matching
 releases are idempotent; a mismatched or tampered release fails closed. The
 installer links only manifest-owned skills into `~/.agents/skills`, the CLI, and
-catalog compatibility shim into `~/.local/bin`, the global contract into Codex,
-and one deterministic `PreToolUse` guard. It
+catalog compatibility shim into `~/.local/bin`, the global contract into Codex
+and opencode, the adapter plugin into `~/.config/opencode/plugins/`, and one
+deterministic `PreToolUse` guard. It
 applies path-aware policy to recognized direct `rm`, denies recognized literal
 non-dry-run `git clean`, blocks exact literal quarantine references and patch
 targets, and denies unsupported shell composition only when it contains the
