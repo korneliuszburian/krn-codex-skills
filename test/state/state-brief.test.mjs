@@ -8,6 +8,7 @@ import test from "node:test";
 
 import { ABI_LABELS } from "../../scripts/lib/state/capsule-abi.mjs";
 import { compileCapsule, resumeBrief } from "../../scripts/lib/state/state-brief.mjs";
+import { inspectSpineState } from "../../scripts/lib/state/state-check.mjs";
 
 const git = (root, args) => runGit(root, args).out;
 
@@ -76,6 +77,53 @@ test("compile prefills every ABI field with deterministic repo truth", () => {
   assert.ok(report.capsule.includes("dirty=clean"));
   assert.ok(report.capsule.includes("Outstanding workflow-run cleanup: none"));
   assert.equal(report.ignoredRuns, true);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a compiled capsule resumes the same bounded action once its placeholders resolve", () => {
+  const { root, head } = makeRepo();
+  const report = compileCapsule({ repo: root });
+  assert.deepEqual(report.errors, []);
+  const located = report.capsule.match(/^<outcome-capsule>\n([\s\S]*)\n<\/outcome-capsule>$/);
+  assert.ok(located, "compile emits a capsule block");
+  const unfilled = located[1];
+  assert.match(unfilled, /<fill: next bounded owner and action>/);
+
+  const dir = join(root, ".krn", "runs", "delivery-loop", "out-1");
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, "state.md");
+  writeFileSync(file, unfilled);
+  const blocked = inspectSpineState({ repo: root });
+  assert.ok(blocked.errors.some((error) => error.rule === "unresolved-placeholder"), JSON.stringify(blocked.errors));
+
+  const resolve = (label, value) => {
+    if (!value.includes("<fill")) return value;
+    const resolved = {
+      "Outcome and observable acceptance": "the bounded slice; run `npm test`",
+      "Current workflow owner and sole writer": "$delivery-loop",
+      "Repository base, HEAD or working-tree fingerprint, and dirty-state scope": `base=${head}; HEAD=${head}; dirty=clean`,
+      Authority: "writes=repo; tracker/issue=none; commit=authorized; push=none; PR=none; merge=none; deployment/install=none",
+      "Evidence observed": "compile ran",
+      "Explicit non-proofs": "no model run",
+      "Review fixed point and Standards / Spec disposition": "none",
+      "Open unknowns and blockers with owners": "none",
+      "Durable CONTEXT / ADR / research references": "none",
+      "Next bounded owner and action": "resume the bounded slice",
+    }[label];
+    return resolved ?? value;
+  };
+  writeFileSync(file, unfilled.split("\n").map((line) => {
+    const match = line.match(/^(.*?): (.*)$/);
+    return match ? `${match[1]}: ${resolve(match[1], match[2])}` : line;
+  }).join("\n"));
+
+  const clean = inspectSpineState({ repo: root });
+  assert.deepEqual(clean.errors, []);
+  const resumed = resumeBrief({ repo: root });
+  assert.deepEqual(resumed.errors, []);
+  assert.equal(resumed.capsules[0].nextAction, "resume the bounded slice");
+  assert.equal(resumed.capsules[0].restartState, "ABSENT");
+  assert.equal(resumed.capsules[0].blockers, "none");
   rmSync(root, { recursive: true, force: true });
 });
 
