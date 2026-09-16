@@ -14,18 +14,40 @@ stores queue and claim state; the next outcome owner performs any later claim
 through its declared operation and separate authority. `$delivery-loop` selects
 the next unit and owns lifecycle coordination only when its envelope is active.
 
+## One ticket shape: the ABI
+
+Published tickets use the [ticket ABI v1](../../../../docs/research/ticket-protocol.md),
+not a skill-local template. Emit one `<krn-ticket>` envelope per unit and let the
+ABI own the fields; `scripts/lib/ticket/ticket.mjs` and `krn-codex ticket check`
+parse and reject any other field set, so a parallel shape reads as `missing-field`.
+
+Carry the unit's decision evidence into the envelope:
+
+- `Id`, `Title`, `Status`, `Type`, `Repository-base`, `Scope`, `Deciding check`,
+  `Contract`, `Acceptance`, and `Blocked by` are the required fields.
+- A new unpublished unit starts at `Status: ready`; `Blocked by` names the ids
+  that gate it, or `none`.
+- `Execution` records the agent, model, effort, and parallel group so the runner
+  needs no environment plumbing.
+- The prose below the block stays human-facing: the end-to-end behaviour, the
+  dependency reason, and acceptance detail.
+
+Do not write a `Kind:`/`ready-for-agent` block or any other competing ticket
+shape; the ABI in [ticket-protocol.md](../../../../docs/research/ticket-protocol.md)
+is the single owner of the envelope.
+
 ## How blocking edges are expressed
 
 The slices are the same either way; only the shape of the blocking edges changes.
 
 - **Configured local-markdown tracker** → use the exact root declared by the
   closest repository instructions, one file per ticket, numbered in dependency order
-  (blockers first). Each file's **Blocked by** lists the numbers/titles it depends on.
+  (blockers first). Each ticket's `Blocked by` lists the ids it depends on.
   One ticket per file, never a combined backlog file.
 - **A real tracker (Beads, GitHub, GitLab, …)** → publish one issue per ticket in
   dependency order so each ticket's edges can reference real identifiers. Use the
   platform's **native** dependency / blocking relationship where it has one (it renders
-  the frontier visually); otherwise set each ticket's **Blocked by** to the blocking
+  the frontier visually); otherwise set each ticket's `Blocked by` to the blocking
   issues. Mark each agent-ready unless instructed otherwise — the tickets are
   agent-grabbable by construction.
 
@@ -36,43 +58,6 @@ Avoid specific file paths or code snippets — they go stale fast. Exception: a
 prototype snippet that encodes a decision more precisely than prose (state machine,
 reducer, schema, type shape) may be inlined briefly with a note that it came from a
 prototype.
-
-<local-ticket-template>
-# <NN> — <Ticket title>
-
-**What to build:** the end-to-end behaviour this ticket makes work, from the user's
-perspective — not a layer-by-layer implementation list.
-
-**Kind:** vertical-slice | migration-stage (`expand` | `migrate` | `contract`)
-
-**Blocked by:** the numbers/titles of the tickets that gate this one, or
-"None — can start immediately".
-
-**Status:** ready-for-agent
-
-- [ ] Acceptance criterion 1
-- [ ] Acceptance criterion 2
-</local-ticket-template>
-
-<tracker-ticket-template>
-## What to build
-
-The end-to-end behaviour this ticket makes work, from the user's perspective — not
-layer-by-layer implementation.
-
-## Acceptance criteria
-
-- [ ] Criterion 1
-- [ ] Criterion 2
-
-## Kind
-
-`vertical-slice` or `migration-stage` (`expand`, `migrate`, or `contract`).
-
-## Blocked by
-
-- A reference to each blocking ticket, or "None — can start immediately".
-</tracker-ticket-template>
 
 ## Expand–migrate–contract stages
 

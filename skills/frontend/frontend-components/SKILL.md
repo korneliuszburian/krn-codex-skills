@@ -10,7 +10,7 @@ A block is a skeletal component. Most work is already done by global CSS, compos
 ## <required> — before writing a block
 
 1. Compose from the smallest existing pieces. IF an existing block/atom/molecule covers the need THEN reuse it (check variants first). NEVER create a duplicate component.
-2. IF the canonical library exists THEN copy the needed block file VERBATIM from `.agents/skills/frontend-library/library/css/blocks/` (button, buttons, cta, hero, text, media-content, site-head, site-foot, prose). NEVER paraphrase or re-implement it — the snippets below are the pattern, the library is the implementation.
+2. IF the canonical library exists THEN copy the needed block file VERBATIM from `skills/frontend/frontend-library/library/css/blocks/` (button, buttons, cta, hero, text, media-content, site-head, site-foot, prose). NEVER paraphrase or re-implement it — the snippets below are the pattern, the library is the implementation.
 3. IF a new block is needed THEN build its internals with composition classes, not hand-rolled layout.
 4. Check the existing naming convention for block internals and use it consistently.
 5. IF the project has no pattern inventory THEN the new block must be documented (file header + pattern library entry).
