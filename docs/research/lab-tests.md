@@ -81,10 +81,19 @@ External baselines from the 2026-09-16 sweep: cross-agent textual PR conflicts
 run 41.7% vs intra-agent 19.8% (arXiv:2607.04697), and review or duplicate-work
 load, not generation, is the measured constraint (MSR 2026 PR-outcome studies).
 
-Non-proofs: three tickets, one model family, one rep each, disjoint files, so
-no merge-repair, throughput, duplicate-work, or cost-per-success measurement;
-no sandbox escape test and no hostile-process claim; fixtures and runner stay
-outside the repository.
+Parallel lane (2026-09-16, same runner): two mechanism-distinct tickets (schema
+membership, display-label resolution) were seeded on one base and run as two
+concurrent `gpt-5.6-luna` sessions in separate worktrees; both produced one
+trailer-carrying commit and passed their worker gates (35s and 29s wall,
+`sentinel_leak=no`, `model_mismatch=no`), billed 68k–69k input tokens (52k–58k
+cached) each, and the integrator merged both with zero conflicts and a green
+merged-fixed-point gate because the file sets were disjoint. A conflicting pair
+is unrun, so merge-repair remains unmeasured.
+
+Non-proofs: five tickets (three sequential plus two concurrent), one model
+family, one rep each, disjoint files, so no merge-repair, throughput-at-N,
+duplicate-work, or cost-per-success measurement; no sandbox escape test and no
+hostile-process claim; fixtures and runner stay outside the repository.
 
 ## LT-5 design additions (2026-09-13)
 
