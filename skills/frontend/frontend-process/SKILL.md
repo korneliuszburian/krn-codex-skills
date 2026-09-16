@@ -11,7 +11,7 @@ Build order is not optional. Every phase has an exit criterion; the next phase m
 
 1. Run Phase 0 (plan). NEVER dive into production CSS from a raw design.
 2. IF any layout/technique is unproven THEN run Phase 0.5 (disposable prototype).
-3. Execute Phases 1–7 in order. NEVER skip a phase or exit criterion.
+3. Execute Phases 1–10 in order. NEVER skip a phase or exit criterion.
 
 ## Phases
 
@@ -82,7 +82,7 @@ Build order is not optional. Every phase has an exit criterion; the next phase m
 - [ ] Global CSS verified on the kitchen sink before any block
 - [ ] Core build complete before any flair
 - [ ] Out-of-scope ideas are in the Icebox, not in the build
-- [ ] Verification checklist from `AGENTS.frontend.md` passed
+- [ ] Verification checklist from `frontend-enforcement` passed
 
 ## References
 - [references/workflow.md](references/workflow.md) — full phase evidence with sources (course lessons, Set Studio blog).
