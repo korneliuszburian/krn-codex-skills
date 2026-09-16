@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords } from "../support/git-cli.mjs";
 import { readJson } from "../support/read-json.mjs";
-import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings } from "../lessons/lessons.mjs";
+import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings, triggerEntries as lessonTriggerEntries, globToRegex } from "../lessons/lessons.mjs";
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
 import { churnHot } from "../support/churn.mjs";
 import { runGit } from "../support/git-cli.mjs";
@@ -71,6 +71,31 @@ export function parseChangeContract(message) {
   return { contracts, atRisk };
 }
 
+// A path or symbol trigger that matched the changed diff is an obligation: it
+// fails the contract unless the commit reconstructs the lesson or declines it
+// with a reasoned `Recall: none (<reason>)`. Churn is a heuristic over history,
+// so a churn-only hit stays advisory unless the caller opts into strict recall.
+function diffRecallHit(hit, { files, symbols }) {
+  const pathHit = lessonTriggerEntries(hit.trigger, "path:").some((glob) => {
+    const pattern = globToRegex(glob);
+    return files.some((file) => pattern.test(file));
+  });
+  if (pathHit) return true;
+  return lessonTriggerEntries(hit.trigger, "symbol:").some((name) => symbols.includes(name));
+}
+
+function recallObligation({ strictRecall, hit, files, symbols }) {
+  if (strictRecall === true) return true;
+  if (strictRecall === false) return false;
+  return diffRecallHit(hit, { files, symbols });
+}
+
+const RECALL_NONE = /^none\s*\(\s*\S.*\)\s*$/i;
+
+function declinedRecall(lines) {
+  return lines.some((line) => RECALL_NONE.test(line.trim()));
+}
+
 export function runCheckAtBase({ root, base, target, git = runGit, overlay = null }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "krn-base-"));
   const added = git(root, ["worktree", "add", "--detach", dir, base]);
@@ -105,7 +130,7 @@ export function runCheckAtBase({ root, base, target, git = runGit, overlay = nul
   }
 }
 
-export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = false, requireCleanHead = false } = {}) {
+export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = null, requireCleanHead = false } = {}) {
   const errors = [];
   const warnings = [];
   const requestedHead = git(root, ["rev-parse", "--verify", `${head}^{commit}`]);
@@ -231,9 +256,11 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const symbols = [...symbolFiles.keys()];
     const hot = churnEnabled ? churnHot({ root, git, sha: commit.sha, files }) : [];
     const recallTrailers = recallLines(`${commit.subject}\n${commit.body}`);
+    const declined = declinedRecall(recallTrailers);
     for (const hit of recallLessons({ root, files, symbols, hot, symbolFiles })) {
+      if (declined) continue;
       const { falsifierFile, named, reconstructed } = recallBindings({ hit, lines: recallTrailers });
-      const record = strictRecall ? errors : warnings;
+      const record = recallObligation({ strictRecall, hit, files, symbols }) ? errors : warnings;
       if (!reconstructed) {
         record.push({ rule: "unreconstructed-recall", commit: commit.sha, ref: hit.lesson, detail: `trigger ${hit.trigger} matched ${hit.matched.join(", ")}; add Recall: <${named.join(" or ") || "gate"}> => <changed file or symbol>` });
       } else {
