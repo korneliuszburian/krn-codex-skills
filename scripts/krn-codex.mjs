@@ -21,6 +21,7 @@ import { auditFacts } from "./lib/frontend/facts.mjs";
 import { approveEvidence, captureEvidence, gateEvidence } from "./lib/frontend/browser.mjs";
 import { parseDesign } from "./lib/frontend/design.mjs";
 import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
+import { checkTickets } from "./lib/ticket/ticket.mjs";
 
 process.stdout.on("error", (error) => {
   if (error.code === "EPIPE") process.exit(0);
@@ -46,7 +47,8 @@ const usage = `Usage:
   krn-codex frontend <inventory|audit|facts> --root THEME [--docs FILE|DIR] [--accept RULE:FILE[,RULE:FILE]] [--json]
   krn-codex frontend verify --config FILE [--gate | --approve --by NAME --note WHY] [--json]
   krn-codex frontend design [--variables FILE] [--metadata FILE] [--json]
-  krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]`;
+  krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
+  krn-codex ticket <check|next> --root DIR [--path DIR] [--json]`;
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
 
@@ -251,6 +253,23 @@ try {
       const hits = recallLessons({ root: options.root, files: changed, symbols: options.symbols ?? [], hot });
       if (options.json) print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits }, true);
       else for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
+    }
+  } else if (raw[0] === "ticket") {
+    const { positional, options } = parseOptions(raw.slice(1));
+    rejectForeignOptions(options, ["root", "path"]);
+    if (!["check", "next"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
+    requireDirectory(options.root);
+    const report = checkTickets({ root: options.root, dirs: options.path ? [options.path] : undefined });
+    if (positional[0] === "next") {
+      if (options.json) print({ root: options.root, frontier: report.frontier }, true);
+      else for (const id of report.frontier) process.stdout.write(`${id}\n`);
+    } else {
+      print(report, options.json);
+      if (!options.json) {
+        for (const warning of report.warnings) process.stderr.write(`warning: ${warning.rule}${warning.path ? ` ${warning.path}` : ""}: ${warning.message}\n`);
+        for (const error of report.errors) process.stderr.write(`error: ${error.rule}${error.path ? ` ${error.path}` : ""}: ${error.message}\n`);
+      }
+      if (report.errors.length) process.exitCode = 1;
     }
   } else if (raw[0] === "conformance") {
     const { positional, options } = parseOptions(raw.slice(1));
