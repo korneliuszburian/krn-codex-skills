@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const modulePath = fileURLToPath(new URL("../../scripts/lib/catalog/catalog-inventory.mjs", import.meta.url));
-const LINE_BUDGET = 650;
+const LINE_BUDGET = 450;
 
 test("catalog-inventory.mjs stays within the line budget", () => {
   const content = fs.readFileSync(modulePath, "utf8");
