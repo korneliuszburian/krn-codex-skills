@@ -8,14 +8,16 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const hook = join(root, "scripts", "hooks", "krn_pretooluse.py");
-const precompact = join(root, "scripts", "hooks", "krn_precompact.py");
+const precompact = join(root, "scripts", "hooks", "krn_memory.py");
 
-function precompactContext(cwd) {
-  const payload = JSON.stringify({ hook_event_name: "PreCompact", cwd });
+function precompactContext(cwd, event = "PreCompact") {
+  const payload = JSON.stringify({ hook_event_name: event, cwd });
   const result = spawnSync("python3", ["-B", precompact], { input: payload, encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   if (!result.stdout.trim()) return null;
-  return JSON.parse(result.stdout).hookSpecificOutput.additionalContext;
+  const output = JSON.parse(result.stdout).hookSpecificOutput;
+  assert.equal(output.hookEventName, event);
+  return output.additionalContext;
 }
 
 function decision(tool, command) {
@@ -130,6 +132,26 @@ test("PreCompact injects a continuing capsule and ignores a completed one", () =
     const after = precompactContext(dir);
     assert.doesNotMatch(after, /do not continue this/);
     assert.throws(() => readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-2", "boundary.md")), "a completed capsule gets no boundary file");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("SessionStart loads a continuing capsule without writing a boundary", () => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-sessionstart-"));
+  try {
+    assert.equal(precompactContext(dir, "SessionStart"), null, "no capsule means no loaded context");
+    const capsule = join(dir, ".krn", "runs", "delivery-loop", "out-1");
+    mkdirSync(capsule, { recursive: true });
+    writeFileSync(join(capsule, "state.md"), [
+      "Outcome state: ACTIVE",
+      "Next bounded owner and action: finish the slice",
+      "Open unknowns and blockers with owners: none",
+      "Outcome and observable acceptance: run `npm test`",
+      "",
+    ].join("\n"));
+    assert.match(precompactContext(dir, "SessionStart"), /finish the slice/);
+    assert.throws(() => readFileSync(join(capsule, "boundary.md")), "SessionStart must not write a boundary file");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

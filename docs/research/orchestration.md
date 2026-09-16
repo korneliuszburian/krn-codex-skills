@@ -222,18 +222,19 @@ report. A superseded or abandoned run remains while its original Goal is active;
 transfer into a successor does not delete it before the original Goal's
 non-active transition is read back.
 
-The boundary can be host-triggered rather than manual: Codex fires a `PreCompact`
-hook before it summarizes history, and `config/hooks.json` wires
-`scripts/hooks/krn_precompact.py`. It writes a `boundary.md` next to each
-continuing outcome capsule under the session cwd (compaction timestamp,
-acceptance, next bounded action, blockers) and also emits the same brief as
-`additionalContext`. Proven in the LT-6 lab on 2026-09-16: with a 12k context
-window the host compacted mid-run (`compacted` in the rollout) and the hook wrote
-`boundary.md` with the capsule's next action. Bound: the emitted
-`additionalContext` was not observed in the rollout after compaction, so its
-retention is unproven; the mechanical guarantee is the on-disk `boundary.md` and
-capsule. The hook needs `--dangerously-bypass-hook-trust` or a persisted hook
-trust on the host, and it never blocks a session.
+The boundary is host-triggered. `config/hooks.json` wires
+`scripts/hooks/krn_memory.py` on two events: **SessionStart** injects each
+continuing capsule's acceptance, next action, and blockers as `additionalContext`,
+and **PreCompact** writes a `boundary.md` next to each continuing capsule
+(timestamp, acceptance, next action, blockers) and also emits the brief. Proven in
+the LT-6 lab on 2026-09-16: a 12k context window compacted mid-run and PreCompact
+wrote `boundary.md`; and a fresh codex session with the neutral prompt "Continue
+the work in this repository." wrote the file named by the capsule's next action,
+with no prompt telling it to read the capsule. Bound: SessionStart
+`additionalContext` is retained in the session, but PreCompact's was not observed
+in the rollout after compaction, so the mechanical guarantee there is the on-disk
+`boundary.md`. Both hooks need `--dangerously-bypass-hook-trust` or a persisted
+hook trust on the host, and neither blocks a session.
 
 ## One spine, typed entries
 

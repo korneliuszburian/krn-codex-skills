@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Global Codex PreCompact hook: persist the memory layer at the boundary.
+"""Global Codex memory-boundary hook for SessionStart and PreCompact.
 
-Codex fires PreCompact just before it summarizes history. This hook (a) writes a
-small `boundary.md` next to each continuing outcome capsule, so the memory layer
-is materialized on disk at the host boundary regardless of whether the summary
-keeps it, and (b) emits the same continuation brief as `additionalContext` on a
-best-effort basis. It never blocks the session: any error exits 0.
+SessionStart: a fresh session gets the continuing outcome capsule's brief as
+`additionalContext`, so it resumes the bounded action without being told to read
+the file. PreCompact: the host is about to summarize history, so the hook also
+writes a `boundary.md` next to each continuing capsule, materializing the memory
+layer on disk. It never blocks a session: any error exits 0.
 """
 
 from __future__ import annotations
@@ -84,7 +84,8 @@ def main() -> int:
     try:
         raw = sys.stdin.read()
         payload = json.loads(raw) if raw.strip() else {}
-        if payload.get("hook_event_name") != "PreCompact":
+        event = payload.get("hook_event_name")
+        if event not in {"SessionStart", "PreCompact"}:
             return 0
         cwd_value = payload.get("cwd")
         cwd = Path(cwd_value).expanduser() if isinstance(cwd_value, str) and cwd_value else Path.cwd()
@@ -105,7 +106,8 @@ def main() -> int:
             next_action = field(text, "Next bounded owner and action") or "unspecified"
             blockers = field(text, "Open unknowns and blockers with owners") or "none"
             acceptance = field(text, "Outcome and observable acceptance") or "unspecified"
-            write_boundary(state, outcome, acceptance, next_action, blockers)
+            if event == "PreCompact":
+                write_boundary(state, outcome, acceptance, next_action, blockers)
             notes.append(
                 f"Capsule {state.relative_to(cwd)} [{outcome}]\n"
                 f"  acceptance: {acceptance}\n"
@@ -117,13 +119,13 @@ def main() -> int:
             return 0
 
         context = (
-            "KRN memory layer before compaction. Read the outcome capsule(s) below "
-            "and continue from the recorded next action; do not restart completed "
-            "work.\n\n" + "\n\n".join(notes)
+            "KRN memory layer. Read the outcome capsule(s) below and continue from "
+            "the recorded next action; do not restart completed work.\n\n"
+            + "\n\n".join(notes)
         )
         print(json.dumps({
             "hookSpecificOutput": {
-                "hookEventName": "PreCompact",
+                "hookEventName": event,
                 "additionalContext": context,
             }
         }))

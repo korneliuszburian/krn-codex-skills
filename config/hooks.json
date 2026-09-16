@@ -19,9 +19,22 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CODEX_HOME:-$HOME/.codex}/hooks/krn_precompact.py\"",
+            "command": "python3 \"${CODEX_HOME:-$HOME/.codex}/hooks/krn_memory.py\"",
             "timeout": 10,
             "statusMessage": "KRN: persisting the memory layer before compaction"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CODEX_HOME:-$HOME/.codex}/hooks/krn_memory.py\"",
+            "timeout": 10,
+            "statusMessage": "KRN: loading the outcome capsule for this session"
           }
         ]
       }

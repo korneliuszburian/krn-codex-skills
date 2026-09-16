@@ -64,8 +64,8 @@
       "executable": false
     },
     {
-      "name": "krn_precompact.py",
-      "path": "scripts/hooks/krn_precompact.py",
+      "name": "krn_memory.py",
+      "path": "scripts/hooks/krn_memory.py",
       "executable": false
     }
   ],
