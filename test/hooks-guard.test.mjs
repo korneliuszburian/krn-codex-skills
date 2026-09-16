@@ -212,3 +212,16 @@ test("SessionStart signals adoption only for an unmanaged work tree with agent i
   }
 });
 
+test("SessionStart signals adoption from CLAUDE.md when AGENTS.md is absent", () => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-onboard-claude-"));
+  try {
+    mkdirSync(join(dir, ".git"));
+    writeFileSync(join(dir, "CLAUDE.md"), "# Demo\n");
+    assert.match(precompactContext(dir, "SessionStart"), /KRN onboarding/, "a CLAUDE.md-only work tree signals");
+    writeFileSync(join(dir, "CLAUDE.md"), "# Demo\n\n<!-- krn-agent-workflow:start -->\nx\n<!-- krn-agent-workflow:end -->\n");
+    assert.equal(precompactContext(dir, "SessionStart"), null, "an adopted CLAUDE.md gets no signal");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
