@@ -62,6 +62,11 @@
       "name": "destructive_guard.py",
       "path": "scripts/hooks/destructive_guard.py",
       "executable": false
+    },
+    {
+      "name": "krn_precompact.py",
+      "path": "scripts/hooks/krn_precompact.py",
+      "executable": false
     }
   ],
   "legacy_global_hook_paths": [

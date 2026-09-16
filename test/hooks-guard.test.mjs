@@ -1,11 +1,22 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const hook = join(root, "scripts", "hooks", "krn_pretooluse.py");
+const precompact = join(root, "scripts", "hooks", "krn_precompact.py");
+
+function precompactContext(cwd) {
+  const payload = JSON.stringify({ hook_event_name: "PreCompact", cwd });
+  const result = spawnSync("python3", ["-B", precompact], { input: payload, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  if (!result.stdout.trim()) return null;
+  return JSON.parse(result.stdout).hookSpecificOutput.additionalContext;
+}
 
 function decision(tool, command) {
   const payload = JSON.stringify({
@@ -92,5 +103,32 @@ test("a read-only writer under a || fallback is allowed, a protected one is not"
   assert.equal(decision("Bash", "sed -n 1,5p README.md || true"), null, "a read-only sed || true must be allowed");
   assert.ok(decision("Bash", "tee .env || true"), "a protected writer under || must stay denied");
   assert.ok(decision("Bash", "rm -rf .git || true"), "a protected rm under || must stay denied");
+});
+
+test("PreCompact injects a continuing capsule and ignores a completed one", () => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-precompact-"));
+  try {
+    assert.equal(precompactContext(dir), null, "no capsule means no injected context");
+    const make = (id, outcome, next) => {
+      const capsule = join(dir, ".krn", "runs", "delivery-loop", id);
+      mkdirSync(capsule, { recursive: true });
+      writeFileSync(join(capsule, "state.md"), [
+        `Outcome state: ${outcome}`,
+        `Next bounded owner and action: ${next}`,
+        "Open unknowns and blockers with owners: none",
+        "Outcome and observable acceptance: run `npm test`",
+        "",
+      ].join("\n"));
+    };
+    make("out-1", "ACTIVE", "update src/b.mjs and run npm test");
+    const context = precompactContext(dir);
+    assert.match(context, /update src\/b\.mjs and run npm test/);
+    assert.match(context, /out-1/);
+    make("out-2", "COMPLETE", "do not continue this");
+    const after = precompactContext(dir);
+    assert.doesNotMatch(after, /do not continue this/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 

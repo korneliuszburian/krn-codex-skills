@@ -12,6 +12,19 @@
           }
         ]
       }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CODEX_HOME:-$HOME/.codex}/hooks/krn_precompact.py\"",
+            "timeout": 10,
+            "statusMessage": "KRN: persisting the memory layer before compaction"
+          }
+        ]
+      }
     ]
   }
 }

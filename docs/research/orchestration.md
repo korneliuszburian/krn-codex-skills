@@ -222,6 +222,15 @@ report. A superseded or abandoned run remains while its original Goal is active;
 transfer into a successor does not delete it before the original Goal's
 non-active transition is read back.
 
+The boundary can be host-triggered rather than manual: Codex fires a `PreCompact`
+hook before it summarizes history, and `config/hooks.json` wires
+`scripts/hooks/krn_precompact.py` to read the continuing outcome capsule under the
+session cwd and inject its acceptance, next bounded action, and blockers as
+`additionalContext`. Proven in the LT-6 lab on 2026-09-16: with a 12k context
+window the host compacted mid-run and the hook fired (`trigger: auto`). The hook is
+best-effort and never blocks a session; it needs `--dangerously-bypass-hook-trust`
+or a persisted hook trust on the host.
+
 ## One spine, typed entries
 
 The canonical operator graph is in [README.md](../../README.md#workflow). Its
