@@ -15,9 +15,10 @@ const CONTINUING = new Set(["ACTIVE", "BLOCKED", "DEFERRED", "NEEDS_REVIEW"]);
 const MANAGED_START = "<!-- krn-agent-workflow:start -->";
 const INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"];
 const ONBOARDING_SIGNAL =
-  "KRN onboarding: this work tree carries agent instructions without the KRN " +
-  "managed contract. Run `krn-codex repo inspect --root .` for a read-only " +
-  "report; adoption stays explicit-only.";
+  "KRN onboarding (environment note, not a task): this work tree carries agent " +
+  "instructions without the KRN managed contract. When your current task is " +
+  "finished, run `krn-codex repo inspect --root .` for a read-only report; " +
+  "adoption stays explicit-only.";
 
 export function field(text, label) {
   for (const line of text.split("\n")) {
