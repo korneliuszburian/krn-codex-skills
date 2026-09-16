@@ -4,12 +4,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  HARD_QUARANTINE_FAMILIES,
-  getCapabilityProfile,
-  isHardQuarantined,
-  validateProfilesDocument,
-} from "./catalog-profiles.mjs";
+import { validateProfilesDocument } from "./catalog-profiles.mjs";
 import { requireRegularFileWithoutSymlinks } from "./catalog-path-safety.mjs";
 import {
   absoluteLinkPath,
@@ -22,13 +17,15 @@ import {
   safeLstat,
   safeReadlink,
 } from "./catalog-inventory-paths.mjs";
-import { quarantinedFamily } from "./plugin-identity.mjs";
+import {
+  compareInventoryRecords,
+  createQuarantineCollector,
+  skillRecord,
+} from "./catalog-inventory-records.mjs";
 
-export {
-  HARD_QUARANTINE_FAMILIES,
-  getCapabilityProfile,
-} from "./catalog-profiles.mjs";
+export { HARD_QUARANTINE_FAMILIES, getCapabilityProfile } from "./catalog-profiles.mjs";
 export { resolveInventoryRoots } from "./catalog-inventory-paths.mjs";
+export { compareInventoryRecords, createQuarantineCollector };
 
 const DEFAULT_PROFILES_PATH = fileURLToPath(
   new URL("../../../config/capability-profiles.json", import.meta.url),
@@ -210,19 +207,6 @@ async function inventorySkillRoot(root, records, quarantine) {
       }),
     );
   }
-}
-
-function skillRecord({ name, root, source, path, targetPath }) {
-  return {
-    id: name,
-    name,
-    family: name.startsWith("gsap-") ? "gsap" : name,
-    scope: root.scope,
-    rootId: root.id,
-    path,
-    source,
-    ...(targetPath ? { targetPath } : {}),
-  };
 }
 
 async function inventoryPluginCache(root, records, quarantine) {
@@ -457,70 +441,4 @@ async function pluginSkillPaths(pluginPath, sourceId, quarantine) {
     if (skillFile?.isFile()) paths.push(skillPath);
   }
   return paths.sort();
-}
-
-// Quarantine collection (merged from catalog-inventory-quarantine.mjs).
-function sanitizeLabel(value) {
-  return String(value ?? "unknown")
-    .replace(/[\r\n\t]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 160);
-}
-
-export function compareInventoryRecords(left, right) {
-  const leftKey = `${left.kind ?? ""}:${left.id ?? ""}:${left.sourceId ?? ""}`;
-  const rightKey = `${right.kind ?? ""}:${right.id ?? ""}:${right.sourceId ?? ""}`;
-  return leftKey.localeCompare(rightKey);
-}
-
-export function createQuarantineCollector(evidence, additionalFamilies) {
-  if (
-    !Array.isArray(additionalFamilies) ||
-    additionalFamilies.some(
-      (family) => typeof family !== "string" || family.trim() === "",
-    )
-  ) {
-    throw new TypeError("quarantineFamilies must contain non-empty strings");
-  }
-  const families = [
-    ...new Set([
-      ...HARD_QUARANTINE_FAMILIES,
-      ...additionalFamilies.map((family) => family.toLowerCase()),
-    ]),
-  ];
-  const matches = (value) => isHardQuarantined(value, families);
-  const familyFor = (value) => quarantinedFamily(value, families);
-  const records = new Map();
-  const add = (kind, id, evidenceType, sourceId, lexicalPath, configId) => {
-    if (!matches(id) && !matches(lexicalPath)) return;
-    const record = {
-      kind: sanitizeLabel(kind),
-      id: sanitizeLabel(id),
-      evidence: sanitizeLabel(evidenceType),
-      sourceId: sanitizeLabel(sourceId),
-      ...(typeof lexicalPath === "string" ? { path: lexicalPath } : {}),
-      ...(typeof configId === "string" && configId ? { configId } : {}),
-    };
-    records.set(JSON.stringify(record), record);
-  };
-
-  for (const item of evidence) {
-    if (!item || typeof item.id !== "string") continue;
-    add(
-      item.kind ?? "unknown",
-      item.id,
-      item.evidence ?? "supplied-name",
-      item.sourceId ?? "supplied",
-      item.path,
-      item.configId,
-    );
-  }
-
-  return {
-    add,
-    familyFor,
-    matches,
-    values: () => [...records.values()].sort(compareInventoryRecords),
-  };
 }
