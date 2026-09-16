@@ -94,6 +94,10 @@ detail, and evidence notes.
   the lane, the envelope-driven run merges through the integrator, and
   `krn-codex ticket close` records `Evidence` and `Resolution` before the next
   frontier; the lab `run-frontier.sh` wires this with a run cap.
+- Publication: one PR per iteration and adjacent tickets batch into one PR; a
+  PR whose diff changes exported skill bytes merges with a merge commit so the
+  export marker commit stays in history, while code-only iterations may squash
+  into a single conventional commit.
 - `krn-codex ticket check --root .` validates envelopes, blockers, cycles,
   statuses, and orphans; `krn-codex ticket next --root .` prints the frontier;
   `krn-codex ticket claim|close` validates the transitions it writes.
