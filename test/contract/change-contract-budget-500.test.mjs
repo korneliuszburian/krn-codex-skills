@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const modulePath = fileURLToPath(new URL("../../scripts/lib/contract/change-contract.mjs", import.meta.url));
-const LINE_BUDGET = 600;
+const LINE_BUDGET = 500;
 
 test("change-contract.mjs stays within the line budget", () => {
   const content = fs.readFileSync(modulePath, "utf8");
