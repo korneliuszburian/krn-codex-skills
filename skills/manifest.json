@@ -56,14 +56,15 @@
     "scripts/lib/support/git-cli.mjs",
     "scripts/lib/support/path-rules.mjs",
     "scripts/lib/support/read-json.mjs",
+    "scripts/lib/support/regexp.mjs",
+    "scripts/lib/support/remove-tree.mjs",
     "scripts/lib/support/repo-root.mjs",
     "scripts/lib/support/source-mask.mjs",
     "scripts/lib/support/symbol-triggers.mjs",
     "scripts/lib/support/tap.mjs",
-    "skills/manifest.json",
-    "scripts/lib/support/regexp.mjs",
     "scripts/lib/ticket/ticket-cli.mjs",
-    "scripts/lib/ticket/ticket.mjs"
+    "scripts/lib/ticket/ticket.mjs",
+    "skills/manifest.json"
   ],
   "global_agents": "config/AGENTS.md",
   "global_hooks": "config/hooks.json",
