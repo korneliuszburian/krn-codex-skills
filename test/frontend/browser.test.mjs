@@ -77,7 +77,7 @@ test("a signed manifest passes the gate until the manifest changes", async () =>
 
 test("the measurement preset records structure, targets, floors, and contrast", () => {
   const preset = measurementEval("");
-  for (const key of ["overflowX", "heightFloors", "smallTargets", "gridTracks", "contrastOffenders", "viewport"]) {
+  for (const key of ["overflowX", "heightFloors", "smallTargets", "gridTracks", "contrastOffenders", "spills", "viewport"]) {
     assert.ok(preset.includes(key), `${key} missing from the preset`);
   }
   const extra = measurementEval("out.custom = 1;");

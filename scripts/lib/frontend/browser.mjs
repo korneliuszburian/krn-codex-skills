@@ -66,6 +66,17 @@ const MEASUREMENTS = `(() => {
       }
     }
   }
+  const spills = [];
+  for (const element of document.querySelectorAll("body *")) {
+    const style = getComputedStyle(element);
+    if (style.overflow !== "visible") continue;
+    const overflowX = element.scrollWidth - element.clientWidth;
+    const overflowY = element.scrollHeight - element.clientHeight;
+    if (overflowX > 6 || overflowY > 6) {
+      spills.push(describe(element) + ":+" + Math.max(0, overflowX) + "x" + Math.max(0, overflowY));
+    }
+  }
+  out.spills = spills.slice(0, 20);
   out.heightFloors = floors;
   out.smallTargets = small;
   out.gridTracks = grids;
