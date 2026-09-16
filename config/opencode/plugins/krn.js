@@ -120,21 +120,16 @@ export function guardReason(tool, args, directory) {
 
 export const KrnAdapter = async ({ directory } = {}) => {
   const cwd = directory ?? process.cwd();
-  const seen = new Set();
+  const marker = (text) => text.includes("KRN memory layer") || text.includes("KRN onboarding");
   return {
-    "chat.message": async (input, output) => {
-      // One injection per session is the SessionStart equivalent.
-      if (seen.has(input?.sessionID)) return;
-      seen.add(input?.sessionID);
+    // The Codex SessionStart equivalent: the brief enters the system prompt,
+    // not the user turn, so it informs the session without competing with the
+    // user's own request.
+    "experimental.chat.system.transform": async (input, output) => {
+      if (!Array.isArray(output?.system)) return;
+      if (output.system.some(marker)) return;
       const injected = capsuleBrief(cwd) ?? adoptionSignal(cwd);
-      if (!injected) return;
-      const parts = Array.isArray(output?.parts) ? output.parts : null;
-      if (!parts) return;
-      const template = parts.find((part) => part?.type === "text") ?? parts[0];
-      const part = template
-        ? { ...template, type: "text", text: injected, synthetic: true }
-        : { type: "text", text: injected, synthetic: true };
-      parts.push(part);
+      if (injected) output.system.push(injected);
     },
     "experimental.session.compacting": async (input, output) => {
       const brief = capsuleBrief(cwd);

@@ -104,19 +104,18 @@ test("the guard delegates protected commands and paths to the shared policy", as
   });
 });
 
-test("the hooks inject once per session, feed compaction, and block protected tools", async () => {
+test("the hooks feed the system prompt, compaction, and block protected tools", async () => {
   const adapter = await loadAdapter();
   assert.ok(adapter, "config/opencode/plugins/krn.js must load");
   await withDirAsync(async (dir) => {
     makeCapsule(dir, "out-1", "ACTIVE", "finish the hook port");
     const hooks = await adapter.KrnAdapter({ directory: dir });
-    const parts = [{ type: "text", text: "hello" }];
-    await hooks["chat.message"]({ sessionID: "s1" }, { parts });
-    assert.equal(parts.length, 2, "the first message of a session gets the brief");
-    assert.match(parts[1].text, /finish the hook port/);
-    const second = [{ type: "text", text: "again" }];
-    await hooks["chat.message"]({ sessionID: "s1" }, { parts: second });
-    assert.equal(second.length, 1, "later messages are not re-injected");
+    const system = [];
+    await hooks["experimental.chat.system.transform"]({ sessionID: "s1" }, { system });
+    assert.equal(system.length, 1, "the system prompt receives the capsule brief");
+    assert.match(system[0], /finish the hook port/);
+    await hooks["experimental.chat.system.transform"]({ sessionID: "s1" }, { system });
+    assert.equal(system.length, 1, "an already-injected system prompt is not duplicated");
     const context = [];
     await hooks["experimental.session.compacting"]({}, { context });
     assert.equal(context.length, 1, "compaction receives the capsule brief");
