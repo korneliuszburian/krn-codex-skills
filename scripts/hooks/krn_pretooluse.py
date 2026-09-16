@@ -84,6 +84,11 @@ WRITER_EXECUTABLES = {
     "chmod", "chown", "cp", "install", "ln", "mv", "rsync", "sed", "tee",
     "truncate",
 }
+MUTATING_EXECUTABLES = WRITER_EXECUTABLES - {"sed"}
+SED_IN_PLACE = re.compile(
+    r"(?:^|\s)(?:--in-place(?:=\S*)?|-[A-Za-z]*i[A-Za-z]*)(?=\s|$)"
+)
+SUBCOMMAND_SPLIT = re.compile(r"&&|\|\||;|\n")
 WRAPPER_VALUE_FLAGS = {
     "env": {"-u", "--unset", "-C", "--chdir", "-S", "--split-string"},
     "sudo": {"-u", "--user", "-g", "--group", "-p", "--prompt", "-C", "--close-from", "-h", "--host", "-r", "--role", "-t", "--type", "-D", "--chdir"},
@@ -488,15 +493,41 @@ def naive_writer_head(segment: str) -> str:
     return executable_name(tokens[index]) if index < len(tokens) else ""
 
 
+def naive_writer_reason(segment: str, cwd: Path) -> str | None:
+    """Inspect every sub-command of a segment that composition made unreadable.
+
+    A pipeline or a chain hides composition from the static parser, so the
+    segment is split on its operators and each sub-command is judged on its own
+    head: parseable sub-commands are checked against the protected-path policy,
+    and unreadable ones fail closed only for genuinely mutating executables.
+    ``sed`` is mutating only with a literal in-place flag; ``sed -n`` reads.
+    """
+
+    for subcommand in SUBCOMMAND_SPLIT.split(segment):
+        words = static_simple_words(subcommand)
+        if words is not None:
+            reason = write_target_denial_reason(strip_wrappers(words), cwd)
+            if reason is not None:
+                return reason
+            continue
+        head = naive_writer_head(subcommand)
+        if head in MUTATING_EXECUTABLES or (
+            head == "sed" and SED_IN_PLACE.search(subcommand)
+        ):
+            return (
+                "writer command contains an expansion or glob target; "
+                "name one concrete path"
+            )
+    return None
+
+
 def pipe_writer_reason(command: str, cwd: Path) -> str | None:
     for segment in pipe_segments(command):
         words = static_simple_words(segment)
         if words is None:
-            if naive_writer_head(segment) in WRITER_EXECUTABLES:
-                return (
-                    "writer command contains an expansion or glob target; "
-                    "name one concrete path"
-                )
+            reason = naive_writer_reason(segment, cwd)
+            if reason is not None:
+                return reason
             continue
         if not words:
             continue

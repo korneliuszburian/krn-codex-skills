@@ -107,6 +107,30 @@ test("a read-only writer under a || fallback is allowed, a protected one is not"
   assert.ok(decision("Bash", "rm -rf .git || true"), "a protected rm under || must stay denied");
 });
 
+test("a read-only pipeline survives composition the static parser cannot read", () => {
+  assert.equal(
+    decision("Bash", "git status --short && rg --files docs/design | sort | sed -n '1,240p'"),
+    null,
+    "a read-only pipeline with sed -n must be allowed",
+  );
+  assert.equal(
+    decision("Bash", 'printf \'%s\\n\' "--- x ---" && node -e "console.log(1)"'),
+    null,
+    "a read-only text chain must be allowed",
+  );
+});
+
+test("a mutating writer hidden in a pipeline still fails closed", () => {
+  assert.ok(
+    decision("Bash", "rg x | sort && sed -i s/a/b/ .env"),
+    "a protected in-place write inside a pipeline must stay denied",
+  );
+  assert.ok(
+    decision("Bash", "sort && chmod -R 000 .git/*"),
+    "a glob writer target inside a pipeline must stay denied",
+  );
+});
+
 test("PreCompact injects a continuing capsule and ignores a completed one", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-precompact-"));
   try {
