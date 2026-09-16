@@ -91,17 +91,28 @@ export function adoptionSignal(directory) {
   return null;
 }
 
+const PATCH_DIRECTIVE = /^\*\*\* (?:Add|Update|Delete) File:/m;
+
+function patchMappable(text) {
+  return text.includes("*** Begin Patch") || PATCH_DIRECTIVE.test(text);
+}
+
 export function guardReason(tool, args, directory) {
   let payload = null;
   if (tool === "bash") {
     payload = { tool_name: "Bash", tool_input: { command: String(args?.command ?? "") } };
   } else if (tool === "write" || tool === "edit" || tool === "patch") {
-    const target = String(args?.filePath ?? args?.path ?? "");
+    const target = String(args?.filePath ?? args?.path ?? "").trim();
     const patchText = typeof args?.patchText === "string" ? args.patchText : "";
-    const command = patchText.includes("*** Begin Patch")
+    const patch = patchMappable(patchText)
       ? patchText
-      : `*** Begin Patch\n${tool === "write" ? "*** Add File" : "*** Update File"}: ${target}\n*** End Patch`;
-    payload = { tool_name: "apply_patch", tool_input: { command } };
+      : target
+        ? `*** Begin Patch\n${tool === "write" ? "*** Add File" : "*** Update File"}: ${target}\n*** End Patch`
+        : null;
+    if (patch === null) {
+      return "write-capable tool call is not inspectable; name one concrete path";
+    }
+    payload = { tool_name: "apply_patch", tool_input: { command: patch } };
   }
   if (!payload) return null;
   const result = spawnSync("python3", [GUARD], {
