@@ -17,6 +17,7 @@ import { reanchorLessons, verifyLessons } from "./lib/lessons/lessons-verify.mjs
 import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
 import { caseIds, loadCases, runConformance } from "./lib/conformance/conformance.mjs";
 import { auditTheme, inventoryTheme } from "./lib/frontend/theme.mjs";
+import { auditFacts } from "./lib/frontend/facts.mjs";
 import { parseDesign } from "./lib/frontend/design.mjs";
 import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
 
@@ -41,7 +42,7 @@ const usage = `Usage:
   krn-codex lessons <check|verify|reanchor> --root DIR [--json]
   krn-codex changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
   krn-codex conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
-  krn-codex frontend <inventory|audit> --root THEME [--docs FILE] [--accept RULE:FILE[,RULE:FILE]] [--json]
+  krn-codex frontend <inventory|audit|facts> --root THEME [--docs FILE|DIR] [--accept RULE:FILE[,RULE:FILE]] [--json]
   krn-codex frontend design [--variables FILE] [--metadata FILE] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]`;
 
@@ -276,7 +277,7 @@ try {
     const { positional, options } = parseOptions(raw.slice(1));
     rejectForeignOptions(options, ["root", "variables", "metadata", "accept", "docs"]);
     const subcommand = positional[0];
-    if (!["inventory", "audit", "design"].includes(subcommand) || positional.length > 1 || options.source || options.yes) fail(usage);
+    if (!["inventory", "audit", "design", "facts"].includes(subcommand) || positional.length > 1 || options.source || options.yes) fail(usage);
     if (subcommand === "design") {
       if (!options.variables && !options.metadata) fail(usage);
       const report = parseDesign({ variablesFile: options.variables, metadataFile: options.metadata });
@@ -300,6 +301,14 @@ try {
           process.stdout.write(`ACF layouts: ${report.acf.layouts.map((entry) => entry.layout).join(", ") || "none"}\n`);
           for (const block of report.blocks) process.stdout.write(`  ${block.name.padEnd(16)} ${block.variants.join(", ") || "-"}\n`);
         }
+      } else if (subcommand === "facts") {
+        const report = auditFacts({ root: options.root, docs: options.docs ?? null });
+        if (options.json) print(report, true);
+        else {
+          for (const finding of report.findings) process.stdout.write(`${finding.severity}\t${finding.rule}\t${finding.detail}\n`);
+          process.stdout.write(report.hard > 0 ? `${report.hard} hard finding(s)\n` : "frontend facts clean\n");
+        }
+        if (report.hard > 0) process.exitCode = 1;
       } else {
         const report = auditTheme({ root: options.root, accept: options.accept ?? [], docs: options.docs ?? null });
         if (options.json) print(report, true);

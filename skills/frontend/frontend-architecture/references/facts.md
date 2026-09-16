@@ -42,6 +42,15 @@ These are the source of truth. Chat history and the native Goal are not.
 - Therefore a block is `built` only when its own file exists. A block whose styles
   live inside a section file is not built — it is a `block-ownership` failure, and
   the registry must not claim it.
+- `krn-codex frontend facts --root <theme> --docs docs/design` (the project's
+  `frontend:facts`) checks the other three facts against the code: every matrix
+  variant in `components.md` must appear in that block's CSS or its template, a
+  `reuse` cell must resolve to a real composition or block, a `sections.md` row
+  must map to a known block or composition, and every token named in a
+  `tokens.md` table must exist in the built CSS (an unbuilt project reports a
+  soft finding instead).
+- Run both commands after touching the facts or the code. A fact file that
+  disagrees with the code is a defect, not documentation drift.
 
 ## The freeze rule
 

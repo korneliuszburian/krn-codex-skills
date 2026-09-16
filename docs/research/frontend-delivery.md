@@ -118,7 +118,10 @@ instead of finding it; pixel-perfect Figma chasing.
 The stage writes facts, not prose: `docs/design/raw/` (raw MCP dumps),
 `tokens.md` (every value, its snapped token, deviations), `sections.md` (every
 section of every page with counts), `components.md` (block × variant × optionals),
-and `blocks.md` (per-block `planned` → `built` → `verified`). The first fixture is
+and `blocks.md` (per-block `planned` → `built` → `verified`). The facts are
+machine-checked, not trusted: `krn-codex frontend audit --docs docs/design/blocks.md`
+holds the registry to the code, and `krn-codex frontend facts --docs docs/design`
+holds the matrix, the sections, and the tokens to it. The first fixture is
 the Complete CSS Bloom Barista design: a small canonical file whose sections are
 Hero, Courses, About, Blog, Footer at two widths, with essentially no published
 variables — so the token source is the project design system, and the tooling must

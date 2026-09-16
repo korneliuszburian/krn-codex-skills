@@ -33,7 +33,9 @@ start before the previous exit is met. Facts live in the project
 
 A section is done only when all of these hold; report each one as evidence:
 
-1. Facts: a `sections.md` entry and a `blocks.md` row per block it introduces.
+1. Facts: a `sections.md` entry and a `blocks.md` row per block it introduces,
+   with all four facts machine-checked against the code — `npm run frontend:facts`
+   (matrix, sections, tokens) and `npm run frontend:audit` (policy) clean.
 2. Ownership: every block it uses has its own `src/css/blocks/<slug>.css` — no
    block's styles hidden in the section file (`block-ownership` clean).
 3. Policy: `npm run frontend:audit` clean, or each `--accept <rule>:<file>`

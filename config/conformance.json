@@ -481,6 +481,30 @@
           "card.css does not exist"
         ]
       }
+    },
+    {
+      "id": "frontend-facts-flags-an-unknown-mapped-block",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "docs/design/sections.md": "| Section | Mapped block |\n|---|---|\n| Blog | `card` list |\n",
+            "src/css/blocks/text.css": ".text { }\n"
+          }
+        }
+      ],
+      "run": [
+        "frontend",
+        "facts",
+        "--docs",
+        "docs/design"
+      ],
+      "expect": {
+        "exit": 1,
+        "stdoutIncludes": [
+          "facts-sections"
+        ]
+      }
     }
   ]
 }
