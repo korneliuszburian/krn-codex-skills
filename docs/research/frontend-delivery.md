@@ -190,6 +190,11 @@ group → curriculum disclosure → preview video → enroll.
 
 ## Residual bounds
 
+The fact files stay model-authored: `krn-codex frontend design` parses the raw
+MCP dumps into tokens/sections/components and `frontend facts` plus
+`frontend audit --docs` validate all four facts against the code, but nothing
+writes `tokens.md`, `sections.md`, or `components.md` automatically yet.
+
 The primary course transcripts were not in this checkout when the vault synthesis
 ran, so course rules are quoted from the vault's own standards pages. Every-layout
 bodies are paywalled beyond the Cover snapshot. The height rule is a project policy
