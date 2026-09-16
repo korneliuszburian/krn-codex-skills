@@ -91,6 +91,7 @@ freshness, not permanence.
 | Installation and migration | [migration.md](../migration.md) | collision-safe symlinks, explicit timestamped-backup authority, recoverable retirement | installer target or host layout changes |
 | Codex completion ledger | [unlazy-codex-port.md](unlazy-codex-port.md) | the ledger companion was retired 2026-09-15; the port record stays as design evidence pending a measured second consumer | a real long-task consumer, measured operator cost, or a false-completion miss reopens the port |
 | Prose quality and unslop | [unslop-codex-port.md](unslop-codex-port.md) | explicit audit/rewrite candidate with protected facts and technical fragments; not an always-on humanizer | blinded pilot shows semantic drift, no preference gain, or unacceptable review cost |
+| Frontend delivery | [frontend-delivery.md](frontend-delivery.md) | the A-to-Z logic for the frontend stage: CUBE model, size from structure (no section height), composition set, thin-block bar, two-tier tokens, variants, copy-verbatim reuse and the freeze rule, the forced build phases, enforcement, and the facts artifacts; first fixture is Bloom Barista | a design or build contradicts a rule, or the Bloom fixture exposes a stage gap that needs a new mechanism |
 
 ## Primary source ledger
 
