@@ -43,7 +43,7 @@ are durable.
 
 | LT-8 | A cheap worker model, given only the stage entry, the project facts, and the gates, produces a frontend section that passes the per-section acceptance — and repairs policy findings — without the maintainer writing or fixing code. | Blinded/differential: one frozen section brief x {control: the same model and repository without the frontend skills or stage entry; treatment: with `$frontend-stage` and the six owners installed and the facts present} x N reps; the maintainer's hand-written version is the acceptance reference only. Held-out acceptance: the deterministic gates (`frontend:audit`, `frontend:facts`, `lint:css`, `build`, the ACF/contract tests) plus a rescoped reader on the qualitative bar (no duplicate block, no styles hidden in a section file, thin skeleton). The per-section acceptance is already partly frozen as conformance cases (`frontend-audit-catches-facts-registry-drift`, `frontend-facts-flags-an-unknown-mapped-block`) and the `block-ownership`/`variant-naming` tests. | Held-out acceptance pass; hidden-block or duplicate-block incidents; maintainer repair edits; wall time and billed tokens per accepted section. | The treatment is not better than the no-skills control at equal cost, or a section passes the gates while hiding a block in a section file, or the acceptance needs maintainer repair. | Registered 2026-09-16; no blinded run yet. | Two engineering runs motivate it and are not proof: `gpt-5.6-luna` built the Courses section from a one-line brief (facts read, ACF layout, card block, gates green) and then repaired all 22 policy findings from a single "make the audit green" brief with the gates re-verified independently — but both ran unblinded, with the maintainer present and the repository facts already written. Limits: one project, one model family, one section, maintainer-written briefs, and no control lane or cost comparison. |
 
-| LT-9 | The conditional SessionStart onboarding signal makes a fresh session in an unmanaged work tree attempt the read-only adoption report, without harming the requested task. | Registered and run 2026-09-16. Differential behavioral comparison: control (no hooks seeded) versus treatment (the branch `krn_memory.py` plus a SessionStart `hooks.json` seeded into a fresh CODEX_HOME), same neutral task (`append one line to notes.md, do not commit`), alternating order, three reps per arm, `gpt-5.6-luna` under bwrap 0.12.0; both arms run with `--dangerously-bypass-hook-trust`, which `codex exec` requires for any hook to fire. | `inspect_attempt` (a `krn-codex repo inspect` command present in the session events), `onboarding_seen` (signal text in the rollout), task completion, wall time. | Treatment is not above control in inspect attempts, or the signal derails or blocks the requested task. | lab-test | Result 2026-09-16: 3/3 treatment sessions attempted the report versus 0/3 control, and all six sessions completed the task (wall 16–20s); the treatment sessions reported `krn-codex: command not found` and continued, because the CLI is not installed in the sandbox. Non-proofs: N=3 per arm, one family, one trivial task and repo shape, detection is a mechanical event scan rather than a blinded decider, the measured behavior is an attempt rather than a completed inspection or adoption, and the hook needs an explicit trust bypass under scripted exec. Runner and fixture stay outside the repository at `lab/lt9/`. |
+| LT-9 | The conditional SessionStart onboarding signal makes a fresh session in an unmanaged work tree attempt the read-only adoption report, without harming the requested task. | Registered and run 2026-09-16. Differential behavioral comparison: control (no hooks seeded) versus treatment (the branch `krn_memory.py` plus a SessionStart `hooks.json` seeded into a fresh CODEX_HOME), same neutral task (`append one line to notes.md, do not commit`), alternating order, three reps per arm, `gpt-5.6-luna` under bwrap 0.12.0; both arms run with `--dangerously-bypass-hook-trust`, which `codex exec` requires for any hook to fire. | `inspect_attempt` (a `krn-codex repo inspect` command present in the session events), `onboarding_seen` (signal text in the rollout), task completion, wall time. | Treatment is not above control in inspect attempts, or the signal derails or blocks the requested task. | lab-test | Result 2026-09-16: the recorded alternating batch is 3/3 treatment sessions attempting the report versus 0/3 control, and all six sessions completed the task (wall 16–20s); one further signaled probe session also attempted it, so signaled sessions total 4/4, while three earlier treatment attempts used a pre-signal hook build and were excluded as instrument defects; the treatment sessions reported `krn-codex: command not found` and continued, because the CLI is not installed in the sandbox. Non-proofs: N=3 per arm, one family, one trivial task and repo shape, detection is a mechanical event scan rather than a blinded decider, the measured behavior is an attempt rather than a completed inspection or adoption, and the hook needs an explicit trust bypass under scripted exec. Runner and fixture stay outside the repository at `lab/lt9/`. |
 
 ## LT-7 lane runs (2026-09-16)
 
@@ -73,15 +73,17 @@ gate and the integrator gate both exited 0 with an executed red->green flip
 
 Repeatability: two further mechanism-distinct tickets (route registry dispatch,
 version-salted digest) each produced exactly one worker commit with the same
-three trailers and passed both gates; billed input was 68k–97k tokens per
-ticket (58k–76k cached) with 0.8k–1.1k output.
+three trailers and passed both gates; billed input was 68k–84k tokens per
+ticket (58k–73k cached) with 0.8k–1.0k output.
 
-Two fixture defects were caught by the gate rather than the model: a lane cut
-from an already-solved base failed as `before-state-not-red`, and the worker
-manufactured a `String(VERSION)` no-op to satisfy the commit rule; a base whose
-deciding check failed as an import or load error failed as
-`before-state-unverified`. The lane therefore requires a loadable red failure
-at the cut base, which the runner asserts before any model call.
+Two fixture defects were caught by the gate rather than the model, and each
+consumed one model session: a lane cut from an already-solved base failed as
+`before-state-not-red`, and the worker manufactured a `String(VERSION)` no-op to
+satisfy the commit rule (the fixture main was then rewound once to redo the live
+run); a base whose deciding check failed as an import or load error failed as
+`before-state-unverified`. The lane requires a red failure at the cut base,
+which the runner asserts before any model call; a load or import error is not
+red and is caught after the session by `changes check --before`.
 
 External baselines from the 2026-09-16 sweep: cross-agent textual PR conflicts
 run 41.7% vs intra-agent 19.8% (arXiv:2607.04697), and review or duplicate-work
@@ -93,8 +95,9 @@ concurrent `gpt-5.6-luna` sessions in separate worktrees; both produced one
 trailer-carrying commit and passed their worker gates (35s and 29s wall,
 `sentinel_leak=no`, `model_mismatch=no`), billed 68k–69k input tokens (52k–58k
 cached) each, and the integrator merged both with zero conflicts and a green
-merged-fixed-point gate because the file sets were disjoint. A conflicting pair
-is unrun, so merge-repair remains unmeasured.
+merged-fixed-point gate because the file sets were disjoint. The conflicting
+pair ran in the conflict lane below, where one trailer repair and one conflict
+resolution were recorded.
 
 Conflict lane (2026-09-16, same runner): two tickets whose fixes touch the same
 line of `src/registry.mjs` were seeded on one base and run concurrently (46s and
@@ -113,7 +116,7 @@ Throughput lane (2026-09-16, same runner): four disjoint tickets were seeded on
 one base and run as four concurrent `gpt-5.6-luna` sessions; all four worker
 gates passed and the integrator merged all four with a green range gate over
 eleven passing checks. The four-session window was 42s against a 127s sum of
-individual walls (about 3.0x), billed 66k–99k input tokens (52k–78k cached)
+individual walls (about 3.0x), billed 68k–83k input tokens (60k–69k cached)
 each. The first batch exposed an instrument defect: the prompt's backticked
 trailer rule was eaten by shell command substitution, so the rule text arrived
 mangled and 4/4 workers invented a `Lesson: ... Test: ...` format that each
@@ -150,14 +153,18 @@ every worker gate passed with `capsule_seen=YES` and no leak or model mismatch,
 the integrator merged all eight with a green range gate over twenty-one passing
 checks, and the eight-session window was 48s against a 246s sum of individual
 walls (about 5.1x), 24–46s per session, billed 67k–84k input tokens each. No
-provider throttling or infra failure appeared at this width. Non-proofs: one
-model family and one rep per ticket; disjoint files again, so merge-repair and
-duplicate-work remain unmeasured at this width, and limits above N=8 are
-untested.
+provider throttling or infra failure appeared at this width. One lane ran with
+an empty ticket block and an unmatched lesson trigger because of a case
+mismatch in the fixture file names; it still fixed its check from the deciding
+check line, but its recall path was not exercised, and the fixture was corrected
+afterwards. Non-proofs: one model family and one rep per ticket; disjoint files
+again, so merge-repair and duplicate-work remain unmeasured at this width, and
+limits above N=8 are untested.
 
-Non-proofs: twenty-one tickets (three sequential, eight concurrent in pairs and
-fours, eight concurrent at N=8, plus two hook-seeded singles, and one
-conflicting pair), one model family (Codex-only by policy), one rep each,
+Non-proofs: twenty-one tickets (three sequential, two concurrent in the parallel
+pair, two concurrent in the conflict pair, four concurrent at N=4, eight
+concurrent at N=8, and two hook-seeded singles), one model family (Codex-only by
+policy), one rep each,
 disjoint files except the single stylistic conflict, so structured
 merge-repair, duplicate work, and cost-per-success remain barely exercised; no
 sandbox escape test and no hostile-process claim; fixtures and runner stay
