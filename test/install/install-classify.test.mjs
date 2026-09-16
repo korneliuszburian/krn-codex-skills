@@ -41,8 +41,10 @@ test("classifyTarget recognizes the current release and a prior release", () => 
   const base = fs.realpathSync(mkdtempSync(join(tmpdir(), "krn-classify-prior-")));
   const previousSkills = process.env.KRN_SKILLS_DEST;
   const previousBins = process.env.KRN_BIN_DEST;
+  const previousOpencode = process.env.KRN_OPENCODE_DEST;
   process.env.KRN_SKILLS_DEST = join(base, "skills");
   process.env.KRN_BIN_DEST = join(base, "bin");
+  process.env.KRN_OPENCODE_DEST = join(base, "opencode");
   try {
     const source = join(base, "source");
     mkdirSync(source);
@@ -75,6 +77,8 @@ test("classifyTarget recognizes the current release and a prior release", () => 
     else process.env.KRN_SKILLS_DEST = previousSkills;
     if (previousBins === undefined) delete process.env.KRN_BIN_DEST;
     else process.env.KRN_BIN_DEST = previousBins;
+    if (previousOpencode === undefined) delete process.env.KRN_OPENCODE_DEST;
+    else process.env.KRN_OPENCODE_DEST = previousOpencode;
     rmSync(base, { recursive: true, force: true });
   }
 });

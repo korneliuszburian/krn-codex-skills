@@ -37,8 +37,10 @@ test("apply fails closed and restores current when the installed CLI cannot star
   const home = path.join(base, "codex");
   const previousSkills = process.env.KRN_SKILLS_DEST;
   const previousBins = process.env.KRN_BIN_DEST;
+  const previousOpencode = process.env.KRN_OPENCODE_DEST;
   process.env.KRN_SKILLS_DEST = path.join(base, "skills");
   process.env.KRN_BIN_DEST = path.join(base, "bin");
+  process.env.KRN_OPENCODE_DEST = path.join(base, "opencode");
   try {
     const plan = createInstallPlan({ source: copy, cwd: copy, codexHome: home });
     assert.ok(plan.runtimePaths.includes("scripts/lib/support/diagnostics.mjs"));
@@ -53,6 +55,8 @@ test("apply fails closed and restores current when the installed CLI cannot star
     else process.env.KRN_SKILLS_DEST = previousSkills;
     if (previousBins === undefined) delete process.env.KRN_BIN_DEST;
     else process.env.KRN_BIN_DEST = previousBins;
+    if (previousOpencode === undefined) delete process.env.KRN_OPENCODE_DEST;
+    else process.env.KRN_OPENCODE_DEST = previousOpencode;
     fs.rmSync(base, { recursive: true, force: true, maxRetries: 50, retryDelay: 100 });
   }
 });

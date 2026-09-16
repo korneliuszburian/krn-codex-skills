@@ -345,10 +345,13 @@ function linkResolvesInto(target, root) {
 }
 
 function orphanManagedLinks(plan) {
+  const opencodeDest = process.env.KRN_OPENCODE_DEST || path.join(os.homedir(), ".config", "opencode");
   const roots = [
     process.env.KRN_SKILLS_DEST || path.join(os.homedir(), ".agents", "skills"),
     process.env.KRN_BIN_DEST || path.join(os.homedir(), ".local", "bin"),
     path.join(path.dirname(plan.releaseRoot), "hooks"),
+    opencodeDest,
+    path.join(opencodeDest, "plugins"),
   ];
   const managed = new Set(managedTargets(plan).map((item) => item.target));
   const orphans = [];
@@ -704,10 +707,13 @@ export function pruneReleases({ codexHome = process.env.CODEX_HOME || path.join(
     .map((entry) => ({ name: entry.name, path: path.join(releasesDir, entry.name), mtime: fs.statSync(path.join(releasesDir, entry.name)).mtimeMs }))
     .sort((left, right) => right.mtime - left.mtime);
   const referenced = new Set();
+  const opencodeDest = process.env.KRN_OPENCODE_DEST || path.join(os.homedir(), ".config", "opencode");
   const linkRoots = [
     process.env.KRN_SKILLS_DEST || path.join(os.homedir(), ".agents", "skills"),
     process.env.KRN_BIN_DEST || path.join(os.homedir(), ".local", "bin"),
     path.join(codexHome, "hooks"),
+    opencodeDest,
+    path.join(opencodeDest, "plugins"),
   ];
   const noteLink = (target) => {
     const resolved = resolvedLink(target) ?? resolvedPath(target);
