@@ -1,7 +1,8 @@
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-import { runGit } from "../support/git-cli.mjs";
+import { runGit, runGitRaw } from "../support/git-cli.mjs";
 
 const STATUSES = new Set(["ready", "claimed", "blocked", "in-review", "done", "abandoned", "deferred"]);
 const TYPES = new Set(["task", "bug", "refactor", "research", "decision", "epic"]);
@@ -75,6 +76,102 @@ function nextEpoch(fields) {
   return match ? Number(match[1]) + 1 : 1;
 }
 
+const INTEGRATED_ANCHOR = /(?:^|[;\s])integrated=([0-9a-f]{7,40})/i;
+const PATCH_ANCHOR = /(?:^|[;\s])patch=([0-9a-f]{40})/i;
+
+// `git patch-id` only reads a patch from stdin, so it needs a runner that
+// forwards input; runGit deliberately does not expose one.
+function gitWithInput(root, args, input) {
+  try {
+    return {
+      ok: true,
+      out: execFileSync("git", ["-C", root, ...args], {
+        input,
+        encoding: "utf8",
+        maxBuffer: 512 * 1024 * 1024,
+        timeout: 600_000,
+        killSignal: "SIGKILL",
+      }).trim(),
+    };
+  } catch (error) {
+    return { ok: false, out: typeof error?.stdout === "string" ? error.stdout : "" };
+  }
+}
+
+function stablePatchId(root, diff) {
+  if (typeof diff !== "string" || diff.trim() === "") return "";
+  const result = gitWithInput(root, ["patch-id", "--stable"], diff);
+  if (!result.ok) return "";
+  const line = result.out.split("\n").map((entry) => entry.trim()).find(Boolean);
+  return line ? line.split(/\s+/)[0] : "";
+}
+
+function ticketBase(fields) {
+  const value = (fields.get("Repository-base") ?? "").trim();
+  return value && !/^none$/i.test(value) ? value : "";
+}
+
+// Bind the closure to a content identity: the ephemeral commit may vanish in a
+// squash merge, but the patch id survives as the same content on the base.
+function integratedAnchor({ root, git, fields, head = "HEAD" }) {
+  const resolved = git(root, ["rev-parse", head]);
+  if (!resolved.ok) return null;
+  const sha = resolved.out;
+  const base = ticketBase(fields);
+  let range = "";
+  if (base) {
+    const mergeBase = git(root, ["merge-base", base, head]);
+    if (mergeBase.ok && mergeBase.out) range = `${mergeBase.out}..${head}`;
+  }
+  if (range) {
+    const diff = git(root, ["diff", range]);
+    return { sha, patch: stablePatchId(root, diff.ok ? diff.out : "") };
+  }
+  const show = git(root, ["show", "--format=", head]);
+  return { sha, patch: stablePatchId(root, show.ok ? show.out : "") };
+}
+
+function splitPatchIds(output) {
+  return String(output ?? "")
+    .split("\n")
+    .map((line) => line.split(/\s+/)[0])
+    .filter((id) => /^[0-9a-f]{40}$/i.test(id));
+}
+
+function rangePatchIds({ root, base, head }) {
+  const ids = new Set();
+  const log = runGitRaw(root, base ? ["log", "-p", `${base}..${head}`] : ["log", "-p", "-n", "200", head]);
+  if (log.ok) for (const id of splitPatchIds(log.out)) ids.add(id);
+  if (base) {
+    const diff = runGitRaw(root, ["diff", `${base}..${head}`]);
+    const combined = stablePatchId(root, diff.ok ? diff.out : "");
+    if (combined) ids.add(combined);
+  }
+  return ids;
+}
+
+function anchorError(ticket, head) {
+  const evidence = ticket.fields.get("Evidence") ?? "";
+  const integrated = INTEGRATED_ANCHOR.exec(evidence);
+  if (!integrated) {
+    return { path: ticket.path, rule: "evidence-anchor-missing", message: `ticket "${ticket.id}" is done without an integrated=<sha> anchor` };
+  }
+  return {
+    sha: integrated[1],
+    patch: PATCH_ANCHOR.exec(evidence)?.[1] ?? "",
+    path: ticket.path,
+    message: `ticket "${ticket.id}" anchor ${integrated[1]} is not an ancestor of ${head}`,
+  };
+}
+
+function anchorErrors({ root, git, ticket, base, head }) {
+  const anchor = anchorError(ticket, head);
+  if (!anchor.sha) return [anchor];
+  if (git(root, ["merge-base", "--is-ancestor", anchor.sha, head]).ok) return [];
+  if (anchor.patch && rangePatchIds({ root, base, head }).has(anchor.patch)) return [];
+  return [{ path: anchor.path, rule: "evidence-anchor-missing", message: `${anchor.message} and its patch id is absent from the range` }];
+}
+
 export function claimTicket({ file, root, id, worker, session = "", at = new Date().toISOString(), observer } = {}) {
   const claimRoot = root ?? rootForTicket(file);
   const ticketId = id ?? readValidTicket(file).fields.get("Id");
@@ -105,15 +202,18 @@ export function claimTicket({ file, root, id, worker, session = "", at = new Dat
   }
 }
 
-export function closeTicket({ file, evidence = "none", resolution = "none", at = new Date().toISOString() }) {
+export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString() }) {
   const { text, fields } = readValidTicket(file);
   const status = fields.get("Status");
   if (status === "done" || status === "abandoned") throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
+  const anchorRoot = root ?? rootForTicket(file);
+  const anchor = integratedAnchor({ root: anchorRoot, git, fields });
+  const evidenceLine = anchor ? `${evidence}; integrated=${anchor.sha}; patch=${anchor.patch}` : evidence;
   let next = setField(text, "Status", "done");
-  next = setField(next, "Evidence", evidence);
+  next = setField(next, "Evidence", evidenceLine);
   next = setField(next, "Resolution", `${resolution} (closed ${at})`);
   fs.writeFileSync(file, next);
-  return { id: fields.get("Id"), path: file, status: "done" };
+  return { id: fields.get("Id"), path: file, status: "done", anchor };
 }
 
 export function findTicketFile({ root, dirs = DEFAULT_DIRS, id } = {}) {
@@ -272,10 +372,14 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
     .map((ticket) => ticket.id)
     .sort();
   const trailered = new Set();
-  if (git(root, ["rev-parse", "--git-dir"]).ok) {
+  const gitRepo = git(root, ["rev-parse", "--git-dir"]).ok;
+  if (gitRepo) {
     const log = git(root, ["log", "-n", "200", "--format=%B"]);
     if (log.ok) {
       for (const match of log.out.matchAll(/^Ticket:\s*(\S+)\s*$/gim)) trailered.add(match[1]);
+    }
+    for (const ticket of tickets) {
+      if (ticket.status === "done") errors.push(...anchorErrors({ root, git, ticket, base, head }));
     }
   }
   for (const id of trailered) {
