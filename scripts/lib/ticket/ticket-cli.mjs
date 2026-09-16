@@ -97,7 +97,7 @@ export function runTicketCommand(argv, { usage, requireDirectory }) {
     try {
       const result = command === "claim"
         ? claimTicket({ file, root: options.root, id: options.id, worker: options.worker ?? "unknown", session: options.session ?? "" })
-        : closeTicket({ file, evidence: options.evidence ?? "none", resolution: options.resolution ?? "none" });
+        : closeTicket({ file, root: options.root, evidence: options.evidence ?? "none", resolution: options.resolution ?? "none" });
       output(result, options.json);
     } catch (error) {
       fail(error.message, EXIT_CODES.USAGE);
