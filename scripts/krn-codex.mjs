@@ -21,7 +21,7 @@ import { auditFacts } from "./lib/frontend/facts.mjs";
 import { approveEvidence, captureEvidence, gateEvidence } from "./lib/frontend/browser.mjs";
 import { parseDesign } from "./lib/frontend/design.mjs";
 import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
-import { checkTickets } from "./lib/ticket/ticket.mjs";
+import { checkTickets, parseTicketText } from "./lib/ticket/ticket.mjs";
 
 process.stdout.on("error", (error) => {
   if (error.code === "EPIPE") process.exit(0);
@@ -48,7 +48,8 @@ const usage = `Usage:
   krn-codex frontend verify --config FILE [--gate | --approve --by NAME --note WHY] [--json]
   krn-codex frontend design [--variables FILE] [--metadata FILE] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
-  krn-codex ticket <check|next> --root DIR [--path DIR] [--json]`;
+  krn-codex ticket <check|next> --root DIR [--path DIR] [--json]
+  krn-codex ticket show <path> [--json]`;
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
 
@@ -256,20 +257,40 @@ try {
     }
   } else if (raw[0] === "ticket") {
     const { positional, options } = parseOptions(raw.slice(1));
-    rejectForeignOptions(options, ["root", "path"]);
-    if (!["check", "next"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
-    requireDirectory(options.root);
-    const report = checkTickets({ root: options.root, dirs: options.path ? [options.path] : undefined });
-    if (positional[0] === "next") {
-      if (options.json) print({ root: options.root, frontier: report.frontier }, true);
-      else for (const id of report.frontier) process.stdout.write(`${id}\n`);
-    } else {
-      print(report, options.json);
-      if (!options.json) {
-        for (const warning of report.warnings) process.stderr.write(`warning: ${warning.rule}${warning.path ? ` ${warning.path}` : ""}: ${warning.message}\n`);
-        for (const error of report.errors) process.stderr.write(`error: ${error.rule}${error.path ? ` ${error.path}` : ""}: ${error.message}\n`);
+    const command = positional[0];
+    if (command === "show") {
+      rejectForeignOptions(options, []);
+      if (positional.length !== 2 || options.source || options.yes) fail(usage);
+      const file = positional[1];
+      let text;
+      try {
+        text = fs.readFileSync(file, "utf8");
+      } catch {
+        fail(`cannot read ticket file: ${file}`);
       }
-      if (report.errors.length) process.exitCode = 1;
+      const { fields, findings } = parseTicketText(text);
+      if (!fields || findings.length > 0) {
+        for (const finding of findings) process.stderr.write(`error: ${finding.message}\n`);
+        fail(`invalid ticket: ${file}`);
+      }
+      if (options.json) print(Object.fromEntries(fields), true);
+      else for (const [key, value] of fields) process.stdout.write(`${key}: ${value}\n`);
+    } else {
+      rejectForeignOptions(options, ["root", "path"]);
+      if (!["check", "next"].includes(command) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
+      requireDirectory(options.root);
+      const report = checkTickets({ root: options.root, dirs: options.path ? [options.path] : undefined });
+      if (command === "next") {
+        if (options.json) print({ root: options.root, frontier: report.frontier }, true);
+        else for (const id of report.frontier) process.stdout.write(`${id}\n`);
+      } else {
+        print(report, options.json);
+        if (!options.json) {
+          for (const warning of report.warnings) process.stderr.write(`warning: ${warning.rule}${warning.path ? ` ${warning.path}` : ""}: ${warning.message}\n`);
+          for (const error of report.errors) process.stderr.write(`error: ${error.rule}${error.path ? ` ${error.path}` : ""}: ${error.message}\n`);
+        }
+        if (report.errors.length) process.exitCode = 1;
+      }
     }
   } else if (raw[0] === "conformance") {
     const { positional, options } = parseOptions(raw.slice(1));

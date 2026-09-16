@@ -19,7 +19,7 @@ const REQUIRED = [
 ];
 const DEFAULT_DIRS = [".scratch", ".krn/tickets"];
 
-function parseTicketText(text) {
+export function parseTicketText(text) {
   const start = text.indexOf("<krn-ticket>");
   const end = text.indexOf("</krn-ticket>");
   if (start === -1 || end === -1 || end < start) {
