@@ -33,6 +33,7 @@
     "scripts/lib/frontend/design.mjs",
     "scripts/lib/frontend/facts.mjs",
     "scripts/lib/frontend/theme.mjs",
+    "scripts/lib/install/install-inspect.mjs",
     "scripts/lib/install/install-release.mjs",
     "scripts/lib/install/skill-metadata.mjs",
     "scripts/lib/install/skills-export.mjs",
