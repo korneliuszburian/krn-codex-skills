@@ -131,8 +131,20 @@ completed and gated ticket 12 unchanged (12/12 fixture checks, green range
 gate). Non-proofs: one ticket and family; this proves hook delivery into the
 worker session, not that the capsule text changed the outcome.
 
-Non-proofs: twelve tickets (three sequential, seven concurrent in pairs and
-fours, plus one hook-seeded single, and one conflicting pair), one model
+Capsule handback (2026-09-16, same runner): after the integrator merged ticket
+13, the active capsule reported `stale-fixed-point`; the integrator writeback
+(`lab/lt7/capsule-writeback.py`, wired as an optional `CAPSULE=` step in
+`integrate.sh`) updated the capsule's base/HEAD, evidence, and next action, and
+`node --test` passes thirteen checks with `state check` clean and
+warning-free. `state check` also caught a fixture defect first: two registry
+lessons shared `path:src/registry.mjs` and were rejected as a duplicate trigger
+(`malformed-lesson`, divergent), fixed by splitting the triggers
+(`symbol:register` plus the path). Non-proofs: mechanical fields only; the
+semantic capsule text stays with the sole writer, and one ticket is not a
+handback-quality measurement.
+
+Non-proofs: thirteen tickets (three sequential, eight concurrent in pairs and
+fours, plus two hook-seeded singles, and one conflicting pair), one model
 family, one rep each, disjoint files except the single stylistic conflict, so
 structured merge-repair, duplicate work, and cost-per-success remain barely
 exercised; no sandbox escape test and no hostile-process claim; fixtures and
