@@ -225,11 +225,15 @@ non-active transition is read back.
 The boundary can be host-triggered rather than manual: Codex fires a `PreCompact`
 hook before it summarizes history, and `config/hooks.json` wires
 `scripts/hooks/krn_precompact.py` to read the continuing outcome capsule under the
-session cwd and inject its acceptance, next bounded action, and blockers as
+session cwd and emit its acceptance, next bounded action, and blockers as
 `additionalContext`. Proven in the LT-6 lab on 2026-09-16: with a 12k context
-window the host compacted mid-run and the hook fired (`trigger: auto`). The hook is
-best-effort and never blocks a session; it needs `--dangerously-bypass-hook-trust`
-or a persisted hook trust on the host.
+window the host compacted mid-run (`compacted` in the rollout) and the hook fired
+(`trigger: auto`). Bound: the emitted `additionalContext` was **not** observed in
+the session rollout after compaction, so retention through the host summary is
+unproven; the durable guarantee stays the on-disk capsule, and the hook is a
+best-effort boundary marker rather than a memory channel. It needs
+`--dangerously-bypass-hook-trust` or a persisted hook trust on the host, and it
+never blocks a session.
 
 ## One spine, typed entries
 
