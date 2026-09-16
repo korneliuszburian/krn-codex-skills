@@ -41,7 +41,7 @@
     "test:change-contract": "node --test test/contract/change-contract.test.mjs",
     "test:conformance": "node --test test/conformance/conformance.test.mjs",
     "test:frontend": "node --test test/frontend/frontend.test.mjs test/frontend/facts.test.mjs test/frontend/browser.test.mjs",
-    "test:lessons": "node --test test/lessons/lessons.test.mjs",
+    "test:lessons": "node --test test/lessons/anchor-ancestry.test.mjs test/lessons/lessons.test.mjs",
     "test:lessons-verify": "node --test test/lessons/lessons-verify.test.mjs",
     "test:catalog": "node --test test/catalog/catalog-cli.test.mjs",
     "test:setup": "node --test test/setup-workflow.test.mjs",
