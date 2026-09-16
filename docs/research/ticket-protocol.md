@@ -68,6 +68,18 @@ detail, and evidence notes.
 - Cycle detection and unknown-blocker detection are blocking errors, exactly
   like Beads' dependency hygiene.
 
+## Friction drain
+
+`Workflow friction and lesson candidates` is a conveyor, not a graveyard: a
+`candidate: <token>` entry must resolve before the outcome closes. A token
+resolves when it names a `workflow-lessons.md` row anchor (the lesson text, a
+backticked gate reference, or the falsifier file), a ticket id present under the
+queue (`.scratch/` or `.krn/tickets`), or `deferred:<ticket>` for a ticket that
+already exists there. A dangling token warns while the outcome is `ACTIVE` and
+becomes a blocking `dangling-candidate` error at `COMPLETE`; undispositioned
+free-text friction keeps `complete-with-friction` blocking. `state check`
+enforces both, with `test/state/friction-drain.test.mjs` as the observer.
+
 ## Why this is better for KRN
 
 - The deciding check and the contract are in the ticket, so the runner needs no
