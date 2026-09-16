@@ -131,6 +131,11 @@
       "implicit": false
     },
     {
+      "name": "frontend-stage",
+      "path": "skills/frontend/frontend-stage",
+      "implicit": true
+    },
+    {
       "name": "frontend-architecture",
       "path": "skills/frontend/frontend-architecture",
       "implicit": true
