@@ -89,8 +89,14 @@ detail, and evidence notes.
   `Ticket: <id>`, `Change-contract:`, and the resolved recall trailers.
 - Integrator: fills `Evidence`, `Non-proofs`, and `Resolution`, and closes the
   ticket with the merged fixed point.
+- Frontier loop: `krn-codex ticket next` picks the first unblocked ready
+  ticket, `krn-codex ticket claim` records `Claim` and `Status: claimed` before
+  the lane, the envelope-driven run merges through the integrator, and
+  `krn-codex ticket close` records `Evidence` and `Resolution` before the next
+  frontier; the lab `run-frontier.sh` wires this with a run cap.
 - `krn-codex ticket check --root .` validates envelopes, blockers, cycles,
-  statuses, and orphans; `krn-codex ticket next --root .` prints the frontier.
+  statuses, and orphans; `krn-codex ticket next --root .` prints the frontier;
+  `krn-codex ticket claim|close` validates the transitions it writes.
 
 ## Limits and non-proofs
 
@@ -102,6 +108,9 @@ detail, and evidence notes.
   the executor policy remains Codex-canonical with opencode supported.
 - Orphan detection depends on the `Ticket:` trailer being written; it is a
   gate, not a proof of intent.
+- The lab frontier loop merges locally without review or publication
+  authority, and concurrent claims are not fenced: two loops can pick the same
+  ready ticket until one claim lands.
 
 Reopen when a lane needs a field the ABI cannot express, a tracker integration
 rewrites the block, or cross-repository work is measured.

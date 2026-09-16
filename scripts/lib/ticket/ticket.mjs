@@ -41,6 +41,61 @@ export function parseTicketText(text) {
   return { fields, findings };
 }
 
+function setField(text, name, value) {
+  const start = text.indexOf("<krn-ticket>");
+  const end = text.indexOf("</krn-ticket>");
+  if (start === -1 || end === -1 || end < start) throw new Error("ticket has no complete <krn-ticket> block");
+  const block = text.slice(start, end + "</krn-ticket>".length);
+  const pattern = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:.*$`, "m");
+  const updated = pattern.test(block)
+    ? block.replace(pattern, `${name}: ${value}`)
+    : block.replace("</krn-ticket>", `${name}: ${value}\n</krn-ticket>`);
+  return text.slice(0, start) + updated + text.slice(end + "</krn-ticket>".length);
+}
+
+function readValidTicket(file) {
+  const text = fs.readFileSync(file, "utf8");
+  const { fields, findings } = parseTicketText(text);
+  if (findings.length) throw new Error(`ticket is invalid: ${findings[0].message}`);
+  return { text, fields };
+}
+
+export function claimTicket({ file, worker, session = "", at = new Date().toISOString() }) {
+  const { text, fields } = readValidTicket(file);
+  const status = fields.get("Status");
+  if (status !== "ready") throw new Error(`ticket ${fields.get("Id")} is not ready (Status: ${status})`);
+  let next = setField(text, "Status", "claimed");
+  next = setField(next, "Claim", `worker=${worker}; session=${session}; at=${at}`);
+  fs.writeFileSync(file, next);
+  return { id: fields.get("Id"), path: file, status: "claimed", claim: { worker, session, at } };
+}
+
+export function closeTicket({ file, evidence = "none", resolution = "none", at = new Date().toISOString() }) {
+  const { text, fields } = readValidTicket(file);
+  const status = fields.get("Status");
+  if (status === "done" || status === "abandoned") throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
+  let next = setField(text, "Status", "done");
+  next = setField(next, "Evidence", evidence);
+  next = setField(next, "Resolution", `${resolution} (closed ${at})`);
+  fs.writeFileSync(file, next);
+  return { id: fields.get("Id"), path: file, status: "done" };
+}
+
+export function findTicketFile({ root, dirs = DEFAULT_DIRS, id } = {}) {
+  for (const file of markdownFiles(root, dirs)) {
+    let text;
+    try {
+      text = fs.readFileSync(file, "utf8");
+    } catch {
+      continue;
+    }
+    if (!text.includes("<krn-ticket>")) continue;
+    const { fields } = parseTicketText(text);
+    if (fields?.get("Id") === id) return file;
+  }
+  throw new Error(`no ticket with id "${id}" under ${dirs.join(", ")}`);
+}
+
 function markdownFiles(root, dirs) {
   const files = [];
   const walk = (dir) => {
