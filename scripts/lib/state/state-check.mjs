@@ -15,6 +15,7 @@ import { runGit as git } from "../support/git-cli.mjs";
 import { lessonStructureFindings } from "../lessons/lessons.mjs";
 import { readJson } from "../support/read-json.mjs";
 import { capsuleStoreReport, runDirectoriesDetailed } from "./spine-runs.mjs";
+import { checkTickets } from "../ticket/ticket.mjs";
 import { isInside } from "../support/path-rules.mjs";
 import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
@@ -48,6 +49,63 @@ export function normalizeRunPointer(root, pointer) {
   let resolved = absolute;
   try { resolved = realpathSync(absolute); } catch { resolved = absolute; }
   return posixRelative(root, resolved);
+}
+
+// A friction candidate is a reflection awaiting an integration decision: it
+// drains only when it names an existing lesson-row anchor, a ticket under the
+// queue, or a deferred ticket. Anything else dangles and must be visible.
+const candidateText = (friction) => stripMarkup(typeof friction === "string" ? friction : "");
+
+function frictionCandidates(friction) {
+  return [...candidateText(friction).matchAll(/\bcandidate:\s*([^\s;,`]+)/gi)].map((match) => match[1].replace(/[.,]+$/, ""));
+}
+
+function lessonAnchors(root) {
+  const anchors = new Set();
+  try {
+    for (const row of lessonStructureFindings({ root }).rows) {
+      if (row.lesson) anchors.add(row.lesson.trim());
+      for (const match of (row.gate ?? "").matchAll(/`([^`]+)`/g)) anchors.add(match[1].trim());
+      for (const part of (row.gate ?? "").split(/[;,]/).map((value) => value.trim()).filter(Boolean)) anchors.add(part);
+      for (const part of (row.trigger ?? "").split(/[;,]/).map((value) => value.trim()).filter(Boolean)) anchors.add(part);
+      const falsifierFile = (/(test\/[A-Za-z0-9_./-]+\.mjs)/.exec(row.falsifier ?? "") ?? [])[1];
+      if (falsifierFile) anchors.add(falsifierFile);
+    }
+  } catch {
+    // An unreadable lessons page resolves no anchor, so candidates fail closed.
+  }
+  return anchors;
+}
+
+function queueTicketIds(root) {
+  const ids = new Set();
+  try {
+    for (const ticket of checkTickets({ root }).tickets) if (ticket.id) ids.add(ticket.id);
+  } catch {
+    // No readable queue: candidates can only resolve to lesson-row anchors.
+  }
+  return ids;
+}
+
+function candidateResolves(token, anchors, ticketIds) {
+  const deferred = /^deferred:(.+)$/i.exec(token);
+  if (deferred) return ticketIds.has(deferred[1]);
+  return anchors.has(token) || ticketIds.has(token);
+}
+
+function frictionFindings({ id, friction, outcome, anchors, ticketIds, errors, warnings }) {
+  const complete = stripMarkup(outcome ?? "") === "COMPLETE";
+  for (const token of frictionCandidates(friction)) {
+    if (candidateResolves(token, anchors, ticketIds)) continue;
+    const finding = { id, rule: "dangling-candidate", detail: token };
+    if (complete) errors.push(finding);
+    else warnings.push(finding);
+  }
+  if (!complete) return;
+  const residue = candidateText(friction).replace(/\bcandidate:\s*[^\s;,`]+/gi, "").replace(/[;,\s]+/g, "");
+  if (residue.length > 0 && !/^none$/i.test(residue)) {
+    errors.push({ id, rule: "complete-with-friction", detail: candidateText(friction) });
+  }
 }
 
 function fixedPointErrors(root, fixedPoint, canCheckCommits) {
@@ -90,6 +148,8 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         Number(Boolean(left.link)) - Number(Boolean(right.link)) || left.name.localeCompare(right.name),
     );
 
+  const lessonAnchorSet = lessonAnchors(root);
+  const queueTicketSet = queueTicketIds(root);
   const currentHead = usableGit ? git(root, ["rev-parse", "HEAD"]) : { ok: false, out: "" };
   const seenDirectories = new Set();
   const realRoot = (() => { try { return realpathSync(root); } catch { return root; } })();
@@ -179,6 +239,16 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       errors.push({ id: entry.name, rule: "invalid-publication-state", detail: publication });
     }
 
+    frictionFindings({
+      id: entry.name,
+      friction: fields["Workflow friction and lesson candidates"],
+      outcome,
+      anchors: lessonAnchorSet,
+      ticketIds: queueTicketSet,
+      errors,
+      warnings,
+    });
+
     if (restart && stripMarkup(restart) !== "ABSENT") {
       const restartPath = stripMarkup(restart);
       if (!containedInRepo(restartPath)) {
@@ -246,10 +316,6 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
       }
       if (restart && stripMarkup(restart) !== "ABSENT") {
         errors.push({ id: entry.name, rule: "complete-with-restart", detail: stripMarkup(restart) });
-      }
-      const friction = fields["Workflow friction and lesson candidates"];
-      if (friction && stripMarkup(friction) !== "none") {
-        errors.push({ id: entry.name, rule: "complete-with-friction", detail: stripMarkup(friction) });
       }
       const review = fields["Review fixed point and Standards / Spec disposition"];
       const reviewText = review ? stripMarkup(review).trim() : "";

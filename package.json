@@ -30,7 +30,7 @@
     "test:bootstrap": "node --test test/bootstrap-fixture/bootstrap.test.mjs",
     "test:hooks": "python3 -B -m unittest scripts/hooks/test_destructive_guard.py && node --test test/hooks-guard.test.mjs",
     "test:install": "node --test test/install/install-smoke.test.mjs test/install/install-classify.test.mjs test/install/install-inspect.test.mjs",
-    "test:state": "node --test test/state/state-check.test.mjs test/state/state-brief.test.mjs test/state/composition.test.mjs test/state/capsule-abi.test.mjs",
+    "test:state": "node --test test/state/state-check.test.mjs test/state/friction-drain.test.mjs test/state/state-brief.test.mjs test/state/composition.test.mjs test/state/capsule-abi.test.mjs",
     "test:skills": "node --test test/install/skills-export.test.mjs",
     "skills:check": "node scripts/krn-codex.mjs skills check --root .",
     "lessons:check": "node scripts/krn-codex.mjs lessons check --root .",
