@@ -48,7 +48,7 @@ const usage = `Usage:
   krn-codex frontend verify --config FILE [--gate | --approve --by NAME --note WHY] [--json]
   krn-codex frontend design [--variables FILE] [--metadata FILE] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
-  krn-codex ticket <check|next> --root DIR [--path DIR] [--json]
+  krn-codex ticket <check|next> --root DIR [--path DIR] [--id ID --base REF [--head REF]] [--json]
   krn-codex ticket show <path> [--json]
   krn-codex ticket <claim|close> --root DIR --id ID [--worker NAME] [--evidence TEXT] [--resolution TEXT] [--json]`;
 
