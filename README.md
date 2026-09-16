@@ -116,6 +116,7 @@ disagreement blocks the next transition until the owner records the resolution.
 | [`opencode-second-opinion`](skills/advisory/opencode-second-opinion/SKILL.md) | explicit only | bounded independent-model opinion on one explicit path, without diffs |
 | [`managing-codex-capabilities`](skills/meta/managing-codex-capabilities/SKILL.md) | model or user | global skill, plugin, MCP, and profile control |
 | [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
+| [`frontend-stage`](skills/frontend/frontend-stage/SKILL.md) | model or user | the stage entry: intake, architecture, build, verify with exit criteria and per-section acceptance |
 | [`frontend-architecture`](skills/frontend/frontend-architecture/SKILL.md) | model or user | design intake to a frozen block × variant × ACF plan and facts file |
 | [`frontend-enforcement`](skills/frontend/frontend-enforcement/SKILL.md) | model or user | stylelint token and specificity caps, scoped disables, visual and a11y gates |
 | [`frontend-library`](skills/frontend/frontend-library/SKILL.md) | model or user | the canonical CUBE CSS library to copy verbatim and consolidate against |

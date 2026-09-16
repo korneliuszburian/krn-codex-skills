@@ -15,6 +15,24 @@ re-derives it. Facts live in the project; process rules live as lessons.
 
 These are the source of truth. Chat history and the native Goal are not.
 
+## Figma intake facts (from real runs)
+
+- The Figma MCP answers inside a JSON envelope (`content[] → text`); unwrap it
+  before parsing — `krn-codex frontend design` does this, so feed it the raw
+  dump instead of hand-reading it.
+- `get_variable_defs` needs a **frame** node. Asking about the canvas (`0-1`)
+  answers "You currently have nothing selected", which reads like "the design has
+  no variables" but means "pick a frame".
+- A file may publish almost nothing. Bloom published one variable (`Yellow`)
+  while the design system's accent was a near-match but a different value
+  (`#FCCD26` vs `#ffcf33`). THEN the facts fall back to the design system the
+  design ships and record the deviation — never invent a scale to fill the gap.
+- In `get_metadata` output, `<frame>` is a layout region and `<instance>` is a
+  component use: count instances per name for the component usage matrix
+  (`Button ×18`), and never read a section frame as a component.
+- Evidence: `test/frontend/frontend.test.mjs::parseDesign unwraps the MCP
+  envelope into tokens, sections, and components`; `scripts/lib/frontend/design.mjs`.
+
 ## The registry is machine-checked
 
 - `krn-codex frontend audit --root <theme> --docs docs/design/blocks.md` (the
@@ -24,6 +42,15 @@ These are the source of truth. Chat history and the native Goal are not.
 - Therefore a block is `built` only when its own file exists. A block whose styles
   live inside a section file is not built — it is a `block-ownership` failure, and
   the registry must not claim it.
+- `krn-codex frontend facts --root <theme> --docs docs/design` (the project's
+  `frontend:facts`) checks the other three facts against the code: every matrix
+  variant in `components.md` must appear in that block's CSS or its template, a
+  `reuse` cell must resolve to a real composition or block, a `sections.md` row
+  must map to a known block or composition, and every token named in a
+  `tokens.md` table must exist in the built CSS (an unbuilt project reports a
+  soft finding instead).
+- Run both commands after touching the facts or the code. A fact file that
+  disagrees with the code is a defect, not documentation drift.
 
 ## The freeze rule
 

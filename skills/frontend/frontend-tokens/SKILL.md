@@ -33,6 +33,12 @@ Tokens are the single source of truth for every design value. Components consume
 - NEVER set fixed rem font sizes switched by media queries. NEVER write a bespoke clamp() per element — one scale of step tokens consumed everywhere.
 - GOOD: `--size-step-2: clamp(1.44rem, 1.2016rem + 1.1918vi, 2.0508rem)` / BAD: `@media (min-width: 768px) { h1 { font-size: 3rem } }`.
 
+### Re-theme vs tweak
+- IF the design is a different design system (different palette, type stack, scale) THEN it is a **re-theme**: replace the token values in the token layer, keep the DTCG shape and the fluid min/max extension, and never mix the two palettes (an old primary with a new accent is a half-retheme).
+- IF only values inside the shipped system change THEN it is a **tweak**: change those tokens and record the deviation.
+- NEVER re-theme by editing components or blocks; a theme re-points token values only.
+- Record the decision and every deviation in the project's `tokens.md` — the literal-value audit rule is the backstop, not the proof.
+
 ### Contrast is a token property
 - IF you define a text-on-background pair THEN pre-verify it as tokens: 4.5:1 normal text, 3:1 large text (AA); 3:1 for UI components and focus indicators.
 - IF a color combination fails in practice (even when WCAG AA technically passes) THEN change it before building components — build a foundations page (colour/contrast/fonts/leading/type scale/space scale) and test the palette there.

@@ -39,7 +39,7 @@
     "changes:push": "base=${KRN_PUSH_BASE:-$(git merge-base origin/main HEAD 2>/dev/null || true)}; [ \"$base\" = \"0000000000000000000000000000000000000000\" ] && base=''; resolved=$(git rev-parse --verify \"${base:-HEAD}^{commit}\" 2>/dev/null || true); if [ -z \"$base\" ] || [ -z \"$resolved\" ] || [ \"$resolved\" = \"$(git rev-parse HEAD)\" ]; then base=\"$(git rev-parse HEAD~1 2>/dev/null)\"; fi; if [ -z \"$base\" ]; then echo 'changes:push: no base range (root commit)' >&2; base=\"$(git rev-parse HEAD)\"; fi; node scripts/krn-codex.mjs changes check --root . --base \"$base\" --head HEAD --before",
     "test:change-contract": "node --test test/contract/change-contract.test.mjs",
     "test:conformance": "node --test test/conformance/conformance.test.mjs",
-    "test:frontend": "node --test test/frontend/frontend.test.mjs",
+    "test:frontend": "node --test test/frontend/frontend.test.mjs test/frontend/facts.test.mjs test/frontend/browser.test.mjs",
     "test:lessons": "node --test test/lessons/lessons.test.mjs",
     "test:lessons-verify": "node --test test/lessons/lessons-verify.test.mjs",
     "test:catalog": "node --test test/catalog/catalog-cli.test.mjs",

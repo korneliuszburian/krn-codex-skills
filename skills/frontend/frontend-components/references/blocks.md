@@ -61,6 +61,31 @@ Rules distilled:
 - Markup: `class="button"` + optional `data-button-variant` + `data-button-has-icon` + `span.button__icon[aria-hidden]` + `span.button__label`. The default button carries **no** variant attribute; the library defines `link`, and a project may add its own value in its `button.css` (`inverse`). A value the theme and library do not define is an invented variant — `krn-codex frontend audit` reports `template-variant`.
 Sources: https://piccalil.li/blog/how-i-build-a-button-component/ (2024-09); rekurencja boilerplate `src/css/blocks/button.css` + `components/button/template.php`.
 
+## Resolved knobs (production pattern)
+
+When several properties depend on one knob, resolve it first so a variant or a
+context sets it in one place and dependent values can default to the result:
+
+```css
+.flow-cta {
+  --calculated-flow-cta-bg: var(--flow-cta-bg, var(--color-dark));
+  --calculated-flow-cta-color: var(--flow-cta-color, var(--color-light));
+  --calculated-flow-cta-hover-color: var(--flow-cta-hover-color, var(--calculated-flow-cta-color));
+  --calculated-flow-cta-focus-ring-color: var(--flow-cta-focus-ring-color, currentColor);
+  background: var(--calculated-flow-cta-bg);
+  color: var(--calculated-flow-cta-color);
+}
+.flow-cta:hover { color: var(--calculated-flow-cta-hover-color); }
+```
+
+- Use it when a hover/focus/icon value must follow the base value; keep the plain
+  `var(--knob, default)` form for single-property knobs — the layer is a tool,
+  not a tax on every declaration.
+- A variant then only sets the knob (`[data-flow-cta-variant='...'] { --flow-cta-bg: ... }`),
+  which is still "2–4 existing knobs only".
+- Source: production CUBE at https://piccalil.li/mindful-design (studied 2026-09-16;
+  see `docs/research/frontend-delivery.md`).
+
 ## Block skeleton contract
 - "A block is a skeletal component or organisational structure" — most of the work is already done by global CSS, compositions and utilities, so block CSS stays tiny.
 - "It shouldn't grow to anything larger than a handful of CSS rules (max 80-100 lines)" and must not "solve more than one contextual problem".

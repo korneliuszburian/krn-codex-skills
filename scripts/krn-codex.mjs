@@ -17,6 +17,8 @@ import { reanchorLessons, verifyLessons } from "./lib/lessons/lessons-verify.mjs
 import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
 import { caseIds, loadCases, runConformance } from "./lib/conformance/conformance.mjs";
 import { auditTheme, inventoryTheme } from "./lib/frontend/theme.mjs";
+import { auditFacts } from "./lib/frontend/facts.mjs";
+import { approveEvidence, captureEvidence, gateEvidence } from "./lib/frontend/browser.mjs";
 import { parseDesign } from "./lib/frontend/design.mjs";
 import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
 
@@ -41,7 +43,8 @@ const usage = `Usage:
   krn-codex lessons <check|verify|reanchor> --root DIR [--json]
   krn-codex changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
   krn-codex conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
-  krn-codex frontend <inventory|audit> --root THEME [--docs FILE] [--accept RULE:FILE[,RULE:FILE]] [--json]
+  krn-codex frontend <inventory|audit|facts> --root THEME [--docs FILE|DIR] [--accept RULE:FILE[,RULE:FILE]] [--json]
+  krn-codex frontend verify --config FILE [--gate | --approve --by NAME --note WHY] [--json]
   krn-codex frontend design [--variables FILE] [--metadata FILE] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]`;
 
@@ -64,6 +67,8 @@ function parseOptions(args) {
     if (arg === "--json") options.json = true;
     else if (arg === "--yes") options.yes = true;
     else if (arg === "--before") options.before = true;
+    else if (arg === "--gate") options.gate = true;
+    else if (arg === "--approve") options.approve = true;
     else if (arg === "--strict-recall") options.strictRecall = true;
     else if (arg === "--frozen") options.frozen = true;
     else if (arg === "--source") setOnce("source", "--source", take(index++, "--source"));
@@ -78,6 +83,9 @@ function parseOptions(args) {
     else if (arg === "--variables") setOnce("variables", "--variables", take(index++, "--variables"));
     else if (arg === "--metadata") setOnce("metadata", "--metadata", take(index++, "--metadata"));
     else if (arg === "--docs") setOnce("docs", "--docs", take(index++, "--docs"));
+    else if (arg === "--config") setOnce("config", "--config", take(index++, "--config"));
+    else if (arg === "--by") setOnce("by", "--by", take(index++, "--by"));
+    else if (arg === "--note") setOnce("note", "--note", take(index++, "--note"));
     else if (arg === "--accept") {
       options.accept = [...(options.accept ?? []), ...take(index++, "--accept").split(",").map((entry) => entry.trim()).filter(Boolean)];
     }
@@ -107,6 +115,9 @@ const OPTION_FLAG = {
   metadata: "--metadata",
   accept: "--accept",
   docs: "--docs",
+  config: "--config",
+  by: "--by",
+  note: "--note",
   candidate: "--candidate",
   filter: "--filter",
   frozen: "--frozen",
@@ -274,9 +285,37 @@ try {
     if (results.some((result) => !result.ok)) process.exitCode = 1;
   } else if (raw[0] === "frontend") {
     const { positional, options } = parseOptions(raw.slice(1));
-    rejectForeignOptions(options, ["root", "variables", "metadata", "accept", "docs"]);
+    rejectForeignOptions(options, ["root", "variables", "metadata", "accept", "docs", "config", "gate", "approve", "by", "note"]);
     const subcommand = positional[0];
-    if (!["inventory", "audit", "design"].includes(subcommand) || positional.length > 1 || options.source || options.yes) fail(usage);
+    if (!["inventory", "audit", "design", "facts", "verify"].includes(subcommand) || positional.length > 1 || options.source || options.yes) fail(usage);
+    if (subcommand === "verify") {
+      if (!options.config) fail(usage);
+      const modes = [options.gate, options.approve].filter(Boolean).length;
+      if (modes > 1 || (options.approve && (!options.by || !options.note)) || (!options.gate && !options.approve && (options.by || options.note))) fail(usage);
+      try {
+        if (options.gate) {
+          const report = await gateEvidence({ configFile: options.config });
+          if (options.json) print(report, true);
+          else {
+            for (const failure of report.failures) process.stdout.write(`fail\t${failure}\n`);
+            process.stdout.write(`frontend verify gate: ${report.status}\n`);
+          }
+          if (report.status !== "pass") process.exitCode = 1;
+        } else if (options.approve) {
+          const signature = await approveEvidence({ configFile: options.config, by: options.by, note: options.note });
+          process.stdout.write(`${options.json ? JSON.stringify(signature) : `approved by ${signature.by} at ${signature.at}`}\n`);
+        } else {
+          const manifest = await captureEvidence({ configFile: options.config });
+          if (options.json) print(manifest, true);
+          else {
+            process.stdout.write(`captured ${manifest.artifacts.length} artifacts (${manifest.session})\n`);
+            process.stdout.write(`measurements: overflowX=${manifest.measurements?.overflowX} heightFloors=${manifest.measurements?.heightFloors?.length ?? "?"} smallTargets=${manifest.measurements?.smallTargets?.length ?? "?"}\n`);
+          }
+        }
+      } catch (error) {
+        fail(error.message, EXIT_CODES.USAGE);
+      }
+    } else {
     if (subcommand === "design") {
       if (!options.variables && !options.metadata) fail(usage);
       const report = parseDesign({ variablesFile: options.variables, metadataFile: options.metadata });
@@ -300,6 +339,14 @@ try {
           process.stdout.write(`ACF layouts: ${report.acf.layouts.map((entry) => entry.layout).join(", ") || "none"}\n`);
           for (const block of report.blocks) process.stdout.write(`  ${block.name.padEnd(16)} ${block.variants.join(", ") || "-"}\n`);
         }
+      } else if (subcommand === "facts") {
+        const report = auditFacts({ root: options.root, docs: options.docs ?? null });
+        if (options.json) print(report, true);
+        else {
+          for (const finding of report.findings) process.stdout.write(`${finding.severity}\t${finding.rule}\t${finding.detail}\n`);
+          process.stdout.write(report.hard > 0 ? `${report.hard} hard finding(s)\n` : "frontend facts clean\n");
+        }
+        if (report.hard > 0) process.exitCode = 1;
       } else {
         const report = auditTheme({ root: options.root, accept: options.accept ?? [], docs: options.docs ?? null });
         if (options.json) print(report, true);
@@ -309,6 +356,7 @@ try {
         }
         if (report.hard > 0) process.exitCode = 1;
       }
+    }
     }
   } else if (raw[0] === "state") {
     const { positional, options } = parseOptions(raw.slice(1));

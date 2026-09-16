@@ -21,7 +21,8 @@ CI; keep review rules for invariants.
 - IF the project carries a theme THEN run the harness audit through the project's own script: `krn-codex frontend audit --root <theme> --docs docs/design/blocks.md` (wrapped as `frontend:audit`). It is read-only and needs no build.
 - Rules it enforces: `block-height` (no height floors), `magic-color` (tokens, never literals), `block-size-bar` (thin skeleton, target ≤ ~100 lines, soft), `class-variant` (a variant is a `data-*` exception, not a BEM modifier, soft), `block-ownership` (one file, one block), `variant-naming` (shared library vocabulary or `data-<block>-` prefix), `facts-registry` (a `built`/`verified` row needs `src/css/blocks/<slug>.css`), `template-variant` (a variant value must exist in the theme or the library).
 - IF a finding is genuinely justified by the design THEN register it with `--accept <rule>:<file>` and record the reason in the project's enforcement doc. NEVER loosen the rule, NEVER accept silently.
-- NEVER mark a block `built`/`verified` while its styles live inside a section file — `facts-registry` and `block-ownership` fail together; the facts must match the code.
+- IF a block is `built`/`verified` while its styles live inside a section file THEN `facts-registry` and `block-ownership` fail together; the facts must match the code.
+- Companion gate: `krn-codex frontend facts --root <theme> --docs docs/design` (the project's `frontend:facts`) checks the facts against the code — `facts-components` (a matrix variant must exist in the block CSS or its template, a `reuse` cell must resolve), `facts-sections` (a section maps to a known block or composition), `facts-tokens` (a documented token must exist in the built CSS; unbuilt reports soft).
 
 ### Token mandate (stylelint config)
 - IF the project is token-driven THEN set: `color-no-hex: true` (with a scoped, described disable for the generated token-utilities file, where hex legitimately lives in one place), `color-named: "never"`, `unit-allowed-list` containing the canonical units of this stack: `["rem","em","%","s","vi","cap","ch","fr","cqw"]` — px is banned in component declarations, allowed only inside token-layer custom property definitions, `declaration-property-value-disallowed-list` for values that must come from tokens, `custom-property-pattern` for token naming.
@@ -45,6 +46,7 @@ CI; keep review rules for invariants.
 - NEVER unscoped `/* stylelint-disable */`.
 
 ### CI beyond lint
+- IF the project can render THEN the browser lane is a **measurement**, not an agent's opinion: `krn-codex frontend verify --config <file>` records a tamper-evident manifest (screenshot, DOM snapshot, console, requests, cleanup, and the deterministic measurements: horizontal overflow, computed height floors, tap-target sizes, contrast offenders), and `--gate` re-hashes every artifact, enforces the declared `expectations`, and requires a **human signature** (`--approve --by <name> --note <why>`). NEVER let a model certify a visual result; a model measures, a human signs.
 - IF a PR touches CSS/components THEN require the visual-regression check to pass before merge (PR status check, non-zero exit on unreviewed diffs).
 - IF a component ships THEN it has written accessibility acceptance criteria + automated a11y tests + manual checks for what automation misses.
 - NEVER treat a11y as a site-wide audit-only concern.
