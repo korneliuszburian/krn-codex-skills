@@ -24,6 +24,7 @@
     "scripts/lib/catalog/catalog-profile.mjs",
     "scripts/lib/catalog/catalog-profiles.mjs",
     "scripts/lib/catalog/catalog-toml.mjs",
+    "scripts/lib/catalog/catalog-usage-literals.mjs",
     "scripts/lib/catalog/catalog-usage-normalize.mjs",
     "scripts/lib/catalog/catalog-usage.mjs",
     "scripts/lib/catalog/plugin-identity.mjs",
