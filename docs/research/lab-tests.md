@@ -39,8 +39,92 @@ are durable.
 
 | LT-6 | A fresh session given only the outcome capsule and repository state continues a bounded multi-step outcome without a named stage loss — a requirement not becoming a task, edit drift, contradicting evidence, or silent completion — and the capsule is sufficient without the transcript. | Registered 2026-09-15. Blinded/differential: phase 1 runs one agent to a boundary and writes the capsule; phase 2 runs a fresh session with no transcript. Control lane: phase 2 with the repository but no capsule (or a deliberately stale/contradictory capsule). Treatment lane: phase 2 with the boundary capsule. Third lane: phase 2 with the phase-1 transcript, to separate "capsule replaces the transcript" from "capsule merely helps". One frozen task family with a held-out acceptance check; bwrap isolation, sentinel, and an anonymizing decider per LT-5. This models the context boundary as an enforced phase split because the harness cannot force a real host window overflow. | Held-out completion; named stage-loss incidents; edit drift (phase-2 diff against the intended slice); wall time; tokens in/out; silent-completion count. | Treatment is not better than the no-capsule control at equal cost, or a named stage loss appears with the capsule, or the transcript lane dominates the capsule without a cost explanation. | lab-test | Separation gate run 2026-09-16 (one task x {control, capsule, transcript} x 3 reps, `gpt-5.6-luna` via codex, bwrap 0.12, zero sentinel leaks): held-out 0/3 control, 3/3 capsule, 3/3 transcript, capsule ~27s vs control ~41s. The capsule is sufficient for a fresh session to continue a bounded outcome whose decision is not in the repository, and it matches the transcript here. Non-proofs: phase 1 is scripted, so the capsule is lab-authored and this measures capsule sufficiency, not the agent's ability to write one; the control cannot know the exact strings by construction, so the contrast is large by design; one task, one family, three reps; the boundary is an enforced phase split, not an observed host overflow, and the compaction arm is separate. Mechanical half: the capsule ABI, `state compile`/`resume`, the continuity degradations (`missing-field`, `unresolved-placeholder`, `active-without-next`, `stale-fixed-point`, `complete-without-commit-anchor`), and a compile-to-resume round trip are gated. Compaction arm 2026-09-16 (same decision, one in-session run per arm, 12k window, ~11-12 auto-compactions while reading 312 KB of docs): held-out passed with the decision in the prompt (arm A, no hook) and with the decision only in the capsule injected at SessionStart (arm B). At this scale the host summary preserved the decision, so the boundary hook is belt-and-braces in-session, while the capsule is load-bearing for fresh sessions (the separation gate above). Non-proof of the compaction arm: one task, one family, and a pass cannot separate "the summary retained it" from "the agent re-read the on-disk capsule". This row is the recorded reopen trigger for context isolation and paired-continuation evaluation. |
 
-| LT-7 | An AFK worker session in an isolated worktree, given one `ready-for-agent` ticket, the outcome capsule pointer, and trigger-matched lesson recall, produces a commit whose deterministic memory gates pass, and a single integrator merges it with no unplanned capsule divergence or stale-anchor drift. | Registered 2026-09-16. Deterministic differential first: the same scoped ticket implemented sequentially in one session (control) versus by a fresh worktree session (treatment) that receives only the ticket, the capsule pointer, and `memory recall --changed` output, then hands its commit to one integrator; a bounded throughput lane then compares N tickets sequential versus worktree-parallel at equal quality. The ticket declares its deciding check before work, and `--strict-recall` is the lane's enforcement so recall is exercised rather than decorative. | Gate outcomes (`changes check` Recall/At-risk, `state check` on the merged fixed point), integrator repair count (stale-anchor/reanchor, merge conflicts), held-out acceptance, wall time, billed tokens per successful ticket. | The worker cannot satisfy recall without copying the lesson text, or the merged fixed point diverges, or the parallel lane does not beat sequential at equal quality — then the tracker-as-control-plane defer stays. | lab-test | Registered; no run yet. Limits at registration: one repository and tracker, one model family until a second family lane is added, small N; the runner, worktree, and sandbox isolation are host-side and outside this repository; local commit only, with push and PR left NOT_AUTHORIZED; bwrap-class isolation is not a hostile-process claim. This is the reopening experiment the orchestration tracker row names. External baselines: cross-agent textual conflicts run 41.7% vs intra-agent 19.8% (arXiv:2607.04697), a fork shares the parent branch unless each child names a distinct branch (Sandcastle ADR 0018), and review/repair load plus duplicate tickets are reported beside throughput (MSR 2026 PR-outcome studies). |
+| LT-7 | An AFK worker session in an isolated worktree, given one `ready-for-agent` ticket, the outcome capsule pointer, and trigger-matched lesson recall, produces a commit whose deterministic memory gates pass, and a single integrator merges it with no unplanned capsule divergence or stale-anchor drift. | Registered 2026-09-16. Deterministic differential first, then a bounded throughput lane; see the LT-7 lane runs section below for the protocol, runs, and limits. | Gate outcomes, integrator repair count, held-out acceptance, wall time, billed tokens per successful ticket. | The worker cannot satisfy recall without copying the lesson text, or the merged fixed point diverges, or the parallel lane does not beat sequential at equal quality — then the tracker-as-control-plane defer stays. | lab-test | Mechanical, live, and repeatability runs passed 2026-09-16; details, token costs, gate-caught fixture defects, external baselines, and non-proofs are in the section below. |
+
 | LT-8 | A cheap worker model, given only the stage entry, the project facts, and the gates, produces a frontend section that passes the per-section acceptance — and repairs policy findings — without the maintainer writing or fixing code. | Blinded/differential: one frozen section brief x {control: the same model and repository without the frontend skills or stage entry; treatment: with `$frontend-stage` and the six owners installed and the facts present} x N reps; the maintainer's hand-written version is the acceptance reference only. Held-out acceptance: the deterministic gates (`frontend:audit`, `frontend:facts`, `lint:css`, `build`, the ACF/contract tests) plus a rescoped reader on the qualitative bar (no duplicate block, no styles hidden in a section file, thin skeleton). The per-section acceptance is already partly frozen as conformance cases (`frontend-audit-catches-facts-registry-drift`, `frontend-facts-flags-an-unknown-mapped-block`) and the `block-ownership`/`variant-naming` tests. | Held-out acceptance pass; hidden-block or duplicate-block incidents; maintainer repair edits; wall time and billed tokens per accepted section. | The treatment is not better than the no-skills control at equal cost, or a section passes the gates while hiding a block in a section file, or the acceptance needs maintainer repair. | Registered 2026-09-16; no blinded run yet. | Two engineering runs motivate it and are not proof: `gpt-5.6-luna` built the Courses section from a one-line brief (facts read, ACF layout, card block, gates green) and then repaired all 22 policy findings from a single "make the audit green" brief with the gates re-verified independently — but both ran unblinded, with the maintainer present and the repository facts already written. Limits: one project, one model family, one section, maintainer-written briefs, and no control lane or cost comparison. |
+
+| LT-9 | The conditional SessionStart onboarding signal makes a fresh session in an unmanaged work tree attempt the read-only adoption report, without harming the requested task. | Registered and run 2026-09-16. Differential behavioral comparison: control (no hooks seeded) versus treatment (the branch `krn_memory.py` plus a SessionStart `hooks.json` seeded into a fresh CODEX_HOME), same neutral task (`append one line to notes.md, do not commit`), alternating order, three reps per arm, `gpt-5.6-luna` under bwrap 0.12.0; both arms run with `--dangerously-bypass-hook-trust`, which `codex exec` requires for any hook to fire. | `inspect_attempt` (a `krn-codex repo inspect` command present in the session events), `onboarding_seen` (signal text in the rollout), task completion, wall time. | Treatment is not above control in inspect attempts, or the signal derails or blocks the requested task. | lab-test | Result 2026-09-16: 3/3 treatment sessions attempted the report versus 0/3 control, and all six sessions completed the task (wall 16–20s); the treatment sessions reported `krn-codex: command not found` and continued, because the CLI is not installed in the sandbox. Non-proofs: N=3 per arm, one family, one trivial task and repo shape, detection is a mechanical event scan rather than a blinded decider, the measured behavior is an attempt rather than a completed inspection or adoption, and the hook needs an explicit trust bypass under scripted exec. Runner and fixture stay outside the repository at `lab/lt9/`. |
+
+## LT-7 lane runs (2026-09-16)
+
+Runner and fixtures live outside the repository at `lab/lt7/`. `run-ticket.sh`
+cuts an isolated worktree from the fixture main, asserts the deciding check is
+red at that base, builds a prompt with the ticket, the capsule pointer, and
+`memory recall --changed` output, runs a fresh pinned codex session under
+non-setuid bwrap 0.12.0 with an auth-only seed, and host-executes the worker
+gate. `integrate.sh` merges `--no-ff`, re-runs the fixture tests, and gates the
+merged fixed point. This lane is the reopening experiment named by the
+orchestration tracker defer row. Registration limits carried from the entry: one
+repository and tracker, local commits only with push and PR not authorized.
+
+Mechanical phase (scripted worker, no model session): a commit without `Recall`
+failed `--strict-recall` as `unreconstructed-recall` with a confirmed
+base-executed red->green; a commit carrying `Recall` but not declaring the
+lesson's test failed as `unused-recall`; the repaired commit passed; the
+integrator merge over the range passed with the merge commit not re-evaluated
+for recall; a filled capsule passed `state check` clean.
+
+Live phase (`gpt-5.6-luna` via pinned codex 0.154.0, non-setuid bwrap 0.12.0,
+zero sentinel leaks, `model_mismatch=no`): a fresh session cut from the red base
+committed `0d747de` with `Change-contract`, `Recall`, and `At-risk`; the worker
+gate and the integrator gate both exited 0 with an executed red->green flip
+(33s wall), and the merged tree passes `node --test`.
+
+Repeatability: two further mechanism-distinct tickets (route registry dispatch,
+version-salted digest) each produced exactly one worker commit with the same
+three trailers and passed both gates; billed input was 68k–97k tokens per
+ticket (58k–76k cached) with 0.8k–1.1k output.
+
+Two fixture defects were caught by the gate rather than the model: a lane cut
+from an already-solved base failed as `before-state-not-red`, and the worker
+manufactured a `String(VERSION)` no-op to satisfy the commit rule; a base whose
+deciding check failed as an import or load error failed as
+`before-state-unverified`. The lane therefore requires a loadable red failure
+at the cut base, which the runner asserts before any model call.
+
+External baselines from the 2026-09-16 sweep: cross-agent textual PR conflicts
+run 41.7% vs intra-agent 19.8% (arXiv:2607.04697), and review or duplicate-work
+load, not generation, is the measured constraint (MSR 2026 PR-outcome studies).
+
+Parallel lane (2026-09-16, same runner): two mechanism-distinct tickets (schema
+membership, display-label resolution) were seeded on one base and run as two
+concurrent `gpt-5.6-luna` sessions in separate worktrees; both produced one
+trailer-carrying commit and passed their worker gates (35s and 29s wall,
+`sentinel_leak=no`, `model_mismatch=no`), billed 68k–69k input tokens (52k–58k
+cached) each, and the integrator merged both with zero conflicts and a green
+merged-fixed-point gate because the file sets were disjoint. A conflicting pair
+is unrun, so merge-repair remains unmeasured.
+
+Conflict lane (2026-09-16, same runner): two tickets whose fixes touch the same
+line of `src/registry.mjs` were seeded on one base and run concurrently (46s and
+36s wall, `sentinel_leak=no`, `model_mismatch=no`; billed 69k–106k input tokens,
+58k–78k cached); both workers received the same two recalled lessons. One worker
+emitted the exact `Recall` and `At-risk` trailers and passed its gate; the other
+invented a `Lesson: ... Test: ...` format and failed strict recall as
+`unreconstructed-recall`, so the integrator repaired the trailer and re-gated
+clean (one repair). Both workers then turned out to have implemented both
+invariants, so the merge conflict was stylistic: one conflict on the shared
+file, resolved by taking either equivalent form, and the merged tree passes all
+seven checks with a green range gate. Repairs: one trailer repair and one
+conflict resolution.
+
+Throughput lane (2026-09-16, same runner): four disjoint tickets were seeded on
+one base and run as four concurrent `gpt-5.6-luna` sessions; all four worker
+gates passed and the integrator merged all four with a green range gate over
+eleven passing checks. The four-session window was 42s against a 127s sum of
+individual walls (about 3.0x), billed 66k–99k input tokens (52k–78k cached)
+each. The first batch exposed an instrument defect: the prompt's backticked
+trailer rule was eaten by shell command substitution, so the rule text arrived
+mangled and 4/4 workers invented a `Lesson: ... Test: ...` format that each
+gate rejected as `unreconstructed-recall`; the runner now emits the exact
+`Recall` and `At-risk` lines per recalled lesson, after which the batch passed
+clean.
+
+Non-proofs: eleven tickets (three sequential, six concurrent in pairs and
+fours, one conflicting pair), one model family, one rep each, disjoint files
+except the single stylistic conflict, so structured merge-repair, duplicate
+work, and cost-per-success remain barely exercised; no sandbox escape test and
+no hostile-process claim; fixtures and runner stay outside the repository.
 
 ## LT-5 design additions (2026-09-13)
 

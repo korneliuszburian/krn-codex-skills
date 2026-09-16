@@ -136,6 +136,14 @@ function inspect(root) {
   }
   const monorepo = existsSync(join(root, "pnpm-workspace.yaml")) || workspaces;
   const instruction = state.hasAgents ? "AGENTS.md" : "missing";
+  let managedContract = false;
+  if (state.hasAgents) {
+    try {
+      managedContract = readFileSync(state.agents, "utf8").includes(START);
+    } catch {
+      managedContract = false;
+    }
+  }
   return {
     root,
     head: git(root, ["rev-parse", "HEAD"]),
@@ -143,6 +151,7 @@ function inspect(root) {
     remote: redactRemote(remote),
     provider,
     instruction,
+    managedContract,
     trackerSignals: {
       beads: existsSync(join(root, ".beads")),
       localMarkdown: existsSync(join(root, ".scratch")),

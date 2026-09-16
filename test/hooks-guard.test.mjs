@@ -181,3 +181,34 @@ test("SessionStart loads a continuing capsule without writing a boundary", () =>
   }
 });
 
+test("SessionStart signals adoption only for an unmanaged work tree with agent instructions", () => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-onboard-"));
+  try {
+    assert.equal(precompactContext(dir, "SessionStart"), null, "a plain directory gets no signal");
+    mkdirSync(join(dir, ".git"));
+    assert.equal(precompactContext(dir, "SessionStart"), null, "a work tree without agent instructions gets no signal");
+    writeFileSync(join(dir, "AGENTS.md"), "# Demo\n");
+    const signal = precompactContext(dir, "SessionStart");
+    assert.match(signal, /KRN onboarding/);
+    assert.match(signal, /krn-codex repo inspect/);
+    assert.equal(precompactContext(dir, "PreCompact"), null, "PreCompact never signals onboarding");
+    writeFileSync(join(dir, "AGENTS.md"), "# Demo\n\n<!-- krn-agent-workflow:start -->\nmanaged\n<!-- krn-agent-workflow:end -->\n");
+    assert.equal(precompactContext(dir, "SessionStart"), null, "an adopted repository gets no signal");
+    const capsule = join(dir, ".krn", "runs", "delivery-loop", "out-1");
+    mkdirSync(capsule, { recursive: true });
+    writeFileSync(join(capsule, "state.md"), [
+      "Outcome state: ACTIVE",
+      "Next bounded owner and action: finish the capsule slice",
+      "Open unknowns and blockers with owners: none",
+      "Outcome and observable acceptance: run `npm test`",
+      "",
+    ].join("\n"));
+    writeFileSync(join(dir, "AGENTS.md"), "# Demo\n");
+    const capsuleContext = precompactContext(dir, "SessionStart");
+    assert.match(capsuleContext, /finish the capsule slice/);
+    assert.doesNotMatch(capsuleContext, /KRN onboarding/, "a continuing capsule takes precedence over the onboarding signal");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
