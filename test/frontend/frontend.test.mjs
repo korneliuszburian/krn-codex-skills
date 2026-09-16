@@ -49,6 +49,15 @@ test("auditTheme flags a block height floor and a literal color, not the clean c
   rmSync(dirty, { recursive: true, force: true });
 });
 
+test("auditTheme records an accepted exception as accepted, not hard", () => {
+  const root = makeTheme({ block: ".text { min-block-size: 20vh; }\n" });
+  assert.equal(auditTheme({ root }).hard, 1);
+  const report = auditTheme({ root, accept: ["block-height:src/css/blocks/text.css"] });
+  assert.equal(report.hard, 0);
+  assert.equal(report.findings[0].severity, "accepted");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("parseDesign unwraps the MCP envelope into tokens, sections, and components", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-frontend-design-"));
   const variables = join(dir, "variables.json");

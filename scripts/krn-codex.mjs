@@ -41,7 +41,7 @@ const usage = `Usage:
   krn-codex lessons <check|verify|reanchor> --root DIR [--json]
   krn-codex changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
   krn-codex conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
-  krn-codex frontend <inventory|audit> --root THEME [--json]
+  krn-codex frontend <inventory|audit> --root THEME [--accept RULE:FILE[,RULE:FILE]] [--json]
   krn-codex frontend design [--variables FILE] [--metadata FILE] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]`;
 
@@ -77,6 +77,9 @@ function parseOptions(args) {
     else if (arg === "--head") setOnce("head", "--head", take(index++, "--head"));
     else if (arg === "--variables") setOnce("variables", "--variables", take(index++, "--variables"));
     else if (arg === "--metadata") setOnce("metadata", "--metadata", take(index++, "--metadata"));
+    else if (arg === "--accept") {
+      options.accept = [...(options.accept ?? []), ...take(index++, "--accept").split(",").map((entry) => entry.trim()).filter(Boolean)];
+    }
     else if (arg === "--candidate") setOnce("candidate", "--candidate", take(index++, "--candidate"));
     else if (arg === "--filter") setOnce("filter", "--filter", take(index++, "--filter"));
     else if (arg === "--upstream") setOnce("upstream", "--upstream", take(index++, "--upstream"));
@@ -101,6 +104,7 @@ const OPTION_FLAG = {
   head: "--head",
   variables: "--variables",
   metadata: "--metadata",
+  accept: "--accept",
   candidate: "--candidate",
   filter: "--filter",
   frozen: "--frozen",
@@ -268,7 +272,7 @@ try {
     if (results.some((result) => !result.ok)) process.exitCode = 1;
   } else if (raw[0] === "frontend") {
     const { positional, options } = parseOptions(raw.slice(1));
-    rejectForeignOptions(options, ["root", "variables", "metadata"]);
+    rejectForeignOptions(options, ["root", "variables", "metadata", "accept"]);
     const subcommand = positional[0];
     if (!["inventory", "audit", "design"].includes(subcommand) || positional.length > 1 || options.source || options.yes) fail(usage);
     if (subcommand === "design") {
@@ -295,7 +299,7 @@ try {
           for (const block of report.blocks) process.stdout.write(`  ${block.name.padEnd(16)} ${block.variants.join(", ") || "-"}\n`);
         }
       } else {
-        const report = auditTheme({ root: options.root });
+        const report = auditTheme({ root: options.root, accept: options.accept ?? [] });
         if (options.json) print(report, true);
         else {
           for (const finding of report.findings) process.stdout.write(`${finding.severity}\t${finding.file}\t${finding.rule}\t${finding.detail}\n`);

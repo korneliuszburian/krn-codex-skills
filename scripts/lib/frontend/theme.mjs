@@ -128,7 +128,8 @@ const RULES = [
   },
 ];
 
-export function auditTheme({ root }) {
+export function auditTheme({ root, accept = [] } = {}) {
+  const accepted = new Set(accept);
   const findings = [];
   const layers = ["blocks", "compositions", "utilities"];
   for (const layer of layers) {
@@ -138,7 +139,8 @@ export function auditTheme({ root }) {
       for (const rule of RULES) {
         if (layer !== "blocks" && rule.rule !== "magic-color") continue;
         for (const detail of rule.test(css)) {
-          findings.push({ rule: rule.rule, severity: rule.severity, file: relative, detail: `${detail} (${rule.detail})` });
+          const severity = rule.severity === "hard" && accepted.has(`${rule.rule}:${relative}`) ? "accepted" : rule.severity;
+          findings.push({ rule: rule.rule, severity, file: relative, detail: `${detail} (${rule.detail})` });
         }
       }
     }

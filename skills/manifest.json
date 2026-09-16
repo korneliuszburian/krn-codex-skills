@@ -134,6 +134,11 @@
       "name": "frontend-architecture",
       "path": "skills/frontend/frontend-architecture",
       "implicit": true
+    },
+    {
+      "name": "frontend-enforcement",
+      "path": "skills/frontend/frontend-enforcement",
+      "implicit": true
     }
   ],
   "source_only_skills": [],
