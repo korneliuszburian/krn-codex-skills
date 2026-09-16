@@ -41,6 +41,7 @@
     "scripts/lib/install/install-release.mjs",
     "scripts/lib/install/skill-metadata.mjs",
     "scripts/lib/install/skills-export.mjs",
+    "scripts/lib/lessons/lessons-recall.mjs",
     "scripts/lib/lessons/lessons-verify.mjs",
     "scripts/lib/lessons/lessons.mjs",
     "scripts/lib/state/capsule-abi.mjs",
