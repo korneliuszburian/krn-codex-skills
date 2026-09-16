@@ -116,6 +116,7 @@ disagreement blocks the next transition until the owner records the resolution.
 | [`opencode-second-opinion`](skills/advisory/opencode-second-opinion/SKILL.md) | explicit only | bounded independent-model opinion on one explicit path, without diffs |
 | [`managing-codex-capabilities`](skills/meta/managing-codex-capabilities/SKILL.md) | model or user | global skill, plugin, MCP, and profile control |
 | [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
+| [`frontend-architecture`](skills/frontend/frontend-architecture/SKILL.md) | model or user | design intake to a frozen block × variant × ACF plan and facts file |
 
 The shared engineering and productivity flow is **composed from a clean
 checkout of the upstream [`mattpocock/skills`](https://github.com/mattpocock/skills)

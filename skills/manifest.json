@@ -127,6 +127,11 @@
       "name": "unslop",
       "path": "skills/meta/unslop",
       "implicit": false
+    },
+    {
+      "name": "frontend-architecture",
+      "path": "skills/frontend/frontend-architecture",
+      "implicit": true
     }
   ],
   "source_only_skills": [],

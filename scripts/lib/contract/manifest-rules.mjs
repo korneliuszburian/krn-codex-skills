@@ -4,7 +4,7 @@ import { isSafeRelativePath } from "../support/path-rules.mjs";
 
 const SKILL_NAME = /^[a-z0-9](?:-?[a-z0-9]){0,63}$/;
 
-const SKILL_PATH_GROUPS = ["engineering", "advisory", "meta"];
+const SKILL_PATH_GROUPS = ["engineering", "advisory", "meta", "frontend"];
 
 export function hookFileErrors(hookFiles, { isSafeRelativePath, inspectTarget }) {
   const errors = [];
