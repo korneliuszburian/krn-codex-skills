@@ -18,6 +18,7 @@
     "scripts/lib/catalog/catalog-desired.mjs",
     "scripts/lib/catalog/catalog-document.mjs",
     "scripts/lib/catalog/catalog-errors.mjs",
+    "scripts/lib/catalog/catalog-inventory-paths.mjs",
     "scripts/lib/catalog/catalog-inventory.mjs",
     "scripts/lib/catalog/catalog-path-safety.mjs",
     "scripts/lib/catalog/catalog-plan.mjs",
