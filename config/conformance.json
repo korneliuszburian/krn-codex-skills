@@ -533,6 +533,30 @@
           "signature"
         ]
       }
+    },
+    {
+      "id": "frontend-facts-flags-documented-value-drift",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "docs/design/tokens.md": "| Token | Value | Role |\n|---|---|---|\n| `--color-primary` | `#02394A` | brand |\n",
+            "src/design-tokens/colors.json": "{\n  \"color\": {\n    \"primary\": {\n      \"$type\": \"color\",\n      \"$value\": \"#8D49B0\"\n    }\n  }\n}\n"
+          }
+        }
+      ],
+      "run": [
+        "frontend",
+        "facts",
+        "--docs",
+        "docs/design"
+      ],
+      "expect": {
+        "exit": 1,
+        "stdoutIncludes": [
+          "--color-primary"
+        ]
+      }
     }
   ]
 }

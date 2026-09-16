@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { auditFacts } from "../../scripts/lib/frontend/facts.mjs";
 
-function makeProject({ docs = {}, css = {}, built = null } = {}) {
+function makeProject({ docs = {}, css = {}, built = null, tokenJson = {} } = {}) {
   const root = mkdtempSync(join(tmpdir(), "krn-facts-"));
   mkdirSync(join(root, "src", "css", "blocks"), { recursive: true });
   mkdirSync(join(root, "src", "css", "compositions"), { recursive: true });
@@ -18,6 +18,10 @@ function makeProject({ docs = {}, css = {}, built = null } = {}) {
   if (built !== null) {
     mkdirSync(join(root, "assets", "dist"), { recursive: true });
     writeFileSync(join(root, "assets", "dist", "main.css"), built);
+  }
+  for (const [name, document] of Object.entries(tokenJson)) {
+    mkdirSync(join(root, "src", "design-tokens"), { recursive: true });
+    writeFileSync(join(root, "src", "design-tokens", name), JSON.stringify(document, null, 2));
   }
   mkdirSync(join(root, "docs", "design"), { recursive: true });
   for (const [name, text] of Object.entries(docs)) {
@@ -140,9 +144,46 @@ test("auditFacts resolves documented tokens against the shipped layer", () => {
 
 test("auditFacts reports an unbuilt project as a soft finding, not a hard one", () => {
   const tokens = ["| Token | Value |", "|---|---|", "| `--color-primary` | `#02394A` |", ""].join("\n");
-  const root = makeProject({ docs: { "tokens.md": tokens }, css: {} });
+  const root = makeProject({
+    docs: { "tokens.md": tokens },
+    css: {},
+    tokenJson: { "colors.json": { color: { primary: { $value: "#02394A" } } } },
+  });
   const report = auditFacts({ root });
-  assert.equal(report.hard, 0);
+  assert.equal(report.hard, 0, JSON.stringify(report.findings));
   assert.deepEqual(report.findings.map((finding) => finding.severity), ["soft"]);
   rmSync(root, { recursive: true, force: true });
+});
+
+test("auditFacts compares documented values with the token source", () => {
+  const tokens = [
+    "| Token | Value | Role |",
+    "|---|---|---|",
+    "| `--color-primary` | `#02394A` | brand |",
+    "| `--font-base` | Atkinson Hyperlegible, Segoe UI, sans-serif | body |",
+    "",
+  ].join("\n");
+  const clean = makeProject({
+    docs: { "tokens.md": tokens },
+    tokenJson: {
+      "colors.json": { color: { primary: { $value: "#02394A" } } },
+      "fonts.json": { font: { base: { $value: ["Atkinson Hyperlegible", "Segoe UI", "sans-serif"] } } },
+    },
+  });
+  assert.equal(auditFacts({ root: clean }).hard, 0, JSON.stringify(auditFacts({ root: clean }).findings));
+  rmSync(clean, { recursive: true, force: true });
+
+  const drifted = makeProject({
+    docs: { "tokens.md": tokens },
+    tokenJson: {
+      "colors.json": { color: { primary: { $value: "#8D49B0" } } },
+      "fonts.json": { font: { base: { $value: ["DM Sans", "Segoe UI", "sans-serif"] } } },
+    },
+  });
+  const report = auditFacts({ root: drifted });
+  const mismatches = report.findings.filter((finding) => finding.severity === "hard" && finding.rule === "facts-tokens");
+  assert.equal(mismatches.length, 2, JSON.stringify(report.findings));
+  assert.ok(mismatches.some((finding) => /--color-primary/.test(finding.detail)), JSON.stringify(report.findings));
+  assert.ok(mismatches.some((finding) => /--font-base/.test(finding.detail)), JSON.stringify(report.findings));
+  rmSync(drifted, { recursive: true, force: true });
 });

@@ -61,27 +61,40 @@ const cell = (header, row, needle) => {
 const backticked = (text) => [...text.matchAll(/`([^`]+)`/g)].map((match) => match[1]);
 const dataAttributes = (text) => [...new Set([...text.matchAll(/\b(data-[a-z][\w-]*)/g)].map((match) => match[1]))];
 
-function cssNames(root) {
-  const names = new Set();
+function cssDefinitions(root, extra = "") {
+  const values = new Map();
+  const collect = (text) => {
+    for (const match of text.matchAll(/(--[a-z][\w-]*)\s*:\s*([^;}]+)/g)) {
+      if (!values.has(match[1])) values.set(match[1], match[2].trim());
+    }
+  };
   const walk = (dir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith(".css")) {
-        for (const match of readText(full).matchAll(/(--[a-z][\w-]*)\s*:/g)) names.add(match[1]);
-      }
+      else if (entry.name.endsWith(".css")) collect(readText(full));
     }
   };
   try {
     walk(path.join(root, "src", "css"));
-  } catch {
-    return names;
-  }
-  return names;
+  } catch {}
+  collect(extra);
+  return values;
 }
 
-function tokenJsonNames(root) {
-  const names = new Set();
+function normalizeValue(value) {
+  const text = String(value).trim();
+  if (/^#[0-9a-f]{3,8}$/i.test(text)) return text.toLowerCase();
+  return text
+    .toLowerCase()
+    .split(",")
+    .map((part) => part.trim().replace(/^['"]|['"]$/g, ""))
+    .filter(Boolean)
+    .join(", ");
+}
+
+function tokenSources(root, built) {
+  const values = new Map();
   const dir = path.join(root, "src", "design-tokens");
   for (const file of listDir(dir, (name) => name.endsWith(".json"))) {
     let document;
@@ -92,7 +105,10 @@ function tokenJsonNames(root) {
     }
     const walk = (value, trail) => {
       if (value === null || typeof value !== "object") return;
-      if ("$value" in value) names.add(`--${trail.join("-")}`);
+      if ("$value" in value) {
+        const raw = value.$value;
+        values.set(`--${trail.join("-")}`, Array.isArray(raw) ? raw.join(", ") : String(raw));
+      }
       for (const [key, child] of Object.entries(value)) {
         if (key.startsWith("$")) continue;
         walk(child, [...trail, key]);
@@ -100,7 +116,10 @@ function tokenJsonNames(root) {
     };
     walk(document, []);
   }
-  return names;
+  for (const [name, value] of cssDefinitions(root, built)) {
+    if (!values.has(name)) values.set(name, value);
+  }
+  return values;
 }
 
 export function auditFacts({ root, docs = null } = {}) {
@@ -162,16 +181,23 @@ export function auditFacts({ root, docs = null } = {}) {
   if (tokens) {
     const builtFiles = listDir(path.join(root, "assets", "dist"), (name) => name.endsWith(".css"));
     if (builtFiles.length === 0) {
-      push("facts-tokens", "tokens are documented but the project has no built CSS to verify them against (run the project build)", "soft");
-    } else {
+      push("facts-tokens", "tokens are documented but the project has no built CSS to verify generated tokens against (run the project build)", "soft");
+    }
+    {
       const built = builtFiles.map((name) => readText(path.join(root, "assets", "dist", name))).join("\n");
-      const known = new Set([...tokenJsonNames(root), ...cssNames(root)]);
-      const builtNames = new Set([...built.matchAll(/(--[a-z][\w-]*)\s*:/g)].map((match) => match[1]));
+      const sources = tokenSources(root, built);
       for (const row of tokens.rows) {
+        const token = backticked(cell(tokens.header, row, "token"))[0];
+        const documented = cell(tokens.header, row, "value").replace(/`/g, "").trim();
         for (const match of row.join(" | ").matchAll(/(--[a-z][\w-]*)/g)) {
-          const token = match[1];
-          if (known.has(token) || builtNames.has(token)) continue;
-          push("facts-tokens", `tokens.md documents \`${token}\`, which no shipped layer defines`);
+          if (!sources.has(match[1])) push("facts-tokens", `tokens.md documents \`${match[1]}\`, which no shipped layer defines`);
+        }
+        if (!token || !documented || !sources.has(token)) continue;
+        const comparable = /^#[0-9a-f]{3,8}$/i.test(documented) || token.startsWith("--font-");
+        if (!comparable) continue;
+        if (/\{[^}]+\}/.test(String(sources.get(token)))) continue;
+        if (normalizeValue(documented) !== normalizeValue(sources.get(token))) {
+          push("facts-tokens", `tokens.md documents \`${token}\` as ${documented}, but the token source says ${sources.get(token)}`);
         }
       }
     }
