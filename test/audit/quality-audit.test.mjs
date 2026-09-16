@@ -386,6 +386,20 @@ test("a module reachable only from tests is reported separately from the hard ru
   );
 });
 
+test("a module reached only through a test dynamic import has no production consumer", () => {
+  withRepo(
+    {
+      "scripts/lib/dyn.mjs": "export function d() { return 1; }\n",
+      "test/dyn.test.mjs": 'export const x = (await import("../scripts/lib/dyn.mjs")).d;\n',
+    },
+    (root) => {
+      const { errors, info } = auditRepository(root);
+      assert.ok(!errors.some((message) => message.includes("dyn.mjs: lib file is never imported")), JSON.stringify(errors));
+      assert.ok(info.some((message) => message.includes("dyn.mjs: no production consumer")), JSON.stringify(info));
+    },
+  );
+});
+
 test("the audit catches a cross-file call hidden by an aliased import", () => {
   withRepo(
     {
