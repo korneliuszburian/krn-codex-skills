@@ -105,6 +105,17 @@ requires a token. Browser evidence is the per-block acceptance check. The stage 
 the project-level rules the general lint does not: no section height, no
 appearance `min-height`/`min-block-size`, one library implementation per job.
 
+Browser evidence is the stage's only non-code gate, and it is a **measurement,
+not an opinion**: `krn-codex frontend verify --config <file>` records a
+tamper-evident manifest (sha256 per artifact and per build file) with
+deterministic measurements — horizontal overflow, computed height floors,
+tap-target sizes, contrast offenders, grid track counts — and `--gate` re-hashes
+everything, enforces the declared `expectations`, and fails closed until a human
+signs the manifest (`--approve --by <name> --note <why>`). A model may run the
+capture; it may never certify the result, and no row reaches `verified` without
+the signature. That is the deliberate answer to browser-QA agents that report
+success without evidence: the harness measures, the human decides.
+
 ## Anti-patterns to reject on sight
 
 A block owning its layout (`.card { margin; width }`); breakpoint-locked type; magic

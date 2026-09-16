@@ -505,6 +505,34 @@
           "facts-sections"
         ]
       }
+    },
+    {
+      "id": "frontend-verify-requires-a-human-signature",
+      "rootArg": null,
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "config.json": "{\n  \"workspaceRoot\": \".\",\n  \"outputDir\": \"artifacts\",\n  \"url\": \"http://localhost/\",\n  \"allowedOrigins\": [\n    \"http://localhost\"\n  ],\n  \"viewport\": {\n    \"width\": 1280,\n    \"height\": 900\n  },\n  \"evidence\": {\n    \"required\": [\n      \"screenshot\"\n    ]\n  },\n  \"actions\": [],\n  \"runtimeEval\": \"1\"\n}\n",
+            "artifacts/manifest.json": "{\n  \"schema\": \"krn.frontend.browser-evidence.v1\",\n  \"provider\": \"playwright-cli\",\n  \"session\": \"conf-1\",\n  \"target\": \"http://localhost/\",\n  \"targetOrigin\": \"http://localhost\",\n  \"viewport\": {\n    \"width\": 1280,\n    \"height\": 900\n  },\n  \"evidence\": {\n    \"required\": [\n      \"screenshot\"\n    ]\n  },\n  \"measurements\": {\n    \"overflowX\": 0\n  },\n  \"interactions\": [],\n  \"artifacts\": [\n    {\n      \"path\": \"open.txt\",\n      \"bytes\": 2,\n      \"sha256\": \"2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df\"\n    }\n  ]\n}\n",
+            "artifacts/open.txt": "ok",
+            "artifacts/cleanup.json": "{\"browsers\": []}\n"
+          }
+        }
+      ],
+      "run": [
+        "frontend",
+        "verify",
+        "--config",
+        "config.json",
+        "--gate"
+      ],
+      "expect": {
+        "exit": 1,
+        "stdoutIncludes": [
+          "signature"
+        ]
+      }
     }
   ]
 }

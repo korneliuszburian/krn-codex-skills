@@ -41,9 +41,11 @@ A section is done only when all of these hold; report each one as evidence:
 3. Policy: `npm run frontend:audit` clean, or each `--accept <rule>:<file>`
    carries a recorded reason in `docs/design/enforcement.md`.
 4. Gates: `npm run lint:css` clean and `npm run build` green.
-5. Evidence: browser evidence at both viewports, or an explicit bound naming why
-   it could not be captured (missing tooling, no container) — never silently
-   skipped.
+5. Evidence: `npm run frontend:verify` captures the measurement manifest
+   (screenshots, overflow, height floors, tap targets, contrast) and the gate
+   passes with a **human signature** (`--approve --by <name> --note <why>`); a
+   model never signs. Without a signature the row stays `built` and the bound is
+   recorded in the project's enforcement doc — never silently skipped.
 6. Reachability: the layout is registered in `inc/flexible-content-layouts.php`
    and in the ACF group, so the section can actually appear on the page.
 7. Status: the registry row moves `built` → `verified`; a `verified` block is

@@ -46,6 +46,7 @@ CI; keep review rules for invariants.
 - NEVER unscoped `/* stylelint-disable */`.
 
 ### CI beyond lint
+- IF the project can render THEN the browser lane is a **measurement**, not an agent's opinion: `krn-codex frontend verify --config <file>` records a tamper-evident manifest (screenshot, DOM snapshot, console, requests, cleanup, and the deterministic measurements: horizontal overflow, computed height floors, tap-target sizes, contrast offenders), and `--gate` re-hashes every artifact, enforces the declared `expectations`, and requires a **human signature** (`--approve --by <name> --note <why>`). NEVER let a model certify a visual result; a model measures, a human signs.
 - IF a PR touches CSS/components THEN require the visual-regression check to pass before merge (PR status check, non-zero exit on unreviewed diffs).
 - IF a component ships THEN it has written accessibility acceptance criteria + automated a11y tests + manual checks for what automation misses.
 - NEVER treat a11y as a site-wide audit-only concern.
