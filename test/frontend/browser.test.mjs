@@ -82,4 +82,5 @@ test("the measurement preset records structure, targets, floors, and contrast", 
   }
   const extra = measurementEval("out.custom = 1;");
   assert.ok(extra.includes("out.custom = 1;"));
+  assert.ok(extra.includes("return out;"), "the extra snippet must be able to extend the same result object");
 });

@@ -74,7 +74,8 @@ const MEASUREMENTS = `(() => {
 })()`;
 
 export function measurementEval(extra) {
-  return extra && extra.trim() ? `${MEASUREMENTS}\n;${extra}` : MEASUREMENTS;
+  if (!extra || !extra.trim()) return MEASUREMENTS;
+  return `(() => { const out = ${MEASUREMENTS}; ${extra}\nreturn out; })()`;
 }
 
 const sha256 = (buffer) => createHash("sha256").update(buffer).digest("hex");
