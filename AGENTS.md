@@ -35,6 +35,9 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
    index through `$managing-codex-capabilities` under its authority.
 5. Never vendor private source material, raw corpora, or copied passages.
 6. Reusable contracts never carry a physical checkout or mount prefix.
+7. A merge commit that resolves a harness-surface conflict is itself a surface
+   commit: it carries a `Change-contract: <unchanged check>:green->green`
+   trailer, and the integrator runs the full gate on the merged fixed point.
 
 ## Local gates
 
