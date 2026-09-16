@@ -1,20 +1,18 @@
 import fs from "node:fs";
-import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords } from "../support/git-cli.mjs";
-import { tapName } from "../support/tap.mjs";
 import os from "node:os";
 import path from "node:path";
-import { posixRelative } from "../support/path-rules.mjs";
-import { spawnSync } from "node:child_process";
 
-import { runGit } from "../support/git-cli.mjs";
+import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords } from "../support/git-cli.mjs";
 import { readJson } from "../support/read-json.mjs";
 import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings } from "../lessons/lessons.mjs";
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
 import { churnHot } from "../support/churn.mjs";
+import { runGit } from "../support/git-cli.mjs";
 import {
-  TEST_FILE_RE, CODE_EXT, SETUP_FLAGS, unquote, shellTokens,
-  testFlagPresent, explicitTestOperands, normalizeRel,
-} from "./command-analysis.mjs";
+  changedFilesUnder, checkFileRedefined, frozenNodeArgs, frozenRedOk, frozenTestsFor,
+  isTestFile, listTestFiles, listTestFilesIn, normalizeRef, outputTail, resolveCheck, runCheck,
+  scriptChangedFiles, scriptCommand, scriptRedefinition, tapSummary,
+} from "./change-contract-runs.mjs";
 
 const SURFACE = [
   /^scripts\//,
@@ -28,7 +26,6 @@ const SURFACE = [
   /^docs\/research\/workflow-lessons\.md$/,
   /^\.github\/workflows\//,
 ];
-const DENY = new Set(["changes:check"]);
 const CONTRACT = /^(?:Change-contract|Prediction):\s*(.+?)\s*$/i;
 const CONTRACT_PART = /^(.+?):\s*(red|green)\s*->\s*(red|green)\s*$/i;
 const APPLICABILITY_CHANGE = /^Applicability-change:\s*(.+?)\s*$/i;
@@ -74,207 +71,6 @@ export function parseChangeContract(message) {
   return { contracts, atRisk };
 }
 
-function resolveCheck(root, scripts, ref) {
-  const name = ref.startsWith("npm run ") ? ref.slice("npm run ".length).trim() : ref;
-  if (DENY.has(ref) || DENY.has(name)) return null;
-  if (Object.hasOwn(scripts, name) && typeof scripts[name] === "string") return { kind: "script", name };
-  const rel = normalizeRef(name);
-  if (/^(test|scripts)\/.+\.mjs$/.test(rel) && !rel.includes("..")) {
-    let real;
-    try {
-      real = posixRelative(fs.realpathSync(root), fs.realpathSync(path.resolve(root, rel)));
-    } catch {
-      return null;
-    }
-    if (real === rel && fs.statSync(path.resolve(root, rel), { throwIfNoEntry: false })?.isFile()) {
-      return { kind: rel.startsWith("test/") ? "test" : "node", name: rel };
-    }
-  }
-  return null;
-}
-
-function runCheck({ root, target, frozenTests = null, frozenArgs = [] }) {
-  const env = { ...process.env, KRN_CHANGE_CONTRACT: "0" };
-  delete env.NODE_TEST_CONTEXT;
-  const result = target.kind === "script" && frozenTests?.length
-    ? spawnSync(process.execPath, ["--test", "--test-reporter=tap", ...frozenArgs, ...frozenTests], { cwd: root, timeout: 600000, encoding: "utf8", env })
-    : target.kind === "script"
-      ? spawnSync("npm", ["run", target.name], { cwd: root, timeout: 600000, encoding: "utf8", env })
-      : spawnSync(process.execPath, target.kind === "test" ? ["--test", "--test-reporter=tap", target.name] : [target.name], { cwd: root, timeout: 600000, encoding: "utf8", env });
-  const spawnFailed = result.error !== undefined && result.error !== null || result.status === null;
-  return { ok: result.status === 0, status: result.status, spawnFailed, output: `${result.stdout ?? ""}${result.stderr ?? ""}` };
-}
-
-function checkFileRedefined(root, base, git, rel) {
-  const before = git(root, ["rev-parse", `${base}:${rel}`]);
-  const now = git(root, ["hash-object", rel]);
-  return before.ok && (!now.ok || before.out.trim() !== now.out.trim());
-}
-
-const isTestFile = (rel) => TEST_FILE_RE.test(rel);
-const normalizeRef = (ref) => {
-  const value = String(ref ?? "").trim();
-  return (value.startsWith("npm run ") ? value.slice("npm run ".length).trim() : value).replace(/^\.\//, "");
-};
-
-export function frozenNodeArgs(command) {
-  const tokens = shellTokens(String(command ?? ""));
-  const args = [];
-  for (let index = 0; index < tokens.length; index += 1) {
-    const token = tokens[index];
-    if (SETUP_FLAGS.has(token) && index + 1 < tokens.length) {
-      args.push(token, unquote(tokens[index + 1]));
-      index += 1;
-      continue;
-    }
-    const attached = /^(--import|--require|--loader|--experimental-loader)=(.*)$/.exec(token);
-    if (attached) args.push(`${attached[1]}=${unquote(attached[2])}`);
-  }
-  return args;
-}
-
-function literalCommandFiles(command) {
-  const files = [];
-  const safe = command.replace(/\\[ \t]/g, "\u0000");
-  const clean = (value) => normalizeRel(value.replace(/\u0000/g, " ").replace(/\\(["'])/g, "$1").replace(/\\/g, "/"));
-  const quoted = new RegExp(`"((?:\\\\.|[^"\\\\])+\\.(?:${CODE_EXT}))"|'((?:\\\\.|[^'\\\\])+\\.(?:${CODE_EXT}))'`, "g");
-  for (const match of safe.matchAll(quoted)) files.push(clean(match[1] ?? match[2]));
-  const prefix = "(?:[A-Za-z_][A-Za-z0-9_]*=|--?[^\\s=]+=)?";
-  const bare = new RegExp(`(?:^|\\s)${prefix}([^\\s]+\\.(?:${CODE_EXT}))(?=$|\\s)`, "g");
-  for (const match of safe.matchAll(bare)) files.push(clean(match[1]));
-  return files;
-}
-
-function changedFilesUnder(root, base, git, prefix) {
-  const result = git(root, ["-c", "core.quotePath=false", "diff", "-z", "--name-only", "--diff-filter=ACMR", base, "--", prefix]);
-  if (!result.ok) return [];
-  return result.out.split("\0").filter(Boolean);
-}
-
-function listTestFiles(root, base, git) {
-  const names = new Set();
-  for (const ref of [base, "HEAD"]) {
-    const result = git(root, ["ls-tree", "-r", "-z", "--name-only", ref]);
-    if (result.ok) {
-      for (const name of result.out.split("\0")) {
-        if (name.trim()) names.add(name.trim());
-        if (name && name !== name.trim()) names.add(name);
-      }
-    }
-  }
-  return [...names].filter((name) => TEST_FILE_RE.test(name));
-}
-
-function shimCommand(root, command) {
-  const first = command.trim().split(/\s+/)[0];
-  if (!first || first === "node" || first.includes("/")) return false;
-  return fs.existsSync(path.join(root, "node_modules", ".bin", first));
-}
-
-function scriptNonLiteral(root, command) {
-  const first = command.trim().split(/\s+/)[0] ?? "";
-  return /[*?\[]/.test(command)
-    || /[$`|;&<>]/.test(command)
-    || (first.includes("/") && first !== "node")
-    || /(^|[\s/'"])(?:[^\s/]*\/)*(?:sh|bash|zsh|dash|ash|ksh|busybox)\b[^\n]*?\s-[a-z]*c[a-z]*(\s|$)/.test(command)
-    || /\b(?:npm|pnpm|yarn|bun)\s+(?:(?:-{1,2}\S+)(?:\s+\S+)?\s+)*(?:run|exec|test|start|dlx|x)\b/.test(command)
-    || /(^|\s)node(?:\s+-{1,2}\S+)*\s+--run(\s|$)/.test(command)
-    || /(^|\s)(?:bun|deno)\s+(?:test|bench)(\s|$)/.test(command)
-    || /(^|\s)(?:npx|bunx)(\s|$)/.test(command)
-    || shimCommand(root, command);
-}
-
-function collectCommandFiles(root, base, git, command) {
-  const files = literalCommandFiles(command);
-  const operands = explicitTestOperands(command);
-  if (testFlagPresent(command) && (operands.files.filter(isTestFile).length === 0 || operands.hasDirectory)) {
-    files.push(...listTestFiles(root, base, git));
-  }
-  return files;
-}
-
-function scriptRedefinition(root, base, git, command) {
-  if (scriptNonLiteral(root, command)) return "non-literal";
-  for (const rel of collectCommandFiles(root, base, git, command)) {
-    if (checkFileRedefined(root, base, git, rel)) return "redefined";
-  }
-  return "clean";
-}
-
-function scriptChangedFiles(root, base, git, command) {
-  return collectCommandFiles(root, base, git, command).filter((rel) => checkFileRedefined(root, base, git, rel));
-}
-
-function literalTestFiles(root, target) {
-  if (target.kind !== "script") return { tests: null, bare: false };
-  const command = scriptCommand(root, target);
-  if (typeof command !== "string" || scriptNonLiteral(root, command)) return { tests: null, bare: false };
-  const operands = explicitTestOperands(command);
-  if (operands.hasDirectory) return { tests: null, bare: false };
-  const tests = operands.files.filter(isTestFile);
-  return { tests: tests.length > 0 ? tests : null, bare: operands.files.length === 0 };
-}
-
-function frozenTestsFor(root, target, enumerate) {
-  if (target.kind !== "script") return null;
-  const command = scriptCommand(root, target);
-  if (!command || !testFlagPresent(command)) return null;
-  const { tests, bare } = literalTestFiles(root, target);
-  if (tests) return tests;
-  // Only a bare `node --test` invocation is the tree's test suite; a command that
-  // merely takes `--test` as an argument (e.g. `node scripts/check.mjs --test`)
-  // is a different program and must run through `npm run <script>`.
-  return bare ? enumerate() : null;
-}
-
-function scriptCommand(root, target) {
-  if (target.kind !== "script") return null;
-  try {
-    return readJson(path.join(root, "package.json")).scripts?.[target.name] ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function listTestFilesIn(dir) {
-  const found = [];
-  const walk = (rel) => {
-    for (const entry of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
-      const next = rel ? `${rel}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) walk(next);
-      else if (isTestFile(next)) found.push(next);
-    }
-  };
-  try {
-    walk("");
-  } catch {
-    return [];
-  }
-  return found.sort();
-}
-
-function tapSummary(output) {
-  const text = output ?? "";
-  const tests = Number((/^# tests (\d+)\s*$/m.exec(text)?.[1] ?? "0"));
-  const fail = Number((/^#\s*fail[^0-9]*(\d+)\s*$/m.exec(text)?.[1] ?? "0"));
-  const passing = [];
-  const failing = [];
-  for (const line of text.split("\n")) {
-    const t = tapName(line);
-    if (!t) continue;
-    if (t.pass) passing.push(t.name);
-    else if (!/\.(mjs|js|cjs|ts)$/.test(t.name)) failing.push(t.name);
-  }
-  const setup = /ERR_MODULE_NOT_FOUND|SyntaxError|Cannot find module|Could not find|MODULE_NOT_FOUND/.test(text);
-  return { tests, fail, passing, failing, setup };
-}
-
-function frozenRedOk(output) {
-  const summary = tapSummary(output);
-  return summary.tests >= 1 && summary.fail >= 1 && summary.failing.length >= 1 && !summary.setup;
-}
-
-
 export function runCheckAtBase({ root, base, target, git = runGit, overlay = null }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "krn-base-"));
   const added = git(root, ["worktree", "add", "--detach", dir, base]);
@@ -307,14 +103,6 @@ export function runCheckAtBase({ root, base, target, git = runGit, overlay = nul
     git(root, ["worktree", "prune"]);
     fs.rmSync(dir, { recursive: true, force: true });
   }
-}
-
-function outputTail(output) {
-  if (!output) return "";
-  const lines = output.trim().split("\n");
-  const failing = lines.filter((line) => /^not ok /.test(line)).slice(0, 3);
-  const tail = lines.slice(-4);
-  return `; output: ${[...new Set([...failing, ...tail])].join("\n")}`;
 }
 
 export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = false, requireCleanHead = false } = {}) {
@@ -585,3 +373,5 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   }
   return { root, commits: commits.map((commit) => commit.sha), results, errors, warnings };
 }
+
+export { frozenNodeArgs };
