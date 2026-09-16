@@ -90,9 +90,23 @@ cached) each, and the integrator merged both with zero conflicts and a green
 merged-fixed-point gate because the file sets were disjoint. A conflicting pair
 is unrun, so merge-repair remains unmeasured.
 
-Non-proofs: five tickets (three sequential plus two concurrent), one model
-family, one rep each, disjoint files, so no merge-repair, throughput-at-N,
-duplicate-work, or cost-per-success measurement; no sandbox escape test and no
+Conflict lane (2026-09-16, same runner): two tickets whose fixes touch the same
+line of `src/registry.mjs` were seeded on one base and run concurrently (46s and
+36s wall, `sentinel_leak=no`, `model_mismatch=no`; billed 69k–106k input tokens,
+58k–78k cached); both workers received the same two recalled lessons. One worker
+emitted the exact `Recall` and `At-risk` trailers and passed its gate; the other
+invented a `Lesson: ... Test: ...` format and failed strict recall as
+`unreconstructed-recall`, so the integrator repaired the trailer and re-gated
+clean (one repair). Both workers then turned out to have implemented both
+invariants, so the merge conflict was stylistic: one conflict on the shared
+file, resolved by taking either equivalent form, and the merged tree passes all
+seven checks with a green range gate. Repairs: one trailer repair and one
+conflict resolution.
+
+Non-proofs: seven tickets (three sequential, two concurrent disjoint, two
+concurrent conflicting), one model family, one rep each, one stylistic conflict,
+so structured merge-repair and throughput-at-N remain barely exercised; no
+duplicate-work or cost-per-success measurement; no sandbox escape test and no
 hostile-process claim; fixtures and runner stay outside the repository.
 
 ## LT-5 design additions (2026-09-13)
