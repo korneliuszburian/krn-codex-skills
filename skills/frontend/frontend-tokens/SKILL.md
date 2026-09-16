@@ -11,7 +11,7 @@ Tokens are the single source of truth for every design value. Components consume
 
 1. IF a token already exists for the value THEN use it. NEVER define a duplicate token for the same value.
 2. IF no token exists and the value is used by more than one component THEN add it to the token layer, not to the component.
-3. IF the canonical library exists THEN copy the token set VERBATIM from `.agents/skills/frontend-library/library/design-tokens/` (DTCG JSON + `tokens.resolver.json`) and `library/css/global/variables.css`. NEVER paraphrase or invent a parallel scheme.
+3. IF the canonical library exists THEN copy the token set VERBATIM from `skills/frontend/frontend-library/library/design-tokens/` (DTCG JSON + `tokens.resolver.json`) and `skills/frontend/frontend-library/library/css/global/variables.css`. NEVER paraphrase or invent a parallel scheme.
 4. Use the two-tier structure: the token layer (`--color-*`, `--size-step-*`, `--space-*`, `--text-size-*`) is what components consume; literal values (hex/px/rem) in components are banned. (Disposable prototypes are exempt — see frontend-process Phase 0.5.)
 
 ## Rules
