@@ -1,9 +1,10 @@
+import fs from "node:fs";
 import path from "node:path";
 import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords, runGit } from "../support/git-cli.mjs";
 import { escapeRegExp } from "../support/regexp.mjs";
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
 import { churnHot } from "../support/churn.mjs";
-import { parseLessons, recallLessons } from "./lessons.mjs";
+import { globToRegex, parseLessons, recallLessons, triggerEntries } from "./lessons.mjs";
 
 export function recallLines(text) {
   return [...text.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);
@@ -59,28 +60,50 @@ export function recallBindings({ hit, lines }) {
   return { falsifierFile, named: [...fileNames, ...scriptNames], reconstructed };
 }
 
+function declarationFiles(root, git, names) {
+  const listed = git(root, ["ls-files", "-z"]);
+  if (!listed.ok) return null;
+  const files = new Set();
+  for (const rel of listed.out.split("\0").filter(Boolean)) {
+    if (!/\.(?:mjs|js|cjs)$/.test(rel)) continue;
+    let text;
+    try { text = fs.readFileSync(path.join(root, rel), "utf8"); } catch { continue; }
+    for (const name of names) {
+      const declaration = new RegExp(`export\\s+(?:default\\s+)?(?:async\\s+)?(?:function\\*?|class|const|let|var)\\s+${escapeRegExp(name)}\\b`);
+      if (declaration.test(text)) { files.add(rel); break; }
+    }
+  }
+  return files;
+}
+
 export function recallUsage(root, git, rows) {
   const active = rows.filter((row) => !row.status && (row.trigger ?? "").trim());
-  const counts = new Map();
-  if (active.length === 0 || !git(root, ["rev-parse", "--git-dir"]).ok) return counts;
+  const usage = new Map();
+  if (active.length === 0 || !git(root, ["rev-parse", "--git-dir"]).ok) return usage;
   const log = git(root, ["log", GIT_LOG_FORMAT]);
-  if (!log.ok) return counts;
-  const churnEnabled = rows.some((row) => (row.trigger ?? "").includes("churn:"));
+  if (!log.ok) return usage;
+  const churnPatterns = active.flatMap((row) => triggerEntries(row.trigger, "churn:")).map(globToRegex);
+  const symbolNames = [...new Set(active.flatMap((row) => triggerEntries(row.trigger, "symbol:")))];
+  const symbolEnabled = symbolNames.length > 0;
+  const symbolCandidates = symbolEnabled ? declarationFiles(root, git, symbolNames) : null;
   const records = parseGitLogRecords(log.out).map((record) => ({ sha: record.sha, text: `${record.subject}\n${record.body}` }));
   for (const record of records) {
     const lines = recallLines(record.text);
-    if (lines.length === 0) continue;
     const files = commitChangedFiles(root, git, record.sha).files;
-    const symbolFiles = touchedSymbolFiles({ root, git, sha: record.sha });
+    const churnFiles = churnPatterns.length > 0 ? files.filter((file) => churnPatterns.some((pattern) => pattern.test(file))) : [];
+    const symbolFiles = symbolEnabled && (symbolCandidates === null || files.some((file) => symbolCandidates.has(file)))
+      ? touchedSymbolFiles({ root, git, sha: record.sha })
+      : new Map();
     const symbols = [...symbolFiles.keys()];
-    const hot = churnEnabled ? churnHot({ root, git, sha: record.sha, files }) : [];
-    for (const hit of recallLessons({ root, files, symbols, hot, symbolFiles })) {
-      if (recallBindings({ hit, lines }).reconstructed) {
-        counts.set(hit.lesson, (counts.get(hit.lesson) ?? 0) + 1);
-      }
+    const hot = churnFiles.length > 0 ? churnHot({ root, git, sha: record.sha, files: churnFiles }) : [];
+    for (const hit of recallLessons({ root, files, symbols, hot, symbolFiles, rows: active })) {
+      const counts = usage.get(hit.lesson) ?? { hits: 0, binds: 0 };
+      counts.hits += 1;
+      if (lines.length > 0 && recallBindings({ hit, lines }).reconstructed) counts.binds += 1;
+      usage.set(hit.lesson, counts);
     }
   }
-  return counts;
+  return usage;
 }
 
 export function lessonUsage({ root } = {}) {
@@ -89,6 +112,9 @@ export function lessonUsage({ root } = {}) {
   const triggered = rows.filter((row) => !row.status && (row.trigger ?? "").trim());
   if (!runGit(root, ["rev-parse", "--git-dir"]).ok) return { root, usage: [], neverRecalled: [], skipped: true };
   const counts = recallUsage(root, runGit, rows);
-  const usage = triggered.map((row) => ({ lesson: row.lesson, recalls: counts.get(row.lesson) ?? 0 }));
-  return { root, usage, neverRecalled: usage.filter((entry) => entry.recalls === 0).map((entry) => entry.lesson) };
+  const usage = triggered.map((row) => {
+    const entry = counts.get(row.lesson) ?? { hits: 0, binds: 0 };
+    return { lesson: row.lesson, hits: entry.hits, binds: entry.binds, recalls: entry.binds };
+  });
+  return { root, usage, neverRecalled: usage.filter((entry) => entry.binds === 0).map((entry) => entry.lesson) };
 }
