@@ -120,11 +120,23 @@ gate rejected as `unreconstructed-recall`; the runner now emits the exact
 `Recall` and `At-risk` lines per recalled lesson, after which the batch passed
 clean.
 
-Non-proofs: eleven tickets (three sequential, six concurrent in pairs and
-fours, one conflicting pair), one model family, one rep each, disjoint files
-except the single stylistic conflict, so structured merge-repair, duplicate
-work, and cost-per-success remain barely exercised; no sandbox escape test and
-no hostile-process claim; fixtures and runner stay outside the repository.
+Hook-injected continuation (2026-09-16, same runner, `HOOKS=1`): the runner
+seeds the installed `krn_memory.py` and a SessionStart/PreCompact `hooks.json`
+into the worker's fresh CODEX_HOME, forwards the ignored
+`.krn/runs/delivery-loop` state into the worktree (ignored run state does not
+cross into a worktree by default), and runs `codex exec` with
+`--dangerously-bypass-hook-trust`, which scripted exec requires before any hook
+fires. The worker rollout contains the injected capsule brief and the worker
+completed and gated ticket 12 unchanged (12/12 fixture checks, green range
+gate). Non-proofs: one ticket and family; this proves hook delivery into the
+worker session, not that the capsule text changed the outcome.
+
+Non-proofs: twelve tickets (three sequential, seven concurrent in pairs and
+fours, plus one hook-seeded single, and one conflicting pair), one model
+family, one rep each, disjoint files except the single stylistic conflict, so
+structured merge-repair, duplicate work, and cost-per-success remain barely
+exercised; no sandbox escape test and no hostile-process claim; fixtures and
+runner stay outside the repository.
 
 ## LT-5 design additions (2026-09-13)
 
