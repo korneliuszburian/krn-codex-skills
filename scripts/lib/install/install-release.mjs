@@ -287,4 +287,3 @@ function verifyInstalledCli(plan) {
     fail(`installed CLI smoke failed (exit ${result.status ?? "signal"}): ${detail}`, EXIT_CORRUPT);
   }
 }
-
