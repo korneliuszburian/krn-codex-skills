@@ -200,6 +200,13 @@ export function managedTargets(plan) {
   for (const hook of Array.isArray(plan.manifest.global_hook_files) ? plan.manifest.global_hook_files : []) {
     add(`hook__${hook.name}`, path.join(codexHome, "hooks"), hook.name, hook.path);
   }
+  if (plan.manifest.opencode_agents) {
+    const opencodeConfig = process.env.KRN_OPENCODE_DEST || path.join(os.homedir(), ".config", "opencode");
+    add("opencode__AGENTS.md", opencodeConfig, "AGENTS.md", plan.manifest.opencode_agents);
+    for (const plugin of Array.isArray(plan.manifest.opencode_plugins) ? plan.manifest.opencode_plugins : []) {
+      add(`opencode_plugin__${plugin.name}`, path.join(opencodeConfig, "plugins"), plugin.name, plugin.path);
+    }
+  }
   return targets;
 }
 
@@ -338,10 +345,13 @@ function linkResolvesInto(target, root) {
 }
 
 function orphanManagedLinks(plan) {
+  const opencodeDest = process.env.KRN_OPENCODE_DEST || path.join(os.homedir(), ".config", "opencode");
   const roots = [
     process.env.KRN_SKILLS_DEST || path.join(os.homedir(), ".agents", "skills"),
     process.env.KRN_BIN_DEST || path.join(os.homedir(), ".local", "bin"),
     path.join(path.dirname(plan.releaseRoot), "hooks"),
+    opencodeDest,
+    path.join(opencodeDest, "plugins"),
   ];
   const managed = new Set(managedTargets(plan).map((item) => item.target));
   const orphans = [];
@@ -697,10 +707,13 @@ export function pruneReleases({ codexHome = process.env.CODEX_HOME || path.join(
     .map((entry) => ({ name: entry.name, path: path.join(releasesDir, entry.name), mtime: fs.statSync(path.join(releasesDir, entry.name)).mtimeMs }))
     .sort((left, right) => right.mtime - left.mtime);
   const referenced = new Set();
+  const opencodeDest = process.env.KRN_OPENCODE_DEST || path.join(os.homedir(), ".config", "opencode");
   const linkRoots = [
     process.env.KRN_SKILLS_DEST || path.join(os.homedir(), ".agents", "skills"),
     process.env.KRN_BIN_DEST || path.join(os.homedir(), ".local", "bin"),
     path.join(codexHome, "hooks"),
+    opencodeDest,
+    path.join(opencodeDest, "plugins"),
   ];
   const noteLink = (target) => {
     const resolved = resolvedLink(target) ?? resolvedPath(target);

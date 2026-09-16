@@ -55,7 +55,7 @@ test("compile, check, and resume compose into one usable restart path", () => {
 
 test("doctor renders a human summary by default and JSON with --json", () => {
   const base = mkdtempSync(join(tmpdir(), "krn-doctor-"));
-  const env = { ...process.env, CODEX_HOME: join(base, "codex"), KRN_SKILLS_DEST: join(base, "skills"), KRN_BIN_DEST: join(base, "bin") };
+  const env = { ...process.env, CODEX_HOME: join(base, "codex"), KRN_SKILLS_DEST: join(base, "skills"), KRN_BIN_DEST: join(base, "bin"), KRN_OPENCODE_DEST: join(base, "opencode") };
   const text = spawnSync(process.execPath, [cli, "doctor"], { encoding: "utf8", env });
   assert.equal(text.status, 0, text.stderr);
   assert.match(text.stdout, /^filesystem: /);

@@ -8,6 +8,7 @@
   ],
   "runtime_paths": [
     "config/capability-profiles.json",
+    "config/opencode/plugins/krn.js",
     "config/upstream-sources.json",
     "scripts/catalog.mjs",
     "scripts/install.sh",
@@ -71,6 +72,13 @@
       "name": "krn_memory.py",
       "path": "scripts/hooks/krn_memory.py",
       "executable": false
+    }
+  ],
+  "opencode_agents": "config/AGENTS.md",
+  "opencode_plugins": [
+    {
+      "name": "krn.js",
+      "path": "config/opencode/plugins/krn.js"
     }
   ],
   "legacy_global_hook_paths": [

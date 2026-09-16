@@ -32,6 +32,7 @@ function environment(root, extra = {}) {
     CODEX_HOME: path.join(root, "codex"),
     KRN_SKILLS_DEST: path.join(root, "skills"),
     KRN_BIN_DEST: path.join(root, "bin"),
+    KRN_OPENCODE_DEST: path.join(root, "opencode"),
     ...extra,
   };
 }
