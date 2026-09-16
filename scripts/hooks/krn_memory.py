@@ -3,9 +3,12 @@
 
 SessionStart: a fresh session gets the continuing outcome capsule's brief as
 `additionalContext`, so it resumes the bounded action without being told to read
-the file. PreCompact: the host is about to summarize history, so the hook also
-writes a `boundary.md` next to each continuing capsule, materializing the memory
-layer on disk. It never blocks a session: any error exits 0.
+the file. When no capsule continues, SessionStart may emit one advisory
+onboarding line for a work tree that carries agent instructions without the KRN
+managed contract. PreCompact: the host is about to summarize history, so the
+hook also writes a `boundary.md` next to each continuing capsule, materializing
+the memory layer on disk. It never blocks a session, never adopts anything, and
+never signals on PreCompact: any error exits 0.
 """
 
 from __future__ import annotations
@@ -17,6 +20,54 @@ from pathlib import Path
 import sys
 
 CONTINUING_STATES = {"ACTIVE", "BLOCKED", "DEFERRED", "NEEDS_REVIEW"}
+
+MANAGED_START = "<!-- krn-agent-workflow:start -->"
+INSTRUCTION_FILES = ("AGENTS.md", "CLAUDE.md")
+ONBOARDING_SIGNAL = (
+    "KRN onboarding: this work tree carries agent instructions without the KRN "
+    "managed contract. Run `krn-codex repo inspect --root .` for a read-only "
+    "report; adoption stays explicit-only."
+)
+
+
+def worktree_root(cwd: Path) -> Path | None:
+    """Return the work-tree root for cwd, or None outside a repository."""
+    current = cwd
+    while True:
+        marker = current / ".git"
+        try:
+            if marker.is_dir() or marker.is_file():
+                return current
+        except OSError:
+            return None
+        parent = current.parent
+        if parent == current:
+            return None
+        current = parent
+
+
+def adoption_signal(cwd: Path) -> str | None:
+    """One advisory line when a work tree has instructions but no managed block.
+
+    Precision over coverage: a plain directory, a work tree without an
+    instruction file, or an adopted repository returns None, and the signal only
+    names the read-only report; it never adopts anything.
+    """
+    root = worktree_root(cwd)
+    if root is None:
+        return None
+    for name in INSTRUCTION_FILES:
+        candidate = root / name
+        try:
+            if not candidate.is_file():
+                continue
+            text = candidate.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        if MANAGED_START in text:
+            return None
+        return ONBOARDING_SIGNAL
+    return None
 
 
 def field(text: str, label: str) -> str | None:
@@ -116,6 +167,14 @@ def main() -> int:
             )
 
         if not notes:
+            signal = adoption_signal(cwd) if event == "SessionStart" else None
+            if signal:
+                print(json.dumps({
+                    "hookSpecificOutput": {
+                        "hookEventName": event,
+                        "additionalContext": signal,
+                    }
+                }))
             return 0
 
         context = (

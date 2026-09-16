@@ -100,3 +100,21 @@ test("setup refuses a foreign managed-file collision", () => {
     assert.match(result.output, /unowned managed file collision/);
   });
 });
+
+test("inspect reports the managed contract before and after apply", () => {
+  withRoot("# Repo\n", (root) => {
+    const before = run(root, ["inspect"]);
+    assert.equal(before.status, 0, before.output);
+    assert.match(before.output, /"managedContract": false/);
+    assert.equal(apply(root).status, 0);
+    const after = run(root, ["inspect"]);
+    assert.equal(after.status, 0, after.output);
+    assert.match(after.output, /"managedContract": true/);
+  });
+  withRoot(undefined, (root) => {
+    const report = run(root, ["inspect"]);
+    assert.equal(report.status, 0, report.output);
+    assert.match(report.output, /"instruction": "missing"/);
+    assert.match(report.output, /"managedContract": false/);
+  });
+});
