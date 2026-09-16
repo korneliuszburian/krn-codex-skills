@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Global Codex PreCompact hook: persist the memory layer at the boundary.
 
-Codex fires PreCompact just before it summarizes history. This hook reads the
-durable outcome capsule under the session cwd and injects its continuation
-fields as additional context, so the compacted conversation keeps the bounded
-next action and blockers instead of losing them. It is best-effort and never
-blocks the session: any error exits 0 without output.
+Codex fires PreCompact just before it summarizes history. This hook (a) writes a
+small `boundary.md` next to each continuing outcome capsule, so the memory layer
+is materialized on disk at the host boundary regardless of whether the summary
+keeps it, and (b) emits the same continuation brief as `additionalContext` on a
+best-effort basis. It never blocks the session: any error exits 0.
 """
 
 from __future__ import annotations
 
+import datetime
 import json
 import os
 from pathlib import Path
@@ -58,6 +59,27 @@ def bounded(path: Path, cwd: Path) -> bool:
     return real == root or str(real).startswith(f"{root}{os.sep}")
 
 
+def write_boundary(state: Path, outcome: str, acceptance: str, next_action: str, blockers: str) -> None:
+    """Materialize the continuation brief on disk at the boundary."""
+    try:
+        stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        (state.parent / "boundary.md").write_text(
+            "\n".join([
+                "# Boundary (auto, written by the PreCompact hook)",
+                f"compacted_at: {stamp}",
+                f"capsule: {state.name}",
+                f"outcome: {outcome}",
+                f"acceptance: {acceptance}",
+                f"next bounded action: {next_action}",
+                f"blockers: {blockers}",
+                "",
+            ]),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
 def main() -> int:
     try:
         raw = sys.stdin.read()
@@ -83,6 +105,7 @@ def main() -> int:
             next_action = field(text, "Next bounded owner and action") or "unspecified"
             blockers = field(text, "Open unknowns and blockers with owners") or "none"
             acceptance = field(text, "Outcome and observable acceptance") or "unspecified"
+            write_boundary(state, outcome, acceptance, next_action, blockers)
             notes.append(
                 f"Capsule {state.relative_to(cwd)} [{outcome}]\n"
                 f"  acceptance: {acceptance}\n"

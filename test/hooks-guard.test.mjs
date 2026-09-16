@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -124,9 +124,12 @@ test("PreCompact injects a continuing capsule and ignores a completed one", () =
     const context = precompactContext(dir);
     assert.match(context, /update src\/b\.mjs and run npm test/);
     assert.match(context, /out-1/);
+    const boundary = readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-1", "boundary.md"), "utf8");
+    assert.match(boundary, /next bounded action: update src\/b\.mjs and run npm test/);
     make("out-2", "COMPLETE", "do not continue this");
     const after = precompactContext(dir);
     assert.doesNotMatch(after, /do not continue this/);
+    assert.throws(() => readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-2", "boundary.md")), "a completed capsule gets no boundary file");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
