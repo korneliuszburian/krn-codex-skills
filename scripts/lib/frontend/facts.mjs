@@ -122,11 +122,48 @@ function tokenSources(root, built) {
   return values;
 }
 
+function fontFileFindings(root) {
+  const findings = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!entry.name.endsWith(".css")) continue;
+      const css = readText(full);
+      const relativeFile = path.relative(root, full).split(path.sep).join("/");
+      for (const block of css.matchAll(/@font-face\s*\{([^}]*)\}/g)) {
+        for (const url of block[1].matchAll(/url\(\s*['"]?([^'")]+)['"]?\s*\)/g)) {
+          const target = url[1].trim();
+          if (/^(data:|https?:|\/\/)/.test(target)) continue;
+          const resolved = path.resolve(path.dirname(full), target);
+          if (!fs.existsSync(resolved)) {
+            findings.push({
+              rule: "facts-fonts",
+              severity: "hard",
+              detail: `${relativeFile} loads ${target}, which does not exist in the repository`,
+            });
+          }
+        }
+      }
+    }
+  };
+  try {
+    walk(path.join(root, "src", "css"));
+  } catch {
+    return findings;
+  }
+  return findings;
+}
+
 export function auditFacts({ root, docs = null } = {}) {
   const docsDir = docs ?? path.join(root, "docs", "design");
   const findings = [];
   const push = (rule, detail, severity = "hard") => findings.push({ rule, severity, detail });
 
+  findings.push(...fontFileFindings(root));
   const blockFiles = listDir(path.join(root, "src", "css", "blocks"), (name) => name.endsWith(".css")).map((name) => name.slice(0, -4));
   const blockSlugs = new Set(blockFiles);
   const compositionSlugs = new Set(listDir(path.join(root, "src", "css", "compositions"), (name) => name.endsWith(".css")).map((name) => name.slice(0, -4)));

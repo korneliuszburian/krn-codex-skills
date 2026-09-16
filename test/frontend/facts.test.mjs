@@ -11,9 +11,10 @@ function makeProject({ docs = {}, css = {}, built = null, tokenJson = {} } = {})
   mkdirSync(join(root, "src", "css", "blocks"), { recursive: true });
   mkdirSync(join(root, "src", "css", "compositions"), { recursive: true });
   for (const [name, text] of Object.entries(css)) {
-    const inCompositions = name.startsWith("compositions/");
-    const file = name.replace("compositions/", "");
-    writeFileSync(join(root, "src", "css", inCompositions ? "compositions" : "blocks", file), text);
+    const bucket = name.startsWith("compositions/") ? "compositions" : name.startsWith("global/") ? "global" : "blocks";
+    const file = name.replace("compositions/", "").replace("global/", "");
+    mkdirSync(join(root, "src", "css", bucket), { recursive: true });
+    writeFileSync(join(root, "src", "css", bucket, file), text);
   }
   if (built !== null) {
     mkdirSync(join(root, "assets", "dist"), { recursive: true });
@@ -186,4 +187,20 @@ test("auditFacts compares documented values with the token source", () => {
   assert.ok(mismatches.some((finding) => /--color-primary/.test(finding.detail)), JSON.stringify(report.findings));
   assert.ok(mismatches.some((finding) => /--font-base/.test(finding.detail)), JSON.stringify(report.findings));
   rmSync(drifted, { recursive: true, force: true });
+});
+
+test("auditFacts requires every @font-face file to exist", () => {
+  const fonts = "global/fonts.css";
+  const block = "@font-face { font-family: 'Bloom'; src: url('../../fonts/bloom/Bloom-Regular.woff2') format('woff2'); }\n";
+  const missing = makeProject({ docs: {}, css: { [fonts]: block } });
+  const report = auditFacts({ root: missing });
+  assert.deepEqual(report.findings.filter((finding) => finding.rule === "facts-fonts").map((finding) => finding.rule), ["facts-fonts"]);
+  assert.match(report.findings[0].detail, /Bloom-Regular\.woff2/, report.findings[0].detail);
+  rmSync(missing, { recursive: true, force: true });
+
+  const present = makeProject({ docs: {}, css: { [fonts]: block } });
+  mkdirSync(join(present, "src", "fonts", "bloom"), { recursive: true });
+  writeFileSync(join(present, "src", "fonts", "bloom", "Bloom-Regular.woff2"), "font");
+  assert.equal(auditFacts({ root: present }).hard, 0);
+  rmSync(present, { recursive: true, force: true });
 });

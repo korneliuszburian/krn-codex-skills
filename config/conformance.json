@@ -557,6 +557,29 @@
           "--color-primary"
         ]
       }
+    },
+    {
+      "id": "frontend-facts-requires-font-files",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "src/css/global/fonts.css": "@font-face { font-family: 'Bloom'; src: url('../../fonts/bloom/Bloom-Regular.woff2') format('woff2'); }\n"
+          }
+        }
+      ],
+      "run": [
+        "frontend",
+        "facts",
+        "--docs",
+        "docs/design"
+      ],
+      "expect": {
+        "exit": 1,
+        "stdoutIncludes": [
+          "Bloom-Regular.woff2"
+        ]
+      }
     }
   ]
 }
