@@ -61,6 +61,56 @@ test("apply fails closed and restores current when the installed CLI cannot star
   }
 });
 
+test("apply fails closed when the installed CLI hangs", () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "krn-install-hang-"));
+  const copy = path.join(base, "source");
+  fs.mkdirSync(copy);
+  const archive = execFileSync("git", ["-C", sourceRoot, "archive", "HEAD"], { maxBuffer: 64 * 1024 * 1024 });
+  execFileSync("tar", ["-x", "-C", copy], { input: archive });
+  execFileSync("git", ["-C", copy, "init", "-q"]);
+  const entry = path.join(copy, "scripts", "krn-codex.mjs");
+  const original = fs.readFileSync(entry, "utf8");
+  const lines = original.split("\n");
+  let lastImport = -1;
+  lines.forEach((line, index) => {
+    if (/^import\s/.test(line)) lastImport = index;
+  });
+  lines.splice(lastImport + 1, 0, "Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0);");
+  fs.writeFileSync(entry, lines.join("\n"));
+  execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "add", "-A"]);
+  execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", "hang the installed CLI"]);
+
+  const home = path.join(base, "codex");
+  const previousSkills = process.env.KRN_SKILLS_DEST;
+  const previousBins = process.env.KRN_BIN_DEST;
+  const previousOpencode = process.env.KRN_OPENCODE_DEST;
+  const previousTimeout = process.env.KRN_SMOKE_TIMEOUT_MS;
+  process.env.KRN_SKILLS_DEST = path.join(base, "skills");
+  process.env.KRN_BIN_DEST = path.join(base, "bin");
+  process.env.KRN_OPENCODE_DEST = path.join(base, "opencode");
+  process.env.KRN_SMOKE_TIMEOUT_MS = "2000";
+  try {
+    const plan = createInstallPlan({ source: copy, cwd: copy, codexHome: home });
+    const started = Date.now();
+    assert.throws(
+      () => applyInstall(plan),
+      (error) => error.exitCode === EXIT_CODES.CORRUPT && /timed out after 2000ms/.test(error.message),
+    );
+    assert.ok(Date.now() - started < 20000, "the hung smoke must fail within the bound");
+    assert.equal(fs.lstatSync(plan.current, { throwIfNoEntry: false }), undefined);
+  } finally {
+    if (previousSkills === undefined) delete process.env.KRN_SKILLS_DEST;
+    else process.env.KRN_SKILLS_DEST = previousSkills;
+    if (previousBins === undefined) delete process.env.KRN_BIN_DEST;
+    else process.env.KRN_BIN_DEST = previousBins;
+    if (previousOpencode === undefined) delete process.env.KRN_OPENCODE_DEST;
+    else process.env.KRN_OPENCODE_DEST = previousOpencode;
+    if (previousTimeout === undefined) delete process.env.KRN_SMOKE_TIMEOUT_MS;
+    else process.env.KRN_SMOKE_TIMEOUT_MS = previousTimeout;
+    fs.rmSync(base, { recursive: true, force: true, maxRetries: 50, retryDelay: 100 });
+  }
+});
+
 test("the CLI rejects a duplicate single-valued option", () => {
   const cli = path.join(sourceRoot, "scripts", "krn-codex.mjs");
   const duplicate = spawnSync(process.execPath, [cli, "install", "plan", "--source", sourceRoot, "--source", sourceRoot], { encoding: "utf8" });

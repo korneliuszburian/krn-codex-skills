@@ -457,7 +457,17 @@ export function applyInstall(plan) {
 
 function verifyInstalledCli(plan) {
   const entry = path.join(plan.current, "scripts", "krn-codex.mjs");
-  const result = spawnSync(process.execPath, [entry], { encoding: "utf8" });
+  // A hung entry once blocked the installer for minutes and left a teardown
+  // race behind (2026-09-16 CI flakes), so the smoke is time-bounded;
+  // KRN_SMOKE_TIMEOUT_MS only shortens the bound for tests.
+  const configured = Number(process.env.KRN_SMOKE_TIMEOUT_MS);
+  const timeout = Number.isFinite(configured) && configured > 0 ? configured : 15000;
+  const result = spawnSync(process.execPath, [entry], { encoding: "utf8", timeout, killSignal: "SIGKILL" });
+  if (result.error?.code === "ETIMEDOUT" || result.signal) {
+    const reason =
+      result.error?.code === "ETIMEDOUT" ? `timed out after ${timeout}ms` : `terminated by signal ${result.signal}`;
+    fail(`installed CLI smoke ${reason}`, EXIT_CORRUPT);
+  }
   if (result.status !== EXIT_USAGE) {
     const detail = `${result.stderr || result.stdout || ""}`.split("\n").find((line) => line.trim()) ?? "no output";
     fail(`installed CLI smoke failed (exit ${result.status ?? "signal"}): ${detail}`, EXIT_CORRUPT);
