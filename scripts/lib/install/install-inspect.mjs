@@ -8,6 +8,7 @@ import { gitText as git } from "../support/git-cli.mjs";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { isInside } from "../support/path-rules.mjs";
 import { readJson } from "../support/read-json.mjs";
+import { removeTree } from "../support/remove-tree.mjs";
 import { parseAssignment, parseDocument, parseDottedHeaderKey, parseTomlString, splitHeader } from "../catalog/catalog-toml.mjs";
 
 const { SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT } = EXIT_CODES;
@@ -482,7 +483,7 @@ export function pruneReleases({ codexHome = process.env.CODEX_HOME || path.join(
       keepNames.add(candidate.name);
       continue;
     }
-    fs.rmSync(candidate.path, { recursive: true, force: true });
+    removeTree(candidate.path);
     removed.push(candidate.name);
   }
   return { removed, kept: [...keepNames].sort() };
