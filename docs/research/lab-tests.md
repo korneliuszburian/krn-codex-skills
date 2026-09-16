@@ -55,7 +55,8 @@ non-setuid bwrap 0.12.0 with an auth-only seed, and host-executes the worker
 gate. `integrate.sh` merges `--no-ff`, re-runs the fixture tests, and gates the
 merged fixed point. This lane is the reopening experiment named by the
 orchestration tracker defer row. Registration limits carried from the entry: one
-repository and tracker, local commits only with push and PR not authorized.
+repository and tracker, Codex as the only executor, local commits only with
+push and PR not authorized.
 
 Mechanical phase (scripted worker, no model session): a commit without `Recall`
 failed `--strict-recall` as `unreconstructed-recall` with a confirmed
@@ -143,12 +144,24 @@ lessons shared `path:src/registry.mjs` and were rejected as a duplicate trigger
 semantic capsule text stays with the sole writer, and one ticket is not a
 handback-quality measurement.
 
-Non-proofs: thirteen tickets (three sequential, eight concurrent in pairs and
-fours, plus two hook-seeded singles, and one conflicting pair), one model
-family, one rep each, disjoint files except the single stylistic conflict, so
-structured merge-repair, duplicate work, and cost-per-success remain barely
-exercised; no sandbox escape test and no hostile-process claim; fixtures and
-runner stay outside the repository.
+Throughput N=8 (2026-09-16, same runner, hook-seeded): eight disjoint tickets
+were seeded on one base and run as eight concurrent `gpt-5.6-luna` sessions;
+every worker gate passed with `capsule_seen=YES` and no leak or model mismatch,
+the integrator merged all eight with a green range gate over twenty-one passing
+checks, and the eight-session window was 48s against a 246s sum of individual
+walls (about 5.1x), 24–46s per session, billed 67k–84k input tokens each. No
+provider throttling or infra failure appeared at this width. Non-proofs: one
+model family and one rep per ticket; disjoint files again, so merge-repair and
+duplicate-work remain unmeasured at this width, and limits above N=8 are
+untested.
+
+Non-proofs: twenty-one tickets (three sequential, eight concurrent in pairs and
+fours, eight concurrent at N=8, plus two hook-seeded singles, and one
+conflicting pair), one model family (Codex-only by policy), one rep each,
+disjoint files except the single stylistic conflict, so structured
+merge-repair, duplicate work, and cost-per-success remain barely exercised; no
+sandbox escape test and no hostile-process claim; fixtures and runner stay
+outside the repository.
 
 ## LT-5 design additions (2026-09-13)
 
