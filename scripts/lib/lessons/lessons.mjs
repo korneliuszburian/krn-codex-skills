@@ -13,6 +13,8 @@ const CANDIDATE = /^(npm run |test:|manual:)|[.][a-z0-9]{2,4}$/i;
 
 const LESSON_BUDGET = 24;
 
+const DEAD_TRIGGER_HITS = 3;
+
 export function parseLessonText(text) {
   const rows = [];
   const malformed = [];
@@ -104,7 +106,7 @@ function compileGlob(glob) {
 }
 
 const NEVER_MATCHES = /(?!x)x/;
-const globToRegex = (glob) => {
+export const globToRegex = (glob) => {
   try {
     return compileGlob(glob);
   } catch {
@@ -119,7 +121,7 @@ function normalizeTriggerEntry(entry) {
   return `${scoped[1]}:${scoped[2].trim().replace(/^\.\//, "")}`;
 }
 
-function triggerEntries(trigger, prefix) {
+export function triggerEntries(trigger, prefix) {
   return (trigger ?? "")
     .split(/[;,]/)
     .map((entry) => entry.trim())
@@ -128,10 +130,11 @@ function triggerEntries(trigger, prefix) {
     .filter(Boolean);
 }
 
-export function recallLessons({ root, files = [], symbols = [], hot = [], symbolFiles = new Map() }) {
+export function recallLessons({ root, files = [], symbols = [], hot = [], symbolFiles = new Map(), rows }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
+  const source = rows ?? parseLessons(file).rows;
   const hits = [];
-  for (const row of parseLessons(file).rows.filter((candidate) => !candidate.status)) {
+  for (const row of source.filter((candidate) => !candidate.status)) {
     const globs = triggerEntries(row.trigger, "path:");
     const symbolMatches = triggerEntries(row.trigger, "symbol:").filter((name) => symbols.includes(name));
     const symbolMatchedFiles = symbolMatches.flatMap((name) => [...(symbolFiles.get(name) ?? [])]);
@@ -364,7 +367,11 @@ export function checkLessons({ root, git = runGit }) {
     const usage = recallUsage(root, git, rows);
     for (const row of rows) {
       if (row.status || !(row.trigger ?? "").trim()) continue;
-      if ((usage.get(row.lesson) ?? 0) === 0) warnings.push(`lesson "${row.lesson}": trigger has never been recalled; verify it with \`krn-codex memory usage\``);
+      const counts = usage.get(row.lesson) ?? { hits: 0, binds: 0 };
+      if (counts.binds === 0) warnings.push(`lesson "${row.lesson}": trigger has never been recalled; verify it with \`krn-codex memory usage\``);
+      if (counts.hits >= DEAD_TRIGGER_HITS && counts.binds === 0) {
+        warnings.push(`lesson "${row.lesson}": dead-trigger: trigger matched ${counts.hits} changes but none bound a Recall trailer; tighten or retire it`);
+      }
     }
   }
   return { root, lessons, errors, warnings };
