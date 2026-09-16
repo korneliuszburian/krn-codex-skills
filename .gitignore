@@ -13,3 +13,4 @@ tmp/
 .remember/
 __pycache__/
 *.pyc
+.krn/claims/

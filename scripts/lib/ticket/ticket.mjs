@@ -60,14 +60,49 @@ function readValidTicket(file) {
   return { text, fields };
 }
 
-export function claimTicket({ file, worker, session = "", at = new Date().toISOString() }) {
-  const { text, fields } = readValidTicket(file);
-  const status = fields.get("Status");
-  if (status !== "ready") throw new Error(`ticket ${fields.get("Id")} is not ready (Status: ${status})`);
-  let next = setField(text, "Status", "claimed");
-  next = setField(next, "Claim", `worker=${worker}; session=${session}; at=${at}`);
-  fs.writeFileSync(file, next);
-  return { id: fields.get("Id"), path: file, status: "claimed", claim: { worker, session, at } };
+function rootForTicket(file) {
+  const resolved = path.resolve(file);
+  for (const dir of DEFAULT_DIRS) {
+    const marker = `${path.sep}${dir.split("/").join(path.sep)}${path.sep}`;
+    const index = resolved.lastIndexOf(marker);
+    if (index > 0) return resolved.slice(0, index);
+  }
+  return path.dirname(resolved);
+}
+
+function nextEpoch(fields) {
+  const match = /(?:^|;\s*)epoch=(\d+)/.exec(fields.get("Claim") ?? "");
+  return match ? Number(match[1]) + 1 : 1;
+}
+
+export function claimTicket({ file, root, id, worker, session = "", at = new Date().toISOString(), observer } = {}) {
+  const claimRoot = root ?? rootForTicket(file);
+  const ticketId = id ?? readValidTicket(file).fields.get("Id");
+  const lockPath = path.join(claimRoot, ".krn", "claims", `${ticketId}.lock`);
+  fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+  let handle;
+  try {
+    handle = fs.openSync(lockPath, "wx");
+  } catch (error) {
+    if (error.code === "EEXIST") throw new Error(`ticket ${ticketId} is already-claimed`);
+    throw error;
+  }
+  try {
+    const { text, fields } = readValidTicket(file);
+    const epoch = nextEpoch(fields);
+    const claim = { worker, session, at, epoch };
+    fs.writeFileSync(handle, JSON.stringify(claim));
+    observer?.({ id: ticketId, lockPath, claim });
+    const status = fields.get("Status");
+    if (status !== "ready") throw new Error(`ticket ${ticketId} is not ready (Status: ${status})`);
+    let next = setField(text, "Status", "claimed");
+    next = setField(next, "Claim", `worker=${worker}; session=${session}; at=${at}; epoch=${epoch}`);
+    fs.writeFileSync(file, next);
+    return { id: ticketId, path: file, status: "claimed", claim };
+  } finally {
+    fs.closeSync(handle);
+    fs.rmSync(lockPath, { force: true });
+  }
 }
 
 export function closeTicket({ file, evidence = "none", resolution = "none", at = new Date().toISOString() }) {
