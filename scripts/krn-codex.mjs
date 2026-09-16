@@ -21,7 +21,7 @@ import { auditFacts } from "./lib/frontend/facts.mjs";
 import { approveEvidence, captureEvidence, gateEvidence } from "./lib/frontend/browser.mjs";
 import { parseDesign } from "./lib/frontend/design.mjs";
 import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
-import { checkTickets, parseTicketText } from "./lib/ticket/ticket.mjs";
+import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText } from "./lib/ticket/ticket.mjs";
 
 process.stdout.on("error", (error) => {
   if (error.code === "EPIPE") process.exit(0);
@@ -49,7 +49,8 @@ const usage = `Usage:
   krn-codex frontend design [--variables FILE] [--metadata FILE] [--json]
   krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
   krn-codex ticket <check|next> --root DIR [--path DIR] [--json]
-  krn-codex ticket show <path> [--json]`;
+  krn-codex ticket show <path> [--json]
+  krn-codex ticket <claim|close> --root DIR --id ID [--worker NAME] [--evidence TEXT] [--resolution TEXT] [--json]`;
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
 
@@ -92,6 +93,12 @@ function parseOptions(args) {
     else if (arg === "--accept") {
       options.accept = [...(options.accept ?? []), ...take(index++, "--accept").split(",").map((entry) => entry.trim()).filter(Boolean)];
     }
+    else if (arg === "--path") setOnce("path", "--path", take(index++, "--path"));
+    else if (arg === "--id") setOnce("id", "--id", take(index++, "--id"));
+    else if (arg === "--worker") setOnce("worker", "--worker", take(index++, "--worker"));
+    else if (arg === "--session") setOnce("session", "--session", take(index++, "--session"));
+    else if (arg === "--evidence") setOnce("evidence", "--evidence", take(index++, "--evidence"));
+    else if (arg === "--resolution") setOnce("resolution", "--resolution", take(index++, "--resolution"));
     else if (arg === "--candidate") setOnce("candidate", "--candidate", take(index++, "--candidate"));
     else if (arg === "--filter") setOnce("filter", "--filter", take(index++, "--filter"));
     else if (arg === "--upstream") setOnce("upstream", "--upstream", take(index++, "--upstream"));
@@ -99,6 +106,11 @@ function parseOptions(args) {
     else positional.push(arg);
   }
   return { positional, options };
+}
+
+function ticketDirs(root, dir) {
+  if (!dir) return undefined;
+  return [path.isAbsolute(dir) ? path.relative(root, dir) : dir];
 }
 
 function requireDirectory(root) {
@@ -122,6 +134,12 @@ const OPTION_FLAG = {
   by: "--by",
   note: "--note",
   candidate: "--candidate",
+  path: "--path",
+  id: "--id",
+  worker: "--worker",
+  session: "--session",
+  evidence: "--evidence",
+  resolution: "--resolution",
   filter: "--filter",
   frozen: "--frozen",
   upstream: "--upstream",
@@ -276,14 +294,31 @@ try {
       if (options.json) print(Object.fromEntries(fields), true);
       else for (const [key, value] of fields) process.stdout.write(`${key}: ${value}\n`);
     } else {
-      rejectForeignOptions(options, ["root", "path"]);
-      if (!["check", "next"].includes(command) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
+      rejectForeignOptions(options, ["root", "path", "id", "worker", "session", "evidence", "resolution"]);
+      if (!["check", "next", "claim", "close"].includes(command) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
       requireDirectory(options.root);
-      const report = checkTickets({ root: options.root, dirs: options.path ? [options.path] : undefined });
-      if (command === "next") {
+      if (command === "claim" || command === "close") {
+        if (!options.id) fail(usage);
+        let file = "";
+        try {
+          file = findTicketFile({ root: options.root, dirs: ticketDirs(options.root, options.path), id: options.id });
+        } catch (error) {
+          fail(error.message, EXIT_CODES.USAGE);
+        }
+        try {
+          const result = command === "claim"
+            ? claimTicket({ file, worker: options.worker ?? "unknown", session: options.session ?? "" })
+            : closeTicket({ file, evidence: options.evidence ?? "none", resolution: options.resolution ?? "none" });
+          print(result, options.json);
+        } catch (error) {
+          fail(error.message, EXIT_CODES.USAGE);
+        }
+      } else if (command === "next") {
+        const report = checkTickets({ root: options.root, dirs: ticketDirs(options.root, options.path) });
         if (options.json) print({ root: options.root, frontier: report.frontier }, true);
         else for (const id of report.frontier) process.stdout.write(`${id}\n`);
       } else {
+        const report = checkTickets({ root: options.root, dirs: ticketDirs(options.root, options.path) });
         print(report, options.json);
         if (!options.json) {
           for (const warning of report.warnings) process.stderr.write(`warning: ${warning.rule}${warning.path ? ` ${warning.path}` : ""}: ${warning.message}\n`);
