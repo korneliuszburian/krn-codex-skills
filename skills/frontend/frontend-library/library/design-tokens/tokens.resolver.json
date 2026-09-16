@@ -1,0 +1,18 @@
+{
+  "version": "2025.10",
+  "resolutionOrder": [
+    {
+      "type": "set",
+      "name": "base",
+      "sources": [
+        { "$ref": "./colors.json" },
+        { "$ref": "./fonts.json" },
+        { "$ref": "./spacing.json" },
+        { "$ref": "./text-sizes.json" },
+        { "$ref": "./text-leading.json" },
+        { "$ref": "./text-weights.json" },
+        { "$ref": "./viewports.json" }
+      ]
+    }
+  ]
+}

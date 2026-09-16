@@ -1,0 +1,6 @@
+interface:
+  display_name: "Frontend library"
+  short_description: "The canonical CUBE CSS library to copy verbatim"
+  default_prompt: "Use $frontend-library when starting a project's CSS, consolidating duplicated components, or auditing code against the canonical library."
+policy:
+  allow_implicit_invocation: true

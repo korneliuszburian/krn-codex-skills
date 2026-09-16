@@ -1,0 +1,50 @@
+.button {
+  align-items: center;
+  background: var(--button-bg, var(--color-dark));
+  border-color: var(--button-border-color, transparent);
+  border-radius: var(--button-radius, var(--radius-m));
+  border-style: var(--button-border-style, solid);
+  border-width: var(--button-border-width, var(--stroke));
+  color: var(--button-color, var(--color-light));
+  display: inline-flex;
+  font-weight: var(--button-font-weight, var(--font-weight-bold));
+  justify-content: center;
+  line-height: var(--button-line-height, var(--leading-fine));
+  padding: var(--button-padding, var(--space-xs) var(--space-s));
+  text-decoration: none;
+}
+
+.button[data-button-has-icon] {
+  gap: var(--space-2xs);
+}
+
+.button[data-button-variant='link'] {
+  --button-bg: transparent;
+  --button-border-color: currentColor;
+  --button-border-width: 0 0 var(--stroke);
+  --button-color: currentColor;
+  --button-font-weight: var(--font-weight-regular);
+  --button-padding: 0 0 var(--space-3xs);
+}
+
+.button__icon {
+  display: inline-flex;
+  flex: none;
+  height: var(--button-icon-height, var(--button-icon-size, var(--space-2xs)));
+  width: var(--button-icon-width, var(--button-icon-size, var(--space-2xs)));
+}
+
+.button__icon > img {
+  display: block;
+  height: var(--button-icon-image-height, 100%);
+  width: var(--button-icon-image-width, 100%);
+}
+
+.button__label {
+  font-size: var(--button-font-size, var(--size-step-00));
+}
+
+.hero .button {
+  --button-bg: var(--color-light);
+  --button-color: var(--color-primary);
+}

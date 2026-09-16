@@ -139,6 +139,26 @@
       "name": "frontend-enforcement",
       "path": "skills/frontend/frontend-enforcement",
       "implicit": true
+    },
+    {
+      "name": "frontend-library",
+      "path": "skills/frontend/frontend-library",
+      "implicit": true
+    },
+    {
+      "name": "frontend-process",
+      "path": "skills/frontend/frontend-process",
+      "implicit": true
+    },
+    {
+      "name": "frontend-components",
+      "path": "skills/frontend/frontend-components",
+      "implicit": true
+    },
+    {
+      "name": "frontend-tokens",
+      "path": "skills/frontend/frontend-tokens",
+      "implicit": true
     }
   ],
   "source_only_skills": [],

@@ -1,0 +1,17 @@
+/*
+REEL
+Horizontal overflow for card rows, galleries, and navigation-like collections.
+*/
+.reel {
+  display: flex;
+  gap: var(--gutter, var(--space-s-m));
+  overflow-x: auto;
+  padding-block-end: var(--space-xs);
+  scroll-snap-type: x mandatory;
+  scrollbar-color: var(--color-primary) transparent;
+}
+
+.reel > * {
+  flex: 0 0 var(--reel-item-width, min(80vw, 22rem));
+  scroll-snap-align: start;
+}

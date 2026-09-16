@@ -1,0 +1,272 @@
+{
+  "space": {
+    "$description": "Consistent spacing sizes, based on a ratio, with min and max sizes. This allows you to set spacing based on the context size. For example, min for mobile and max for desktop browsers.",
+    "$extensions": {
+      "scaleGenerator": "https://utopia.fyi/space/calculator/?c=330,18,1.2,1200,24,1.25,6,2,&s=0.75|0.5|0.25,1.5|2|3|4|6|8,s-l|s-xl&g=s,l,xl,12"
+    },
+    "zero": {
+      "$type": "dimension",
+      "$value": { "value": 0.0625, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 0, "unit": "rem" },
+            "max": { "value": 0.0625, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "3xs": {
+      "$type": "dimension",
+      "$value": { "value": 0.375, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 0.3125, "unit": "rem" },
+            "max": { "value": 0.375, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "2xs": {
+      "$type": "dimension",
+      "$value": { "value": 0.75, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 0.5625, "unit": "rem" },
+            "max": { "value": 0.75, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "xs": {
+      "$type": "dimension",
+      "$value": { "value": 1.125, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 0.875, "unit": "rem" },
+            "max": { "value": 1.125, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "s": {
+      "$type": "dimension",
+      "$value": { "value": 1.5, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 1.125, "unit": "rem" },
+            "max": { "value": 1.5, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "m": {
+      "$type": "dimension",
+      "$value": { "value": 2.25, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 1.6875, "unit": "rem" },
+            "max": { "value": 2.25, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "l": {
+      "$type": "dimension",
+      "$value": { "value": 3, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 2.25, "unit": "rem" },
+            "max": { "value": 3, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "xl": {
+      "$type": "dimension",
+      "$value": { "value": 4.5, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 3.375, "unit": "rem" },
+            "max": { "value": 4.5, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "2xl": {
+      "$type": "dimension",
+      "$value": { "value": 6, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 4.5, "unit": "rem" },
+            "max": { "value": 6, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "3xl": {
+      "$type": "dimension",
+      "$value": { "value": 9, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 6.75, "unit": "rem" },
+            "max": { "value": 9, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "4xl": {
+      "$type": "dimension",
+      "$value": { "value": 12, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 9, "unit": "rem" },
+            "max": { "value": 12, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "3xs-2xs": {
+      "$type": "dimension",
+      "$value": { "value": 0.75, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 0.3125, "unit": "rem" },
+            "max": { "value": 0.75, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "2xs-xs": {
+      "$type": "dimension",
+      "$value": { "value": 1.125, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 0.5625, "unit": "rem" },
+            "max": { "value": 1.125, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "xs-s": {
+      "$type": "dimension",
+      "$value": { "value": 1.5, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 0.875, "unit": "rem" },
+            "max": { "value": 1.5, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "s-m": {
+      "$type": "dimension",
+      "$value": { "value": 2.25, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 1.125, "unit": "rem" },
+            "max": { "value": 2.25, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "m-l": {
+      "$type": "dimension",
+      "$value": { "value": 3, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 1.6875, "unit": "rem" },
+            "max": { "value": 3, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "l-xl": {
+      "$type": "dimension",
+      "$value": { "value": 4.5, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 2.25, "unit": "rem" },
+            "max": { "value": 4.5, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "xl-2xl": {
+      "$type": "dimension",
+      "$value": { "value": 6, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 3.375, "unit": "rem" },
+            "max": { "value": 6, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "2xl-3xl": {
+      "$type": "dimension",
+      "$value": { "value": 9, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 4.5, "unit": "rem" },
+            "max": { "value": 9, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "3xl-4xl": {
+      "$type": "dimension",
+      "$value": { "value": 12, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 6.75, "unit": "rem" },
+            "max": { "value": 12, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "s-l": {
+      "$type": "dimension",
+      "$value": { "value": 3, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 1.125, "unit": "rem" },
+            "max": { "value": 3, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "s-xl": {
+      "$type": "dimension",
+      "$value": { "value": 4.5, "unit": "rem" },
+      "$extensions": {
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 1.125, "unit": "rem" },
+            "max": { "value": 4.5, "unit": "rem" }
+          }
+        }
+      }
+    }
+  }
+}

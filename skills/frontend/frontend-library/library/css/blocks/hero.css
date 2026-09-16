@@ -1,0 +1,35 @@
+/* Hero — blok wg CUBE: konfiguracja kompozycji zmiennymi + dekoracja.
+   Wartości designu (kolory, spacing, typo, ratio, radius) z API variables.css;
+   słowa kluczowe (uppercase, cover) i geometria układu — lokalne. */
+.hero {
+  background: var(--color-primary);
+  color: var(--color-light);
+}
+
+.hero__layout {
+  --gutter: var(--space-l-xl);
+  --switcher-target-container-width: var(--measure);
+}
+
+.hero__content {
+  --flow-space: var(--space-m);
+  max-width: var(--measure-compact);
+}
+
+.hero__eyebrow {
+  color: var(--color-accent);
+  font-size: var(--text-size-meta);
+  letter-spacing: var(--kerning-caps);
+  text-transform: uppercase;
+}
+
+.hero__lead {
+  max-width: var(--measure-compact);
+}
+
+.hero__media img {
+  aspect-ratio: var(--ratio-media);
+  border-radius: var(--radius-m);
+  object-fit: cover;
+  width: 100%;
+}

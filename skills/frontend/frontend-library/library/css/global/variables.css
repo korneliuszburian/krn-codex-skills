@@ -1,0 +1,37 @@
+:root {
+  --gutter: var(--space-s-l);
+  --wrapper-max-width: 76rem;
+  --measure: 65ch;
+  --measure-compact: 45ch;
+  --radius-s: 0.25rem;
+  --radius-m: 0.75rem;
+  --radius-l: 1.5rem;
+  --ratio-media: 4/3;
+  --stroke: 1px;
+  --body-bg: var(--color-bg);
+  --body-color: var(--color-text);
+  --focus-color: var(--color-focus);
+  --focus-ring-offset: 0.18em;
+  --selection-bg: var(--color-selection-bg);
+  --selection-text: var(--color-selection-text);
+  --paragraph-font-family: var(--font-base);
+  --text-size-eyebrow: var(--size-step-00);
+  --text-size-base: var(--size-step-0);
+  --text-size-lede: var(--size-step-1);
+  --text-size-meta: var(--size-step-00);
+  --text-size-heading-1: var(--size-step-5);
+  --text-size-heading-2: var(--size-step-4);
+  --text-size-heading-3: var(--size-step-3);
+  --text-size-heading-4: var(--size-step-2);
+  --heading-font-family: var(--font-display);
+  --heading-font-weight: var(--font-weight-bold);
+  --kerning: normal;
+  --kerning-tight: -0.04ch;
+  --kerning-caps: 0.08ch;
+  --transition-base: 250ms ease;
+  --transition-movement: 200ms linear;
+  --transition-fade: 300ms ease;
+  --transition-bounce: 500ms cubic-bezier(0.5, 0.05, 0.2, 1.5);
+  --leading-standard: 1.5;
+  --leading-fine: 1.15;
+}

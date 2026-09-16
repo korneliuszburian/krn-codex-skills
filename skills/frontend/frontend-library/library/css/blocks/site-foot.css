@@ -1,0 +1,26 @@
+.site-foot {
+  background: var(--color-primary);
+  color: var(--color-light);
+  padding-block: var(--space-m-l);
+}
+
+.site-foot__inner {
+  --gutter: var(--space-s-m);
+  --repel-vertical-alignment: baseline;
+}
+
+.site-foot__copyright {
+  font-size: var(--text-size-meta);
+}
+
+.site-foot__nav {
+  --gutter: var(--space-s);
+  font-size: var(--text-size-meta);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--kerning-caps);
+  text-transform: uppercase;
+}
+
+.site-foot a:not(:hover):not([aria-current='page']) {
+  text-decoration: none;
+}

@@ -118,6 +118,10 @@ disagreement blocks the next transition until the owner records the resolution.
 | [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
 | [`frontend-architecture`](skills/frontend/frontend-architecture/SKILL.md) | model or user | design intake to a frozen block × variant × ACF plan and facts file |
 | [`frontend-enforcement`](skills/frontend/frontend-enforcement/SKILL.md) | model or user | stylelint token and specificity caps, scoped disables, visual and a11y gates |
+| [`frontend-library`](skills/frontend/frontend-library/SKILL.md) | model or user | the canonical CUBE CSS library to copy verbatim and consolidate against |
+| [`frontend-process`](skills/frontend/frontend-process/SKILL.md) | model or user | the forced plan-to-verify build workflow with an exit per phase |
+| [`frontend-components`](skills/frontend/frontend-components/SKILL.md) | model or user | thin CUBE blocks with custom-property knobs and data-* variants |
+| [`frontend-tokens`](skills/frontend/frontend-tokens/SKILL.md) | model or user | two-tier tokens, fluid clamp scales, semantic aliases, and theming |
 
 The shared engineering and productivity flow is **composed from a clean
 checkout of the upstream [`mattpocock/skills`](https://github.com/mattpocock/skills)

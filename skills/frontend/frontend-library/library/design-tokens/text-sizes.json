@@ -1,0 +1,136 @@
+{
+  "size": {
+    "$description": "A minimum and maximum text size allows you to pick the right size from a ratio, depending on the context size. The min and max sizes are in pixels and should be converted to appropriate sizes, per context. For example, for web, they should be converted to REM units (pixelSize / baseSize).",
+    "$extensions": {
+      "scaleGenerator": "https://utopia.fyi/type/calculator/?c=330,18,1.175,1200,24,1.25,7,1,&s=0.75%7C0.5%7C0.25,1.5%7C2%7C3%7C4%7C6,s-l&g=s,l,xl,12"
+    },
+    "step-01": {
+      "$type": "dimension",
+      "$value": { "value": 0.79, "unit": "rem" },
+      "$extensions": {
+        "pl.rekurencja.acf": {
+          "label": "Very small",
+          "contexts": ["content-size", "eyebrow-size"]
+        },
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 0.75, "unit": "rem" },
+            "max": { "value": 0.79, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "step-00": {
+      "$type": "dimension",
+      "$value": { "value": 1, "unit": "rem" },
+      "$extensions": {
+        "pl.rekurencja.acf": {
+          "label": "Small",
+          "contexts": ["content-size", "eyebrow-size", "heading-size"]
+        },
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 0.9375, "unit": "rem" },
+            "max": { "value": 1, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "step-0": {
+      "$type": "dimension",
+      "$value": { "value": 1.25, "unit": "rem" },
+      "$extensions": {
+        "pl.rekurencja.acf": {
+          "label": "Base",
+          "contexts": ["content-size", "eyebrow-size", "heading-size"]
+        },
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 1.125, "unit": "rem" },
+            "max": { "value": 1.25, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "step-1": {
+      "$type": "dimension",
+      "$value": { "value": 1.5625, "unit": "rem" },
+      "$extensions": {
+        "pl.rekurencja.acf": {
+          "label": "Large body",
+          "contexts": ["content-size", "heading-size"]
+        },
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 1.35, "unit": "rem" },
+            "max": { "value": 1.5625, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "step-2": {
+      "$type": "dimension",
+      "$value": { "value": 1.953, "unit": "rem" },
+      "$extensions": {
+        "pl.rekurencja.acf": {
+          "label": "Small heading",
+          "contexts": ["heading-size"]
+        },
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 1.62, "unit": "rem" },
+            "max": { "value": 1.953, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "step-3": {
+      "$type": "dimension",
+      "$value": { "value": 2.441, "unit": "rem" },
+      "$extensions": {
+        "pl.rekurencja.acf": {
+          "label": "Medium heading",
+          "contexts": ["heading-size"]
+        },
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 1.944, "unit": "rem" },
+            "max": { "value": 2.441, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "step-4": {
+      "$type": "dimension",
+      "$value": { "value": 3.052, "unit": "rem" },
+      "$extensions": {
+        "pl.rekurencja.acf": {
+          "label": "Large heading",
+          "contexts": ["heading-size"]
+        },
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 2.441, "unit": "rem" },
+            "max": { "value": 3.052, "unit": "rem" }
+          }
+        }
+      }
+    },
+    "step-5": {
+      "$type": "dimension",
+      "$value": { "value": 3.815, "unit": "rem" },
+      "$extensions": {
+        "pl.rekurencja.acf": {
+          "label": "Display heading",
+          "contexts": ["heading-size"]
+        },
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 2.799, "unit": "rem" },
+            "max": { "value": 3.815, "unit": "rem" }
+          }
+        }
+      }
+    }
+  }
+}

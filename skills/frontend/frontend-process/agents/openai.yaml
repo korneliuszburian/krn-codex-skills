@@ -1,0 +1,6 @@
+interface:
+  display_name: "Frontend build process"
+  short_description: "The forced plan-to-verify frontend build workflow"
+  default_prompt: "Use $frontend-process when starting a page or full build, deciding build order, or when a layout is unproven."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,14 @@
+/*
+FRAME
+Consistent media crops that preserve intrinsic content sizing.
+*/
+.frame {
+  aspect-ratio: var(--frame-ratio, 16 / 9);
+  overflow: hidden;
+}
+
+.frame > :where(img, video) {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
