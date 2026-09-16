@@ -121,7 +121,56 @@ function blockerIds(value) {
   return raw.split(",").map((entry) => entry.trim()).filter(Boolean);
 }
 
-export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit } = {}) {
+function scopeEntries(value) {
+  return String(value ?? "")
+    .split(",")
+    .map((entry) => entry.trim().replace(/^\.\//, ""))
+    .filter(Boolean);
+}
+
+function globToRegExp(pattern) {
+  let source = "";
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+    if (char === "*") {
+      if (pattern[index + 1] === "*") {
+        source += ".*";
+        index += 1;
+      } else {
+        source += "[^/]*";
+      }
+    } else if (char === "?") {
+      source += "[^/]";
+    } else {
+      source += char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+  }
+  return new RegExp(`^${source}$`);
+}
+
+function scopeDeclares(entry, file) {
+  if (entry.endsWith("/")) return file.startsWith(entry);
+  if (/[*?]/.test(entry)) return globToRegExp(entry).test(file);
+  return file === entry || file.startsWith(`${entry}/`);
+}
+
+function scopeErrors({ root, git, ticket, base, head }) {
+  const errors = [];
+  const scope = scopeEntries(ticket.fields.get("Scope"));
+  const diff = git(root, ["-c", "core.quotePath=false", "diff", "--name-only", `${base}..${head}`]);
+  if (!diff.ok) {
+    errors.push({ path: ticket.path, rule: "scope-diff-unavailable", message: `cannot diff ${base}..${head}` });
+    return errors;
+  }
+  for (const file of diff.out.split("\n").map((entry) => entry.trim()).filter(Boolean)) {
+    if (!scope.some((entry) => scopeDeclares(entry, file))) {
+      errors.push({ path: ticket.path, rule: "scope-undeclared", message: `changed file outside Scope: ${file}` });
+    }
+  }
+  return errors;
+}
+
+export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD" } = {}) {
   const tickets = [];
   const errors = [];
   const warnings = [];
@@ -152,6 +201,11 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit } = {}) {
     } else {
       byId.set(ticket.id, ticket);
     }
+  }
+  if (id && base) {
+    const scoped = byId.get(id);
+    if (!scoped) errors.push({ rule: "unknown-ticket", message: `no ticket with id "${id}"` });
+    else errors.push(...scopeErrors({ root, git, ticket: scoped, base, head }));
   }
   for (const ticket of tickets) {
     for (const blocker of ticket.blockedBy) {
