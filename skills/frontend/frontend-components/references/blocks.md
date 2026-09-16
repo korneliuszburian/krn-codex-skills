@@ -58,7 +58,7 @@ Rules distilled:
 - Icon SVG: `aria-hidden="true"` + `width`/`height` attributes (no-CSS fallback); CSS size in `em`/`cap` so icons scale with text.
 - `:disabled` / `[disabled]` is the disabled state — never a data-state.
 - `<button class="button">` for interactions, `<a class="button">` for navigation.
-- Markup: `class="button"` + `data-button-variant="…"` (values: `primary` (default, no attribute needed in the boilerplate's whitelist logic) / `link`) + `data-button-has-icon` + `span.button__icon[aria-hidden]` + `span.button__label`.
+- Markup: `class="button"` + optional `data-button-variant` + `data-button-has-icon` + `span.button__icon[aria-hidden]` + `span.button__label`. The default button carries **no** variant attribute; the library defines `link`, and a project may add its own value in its `button.css` (`inverse`). A value the theme and library do not define is an invented variant — `krn-codex frontend audit` reports `template-variant`.
 Sources: https://piccalil.li/blog/how-i-build-a-button-component/ (2024-09); rekurencja boilerplate `src/css/blocks/button.css` + `components/button/template.php`.
 
 ## Block skeleton contract

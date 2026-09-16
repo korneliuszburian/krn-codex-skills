@@ -15,6 +15,16 @@ re-derives it. Facts live in the project; process rules live as lessons.
 
 These are the source of truth. Chat history and the native Goal are not.
 
+## The registry is machine-checked
+
+- `krn-codex frontend audit --root <theme> --docs docs/design/blocks.md` (the
+  project's `frontend:audit`) fails when a row marked `built` or `verified` has no
+  `src/css/blocks/<slug>.css`. Rows marked `reuse` or `built inside <other>` are
+  exempt on purpose.
+- Therefore a block is `built` only when its own file exists. A block whose styles
+  live inside a section file is not built — it is a `block-ownership` failure, and
+  the registry must not claim it.
+
 ## The freeze rule
 
 - A block is `verified` only after its acceptance check passes (browser evidence).

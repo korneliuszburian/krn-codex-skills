@@ -81,7 +81,8 @@ A block is a skeletal component. Most work is already done by global CSS, compos
 ```
 
 - NEVER split `--button-padding` into per-axis or per-variant tokens (`--button-padding-y`, `--button-small-padding-block`). One knob, one shorthand.
-- NEVER unprefixed exception attributes — `data-button-variant`, `data-button-has-icon` (block name in the attribute).
+- IF an attribute is shared vocabulary declared by the library (`data-alignment`, `data-layout`, `data-measure`, `data-media-position`, …) THEN use it unprefixed. IF it is a block-local exception THEN prefix it with the block name. NEVER invent a new unprefixed attribute — `krn-codex frontend audit` reports `variant-naming`.
+- IF a `-variant` value is needed THEN it must already exist in the theme or the library (`[data-button-variant='link']`). NEVER pass a value the design never defined; the default is expressed by omitting the attribute (e.g. the default button carries no `data-button-variant`). `frontend audit` reports `template-variant` for an undefined value.
 - IF a variant exists THEN it sets 2–4 existing knobs ONLY. NEVER declare new CSS properties in a variant.
 - IF the variant is a size change THEN override `--button-font-size`/`--button-padding` knobs in the same attribute. NEVER a separate padding token pair.
 - Disabled = native `disabled` attribute / `:disabled`. NEVER a data-state.
@@ -101,7 +102,12 @@ A block is a skeletal component. Most work is already done by global CSS, compos
 - IF content breaks a component THEN fix the component. NEVER a one-off override on the page instance.
 - IF creating a primitive THEN include focus/keyboard/ARIA/states in the primitive itself. NEVER add accessibility as a page-level afterthought.
 
-### Scope and structure
+### One file, one block
+- IF a block file styles an element of another block THEN that is a duplicate. Move the styles to the owner's file, or configure the owner's knobs from a selector that starts with your own block class.
+- GOOD: `.courses .button { --button-bg: var(--color-light); }` (context config) / BAD: `.card__media { aspect-ratio: 1 / 1; }` inside `courses.css` — `krn-codex frontend audit` reports `block-ownership`.
+- IF a block's styles live in a section file because "the section is the only consumer" THEN it is still a duplicate. NEVER mark the block `built` in the registry until `src/css/blocks/<slug>.css` exists (`frontend audit --docs` reports `facts-registry`).
+
+## Scope and structure
 - IF a component is used in one domain only THEN keep it next to that domain; promote to shared UI only on a second unrelated consumer.
 - IF importing a shared component THEN use its public entry point. NEVER deep imports of internals.
 - NEVER put business logic, routing, API calls, or analytics inside primitives — pages orchestrate, primitives render.
@@ -111,9 +117,10 @@ A block is a skeletal component. Most work is already done by global CSS, compos
 - [ ] Block is a thin skeleton (≤ ~100 lines) extending global/composition/utility
 - [ ] Internals use composition classes
 - [ ] Every presentational property is a `var(--x, default)` knob
-- [ ] No variant class names, no duplicate components
+- [ ] No variant class names, no duplicate components, no other block's classes in this file
 - [ ] Semantic elements; defensive constraints on content
 - [ ] Class attribute grouped in the project's order
+- [ ] `npm run frontend:audit` (or `krn-codex frontend audit`) passes; every `--accept` has a recorded reason
 
 ## References
 - [references/blocks.md](references/blocks.md) — block anatomy, naming conventions, grouping rules, and atomic-mapping notes with sources.

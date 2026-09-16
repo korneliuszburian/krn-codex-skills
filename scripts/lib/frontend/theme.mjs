@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const CSS = ".css";
+const LIBRARY_BLOCKS = fileURLToPath(new URL("../../../skills/frontend/frontend-library/library/css/blocks/", import.meta.url));
 const listCss = (dir) => {
   try {
     return fs.readdirSync(dir, { withFileTypes: true })
@@ -20,6 +22,78 @@ const readText = (file) => {
     return "";
   }
 };
+
+function listPhp(dir) {
+  const found = [];
+  const walk = (current) => {
+    let entries = [];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith(".php")) found.push(full);
+    }
+  };
+  walk(dir);
+  return found.sort();
+}
+
+function selectors(css) {
+  const clean = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const found = [];
+  for (const match of clean.matchAll(/([^{}]+)\{/g)) {
+    for (const selector of match[1].split(",")) {
+      const trimmed = selector.trim();
+      if (trimmed && !trimmed.startsWith("@")) found.push(trimmed);
+    }
+  }
+  return found;
+}
+
+function classRoots(selector) {
+  return [...selector.matchAll(/\.([a-z][\w-]*)/gi)].map((match) => match[1].split("__")[0]);
+}
+
+function dataAttributes(text) {
+  return [...new Set([...text.matchAll(/\b(data-[a-z][\w-]*)/g)].map((match) => match[1]))];
+}
+
+function prefixedBy(attribute, slug) {
+  return attribute === `data-${slug}` || attribute.startsWith(`data-${slug}-`);
+}
+
+function libraryVocabulary(library = LIBRARY_BLOCKS) {
+  const vocabulary = new Set();
+  for (const file of listCss(library)) {
+    const slug = file.slice(0, -CSS.length);
+    for (const attribute of dataAttributes(readText(path.join(library, file)))) {
+      if (prefixedBy(attribute, slug)) continue;
+      vocabulary.add(attribute);
+    }
+  }
+  return vocabulary;
+}
+
+function registryRows(file) {
+  if (!file) return [];
+  const rows = [];
+  for (const line of readText(file).split("\n")) {
+    const match = line.match(/^\|\s*`([a-z][\w-]*)`\s*\|\s*([^|]+)\|/);
+    if (match) rows.push({ slug: match[1], status: match[2].trim() });
+  }
+  return rows;
+}
+
+function variantValues(css, block) {
+  const values = new Set();
+  const pattern = new RegExp(`\\[data-${block}-variant\\s*=\\s*["']?([^\\]"'\\s]+)`, "g");
+  for (const match of css.matchAll(pattern)) values.add(match[1]);
+  return values;
+}
 
 function variantSelectors(css) {
   const found = new Set();
@@ -128,14 +202,38 @@ const RULES = [
   },
 ];
 
-export function auditTheme({ root, accept = [] } = {}) {
+export function auditTheme({ root, accept = [], docs = null } = {}) {
   const accepted = new Set(accept);
   const findings = [];
+  const severityFor = (rule, relative) => (accepted.has(`${rule}:${relative}`) ? "accepted" : "hard");
+  const vocabulary = libraryVocabulary();
+  const rows = registryRows(docs);
+  const blockDir = path.join(root, "src", "css", "blocks");
+  const blockFiles = listCss(blockDir);
+  const blockSlugs = new Set([
+    ...blockFiles.map((file) => file.slice(0, -CSS.length)),
+    ...rows.map((row) => row.slug),
+  ]);
+
+  for (const row of rows) {
+    if (!/\bbuilt\b|\bverified\b/i.test(row.status)) continue;
+    if (/reuse|inside/i.test(row.status)) continue;
+    if (!blockFiles.includes(`${row.slug}${CSS}`)) {
+      findings.push({
+        rule: "facts-registry",
+        severity: severityFor("facts-registry", docs),
+        file: docs,
+        detail: `the registry marks \`${row.slug}\` as ${row.status} but src/css/blocks/${row.slug}.css does not exist`,
+      });
+    }
+  }
+
   const layers = ["blocks", "compositions", "utilities"];
   for (const layer of layers) {
     for (const file of listCss(path.join(root, "src", "css", layer))) {
       const relative = `src/css/${layer}/${file}`;
       const css = readText(path.join(root, "src", "css", layer, file));
+      const slug = file.slice(0, -CSS.length);
       for (const rule of RULES) {
         if (layer !== "blocks" && rule.rule !== "magic-color") continue;
         for (const detail of rule.test(css)) {
@@ -143,8 +241,65 @@ export function auditTheme({ root, accept = [] } = {}) {
           findings.push({ rule: rule.rule, severity, file: relative, detail: `${detail} (${rule.detail})` });
         }
       }
+      if (layer !== "blocks") continue;
+      for (const selector of selectors(css)) {
+        const roots = classRoots(selector);
+        if (roots.includes(slug)) continue;
+        const foreign = roots.find((name) => name !== slug && blockSlugs.has(name));
+        if (foreign) {
+          findings.push({
+            rule: "block-ownership",
+            severity: severityFor("block-ownership", relative),
+            file: relative,
+            detail: `\`${selector}\` styles .${foreign}, which belongs to the ${foreign} block; define it in ${foreign}.css or configure it from a .${slug} ancestor`,
+          });
+        }
+      }
+      for (const attribute of dataAttributes(css)) {
+        if (vocabulary.has(attribute) || prefixedBy(attribute, slug)) continue;
+        findings.push({
+          rule: "variant-naming",
+          severity: severityFor("variant-naming", relative),
+          file: relative,
+          detail: `\`${attribute}\` is neither the shared variant vocabulary nor prefixed with data-${slug}-`,
+        });
+      }
     }
   }
+
+  for (const file of listPhp(path.join(root, "components"))) {
+    const relative = path.relative(root, file).split(path.sep).join("/");
+    const known = new Set([...blockSlugs, ...listCss(LIBRARY_BLOCKS).map((entry) => entry.slice(0, -CSS.length))]);
+    for (const match of readText(file).matchAll(/\b(data-[a-z][\w-]*)\s*=\s*["']([^"']*)["']/g)) {
+      const [, attribute, value] = match;
+      if (vocabulary.has(attribute)) continue;
+      const owner = [...known].find((slug) => prefixedBy(attribute, slug));
+      if (!owner) {
+        findings.push({
+          rule: "template-variant",
+          severity: severityFor("template-variant", relative),
+          file: relative,
+          detail: `\`${attribute}\` is neither the shared variant vocabulary nor a known block's data-<block>- attribute`,
+        });
+        continue;
+      }
+      if (attribute !== `data-${owner}-variant`) continue;
+      if (value.includes("<?php")) continue;
+      const allowed = new Set([
+        ...variantValues(readText(path.join(blockDir, `${owner}${CSS}`)), owner),
+        ...variantValues(readText(path.join(LIBRARY_BLOCKS, `${owner}${CSS}`)), owner),
+      ]);
+      if (allowed.size > 0 && !allowed.has(value)) {
+        findings.push({
+          rule: "template-variant",
+          severity: severityFor("template-variant", relative),
+          file: relative,
+          detail: `data-${owner}-variant="${value}" is not defined by the theme or the library (allowed: ${[...allowed].sort().join(", ")})`,
+        });
+      }
+    }
+  }
+
   return {
     root,
     findings,

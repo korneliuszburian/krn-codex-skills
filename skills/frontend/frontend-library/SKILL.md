@@ -14,6 +14,8 @@ This library IS the project standard.
 1. IF a needed composition, utility, block, global file, or token set exists in `library/` THEN copy the file(s) VERBATIM into the project. NEVER paraphrase, rewrite, "simplify", or rename the library code. (Applies to production code; disposable prototypes are exempt.)
 2. IF the project already contains a local implementation of any library primitive (e.g. a hand-rolled `.wrapper`, `.cluster`, or button) THEN replace it with the library version and re-point the markup. NEVER keep two implementations of the same job.
 3. IF a library block needs project-specific values THEN configure its custom properties in the project context — never edit the library file itself.
+4. IF the project already contains a file with a library name (`.text`, `.hero`, a composition) THEN diff it against `library/css/…` before trusting it: a drifted local copy is not the library. Re-point the project to the library copy, or record the deviation in the project's facts docs. NEVER call a file "verbatim" without diffing it — the harness audit reads the library's own vocabulary, so drift shows up as invented variants.
+5. IF you audit existing CSS THEN use the library as the reference implementation for the audit rules (`krn-codex frontend audit`): the shared `data-*` vocabulary and a block's variant values are read from these files.
 
 ## Library map
 

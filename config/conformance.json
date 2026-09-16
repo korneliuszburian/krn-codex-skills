@@ -20,7 +20,14 @@
           }
         }
       ],
-      "run": ["changes", "check", "--base", "HEAD~1", "--head", "HEAD"],
+      "run": [
+        "changes",
+        "check",
+        "--base",
+        "HEAD~1",
+        "--head",
+        "HEAD"
+      ],
       "expect": {
         "exit": 0
       }
@@ -43,10 +50,19 @@
           }
         }
       ],
-      "run": ["changes", "check", "--base", "HEAD~1", "--head", "HEAD"],
+      "run": [
+        "changes",
+        "check",
+        "--base",
+        "HEAD~1",
+        "--head",
+        "HEAD"
+      ],
       "expect": {
         "exit": 1,
-        "stderrIncludes": ["missing-change-contract"]
+        "stderrIncludes": [
+          "missing-change-contract"
+        ]
       }
     },
     {
@@ -66,10 +82,19 @@
           }
         }
       ],
-      "run": ["changes", "check", "--base", "HEAD~1", "--head", "HEAD"],
+      "run": [
+        "changes",
+        "check",
+        "--base",
+        "HEAD~1",
+        "--head",
+        "HEAD"
+      ],
       "expect": {
         "exit": 1,
-        "stderrIncludes": ["applicability-withdrawn"]
+        "stderrIncludes": [
+          "applicability-withdrawn"
+        ]
       }
     },
     {
@@ -90,10 +115,19 @@
           }
         }
       ],
-      "run": ["changes", "check", "--base", "HEAD~1", "--head", "HEAD"],
+      "run": [
+        "changes",
+        "check",
+        "--base",
+        "HEAD~1",
+        "--head",
+        "HEAD"
+      ],
       "expect": {
         "exit": 1,
-        "stderrIncludes": ["unknown-check"]
+        "stderrIncludes": [
+          "unknown-check"
+        ]
       }
     },
     {
@@ -107,7 +141,10 @@
           }
         }
       ],
-      "run": ["lessons", "check"],
+      "run": [
+        "lessons",
+        "check"
+      ],
       "expect": {
         "exit": 0
       }
@@ -123,10 +160,15 @@
           }
         }
       ],
-      "run": ["lessons", "check"],
+      "run": [
+        "lessons",
+        "check"
+      ],
       "expect": {
         "exit": 1,
-        "stdoutIncludes": ["no resolvable gate reference"]
+        "stdoutIncludes": [
+          "no resolvable gate reference"
+        ]
       }
     },
     {
@@ -140,10 +182,18 @@
           }
         }
       ],
-      "run": ["memory", "recall", "--changed", "src/x.mjs"],
+      "run": [
+        "memory",
+        "recall",
+        "--changed",
+        "src/x.mjs"
+      ],
       "expect": {
         "exit": 0,
-        "stdoutIncludes": ["Coupling must be kept.", "matched src/x.mjs"]
+        "stdoutIncludes": [
+          "Coupling must be kept.",
+          "matched src/x.mjs"
+        ]
       }
     },
     {
@@ -160,7 +210,10 @@
       "after": {
         ".krn/runs/delivery-loop/out-1/state.md": "Outcome and observable acceptance: test\nCurrent workflow owner and sole writer: $delivery-loop\nOutcome state: COMPLETE\nPublication state: LOCAL_ONLY\nRepository base, HEAD or working-tree fingerprint, and dirty-state scope: base={{HEAD}}, HEAD={{HEAD}}, dirty=clean\nNative Goal identity/state and configured tracker item/state: none\nRestart state: ABSENT\nOutstanding workflow-run cleanup: none\nAuthority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none\nEvidence observed: none\nExplicit non-proofs: none\nReview fixed point and Standards / Spec disposition: lane X; evidence=pr-42\nOpen unknowns and blockers with owners: none\nWorkflow friction and lesson candidates: none\nDurable CONTEXT / ADR / research references: none\nNext bounded owner and action: none\n"
       },
-      "run": ["state", "check"],
+      "run": [
+        "state",
+        "check"
+      ],
       "expect": {
         "exit": 0
       }
@@ -179,10 +232,15 @@
       "after": {
         ".krn/runs/delivery-loop/out-1/state.md": "Outcome and observable acceptance: test\nCurrent workflow owner and sole writer: $delivery-loop\nOutcome state: COMPLETE\nPublication state: LOCAL_ONLY\nRepository base, HEAD or working-tree fingerprint, and dirty-state scope: base={{HEAD}}, HEAD={{HEAD}}, dirty=clean\nNative Goal identity/state and configured tracker item/state: none\nRestart state: ABSENT\nOutstanding workflow-run cleanup: none\nAuthority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none\nEvidence observed: none\nExplicit non-proofs: none\nReview fixed point and Standards / Spec disposition: lane X reviewed it without a token\nOpen unknowns and blockers with owners: none\nWorkflow friction and lesson candidates: none\nDurable CONTEXT / ADR / research references: none\nNext bounded owner and action: none\n"
       },
-      "run": ["state", "check"],
+      "run": [
+        "state",
+        "check"
+      ],
       "expect": {
         "exit": 1,
-        "stderrIncludes": ["complete-review-without-evidence"]
+        "stderrIncludes": [
+          "complete-review-without-evidence"
+        ]
       }
     },
     {
@@ -199,10 +257,16 @@
       "after": {
         ".krn/runs/delivery-loop/out-1/state.md": "Outcome and observable acceptance: the resume case is exercised\nCurrent workflow owner and sole writer: $delivery-loop\nOutcome state: ACTIVE\nPublication state: LOCAL_ONLY\nRepository base, HEAD or working-tree fingerprint, and dirty-state scope: base={{HEAD}}, HEAD={{HEAD}}, dirty=clean\nNative Goal identity/state and configured tracker item/state: none\nRestart state: ABSENT\nOutstanding workflow-run cleanup: none\nAuthority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none\nEvidence observed: none\nExplicit non-proofs: none\nReview fixed point and Standards / Spec disposition: none\nOpen unknowns and blockers with owners: none\nWorkflow friction and lesson candidates: none\nDurable CONTEXT / ADR / research references: none\nNext bounded owner and action: hand the capsule to the next session\n"
       },
-      "run": ["state", "resume"],
+      "run": [
+        "state",
+        "resume"
+      ],
       "expect": {
         "exit": 0,
-        "stdoutIncludes": ["capsule out-1", "hand the capsule to the next session"]
+        "stdoutIncludes": [
+          "capsule out-1",
+          "hand the capsule to the next session"
+        ]
       }
     },
     {
@@ -215,10 +279,15 @@
           }
         }
       ],
-      "run": ["skills", "check"],
+      "run": [
+        "skills",
+        "check"
+      ],
       "expect": {
         "exit": 1,
-        "stdoutIncludes": [".agents/skills"]
+        "stdoutIncludes": [
+          ".agents/skills"
+        ]
       }
     },
     {
@@ -235,10 +304,15 @@
       "after": {
         ".krn/runs/delivery-loop/out-1/state.md": "Outcome and observable acceptance: test\nCurrent workflow owner and sole writer: $delivery-loop\nOutcome state: COMPLETE\nPublication state: LOCAL_ONLY\nRepository base, HEAD or working-tree fingerprint, and dirty-state scope: base={{HEAD}}, HEAD={{HEAD}}, dirty=clean\nNative Goal identity/state and configured tracker item/state: none\nRestart state: ABSENT\nOutstanding workflow-run cleanup: none\nAuthority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none\nEvidence observed: none\nExplicit non-proofs: none\nReview fixed point and Standards / Spec disposition: inspected; evidence=docs/missing-report.md\nOpen unknowns and blockers with owners: none\nWorkflow friction and lesson candidates: none\nDurable CONTEXT / ADR / research references: none\nNext bounded owner and action: none\n"
       },
-      "run": ["state", "check"],
+      "run": [
+        "state",
+        "check"
+      ],
       "expect": {
         "exit": 1,
-        "stderrIncludes": ["complete-review-evidence-unresolved"]
+        "stderrIncludes": [
+          "complete-review-evidence-unresolved"
+        ]
       }
     },
     {
@@ -252,10 +326,17 @@
           }
         }
       ],
-      "run": ["memory", "recall", "--changed", "src/other.mjs"],
+      "run": [
+        "memory",
+        "recall",
+        "--changed",
+        "src/other.mjs"
+      ],
       "expect": {
         "exit": 0,
-        "stdoutExcludes": ["Coupling must be kept."]
+        "stdoutExcludes": [
+          "Coupling must be kept."
+        ]
       }
     },
     {
@@ -272,10 +353,15 @@
       "after": {
         "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Keep the coupling. | probe | `test:lib` | | `test/proof.test.mjs::the coupling stays@{{HEAD7}}` | | |\n"
       },
-      "run": ["lessons", "verify"],
+      "run": [
+        "lessons",
+        "verify"
+      ],
       "expect": {
         "exit": 0,
-        "stdoutIncludes": ["the coupling stays"]
+        "stdoutIncludes": [
+          "the coupling stays"
+        ]
       }
     },
     {
@@ -292,10 +378,15 @@
       "after": {
         "docs/research/workflow-lessons.md": "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Keep the coupling. | probe | `test:lib` | | `test/proof.test.mjs::a broken coupling@{{HEAD7}}` | | |\n"
       },
-      "run": ["lessons", "verify"],
+      "run": [
+        "lessons",
+        "verify"
+      ],
       "expect": {
         "exit": 1,
-        "stderrIncludes": ["proof failed"]
+        "stderrIncludes": [
+          "proof failed"
+        ]
       }
     },
     {
@@ -312,10 +403,15 @@
       "after": {
         ".krn/runs/delivery-loop/out-1/state.md": "Outcome and observable acceptance: test\nCurrent workflow owner and sole writer: $delivery-loop\nOutcome state: ACTIVE\nPublication state: LOCAL_ONLY\nRepository base, HEAD or working-tree fingerprint, and dirty-state scope: base={{HEAD}}, HEAD={{HEAD}}, dirty=clean\nNative Goal identity/state and configured tracker item/state: none\nRestart state: ABSENT\nOutstanding workflow-run cleanup: none\nAuthority: writes=none; tracker/issue=none; commit=none; push=none; PR=none; merge=none; deployment/install=none\nEvidence observed: none\nExplicit non-proofs: none\nReview fixed point and Standards / Spec disposition: none\nOpen unknowns and blockers with owners: none\nWorkflow friction and lesson candidates: none\nDurable CONTEXT / ADR / research references: none\nNext bounded owner and action: none\n"
       },
-      "run": ["state", "check"],
+      "run": [
+        "state",
+        "check"
+      ],
       "expect": {
         "exit": 1,
-        "stderrIncludes": ["active-without-next"]
+        "stderrIncludes": [
+          "active-without-next"
+        ]
       }
     },
     {
@@ -329,10 +425,15 @@
           }
         }
       ],
-      "run": ["frontend", "inventory"],
+      "run": [
+        "frontend",
+        "inventory"
+      ],
       "expect": {
         "exit": 0,
-        "stdoutIncludes": ["blocks: 1"]
+        "stdoutIncludes": [
+          "blocks: 1"
+        ]
       }
     },
     {
@@ -345,10 +446,40 @@
           }
         }
       ],
-      "run": ["frontend", "audit"],
+      "run": [
+        "frontend",
+        "audit"
+      ],
       "expect": {
         "exit": 1,
-        "stdoutIncludes": ["block-height"]
+        "stdoutIncludes": [
+          "block-height"
+        ]
+      }
+    },
+    {
+      "id": "frontend-audit-catches-facts-registry-drift",
+      "steps": [
+        {
+          "message": "chore: baseline",
+          "files": {
+            "docs/design/blocks.md": "| Block | Status | Acceptance |\n|---|---|---|\n| `card` | built | card renders with media + link |\n",
+            "src/css/blocks/text.css": ".text { color: var(--color-ink); }\n"
+          }
+        }
+      ],
+      "run": [
+        "frontend",
+        "audit",
+        "--docs",
+        "docs/design/blocks.md"
+      ],
+      "expect": {
+        "exit": 1,
+        "stdoutIncludes": [
+          "facts-registry",
+          "card.css does not exist"
+        ]
       }
     }
   ]

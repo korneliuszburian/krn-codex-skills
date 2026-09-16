@@ -17,6 +17,12 @@ CI; keep review rules for invariants.
 
 ## Rules
 
+### The theme audit — the stage's binary frontend gate
+- IF the project carries a theme THEN run the harness audit through the project's own script: `krn-codex frontend audit --root <theme> --docs docs/design/blocks.md` (wrapped as `frontend:audit`). It is read-only and needs no build.
+- Rules it enforces: `block-height` (no height floors), `magic-color` (tokens, never literals), `block-size-bar` (thin skeleton, target ≤ ~100 lines, soft), `class-variant` (a variant is a `data-*` exception, not a BEM modifier, soft), `block-ownership` (one file, one block), `variant-naming` (shared library vocabulary or `data-<block>-` prefix), `facts-registry` (a `built`/`verified` row needs `src/css/blocks/<slug>.css`), `template-variant` (a variant value must exist in the theme or the library).
+- IF a finding is genuinely justified by the design THEN register it with `--accept <rule>:<file>` and record the reason in the project's enforcement doc. NEVER loosen the rule, NEVER accept silently.
+- NEVER mark a block `built`/`verified` while its styles live inside a section file — `facts-registry` and `block-ownership` fail together; the facts must match the code.
+
 ### Token mandate (stylelint config)
 - IF the project is token-driven THEN set: `color-no-hex: true` (with a scoped, described disable for the generated token-utilities file, where hex legitimately lives in one place), `color-named: "never"`, `unit-allowed-list` containing the canonical units of this stack: `["rem","em","%","s","vi","cap","ch","fr","cqw"]` — px is banned in component declarations, allowed only inside token-layer custom property definitions, `declaration-property-value-disallowed-list` for values that must come from tokens, `custom-property-pattern` for token naming.
 - NEVER allow raw hex/px design values past CI. `color-no-hex` catches hex in gradients/shadows/borders, not only `color:`.
