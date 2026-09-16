@@ -27,8 +27,11 @@ Verified: 2026-09-13.
 4. `$CODEX_HOME/krn/current` is atomically switched only after the complete
    staged release has been read and hashed.
 5. Stable entries in `~/.agents/skills`, `~/.local/bin`, `$CODEX_HOME/AGENTS.md`,
-   `$CODEX_HOME/hooks.json`, and `$CODEX_HOME/hooks/` point through `current`.
-   They never point directly to an active checkout.
+   `$CODEX_HOME/hooks.json`, `$CODEX_HOME/hooks/`, `~/.config/opencode/AGENTS.md`,
+   and `~/.config/opencode/plugins/` point through `current`.
+   They never point directly to an active checkout. The opencode entries carry
+   the interactive adapter (guard, capsule brief, adoption signal); lanes and
+   labs remain Codex-only.
 6. A foreign file, directory, or link fails closed. The installer can replace
    only a prior link into the selected source checkout or a release, preserving it under
    `$CODEX_HOME/krn/migration-backups/`.
