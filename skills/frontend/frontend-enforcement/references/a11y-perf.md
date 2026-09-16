@@ -23,6 +23,17 @@
 - Animations default OFF; enable only under `@media (prefers-reduced-motion: no-preference)`. Vestibular disorders make motion a medical necessity to remove.
 - Source: https://web.dev/articles/prefers-reduced-motion
 
+## Target size and the height-floor exception
+- WCAG 2.5.8 (AA, 24px) and the 44px touch-target convention: an icon-only
+  control may set `min-height`/`min-width` as a *target* minimum. That is the
+  sanctioned exception to the no-height-floor rule — register it with `--accept`
+  and a reason, and never copy it as a layout height.
+- `!important` is legitimate only in forced-colors / system-color overrides
+  (`@media (forced-colors: active)`, `color-scheme`, `Canvas`/`CanvasText`),
+  never in layout; a scoped, described disable is still required.
+- Source: https://piccalil.li/mindful-design (production implementation, studied
+  2026-09-16) and https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html
+
 ## Performance
 - `content-visibility: auto` + `contain-intrinsic-size` for long below-the-fold sections — measured 7x initial-render speedup (232ms → 30ms); Facebook: up to 250ms navigation improvement. Never apply without the intrinsic size (scrollbar jumps); off-screen content stays in the a11y tree — hidden landmarks inside need `aria-hidden="true"`.
 - `font-display` explicit on every `@font-face`; never `auto` (invisible-text periods on slow connections; inconsistent behavior).
