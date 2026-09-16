@@ -57,8 +57,6 @@ test("the ticket module parses the abi and exposes check and frontier", async ()
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   assert.equal(typeof ticketLib.checkTickets, "function");
-  assert.equal(typeof ticketLib.ticketFrontier, "function");
-  assert.equal(typeof ticketLib.parseTicketText, "function");
 });
 
 test("a valid ticket passes and defines the frontier", async () => {

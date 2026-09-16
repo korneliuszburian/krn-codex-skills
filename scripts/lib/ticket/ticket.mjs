@@ -19,7 +19,7 @@ const REQUIRED = [
 ];
 const DEFAULT_DIRS = [".scratch", ".krn/tickets"];
 
-export function parseTicketText(text) {
+function parseTicketText(text) {
   const start = text.indexOf("<krn-ticket>");
   const end = text.indexOf("</krn-ticket>");
   if (start === -1 || end === -1 || end < start) {
@@ -145,8 +145,4 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit } = {}) {
     }
   }
   return { root, tickets: tickets.map(({ fields, ...rest }) => rest), frontier, errors, warnings };
-}
-
-export function ticketFrontier(options = {}) {
-  return checkTickets(options).frontier;
 }
