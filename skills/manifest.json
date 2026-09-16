@@ -31,6 +31,7 @@
     "scripts/lib/catalog/plugin-identity.mjs",
     "scripts/lib/conformance/conformance.mjs",
     "scripts/lib/contract/change-contract.mjs",
+    "scripts/lib/contract/command-analysis.mjs",
     "scripts/lib/frontend/browser.mjs",
     "scripts/lib/frontend/design.mjs",
     "scripts/lib/frontend/facts.mjs",
