@@ -251,7 +251,7 @@ try {
       if (options.json) {
         print(report, true);
       } else {
-        for (const entry of report.usage) process.stdout.write(`${entry.recalls}\t${entry.lesson}\n`);
+        for (const entry of report.usage) process.stdout.write(`${entry.binds}\t${entry.lesson}\t${entry.hits} hits\n`);
         if (report.neverRecalled?.length) process.stdout.write(`never recalled: ${report.neverRecalled.length}\n`);
       }
     } else {
