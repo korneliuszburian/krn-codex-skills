@@ -395,6 +395,13 @@ export function checkSkills({ root }) {
     if (marker.krn?.dirty) {
       warnings.push(".agents/skills was exported from a dirty source; re-export from a clean checkout for a reproducible release");
     }
+    const markerCommit = marker.krn?.commit;
+    if (markerCommit && git(root, ["rev-parse", "--verify", `${markerCommit}^{commit}`]) !== "") {
+      const trailing = Number.parseInt(git(root, ["rev-list", "--count", `${markerCommit}..HEAD`, "--", "skills"]), 10);
+      if (Number.isInteger(trailing) && trailing > 0) {
+        warnings.push(`marker-behind: ${trailing} commit${trailing === 1 ? "" : "s"} under \`skills/**\` landed after export marker ${markerCommit}; run \`krn-codex skills export\` to refresh`);
+      }
+    }
     for (const pin of [marker.krn?.commit, marker.upstream?.commit]) {
       if (!pin || !catalog.includes(pin)) errors.push(`.agents/skills/README.md is missing provenance pin ${pin ?? "?"}`);
     }
