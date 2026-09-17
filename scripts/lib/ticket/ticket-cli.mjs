@@ -2,9 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
-import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText } from "./ticket.mjs";
+import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText, recordAttempt } from "./ticket.mjs";
 
-const COMMANDS = new Set(["check", "next", "claim", "close"]);
+const COMMANDS = new Set(["check", "next", "claim", "close", "fail"]);
 const VALUE_FLAGS = {
   "--root": "root",
   "--path": "path",
@@ -15,6 +15,7 @@ const VALUE_FLAGS = {
   "--session": "session",
   "--evidence": "evidence",
   "--resolution": "resolution",
+  "--reason": "reason",
 };
 
 function parseArgs(argv) {
@@ -82,12 +83,13 @@ export function runTicketCommand(argv, { usage, requireDirectory }) {
     showTicket(positional, options, usage);
     return;
   }
-  rejectOptions(options, ["root", "path", "id", "base", "head", "worker", "session", "evidence", "resolution"]);
+  rejectOptions(options, ["root", "path", "id", "base", "head", "worker", "session", "evidence", "resolution", "reason"]);
   if (!COMMANDS.has(command) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage, EXIT_CODES.USAGE);
   requireDirectory(options.root);
   const dirs = ticketDirs(options.root, options.path);
-  if (command === "claim" || command === "close") {
+  if (command === "claim" || command === "close" || command === "fail") {
     if (!options.id) fail(usage, EXIT_CODES.USAGE);
+    if (command === "fail" && !options.reason) fail(usage, EXIT_CODES.USAGE);
     let file;
     try {
       file = findTicketFile({ root: options.root, dirs, id: options.id });
@@ -97,7 +99,9 @@ export function runTicketCommand(argv, { usage, requireDirectory }) {
     try {
       const result = command === "claim"
         ? claimTicket({ file, root: options.root, id: options.id, worker: options.worker ?? "unknown", session: options.session ?? "" })
-        : closeTicket({ file, root: options.root, evidence: options.evidence ?? "none", resolution: options.resolution ?? "none", base: options.base, head: options.head });
+        : command === "close"
+          ? closeTicket({ file, root: options.root, evidence: options.evidence ?? "none", resolution: options.resolution ?? "none", base: options.base, head: options.head })
+          : recordAttempt({ file, reason: options.reason ?? "unknown" });
       output(result, options.json);
     } catch (error) {
       fail(error.message, EXIT_CODES.USAGE);
