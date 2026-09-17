@@ -15,6 +15,12 @@ const { SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT } = EXIT_CODES;
 
 const OWN_MANIFEST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "skills", "manifest.json");
 
+// The committed digest ledger is the separate trust anchor for a release: it
+// records the subject digest for a commit outside the released bytes, so
+// rewriting a tree and its metadata together still fails verification. It is
+// excluded from the tree digest because sealing appends to a release copy.
+export const RELEASE_DIGESTS_RELATIVE = "config/release-digests.json";
+
 export function canonicalPath(candidate) {
   const suffix = [];
   let existing = path.resolve(candidate);
@@ -34,7 +40,7 @@ export function digestTree(root) {
     const absolute = path.join(root, relative);
     for (const entry of fs.readdirSync(absolute, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
       const next = path.join(relative, entry.name);
-      if (next === ".krn-release.json") continue;
+      if (next === ".krn-release.json" || next === RELEASE_DIGESTS_RELATIVE) continue;
       if (entry.isDirectory()) visit(next);
       else if (entry.isFile()) entries.push(next);
       else fail(`release contains unsupported filesystem entry: ${next}`, EXIT_CORRUPT);
@@ -60,6 +66,30 @@ function releaseMetadata(release) {
   }
 }
 
+export function releaseDigests(release) {
+  const file = path.join(release, RELEASE_DIGESTS_RELATIVE);
+  if (!fs.existsSync(file)) return {};
+  let document;
+  try {
+    document = readJson(file);
+  } catch {
+    fail(`release digest ledger is unreadable: ${file}`, EXIT_CORRUPT);
+  }
+  const digests = document?.digests;
+  if (digests === undefined || digests === null) return {};
+  if (typeof digests !== "object" || Array.isArray(digests)) {
+    fail(`release digest ledger is malformed: ${file}`, EXIT_CORRUPT);
+  }
+  return digests;
+}
+
+function unsealed(message) {
+  const error = new Error(message);
+  error.exitCode = EXIT_CORRUPT;
+  error.rule = "digest-unsealed";
+  throw error;
+}
+
 export function verifyRelease(release, commit) {
   const stat = fs.lstatSync(release, { throwIfNoEntry: false });
   if (!stat || !stat.isDirectory() || stat.isSymbolicLink()) {
@@ -71,6 +101,13 @@ export function verifyRelease(release, commit) {
   }
   const actual = digestTree(release).digest;
   if (actual !== metadata.digest) fail(`existing release is corrupt: ${release}`, EXIT_CORRUPT);
+  const sealed = releaseDigests(release)[commit];
+  if (typeof sealed !== "string") {
+    unsealed(`digest-unsealed: release ${commit} has no digest entry in ${RELEASE_DIGESTS_RELATIVE}`);
+  }
+  if (sealed !== actual) {
+    unsealed(`digest-unsealed: release ${commit} tree digest does not match the digest ledger`);
+  }
   return metadata;
 }
 
@@ -415,7 +452,10 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   }
   let metadata;
   try { metadata = verifyRelease(currentTarget, path.basename(currentTarget)); }
-  catch (error) { return { ...base, filesystem: { status: "broken_link", detail: error.message }, targets: [] }; }
+  catch (error) {
+    const status = error.rule === "digest-unsealed" ? "digest_unsealed" : "broken_link";
+    return { ...base, filesystem: { status, detail: error.message, ...(error.rule ? { rule: error.rule } : {}) }, targets: [] };
+  }
   if (!manifest) return { ...base, filesystem: { status: "broken_link", detail: "release manifest is missing or unreadable" }, targets: [] };
   const plan = { releaseRoot, current, manifest, source: "", allowLegacySource: true, release: currentTarget };
   const targets = managedTargets(plan).map((item) => itemStatus(plan, item));

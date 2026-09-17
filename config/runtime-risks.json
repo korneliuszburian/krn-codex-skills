@@ -3,6 +3,7 @@
   "entries": [
     { "path": "config/capability-profiles.json", "class": "read-only" },
     { "path": "config/opencode/plugins/krn.js", "class": "additive" },
+    { "path": "config/release-digests.json", "class": "read-only" },
     { "path": "config/upstream-sources.json", "class": "read-only" },
     { "path": "scripts/catalog.mjs", "class": "read-only" },
     {
@@ -54,6 +55,11 @@
       "path": "scripts/lib/install/install-release.mjs",
       "class": "destructive",
       "authority": "Authority: install, retire, and rollback follow docs/migration.md and act on the user's global capability index under an explicit request."
+    },
+    {
+      "path": "scripts/lib/install/install-seal.mjs",
+      "class": "destructive",
+      "authority": "Authority: appends a commit digest to the release ledger inside the user's release store and the source checkout; run only under an explicit seal request."
     },
     { "path": "scripts/lib/install/skill-metadata.mjs", "class": "read-only" },
     {

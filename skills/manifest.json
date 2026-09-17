@@ -9,6 +9,7 @@
   "runtime_paths": [
     "config/capability-profiles.json",
     "config/opencode/plugins/krn.js",
+    "config/release-digests.json",
     "config/upstream-sources.json",
     "scripts/catalog.mjs",
     "scripts/install.sh",
@@ -41,6 +42,7 @@
     "scripts/lib/frontend/theme.mjs",
     "scripts/lib/install/install-inspect.mjs",
     "scripts/lib/install/install-release.mjs",
+    "scripts/lib/install/install-seal.mjs",
     "scripts/lib/install/skill-metadata.mjs",
     "scripts/lib/install/skills-export.mjs",
     "scripts/lib/lessons/lessons-recall.mjs",
