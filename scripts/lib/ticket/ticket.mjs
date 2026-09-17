@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 import { parseChangeContract } from "../contract/change-contract.mjs";
@@ -262,7 +264,27 @@ export function recordAttempt({ file, reason = "unknown", at = new Date().toISOS
   };
 }
 
-export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD" }) {
+// Infrastructure configuration swings agent evals as much as model choice does,
+// so a closure pins the measured environment. The host is reduced to a hash:
+// the fingerprint must distinguish machines without naming or locating them.
+const ENV_FINGERPRINT = /^host=[0-9a-f]{12,64}; cpu=\d+; mem=\d+; node=\S+$/;
+
+export function envFingerprint({
+  hostname = os.hostname(),
+  cpus = os.cpus()?.length ?? 0,
+  totalmem = os.totalmem(),
+  node = process.versions.node,
+} = {}) {
+  const host = createHash("sha256").update(String(hostname)).digest("hex").slice(0, 12);
+  const mem = Math.round(totalmem / 1024 ** 3);
+  return `host=${host}; cpu=${cpus}; mem=${mem}; node=${node}`;
+}
+
+export function hasEnvFingerprint(value) {
+  return ENV_FINGERPRINT.test(String(value ?? "").trim());
+}
+
+export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint() }) {
   const { text, fields } = readValidTicket(file);
   const status = fields.get("Status");
   if (status === "done" || status === "abandoned") throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
@@ -283,6 +305,7 @@ export function closeTicket({ file, root, git = runGit, evidence = "none", resol
   const evidenceLine = anchor ? `${evidence}; integrated=${anchor.sha}; patch=${anchor.patch}` : evidence;
   let next = setField(text, "Status", "done");
   next = setField(next, "Evidence", evidenceLine);
+  next = setField(next, "Env", env);
   next = setField(next, "Resolution", `${resolution} (closed ${at})`);
   fs.writeFileSync(file, next);
   return { id: fields.get("Id"), path: file, status: "done", anchor };
@@ -495,6 +518,9 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
   for (const ticket of tickets) {
     if (ticket.status === "done" && !trailered.has(ticket.id)) {
       warnings.push({ path: ticket.path, rule: "done-without-commit", message: `ticket "${ticket.id}" is done with no Ticket trailer in recent commits` });
+    }
+    if (ticket.status === "done" && !hasEnvFingerprint(ticket.fields.get("Env"))) {
+      warnings.push({ path: ticket.path, rule: "missing-env-fingerprint", message: `ticket "${ticket.id}" is done without an Env fingerprint` });
     }
   }
   return { root, tickets: tickets.map(({ fields, ...rest }) => rest), frontier, errors, warnings };
