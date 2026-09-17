@@ -13,9 +13,13 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  repository:
+  gate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        tier: [fast, deep]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -24,28 +28,10 @@ jobs:
         with:
           node-version: 22
       - name: Validate contracts and routing
+        if: matrix.tier == 'fast'
         run: npm run validate
-      - name: Test installed-release bootstrap
-        run: npm run test:bootstrap
-      - name: Test install fail-closed smoke
-        run: npm run test:install
-      - name: Test hooks
-        run: npm run test:hooks
-      - name: Test spine state gate
-        run: npm run test:state
-      - name: Test skill export
-        run: npm run test:skills
-      - name: Check exported skill set
-        run: npm run skills:check
-      - name: Verify lesson proofs
-        run: npm run lessons:verify
-      - name: Test lesson gate resolver
-        run: npm run test:lessons
-      - name: Test lesson proof executor
-        run: npm run test:lessons-verify
-      - name: Run the repository quality audit
-        run: npm run quality:audit
       - name: Check change contracts
+        if: matrix.tier == 'fast'
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PUSH_BASE: ${{ github.event.before }}
@@ -55,13 +41,50 @@ jobs:
             base="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
           fi
           node scripts/krn-codex.mjs changes check --root . --base "$base" --head HEAD --before
+      - name: Run the repository quality audit
+        if: matrix.tier == 'fast'
+        run: npm run quality:audit
+      - name: Test shared libraries
+        if: matrix.tier == 'fast'
+        run: npm run test:lib
+      - name: Test installed-release bootstrap
+        if: matrix.tier == 'deep'
+        run: npm run test:bootstrap
+      - name: Test install fail-closed smoke
+        if: matrix.tier == 'deep'
+        run: npm run test:install
+      - name: Test hooks
+        if: matrix.tier == 'deep'
+        run: npm run test:hooks
+      - name: Test spine state gate
+        if: matrix.tier == 'deep'
+        run: npm run test:state
+      - name: Test skill export
+        if: matrix.tier == 'deep'
+        run: npm run test:skills
+      - name: Check exported skill set
+        if: matrix.tier == 'deep'
+        run: npm run skills:check
+      - name: Verify lesson proofs
+        if: matrix.tier == 'deep'
+        run: npm run lessons:verify
+      - name: Test lesson gate resolver
+        if: matrix.tier == 'deep'
+        run: npm run test:lessons
+      - name: Test lesson proof executor
+        if: matrix.tier == 'deep'
+        run: npm run test:lessons-verify
       - name: Test change-contract gate
+        if: matrix.tier == 'deep'
         run: npm run test:change-contract
       - name: Test the frozen acceptance conformance gate
+        if: matrix.tier == 'deep'
         run: npm run test:conformance
       - name: Test the frontend inventory and audit tools
+        if: matrix.tier == 'deep'
         run: npm run test:frontend
       - name: Apply the frozen conformance set from the base
+        if: matrix.tier == 'deep'
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PUSH_BASE: ${{ github.event.before }}
@@ -78,16 +101,19 @@ jobs:
             node scripts/krn-codex.mjs conformance check --root . --frozen
           fi
       - name: Test validator rule modules
+        if: matrix.tier == 'deep'
         run: npm run test:durable-pages
       - name: Test the capability CLI
+        if: matrix.tier == 'deep'
         run: npm run test:catalog
       - name: Test the setup workflow
+        if: matrix.tier == 'deep'
         run: npm run test:setup
       - name: Test shipped skill scripts
+        if: matrix.tier == 'deep'
         run: npm run test:skill-scripts
-      - name: Test shared libraries
-        run: npm run test:lib
       - name: Check shell and diff hygiene
+        if: matrix.tier == 'deep'
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PUSH_BASE: ${{ github.event.before }}
