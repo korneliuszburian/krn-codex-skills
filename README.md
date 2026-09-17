@@ -78,7 +78,7 @@ flowchart TD
   CAPSULE --> OWNER["one current workflow owner"]
   OWNER --> EVIDENCE["repository state + falsifying evidence"]
   EVIDENCE --> LOOP
-  CAPSULE --> RUNS[".krn/runs/delivery-loop/<br/>&lt;outcome-id&gt;/state.md"]
+  CAPSULE --> RUNS["restart path and reader commands<br/>owned by config/AGENTS.md"]
   CAPSULE --> CLEANUP["owned specialist-run<br/>cleanup obligations"]
   CLEANUP -->|consumer finishes or Goal closes| DELETE
   EVIDENCE --> GATE{"consumer + destination +<br/>cleanup / supersession?"}
@@ -89,8 +89,8 @@ flowchart TD
   GATE -->|no| DELETE["keep transient, then delete"]
 ```
 
-`$delivery-loop`'s named sole writer rewrites the capsule at owner and context
-boundaries. Other workflows return evidence to that writer or continue through
+The capsule's sole writer, named in `config/AGENTS.md`, rewrites it at owner and
+context boundaries. Other workflows return evidence to that writer or continue through
 the native Goal/tracker; they do not create another capsule. Git history is the
 chronological log; raw transcripts, prompts, and reviewer packets do not become
 documentation by default. When no tracker is configured, the accepted request or
@@ -163,13 +163,12 @@ krn-codex install apply --source /absolute/path/to/clean/krn-codex-skills --yes
 krn-codex doctor
 ```
 
-`krn-codex state check` structurally validates a repository's file-backed
-outcome capsule, restart path, and run cleanup obligations; `$delivery-loop`
-runs it at every boundary. `krn-codex state compile` prints a capsule skeleton
-with the mechanical fields (HEAD, dirty scope, active runs) already filled, and
-`krn-codex state resume` prints a deterministic restart brief that diffs the
-recorded capsule against live repository state. Both are read-only and never
-write the capsule.
+The capsule reader commands named in `config/AGENTS.md`
+structurally validate a repository's file-backed
+outcome capsule and print a capsule skeleton with the mechanical fields (HEAD,
+dirty scope, active runs) already filled, plus a deterministic restart brief that
+diffs the recorded capsule against live repository state. All are read-only and
+never write the capsule.
 `krn-codex install plan` is read-only. `install apply` accepts only a clean
 Git checkout at its checked-out commit, validates that exact tree, copies an
 explicit manifest-owned runtime closure to

@@ -1,19 +1,14 @@
 # Repository Contract Placement
 
-Use the narrowest durable surface that matches the scope.
+Use the narrowest durable surface that matches the scope. The installed global
+contract `config/AGENTS.md` owns the canonical surface-ownership list; this
+table adds only the repository-scoped surfaces it does not cover.
 
 | Surface | Owns | Does not own |
 |---|---|---|
-| prompt or native goal | one outcome and current authority | shared repository policy |
 | native plan | ephemeral execution steps | backlog or durable status |
-| global `AGENTS.md` | reusable personal engineering defaults | product language and commands |
-| repository `AGENTS.md` | layout, commands, domain boundaries, required gates | copied global workflow prose or history |
 | nested `AGENTS.md` | subtree-specific differences | restating the root contract |
-| `.codex/config.toml` | trusted repository Codex settings | workflow instructions |
 | repository tracker, when configured | durable queue, dependencies, claims, closure | session reasoning or documentation |
-| skill | one repeated task workflow | repository status or domain inventory |
-| hook | deterministic lifecycle interception | judgment, orchestration, or review |
-| CI | reproducible checks on a fixed revision | product completion or host policy |
 | GitHub settings | required checks, branch protection, merge and review policy | local implementation procedure |
 
 Keep resumable workflow state under the canonical ignored
@@ -22,17 +17,17 @@ named sole in-goal consumer finishes its accepted outcome or the owning Goal
 closes, whichever comes first. Short-lived findings return to the active outcome
 owner. Put only the workflow-specific state needed for a later session inside
 its run; prompts, packets, logs, and raw model output are transport, not durable
-knowledge. Only `$delivery-loop` persists the outcome capsule at
-`.krn/runs/delivery-loop/<outcome-id>/state.md`; every other workflow uses the
+knowledge. Only the outcome capsule's sole writer named in `config/AGENTS.md`
+persists it; every other workflow uses the
 accepted request, native Goal, or configured tracker for continuation, or hands
 lifecycle ownership to Delivery Loop. Cross-Goal continuation transfers
 condensed truth into the successor-owned run before cleanup. For a superseded
 or abandoned delivery run, transfer alone is not consumer completion; retain
 the original until its Goal's non-active state is read back.
 
-When the `krn-codex` CLI is installed, `krn-codex state check` verifies a
-file-backed capsule structurally from the repository root; run it before
-resuming or completing.
+When the `krn-codex` CLI is installed, the capsule reader commands named in
+`config/AGENTS.md` verify and resume a file-backed capsule structurally from the
+repository root; run them before resuming or completing.
 
 Durable knowledge has semantic owners rather than a generic report directory:
 

@@ -72,15 +72,16 @@ accepted outcome, canonical language, decisions, evidence, unknowns, and links.
 It excludes transcript history and copied source material.
 
 **Outcome capsule** — the living restart record for one accepted outcome,
-rewritten in place at owner or context boundaries. `$delivery-loop` alone owns
-its field ABI, path, and lifecycle; other artifacts link to it instead of
-restating its fields.
+rewritten in place at owner or context boundaries. Its path, sole writer, and
+reader commands are owned by `config/AGENTS.md`; `$delivery-loop` owns its field
+ABI and lifecycle, and other artifacts link to it instead of restating its
+fields.
 
 **Working run** — private ignored state at
 `.krn/runs/<workflow>/<run-id>/`. It may carry that workflow's prompt, manifest,
 transient spec or slice list, job state, or review evidence while its goal is
-open. Only `$delivery-loop` may persist the outcome capsule, at
-`.krn/runs/delivery-loop/<outcome-id>/state.md`. A run is not a durable report;
+open. Only the outcome capsule's sole writer named in `config/AGENTS.md` may
+persist it. A run is not a durable report;
 its owner deletes it when the sole in-goal consumer finishes or the owning Goal
 closes, whichever comes first. Cross-Goal continuation first transfers only
 condensed truth and pointers into the successor's own run. For a superseded or
