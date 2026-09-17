@@ -17,6 +17,8 @@ const VALUE_FLAGS = {
   "--resolution": "resolution",
   "--reason": "reason",
   "--signature": "signature",
+  "--wall-seconds": "wallSeconds",
+  "--tokens": "tokens",
 };
 
 function parseArgs(argv) {
@@ -84,7 +86,7 @@ export function runTicketCommand(argv, { usage, requireDirectory }) {
     showTicket(positional, options, usage);
     return;
   }
-  rejectOptions(options, ["root", "path", "id", "base", "head", "worker", "session", "evidence", "resolution", "reason", "signature"]);
+  rejectOptions(options, ["root", "path", "id", "base", "head", "worker", "session", "evidence", "resolution", "reason", "signature", "wallSeconds", "tokens"]);
   if (!COMMANDS.has(command) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage, EXIT_CODES.USAGE);
   requireDirectory(options.root);
   const dirs = ticketDirs(options.root, options.path);
@@ -101,7 +103,7 @@ export function runTicketCommand(argv, { usage, requireDirectory }) {
       const result = command === "claim"
         ? claimTicket({ file, root: options.root, id: options.id, worker: options.worker ?? "unknown", session: options.session ?? "" })
         : command === "close"
-          ? closeTicket({ file, root: options.root, evidence: options.evidence ?? "none", resolution: options.resolution ?? "none", base: options.base, head: options.head })
+          ? closeTicket({ file, root: options.root, evidence: options.evidence ?? "none", resolution: options.resolution ?? "none", base: options.base, head: options.head, wallSeconds: options.wallSeconds, tokens: options.tokens })
           : recordAttempt({ file, reason: options.reason ?? "unknown", signature: options.signature ?? "" });
       output(result, options.json);
     } catch (error) {
