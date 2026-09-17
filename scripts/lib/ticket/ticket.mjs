@@ -311,6 +311,28 @@ export function closeTicket({ file, root, git = runGit, evidence = "none", resol
   return { id: fields.get("Id"), path: file, status: "done", anchor };
 }
 
+function claimAt(fields) {
+  const match = /(?:^|;\s*)at=([^;\s]+)/.exec(fields.get("Claim") ?? "");
+  return match ? match[1] : "";
+}
+
+function lastAttemptAt(fields) {
+  const match = /(?:^|;\s*)at=([^;\s]+)/.exec(fields.get("Attempts") ?? "");
+  return match ? match[1] : "";
+}
+
+// A re-claimed ticket whose ledger still ends under the previous claim has no
+// attempt recorded since the current claim: the stall the runner has not seen.
+function stalledClaim(fields) {
+  const claimed = claimAt(fields);
+  const attempt = lastAttemptAt(fields);
+  if (!claimed || !attempt) return null;
+  const claimedMs = Date.parse(claimed);
+  const attemptMs = Date.parse(attempt);
+  if (!Number.isFinite(claimedMs) || !Number.isFinite(attemptMs) || attemptMs >= claimedMs) return null;
+  return { claimed, attempt };
+}
+
 export function findTicketFile({ root, dirs = DEFAULT_DIRS, id } = {}) {
   for (const file of markdownFiles(root, dirs)) {
     let text;
@@ -521,6 +543,16 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
     }
     if (ticket.status === "done" && !hasEnvFingerprint(ticket.fields.get("Env"))) {
       warnings.push({ path: ticket.path, rule: "missing-env-fingerprint", message: `ticket "${ticket.id}" is done without an Env fingerprint` });
+    }
+    if (ticket.status === "claimed") {
+      const stalled = stalledClaim(ticket.fields);
+      if (stalled) {
+        warnings.push({
+          path: ticket.path,
+          rule: "stalled-claim",
+          message: `ticket "${ticket.id}" was claimed at ${stalled.claimed} but its last attempt is older (${stalled.attempt})`,
+        });
+      }
     }
   }
   return { root, tickets: tickets.map(({ fields, ...rest }) => rest), frontier, errors, warnings };
