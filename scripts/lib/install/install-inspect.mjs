@@ -83,6 +83,30 @@ export function releaseDigests(release) {
   return digests;
 }
 
+// An unsealed override is an install-environment event, not part of the
+// released bytes, so its audit record lives beside the release store rather
+// than inside a release. That keeps it readable after a release is rebuilt or
+// pruned, and lets `install check` name the override instead of calling the
+// release a plain install.
+const OVERRIDE_RECORDS_RELATIVE = "install-overrides";
+
+export function overrideRecordPath(releaseRoot, commit) {
+  if (typeof commit !== "string" || !/^[0-9a-f]{4,64}$/.test(commit)) return null;
+  return path.join(releaseRoot, OVERRIDE_RECORDS_RELATIVE, `${commit}.json`);
+}
+
+export function readOverrideRecord(releaseRoot, commit) {
+  const file = overrideRecordPath(releaseRoot, commit);
+  if (!file || !fs.existsSync(file)) return null;
+  try {
+    const record = readJson(file);
+    if (!record || typeof record !== "object" || Array.isArray(record)) return null;
+    return record;
+  } catch {
+    return null;
+  }
+}
+
 // The anchor is the ledger as committed, not the working copy: `install seal`
 // writes the ledger before it is committed, and a release that only the
 // working tree seals is not yet anchored. Falls back to the release-local copy
@@ -231,7 +255,10 @@ function isPriorReleasePath(plan, item, linked) {
   const relative = segments.slice(1).join(path.sep);
   const legacy = item.label === "bin__krn-codex-catalog" ? "scripts/catalog.mjs" : null;
   if (relative !== item.relative && relative !== legacy) return false;
-  try { verifyRelease(path.join(releases, segments[0]), segments[0]); return true; } catch { return false; }
+  // Prior-release classification is about the link shape and the release's
+  // structural integrity; an unsealed (audited or not) prior release still
+  // classifies, exactly as a sealed one does.
+  try { verifyRelease(path.join(releases, segments[0]), segments[0], { requireSealed: false }); return true; } catch { return false; }
 }
 
 export function classifyTarget(plan, item, linked) {
@@ -472,6 +499,7 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   })();
   const legacyHooks = legacyHookTargets(path.dirname(releaseRoot), manifest);
   const ledger = anchoredLedger(source);
+  const overrideAudit = currentTarget ? readOverrideRecord(releaseRoot, path.basename(currentTarget)) : null;
   const base = {
     releaseRoot,
     current,
@@ -480,6 +508,7 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     hookPolicy: managedHookPolicy({ requirementsPath }),
     session: { status: "session_loaded_unknown" },
     sessionAfterApply: { status: "stale_session_likely" },
+    ...(overrideAudit ? { override: overrideAudit } : {}),
   };
   if (!currentTarget) {
     const currentStat = fs.lstatSync(current, { throwIfNoEntry: false });
@@ -497,6 +526,7 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     };
   }
   let metadata;
+  let overrideSeal = false;
   try {
     metadata = verifyRelease(
       currentTarget,
@@ -504,24 +534,48 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
       ledger ? { ledger, anchor: "committed" } : {},
     );
   } catch (error) {
-    const status = error.rule === "digest-unsealed" ? "digest_unsealed" : "broken_link";
-    return { ...base, filesystem: { status, detail: error.message, ...(error.rule ? { rule: error.rule } : {}) }, targets: [] };
+    if (error.rule !== "digest-unsealed") {
+      return { ...base, filesystem: { status: "broken_link", detail: error.message, ...(error.rule ? { rule: error.rule } : {}) }, targets: [] };
+    }
+    // An intact audit record whose digest still matches the bytes is an
+    // explicit override, not corruption. Keep inspecting targets and keep the
+    // override visible; a mismatched record is a tampered release and stays a
+    // plain unsealed verdict.
+    const intact = Boolean(overrideAudit) && overrideAudit.digest === digestTree(currentTarget).digest;
+    if (!intact) {
+      return { ...base, filesystem: { status: "digest_unsealed", detail: error.message, rule: error.rule }, targets: [] };
+    }
+    try {
+      metadata = verifyRelease(currentTarget, path.basename(currentTarget), { requireSealed: false });
+    } catch (integrity) {
+      return { ...base, filesystem: { status: "broken_link", detail: integrity.message, ...(integrity.rule ? { rule: integrity.rule } : {}) }, targets: [] };
+    }
+    overrideSeal = true;
   }
   if (!manifest) return { ...base, filesystem: { status: "broken_link", detail: "release manifest is missing or unreadable" }, targets: [] };
   const plan = { releaseRoot, current, manifest, source: "", allowLegacySource: true, release: currentTarget };
   const targets = managedTargets(plan).map((item) => itemStatus(plan, item));
   for (const orphan of orphanManagedLinks(plan)) targets.push({ target: orphan, status: "orphaned_link" });
   const bad = targets.find((item) => item.status !== "filesystem_installed");
+  const overrideFilesystem = overrideSeal
+    ? {
+      status: "digest_unsealed",
+      rule: "digest-unsealed",
+      override: { actor: overrideAudit.actor, reason: overrideAudit.reason, at: overrideAudit.at },
+    }
+    : null;
   return {
     ...base,
     commit: metadata.commit,
-    seal: metadata.seal,
+    seal: overrideSeal ? "override_unsealed" : metadata.seal,
     legacyHooks,
     filesystem: overridePresent
       ? { status: "masked_by_override", detail: override }
       : legacyHooks.length > 0
         ? { status: "legacy_hook_conflict", detail: legacyHooks.join(", ") }
-        : { status: bad ? bad.status : "filesystem_installed" },
+        : bad
+          ? { status: bad.status }
+          : (overrideFilesystem ?? { status: "filesystem_installed" }),
     targets,
   };
 }
