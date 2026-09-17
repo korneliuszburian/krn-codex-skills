@@ -9,6 +9,7 @@ import { isSafeRelativePath as safeRelativePath } from "../support/path-rules.mj
 import { readJson } from "../support/read-json.mjs";
 
 import {
+  RELEASE_DIGESTS_RELATIVE,
   canonicalPath,
   classifyTarget,
   digestTree,
@@ -18,11 +19,12 @@ import {
   managedTargets,
   orphanManagedLinks,
   pruneReleases,
+  releaseDigests,
   resolvedLink,
   stableTarget,
   verifyRelease,
 } from "./install-inspect.mjs";
-import { sealRelease, sealReleaseDigest } from "./install-seal.mjs";
+import { sealReleaseDigest } from "./install-seal.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
@@ -107,25 +109,44 @@ export function createInstallPlan({ source, cwd, codexHome = process.env.CODEX_H
     release: path.join(releaseRoot, "releases", resolved.commit),
     current: path.join(releaseRoot, "current"),
     runtimePaths: runtimePaths(resolved.root, manifest),
+    ledger: releaseDigests(resolved.root),
     manifest,
   };
 }
 
-export function sealCurrentRelease({ source, cwd, codexHome } = {}) {
+export function sealCurrentRelease({ root, source, cwd, codexHome } = {}) {
   const plan = createInstallPlan({ source, cwd, codexHome });
-  const sealed = sealRelease({ release: plan.release, commit: plan.commit });
-  const ledger = sealReleaseDigest({ root: plan.source, commit: plan.commit, digest: sealed.digest });
-  return { commit: plan.commit, release: plan.release, digest: sealed.digest, ledger: ledger.file };
+  const digest = expectedReleaseDigest(plan);
+  const ledgerRoot = path.resolve(root ?? plan.source);
+  if (!fs.statSync(ledgerRoot, { throwIfNoEntry: false })?.isDirectory()) {
+    fail(`seal root is not a directory: ${ledgerRoot}`, EXIT_SOURCE);
+  }
+  const ledger = sealReleaseDigest({ root: ledgerRoot, commit: plan.commit, digest });
+  return { commit: plan.commit, release: plan.release, root: ledgerRoot, digest, ledger: ledger.file };
 }
 
-function copyRuntime(plan, staging) {
-  // Git archive, rather than a filesystem copy, makes the release exactly the
-  // resolved commit: ignored and untracked bytes can never cross the boundary.
+// Git archive, rather than a filesystem copy, makes the release exactly the
+// resolved commit: ignored and untracked bytes can never cross the boundary.
+function buildRuntime(plan, staging) {
   const archive = execFileSync("git", ["archive", "--format=tar", plan.commit, "--", ...plan.runtimePaths], {
     cwd: plan.source,
     maxBuffer: 32 * 1024 * 1024,
   });
   execFileSync("tar", ["-x", "-C", staging, "--no-same-owner"], { input: archive });
+}
+
+function expectedReleaseDigest(plan) {
+  const staging = fs.mkdtempSync(path.join(os.tmpdir(), "krn-release-digest-"));
+  try {
+    buildRuntime(plan, staging);
+    return digestTree(staging).digest;
+  } finally {
+    fs.rmSync(staging, { recursive: true, force: true, maxRetries: 50, retryDelay: 100 });
+  }
+}
+
+function copyRuntime(plan, staging) {
+  buildRuntime(plan, staging);
   const metadata = {
     schemaVersion: 1,
     commit: plan.commit,
@@ -133,9 +154,28 @@ function copyRuntime(plan, staging) {
     source: "manifest-owned runtime closure",
   };
   metadata.digest = digestTree(staging).digest;
-  sealReleaseDigest({ root: staging, commit: plan.commit, digest: metadata.digest });
   fs.writeFileSync(path.join(staging, ".krn-release.json"), `${JSON.stringify(metadata, null, 2)}\n`);
   return metadata;
+}
+
+function targetSeal(plan, digest) {
+  const entries = plan.ledger ?? {};
+  const recorded = entries[plan.commit];
+  if (typeof recorded === "string") {
+    if (recorded === digest) return { ok: true };
+    return { ok: false, reason: "mismatched" };
+  }
+  return Object.values(entries).includes(digest) ? { ok: true } : { ok: false, reason: "unsealed" };
+}
+
+function recordUnsealedOverride(plan, release, digest) {
+  if (releaseDigests(release)[plan.commit] !== digest) {
+    sealReleaseDigest({ root: release, commit: plan.commit, digest });
+  }
+  const file = path.join(release, ".krn-release.json");
+  const metadata = readJson(file);
+  metadata.override = { rule: "allow-unsealed", commit: plan.commit, digest, at: new Date().toISOString() };
+  fs.writeFileSync(file, `${JSON.stringify(metadata, null, 2)}\n`);
 }
 
 function preflightCurrent(plan) {
@@ -146,7 +186,9 @@ function preflightCurrent(plan) {
   if (!linked || path.dirname(linked) !== releases) {
     fail(`refusing foreign current binding: ${plan.current}`, EXIT_COLLISION);
   }
-  verifyRelease(linked, path.basename(linked));
+  // The current release is only checked for integrity. Its seal status is the
+  // ledger's business and must never block installing a sealed target.
+  verifyRelease(linked, path.basename(linked), { requireSealed: false });
 }
 
 function preflightTargets(plan) {
@@ -238,7 +280,7 @@ function reconcileTargets(plan) {
   return { backup: usedBackup ? backup : null, reconciled: changed.length > 0 };
 }
 
-export function applyInstall(plan) {
+export function applyInstall(plan, { allowUnsealed = true } = {}) {
   preflightTargets(plan);
   for (const dir of [plan.releaseRoot, path.join(plan.releaseRoot, "releases")]) {
     const stat = fs.lstatSync(dir, { throwIfNoEntry: false });
@@ -248,14 +290,25 @@ export function applyInstall(plan) {
   }
   fs.mkdirSync(path.dirname(plan.release), { recursive: true });
   const staging = fs.mkdtempSync(path.join(plan.releaseRoot, ".staging-"));
+  let seal;
+  let expected;
   try {
-    const expected = copyRuntime(plan, staging);
+    expected = copyRuntime(plan, staging);
+    seal = targetSeal(plan, expected.digest);
+    if (!seal.ok && !allowUnsealed) {
+      fail(
+        `refusing ${seal.reason} target commit ${plan.commit}: ${expected.digest} is not sealed in ${RELEASE_DIGESTS_RELATIVE}`,
+        EXIT_CORRUPT,
+      );
+    }
+    if (!seal.ok) recordUnsealedOverride(plan, staging, expected.digest);
     if (fs.lstatSync(plan.release, { throwIfNoEntry: false })) {
-      const existing = verifyRelease(plan.release, plan.commit);
+      const existing = verifyRelease(plan.release, plan.commit, { requireSealed: false });
       if (existing.digest !== expected.digest || JSON.stringify(existing.runtimePaths) !== JSON.stringify(expected.runtimePaths)) {
         fail(`existing release does not match the resolved source: ${plan.release}`, EXIT_CORRUPT);
       }
       fs.rmSync(staging, { recursive: true, force: true, maxRetries: 50, retryDelay: 100 });
+      if (!seal.ok) recordUnsealedOverride(plan, plan.release, expected.digest);
     } else {
       fs.renameSync(staging, plan.release);
     }
@@ -271,7 +324,7 @@ export function applyInstall(plan) {
   try {
     verifyInstalledCli(plan);
     const { backup, reconciled } = reconcileTargets(plan);
-    return { ...plan, backup, idempotent: Boolean(previous === plan.release) && !reconciled };
+    return { ...plan, backup, idempotent: Boolean(previous === plan.release) && !reconciled, allowUnsealed: !seal.ok };
   } catch (error) {
     restoreCurrent(plan, previous);
     throw error;
