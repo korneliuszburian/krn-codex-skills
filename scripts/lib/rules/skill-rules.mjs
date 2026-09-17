@@ -174,6 +174,142 @@ export function skillPromotionErrors(discoveredPaths, promotedPaths) {
   return errors;
 }
 
+const ROUTING_CATEGORIES = new Set(["canonical", "synonym", "negative", "no-owner"]);
+
+const QUERY_STOPWORDS = new Set([
+  "this", "that", "these", "those", "with", "from", "into", "your", "have", "does",
+  "when", "then", "than", "them", "they", "will", "would", "should", "about", "after",
+  "before", "without", "across", "over", "plain",
+]);
+
+const ACTION_VERBS = new Set([
+  "audit", "capture", "condense", "coordinate", "copy", "define", "disable", "edit",
+  "enable", "enter", "handle", "implement", "initialize", "inspect", "install",
+  "inventory", "make", "manage", "plan", "produce", "profile", "repair", "request",
+  "review", "rewrite", "run", "set", "sharpen", "test", "turn", "verify", "write",
+]);
+
+const OBJECT_STOPWORDS = new Set([
+  "a", "an", "the", "this", "that", "these", "those", "your", "our", "its", "their",
+  "one", "two", "three", "and", "or", "for", "with", "from", "into", "over", "across",
+  "every", "each", "all", "any", "explicitly", "requested", "settled", "accepted",
+  "bounded", "forced", "first", "before", "after", "when", "while",
+]);
+
+function normalizePhrase(text) {
+  return String(text).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function declaresTrigger(description, phrase) {
+  const haystack = normalizePhrase(description);
+  const needle = normalizePhrase(phrase);
+  return needle.length > 0 && haystack.includes(needle);
+}
+
+function queryTokens(query) {
+  return [...new Set(normalizePhrase(query).split(" ").filter((token) => token.length >= 4 && !QUERY_STOPWORDS.has(token)))];
+}
+
+function pairKey(left, right) {
+  return [left, right].sort().join("\u0000");
+}
+
+export function verbObjectTriggers(description) {
+  const first = String(description).replace(/\s+/g, " ").split(/(?<=[.!?])\s/)[0] ?? "";
+  const tokens = first.toLowerCase().match(/[a-z][a-z-]+/g) ?? [];
+  const verbIndex = tokens.findIndex((token) => ACTION_VERBS.has(token));
+  if (verbIndex === -1) return [];
+  for (let index = verbIndex + 1; index < tokens.length; index += 1) {
+    if (ACTION_VERBS.has(tokens[index]) || OBJECT_STOPWORDS.has(tokens[index])) continue;
+    return [`${tokens[verbIndex]} ${tokens[index]}`];
+  }
+  return [];
+}
+
+export function triggerCollisionWarnings(skills, { companions = [] } = {}) {
+  const warnings = [];
+  const pairs = new Set(companions.map(([left, right]) => pairKey(left, right)));
+  const claims = new Map();
+  for (const skill of skills) {
+    if (skill.implicit === false) continue;
+    for (const trigger of verbObjectTriggers(skill.description)) {
+      if (!claims.has(trigger)) claims.set(trigger, []);
+      claims.get(trigger).push(skill.name);
+    }
+  }
+  for (const [trigger, names] of claims) {
+    const unique = [...new Set(names)];
+    for (let left = 0; left < unique.length; left += 1) {
+      for (let right = left + 1; right < unique.length; right += 1) {
+        if (pairs.has(pairKey(unique[left], unique[right]))) continue;
+        warnings.push({ rule: "trigger-collision", trigger, skills: [unique[left], unique[right]] });
+      }
+    }
+  }
+  return warnings;
+}
+
+export function routingCaseErrors(skills, cases, { companions = [] } = {}) {
+  const errors = [];
+  const byName = new Map(skills.map((skill) => [skill.name, skill]));
+  const implicit = skills.filter((skill) => skill.implicit !== false);
+  const pairs = new Set(companions.map(([left, right]) => pairKey(left, right)));
+  const ids = new Set();
+  const categories = new Set();
+  const covered = new Set();
+  for (const entry of cases) {
+    const id = entry?.id;
+    if (typeof id !== "string" || !id.trim()) {
+      errors.push("routing case needs a non-empty id");
+      continue;
+    }
+    if (ids.has(id)) errors.push(`routing case ${id}: duplicate id`);
+    ids.add(id);
+    if (!ROUTING_CATEGORIES.has(entry.category)) errors.push(`routing case ${id}: unknown category ${entry.category}`);
+    else categories.add(entry.category);
+    if (typeof entry.query !== "string" || !entry.query.trim()) errors.push(`routing case ${id}: query must be non-empty`);
+    if (typeof entry.trigger !== "string" || !entry.trigger.trim()) errors.push(`routing case ${id}: trigger must be non-empty`);
+    const near = Array.isArray(entry.near) ? [...new Set(entry.near)] : [];
+    for (const name of near) if (!byName.has(name)) errors.push(`routing case ${id}: unknown near skill ${name}`);
+    if (entry.owner === null || entry.owner === undefined) {
+      if (entry.category === "canonical" || entry.category === "synonym") {
+        errors.push(`routing case ${id}: a ${entry.category} case needs an owner`);
+      }
+      const claimants = implicit.filter((skill) => declaresTrigger(skill.description, entry.trigger)).map((skill) => skill.name);
+      if (claimants.length) errors.push(`routing case ${id}: no-owner trigger "${entry.trigger}" is claimed by ${claimants.join(", ")}`);
+      if (entry.category === "negative") {
+        for (const name of near) {
+          const skill = byName.get(name);
+          if (skill && !queryTokens(entry.query).some((token) => declaresTrigger(skill.description, token))) {
+            errors.push(`routing case ${id}: near skill ${name} is not close to the query`);
+          }
+        }
+      }
+    } else {
+      const owner = byName.get(entry.owner);
+      if (!owner) errors.push(`routing case ${id}: unknown owner ${entry.owner}`);
+      else if (owner.implicit === false) errors.push(`routing case ${id}: owner ${entry.owner} is explicit-only`);
+      else {
+        if (!declaresTrigger(owner.description, entry.trigger)) errors.push(`routing case ${id}: ${entry.owner} does not declare trigger "${entry.trigger}"`);
+        const rivals = implicit
+          .filter((skill) => skill.name !== owner.name && declaresTrigger(skill.description, entry.trigger) && !pairs.has(pairKey(skill.name, owner.name)))
+          .map((skill) => skill.name);
+        if (rivals.length) errors.push(`routing case ${id}: trigger "${entry.trigger}" is also claimed by ${rivals.join(", ")}`);
+        covered.add(owner.name);
+      }
+      if (entry.category === "no-owner") errors.push(`routing case ${id}: a no-owner case must not name an owner`);
+    }
+    for (const name of near) {
+      if (entry.owner === name) errors.push(`routing case ${id}: near skill ${name} is also the owner`);
+      const skill = byName.get(name);
+      if (skill && declaresTrigger(skill.description, entry.trigger)) errors.push(`routing case ${id}: near skill ${name} shares trigger "${entry.trigger}"`);
+    }
+  }
+  for (const skill of implicit) if (!covered.has(skill.name)) errors.push(`routing case set: no positive case for ${skill.name}`);
+  for (const category of ROUTING_CATEGORIES) if (!categories.has(category)) errors.push(`routing case set: no ${category} case`);
+  return errors;
+}
+
 export function contractBudgetErrors({ label, text, maxLineChars, maxWords, maxChars }) {
   const errors = [];
   text.split("\n").forEach((line, index) => {
