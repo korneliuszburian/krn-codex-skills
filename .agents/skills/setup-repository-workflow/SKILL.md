@@ -117,9 +117,9 @@ plans remain ephemeral.
    owning Goal closes. A short-lived result returns to its active outcome owner;
    when another session must resume it, the owning workflow keeps only its
    workflow-specific artifact in that run and returns condensed continuation
-   through the native Goal or configured tracker. Only `$delivery-loop` may
-   persist the outcome capsule, at
-   `.krn/runs/delivery-loop/<outcome-id>/state.md`. `docs/research/workflow-lessons.md`
+   through the native Goal or configured tracker. Only the outcome capsule's
+   sole writer named in `config/AGENTS.md` may persist it.
+   `docs/research/workflow-lessons.md`
    is the only `docs/research/` page scaffolded; `CONTEXT.md`, `docs/adr/`, and
    any other `docs/research/` page remain absent until active vocabulary, an
    earned consequential decision, or a named research consumer requires them.
