@@ -8,6 +8,7 @@ import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindin
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
 import { churnHot } from "../support/churn.mjs";
 import { runGit } from "../support/git-cli.mjs";
+import { maskLiterals, stripComments } from "../support/source-mask.mjs";
 import {
   changedFilesUnder, checkFileRedefined, frozenNodeArgs, frozenRedOk, frozenTestsFor,
   isTestFile, listTestFiles, listTestFilesIn, normalizeRef, outputTail, resolveCheck, runCheck,
@@ -130,9 +131,72 @@ export function runCheckAtBase({ root, base, target, git = runGit, overlay = nul
   }
 }
 
+const isRuntimeModule = (rel) => rel.startsWith("scripts/") && rel.endsWith(".mjs") && !isTestFile(rel);
+
+function importSpecifiers(source) {
+  const code = stripComments(source);
+  const masked = maskLiterals(code);
+  const specifiers = [];
+  for (const match of masked.matchAll(/(?:^|[;\n}])\s*import\s+([^;]*?)\s+from\s+["']([^"']+)["']/dg)) {
+    specifiers.push(code.slice(match.indices[2][0], match.indices[2][1]));
+  }
+  for (const match of masked.matchAll(/export\s*\{([^}]*)\}\s*from\s+["']([^"']+)["']/dg)) {
+    specifiers.push(code.slice(match.indices[2][0], match.indices[2][1]));
+  }
+  for (const match of masked.matchAll(/import\s*\(/g)) {
+    const specifier = /^import\s*\(\s*["']([^"']+)["']/.exec(code.slice(match.index))?.[1];
+    if (specifier) specifiers.push(specifier);
+  }
+  return specifiers;
+}
+
+function importCone(root) {
+  const graph = new Map();
+  const relative = (file) => path.relative(root, file).split(path.sep).join("/");
+  const record = (file) => {
+    let source;
+    try { source = fs.readFileSync(file, "utf8"); } catch { return; }
+    const from = relative(file);
+    for (const specifier of importSpecifiers(source)) {
+      if (!specifier.startsWith(".")) continue;
+      const target = relative(path.resolve(path.dirname(file), specifier));
+      if (target === from) continue;
+      if (!graph.has(target)) graph.set(target, new Set());
+      graph.get(target).add(from);
+    }
+  };
+  const visit = (dir) => {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) visit(full);
+      else if (entry.isFile() && entry.name.endsWith(".mjs")) record(full);
+    }
+  };
+  for (const top of ["scripts", "test", "skills"]) visit(path.join(root, top));
+  return graph;
+}
+
+function uncoveredImporterWarnings({ graph, changed, namedRisks, commit }) {
+  const warnings = [];
+  for (const file of changed) {
+    for (const importer of graph.get(file) ?? []) {
+      if (!isRuntimeModule(importer)) continue;
+      const tests = [...(graph.get(importer) ?? [])].filter(isTestFile).sort();
+      if (tests.length === 0) continue;
+      if (tests.some((test) => namedRisks.includes(test))) continue;
+      warnings.push({ rule: "uncovered-importer", commit, ref: importer, detail: `changed ${file} reaches ${importer}; declare At-risk: ${tests.join(" or ")}` });
+    }
+  }
+  return warnings;
+}
+
 export function checkChangeContract({ root, base, head = "HEAD", git = runGit, run = runCheck, verifyBefore = false, runAtBase = null, strictRecall = null, requireCleanHead = false } = {}) {
   const errors = [];
   const warnings = [];
+  let graph = null;
+  const importGraph = () => (graph ??= importCone(root));
   const requestedHead = git(root, ["rev-parse", "--verify", `${head}^{commit}`]);
   const checkoutHead = git(root, ["rev-parse", "--verify", "HEAD^{commit}"]);
   if (requireCleanHead && !requestedHead.ok) {
@@ -252,6 +316,15 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const files = changed.files;
     const contract = parseChangeContract(`${commit.subject}\n${commit.body}`);
     const surface = contractSurface(files);
+    const changedModules = files.filter((file) => isRuntimeModule(file) && fs.existsSync(path.join(root, file)));
+    if (changedModules.length > 0) {
+      warnings.push(...uncoveredImporterWarnings({
+        graph: importGraph(),
+        changed: changedModules,
+        namedRisks: contract.atRisk.map((ref) => normalizeRef(ref)),
+        commit: commit.sha,
+      }));
+    }
     const symbolFiles = touchedSymbolFiles({ root, git, sha: commit.sha });
     const symbols = [...symbolFiles.keys()];
     const hot = churnEnabled ? churnHot({ root, git, sha: commit.sha, files }) : [];
