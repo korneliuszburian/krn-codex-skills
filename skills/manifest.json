@@ -101,6 +101,10 @@
   ],
   "bins": [
     {
+      "name": "krn",
+      "path": "scripts/krn.mjs"
+    },
+    {
       "name": "krn-codex",
       "path": "scripts/krn-codex.mjs"
     },
