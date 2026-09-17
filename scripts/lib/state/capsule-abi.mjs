@@ -80,6 +80,40 @@ export function parseCleanup(value) {
   return { entries, malformed };
 }
 
+const ACCEPTANCE_STATUSES = new Set(["todo", "pass"]);
+
+const DROP_REASON = /^drop\s*:\s*(.+)$/i;
+
+// The acceptance ledger is one bracketed list of `criterion; status` items so a
+// fresh session can re-verify each criterion independently. A status is `todo`,
+// `pass`, or `drop:<why>`; a drop without a reason is malformed, and prose that
+// never opened a bracket has no ledger at all.
+export function parseAcceptance(value) {
+  if (typeof value !== "string") return { ledger: false, items: [], malformed: [] };
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("[")) return { ledger: false, items: [], malformed: [] };
+  if (!trimmed.endsWith("]")) return { ledger: true, items: [], malformed: [trimmed] };
+  const items = [];
+  const malformed = [];
+  for (const chunk of trimmed.slice(1, -1).split(",")) {
+    const entry = chunk.replace(/[<>]/g, "").trim();
+    if (!entry) continue;
+    const separator = entry.indexOf(";");
+    const criterion = separator === -1 ? "" : entry.slice(0, separator).trim();
+    const rawStatus = separator === -1 ? "" : entry.slice(separator + 1).trim();
+    const reason = DROP_REASON.exec(rawStatus);
+    if (criterion && ACCEPTANCE_STATUSES.has(rawStatus.toLowerCase())) {
+      items.push({ criterion, status: rawStatus.toLowerCase() });
+    } else if (criterion && reason && reason[1].trim() !== "") {
+      items.push({ criterion, status: "drop", reason: reason[1].trim() });
+    } else {
+      malformed.push(entry);
+    }
+  }
+  if (items.length === 0 && malformed.length === 0) malformed.push(trimmed);
+  return { ledger: true, items, malformed };
+}
+
 const COMMIT_ANCHOR = /\b(base|HEAD|fingerprint)\s*=\s*([0-9a-f]{40}|[0-9a-f]{64})\b/gi;
 
 export function renderCapsule(values) {
