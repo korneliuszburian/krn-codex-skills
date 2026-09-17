@@ -360,7 +360,23 @@ export function hasEnvFingerprint(value) {
   return ENV_FINGERPRINT.test(String(value ?? "").trim());
 }
 
-export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint() }) {
+// The lane runner already measures wall time and billed tokens, so a closure
+// carries them on the Evidence value: upkeep versus outcome becomes a query.
+const COST_RECORD = /(?:^|;\s*)Cost:\s*wall=(\d+(?:\.\d+)?)s;\s*tokens=(\d+)(?:;|$)/;
+
+function costRecord({ wallSeconds, tokens }) {
+  if (wallSeconds === undefined || wallSeconds === null || tokens === undefined || tokens === null) return "";
+  const wall = Number(wallSeconds);
+  const count = Number(tokens);
+  if (!Number.isFinite(wall) || !Number.isFinite(count) || wall < 0 || count < 0) return "";
+  return `Cost: wall=${wall}s; tokens=${count}`;
+}
+
+function hasCostRecord(value) {
+  return COST_RECORD.test(String(value ?? "").trim());
+}
+
+export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint(), wallSeconds, tokens }) {
   const { text, fields } = readValidTicket(file);
   const status = fields.get("Status");
   if (status === "done" || status === "abandoned") throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
@@ -378,7 +394,9 @@ export function closeTicket({ file, root, git = runGit, evidence = "none", resol
     }
   }
   const anchor = integratedAnchor({ root: anchorRoot, git, fields });
-  const evidenceLine = anchor ? `${evidence}; integrated=${anchor.sha}; patch=${anchor.patch}` : evidence;
+  const cost = costRecord({ wallSeconds, tokens });
+  let evidenceLine = anchor ? `${evidence}; integrated=${anchor.sha}; patch=${anchor.patch}` : evidence;
+  if (cost) evidenceLine = `${evidenceLine}; ${cost}`;
   let next = setField(text, "Status", "done");
   next = setField(next, "Evidence", evidenceLine);
   next = setField(next, "Env", env);
@@ -684,6 +702,9 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
     }
     if (ticket.status === "done" && !hasEnvFingerprint(ticket.fields.get("Env"))) {
       warnings.push({ path: ticket.path, rule: "missing-env-fingerprint", message: `ticket "${ticket.id}" is done without an Env fingerprint` });
+    }
+    if (ticket.status === "done" && !hasCostRecord(ticket.fields.get("Evidence"))) {
+      warnings.push({ path: ticket.path, rule: "missing-cost", message: `ticket "${ticket.id}" is done without a wall/token cost record` });
     }
     if (ticket.status === "claimed") {
       const lease = claimLease({ fields: ticket.fields, root, id: ticket.id });
