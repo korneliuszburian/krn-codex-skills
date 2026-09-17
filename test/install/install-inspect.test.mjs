@@ -69,7 +69,11 @@ test("applyInstall rolls back reconciled targets when a later step fails", () =>
     const first = createInstallPlan({ source, cwd: source, codexHome: home });
     applyInstall(first);
     const before = inspectInstall({ codexHome: home });
-    assert.equal(before.filesystem.status, "filesystem_installed");
+    // A day-one apply has no repository seal, so it is an audited override
+    // rather than a self-sealed release.
+    assert.equal(before.filesystem.status, "digest_unsealed");
+    assert.equal(before.seal, "override_unsealed");
+    assert.ok(before.override, JSON.stringify(before));
 
     const firstTarget = before.targets[0];
     const itemRelative = relative(first.current, fs.readlinkSync(firstTarget.target));
@@ -86,20 +90,23 @@ test("applyInstall rolls back reconciled targets when a later step fails", () =>
     }
 
     const after = inspectInstall({ codexHome: home });
-    assert.equal(after.filesystem.status, "filesystem_installed");
+    assert.equal(after.filesystem.status, "digest_unsealed");
+    assert.equal(after.seal, "override_unsealed");
     assert.equal(after.commit, first.commit);
     assert.ok(after.targets.length > 0, "the rollback still enumerates targets");
     assert.ok(after.targets.every((target) => target.status === "filesystem_installed"));
   });
 });
 
-test("inspectInstall reports filesystem_installed after a real apply", () => {
+test("inspectInstall reports an audited override after a real apply", () => {
   withHome(({ base, home }) => {
     const source = cleanSource(base);
     const plan = createInstallPlan({ source, cwd: source, codexHome: home });
     applyInstall(plan);
     const report = inspectInstall({ codexHome: home });
-    assert.equal(report.filesystem.status, "filesystem_installed");
+    assert.equal(report.filesystem.status, "digest_unsealed");
+    assert.equal(report.seal, "override_unsealed");
+    assert.ok(report.override, JSON.stringify(report));
     assert.equal(report.commit, plan.commit);
     assert.ok(report.targets.length > 0);
     assert.ok(report.targets.every((target) => target.status === "filesystem_installed"));
