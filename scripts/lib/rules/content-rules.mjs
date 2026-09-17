@@ -1,6 +1,58 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { fenceLines, unfencedLines } from "../support/fences.mjs";
 
 export { fenceLines, unfencedLines };
+
+const STALE_REFERENCE_ROOTS = new Set([
+  "skills",
+  ".agents",
+  "scripts",
+  "config",
+  "test",
+  "docs",
+]);
+
+function staleRepoPathCandidates(line) {
+  const candidates = [];
+  for (const match of line.matchAll(/`([^`]+)`/g)) {
+    const value = match[1].trim();
+    if (!value.includes("/")) continue;
+    if (/[<>*$…\s]/.test(value)) continue;
+    if (value.includes("://") || value.startsWith("--")) continue;
+    if (value.includes("...")) continue;
+    candidates.push(value);
+  }
+  return candidates;
+}
+
+function staleScriptCandidates(line) {
+  return [...line.matchAll(/\bnpm run ([a-zA-Z0-9:_-]+)/g)].map((match) => match[1]);
+}
+
+export function staleReferenceErrors(
+  content,
+  { label, root, scripts, exists = existsSync },
+) {
+  const findings = [];
+  for (const { line, number } of unfencedLines(content)) {
+    for (const candidate of staleRepoPathCandidates(line)) {
+      const value = candidate.split(/[#?]/)[0].replace(/\/+$/, "");
+      const first = value.split("/")[0];
+      if (!STALE_REFERENCE_ROOTS.has(first)) continue;
+      if (!exists(resolve(root, value))) {
+        findings.push({ label, number, kind: "path", value: candidate });
+      }
+    }
+    for (const script of staleScriptCandidates(line)) {
+      if (!scripts.has(script)) {
+        findings.push({ label, number, kind: "script", value: script });
+      }
+    }
+  }
+  return findings;
+}
 
 function splitTableRow(line) {
   const cells = [];
