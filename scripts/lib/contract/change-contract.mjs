@@ -396,6 +396,24 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
           }
         }
       }
+      // A green->green obligation over a check that changed in the range is only
+      // trustworthy when the changed check was also green at base: otherwise an
+      // unrelated pre-existing red rides along under a behavior-preserving claim.
+      if (verifyBefore && obligation.before === "green" && obligation.after === "green" && obligation.frozenObserver && outcome.ok) {
+        const baseRun = baseOnce(overlays.length ? overlays : null);
+        const baseOutput = baseRun.outcome?.output ?? "";
+        if (baseRun.unavailable || baseRun.outcome?.spawnFailed) {
+          errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete; its before-state is unproven" });
+        } else if (tapSummary(baseOutput).setup) {
+          errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check failed to load (setup error), so green is unproven" });
+        } else {
+          const green = baseRun.outcome.ok;
+          results.push({ ref: obligation.ref, commit: obligation.commit, phase: "base", after: "green", status: green ? "green" : "red" });
+          if (!green) {
+            errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the check is red at base; the declared green->green before-state is unverified" });
+          }
+        }
+      }
     }
   }
   return { root, commits: commits.map((commit) => commit.sha), results, errors, warnings };
