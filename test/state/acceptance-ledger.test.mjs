@@ -6,6 +6,7 @@ import test from "node:test";
 
 import { inspectSpineState } from "../../scripts/lib/state/state-check.mjs";
 import { runGit } from "../../scripts/lib/support/git-cli.mjs";
+import { writeCapsule } from "../support/state-fixtures.mjs";
 
 const git = (root, args) => runGit(root, args).out;
 
@@ -40,12 +41,6 @@ function capsule({ outcome = "ACTIVE", acceptance = "test", fixedPoint = "" } = 
     "Next bounded owner and action: continue the bounded slice",
     "",
   ].join("\n");
-}
-
-function writeCapsule(root, text, id = "out-1") {
-  const dir = join(root, ".krn", "runs", "delivery-loop", id);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "state.md"), text);
 }
 
 const errorRules = (report) => report.errors.map((error) => error.rule);

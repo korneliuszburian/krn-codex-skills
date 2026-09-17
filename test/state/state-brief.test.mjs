@@ -25,6 +25,7 @@ function makeRepo() {
   return { root, head: git(root, ["rev-parse", "HEAD"]) };
 }
 
+// Local on purpose: this helper builds capsule text, unlike the writes-only writeCapsule in test/support/state-fixtures.mjs.
 function writeCapsule(root, fixedPoint, cleanup = "none") {
   const dir = join(root, ".krn", "runs", "delivery-loop", "out-1");
   mkdirSync(dir, { recursive: true });
