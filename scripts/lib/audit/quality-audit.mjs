@@ -156,6 +156,42 @@ const normalizedBody = (source, start) => {
   return "";
 };
 
+const ASSERTION_TOKEN = /\b(?:assert|expect)\b/g;
+
+const assertionTokens = (text) => (text.match(ASSERTION_TOKEN) ?? []).length;
+
+const callSpan = (source, open) => {
+  let depth = 0;
+  for (let cursor = open; cursor < source.length; cursor += 1) {
+    if (source[cursor] === "(") depth += 1;
+    else if (source[cursor] === ")") {
+      depth -= 1;
+      if (depth === 0) return { start: open, end: cursor + 1 };
+    }
+  }
+  return null;
+};
+
+const testCallbacks = (source) => {
+  const spans = [];
+  for (const match of source.matchAll(/(?<![.\w$])test\s*\(/g)) {
+    const span = callSpan(source, source.indexOf("(", match.index));
+    if (span) spans.push(span);
+  }
+  return spans;
+};
+
+const oracleHelpers = (source) => {
+  const names = new Set();
+  const declarations =
+    /(?:export\s+)?(?:async\s+)?function\*?\s+([A-Za-z0-9_$]+)\s*\(|(?:const|let|var)\s+([A-Za-z0-9_$]+)\s*=\s*(?:async\s*)?(?:function\b|\()/g;
+  for (const match of source.matchAll(declarations)) {
+    const name = match[1] ?? match[2];
+    if (assertionTokens(normalizedBody(source, match.index)) > 0) names.add(name);
+  }
+  return names;
+};
+
 const CREDENTIALS = [
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, "private key block"],
   [/\bAKIA[0-9A-Z]{16}\b/, "AWS access key id"],
@@ -351,6 +387,32 @@ export function auditRepository(root) {
     if (isSelf(file)) continue;
     if (!isImported(file)) errors.push(`${label(file)}: lib file is never imported`);
     else if (!productionImported(file)) info.push(`${label(file)}: no production consumer (reachable only from tests)`);
+  }
+
+  let oracleTokenCount = 0;
+  let oracleCallbackCount = 0;
+  for (const file of [...sources.keys()].filter(isTestFile)) {
+    const raw = sources.get(file);
+    const masked = maskLiterals(stripComments(raw));
+    const helpers = oracleHelpers(masked);
+    for (const span of testCallbacks(masked)) {
+      oracleCallbackCount += 1;
+      const args = masked.slice(span.start, span.end);
+      const tokens = assertionTokens(args);
+      oracleTokenCount += tokens;
+      if (tokens > 0) continue;
+      if ([...helpers].some((name) => new RegExp(`\\b${name}\\b`).test(args))) continue;
+      const rawArgs = raw.slice(span.start, span.end);
+      if (/\/\/\s*oracle:|\/\*\s*oracle:/i.test(rawArgs)) continue;
+      const name = /^\s*\(\s*["'`]([^"'`]+)["'`]/.exec(rawArgs)?.[1];
+      errors.push(`${label(file)}: test callback without an oracle${name ? ` ("${name}")` : ""}`);
+    }
+  }
+  if (oracleCallbackCount > 0) {
+    info.push(
+      `test oracle density: ${oracleTokenCount} assertion tokens across ${oracleCallbackCount} test callbacks ` +
+        `(${(oracleTokenCount / oracleCallbackCount).toFixed(2)} per callback)`,
+    );
   }
 
   return { errors: [...new Set(errors)], info: [...new Set(info)] };
