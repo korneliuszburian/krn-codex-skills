@@ -8,6 +8,7 @@ import {
   PUBLICATION_STATES,
   fieldLine,
   fixedPointAnchors,
+  parseAcceptance,
   parseCleanup,
   stripMarkup,
 } from "./capsule-abi.mjs";
@@ -217,6 +218,24 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
         rule: "vague-acceptance",
         detail: "acceptance names no command, path, or code marker; state the check the next session can run",
       });
+    }
+    const acceptanceLedger = parseAcceptance(acceptance ?? "");
+    for (const entryText of acceptanceLedger.malformed) {
+      errors.push({ id: entry.name, rule: "malformed-acceptance", detail: entryText });
+    }
+    const outcomeValue = outcome ? stripMarkup(outcome) : "";
+    if (outcomeValue === "ACTIVE" && !acceptanceLedger.ledger) {
+      warnings.push({
+        id: entry.name,
+        rule: "acceptance-without-ledger",
+        detail: "record each criterion as [criterion; todo|pass|drop:<why>] so the next session can re-verify it",
+      });
+    }
+    if (outcomeValue === "COMPLETE") {
+      const open = acceptanceLedger.items.filter((item) => item.status === "todo");
+      if (open.length > 0) {
+        errors.push({ id: entry.name, rule: "complete-with-open-acceptance", detail: open.map((item) => item.criterion).join(", ") });
+      }
     }
     const disposition = fields["Review fixed point and Standards / Spec disposition"];
     if (
