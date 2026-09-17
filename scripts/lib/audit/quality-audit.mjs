@@ -222,6 +222,7 @@ export function auditRepository(root) {
   const runtimeSet = new Set(runtime);
   const dynamicTargets = new Set();
   const productionDynamic = new Set();
+  const dynamicImporters = new Map();
   const starTargets = new Set();
   const edgesByImporter = new Map();
   for (const [file, rawSource] of sources) {
@@ -231,6 +232,8 @@ export function auditRepository(root) {
       const target = resolve(dirname(file), edge.specifier);
       if (edge.dynamic) {
         dynamicTargets.add(target);
+        if (!dynamicImporters.has(target)) dynamicImporters.set(target, new Set());
+        dynamicImporters.get(target).add(file);
         if (runtimeSet.has(file)) productionDynamic.add(target);
         continue;
       }
@@ -255,12 +258,37 @@ export function auditRepository(root) {
     starTargets.has(file) ||
     dynamicTargets.has(file) ||
     [...edgesByImporter].some(([importer, edges]) => importer !== file && edges.get(file)?.names.has(name));
+  const isTestFile = (file) => label(file).startsWith(`test${sep}`);
+  const importersOf = (file, name) => {
+    const importers = new Set();
+    for (const [importer, edges] of edgesByImporter) {
+      if (importer === file) continue;
+      const entry = edges.get(file);
+      if (entry && (entry.names.has(name) || entry.star)) importers.add(importer);
+    }
+    for (const importer of dynamicImporters.get(file) ?? []) importers.add(importer);
+    return importers;
+  };
+  const testOnlyImporters = (file, name) => {
+    const importers = [...importersOf(file, name)];
+    if (importers.length === 0) return [];
+    return importers.every(isTestFile) ? importers : [];
+  };
 
   for (const file of runtime.filter((candidate) => label(candidate).startsWith(`scripts${sep}lib${sep}`))) {
     if (isSelf(file)) continue;
     const source = sources.get(file);
     for (const name of exportedNames(source)) {
-      if (!consumedIn(file, name)) errors.push(`${label(file)}: dead export ${name}`);
+      if (!consumedIn(file, name)) {
+        errors.push(`${label(file)}: dead export ${name}`);
+        continue;
+      }
+      const importers = testOnlyImporters(file, name);
+      if (importers.length > 0) {
+        info.push(
+          `${label(file)}: test-only-export ${name} (imported only by ${importers.map(label).sort().join(", ")})`,
+        );
+      }
     }
   }
 

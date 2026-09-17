@@ -52,6 +52,15 @@ export const MUTATIONS = [
     focus: "namespace and default imports",
   },
   {
+    id: "quality-audit-test-only-export",
+    file: "scripts/lib/audit/quality-audit.mjs",
+    symbol: "testOnlyImporters",
+    find: "return importers.every(isTestFile) ? importers : [];",
+    replace: "return importers;",
+    suite: "test/audit/quality-audit-test-only.test.mjs",
+    focus: "runtime consumer keeps",
+  },
+  {
     id: "change-contract-deny-list",
     file: "scripts/lib/contract/change-contract-runs.mjs",
     symbol: "DENY",
