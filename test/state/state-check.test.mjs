@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { inspectSpineState } from "../../scripts/lib/state/state-check.mjs";
 import { capsuleIdsDetailed } from "../../scripts/lib/state/spine-runs.mjs";
+import { writeCapsule } from "../support/state-fixtures.mjs";
 
 const git = (root, args) => runGit(root, args).out;
 
@@ -107,12 +108,6 @@ function capsule({ outcome = "ACTIVE", publication = "LOCAL_ONLY", restart = "AB
     `Next bounded owner and action: ${next}`,
     "",
   ].join("\n");
-}
-
-function writeCapsule(root, text, id = "out-1") {
-  const dir = join(root, ".krn", "runs", "delivery-loop", id);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "state.md"), text);
 }
 
 function rules(report) {

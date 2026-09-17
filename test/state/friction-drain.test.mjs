@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { inspectSpineState } from "../../scripts/lib/state/state-check.mjs";
+import { writeCapsule } from "../support/state-fixtures.mjs";
 
 const git = (root, args) => runGit(root, args).out;
 
@@ -40,12 +41,6 @@ function capsule({ outcome = "ACTIVE", friction = "none", fixedPoint, next = "co
     `Next bounded owner and action: ${next}`,
     "",
   ].join("\n");
-}
-
-function writeCapsule(root, text) {
-  const dir = join(root, ".krn", "runs", "delivery-loop", "out-1");
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "state.md"), text);
 }
 
 function writeLessonAnchor(root) {
