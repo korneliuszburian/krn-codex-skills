@@ -18,7 +18,9 @@ import {
   managedHookPolicy,
   managedTargets,
   orphanManagedLinks,
+  overrideRecordPath,
   pruneReleases,
+  readOverrideRecord,
   releaseDigests,
   resolvedLink,
   stableTarget,
@@ -170,13 +172,41 @@ function targetSeal(plan, digest) {
   return Object.values(entries).includes(digest) ? { ok: true } : { ok: false, reason: "unsealed" };
 }
 
+function defaultOverrideActor() {
+  return process.env.KRN_OVERRIDE_ACTOR || process.env.USER || process.env.LOGNAME || "unknown";
+}
+
+// The audit record is written once, outside the release, and a re-apply keeps
+// the first actor, reason, and timestamp instead of silently replacing them.
+// The release is deliberately left unsealed: no local ledger entry is written,
+// so verification keeps depending on the repository ledger.
 function recordUnsealedOverride(plan, release, digest) {
-  if (releaseDigests(release)[plan.commit] !== digest) {
-    sealReleaseDigest({ root: release, commit: plan.commit, digest });
+  const existing = readOverrideRecord(plan.releaseRoot, plan.commit);
+  const record = existing ?? {
+    schemaVersion: 1,
+    commit: plan.commit,
+    digest,
+    rule: "allow-unsealed",
+    actor: defaultOverrideActor(),
+    reason: process.env.KRN_OVERRIDE_REASON || "allow-unsealed",
+    at: new Date().toISOString(),
+  };
+  if (!existing) {
+    const target = overrideRecordPath(plan.releaseRoot, plan.commit);
+    if (!target) fail(`refusing an override record for an unsafe commit: ${plan.commit}`, EXIT_CORRUPT);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, `${JSON.stringify(record, null, 2)}\n`);
   }
   const file = path.join(release, ".krn-release.json");
   const metadata = readJson(file);
-  metadata.override = { rule: "allow-unsealed", commit: plan.commit, digest, at: new Date().toISOString() };
+  metadata.override = {
+    rule: record.rule,
+    commit: record.commit,
+    digest: record.digest,
+    at: record.at,
+    actor: record.actor,
+    reason: record.reason,
+  };
   fs.writeFileSync(file, `${JSON.stringify(metadata, null, 2)}\n`);
 }
 
@@ -320,7 +350,11 @@ export function applyInstall(plan, { allowUnsealed = true } = {}) {
     }
     throw error;
   }
-  verifyRelease(plan.release, plan.commit);
+  verifyRelease(plan.release, plan.commit, {
+    ledger: plan.ledger,
+    anchor: "repository",
+    requireSealed: seal.ok,
+  });
   const previous = resolvedLink(plan.current);
   replaceCurrent(plan, plan.release);
   try {
