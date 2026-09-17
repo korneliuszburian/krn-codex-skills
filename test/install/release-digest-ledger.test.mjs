@@ -118,6 +118,7 @@ test("install seal appends the digest entry for the current commit", () => {
     assert.equal(result.status, 0, result.stderr);
     const ledger = JSON.parse(fs.readFileSync(join(source, "config", "release-digests.json"), "utf8"));
     assert.equal(ledger.digests[plan.commit], digestTree(plan.release).digest);
-    assert.equal(verifyRelease(plan.release, plan.commit).commit, plan.commit);
+    assert.equal(verifyRelease(plan.release, plan.commit, { ledger: ledger.digests }).commit, plan.commit);
+    assert.equal(fs.existsSync(join(plan.release, "config", "release-digests.json")), false);
   });
 });

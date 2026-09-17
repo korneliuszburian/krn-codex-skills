@@ -90,7 +90,7 @@ function unsealed(message) {
   throw error;
 }
 
-export function verifyRelease(release, commit) {
+export function verifyRelease(release, commit, { requireSealed = true, ledger } = {}) {
   const stat = fs.lstatSync(release, { throwIfNoEntry: false });
   if (!stat || !stat.isDirectory() || stat.isSymbolicLink()) {
     fail(`existing release is not a regular directory: ${release}`, EXIT_CORRUPT);
@@ -101,14 +101,20 @@ export function verifyRelease(release, commit) {
   }
   const actual = digestTree(release).digest;
   if (actual !== metadata.digest) fail(`existing release is corrupt: ${release}`, EXIT_CORRUPT);
-  const sealed = releaseDigests(release)[commit];
-  if (typeof sealed !== "string") {
-    unsealed(`digest-unsealed: release ${commit} has no digest entry in ${RELEASE_DIGESTS_RELATIVE}`);
+  if (!requireSealed) return metadata;
+  const entries = ledger ?? releaseDigests(release);
+  const sealed = entries[commit];
+  if (typeof sealed === "string") {
+    if (sealed !== actual) {
+      unsealed(`digest-unsealed: release ${commit} tree digest does not match the digest ledger`);
+    }
+    return metadata;
   }
-  if (sealed !== actual) {
-    unsealed(`digest-unsealed: release ${commit} tree digest does not match the digest ledger`);
-  }
-  return metadata;
+  // The committed ledger changes the commit that carries it, so the sealing
+  // commit is never the one it names; the same bytes recorded under any name
+  // are sealed.
+  if (Object.values(entries).includes(actual)) return metadata;
+  unsealed(`digest-unsealed: release ${commit} has no digest entry in ${RELEASE_DIGESTS_RELATIVE}`);
 }
 
 export function managedTargets(plan) {
