@@ -6,6 +6,7 @@ import path from "node:path";
 
 import { parseChangeContract } from "../contract/change-contract.mjs";
 import { runGit, runGitRaw } from "../support/git-cli.mjs";
+import { writeAtomic } from "../support/write-atomic.mjs";
 
 const STATUSES = new Set(["ready", "claimed", "blocked", "in-review", "done", "abandoned", "deferred"]);
 const TYPES = new Set(["task", "bug", "refactor", "research", "decision", "epic"]);
@@ -244,11 +245,11 @@ export function claimTicket({ file, root, id, worker, session = "", at = new Dat
     }
     const epoch = Math.max(nextEpoch(fields), (Number(held?.epoch) || 0) + 1);
     const claim = { worker, session, at, epoch, renew: at, duration };
-    fs.writeFileSync(lockPath, JSON.stringify(claim));
+    writeAtomic(lockPath, JSON.stringify(claim));
     observer?.({ id: ticketId, lockPath, claim });
     let next = setField(text, "Status", "claimed");
     next = setField(next, "Claim", `worker=${worker}; session=${session}; at=${at}; epoch=${epoch}; renew=${at}; duration=${duration}`);
-    fs.writeFileSync(file, next);
+    writeAtomic(file, next);
     return { id: ticketId, path: file, status: "claimed", claim };
   } finally {
     if (handle !== null) fs.closeSync(handle);
@@ -328,7 +329,7 @@ export function recordAttempt({ file, signature = "", reason = "unknown", at = n
     next = setField(next, "Status", "blocked");
     next = setField(next, "Gate", "retries-exhausted");
   }
-  fs.writeFileSync(file, next);
+  writeAtomic(file, next);
   return {
     id,
     path: file,
@@ -382,7 +383,7 @@ export function closeTicket({ file, root, git = runGit, evidence = "none", resol
   next = setField(next, "Evidence", evidenceLine);
   next = setField(next, "Env", env);
   next = setField(next, "Resolution", `${resolution} (closed ${at})`);
-  fs.writeFileSync(file, next);
+  writeAtomic(file, next);
   return { id: fields.get("Id"), path: file, status: "done", anchor };
 }
 

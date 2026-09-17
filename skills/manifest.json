@@ -64,6 +64,7 @@
     "scripts/lib/support/source-mask.mjs",
     "scripts/lib/support/symbol-triggers.mjs",
     "scripts/lib/support/tap.mjs",
+    "scripts/lib/support/write-atomic.mjs",
     "scripts/lib/ticket/ticket-cli.mjs",
     "scripts/lib/ticket/ticket.mjs",
     "skills/manifest.json"
