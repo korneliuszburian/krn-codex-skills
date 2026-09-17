@@ -203,6 +203,65 @@ export function claimTicket({ file, root, id, worker, session = "", at = new Dat
   }
 }
 
+const MAX_ATTEMPTS = 3;
+
+function attemptBlock(text) {
+  const start = text.indexOf("<krn-ticket>");
+  const end = text.indexOf("</krn-ticket>");
+  if (start === -1 || end === -1 || end < start) throw new Error("ticket has no complete <krn-ticket> block");
+  return { start, end, closeLength: "</krn-ticket>".length };
+}
+
+function attemptCount(text) {
+  const { start, end } = attemptBlock(text);
+  let count = 0;
+  for (const line of text.slice(start, end).split("\n")) {
+    const match = /^Attempts:\s*count=(\d+)\b/.exec(line.trim());
+    if (match) count = Math.max(count, Number(match[1]));
+  }
+  return count;
+}
+
+function attemptLine({ count, reason, at }) {
+  const clean = String(reason ?? "").replace(/[\r\n]+/g, " ").trim() || "unknown";
+  return `Attempts: count=${count}; reason=${clean}; at=${at}`;
+}
+
+// The ledger grows in place: each stalled session appends one Attempts token
+// after the previous one, so the ticket itself is the retry counter.
+function appendAttempt(text, line) {
+  const { start, end, closeLength } = attemptBlock(text);
+  const block = text.slice(start, end + closeLength);
+  let insert = -1;
+  for (const match of block.matchAll(/^Attempts:.*$/gm)) insert = match.index + match[0].length;
+  const updated = insert === -1
+    ? block.replace(/\n?<\/krn-ticket>$/, `\n${line}\n</krn-ticket>`)
+    : `${block.slice(0, insert)}\n${line}${block.slice(insert)}`;
+  return text.slice(0, start) + updated + text.slice(end + closeLength);
+}
+
+export function recordAttempt({ file, reason = "unknown", at = new Date().toISOString() } = {}) {
+  const { text, fields } = readValidTicket(file);
+  const id = fields.get("Id");
+  const status = fields.get("Status");
+  if (status !== "claimed") throw new Error(`ticket ${id} cannot record an attempt (Status: ${status})`);
+  const count = attemptCount(text) + 1;
+  const exhausted = count >= MAX_ATTEMPTS;
+  let next = appendAttempt(text, attemptLine({ count, reason, at }));
+  if (exhausted) {
+    next = setField(next, "Status", "blocked");
+    next = setField(next, "Gate", "retries-exhausted");
+  }
+  fs.writeFileSync(file, next);
+  return {
+    id,
+    path: file,
+    status: exhausted ? "blocked" : "claimed",
+    attempts: count,
+    gate: exhausted ? "retries-exhausted" : null,
+  };
+}
+
 export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD" }) {
   const { text, fields } = readValidTicket(file);
   const status = fields.get("Status");
