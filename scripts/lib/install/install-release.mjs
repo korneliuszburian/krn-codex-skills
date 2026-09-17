@@ -333,8 +333,16 @@ export function applyInstall(plan, { allowUnsealed = true } = {}) {
   }
 }
 
+function installedCliEntry(release) {
+  for (const relative of ["scripts/krn.mjs", "scripts/krn-codex.mjs"]) {
+    const entry = path.join(release, relative);
+    if (fs.existsSync(entry)) return entry;
+  }
+  return path.join(release, "scripts", "krn.mjs");
+}
+
 function verifyInstalledCli(plan) {
-  const entry = path.join(plan.current, "scripts", "krn-codex.mjs");
+  const entry = installedCliEntry(plan.current);
   // A hung entry once blocked the installer for minutes and left a teardown
   // race behind (2026-09-16 CI flakes), so the smoke is time-bounded;
   // KRN_SMOKE_TIMEOUT_MS only shortens the bound for tests.

@@ -68,7 +68,7 @@ test("apply fails closed when the installed CLI hangs", () => {
   const archive = execFileSync("git", ["-C", sourceRoot, "archive", "HEAD"], { maxBuffer: 64 * 1024 * 1024 });
   execFileSync("tar", ["-x", "-C", copy], { input: archive });
   execFileSync("git", ["-C", copy, "init", "-q"]);
-  const entry = path.join(copy, "scripts", "krn-codex.mjs");
+  const entry = path.join(copy, "scripts", "krn.mjs");
   const original = fs.readFileSync(entry, "utf8");
   const lines = original.split("\n");
   let lastImport = -1;
