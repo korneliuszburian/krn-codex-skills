@@ -64,7 +64,7 @@ test("claim writes the claim before work and removes the ticket from the frontie
     assert.match(text, /^Status: claimed$/m);
     assert.match(text, /^Claim: worker=stub; session=s-1; at=/m);
     assert.deepEqual(ticketLib.checkTickets({ root: dir }).frontier, []);
-    assert.throws(() => ticketLib.claimTicket({ file, worker: "stub" }), /not ready/);
+    assert.throws(() => ticketLib.claimTicket({ file, worker: "stub" }), /already-claimed/);
   });
 });
 

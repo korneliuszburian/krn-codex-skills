@@ -79,6 +79,47 @@ function nextEpoch(fields) {
   return match ? Number(match[1]) + 1 : 1;
 }
 
+const DEFAULT_CLAIM_DURATION = 3600;
+
+function readClaimLock(lockPath) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+// A claim is a lease, not a flag: it expires `duration` seconds after its last
+// renewal. The lock file is the durable record, so it is overwritten on
+// reclaim rather than deleted on release.
+function leaseExpired(claim, now) {
+  const start = Date.parse(String(claim?.renew ?? claim?.at ?? ""));
+  const duration = Number(claim?.duration);
+  const nowMs = Date.parse(String(now ?? ""));
+  if (!Number.isFinite(start) || !Number.isFinite(duration) || !Number.isFinite(nowMs)) return false;
+  return nowMs >= start + duration * 1000;
+}
+
+function claimField(claim, name) {
+  return new RegExp(`(?:^|;\\s*)${name}=([^;]*)`).exec(claim ?? "")?.[1]?.trim();
+}
+
+function claimLease({ fields, root, id }) {
+  const claim = fields.get("Claim") ?? "";
+  let renew = claimField(claim, "renew");
+  let duration = claimField(claim, "duration");
+  if (renew === undefined || duration === undefined) {
+    const held = readClaimLock(path.join(root, ".krn", "claims", `${id}.lock`));
+    if (held) {
+      renew = renew ?? held.renew;
+      duration = duration ?? held.duration;
+    }
+  }
+  if (renew === undefined || duration === undefined) return null;
+  return { renew, duration: Number(duration) };
+}
+
 const INTEGRATED_ANCHOR = /(?:^|[;\s])integrated=([0-9a-f]{7,40})/i;
 const PATCH_ANCHOR = /(?:^|[;\s])patch=([0-9a-f]{40})/i;
 
@@ -175,33 +216,42 @@ function anchorErrors({ root, git, ticket, base, head }) {
   return [{ path: anchor.path, rule: "evidence-anchor-missing", message: `${anchor.message} and its patch id is absent from the range` }];
 }
 
-export function claimTicket({ file, root, id, worker, session = "", at = new Date().toISOString(), observer } = {}) {
+export function claimTicket({ file, root, id, worker, session = "", at = new Date().toISOString(), duration = DEFAULT_CLAIM_DURATION, observer } = {}) {
   const claimRoot = root ?? rootForTicket(file);
   const ticketId = id ?? readValidTicket(file).fields.get("Id");
   const lockPath = path.join(claimRoot, ".krn", "claims", `${ticketId}.lock`);
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
-  let handle;
-  try {
-    handle = fs.openSync(lockPath, "wx");
-  } catch (error) {
-    if (error.code === "EEXIST") throw new Error(`ticket ${ticketId} is already-claimed`);
-    throw error;
+  const { text, fields } = readValidTicket(file);
+  const held = readClaimLock(lockPath);
+  const status = fields.get("Status");
+  if (status === "ready") {
+    if (held && !leaseExpired(held, at)) throw new Error(`ticket ${ticketId} is already-claimed`);
+  } else if (status === "claimed" && held) {
+    if (!leaseExpired(held, at)) throw new Error(`ticket ${ticketId} is already-claimed`);
+  } else {
+    throw new Error(`ticket ${ticketId} is not ready (Status: ${status})`);
   }
+  let handle = null;
   try {
-    const { text, fields } = readValidTicket(file);
-    const epoch = nextEpoch(fields);
-    const claim = { worker, session, at, epoch };
-    fs.writeFileSync(handle, JSON.stringify(claim));
+    if (!held) {
+      try {
+        handle = fs.openSync(lockPath, "wx");
+      } catch (error) {
+        if (error.code !== "EEXIST") throw error;
+        const raced = readClaimLock(lockPath);
+        if (raced && !leaseExpired(raced, at)) throw new Error(`ticket ${ticketId} is already-claimed`);
+      }
+    }
+    const epoch = Math.max(nextEpoch(fields), (Number(held?.epoch) || 0) + 1);
+    const claim = { worker, session, at, epoch, renew: at, duration };
+    fs.writeFileSync(lockPath, JSON.stringify(claim));
     observer?.({ id: ticketId, lockPath, claim });
-    const status = fields.get("Status");
-    if (status !== "ready") throw new Error(`ticket ${ticketId} is not ready (Status: ${status})`);
     let next = setField(text, "Status", "claimed");
-    next = setField(next, "Claim", `worker=${worker}; session=${session}; at=${at}; epoch=${epoch}`);
+    next = setField(next, "Claim", `worker=${worker}; session=${session}; at=${at}; epoch=${epoch}; renew=${at}; duration=${duration}`);
     fs.writeFileSync(file, next);
     return { id: ticketId, path: file, status: "claimed", claim };
   } finally {
-    fs.closeSync(handle);
-    fs.rmSync(lockPath, { force: true });
+    if (handle !== null) fs.closeSync(handle);
   }
 }
 
@@ -452,7 +502,7 @@ function contractErrors({ root, git, ticket, head }) {
   return [];
 }
 
-export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD" } = {}) {
+export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD", now = new Date().toISOString() } = {}) {
   const tickets = [];
   const errors = [];
   const warnings = [];
@@ -545,6 +595,14 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
       warnings.push({ path: ticket.path, rule: "missing-env-fingerprint", message: `ticket "${ticket.id}" is done without an Env fingerprint` });
     }
     if (ticket.status === "claimed") {
+      const lease = claimLease({ fields: ticket.fields, root, id: ticket.id });
+      if (lease && leaseExpired(lease, now)) {
+        warnings.push({
+          path: ticket.path,
+          rule: "claim-expired",
+          message: `ticket "${ticket.id}" lease expired (renew=${lease.renew}, duration=${lease.duration}s)`,
+        });
+      }
       const stalled = stalledClaim(ticket.fields);
       if (stalled) {
         warnings.push({
