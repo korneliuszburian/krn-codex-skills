@@ -33,8 +33,9 @@ process.stderr.on("error", (error) => {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const usage = `Usage:
   krn-codex install plan [--source REF|PATH] [--json]
-  krn-codex install apply [--source REF|PATH] --yes [--json]
+  krn-codex install apply [--source REF|PATH] [--allow-unsealed] --yes [--json]
   krn-codex install check [--json]
+  krn-codex install seal [--source REF|PATH] --root REPO [--json]
   krn-codex install prune [--keep N] [--json]
   krn-codex doctor [--json]
   krn-codex capability <inventory|usage|profile|plan|apply|check> [...args]
@@ -71,6 +72,7 @@ function parseOptions(args) {
     if (arg === "--json") options.json = true;
     else if (arg === "--yes") options.yes = true;
     else if (arg === "--before") options.before = true;
+    else if (arg === "--allow-unsealed") options.allowUnsealed = true;
     else if (arg === "--gate") options.gate = true;
     else if (arg === "--approve") options.approve = true;
     else if (arg === "--strict-recall") options.strictRecall = true;
@@ -139,6 +141,7 @@ const OPTION_FLAG = {
   frozen: "--frozen",
   upstream: "--upstream",
   before: "--before",
+  allowUnsealed: "--allow-unsealed",
   yes: "--yes",
   json: "--json",
 };
@@ -418,17 +421,17 @@ try {
       print(pruneReport, options.json);
       if (pruneReport.refused) process.exitCode = 3;
     } else if (command === "seal") {
-      rejectForeignOptions(options, ["source"]);
-      print(sealCurrentRelease({ source: options.source, cwd: process.cwd() }), options.json);
+      rejectForeignOptions(options, ["source", "root"]);
+      print(sealCurrentRelease({ root: options.root, source: options.source, cwd: process.cwd() }), options.json);
     } else if (command === "plan" || command === "apply") {
-      rejectForeignOptions(options, command === "apply" ? ["source", "yes"] : ["source"]);
+      rejectForeignOptions(options, command === "apply" ? ["source", "yes", "allowUnsealed"] : ["source"]);
       if (command === "apply" && !options.yes) fail("install apply requires --yes");
       const plan = createInstallPlan({ source: options.source, cwd: process.cwd() });
       if (command === "plan") {
         print({ source: plan.source, commit: plan.commit, release: plan.release, runtimePaths: plan.runtimePaths }, options.json);
       } else {
-        const applied = applyInstall(plan);
-        print({ commit: applied.commit, release: applied.release, current: applied.current, backup: applied.backup, idempotent: applied.idempotent }, options.json);
+        const applied = applyInstall(plan, { allowUnsealed: options.allowUnsealed === true || !fs.lstatSync(plan.current, { throwIfNoEntry: false }) });
+        print({ commit: applied.commit, release: applied.release, current: applied.current, backup: applied.backup, idempotent: applied.idempotent, allowUnsealed: applied.allowUnsealed }, options.json);
       }
     } else fail(usage);
   } else if (positional[0] === "doctor") {
