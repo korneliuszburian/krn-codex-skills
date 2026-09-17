@@ -8,7 +8,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [README.md](README.md) — operator entrypoint, main workflow, and skill catalog.
 - [docs/research/README.md](docs/research/README.md) — research index and curation contract.
 - [docs/research/orchestration.md](docs/research/orchestration.md) — current lifecycle spine, admission map, retrieval ladder, and falsifiers.
-- [docs/research/lab-tests.md](docs/research/lab-tests.md) — registered LT-1..LT-7 lab-test claims, protocols, and residuals.
+- [docs/research/lab-tests.md](docs/research/lab-tests.md) — the LT lab-test registry (LT-1 through LT-62), protocols, and residuals.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
 - [docs/adr/0002-lifecycle-transition-table.md](docs/adr/0002-lifecycle-transition-table.md) — accepted condition → handler → return transition table.
 - [docs/adr/0003-finite-release-decision.md](docs/adr/0003-finite-release-decision.md) — accepted stop rule: a finite release decision replaces the open-ended bug hunt.
