@@ -498,10 +498,10 @@ function scopeErrors({ root, git, ticket, base, head }) {
   return errors;
 }
 
-const CONTRACT_TRANSITION = /:\s*(?:red|green)\s*->\s*(?:red|green)\s*$/i;
+const CONTRACT_DIRECTION = /:\s*(red|green)\s*->\s*(red|green)\s*$/i;
 
 function contractRef(value) {
-  return String(value ?? "").trim().replace(/^\.\//, "").replace(CONTRACT_TRANSITION, "").trim();
+  return String(value ?? "").trim().replace(/^\.\//, "").replace(CONTRACT_DIRECTION, "").trim();
 }
 
 function namesTicket(body, id) {
@@ -530,10 +530,23 @@ function contractErrors({ root, git, ticket, head }) {
 
 const TEST_REF = /(?:^|\/)test\/|\.test\.(?:mjs|cjs|js)$/;
 
+function baseRefExists({ root, git, base }) {
+  return Boolean(base) && git(root, ["cat-file", "-e", `${base}^{commit}`]).ok;
+}
+
 function absentAtBase({ root, git, base, file }) {
-  if (!base || !file) return false;
-  if (!git(root, ["cat-file", "-e", `${base}^{commit}`]).ok) return false;
+  if (!base || !file || !baseRefExists({ root, git, base })) return false;
   return !git(root, ["cat-file", "-e", `${base}:${file}`]).ok;
+}
+
+function presentAtBase({ root, git, base, file }) {
+  if (!base || !file || !baseRefExists({ root, git, base })) return false;
+  return git(root, ["cat-file", "-e", `${base}:${file}`]).ok;
+}
+
+function contractDirection(value) {
+  const match = CONTRACT_DIRECTION.exec(String(value ?? "").trim());
+  return match ? { from: match[1].toLowerCase(), to: match[2].toLowerCase() } : null;
 }
 
 function namesNewObserver(acceptance, ref) {
@@ -546,6 +559,19 @@ function envelopeLintErrors({ root, git, ticket }) {
   const base = ticketBase(ticket.fields);
   const ref = contractRef(ticket.fields.get("Contract"));
   if (!base || !ref || !TEST_REF.test(ref)) return errors;
+  // An existing observer already passes at base, so `red->green` cannot be the
+  // closure's transition: the lane preflight refuses it as already-passing.
+  const direction = contractDirection(ticket.fields.get("Contract"));
+  if (presentAtBase({ root, git, base, file: ref })) {
+    if (direction?.from === "red" && direction?.to === "green") {
+      errors.push({
+        path: ticket.path,
+        rule: "existing-check-red-flip",
+        message: `ticket "${ticket.id}" Contract names existing test file "${ref}" with direction red->green; it already passes at ${base}, so the lane preflight refuses it`,
+      });
+    }
+    return errors;
+  }
   if (!absentAtBase({ root, git, base, file: ref })) return errors;
   const scope = scopeEntries(ticket.fields.get("Scope"));
   if (!scope.some((entry) => scopeDeclares(entry, "package.json"))) {
