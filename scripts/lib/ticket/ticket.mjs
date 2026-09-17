@@ -274,9 +274,13 @@ function attemptCount(text) {
   return count;
 }
 
-function attemptLine({ count, reason, at }) {
+function attemptLine({ count, signature, reason, at }) {
   const clean = String(reason ?? "").replace(/[\r\n]+/g, " ").trim() || "unknown";
-  return `Attempts: count=${count}; reason=${clean}; at=${at}`;
+  const sig = String(signature ?? "").replace(/[\r\n;]+/g, " ").trim();
+  const parts = [`count=${count}`];
+  if (sig) parts.push(`signature=${sig}`);
+  parts.push(`reason=${clean}`, `at=${at}`);
+  return `Attempts: ${parts.join("; ")}`;
 }
 
 // The ledger grows in place: each stalled session appends one Attempts token
@@ -292,14 +296,34 @@ function appendAttempt(text, line) {
   return text.slice(0, start) + updated + text.slice(end + closeLength);
 }
 
-export function recordAttempt({ file, reason = "unknown", at = new Date().toISOString() } = {}) {
+// A runner-computed signature names the failure state of one attempt: opaque
+// text the ticket only counts. Repeating it proves the retry added no new
+// information, so the ledger itself can refuse to spend another lane.
+function repeatedSignature(text) {
+  const counts = new Map();
+  const { start, end } = attemptBlock(text);
+  for (const line of text.slice(start, end).split("\n")) {
+    if (!/^Attempts:\s*count=\d+\b/.test(line.trim())) continue;
+    const signature = claimField(line.trim(), "signature");
+    if (!signature) continue;
+    counts.set(signature, (counts.get(signature) ?? 0) + 1);
+  }
+  let worst = null;
+  for (const [signature, count] of counts) {
+    if (!worst || count > worst.count) worst = { signature, count };
+  }
+  return worst;
+}
+
+export function recordAttempt({ file, signature = "", reason = "unknown", at = new Date().toISOString() } = {}) {
   const { text, fields } = readValidTicket(file);
   const id = fields.get("Id");
   const status = fields.get("Status");
   if (status !== "claimed") throw new Error(`ticket ${id} cannot record an attempt (Status: ${status})`);
   const count = attemptCount(text) + 1;
   const exhausted = count >= MAX_ATTEMPTS;
-  let next = appendAttempt(text, attemptLine({ count, reason, at }));
+  const cleanSignature = String(signature ?? "").replace(/[\r\n;]+/g, " ").trim();
+  let next = appendAttempt(text, attemptLine({ count, signature: cleanSignature, reason, at }));
   if (exhausted) {
     next = setField(next, "Status", "blocked");
     next = setField(next, "Gate", "retries-exhausted");
@@ -310,6 +334,7 @@ export function recordAttempt({ file, reason = "unknown", at = new Date().toISOS
     path: file,
     status: exhausted ? "blocked" : "claimed",
     attempts: count,
+    signature: cleanSignature || null,
     gate: exhausted ? "retries-exhausted" : null,
   };
 }
@@ -524,6 +549,7 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
       status: fields.get("Status"),
       blockedBy: blockerIds(fields.get("Blocked by")),
       fields,
+      text,
     });
   }
   const byId = new Map();
@@ -612,6 +638,20 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
         });
       }
     }
+    const repeated = repeatedSignature(ticket.text);
+    if (repeated && repeated.count >= MAX_ATTEMPTS) {
+      errors.push({
+        path: ticket.path,
+        rule: "stalled-signature",
+        message: `ticket "${ticket.id}" repeated attempt signature "${repeated.signature}" ${repeated.count} times`,
+      });
+    } else if (repeated && repeated.count >= 2) {
+      warnings.push({
+        path: ticket.path,
+        rule: "repeated-attempt-signature",
+        message: `ticket "${ticket.id}" repeated attempt signature "${repeated.signature}" (${repeated.count} attempts)`,
+      });
+    }
   }
-  return { root, tickets: tickets.map(({ fields, ...rest }) => rest), frontier, errors, warnings };
+  return { root, tickets: tickets.map(({ fields, text, ...rest }) => rest), frontier, errors, warnings };
 }
