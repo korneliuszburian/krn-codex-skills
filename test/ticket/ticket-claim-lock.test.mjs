@@ -66,10 +66,10 @@ test("claim opens an exclusive lock carrying worker, session, at, and epoch befo
     assert.equal(held.length, 1, "the observer must run while the lock is held");
     assert.equal(held[0].observedPath, lockPath);
     assert.equal(held[0].present, true, "the lock file must exist before the ticket is written");
-    assert.deepEqual(held[0].claim, { worker: "worker-a", session: "session-a", at: "2026-09-16T00:00:00.000Z", epoch: 1 });
+    assert.deepEqual(held[0].claim, { worker: "worker-a", session: "session-a", at: "2026-09-16T00:00:00.000Z", epoch: 1, renew: "2026-09-16T00:00:00.000Z", duration: 3600 });
     assert.equal(result.claim.epoch, 1);
-    assert.match(readFileSync(file, "utf8"), /^Claim: worker=worker-a; session=session-a; at=2026-09-16T00:00:00.000Z; epoch=1$/m);
-    assert.equal(existsSync(lockPath), false, "a completed claim releases the lock");
+    assert.match(readFileSync(file, "utf8"), /^Claim: worker=worker-a; session=session-a; at=2026-09-16T00:00:00.000Z; epoch=1; renew=2026-09-16T00:00:00.000Z; duration=\d+$/m);
+    assert.equal(existsSync(lockPath), true, "the claim lock persists as the lease record");
   });
 });
 
@@ -117,7 +117,7 @@ test("the fencing epoch increments across successive claims", async () => {
     writeFileSync(file, ticket({ ...baseFields, Claim: "worker=old; session=; at=2026-01-01T00:00:00.000Z; epoch=4" }));
     const result = ticketLib.claimTicket({ file, root: dir, id: "t-1", worker: "worker-a", session: "session-a" });
     assert.equal(result.claim.epoch, 5);
-    assert.match(readFileSync(file, "utf8"), /^Claim: worker=worker-a; session=session-a; at=.*; epoch=5$/m);
+    assert.match(readFileSync(file, "utf8"), /^Claim: worker=worker-a; session=session-a; at=.*; epoch=5; renew=.*; duration=\d+$/m);
   });
 });
 
@@ -135,8 +135,8 @@ test("the CLI claims through the same lock and records the epoch", () => {
     );
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
     assert.equal(JSON.parse(result.stdout).claim.epoch, 1);
-    assert.match(readFileSync(file, "utf8"), /^Claim: worker=worker-a; session=; at=.*; epoch=1$/m);
-    assert.equal(existsSync(join(dir, ".krn", "claims", "t-1.lock")), false);
+    assert.match(readFileSync(file, "utf8"), /^Claim: worker=worker-a; session=; at=.*; epoch=1; renew=.*; duration=\d+$/m);
+    assert.equal(existsSync(join(dir, ".krn", "claims", "t-1.lock")), true);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
