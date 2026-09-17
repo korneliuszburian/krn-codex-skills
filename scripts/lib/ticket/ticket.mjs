@@ -203,11 +203,23 @@ export function claimTicket({ file, root, id, worker, session = "", at = new Dat
   }
 }
 
-export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString() }) {
+export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD" }) {
   const { text, fields } = readValidTicket(file);
   const status = fields.get("Status");
   if (status === "done" || status === "abandoned") throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
   const anchorRoot = root ?? rootForTicket(file);
+  const ticket = { id: fields.get("Id"), path: file, fields };
+  // Closing consumes the same scope and contract verdicts the lane used, so a
+  // closure cannot be written over a diff or trailer `ticket check` rejects.
+  if (base) {
+    const violations = [
+      ...scopeErrors({ root: anchorRoot, git, ticket, base, head }),
+      ...contractErrors({ root: anchorRoot, git, ticket, head }),
+    ];
+    if (violations.length > 0) {
+      throw new Error(`ticket ${ticket.id} cannot close: ${violations.map((entry) => `${entry.rule}: ${entry.message}`).join("; ")}`);
+    }
+  }
   const anchor = integratedAnchor({ root: anchorRoot, git, fields });
   const evidenceLine = anchor ? `${evidence}; integrated=${anchor.sha}; patch=${anchor.patch}` : evidence;
   let next = setField(text, "Status", "done");
