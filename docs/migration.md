@@ -103,7 +103,7 @@ at exit 73). Never edit a release in place;
 delete a corrupt or superseded release only after no installed link or session
 references it.
 
-The release digest ledger is committed at `config/release-digests.json` and verified by `krn install check` (`digest-unsealed`); the `.krn-release.json` file remains the per-release metadata. Historical note: the digest ledger paragraph previously said inside the release tree and
+The release digest ledger is committed at `config/release-digests.json`; `krn install check` reports `digest-unsealed` when a release tree has no entry, and the `.krn-release.json` file remains the per-release metadata. An independent review on 2026-09-16 showed the default check still anchors on the ledger copy inside the release, so the committed anchor is armed by sh-54. Historical note: the paragraph previously said inside the release tree and
 excludes itself, so it detects content corruption but not a writer who rewrites
 both the tree and that metadata; a separate trust anchor is out of scope for a
 single-user cooperative install.
