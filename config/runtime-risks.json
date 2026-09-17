@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "entries": [
+    { "path": "config/capability-profiles.json", "class": "read-only" },
+    { "path": "config/opencode/plugins/krn.js", "class": "additive" },
+    { "path": "config/upstream-sources.json", "class": "read-only" },
+    { "path": "scripts/catalog.mjs", "class": "read-only" },
+    {
+      "path": "scripts/install.sh",
+      "class": "destructive",
+      "authority": "Authority: run only via an explicit install/retire/rollback request; it links and removes global capability paths and never carries the repository root."
+    },
+    { "path": "scripts/krn-codex-catalog.mjs", "class": "additive" },
+    {
+      "path": "scripts/krn-codex.mjs",
+      "class": "destructive",
+      "authority": "Authority: install, retire, and rollback subcommands mutate the user's global capability index and require an explicit operator request."
+    },
+    { "path": "scripts/lib/catalog/catalog-config.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-desired.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-document.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-errors.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-inventory-paths.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-inventory-records.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-inventory.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-path-safety.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-plan.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-profile.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-profiles.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-report.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-toml.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-usage-literals.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-usage-normalize.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/catalog-usage.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/plugin-identity.mjs", "class": "read-only" },
+    { "path": "scripts/lib/conformance/conformance.mjs", "class": "additive" },
+    { "path": "scripts/lib/contract/change-contract-runs.mjs", "class": "read-only" },
+    { "path": "scripts/lib/contract/change-contract.mjs", "class": "read-only" },
+    { "path": "scripts/lib/contract/command-analysis.mjs", "class": "read-only" },
+    {
+      "path": "scripts/lib/frontend/browser.mjs",
+      "class": "external",
+      "authority": "Authority: reaches the frontend dev server on the loopback ready URL declared in runtime facts; never targets a remote host."
+    },
+    { "path": "scripts/lib/frontend/design.mjs", "class": "read-only" },
+    { "path": "scripts/lib/frontend/facts.mjs", "class": "read-only" },
+    { "path": "scripts/lib/frontend/theme.mjs", "class": "read-only" },
+    {
+      "path": "scripts/lib/install/install-inspect.mjs",
+      "class": "destructive",
+      "authority": "Authority: removes only unmanaged or quarantined targets and writes inside $KRN_*_DEST or the user's global config, never the repository."
+    },
+    {
+      "path": "scripts/lib/install/install-release.mjs",
+      "class": "destructive",
+      "authority": "Authority: install, retire, and rollback follow docs/migration.md and act on the user's global capability index under an explicit request."
+    },
+    { "path": "scripts/lib/install/skill-metadata.mjs", "class": "read-only" },
+    {
+      "path": "scripts/lib/install/skills-export.mjs",
+      "class": "destructive",
+      "authority": "Authority: regenerates .agents/skills from skills/manifest.json and replaces any prior export, preserving only declared carryover files."
+    },
+    { "path": "scripts/lib/lessons/lessons-recall.mjs", "class": "read-only" },
+    { "path": "scripts/lib/lessons/lessons-verify.mjs", "class": "read-only" },
+    { "path": "scripts/lib/lessons/lessons.mjs", "class": "read-only" },
+    { "path": "scripts/lib/state/capsule-abi.mjs", "class": "read-only" },
+    { "path": "scripts/lib/state/spine-runs.mjs", "class": "read-only" },
+    { "path": "scripts/lib/state/state-brief.mjs", "class": "read-only" },
+    { "path": "scripts/lib/state/state-check.mjs", "class": "read-only" },
+    { "path": "scripts/lib/support/churn.mjs", "class": "read-only" },
+    { "path": "scripts/lib/support/diagnostics.mjs", "class": "read-only" },
+    { "path": "scripts/lib/support/fences.mjs", "class": "read-only" },
+    { "path": "scripts/lib/support/git-cli.mjs", "class": "read-only" },
+    { "path": "scripts/lib/support/path-rules.mjs", "class": "read-only" },
+    { "path": "scripts/lib/support/read-json.mjs", "class": "read-only" },
+    { "path": "scripts/lib/support/regexp.mjs", "class": "read-only" },
+    {
+      "path": "scripts/lib/support/remove-tree.mjs",
+      "class": "destructive",
+      "authority": "Authority: destructive helper; callers must pass a confined target below the working root and guard against the repository root itself."
+    },
+    { "path": "scripts/lib/support/repo-root.mjs", "class": "read-only" },
+    { "path": "scripts/lib/support/source-mask.mjs", "class": "read-only" },
+    { "path": "scripts/lib/support/symbol-triggers.mjs", "class": "read-only" },
+    { "path": "scripts/lib/support/tap.mjs", "class": "read-only" },
+    { "path": "scripts/lib/ticket/ticket-cli.mjs", "class": "additive" },
+    { "path": "scripts/lib/ticket/ticket.mjs", "class": "additive" },
+    { "path": "skills/manifest.json", "class": "read-only" }
+  ]
+}

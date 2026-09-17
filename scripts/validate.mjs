@@ -11,6 +11,7 @@ import { ABI_LABELS } from "./lib/state/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/rules/durable-pages.mjs";
 import { checkLessons } from "./lib/lessons/lessons.mjs";
 import { runtimeClosureErrors } from "./lib/contract/runtime-closure.mjs";
+import { loadRuntimeRisks, riskClassErrors } from "./lib/contract/risk-classes.mjs";
 import {
   contractBudgetErrors,
   lineLimitErrors,
@@ -322,6 +323,15 @@ for (const markdown of repositoryMarkdown) {
     for (const message of runtimeClosureErrors({ root, manifest })) fail(message);
   } catch (error) {
     fail(`runtime closure check failed: ${error.message}`);
+  }
+}
+
+{
+  try {
+    const registry = loadRuntimeRisks(root);
+    for (const message of riskClassErrors({ manifest, registry })) fail(message);
+  } catch (error) {
+    fail(`risk class check failed: ${error.message}`);
   }
 }
 
