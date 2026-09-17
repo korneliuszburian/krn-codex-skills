@@ -83,6 +83,39 @@ export function releaseDigests(release) {
   return digests;
 }
 
+// The anchor is the ledger as committed, not the working copy: `install seal`
+// writes the ledger before it is committed, and a release that only the
+// working tree seals is not yet anchored. Falls back to the release-local copy
+// when the checkout carries no committed seal.
+function committedReleaseDigests(root) {
+  const location = `HEAD:${RELEASE_DIGESTS_RELATIVE}`;
+  const text = git(root, ["show", location]);
+  if (text === "") return null;
+  let document;
+  try {
+    document = JSON.parse(text);
+  } catch {
+    fail(`committed release digest ledger is unreadable: ${location}`, EXIT_CORRUPT);
+  }
+  const digests = document?.digests;
+  if (digests === undefined || digests === null) return null;
+  if (typeof digests !== "object" || Array.isArray(digests)) {
+    fail(`committed release digest ledger is malformed: ${location}`, EXIT_CORRUPT);
+  }
+  return digests;
+}
+
+function anchoredLedger(source) {
+  if (!source) return null;
+  const root = git(source, ["rev-parse", "--show-toplevel"]);
+  if (!root) return null;
+  const digests = committedReleaseDigests(fs.realpathSync(root));
+  // An empty ledger seals nothing; the in-release copy stays the only anchor
+  // for a day-one install that was allowed through the explicit override.
+  if (!digests || Object.keys(digests).length === 0) return null;
+  return digests;
+}
+
 function unsealed(message) {
   const error = new Error(message);
   error.exitCode = EXIT_CORRUPT;
@@ -90,7 +123,7 @@ function unsealed(message) {
   throw error;
 }
 
-export function verifyRelease(release, commit, { requireSealed = true, ledger } = {}) {
+export function verifyRelease(release, commit, { requireSealed = true, ledger, anchor } = {}) {
   const stat = fs.lstatSync(release, { throwIfNoEntry: false });
   if (!stat || !stat.isDirectory() || stat.isSymbolicLink()) {
     fail(`existing release is not a regular directory: ${release}`, EXIT_CORRUPT);
@@ -101,19 +134,21 @@ export function verifyRelease(release, commit, { requireSealed = true, ledger } 
   }
   const actual = digestTree(release).digest;
   if (actual !== metadata.digest) fail(`existing release is corrupt: ${release}`, EXIT_CORRUPT);
-  if (!requireSealed) return metadata;
+  const usedAnchor = anchor ?? (ledger === undefined ? "release" : "committed");
+  if (!requireSealed) return { ...metadata, anchor: usedAnchor };
   const entries = ledger ?? releaseDigests(release);
   const sealed = entries[commit];
   if (typeof sealed === "string") {
     if (sealed !== actual) {
       unsealed(`digest-unsealed: release ${commit} tree digest does not match the digest ledger`);
     }
-    return metadata;
+    return { ...metadata, anchor: usedAnchor, seal: "sealed" };
   }
   // The committed ledger changes the commit that carries it, so the sealing
   // commit is never the one it names; the same bytes recorded under any name
-  // are sealed.
-  if (Object.values(entries).includes(actual)) return metadata;
+  // are sealed, but that indirection is reported as such rather than as a
+  // first-class seal.
+  if (Object.values(entries).includes(actual)) return { ...metadata, anchor: usedAnchor, seal: "sealed_by_value" };
   unsealed(`digest-unsealed: release ${commit} has no digest entry in ${RELEASE_DIGESTS_RELATIVE}`);
 }
 
@@ -425,7 +460,7 @@ export function managedHookPolicy({
   return { status: "hooks_active", path: requirementsPath };
 }
 
-export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex"), requirementsPath } = {}) {
+export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex"), requirementsPath, source = process.cwd() } = {}) {
   const releaseRoot = path.join(canonicalPath(codexHome), "krn");
   const current = path.join(releaseRoot, "current");
   const override = path.join(path.dirname(releaseRoot), "AGENTS.override.md");
@@ -436,10 +471,12 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     try { return readJson(OWN_MANIFEST); } catch { return null; }
   })();
   const legacyHooks = legacyHookTargets(path.dirname(releaseRoot), manifest);
+  const ledger = anchoredLedger(source);
   const base = {
     releaseRoot,
     current,
     legacyHooks,
+    anchor: ledger ? "committed" : "release",
     hookPolicy: managedHookPolicy({ requirementsPath }),
     session: { status: "session_loaded_unknown" },
     sessionAfterApply: { status: "stale_session_likely" },
@@ -460,8 +497,13 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     };
   }
   let metadata;
-  try { metadata = verifyRelease(currentTarget, path.basename(currentTarget)); }
-  catch (error) {
+  try {
+    metadata = verifyRelease(
+      currentTarget,
+      path.basename(currentTarget),
+      ledger ? { ledger, anchor: "committed" } : {},
+    );
+  } catch (error) {
     const status = error.rule === "digest-unsealed" ? "digest_unsealed" : "broken_link";
     return { ...base, filesystem: { status, detail: error.message, ...(error.rule ? { rule: error.rule } : {}) }, targets: [] };
   }
@@ -473,6 +515,7 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
   return {
     ...base,
     commit: metadata.commit,
+    seal: metadata.seal,
     legacyHooks,
     filesystem: overridePresent
       ? { status: "masked_by_override", detail: override }
