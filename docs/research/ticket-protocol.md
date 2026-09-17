@@ -109,7 +109,9 @@ enforces both, with `test/state/friction-drain.test.mjs` as the observer.
 - Publication: one PR per iteration and adjacent tickets batch into one PR; a
   PR whose diff changes exported skill bytes merges with a merge commit so the
   export marker commit stays in history, while code-only iterations may squash
-  into a single conventional commit.
+  into a single conventional commit whose body carries `Ticket: <id>` for every
+  ticket it closes, so a squashed closure keeps its commit reference and orphan
+  detection still finds it.
 - `krn-codex ticket check --root .` validates envelopes, blockers, cycles,
   statuses, and orphans; `krn-codex ticket next --root .` prints the frontier;
   `krn-codex ticket claim|close` validates the transitions it writes.
