@@ -2,6 +2,8 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
+import { churnHot } from "../support/churn.mjs";
+import { runGit } from "../support/git-cli.mjs";
 import { maskLiterals, stripComments } from "../support/source-mask.mjs";
 
 const SELF = "scripts/lib/audit/quality-audit.mjs";
@@ -192,6 +194,76 @@ const oracleHelpers = (source) => {
   return names;
 };
 
+// Bellon TSE'07 and jscpd: token tools outweigh textual tools, and the default
+// clone is 5 lines / 50 tokens. Identifiers and numbers are interchangeable, so
+// a renamed clone is invisible to the whole-body comparison but shares a window.
+const DUPLICATE_WINDOW = 50;
+const DUPLICATE_MIN_LINES = 5;
+const DUPLICATE_REPORT_LIMIT = 8;
+const TOKEN_KEYWORDS = new Set([
+  "const", "let", "var", "function", "return", "if", "else", "for", "while", "do",
+  "class", "new", "import", "export", "from", "default", "await", "async", "yield",
+  "try", "catch", "finally", "throw", "typeof", "instanceof", "in", "of", "switch",
+  "case", "break", "continue", "delete", "void", "this", "super", "extends", "static",
+  "get", "set", "null", "undefined", "true", "false",
+]);
+const TOKEN_PATTERN = /[A-Za-z_$][A-Za-z0-9_$]*|\d+(?:\.\d+)?|===|!==|>>>|<<=|>>=|\*\*|=>|&&|\|\||\?\?|\.\.\.|[-+*/%&|^!~<>=?:;,.[\]{}()]/g;
+
+const normalizeToken = (token) => {
+  if (TOKEN_KEYWORDS.has(token)) return token;
+  if (/^[A-Za-z_$]/.test(token)) return "id";
+  if (/^\d/.test(token)) return "num";
+  return token;
+};
+
+const tokenizeSource = (masked) => {
+  const tokens = [];
+  const lines = [];
+  let line = 1;
+  let last = 0;
+  for (const match of masked.matchAll(TOKEN_PATTERN)) {
+    for (let index = last; index < match.index; index += 1) if (masked[index] === "\n") line += 1;
+    tokens.push(normalizeToken(match[0]));
+    lines.push(line);
+    last = match.index + match[0].length;
+  }
+  return { tokens, lines };
+};
+
+const duplicateBlocks = (entries) => {
+  const index = new Map();
+  const blocks = [];
+  for (const entry of entries) {
+    const { tokens } = entry;
+    for (let pos = 0; pos + DUPLICATE_WINDOW <= tokens.length; pos += 1) {
+      const key = tokens.slice(pos, pos + DUPLICATE_WINDOW).join("\u0001");
+      const prior = index.get(key);
+      if (prior === undefined) {
+        index.set(key, { entry, pos });
+        continue;
+      }
+      if (prior.entry.file === entry.file && Math.abs(prior.pos - pos) < DUPLICATE_WINDOW) continue;
+      if (pos > 0 && prior.pos > 0 && prior.entry.tokens[prior.pos - 1] === tokens[pos - 1]) continue;
+      const priorTokens = prior.entry.tokens;
+      let length = DUPLICATE_WINDOW;
+      while (pos + length < tokens.length && prior.pos + length < priorTokens.length && tokens[pos + length] === priorTokens[prior.pos + length]) length += 1;
+      const aStart = prior.entry.lines[prior.pos];
+      const aEnd = prior.entry.lines[prior.pos + length - 1];
+      const bStart = entry.lines[pos];
+      const bEnd = entry.lines[pos + length - 1];
+      const aLines = aEnd - aStart + 1;
+      const bLines = bEnd - bStart + 1;
+      if (aLines < DUPLICATE_MIN_LINES || bLines < DUPLICATE_MIN_LINES) continue;
+      blocks.push({
+        lines: Math.max(aLines, bLines),
+        tokens: length,
+        locations: [`${prior.entry.file}:${aStart}-${aEnd}`, `${entry.file}:${bStart}-${bEnd}`],
+      });
+    }
+  }
+  return blocks;
+};
+
 const CREDENTIALS = [
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, "private key block"],
   [/\bAKIA[0-9A-Z]{16}\b/, "AWS access key id"],
@@ -207,7 +279,7 @@ const ENV_DUMP = /\b(?:console\.log|process\.stdout\.write)\s*\([^)]*process\.en
 
 const walkAll = (directory) => walk(directory, () => true);
 
-export function auditRepository(root) {
+export function auditRepository(root, { git = runGit } = {}) {
   const allFiles = [...walk(join(root, "scripts")), ...walk(join(root, "test")), ...walk(join(root, "skills"))];
   const sources = new Map(allFiles.map((file) => [file, readFileSync(file, "utf8")]));
   const runtime = [...sources.keys()].filter((file) => relative(root, file).startsWith(`scripts${sep}`));
@@ -413,6 +485,32 @@ export function auditRepository(root) {
       `test oracle density: ${oracleTokenCount} assertion tokens across ${oracleCallbackCount} test callbacks ` +
         `(${(oracleTokenCount / oracleCallbackCount).toFixed(2)} per callback)`,
     );
+  }
+
+  const duplicateEntries = [...sources.entries()]
+    .filter(([file]) => !isSelf(file))
+    .map(([file, rawSource]) => ({ file: label(file), ...tokenizeSource(maskLiterals(stripComments(rawSource))) }));
+  const foundBlocks = duplicateBlocks(duplicateEntries).sort((a, b) => b.lines - a.lines || b.tokens - a.tokens);
+  for (const block of foundBlocks.slice(0, DUPLICATE_REPORT_LIMIT)) {
+    info.push(`duplicate-block: ${block.lines} lines at ${block.locations.join(" <-> ")}`);
+  }
+  info.push(`duplicate-block baseline: ${foundBlocks.length} block(s) (>= ${DUPLICATE_WINDOW} tokens, >= ${DUPLICATE_MIN_LINES} lines)`);
+
+  // Nagappan & Ball ICSE'05 and Tornhill TechDebt'22: relative churn predicts
+  // defect density, and the combination of churn and size is the strongest
+  // single signal, so name the largest module that the history marks as hot.
+  const libModules = runtime.filter((file) => label(file).startsWith(`scripts${sep}lib${sep}`) && !isSelf(file));
+  if (libModules.length > 0) {
+    const byLabel = new Map(libModules.map((file) => [label(file), file]));
+    const hot = new Set(churnHot({ root, git, sha: "HEAD", files: [...byLabel.keys()] }));
+    const hotModules = [...byLabel]
+      .filter(([name]) => hot.has(name))
+      .map(([name, file]) => ({ name, size: sources.get(file).replace(/\n$/, "").split("\n").length }))
+      .sort((a, b) => b.size - a.size);
+    if (hotModules.length > 0) {
+      const top = hotModules[0];
+      info.push(`churn-times-size: ${top.name} is the largest churn-hot module (${top.size} lines of ${hotModules.length} hot)`);
+    }
   }
 
   return { errors: [...new Set(errors)], info: [...new Set(info)] };
