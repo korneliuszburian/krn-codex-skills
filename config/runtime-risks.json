@@ -46,6 +46,7 @@
     { "path": "scripts/lib/frontend/design.mjs", "class": "read-only" },
     { "path": "scripts/lib/frontend/facts.mjs", "class": "read-only" },
     { "path": "scripts/lib/frontend/theme.mjs", "class": "read-only" },
+    { "path": "scripts/lib/install/host-capabilities.mjs", "class": "read-only" },
     {
       "path": "scripts/lib/install/install-inspect.mjs",
       "class": "destructive",

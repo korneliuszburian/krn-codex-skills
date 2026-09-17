@@ -25,6 +25,7 @@ import {
   verifyRelease,
 } from "./install-inspect.mjs";
 import { sealReleaseDigest } from "./install-seal.mjs";
+import { hostCapabilities } from "./host-capabilities.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
@@ -111,6 +112,7 @@ export function createInstallPlan({ source, cwd, codexHome = process.env.CODEX_H
     runtimePaths: runtimePaths(resolved.root, manifest),
     ledger: releaseDigests(resolved.root),
     manifest,
+    capabilities: hostCapabilities(),
   };
 }
 
