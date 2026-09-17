@@ -99,7 +99,7 @@ test("an Acceptance naming the new observer clears contract-ref-new", async () =
 
 test("a Contract ref present at base is not a new observer", async () => {
   const ticketLib = await loadTicket();
-  withRepo({ ...baseFields, Contract: `${OLD_REF}:red->green`, "Deciding check": `node --test ${OLD_REF}` }, ({ dir, git }) => {
+  withRepo({ ...baseFields, Contract: `${OLD_REF}:green->green`, "Deciding check": `node --test ${OLD_REF}` }, ({ dir, git }) => {
     const report = ticketLib.checkTickets({ root: dir, git });
     assert.deepEqual(rules(report), [], JSON.stringify(report.errors));
   }, { baseFiles: [OLD_REF] });
