@@ -21,7 +21,10 @@ test("the declared Node engine floor excludes the EOL Node 20 line", () => {
   const engines = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).engines?.node;
   assert.equal(String(engines).replace(/\s+/g, ""), ">=22", "engines.node must be exactly >=22");
   const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
-  const tested = Number(/node-version:\s*(\d+)/.exec(workflow)?.[1]);
+  const pinnedFile = /node-version-file:\s*(["']?)([^\s"']+)\1/.exec(workflow)?.[2];
+  const tested = pinnedFile
+    ? Number(fs.readFileSync(path.join(root, pinnedFile.replace(/^\.\//, "")), "utf8").trim().split(".")[0])
+    : Number(/node-version:\s*(\d+)/.exec(workflow)?.[1]);
   assert.ok(tested >= 22, `CI must exercise a supported LTS, found ${tested}`);
 });
 
