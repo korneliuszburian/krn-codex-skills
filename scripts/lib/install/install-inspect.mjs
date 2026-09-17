@@ -218,7 +218,10 @@ export function classifyTarget(plan, item, linked) {
     && (linkedRelative === item.relative || linkedRelative === legacyRelative)
     && (plan.source
       ? path.resolve(sourceRoot) === path.resolve(plan.source)
-      : plan.allowLegacySource === true && fs.existsSync(path.join(sourceRoot, "scripts", "krn-codex.mjs")))
+      : plan.allowLegacySource === true && (
+        fs.existsSync(path.join(sourceRoot, "scripts", "krn.mjs"))
+        || fs.existsSync(path.join(sourceRoot, "scripts", "krn-codex.mjs"))
+      ))
   ) {
     return "legacy_source";
   }
