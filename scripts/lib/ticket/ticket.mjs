@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+import { parseChangeContract } from "../contract/change-contract.mjs";
 import { runGit, runGitRaw } from "../support/git-cli.mjs";
 
 const STATUSES = new Set(["ready", "claimed", "blocked", "in-review", "done", "abandoned", "deferred"]);
@@ -305,6 +306,36 @@ function scopeErrors({ root, git, ticket, base, head }) {
   return errors;
 }
 
+const CONTRACT_TRANSITION = /:\s*(?:red|green)\s*->\s*(?:red|green)\s*$/i;
+
+function contractRef(value) {
+  return String(value ?? "").trim().replace(/^\.\//, "").replace(CONTRACT_TRANSITION, "").trim();
+}
+
+function namesTicket(body, id) {
+  return String(body ?? "")
+    .split("\n")
+    .some((line) => /^Ticket:\s*(\S+)\s*$/.exec(line.trim())?.[1] === id);
+}
+
+// The lane gate trusted the worker's own `Change-contract` trailer, so a
+// renamed observer passed unremarked. Cross-check the trailer on the ticket's
+// own head commit against the envelope's declared Contract ref.
+function contractErrors({ root, git, ticket, head }) {
+  const declared = (ticket.fields.get("Contract") ?? "").trim();
+  if (!declared || !contractRef(declared)) return [];
+  const body = git(root, ["show", "-s", "--format=%B", head]);
+  if (!body.ok || !namesTicket(body.out, ticket.id)) return [];
+  if (!/^(?:Change-contract|Prediction):/im.test(body.out)) {
+    return [{ path: ticket.path, rule: "contract-missing", message: `head commit ${head} carries no Change-contract trailer; the ticket declares "${declared}"` }];
+  }
+  const refs = parseChangeContract(body.out).contracts.map((entry) => contractRef(entry.ref)).filter(Boolean);
+  if (!refs.includes(contractRef(declared))) {
+    return [{ path: ticket.path, rule: "contract-mismatch", message: `head commit contract "${refs.join(", ")}" does not name the ticket Contract "${declared}"` }];
+  }
+  return [];
+}
+
 export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD" } = {}) {
   const tickets = [];
   const errors = [];
@@ -340,7 +371,10 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
   if (id && base) {
     const scoped = byId.get(id);
     if (!scoped) errors.push({ rule: "unknown-ticket", message: `no ticket with id "${id}"` });
-    else errors.push(...scopeErrors({ root, git, ticket: scoped, base, head }));
+    else {
+      errors.push(...scopeErrors({ root, git, ticket: scoped, base, head }));
+      errors.push(...contractErrors({ root, git, ticket: scoped, head }));
+    }
   }
   for (const ticket of tickets) {
     for (const blocker of ticket.blockedBy) {
