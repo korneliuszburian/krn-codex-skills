@@ -41,7 +41,9 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
 
 ## Local gates
 
-The global contract owns proof budgeting. Run this set once before handoff:
+The global contract owns proof budgeting. `npm run gate` is the union of `gate:fast`
+(cheap rejectors: validate, changes:check, quality:audit, test:lib) and `gate:deep`
+(install, bootstrap, and seal suites). Run the whole set once before handoff:
 
 ```bash
 npm run validate
