@@ -6,7 +6,7 @@ import { posixRelative } from "./lib/support/path-rules.mjs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { applyInstall, createInstallPlan, inspectInstall, pruneReleases } from "./lib/install/install-release.mjs";
+import { applyInstall, createInstallPlan, inspectInstall, pruneReleases, sealCurrentRelease } from "./lib/install/install-release.mjs";
 import { inspectSpineState } from "./lib/state/state-check.mjs";
 import { compileCapsule, resumeBrief } from "./lib/state/state-brief.mjs";
 import { checkSkills, exportSkills } from "./lib/install/skills-export.mjs";
@@ -417,6 +417,9 @@ try {
       const pruneReport = pruneReleases({ keep });
       print(pruneReport, options.json);
       if (pruneReport.refused) process.exitCode = 3;
+    } else if (command === "seal") {
+      rejectForeignOptions(options, ["source"]);
+      print(sealCurrentRelease({ source: options.source, cwd: process.cwd() }), options.json);
     } else if (command === "plan" || command === "apply") {
       rejectForeignOptions(options, command === "apply" ? ["source", "yes"] : ["source"]);
       if (command === "apply" && !options.yes) fail("install apply requires --yes");

@@ -22,6 +22,7 @@ import {
   stableTarget,
   verifyRelease,
 } from "./install-inspect.mjs";
+import { sealRelease, sealReleaseDigest } from "./install-seal.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
 
@@ -110,6 +111,13 @@ export function createInstallPlan({ source, cwd, codexHome = process.env.CODEX_H
   };
 }
 
+export function sealCurrentRelease({ source, cwd, codexHome } = {}) {
+  const plan = createInstallPlan({ source, cwd, codexHome });
+  const sealed = sealRelease({ release: plan.release, commit: plan.commit });
+  const ledger = sealReleaseDigest({ root: plan.source, commit: plan.commit, digest: sealed.digest });
+  return { commit: plan.commit, release: plan.release, digest: sealed.digest, ledger: ledger.file };
+}
+
 function copyRuntime(plan, staging) {
   // Git archive, rather than a filesystem copy, makes the release exactly the
   // resolved commit: ignored and untracked bytes can never cross the boundary.
@@ -125,6 +133,7 @@ function copyRuntime(plan, staging) {
     source: "manifest-owned runtime closure",
   };
   metadata.digest = digestTree(staging).digest;
+  sealReleaseDigest({ root: staging, commit: plan.commit, digest: metadata.digest });
   fs.writeFileSync(path.join(staging, ".krn-release.json"), `${JSON.stringify(metadata, null, 2)}\n`);
   return metadata;
 }
