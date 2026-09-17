@@ -527,6 +527,43 @@ function contractErrors({ root, git, ticket, head }) {
   return [];
 }
 
+const TEST_REF = /(?:^|\/)test\/|\.test\.(?:mjs|cjs|js)$/;
+
+function absentAtBase({ root, git, base, file }) {
+  if (!base || !file) return false;
+  if (!git(root, ["cat-file", "-e", `${base}^{commit}`]).ok) return false;
+  return !git(root, ["cat-file", "-e", `${base}:${file}`]).ok;
+}
+
+function namesNewObserver(acceptance, ref) {
+  const text = String(acceptance ?? "");
+  return /\bnew observer\b/i.test(text) || (ref !== "" && text.includes(ref));
+}
+
+function envelopeLintErrors({ root, git, ticket }) {
+  const errors = [];
+  const base = ticketBase(ticket.fields);
+  const ref = contractRef(ticket.fields.get("Contract"));
+  if (!base || !ref || !TEST_REF.test(ref)) return errors;
+  if (!absentAtBase({ root, git, base, file: ref })) return errors;
+  const scope = scopeEntries(ticket.fields.get("Scope"));
+  if (!scope.some((entry) => scopeDeclares(entry, "package.json"))) {
+    errors.push({
+      path: ticket.path,
+      rule: "scope-missing-package-json",
+      message: `ticket "${ticket.id}" Contract names new test file "${ref}"; wire it into test:lib and add package.json to Scope`,
+    });
+  }
+  if (!namesNewObserver(ticket.fields.get("Acceptance"), ref)) {
+    errors.push({
+      path: ticket.path,
+      rule: "contract-ref-new",
+      message: `ticket "${ticket.id}" Contract ref "${ref}" is absent from ${base}; Acceptance must name the new observer`,
+    });
+  }
+  return errors;
+}
+
 export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD", now = new Date().toISOString() } = {}) {
   const tickets = [];
   const errors = [];
@@ -614,6 +651,7 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
     else if (ticket.status !== "done") warnings.push({ path: ticket.path, rule: "open-ticket-committed", message: `commits exist for open ticket "${id}"` });
   }
   for (const ticket of tickets) {
+    if (!id && ticket.status === "ready") errors.push(...envelopeLintErrors({ root, git, ticket }));
     if (ticket.status === "done" && !trailered.has(ticket.id)) {
       warnings.push({ path: ticket.path, rule: "done-without-commit", message: `ticket "${ticket.id}" is done with no Ticket trailer in recent commits` });
     }
