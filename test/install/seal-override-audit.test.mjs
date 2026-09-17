@@ -16,7 +16,11 @@ import { applyInstall, createInstallPlan } from "../../scripts/lib/install/insta
 // as a plain install. Re-applying keeps the first actor, reason, and timestamp.
 const sourceRoot = fileURLToPath(new URL("../../", import.meta.url));
 const cli = path.join(sourceRoot, "scripts", "krn-codex.mjs");
-const { capabilitySkip } = await import("../../scripts/lib/install/host-capabilities.mjs");
+const { hostCapabilities } = await import("../../scripts/lib/install/host-capabilities.mjs");
+
+// This flow needs git and tar only; gating it on bwrap silently skipped the
+// observer on hosts without bwrap and defeated its red-at-base proof.
+const skip = hostCapabilities().gitChild ? false : "git is unavailable";
 
 const git = (repo, args) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8" }).trim();
 
@@ -62,7 +66,7 @@ const releaseDigestsOf = (release) => {
 const FIRST_ACTOR = "auditor@example.test";
 const FIRST_REASON = "operator accepted an unsealed commit";
 
-test("the override path records the first apply outside the release and leaves it unsealed", { skip: capabilitySkip() }, () => {
+test("the override path records the first apply outside the release and leaves it unsealed", { skip }, () => {
   withBase((base) => {
     const source = cleanSource(base);
     const home = path.join(base, "codex");
@@ -107,7 +111,7 @@ test("the override path records the first apply outside the release and leaves i
   });
 });
 
-test("install check surfaces the override instead of a plain installed state", { skip: capabilitySkip() }, () => {
+test("install check surfaces the override instead of a plain installed state", { skip }, () => {
   withBase((base) => {
     const source = cleanSource(base);
     const home = path.join(base, "codex");
