@@ -1,3 +1,5 @@
+Status: superseded — the evaluation modules this brief targeted were retired (commit 26fec20); kept as a design record.
+
 # PRD 0004: cost-paired memory measurement
 
 ## Problem
