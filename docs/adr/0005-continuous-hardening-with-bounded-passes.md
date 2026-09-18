@@ -45,11 +45,27 @@ read. Six holes were reproduced, not argued:
    when every finding is dispositioned as a ticket, an ADR, a lesson, or a
    retirement. No unbounded judge loops, and no re-sweeping an unchanged surface
    without a new trigger.
+   The **observer of record** is the maintainer session at outcome bind: before
+   opening an outcome it reads the queue frontier (`krn ticket check`),
+   `krn state check`, the session-start queue brief, and the named tripwire list
+   below, with the operator as the named backstop. The **producer** is the
+   maintainer session or the operator, whichever observed the trigger, and it
+   writes the bounded-pass ticket carrying the tripwire that fired. No scheduled
+   job, no automatic ticket creation, and no second sensor service observe or
+   produce.
+   The tripwires are: a red gate on the integrated branch, a reproduced bypass or
+   failed falsifier, a `state check` warning, an LT row without an adoption
+   decision, a dangling friction candidate, and a memory hit-rate under the
+   delivery target. A pass starts only when one of these is named.
    Each pass records itself in the queue as a `decision` or `epic` ticket with a
    numeric budget (wall-clock and token caps plus a finding cap) and an
    exhaustion rule: when the budget is spent, undispositioned findings hand to a
-   named successor pass instead of silently widening the current one. An
-   uncapped pass is not a pass; it is the loop ADR-0003 closed.
+   named successor pass instead of silently widening the current one. The
+   numeric budget is wall-clock ≤ 4 hours, tokens ≤ 400k, and findings ≤ 8 per
+   pass. The **exhaustion handoff** names the successor: undispositioned findings
+   hand to the next pass ticket, owned by the same session and recorded in the
+   capsule, instead of widening the current pass. An uncapped pass is not a pass;
+   it is the loop ADR-0003 closed.
 2. **Signals are not proofs.** Every finding is reproduced deterministically
    before it becomes a ticket, and the reproduction command is recorded in the
    ticket evidence.
