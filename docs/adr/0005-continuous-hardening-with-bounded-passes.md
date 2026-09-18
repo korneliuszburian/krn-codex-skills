@@ -69,6 +69,21 @@ read. Six holes were reproduced, not argued:
    so every finding in this pass is same-family reviewed; that gap is recorded
    rather than papered over, and restoring a second family is an operator
    action, not a blocker for the sh-60..sh-65 proof-layer fixes.
+8. **An active outcome's operational state survives a checkout move by an
+   explicit handoff copy.** The capsule
+   (`.krn/runs/delivery-loop/<outcome>/`) and the local queue
+   (`.scratch/tickets/`) stay untracked ignored working state, per ADR 0001 and
+   ADR 0004; they are per-checkout by design, so a clone inherits neither. To
+   move an active outcome, at pause the delivery loop copies both directories
+   into the successor checkout's same ignored paths, or archives them at a
+   documented location. The successor resumes with `krn state check`,
+   `krn state resume`, and `krn ticket next`. No tracked operational artifact is
+   added, because that would turn ignored working state into durable knowledge
+   and contradict ADR 0001 and ADR 0004. **Falsifier:** pause in checkout A,
+   perform the explicit handoff copy, and resume in checkout B — the capsule
+   continues and `krn ticket next` reports a populated frontier. A bare clone
+   that skips the copy stays `not-applicable` at `krn state check` with an empty
+   frontier by design, so the copy is the load-bearing step.
 
 ## Consequences
 
@@ -80,6 +95,9 @@ read. Six holes were reproduced, not argued:
   capsule; a stalled hardening pass is itself an inconsistency.
 - More tickets accumulate; the completion discipline (one outcome, one writer,
   finite releases) is unchanged.
+- An outcome's operational state is portable by procedure, not by a tracked
+  artifact: the capsule and the queue stay ignored, and the documented explicit
+  handoff copy is what carries them across checkouts.
 
 ## Rejected alternatives
 
@@ -92,6 +110,10 @@ read. Six holes were reproduced, not argued:
   service.
 - **Harness-only hardening.** The stagnation diagnosis shows the plumbing arc is
   done; capability candidates are in scope.
+- **A tracked operational export written at pause.** A committed handoff file
+  would promote ignored working state into durable knowledge and contradict
+  ADR 0001 and ADR 0004; the explicit handoff copy carries the same state
+  without changing what Git tracks.
 
 ## Supersession rule
 
