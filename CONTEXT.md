@@ -8,10 +8,11 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [README.md](README.md) — operator entrypoint, main workflow, and skill catalog.
 - [docs/research/README.md](docs/research/README.md) — research index and curation contract.
 - [docs/research/orchestration.md](docs/research/orchestration.md) — current lifecycle spine, admission map, retrieval ladder, and falsifiers.
-- [docs/research/lab-tests.md](docs/research/lab-tests.md) — the LT lab-test registry (LT-1 through LT-62), protocols, and residuals.
+- [docs/research/lab-tests.md](docs/research/lab-tests.md) — the LT lab-test registry (LT-1 through LT-79), protocols, and residuals.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
 - [docs/adr/0002-lifecycle-transition-table.md](docs/adr/0002-lifecycle-transition-table.md) — accepted condition → handler → return transition table.
 - [docs/adr/0003-finite-release-decision.md](docs/adr/0003-finite-release-decision.md) — accepted stop rule: a finite release decision replaces the open-ended bug hunt.
+- [docs/adr/0004-queue-legibility-and-memory-delivery.md](docs/adr/0004-queue-legibility-and-memory-delivery.md) — proposed plan for queue legibility, memory delivery, and lane-loop automation after the 2026-09-18 arc.
 - [docs/research/workflow-lessons.md](docs/research/workflow-lessons.md) — bounded cross-run workflow memory read at `$delivery-loop` bind.
 - The Matt Pocock skills audit and the unslop lab-test page are indexed under [docs/research/README.md](docs/research/README.md).
 - [scripts/quality-audit.mjs](scripts/quality-audit.mjs) — mechanical slop, dead-code, and credential/env-dump audit gated in `npm run test:lib`.
