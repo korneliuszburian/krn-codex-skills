@@ -203,8 +203,8 @@ function managedBlock(tracker, domain, delivery) {
 - **Tracker:** ${trackerSummary(tracker)}
 - **Domain knowledge:** ${domainSummary(domain)}
 - **Delivery:** ${deliverySummary(delivery)}
-- **Transient runs:** Keep resumable workflow state under the ignored \`.krn/runs/<workflow>/<run-id>/\`. Delete it when its sole in-goal consumer finishes the accepted outcome or its owning Goal closes; cross-Goal continuation transfers condensed truth into the successor's own run first. For a superseded or abandoned delivery run, transfer alone is not consumer completion: retain the original until its Goal's non-active state is read back. When the installed \`krn-codex\` CLI is available, verify a file-backed outcome capsule with \`krn-codex state check\` from the repository root before resuming or completing.
-- **Repository memory:** Cross-run lessons live in \`docs/research/workflow-lessons.md\`. When the installed \`krn-codex\` CLI is available, run \`krn-codex lessons check --root .\`, re-run recorded proofs with \`krn-codex lessons verify --root .\`, and bump a stale proof anchor after its case passes with \`krn-codex lessons reanchor --root .\`.
+- **Transient runs:** Keep resumable workflow state under the ignored \`.krn/runs/<workflow>/<run-id>/\`. Delete it when its sole in-goal consumer finishes the accepted outcome or its owning Goal closes; cross-Goal continuation transfers condensed truth into the successor's own run first. For a superseded or abandoned delivery run, transfer alone is not consumer completion: retain the original until its Goal's non-active state is read back. When the installed \`krn\` CLI is available, verify a file-backed outcome capsule with \`krn state check\` from the repository root before resuming or completing.
+- **Repository memory:** Cross-run lessons live in \`docs/research/workflow-lessons.md\`. When the installed \`krn\` CLI is available, run \`krn lessons check --root .\`, re-run recorded proofs with \`krn lessons verify --root .\`, and bump a stale proof anchor after its case passes with \`krn lessons reanchor --root .\`.
 
 Installed global skills own implementation, diagnosis, review, and reusable engineering procedure. Do not copy or rename them in this repository.
 ${END}`;
@@ -259,8 +259,8 @@ function lessonsTemplate() {
     "# Workflow lessons",
     "",
     "Repository-scoped cross-run lessons. Each row carries the evidence that earned",
-    "it and the gate that enforces it. Bounded at 24 active rows; `krn-codex lessons",
-    "check --root .` verifies the schema and `krn-codex lessons verify --root .` re-runs recorded proofs.",
+    "it and the gate that enforces it. Bounded at 24 active rows; `krn lessons",
+    "check --root .` verifies the schema and `krn lessons verify --root .` re-runs recorded proofs.",
     "",
     "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |",
     "|---|---|---|---|---|---|---|",

@@ -19,7 +19,7 @@ hosts own their mechanics and policy.
    the accepted request is the outcome authority. Reconcile a pre-existing goal
    with repository and tracker truth before continuing.
    Before mutating, once the intended paths or symbols are known, read the
-   triggered lesson with `krn-codex memory recall --root . --changed <path>`
+   triggered lesson with `krn memory recall --root . --changed <path>`
    (or `--symbol <name>`) and repeat when the scope changes; a neutral path
    returns no hit. This is advisory delivery, not an enforcement gate.
 
@@ -95,10 +95,10 @@ hosts own their mechanics and policy.
    evidence and the gate, instruction edit, or lab-test it would become.
 
    At every boundary, and before any `COMPLETE` claim, run
-   `krn-codex state check`; `divergent` blocks, while `not-applicable` means no
+   `krn state check`; `divergent` blocks, while `not-applicable` means no
    file-backed capsule was checked, not a pass. A fresh session may run
-   `krn-codex state resume` for the live repository delta and
-   `krn-codex state compile` to prefill the mechanical capsule fields; neither
+   `krn state resume` for the live repository delta and
+   `krn state compile` to prefill the mechanical capsule fields; neither
    writes the capsule, and `state resume` prints the workflow lessons.
 
    For an accepted outcome, discharge every triggered specialist cleanup,
@@ -184,5 +184,5 @@ hosts own their mechanics and policy.
    non-proofs, review identity, actual publication state, and either no remaining
    required transition or one blocker with its owner and requested action.
    `COMPLETE` additionally requires terminal Goal and tracker readback wherever
-   they exist plus a non-`divergent` `krn-codex state check`; `SUPERSEDED` and
+   they exist plus a non-`divergent` `krn state check`; `SUPERSEDED` and
    `ABANDONED` never imply Goal completion.
