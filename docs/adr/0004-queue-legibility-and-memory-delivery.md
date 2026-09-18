@@ -148,8 +148,8 @@ coverage beyond the observer lists, plus the stale export marker), sh-69 (the
 dead `capabilities` plan field and its `bwrap` probe), sh-70 (the gate list in
 `AGENTS.md` is no longer derived from `package.json`: `quality:audit` and
 `test:repro` are missing), and sh-71 (lesson triggers that can never fire and
-stale anchors). Assessed and deliberately deferred: `docs/prd/0001-0005`
-retention (superseded briefs plus their allowlist), the fifteen duplicated
+stale anchors). Assessed and deliberately deferred: the docs/prd brief retention
+(superseded briefs 0001–0005 plus their allowlist), the fifteen duplicated
 ticket-test scaffolds (test-only, LT-64 shows near-twin consolidation is
 context-dependent), the retired `unlazy-codex-port` page (no reader), and the
 `krn-codex-catalog` wrapper (its own retirement decision). The cross-family
