@@ -23,8 +23,9 @@ import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
 
 // Resolve an `evidence=` token that claims an artifact or a frozen acceptance
-// case: a claim that names something must name something that exists, so a
-// plausible token cannot stand in for evidence. Free-text tokens are unchanged.
+// case: a COMPLETE capsule's evidence must name something that exists, either a
+// frozen conformance case (`case:<id>`) or a repository-relative path inside the
+// root. Every other token is unresolved.
 function reviewEvidenceUnresolved(root, token) {
   if (token.startsWith("case:")) {
     const id = token.slice("case:".length);
@@ -36,7 +37,6 @@ function reviewEvidenceUnresolved(root, token) {
     }
     return ids?.has(id) ? null : `evidence ${token} is not a frozen conformance case`;
   }
-  if (!token.includes("/") && !/\.(mjs|md|json|txt|ya?ml|sh|log)$/i.test(token)) return null;
   const target = resolve(root, token.replace(/^\.\//, ""));
   let inside = false;
   try { inside = isInside(root, target); } catch { inside = false; }
