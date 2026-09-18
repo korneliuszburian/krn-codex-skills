@@ -58,7 +58,7 @@ test("close appends the runner's wall seconds and tokens to the evidence line", 
   withTickets((dir) => {
     const file = join(dir, ".scratch", "sh-49.md");
     writeFileSync(file, ticket(baseFields));
-    const result = ticketLib.closeTicket({ file, root: dir, evidence: "node --test green", resolution: "merged", wallSeconds: 254, tokens: 68000 });
+    const result = ticketLib.closeTicket({ file, root: dir, evidence: "node --test green", resolution: "merged", wallSeconds: 254, tokens: 68000, allowUnanchored: true });
     assert.equal(result.status, "done");
     const text = readFileSync(file, "utf8");
     assert.match(text, /^Evidence: node --test green; Cost: wall=254s; tokens=68000$/m);
@@ -72,7 +72,7 @@ test("close leaves the evidence free of cost when the runner measured none", asy
   withTickets((dir) => {
     const file = join(dir, ".scratch", "sh-49.md");
     writeFileSync(file, ticket(baseFields));
-    ticketLib.closeTicket({ file, root: dir, evidence: "node --test green", resolution: "merged" });
+    ticketLib.closeTicket({ file, root: dir, evidence: "node --test green", resolution: "merged", allowUnanchored: true });
     const text = readFileSync(file, "utf8");
     assert.match(text, /^Evidence: node --test green$/m);
     assert.equal(costOf(text), null);

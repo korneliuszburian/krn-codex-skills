@@ -376,7 +376,9 @@ function hasCostRecord(value) {
   return COST_RECORD.test(String(value ?? "").trim());
 }
 
-export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint(), wallSeconds, tokens }) {
+const ANCHOR_BYPASS = "allow-unanchored";
+
+export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint(), wallSeconds, tokens, allowUnanchored = false }) {
   const { text, fields } = readValidTicket(file);
   const status = fields.get("Status");
   if (status === "done" || status === "abandoned") throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
@@ -384,9 +386,21 @@ export function closeTicket({ file, root, git = runGit, evidence = "none", resol
   const ticket = { id: fields.get("Id"), path: file, fields };
   // Closing consumes the same scope and contract verdicts the lane used, so a
   // closure cannot be written over a diff or trailer `ticket check` rejects.
-  if (base) {
+  // The base is resolved from the ticket when the caller omits it: an
+  // unresolved base is a refusal, never a silent skip. A working tree outside
+  // any repository has no range to audit, so it keeps the legacy write path.
+  const inRepo = git(anchorRoot, ["rev-parse", "--git-dir"]).ok;
+  if (inRepo && !allowUnanchored) {
+    const resolvedBase = base ?? ticketBase(fields);
+    if (!baseRefExists({ root: anchorRoot, git, base: resolvedBase })) {
+      throw new Error(`ticket ${ticket.id} cannot close: close-base-unresolved: cannot resolve Repository-base "${resolvedBase || "(missing)"}"`);
+    }
+    const body = git(anchorRoot, ["show", "-s", "--format=%B", head]);
+    if (!body.ok || !namesTicket(body.out, ticket.id)) {
+      throw new Error(`ticket ${ticket.id} cannot close: close-anchor-missing: head commit ${head} carries no "Ticket: ${ticket.id}" trailer`);
+    }
     const violations = [
-      ...scopeErrors({ root: anchorRoot, git, ticket, base, head }),
+      ...scopeErrors({ root: anchorRoot, git, ticket, base: resolvedBase, head }),
       ...contractErrors({ root: anchorRoot, git, ticket, head }),
     ];
     if (violations.length > 0) {
@@ -397,10 +411,11 @@ export function closeTicket({ file, root, git = runGit, evidence = "none", resol
   const cost = costRecord({ wallSeconds, tokens });
   let evidenceLine = anchor ? `${evidence}; integrated=${anchor.sha}; patch=${anchor.patch}` : evidence;
   if (cost) evidenceLine = `${evidenceLine}; ${cost}`;
+  const recorded = allowUnanchored ? `${resolution}; bypass=${ANCHOR_BYPASS}` : resolution;
   let next = setField(text, "Status", "done");
   next = setField(next, "Evidence", evidenceLine);
   next = setField(next, "Env", env);
-  next = setField(next, "Resolution", `${resolution} (closed ${at})`);
+  next = setField(next, "Resolution", `${recorded} (closed ${at})`);
   writeAtomic(file, next);
   return { id: fields.get("Id"), path: file, status: "done", anchor };
 }
