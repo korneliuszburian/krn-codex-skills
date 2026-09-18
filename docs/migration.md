@@ -45,6 +45,13 @@ Verified: 2026-09-13.
    restores the previous `current` if it cannot start, so a release that omits
    a runtime module fails closed instead of reporting a broken install.
 
+`scripts/install.sh` is retired from `runtime_paths`. It is a checkout-only
+compatibility shim that re-execs the checkout CLI through `BASH_SOURCE`
+(`install apply --source "$(cd "$script_dir/.." && pwd)"`), so an installed
+release can never invoke it; only the source copy, its `bash -n` gate, and the
+install smoke test remain. The runtime-closure rule `unreachable-non-module`
+now rejects any declared non-module path that no release consumer references.
+
 Codex runs the managed guard from `$CODEX_HOME/hooks.json`, which is a
 non-managed user hook: Codex marks a new or changed hook for review and skips
 it until the operator trusts the definition in `/hooks`. A fresh
