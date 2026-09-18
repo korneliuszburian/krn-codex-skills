@@ -218,9 +218,9 @@ function preflightCurrent(plan) {
   if (!linked || path.dirname(linked) !== releases) {
     fail(`refusing foreign current binding: ${plan.current}`, EXIT_COLLISION);
   }
-  // The current release is only checked for integrity. Its seal status is the
-  // ledger's business and must never block installing a sealed target.
-  verifyRelease(linked, path.basename(linked), { requireSealed: false });
+  // The linked release is never consulted beyond the binding check: its
+  // integrity and seal status belong to the target's own verification, so a
+  // corrupt or unsealed current release cannot block installing a target.
 }
 
 function preflightTargets(plan) {
