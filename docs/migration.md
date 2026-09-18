@@ -52,6 +52,15 @@ release can never invoke it; only the source copy, its `bash -n` gate, and the
 install smoke test remain. The runtime-closure rule `unreachable-non-module`
 now rejects any declared non-module path that no release consumer references.
 
+`scripts/krn-codex.mjs` is likewise retired from `runtime_paths` and from the
+manifest and `package.json` bins after its one-release compatibility window.
+The file stays in the checkout as a frozen re-export shim because the CI gate's
+frozen base-ref conformance step runs the base revision's own copy
+(`/tmp/krn-conformance/scripts/krn-codex.mjs`); it is never installed. The
+installer's orphan cleanup moves a prior release's stale `bin/krn-codex` link
+to `$CODEX_HOME/krn/migration-backups/` on the next apply, so a managed link the
+retired manifest no longer declares is backed up rather than left dangling.
+
 Codex runs the managed guard from `$CODEX_HOME/hooks.json`, which is a
 non-managed user hook: Codex marks a new or changed hook for review and skips
 it until the operator trusts the definition in `/hooks`. A fresh
