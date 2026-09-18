@@ -179,6 +179,23 @@ function ticketBase(fields) {
   return value && !/^none$/i.test(value) ? value : "";
 }
 
+// The reconcile writer needs the integration the lane intended before it
+// merged: the outbox record. It names the branch the worker committed to and,
+// when known, the tip sha and patch id so a deleted branch still reconciles.
+const INTEGRATION_BRANCH = /(?:^|;\s*)branch=([^\s;]+)/i;
+
+function integrationRecord(fields) {
+  const raw = (fields.get("Integration") ?? "").trim();
+  if (!raw) return null;
+  const branch = INTEGRATION_BRANCH.exec(raw)?.[1];
+  if (!branch) return null;
+  return {
+    branch,
+    sha: /(?:^|;\s*)sha=([0-9a-f]{40})/i.exec(raw)?.[1] ?? "",
+    patch: /(?:^|;\s*)patch=([0-9a-f]{40})/i.exec(raw)?.[1] ?? "",
+  };
+}
+
 // Bind the closure to a content identity: the ephemeral commit may vanish in a
 // squash merge, but the patch id survives as the same content on the base.
 function integratedAnchor({ root, git, fields, head = "HEAD" }) {
@@ -706,10 +723,72 @@ function envelopeLintErrors({ root, git, ticket }) {
   return errors;
 }
 
+// The merge and the close are two writes; a crash between them leaves a
+// claimed ticket whose work is already in headRef. Reconcile is that repair:
+// for a claimed ticket that recorded its integration outbox, it closes the
+// ticket once the recorded branch is merged into headRef (ancestry or patch
+// id) and its lease no longer has a live worker. It reads nothing for a
+// ticket with no recorded integration, so it is a no-op for ordinary claims,
+// and a closed ticket drops out of the next run, so the repair is idempotent.
+export function reconcileTickets({ root, dirs = DEFAULT_DIRS, headRef = "HEAD", git = runGit, at = new Date().toISOString(), now = at } = {}) {
+  const closed = [];
+  if (!git(root, ["rev-parse", "--git-dir"]).ok) return closed;
+  for (const file of markdownFiles(root, dirs)) {
+    let entry;
+    try {
+      entry = readValidTicket(file);
+    } catch {
+      continue;
+    }
+    const { text, fields } = entry;
+    if (fields.get("Status") !== "claimed") continue;
+    const integration = integrationRecord(fields);
+    if (!integration) continue;
+    // A live lease means another session may still own the close; only an
+    // expired or absent one is a crashed lane this writer may repair.
+    const lease = claimLease({ fields, root, id: fields.get("Id") });
+    if (lease && !leaseExpired(lease, now)) continue;
+    // Reuse the sh-12 anchor helper: the branch tip is the integrated sha and
+    // its patch id over the ticket base is the content identity that survives
+    // a squash. A recorded sha that disagrees with the branch is refused.
+    let anchor = integratedAnchor({ root, git, fields, head: integration.branch });
+    if (anchor && integration.sha && anchor.sha !== integration.sha) {
+      throw new Error(`ticket ${fields.get("Id")} cannot reconcile: reconcile-sha-mismatch: recorded ${integration.sha} but ${integration.branch} is ${anchor.sha}`);
+    }
+    if (!anchor && integration.sha) anchor = { sha: integration.sha, patch: integration.patch };
+    if (!anchor || !anchor.sha) continue;
+    // The ticket base is a mutable ref: once the merge lands, `main..branch`
+    // collapses. Bound the headRef range by the branch/headRef merge base so a
+    // squashed patch id is still visible in the integrated history.
+    const mergeBase = git(root, ["merge-base", integration.branch, headRef]);
+    const rangeBase = mergeBase.ok && mergeBase.out ? mergeBase.out : ticketBase(fields);
+    const patch = anchor.patch || integration.patch;
+    const merged = git(root, ["merge-base", "--is-ancestor", anchor.sha, headRef]).ok
+      || (patch !== "" && rangePatchIds({ root, base: rangeBase, head: headRef }).has(patch));
+    if (!merged) continue;
+    const evidence = `reconciled; integrated=${anchor.sha}${patch ? `; patch=${patch}` : ""}`;
+    let next = setField(text, "Status", "done");
+    next = setField(next, "Evidence", evidence);
+    next = setField(next, "Resolution", `merged into ${headRef} (reconciled ${at})`);
+    writeAtomic(file, next);
+    closed.push(fields.get("Id"));
+  }
+  return closed;
+}
+
 export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD", now = new Date().toISOString() } = {}) {
   const tickets = [];
   const errors = [];
   const warnings = [];
+  // `ticket next` reads the frontier through this report, so the repair runs
+  // first: a crashed merge-then-close heals before the frontier is computed
+  // and the merged ticket never re-enters the queue.
+  const reconciled = [];
+  try {
+    reconciled.push(...reconcileTickets({ root, dirs, headRef: head, git, at: now, now }));
+  } catch (error) {
+    errors.push({ rule: "reconcile-refused", message: error?.message ?? String(error) });
+  }
   for (const file of markdownFiles(root, dirs)) {
     let text;
     try {
@@ -839,5 +918,5 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
       });
     }
   }
-  return { root, tickets: tickets.map(({ fields, text, ...rest }) => rest), frontier, errors, warnings };
+  return { root, tickets: tickets.map(({ fields, text, ...rest }) => rest), frontier, reconciled, errors, warnings };
 }
