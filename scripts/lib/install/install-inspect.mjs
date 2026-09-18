@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { gitText as git } from "../support/git-cli.mjs";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
-import { isInside } from "../support/path-rules.mjs";
+import { isInside, posixRelative } from "../support/path-rules.mjs";
 import { readJson } from "../support/read-json.mjs";
 import { removeTree } from "../support/remove-tree.mjs";
 import { parseAssignment, parseDocument, parseDottedHeaderKey, parseTomlString, splitHeader } from "../catalog/catalog-toml.mjs";
@@ -33,13 +33,27 @@ export function canonicalPath(candidate) {
   return path.join(fs.realpathSync(existing), ...suffix);
 }
 
+const DIGEST_ROOT = path.parse(process.cwd()).root;
+
+// A digest key is a tree-relative path in its single canonical spelling: POSIX
+// separators, whatever path module produced it. `path.win32` folds a key made
+// on Windows, and `posixRelative`, the project's owner of the POSIX spelling,
+// rewrites it under a host-independent root so comparison and hashing never
+// depend on the current working directory.
+export function digestKey(value) {
+  const suffix = path.win32.normalize(String(value)).replaceAll("\\", "/").replace(/^\/+/, "");
+  return posixRelative(DIGEST_ROOT, path.join(DIGEST_ROOT, suffix));
+}
+
 export function digestTree(root) {
   const hash = crypto.createHash("sha256");
   const entries = [];
   function visit(relative = "") {
     const absolute = path.join(root, relative);
-    for (const entry of fs.readdirSync(absolute, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      const next = path.join(relative, entry.name);
+    const dirents = fs.readdirSync(absolute, { withFileTypes: true })
+      .sort((left, right) => Buffer.compare(Buffer.from(left.name), Buffer.from(right.name)));
+    for (const entry of dirents) {
+      const next = digestKey(path.join(relative, entry.name));
       if (next === ".krn-release.json" || next === RELEASE_DIGESTS_RELATIVE) continue;
       if (entry.isDirectory()) visit(next);
       else if (entry.isFile()) entries.push(next);
@@ -48,8 +62,9 @@ export function digestTree(root) {
   }
   visit();
   for (const relative of entries) {
-    const stat = fs.statSync(path.join(root, relative));
-    hash.update(`${relative}\0${stat.mode & 0o111 ? "x" : "-"}\0`);
+    // Content-only hashing: the extractor's umask must not move the trust
+    // anchor, so the executable bit is deliberately not part of the digest.
+    hash.update(`${relative}\0`);
     hash.update(fs.readFileSync(path.join(root, relative)));
     hash.update("\0");
   }
