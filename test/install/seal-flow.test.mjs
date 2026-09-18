@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 // repository ledger are all exercised end to end.
 const sourceRoot = fileURLToPath(new URL("../../", import.meta.url));
 const cli = path.join(sourceRoot, "scripts", "krn-codex.mjs");
-const { capabilitySkip } = await import("../../scripts/lib/install/host-capabilities.mjs");
+const { capabilitySkip, hostCapabilities, FLOW_CAPABILITIES } = await import("../../scripts/lib/install/host-capabilities.mjs");
 
 const git = (repo, args) =>
   execFileSync("git", ["-C", repo, ...args], { encoding: "utf8" }).trim();
@@ -29,7 +29,7 @@ const cleanSource = (base) => {
   return fs.realpathSync(copy);
 };
 
-test("the CLI seals the repository ledger and never gates apply on the linked release", { skip: capabilitySkip() }, () => {
+test("the CLI seals the repository ledger and never gates apply on the linked release", { skip: capabilitySkip(hostCapabilities(), FLOW_CAPABILITIES.seal) }, () => {
   const base = fs.realpathSync(mkdtempSync(path.join(os.tmpdir(), "krn-seal-flow-")));
   const source = cleanSource(base);
   const home = path.join(base, "codex");
