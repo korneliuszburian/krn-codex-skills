@@ -9,6 +9,9 @@ const END = "<!-- krn-agent-workflow:end -->";
 const TRACKERS = new Set(["none", "beads", "github", "gitlab", "local"]);
 const DOMAINS = new Set(["single", "multi"]);
 const DELIVERY = new Set(["local", "strict"]);
+const QUEUE_DIR = join(".scratch", "tickets");
+const QUEUE_README = join(QUEUE_DIR, "README.md");
+const EXCLUDE_ENTRY = ".scratch/";
 
 function fail(message) {
   process.stderr.write(`repository-workflow: ${message}\n`);
@@ -179,7 +182,7 @@ function trackerSummary(tracker) {
   if (tracker === "gitlab") {
     return `GitLab issues own durable task state through \`glab issue create|update|view|list|close\` inside this clone. This thin setup is not a complete Wayfinder adapter: \`$wayfinder\` must stop unless closer repository instructions define ${requiredAdapter}. Resolve separate tracker-write authority before any mutation. Keep at most one implementation item active.`;
   }
-  return `Local Markdown under \`.scratch/<map>/\` owns durable task state through \`map.md\` plus numbered child files. This thin setup is not a complete Wayfinder adapter: \`$wayfinder\` must stop unless closer repository instructions define ${requiredAdapter}. Resolve separate tracker-write authority before any mutation. Keep at most one implementation item active.`;
+  return "The KRN local ticket queue under `.scratch/tickets/` owns durable task state: one `<krn-ticket>` ABI file per work item, ordered by dependency edges. Scaffold it with `krn repo apply --tracker local`, then operate it with `krn ticket check --root .` to validate envelopes, blockers, cycles, statuses, scope, and orphans, `krn ticket next --root .` to print the unblocked ready frontier, `krn ticket claim --root . --id <id>` to record `Claim:` and `Status: claimed` before any edit, `krn ticket close --root . --id <id>` to record `Evidence:` and `Resolution:` at the fixed point, and `krn ticket fail --root . --id <id> --reason <text>` to record a rejected attempt signature. Keep one writer and at most one implementation item in progress, and resolve separate tracker-write authority before any mutation.";
 }
 
 function domainSummary(domain) {
@@ -293,6 +296,76 @@ function bootstrapLessonsIfAbsent(root) {
   return [LESSONS_PATH];
 }
 
+// The local KRN queue is a scaffolded working tree, not a committed artifact:
+// seed the queue README only when absent, add the git-exclude entry only when
+// missing, and never rewrite a repository's own `.scratch` content.
+function queueReadmeTemplate() {
+  return [
+    "# Ticket queue",
+    "",
+    "This directory is this repository's local KRN ticket queue: one `<krn-ticket>`",
+    "ABI envelope per file, ordered by dependency edges, never a combined backlog.",
+    "The block is parsed as `Key: value` lines (`Id:`, `Title:`, `Status:`, `Type:`,",
+    "`Repository-base:`, `Scope:`, `Deciding check:`, `Contract:`, `Acceptance:`,",
+    "`Blocked by:`, `Recall:`, `Execution:`, plus the `Claim:`, `Evidence:`,",
+    "`Non-proofs:`, and `Resolution:` lifecycle fields).",
+    "",
+    "Operate the queue with the `krn ticket` verbs from the repository root:",
+    "",
+    "- `krn ticket check --root .` validates envelopes, blockers, cycles, statuses, scope, and orphans.",
+    "- `krn ticket next --root .` prints the unblocked ready frontier.",
+    "- `krn ticket claim --root . --id <id>` records `Claim:` and `Status: claimed` before any work.",
+    "- `krn ticket close --root . --id <id>` records `Evidence:` and `Resolution:` at the fixed point.",
+    "- `krn ticket fail --root . --id <id> --reason <text>` records a rejected attempt signature.",
+    "",
+    "Keep one writer and at most one implementation item in progress; pick from the",
+    "frontier instead of re-reading every file. This directory is git-excluded",
+    "working state, so durable history stays in commits.",
+    "",
+  ].join("\n");
+}
+
+function assertLocalQueueSafe(root) {
+  for (const path of [join(root, ".scratch"), join(root, QUEUE_DIR)]) {
+    const stat = safeLstat(path);
+    if (stat && !stat.isDirectory()) {
+      fail(`local queue path is not a directory: ${relative(root, path)}`);
+    }
+  }
+}
+
+function gitExcludePath(root) {
+  return git(root, ["rev-parse", "--path-format=absolute", "--git-path", "info/exclude"])
+    || join(root, ".git", "info", "exclude");
+}
+
+function ensureGitExclude(root) {
+  const target = gitExcludePath(root);
+  const stat = safeLstat(target);
+  if (stat && !stat.isFile()) fail(`git exclude path is not a regular file: ${target}`);
+  const current = stat ? readFileSync(target, "utf8") : "";
+  const present = current.split(/\r?\n/).some((line) => line.trim().replace(/^\//, "") === EXCLUDE_ENTRY);
+  if (present) return null;
+  mkdirSync(dirname(target), { recursive: true });
+  const separator = current === "" || current.endsWith("\n") ? "" : "\n";
+  writeFileSync(target, `${current}${separator}${EXCLUDE_ENTRY}\n`);
+  return target;
+}
+
+function scaffoldLocalQueue(root) {
+  const tickets = join(root, QUEUE_DIR);
+  mkdirSync(tickets, { recursive: true });
+  const created = [];
+  const readme = join(root, QUEUE_README);
+  if (!safeLstat(readme)) {
+    writeFileSync(readme, queueReadmeTemplate(), { flag: "wx" });
+    created.push(QUEUE_README);
+  }
+  const excluded = ensureGitExclude(root);
+  if (excluded) created.push(relative(root, excluded));
+  return created;
+}
+
 // The skill owns the repo brief: when no instruction owner exists, seed a thin
 // AGENTS.md (specifics only), so a tracker's init (e.g. bd) never fills the
 // void with its own always-loaded reference bloat.
@@ -342,17 +415,20 @@ const bootstrapped = bootstrapInstructionIfAbsent(root);
 const lessonsBootstrapped = bootstrapLessonsIfAbsent(root);
 const instructionPath = chooseInstruction(root, options.instruction);
 assertInstructionSafe(root, instructionPath);
+if (tracker === "local") assertLocalQueueSafe(root);
 const current = readFileSync(instructionPath, "utf8");
 const next = replaceManagedBlock(current, managedBlock(tracker, domain, delivery));
 
 writeOwned(instructionPath, next);
 for (const [path, contents] of managedFiles) writeOwned(path, contents);
+const queueScaffolded = tracker === "local" ? scaffoldLocalQueue(root) : [];
 
 const written = [...new Set([
   ...bootstrapped,
   ...lessonsBootstrapped,
   relative(root, instructionPath),
   ...[...managedFiles.keys()].map((path) => relative(root, path)),
+  ...queueScaffolded,
 ])];
 
 process.stdout.write(`${JSON.stringify({

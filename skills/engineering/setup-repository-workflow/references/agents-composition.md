@@ -63,3 +63,16 @@ This ordering prevents the tracker from
 claiming the repository brief or committing the skill's managed files. Beads
 usage remains available on demand through `bd --help` and `bd prime`, never as
 an injected always-loaded reference.
+
+## Local queue init
+
+The KRN local queue has no separate initialization binary, so `--tracker local`
+is not its own commit-capable transition: `apply` scaffolds it directly. It
+creates `.scratch/tickets/` with a queue README that names the `<krn-ticket>` ABI
+and the `krn ticket check|next|claim|close|fail` verbs, and appends `.scratch/`
+to `.git/info/exclude` without rewriting existing entries or an existing
+`.scratch/` tree. A repository that already owns a `.scratch/` tree keeps it: the
+initializer adds a queue README only when absent and never overwrites foreign
+content, and `--tracker none` stays scaffolding-free. The ticket ABI and
+lifecycle stay owned by `docs/research/ticket-protocol.md` and `krn ticket`; the
+queue README only points at them.
