@@ -190,7 +190,7 @@ test("SessionStart signals adoption only for an unmanaged work tree with agent i
     writeFileSync(join(dir, "AGENTS.md"), "# Demo\n");
     const signal = precompactContext(dir, "SessionStart");
     assert.match(signal, /KRN onboarding/);
-    assert.match(signal, /krn-codex repo inspect/);
+    assert.match(signal, /krn repo inspect/);
     assert.equal(precompactContext(dir, "PreCompact"), null, "PreCompact never signals onboarding");
     writeFileSync(join(dir, "AGENTS.md"), "# Demo\n\n<!-- krn-agent-workflow:start -->\nmanaged\n<!-- krn-agent-workflow:end -->\n");
     assert.equal(precompactContext(dir, "SessionStart"), null, "an adopted repository gets no signal");

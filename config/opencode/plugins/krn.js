@@ -1,5 +1,5 @@
 // KRN opencode adapter: ports the Codex hooks to the opencode plugin API.
-// Installed by `krn-codex install apply` as ~/.config/opencode/plugins/krn.js
+// Installed by `krn install apply` as ~/.config/opencode/plugins/krn.js
 // and loaded automatically at opencode startup. It keeps three Codex
 // behaviours: the destructive-command guard (delegating to the same python
 // policy the installed Codex hook uses, never modelling shell execution), the
@@ -17,7 +17,7 @@ const INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"];
 const ONBOARDING_SIGNAL =
   "KRN onboarding (environment note, not a task): this work tree carries agent " +
   "instructions without the KRN managed contract. When your current task is " +
-  "finished, run `krn-codex repo inspect --root .` for a read-only report; " +
+  "finished, run `krn repo inspect --root .` for a read-only report; " +
   "adoption stays explicit-only.";
 
 export function field(text, label) {

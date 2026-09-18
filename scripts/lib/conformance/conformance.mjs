@@ -12,11 +12,26 @@ const COMMIT_ENV = {
   GIT_COMMITTER_DATE: "2020-01-01T00:00:00Z",
 };
 
+const DEFAULT_PROGRAM = "scripts/krn.mjs";
+const LEGACY_PROGRAM = "scripts/krn-codex.mjs";
+
+// A candidate installed before the rename carries only the legacy shim, so the
+// default program accepts `scripts/krn-codex.mjs` when the canonical entry is absent.
+function resolveProgram(candidate, requested = DEFAULT_PROGRAM) {
+  const canonical = path.join(candidate, requested);
+  if (fs.existsSync(canonical)) return canonical;
+  if (requested === DEFAULT_PROGRAM) {
+    const legacy = path.join(candidate, LEGACY_PROGRAM);
+    if (fs.existsSync(legacy)) return legacy;
+  }
+  return canonical;
+}
+
 export function loadCases(file) {
   const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
   const cases = parsed?.cases;
   if (!Array.isArray(cases) || cases.length === 0) throw new Error(`${file} declares no conformance cases`);
-  const program = parsed.program ?? "scripts/krn-codex.mjs";
+  const program = parsed.program ?? DEFAULT_PROGRAM;
   if (typeof program !== "string" || !program.trim()) throw new Error(`${file}: program must be a non-empty relative path`);
   const rootArg = parsed.rootArg === undefined ? "--root" : parsed.rootArg;
   if (rootArg !== null && (typeof rootArg !== "string" || !rootArg.trim())) throw new Error(`${file}: rootArg must be a flag string or null`);
@@ -98,7 +113,7 @@ function runCase({ candidate, entry, workRoot = os.tmpdir() }) {
         fs.writeFileSync(target, content.replaceAll("{{HEAD}}", sha).replaceAll("{{HEAD7}}", sha.slice(0, 7)));
       }
     }
-    const program = path.join(candidate, entry.program ?? "scripts/krn-codex.mjs");
+    const program = resolveProgram(candidate, entry.program ?? DEFAULT_PROGRAM);
     const rootArg = entry.rootArg === undefined ? "--root" : entry.rootArg;
     const argv = rootArg ? [...entry.run, rootArg, dir] : [...entry.run];
     const run = spawnSync(process.execPath, [program, ...argv], {

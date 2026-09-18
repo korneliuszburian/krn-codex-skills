@@ -18,7 +18,7 @@ the next unit and owns lifecycle coordination only when its envelope is active.
 
 Published tickets use the [ticket ABI v1](../../../../docs/research/ticket-protocol.md),
 not a skill-local template. Emit one `<krn-ticket>` envelope per unit and let the
-ABI own the fields; `scripts/lib/ticket/ticket.mjs` and `krn-codex ticket check`
+ABI own the fields; `scripts/lib/ticket/ticket.mjs` and `krn ticket check`
 parse and reject any other field set, so a parallel shape reads as `missing-field`.
 
 Carry the unit's decision evidence into the envelope:

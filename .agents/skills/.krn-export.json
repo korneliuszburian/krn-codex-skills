@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "krn": {
-    "commit": "e14e60c74bd37d45e552d74704c79eaf61be1e04",
+    "commit": "3805c739269f5b13f21feaff22ae9cae4dbb7107",
     "dirty": false
   },
   "upstream": {
@@ -24,10 +24,10 @@
     "wayfinder"
   ],
   "digests": {
-    "delivery-loop": "5db329f982e949d5d199499052090fe264acdb07459255689da0a970266341b8",
+    "delivery-loop": "3a99f95de0fc159d8b8da22a54643b59848e907559dceeb58acfc066b48153c0",
     "source-to-decision": "5bd95f3844e5f436d6e0658de98cd653d847c21653bbc89fc96eecedc102001f",
-    "slice-work": "5b590ede0ae7f1ead3c19c1bc56eaf3608c02a5546c310736fd8cf10b90122d8",
-    "setup-repository-workflow": "cb923603ec1a9fd2e797dfcdf6b8151844aa6da38d01fad45c9361b31fc92f1c",
+    "slice-work": "204cf02c807b8849ced029d8d1a64481e153df67b7c5bea231ef0a9cbb9ffeaa",
+    "setup-repository-workflow": "d444957fc55d2b1c16907b1dfe1cb1eef9cf86dfa416899139357c3e4300e9b8",
     "code-review": "12daafb9c4f77deb3c3303dc2e6f8a3c2a0ff7928fc004af959ba18b8bd38068",
     "codebase-design": "9f457cc65ef2d70eb5b8a44a4dae2b139840078b6596a67ee8c4e95f5a0e6f5c",
     "diagnosing-bugs": "bcdaec9e1033901c396437fcb102161d8ad3cd87632007aaf270b19e03e70117",
