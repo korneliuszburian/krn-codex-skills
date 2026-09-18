@@ -33,7 +33,7 @@ test("the gate runs the reproducibility observer before the change-contract chec
 test("the CI fast job runs the reproducibility observer before the changes-check step", () => {
   const text = workflow();
   const repro = text.indexOf("npm run test:repro");
-  const changes = text.indexOf("node scripts/krn-codex.mjs changes check");
+  const changes = text.indexOf("node scripts/krn.mjs changes check");
   assert.ok(repro !== -1, "the workflow must run npm run test:repro");
   assert.ok(changes !== -1, "the workflow must run the changes check");
   assert.ok(repro < changes, "the workflow must run test:repro before the changes check");

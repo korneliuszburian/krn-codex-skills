@@ -43,7 +43,7 @@ jobs:
           if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
             base="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
           fi
-          node scripts/krn-codex.mjs changes check --root . --base "$base" --head HEAD --before
+          node scripts/krn.mjs changes check --root . --base "$base" --head HEAD --before
       - name: Run the repository quality audit
         if: matrix.tier == 'fast'
         run: npm run quality:audit
@@ -101,7 +101,7 @@ jobs:
             node /tmp/krn-conformance/scripts/krn-codex.mjs conformance check --root /tmp/krn-conformance --candidate "$PWD" --frozen
           else
             echo "base $base predates the conformance set; running the candidate copy"
-            node scripts/krn-codex.mjs conformance check --root . --frozen
+            node scripts/krn.mjs conformance check --root . --frozen
           fi
       - name: Test validator rule modules
         if: matrix.tier == 'deep'

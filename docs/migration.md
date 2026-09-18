@@ -1,6 +1,6 @@
 # Installation and migration
 
-`krn-codex` installs a verified, immutable runtime snapshot. The source
+`krn` installs a verified, immutable runtime snapshot. The source
 checkout remains an authoring surface; it is never a stable discovery target.
 
 Status: `accepted`. Consumer: KRN operators applying, checking, or rolling back
@@ -61,7 +61,7 @@ contract's interception guarantee holds only after the hook is trusted.
 
 ## Doctor evidence
 
-`krn-codex doctor --json` is a filesystem observer, not a discovery or
+`krn doctor --json` is a filesystem observer, not a discovery or
 execution test. Its filesystem state is one of `filesystem_installed`,
 `stable_link_bypasses_current`, `legacy_mutable_source`, `orphaned_link`,
 `foreign_collision`, `legacy_hook_conflict`, `broken_link`, `missing`, or
@@ -91,7 +91,7 @@ Select a verified prior release by atomically repointing `current`, restore a
 timestamped KRN-link backup only into an absent path or over its still-managed
 replacement, then restart Codex. Never overwrite a new foreign occupant. Do
 not delete a release while an installed link or session may still depend on it.
-`krn-codex install prune --keep N` automates retention: it keeps the current
+`krn install prune --keep N` automates retention: it keeps the current
 release and the N most recent, and never removes a release that a managed link
 still resolves into. Concurrent applies are not serialized: each apply repoints
 `current` atomically, but a rollback that loses a race can repoint `current` to
