@@ -73,8 +73,15 @@ contract's interception guarantee holds only after the hook is trusted.
 `krn doctor --json` is a filesystem observer, not a discovery or
 execution test. Its filesystem state is one of `filesystem_installed`,
 `stable_link_bypasses_current`, `legacy_mutable_source`, `orphaned_link`,
-`foreign_collision`, `legacy_hook_conflict`, `broken_link`, `missing`, or
-`masked_by_override`. A stable link into a legacy mutable source checkout is
+`foreign_collision`, `legacy_hook_conflict`, `broken_link`, `missing`,
+`release_superseded`, or `masked_by_override`. A release whose committed
+metadata digest matches the pre-sh-56 digest spelling (`path.join` keys,
+`localeCompare` sibling order, executable bit included) but not the current
+content-only spelling is reported as `release_superseded` with rule
+`digest-legacy`, not as `release-corrupt`: the bytes are intact, only the
+algorithm that named them changed. `install apply` replaces such a release
+with the current target and never requires a manual `~/.codex` quarantine. A
+stable link into a legacy mutable source checkout is
 reported as `legacy_mutable_source` (a same-relative link into a checkout that
 carries `scripts/krn-codex.mjs`); `install apply` migrates it. The last state
 means a
@@ -105,6 +112,12 @@ release and the N most recent, and never removes a release that a managed link
 still resolves into. Concurrent applies are not serialized: each apply repoints
 `current` atomically, but a rollback that loses a race can repoint `current` to
 its own prior target, so run one apply or rollback at a time.
+
+A release sealed before the sh-56 digest-algorithm change has an upgrade path:
+`doctor` reports `release_superseded` (rule `digest-legacy`), never
+`release-corrupt`, and `install apply` from a checkout carrying a sealed target
+switches `current` to the new release with no manual `~/.codex` action. The
+prior release directory is left in place until `krn install prune` retires it.
 
 If `install apply` exits 66 (`existing release is corrupt`) or `doctor` reports
 `broken_link`, `current` selects an unverified release; a dangling or foreign

@@ -71,12 +71,48 @@ export function digestTree(root) {
   return { digest: hash.digest("hex"), files: entries };
 }
 
+// The pre-sh-56 digest spelling is retained so a release sealed before the
+// algorithm change is a named upgrade state, never a false corruption verdict.
+// It differs in key spelling (path.join), sibling order (localeCompare), and
+// the executable bit; a release whose bytes match this digest is `superseded`.
+export function legacyDigestTree(root) {
+  const hash = crypto.createHash("sha256");
+  const entries = [];
+  function visit(relative = "") {
+    const absolute = path.join(root, relative);
+    for (const entry of fs.readdirSync(absolute, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+      const next = path.join(relative, entry.name);
+      if (next === ".krn-release.json" || next === RELEASE_DIGESTS_RELATIVE) continue;
+      if (entry.isDirectory()) visit(next);
+      else if (entry.isFile()) entries.push(next);
+      else fail(`release contains unsupported filesystem entry: ${next}`, EXIT_CORRUPT);
+    }
+  }
+  visit();
+  for (const relative of entries) {
+    const stat = fs.statSync(path.join(root, relative));
+    hash.update(`${relative}\0${stat.mode & 0o111 ? "x" : "-"}\0`);
+    hash.update(fs.readFileSync(path.join(root, relative)));
+    hash.update("\0");
+  }
+  return { digest: hash.digest("hex"), files: entries };
+}
+
 // A failed release is not automatically a broken link: each corruption family
 // names itself so a caller can tell a torn ledger from a rewritten tree.
 function releaseCorrupt(message) {
   const error = new Error(message);
   error.exitCode = EXIT_CORRUPT;
   error.rule = "release-corrupt";
+  throw error;
+}
+
+// A release sealed under the earlier digest algorithm is not corrupt: it is a
+// superseded release that `install apply` can replace or quarantine.
+function releaseSuperseded(message) {
+  const error = new Error(message);
+  error.exitCode = EXIT_CORRUPT;
+  error.rule = "digest-legacy";
   throw error;
 }
 
@@ -189,6 +225,7 @@ const RULE_STATUS = Object.freeze({
   "ledger-unreadable": "ledger_unreadable",
   "ledger-malformed": "ledger_malformed",
   "release-corrupt": "release_corrupt",
+  "digest-legacy": "release_superseded",
 });
 
 function failureFilesystem(error) {
@@ -207,7 +244,14 @@ export function verifyRelease(release, commit, { requireSealed = true, ledger, a
     releaseCorrupt(`existing release metadata does not match ${commit}: ${release}`);
   }
   const actual = digestTree(release).digest;
-  if (actual !== metadata.digest) releaseCorrupt(`existing release is corrupt: ${release}`);
+  if (actual !== metadata.digest) {
+    // A digest computed under the pre-sh-56 algorithm is a named upgrade, not
+    // corruption; a release that matches neither spelling stays corrupt.
+    if (legacyDigestTree(release).digest !== metadata.digest) {
+      releaseCorrupt(`existing release is corrupt: ${release}`);
+    }
+    releaseSuperseded(`existing release was sealed under a superseded digest algorithm: ${release}`);
+  }
   const usedAnchor = anchor ?? (ledger === undefined ? "release" : "committed");
   if (!requireSealed) return { ...metadata, anchor: usedAnchor };
   const entries = ledger ?? releaseDigests(release);
@@ -314,9 +358,10 @@ function isPriorReleasePath(plan, item, linked) {
   const legacy = item.label === "bin__krn-codex-catalog" ? "scripts/catalog.mjs" : null;
   if (relative !== item.relative && relative !== legacy) return false;
   // Prior-release classification is about the link shape and the release's
-  // structural integrity; an unsealed (audited or not) prior release still
-  // classifies, exactly as a sealed one does.
-  try { verifyRelease(path.join(releases, segments[0]), segments[0], { requireSealed: false }); return true; } catch { return false; }
+  // structural integrity; an unsealed (audited or not) or superseded prior
+  // release still classifies, exactly as a sealed one does, so apply can
+  // migrate it without a manual filesystem action.
+  try { verifyRelease(path.join(releases, segments[0]), segments[0], { requireSealed: false }); return true; } catch (error) { return error?.rule === "digest-legacy"; }
 }
 
 export function classifyTarget(plan, item, linked) {
