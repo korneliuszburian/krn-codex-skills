@@ -400,6 +400,10 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
           return;
         }
       }
+      const reach = (() => { const seen = new Set(); for (let queue = [...files]; queue.length > 0;) for (const next of importGraph().get(queue.pop()) ?? []) if (!seen.has(next)) { seen.add(next); queue.push(next); } return seen; })();
+      const observers = target.kind === "script" ? frozenTestsFor(root, target, () => listTestFiles(root, base, git)) : [target.name];
+      const exercised = frozenObserver || (target.kind === "script" ? commandChanged || scriptState === "redefined" || changedTests.length > 0 || changedOther.length > 0 : fileChanged) || (observers ?? []).some((rel) => reach.has(rel) || files.includes(rel));
+      if (verifyBefore && surface && label === "contract" && entry.before === "green" && entry.after === "green" && !exercised) errors.push({ rule: "non-falsifiable-prediction", commit: commit.sha, ref: entry.ref, detail: `the green->green check ${entry.ref} is unchanged, unfrozen, and not reached by a changed file` });
       const key = `${target.kind}:${target.name}`;
       const record = targets.get(key) ?? { target, obligations: [] };
       const after = label === "risk" ? "green" : entry.after;
