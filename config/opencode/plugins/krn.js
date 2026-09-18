@@ -19,6 +19,10 @@ const ONBOARDING_SIGNAL =
   "instructions without the KRN managed contract. When your current task is " +
   "finished, run `krn repo inspect --root .` for a read-only report; " +
   "adoption stays explicit-only.";
+const TICKET_START = "<krn-ticket>";
+const TICKET_END = "</krn-ticket>";
+const QUEUE_DIRS = [".scratch", ".krn/tickets"];
+const CLAIM_COMMAND = "krn ticket claim --root . --id <id>";
 
 export function field(text, label) {
   for (const line of text.split("\n")) {
@@ -91,6 +95,94 @@ export function adoptionSignal(directory) {
   return null;
 }
 
+function managedRoot(directory) {
+  const root = worktreeRoot(directory);
+  if (!root) return null;
+  for (const name of INSTRUCTION_FILES) {
+    let text;
+    try {
+      text = fs.readFileSync(path.join(root, name), "utf8");
+    } catch {
+      continue;
+    }
+    if (text.includes(MANAGED_START)) return root;
+  }
+  return null;
+}
+
+function markdownFiles(base) {
+  const files = [];
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.isFile() && entry.name.endsWith(".md")) files.push(full);
+    }
+  };
+  walk(base);
+  return files.sort();
+}
+
+function ticketFields(text) {
+  const start = text.indexOf(TICKET_START);
+  const end = text.indexOf(TICKET_END);
+  if (start === -1 || end === -1 || end < start) return null;
+  const fields = new Map();
+  for (const line of text.slice(start + TICKET_START.length, end).split("\n")) {
+    const match = /^([A-Za-z][A-Za-z ()-]*):\s*(.*)$/.exec(line.trim());
+    if (match) fields.set(match[1], match[2].trim());
+  }
+  return fields;
+}
+
+function blockerIds(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw || /^none$/i.test(raw)) return [];
+  return raw.split(",").map((entry) => entry.trim()).filter(Boolean);
+}
+
+export function readyIds(root) {
+  const discovered = new Map();
+  for (const dir of QUEUE_DIRS) {
+    for (const file of markdownFiles(path.join(root, dir))) {
+      let text;
+      try {
+        text = fs.readFileSync(file, "utf8");
+      } catch {
+        continue;
+      }
+      if (!text.includes(TICKET_START)) continue;
+      const fields = ticketFields(text);
+      const id = fields?.get("Id");
+      if (id) discovered.set(id, fields);
+    }
+  }
+  const done = new Set(
+    [...discovered].filter(([, fields]) => (fields.get("Status") ?? "").toLowerCase() === "done").map(([id]) => id),
+  );
+  const ready = [];
+  for (const [id, fields] of discovered) {
+    if ((fields.get("Status") ?? "").toLowerCase() !== "ready") continue;
+    if (blockerIds(fields.get("Blocked by")).every((blocker) => done.has(blocker))) ready.push(id);
+  }
+  return ready.sort();
+}
+
+export function queueBrief(directory) {
+  if (capsuleBrief(directory)) return null;
+  const root = managedRoot(directory);
+  if (!root) return null;
+  const ids = readyIds(root);
+  if (ids.length === 0) return null;
+  return `KRN ready queue: ${ids.slice(0, 3).join(", ")}. Claim one with \`${CLAIM_COMMAND}\`.`;
+}
+
 const PATCH_DIRECTIVE = /^\*\*\* (?:Add|Update|Delete) File:/m;
 
 function patchMappable(text) {
@@ -131,7 +223,8 @@ export function guardReason(tool, args, directory) {
 
 export const KrnAdapter = async ({ directory } = {}) => {
   const cwd = directory ?? process.cwd();
-  const marker = (text) => text.includes("KRN memory layer") || text.includes("KRN onboarding");
+  const marker = (text) =>
+    text.includes("KRN memory layer") || text.includes("KRN ready queue") || text.includes("KRN onboarding");
   return {
     // The Codex SessionStart equivalent: the brief enters the system prompt,
     // not the user turn, so it informs the session without competing with the
@@ -139,7 +232,7 @@ export const KrnAdapter = async ({ directory } = {}) => {
     "experimental.chat.system.transform": async (input, output) => {
       if (!Array.isArray(output?.system)) return;
       if (output.system.some(marker)) return;
-      const injected = capsuleBrief(cwd) ?? adoptionSignal(cwd);
+      const injected = capsuleBrief(cwd) ?? queueBrief(cwd) ?? adoptionSignal(cwd);
       if (injected) output.system.push(injected);
     },
     "experimental.session.compacting": async (input, output) => {
