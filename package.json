@@ -46,7 +46,7 @@
     "test:lessons": "node --test test/lessons/anchor-ancestry.test.mjs test/lessons/lessons.test.mjs test/lessons/lessons-recall.test.mjs",
     "test:lessons-verify": "node --test test/lessons/lessons-verify.test.mjs",
     "test:catalog": "node --test test/catalog/catalog-cli.test.mjs",
-    "test:setup": "node --test test/setup-workflow.test.mjs",
+    "test:setup": "node --test test/setup-workflow.test.mjs test/setup-workflow-local-queue.test.mjs",
     "test:skill-scripts": "node --test test/skill-scripts.test.mjs",
     "test:durable-pages": "node --test test/rules/durable-pages.test.mjs",
     "test:repro": "node --test test/repro/determinism.test.mjs",
