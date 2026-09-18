@@ -76,7 +76,7 @@ test("the workflow fans the tiers out as separate jobs with fail-fast disabled",
     const tier = guardOf(chunk);
     if (!tier) continue;
     for (const match of chunk.matchAll(/npm run ([a-z:-]+)/g)) byTier[tier].add(match[1]);
-    if (tier === "fast" && /krn-codex\.mjs changes check/.test(chunk)) fastRunsChanges = true;
+    if (tier === "fast" && /krn\.mjs changes check/.test(chunk)) fastRunsChanges = true;
     if (tier === "deep" && /bash -n scripts\/install\.sh/.test(chunk)) deepRunsShellCheck = true;
   }
   assert.deepEqual(sorted(byTier.deep), DEEP, "the deep job must run exactly the deep tier");
@@ -85,7 +85,7 @@ test("the workflow fans the tiers out as separate jobs with fail-fast disabled",
     assert.ok(byTier.fast.has(gate), `the fast job must run ${gate}`);
   }
   const reproAt = text.indexOf("npm run test:repro");
-  const changesAt = text.indexOf("node scripts/krn-codex.mjs changes check");
+  const changesAt = text.indexOf("node scripts/krn.mjs changes check");
   assert.ok(reproAt !== -1 && changesAt !== -1 && reproAt < changesAt, "the fast job must run test:repro before changes:check");
   assert.ok(deepRunsShellCheck, "the deep job must run the shell syntax check");
 });

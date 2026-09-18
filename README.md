@@ -13,9 +13,9 @@ plus anyone maintaining the global skill set.
 
 ```bash
 npm run gate                    # validate this checkout (all gates)
-krn-codex doctor                # inspect the installed release (text)
-krn-codex state compile         # compile a restart capsule for an outcome
-node scripts/krn-codex.mjs ...  # every command before `krn-codex` is installed
+krn doctor                      # inspect the installed release (text)
+krn state compile               # compile a restart capsule for an outcome
+node scripts/krn.mjs ...        # every command before `krn` is installed
 ```
 
 Production-first Codex workflows with one owner per repeated process. Global
@@ -133,7 +133,7 @@ result as the KRN source, and do not create a local fork without a named
 consumer and falsifier. The curated harness subset named by `harness_skills` in
 `skills/manifest.json` and the upstream `harness_paths` in
 `config/upstream-sources.json` are materialized into the
-generated, provenance-marked `.agents/skills/` by `krn-codex skills export`
+generated, provenance-marked `.agents/skills/` by `krn skills export`
 (the full pin stays in `config/upstream-sources.json`); regenerate instead of
 editing, and `npm run skills:check` fails on a foreign destination, a stale upstream pin (against `config/upstream-sources.json`), or an exported KRN skill whose bytes differ from its source; upstream byte integrity is verified at export time against the pinned checkout (below), not re-verified at check time. `krn.commit` records the source HEAD when the export ran, which is the parent when the export accompanies a source change, so treat it as provenance, not a reproducible revision.
 
@@ -158,9 +158,9 @@ installer and hooks rely on symlinks, `bash`, and `tar`.
 
 ```bash
 npm run validate
-krn-codex install plan --source /absolute/path/to/clean/krn-codex-skills
-krn-codex install apply --source /absolute/path/to/clean/krn-codex-skills --yes
-krn-codex doctor
+krn install plan --source /absolute/path/to/clean/krn-codex-skills
+krn install apply --source /absolute/path/to/clean/krn-codex-skills --yes
+krn doctor
 ```
 
 The capsule reader commands named in `config/AGENTS.md`
@@ -169,7 +169,7 @@ outcome capsule and print a capsule skeleton with the mechanical fields (HEAD,
 dirty scope, active runs) already filled, plus a deterministic restart brief that
 diffs the recorded capsule against live repository state. All are read-only and
 never write the capsule.
-`krn-codex install plan` is read-only. `install apply` accepts only a clean
+`krn install plan` is read-only. `install apply` accepts only a clean
 Git checkout at its checked-out commit, validates that exact tree, copies an
 explicit manifest-owned runtime closure to
 `$CODEX_HOME/krn/releases/<commit>/`, hashes it, then atomically switches
@@ -192,7 +192,7 @@ links while it reconciles them through `current`. `scripts/install.sh` remains
 a one-release `check`/`install` compatibility shim; it invokes the same CLI, and
 `npm run install:check` runs `check`.
 
-`krn-codex install prune --keep N` removes superseded releases while keeping the current one and the N newest, and never removes a release a managed link still resolves into. Use `krn-codex install check` for filesystem state and `krn-codex doctor` when
+`krn install prune --keep N` removes superseded releases while keeping the current one and the N newest, and never removes a release a managed link still resolves into. Use `krn install check` for filesystem state and `krn doctor` when
 you need the distinction between an installed filesystem snapshot, a broken or
 foreign link (a legacy mutable-source link is reported as
 `legacy_mutable_source`; `install apply` migrates it), and
@@ -230,10 +230,10 @@ directory as an absolute path; there is no implicit home fallback.
 ## Capability catalog
 
 ```bash
-krn-codex capability inventory
-krn-codex capability usage --days 30
-krn-codex capability plan lean
-krn-codex capability apply lean
+krn capability inventory
+krn capability usage --days 30
+krn capability plan lean
+krn capability apply lean
 ```
 
 Named profiles keep optional integrations intentional. Usage evidence never
