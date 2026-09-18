@@ -71,13 +71,22 @@ export function digestTree(root) {
   return { digest: hash.digest("hex"), files: entries };
 }
 
+// A failed release is not automatically a broken link: each corruption family
+// names itself so a caller can tell a torn ledger from a rewritten tree.
+function releaseCorrupt(message) {
+  const error = new Error(message);
+  error.exitCode = EXIT_CORRUPT;
+  error.rule = "release-corrupt";
+  throw error;
+}
+
 function releaseMetadata(release) {
   const file = path.join(release, ".krn-release.json");
-  if (!fs.existsSync(file)) fail(`existing release lacks metadata: ${release}`, EXIT_CORRUPT);
+  if (!fs.existsSync(file)) releaseCorrupt(`existing release lacks metadata: ${release}`);
   try {
     return readJson(file);
   } catch {
-    fail(`existing release has invalid metadata: ${release}`, EXIT_CORRUPT);
+    releaseCorrupt(`existing release has invalid metadata: ${release}`);
   }
 }
 
@@ -88,12 +97,12 @@ export function releaseDigests(release) {
   try {
     document = readJson(file);
   } catch {
-    fail(`release digest ledger is unreadable: ${file}`, EXIT_CORRUPT);
+    failLedger(`release digest ledger is unreadable: ${file}`, "ledger-unreadable");
   }
   const digests = document?.digests;
   if (digests === undefined || digests === null) return {};
   if (typeof digests !== "object" || Array.isArray(digests)) {
-    fail(`release digest ledger is malformed: ${file}`, EXIT_CORRUPT);
+    failLedger(`release digest ledger is malformed: ${file}`, "ledger-malformed");
   }
   return digests;
 }
@@ -134,12 +143,12 @@ function committedReleaseDigests(root) {
   try {
     document = JSON.parse(text);
   } catch {
-    fail(`committed release digest ledger is unreadable: ${location}`, EXIT_CORRUPT);
+    failLedger(`committed release digest ledger is unreadable: ${location}`, "ledger-unreadable");
   }
   const digests = document?.digests;
   if (digests === undefined || digests === null) return null;
   if (typeof digests !== "object" || Array.isArray(digests)) {
-    fail(`committed release digest ledger is malformed: ${location}`, EXIT_CORRUPT);
+    failLedger(`committed release digest ledger is malformed: ${location}`, "ledger-malformed");
   }
   return digests;
 }
@@ -155,24 +164,42 @@ function anchoredLedger(source) {
   return digests;
 }
 
-function unsealed(message) {
+function failLedger(message, rule) {
   const error = new Error(message);
   error.exitCode = EXIT_CORRUPT;
-  error.rule = "digest-unsealed";
+  error.rule = rule;
   throw error;
+}
+
+function unsealed(message) {
+  failLedger(message, "digest-unsealed");
+}
+
+// A ledger or release corruption keeps its own status instead of being
+// flattened into `broken_link`, which stays reserved for an unresolvable link.
+const RULE_STATUS = Object.freeze({
+  "ledger-unreadable": "ledger_unreadable",
+  "ledger-malformed": "ledger_malformed",
+  "release-corrupt": "release_corrupt",
+});
+
+function failureFilesystem(error) {
+  const rule = error?.rule;
+  const status = RULE_STATUS[rule] ?? "broken_link";
+  return { status, detail: error?.message, ...(rule ? { rule } : {}) };
 }
 
 export function verifyRelease(release, commit, { requireSealed = true, ledger, anchor } = {}) {
   const stat = fs.lstatSync(release, { throwIfNoEntry: false });
   if (!stat || !stat.isDirectory() || stat.isSymbolicLink()) {
-    fail(`existing release is not a regular directory: ${release}`, EXIT_CORRUPT);
+    releaseCorrupt(`existing release is not a regular directory: ${release}`);
   }
   const metadata = releaseMetadata(release);
   if (metadata.schemaVersion !== 1 || metadata.commit !== commit || typeof metadata.digest !== "string") {
-    fail(`existing release metadata does not match ${commit}: ${release}`, EXIT_CORRUPT);
+    releaseCorrupt(`existing release metadata does not match ${commit}: ${release}`);
   }
   const actual = digestTree(release).digest;
-  if (actual !== metadata.digest) fail(`existing release is corrupt: ${release}`, EXIT_CORRUPT);
+  if (actual !== metadata.digest) releaseCorrupt(`existing release is corrupt: ${release}`);
   const usedAnchor = anchor ?? (ledger === undefined ? "release" : "committed");
   if (!requireSealed) return { ...metadata, anchor: usedAnchor };
   const entries = ledger ?? releaseDigests(release);
@@ -513,7 +540,13 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     try { return readJson(OWN_MANIFEST); } catch { return null; }
   })();
   const legacyHooks = legacyHookTargets(path.dirname(releaseRoot), manifest);
-  const ledger = anchoredLedger(source);
+  let ledger = null;
+  let ledgerError = null;
+  try {
+    ledger = anchoredLedger(source);
+  } catch (error) {
+    ledgerError = error;
+  }
   const overrideAudit = currentTarget ? readOverrideRecord(releaseRoot, path.basename(currentTarget)) : null;
   const base = {
     releaseRoot,
@@ -525,6 +558,9 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     sessionAfterApply: { status: "stale_session_likely" },
     ...(overrideAudit ? { override: overrideAudit } : {}),
   };
+  // A corrupt ledger is a first-class finding, not a reason to throw the whole
+  // inspection away.
+  if (ledgerError) return { ...base, filesystem: failureFilesystem(ledgerError), targets: [] };
   if (!currentTarget) {
     const currentStat = fs.lstatSync(current, { throwIfNoEntry: false });
     return {
@@ -550,7 +586,7 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     );
   } catch (error) {
     if (error.rule !== "digest-unsealed") {
-      return { ...base, filesystem: { status: "broken_link", detail: error.message, ...(error.rule ? { rule: error.rule } : {}) }, targets: [] };
+      return { ...base, filesystem: failureFilesystem(error), targets: [] };
     }
     // An intact audit record whose digest still matches the bytes is an
     // explicit override, not corruption. Keep inspecting targets and keep the
@@ -563,7 +599,7 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     try {
       metadata = verifyRelease(currentTarget, path.basename(currentTarget), { requireSealed: false });
     } catch (integrity) {
-      return { ...base, filesystem: { status: "broken_link", detail: integrity.message, ...(integrity.rule ? { rule: integrity.rule } : {}) }, targets: [] };
+      return { ...base, filesystem: failureFilesystem(integrity), targets: [] };
     }
     overrideSeal = true;
   }
