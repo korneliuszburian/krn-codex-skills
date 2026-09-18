@@ -43,7 +43,7 @@ function sourceRootFromLocator(locator, cwd) {
   }
   const root = git(cwd, ["rev-parse", "--show-toplevel"]);
   if (!root) {
-    fail("--source must name a clean Git checkout when krn-codex is run outside one", EXIT_USAGE);
+    fail("--source must name a clean Git checkout when krn is run outside one", EXIT_USAGE);
   }
   return { root: fs.realpathSync(root), ref: locator || "HEAD" };
 }
