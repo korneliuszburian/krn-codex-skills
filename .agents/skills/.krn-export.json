@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "krn": {
-    "commit": "2c56b23a9274b2b7eed71d6eb709a80f90c04cf6",
+    "commit": "faca45fa533b71e0e6552fb62e30aeafb4e3ae38",
     "dirty": false
   },
   "upstream": {
@@ -24,7 +24,7 @@
     "wayfinder"
   ],
   "digests": {
-    "delivery-loop": "c5b2ed3d3a82447d72e491a1372a121f5a1e6cb4b85475c2da9432e9caff79c8",
+    "delivery-loop": "381a56f498f8e6db02cc188c2d534f7b9af0c01e491dfe5932405abb037053c2",
     "source-to-decision": "5bd95f3844e5f436d6e0658de98cd653d847c21653bbc89fc96eecedc102001f",
     "slice-work": "204cf02c807b8849ced029d8d1a64481e153df67b7c5bea231ef0a9cbb9ffeaa",
     "setup-repository-workflow": "9a5c615a9804b13b4f2380f3059f76153936f87b42d3e2d7d35d07d83de94575",
