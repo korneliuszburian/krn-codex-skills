@@ -26,16 +26,16 @@ const LIVE_SURFACES = [
 ];
 
 // The residual `krn-codex` spellings the contract deliberately keeps: the
-// repository slug, the catalog compatibility alias, the package.json alias bin
-// key, and the frozen shim path (including its base-ref conformance copy). A
-// shim path reached through `node <path>` is a candidate invocation, not a
-// frozen path-only reference, so it stays flagged.
+// repository slug, the catalog compatibility alias, the frozen shim path
+// (including its base-ref conformance copy), and the retired managed link name
+// the migration note documents. A shim path reached through `node <path>` is a
+// candidate invocation, not a frozen path-only reference, so it stays flagged.
 const ALLOWED = [
   /krn-codex-skills/g,
   /krn-codex-catalog/g,
-  /"krn-codex"/g,
   /\/tmp\/krn-conformance\/scripts\/krn-codex\.mjs/g,
   /(?<!node )\/?(?:[\w.-]+\/)*scripts\/krn-codex\.mjs/g,
+  /\bbin\/krn-codex\b/g,
 ];
 
 const unflagged = (text) => ALLOWED.reduce((carry, pattern) => carry.replace(pattern, ""), text);
@@ -71,9 +71,9 @@ test("the install shim execs krn.mjs", () => {
   assert.doesNotMatch(shim, /krn-codex/);
 });
 
-test("the alias and repository exceptions survive the rename", () => {
+test("the catalog and repository exceptions survive the retirement", () => {
   const pkg = JSON.parse(read("package.json"));
-  assert.equal(pkg.bin["krn-codex"], "scripts/krn-codex.mjs");
+  assert.equal(pkg.bin["krn-codex"], undefined);
   assert.equal(pkg.bin["krn-codex-catalog"], "scripts/krn-codex-catalog.mjs");
   assert.match(pkg.repository.url, /github\.com\/korneliuszburian\/krn-codex-skills/);
   assert.match(read("README.md"), /github\.com\/korneliuszburian\/krn-codex-skills/);
