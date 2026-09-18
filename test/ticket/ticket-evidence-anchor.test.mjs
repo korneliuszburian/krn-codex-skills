@@ -76,9 +76,10 @@ const withRepo = (body) => {
 
 const laneCommit = (dir) => {
   git(dir, ["checkout", "-q", "-b", "ticket/lane"]);
-  writeFileSync(join(dir, "work.txt"), "work\n");
-  git(dir, ["add", "work.txt"]);
-  commit(dir, "lane work");
+  mkdirSync(join(dir, "scripts", "lib", "ticket"), { recursive: true });
+  writeFileSync(join(dir, "scripts", "lib", "ticket", "ticket.mjs"), "export const lane = 1;\n");
+  git(dir, ["add", "scripts/lib/ticket/ticket.mjs"]);
+  commit(dir, `lane work\n\nTicket: sh-12\nChange-contract: ${baseFields.Contract}`);
   return rev(dir, "HEAD");
 };
 
@@ -97,7 +98,7 @@ test("close records the integrated commit and the stable patch id over the ticke
     const mainBefore = rev(dir, "main");
     const laneSha = laneCommit(dir);
     ticketLib.claimTicket({ file, root: dir, id: "sh-12", worker: "stub" });
-    ticketLib.closeTicket({ file, root: dir, evidence: "node --test green", resolution: "merged locally" });
+    ticketLib.closeTicket({ file, root: dir, evidence: "node --test green", resolution: "merged locally", allowUnanchored: true });
     const anchor = anchorOf(file);
     assert.equal(anchor.integrated, laneSha, "the closure must pin the committed sha");
     assert.equal(anchor.patch, patchId(dir, ["diff", `${mainBefore}..${laneSha}`]), "the patch id must match git patch-id --stable over the branch range");
@@ -113,7 +114,7 @@ test("a squashed closure survives because its patch id is present in the range",
     const mainBefore = rev(dir, "main");
     const laneSha = laneCommit(dir);
     ticketLib.claimTicket({ file, root: dir, id: "sh-12", worker: "stub" });
-    ticketLib.closeTicket({ file, root: dir, evidence: "gate green", resolution: "merged locally" });
+    ticketLib.closeTicket({ file, root: dir, evidence: "gate green", resolution: "merged locally", allowUnanchored: true });
     const anchor = anchorOf(file);
     squashIntoMain(dir);
     assert.equal(isAncestor(dir, laneSha), false, "a squash must remove the worker commit");

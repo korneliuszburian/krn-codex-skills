@@ -28,7 +28,7 @@ for iteration in $(seq 1 "$MAX_RUNS"); do
   sha=$(git -C "$ROOT" rev-parse "$branch")
 
   git -C "$ROOT" -c user.email=frontier@lab.invalid -c user.name=frontier merge --no-ff "$branch" -m "merge: integrate $id" >/dev/null
-  node "$KRN" ticket close --root "$ROOT" --path "$TICKETS" --id "$id" \
+  node "$KRN" ticket close --root "$ROOT" --path "$TICKETS" --id "$id" --head "$sha" \
     --evidence "lane branch $branch merged as $sha; worker gate green" \
     --resolution "frontier loop (stub proof)" >/dev/null
   echo "closed=$id sha=$sha"
