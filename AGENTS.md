@@ -11,7 +11,7 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
 - `skills/manifest.json` — install names, paths, invocation, and retirement.
 - `scripts/` — CLI, hooks, and `lib/<owner>/` (audit, catalog, conformance, contract, frontend, install, lessons, rules, state, support, ticket).
 - `test/<group>/` — suites for audit, bootstrap-fixture, catalog, cli, conformance, contract, frontend, install, lessons, opencode, repro, rules, state, support, and ticket, plus top-level `ci-workflow`, `hooks-guard`, `setup-workflow`, and `skill-scripts`.
-- `.agents/skills/` — generated skill export; regenerate with `krn-codex skills export`, gated by `skills:check`.
+- `.agents/skills/` — generated skill export; regenerate with `krn skills export`, gated by `skills:check`.
 - `.github/` — CI workflow; `npm run gate` is the local equivalent of the gate sequence.
 - `test/bootstrap-fixture/` — retained installed-release smoke.
 - `CONTEXT.md` — current shared vocabulary and knowledge index.

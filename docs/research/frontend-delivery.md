@@ -106,7 +106,7 @@ the project-level rules the general lint does not: no section height, no
 appearance `min-height`/`min-block-size`, one library implementation per job.
 
 Browser evidence is the stage's only non-code gate, and it is a **measurement,
-not an opinion**: `krn-codex frontend verify --config <file>` records a
+not an opinion**: `krn frontend verify --config <file>` records a
 tamper-evident manifest (sha256 per artifact and per build file) with
 deterministic measurements — horizontal overflow, computed height floors,
 tap-target sizes, contrast offenders, grid track counts — and `--gate` re-hashes
@@ -130,8 +130,8 @@ The stage writes facts, not prose: `docs/design/raw/` (raw MCP dumps),
 `tokens.md` (every value, its snapped token, deviations), `sections.md` (every
 section of every page with counts), `components.md` (block × variant × optionals),
 and `blocks.md` (per-block `planned` → `built` → `verified`). The facts are
-machine-checked, not trusted: `krn-codex frontend audit --docs docs/design/blocks.md`
-holds the registry to the code, and `krn-codex frontend facts --docs docs/design`
+machine-checked, not trusted: `krn frontend audit --docs docs/design/blocks.md`
+holds the registry to the code, and `krn frontend facts --docs docs/design`
 holds the matrix, the sections, and the tokens to it. The first fixture is
 the Complete CSS Bloom Barista design: a small canonical file whose sections are
 Hero, Courses, About, Blog, Footer at two widths, with essentially no published
@@ -201,7 +201,7 @@ group → curriculum disclosure → preview video → enroll.
 
 ## Residual bounds
 
-The fact files stay model-authored: `krn-codex frontend design` parses the raw
+The fact files stay model-authored: `krn frontend design` parses the raw
 MCP dumps into tokens/sections/components and `frontend facts` plus
 `frontend audit --docs` validate all four facts against the code, but nothing
 writes `tokens.md`, `sections.md`, or `components.md` automatically yet.

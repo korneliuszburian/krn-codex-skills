@@ -7,7 +7,7 @@ restate owner content here.
 ## Surface ownership
 - Prompt/native goal: one current outcome, authority, and open uncertainty.
 - Repository `AGENTS.md`: product language, layout, commands, gates, authority.
-- Repository memory: the transient outcome capsule lives at `.krn/runs/delivery-loop/<outcome-id>/state.md`, sole writer `$delivery-loop`, checked by `krn-codex state check`/`state resume`; durable shared truth lives in `CONTEXT.md`, `docs/adr/`, and `docs/research/`; cross-run workflow lessons live
+- Repository memory: the transient outcome capsule lives at `.krn/runs/delivery-loop/<outcome-id>/state.md`, sole writer `$delivery-loop`, checked by `krn state check`/`state resume`; durable shared truth lives in `CONTEXT.md`, `docs/adr/`, and `docs/research/`; cross-run workflow lessons live
 in `docs/research/workflow-lessons.md`, whose header owns recording, the falsifier token, triggers, recall, retirement, and the row cap. Native goals, transcripts, and chat history are not repository knowledge, nor is personal assistant memory — answer "how does memory work here" from this contract
 and those pages.
 - `.codex/config.toml`: trusted settings, never prose procedure.

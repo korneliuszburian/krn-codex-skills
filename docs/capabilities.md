@@ -99,16 +99,16 @@ cache discovery, local TOML, or a positive usage record.
 
 ## Commands
 
-After `krn-codex install apply --source <clean-checkout> --yes`, run the
+After `krn install apply --source <clean-checkout> --yes`, run the
 manifest-owned CLI from any working directory:
 
 ```bash
-krn-codex capability inventory
-krn-codex capability usage --days 30
-krn-codex capability profile show lean
-krn-codex capability plan lean
-krn-codex capability apply lean
-krn-codex capability check lean
+krn capability inventory
+krn capability usage --days 30
+krn capability profile show lean
+krn capability plan lean
+krn capability apply lean
+krn capability check lean
 ```
 
 `krn-codex-catalog` remains a one-release compatibility entrypoint. Inside the
