@@ -12,7 +12,7 @@ const workflow = () => read(path.join(".github", "workflows", "validate.yml"));
 const stepsIn = (command) => new Set([...String(command ?? "").matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
 const sorted = (values) => [...values].sort();
 
-const FAST = ["changes:check", "quality:audit", "test:lib", "validate"];
+const FAST = ["changes:check", "quality:audit", "test:lib", "test:repro", "validate"];
 const DEEP = [
   "lessons:verify",
   "skills:check",
@@ -81,8 +81,11 @@ test("the workflow fans the tiers out as separate jobs with fail-fast disabled",
   }
   assert.deepEqual(sorted(byTier.deep), DEEP, "the deep job must run exactly the deep tier");
   assert.ok(fastRunsChanges, "the fast job must run changes:check");
-  for (const gate of ["validate", "quality:audit", "test:lib"]) {
+  for (const gate of ["validate", "quality:audit", "test:lib", "test:repro"]) {
     assert.ok(byTier.fast.has(gate), `the fast job must run ${gate}`);
   }
+  const reproAt = text.indexOf("npm run test:repro");
+  const changesAt = text.indexOf("node scripts/krn-codex.mjs changes check");
+  assert.ok(reproAt !== -1 && changesAt !== -1 && reproAt < changesAt, "the fast job must run test:repro before changes:check");
   assert.ok(deepRunsShellCheck, "the deep job must run the shell syntax check");
 });

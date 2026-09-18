@@ -30,6 +30,9 @@ jobs:
       - name: Validate contracts and routing
         if: matrix.tier == 'fast'
         run: npm run validate
+      - name: Prove deterministic exports
+        if: matrix.tier == 'fast'
+        run: npm run test:repro
       - name: Check change contracts
         if: matrix.tier == 'fast'
         env:

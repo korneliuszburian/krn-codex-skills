@@ -252,7 +252,7 @@ config/               installed global contract and hook configuration
 skills/               canonical workflow owners and direct resources
 .agents/skills/       generated skill export, verified by skills:check
 scripts/              CLI, hooks, and lib/ grouped by owner (audit, catalog, conformance, contract, frontend, install, lessons, rules, state, support, ticket)
-test/                 suites for audit, bootstrap-fixture, catalog, cli, conformance, contract, frontend, install, lessons, opencode, rules, state, support, and ticket, plus top-level ci-workflow, hooks-guard, setup-workflow, and skill-scripts
+test/                 suites for audit, bootstrap-fixture, catalog, cli, conformance, contract, frontend, install, lessons, opencode, repro, rules, state, support, and ticket, plus top-level ci-workflow, hooks-guard, setup-workflow, and skill-scripts
 .github/              CI workflow that runs the change-contract and gate suites
 CONTEXT.md            compact current vocabulary and knowledge index
 docs/research/        living source-backed synthesis
