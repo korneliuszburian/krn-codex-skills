@@ -20,7 +20,32 @@ import { checkTickets } from "../ticket/ticket.mjs";
 import { isInside } from "../support/path-rules.mjs";
 import { resolveRepositoryRoot } from "../support/repo-root.mjs";
 
+// Capsule narrative is a working record, not a history log: the four fields that
+// tend to absorb status prose are bounded per field and in total. Past a bound
+// the capsule is divergent and the history belongs in the LT registry.
+const NARRATIVE_BUDGETS = [
+  ["Evidence observed", 4096],
+  ["Next bounded owner and action", 2048],
+  ["Open unknowns and blockers with owners", 2048],
+  ["Review fixed point and Standards / Spec disposition", 2048],
+];
+const NARRATIVE_TOTAL_BUDGET = 8192;
 
+function narrativeBudgetFindings(fields) {
+  const over = [];
+  let total = 0;
+  for (const [label, cap] of NARRATIVE_BUDGETS) {
+    const value = fields[label];
+    if (value === null || value === undefined) continue;
+    const size = Buffer.byteLength(value, "utf8");
+    total += size;
+    if (size > cap) over.push(`${label} ${size}/${cap}`);
+  }
+  if (total > NARRATIVE_TOTAL_BUDGET) {
+    over.push(`narrative total ${total}/${NARRATIVE_TOTAL_BUDGET}`);
+  }
+  return over;
+}
 
 // Resolve an `evidence=` token that claims an artifact or a frozen acceptance
 // case: a COMPLETE capsule's evidence must name something that exists, either a
@@ -203,6 +228,15 @@ export function inspectSpineState({ repo = process.cwd() } = {}) {
     for (const label of ABI_LABELS) {
       const occurrences = text.split("\n").filter((line) => line.trimStart().startsWith(`${label}:`)).length;
       if (occurrences > 1) errors.push({ id: entry.name, rule: "duplicate-field", detail: label });
+    }
+
+    const overBudget = narrativeBudgetFindings(fields);
+    if (overBudget.length > 0) {
+      errors.push({
+        id: entry.name,
+        rule: "capsule-narrative-over-budget",
+        detail: `${overBudget.join("; ")}; history belongs in docs/research/lab-tests.md`,
+      });
     }
 
     const outcome = fields["Outcome state"];
