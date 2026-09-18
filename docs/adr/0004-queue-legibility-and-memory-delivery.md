@@ -113,6 +113,12 @@ daemon, and no auto-adoption.
      classification) into one durable research page under the page header ABI.
    - **Capsule slimming.** Keep `Evidence observed` at the current boundary and
      point at LT rows for history.
+   - **Memory wiring map.** One table in `docs/research/orchestration.md` maps
+     every memory artifact (capsule, lessons, LT, research pages, ADRs,
+     CONTEXT, queue) to its writer, reader, delivery trigger, budget, and
+     falsifier, so a fresh session or the operator can read the whole wiring
+     without reconstructing it; the operator's stated uncertainty about how the
+     memory system is connected is the acceptance test for this item.
 4. **Tool pins are recorded, not silently tracked.** The lane recipe records its
    opencode version per run; the codex pin stays exact; the CI node pin stays
    22.11.0 with the host v26.2.0 discrepancy documented. Updating opencode to
