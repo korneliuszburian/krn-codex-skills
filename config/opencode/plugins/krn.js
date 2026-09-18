@@ -32,18 +32,58 @@ export function field(text, label) {
   return null;
 }
 
+function isInside(parent, candidate) {
+  const base = path.resolve(parent);
+  const rel = path.relative(base, path.resolve(base, candidate));
+  return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== "..");
+}
+
+function realPathOrNull(target) {
+  try {
+    return fs.realpathSync(target);
+  } catch {
+    return null;
+  }
+}
+
 export function capsuleBrief(directory) {
-  const base = path.join(directory, ".krn", "runs", "delivery-loop");
+  const root = worktreeRoot(directory) ?? path.resolve(directory);
+  const realRoot = realPathOrNull(root) ?? root;
+  const base = path.join(root, ".krn", "runs", "delivery-loop");
   let entries = [];
   try {
     entries = fs.readdirSync(base, { withFileTypes: true });
   } catch {
     return null;
   }
-  const notes = [];
+  const found = new Map();
   for (const entry of entries.slice().sort((a, b) => a.name.localeCompare(b.name))) {
-    if (!entry.isDirectory()) continue;
-    const state = path.join(base, entry.name, "state.md");
+    const capsule = path.join(base, entry.name);
+    const real = realPathOrNull(capsule);
+    if (!real || !isInside(realRoot, real)) continue;
+    let directoryStat;
+    try {
+      directoryStat = fs.statSync(real);
+    } catch {
+      continue;
+    }
+    if (!directoryStat.isDirectory()) continue;
+    const state = path.join(capsule, "state.md");
+    const realState = realPathOrNull(state);
+    if (!realState || !isInside(realRoot, realState)) continue;
+    let stateStat;
+    try {
+      stateStat = fs.statSync(realState);
+    } catch {
+      continue;
+    }
+    if (!stateStat.isFile()) continue;
+    const link = entry.isSymbolicLink();
+    const previous = found.get(real);
+    if (!previous || (previous.link && !link)) found.set(real, { id: entry.name, link, state });
+  }
+  const notes = [];
+  for (const { state } of found.values()) {
     let text;
     try {
       text = fs.readFileSync(state, "utf8");
@@ -54,7 +94,7 @@ export function capsuleBrief(directory) {
     if (!CONTINUING.has(outcome)) continue;
     notes.push(
       [
-        `Capsule .krn/runs/delivery-loop/${entry.name}/state.md [${outcome}]`,
+        `Capsule .krn/runs/delivery-loop/${path.basename(path.dirname(state))}/state.md [${outcome}]`,
         `  acceptance: ${field(text, "Outcome and observable acceptance") ?? "unspecified"}`,
         `  next bounded action: ${field(text, "Next bounded owner and action") ?? "unspecified"}`,
         `  blockers: ${field(text, "Open unknowns and blockers with owners") ?? "none"}`,

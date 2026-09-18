@@ -69,7 +69,7 @@ export function capsuleStoreReport(root) {
     const file = join(directory, "state.md");
     let statePresent;
     try { statePresent = lstatSync(file, { throwIfNoEntry: false }); } catch { entries.push({ id: entry.name, link, resolvedDirectory: real, error: { rule: "unreadable-capsule", detail: relativePath } }); continue; }
-    if (!statePresent) continue;
+    if (!statePresent) { entries.push({ id: entry.name, link, resolvedDirectory: real, error: { rule: "capsule-state-missing", detail: relativePath } }); continue; }
     let stateStat;
     try { stateStat = statSync(file, { throwIfNoEntry: false }); } catch { entries.push({ id: entry.name, link, resolvedDirectory: real, error: { rule: "unreadable-capsule", detail: relativePath } }); continue; }
     if (!stateStat) { entries.push({ id: entry.name, link, resolvedDirectory: real, error: { rule: "unreadable-capsule", detail: `${relativePath} is a broken symlink` } }); continue; }
