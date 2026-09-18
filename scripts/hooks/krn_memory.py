@@ -84,36 +84,67 @@ def field(text: str, label: str) -> str | None:
     return None
 
 
-def containers(cwd: Path) -> list[Path]:
-    base = cwd / ".krn" / "runs" / "delivery-loop"
+def resolved(path: Path) -> Path | None:
+    try:
+        return Path(os.path.realpath(path))
+    except OSError:
+        return None
+
+
+def bounded(path: Path, root: Path) -> bool:
+    real = resolved(path)
+    real_root = resolved(root)
+    if real is None or real_root is None:
+        return False
+    return real == real_root or str(real).startswith(f"{real_root}{os.sep}")
+
+
+def containers(root: Path) -> list[Path]:
+    """Deduplicated, contained capsule state files under the work-tree root.
+
+    Enumerates delivery-loop entries including symlinks, resolves each entry and
+    its state.md with realpath, refuses anything escaping the repository root,
+    and keeps exactly one state file per resolved directory (the real directory
+    wins over a symlink alias). Any error yields no candidates.
+    """
+    base = root / ".krn" / "runs" / "delivery-loop"
     try:
         if not base.is_dir():
             return []
+        entries = sorted(base.iterdir())
     except OSError:
         return []
-    found = []
-    try:
-        for entry in sorted(base.iterdir()):
+    chosen: dict[str, Path] = {}
+    order: list[str] = []
+    for entry in entries:
+        try:
             if not entry.is_dir():
                 continue
-            state = entry / "state.md"
-            try:
-                if state.is_file():
-                    found.append(state)
-            except OSError:
+        except OSError:
+            continue
+        real = resolved(entry)
+        if real is None or not bounded(real, root):
+            continue
+        state = entry / "state.md"
+        try:
+            if not state.is_file():
                 continue
-    except OSError:
-        return []
-    return found
-
-
-def bounded(path: Path, cwd: Path) -> bool:
-    try:
-        real = path.resolve()
-        root = cwd.resolve()
-    except OSError:
-        return False
-    return real == root or str(real).startswith(f"{root}{os.sep}")
+        except OSError:
+            continue
+        real_state = resolved(state)
+        if real_state is None or not bounded(real_state, root):
+            continue
+        key = str(real)
+        if key not in chosen:
+            chosen[key] = state
+            order.append(key)
+            continue
+        try:
+            if chosen[key].parent.is_symlink() and not entry.is_symlink():
+                chosen[key] = state
+        except OSError:
+            continue
+    return [chosen[key] for key in order]
 
 
 def managed_root(cwd: Path) -> Path | None:
@@ -188,9 +219,8 @@ def ready_ids(root: Path) -> list[str]:
 
 
 def has_continuing(cwd: Path) -> bool:
-    for state in containers(cwd):
-        if not bounded(state, cwd):
-            continue
+    root = worktree_root(cwd) or cwd
+    for state in containers(root):
         try:
             text = state.read_text(encoding="utf-8")
         except (OSError, UnicodeError):
@@ -247,10 +277,9 @@ def main() -> int:
         if not cwd.is_dir():
             return 0
 
+        root = worktree_root(cwd) or cwd
         notes = []
-        for state in containers(cwd):
-            if not bounded(state, cwd):
-                continue
+        for state in containers(root):
             try:
                 text = state.read_text(encoding="utf-8")
             except (OSError, UnicodeError):
@@ -264,7 +293,7 @@ def main() -> int:
             if event == "PreCompact":
                 write_boundary(state, outcome, acceptance, next_action, blockers)
             notes.append(
-                f"Capsule {state.relative_to(cwd)} [{outcome}]\n"
+                f"Capsule {state.relative_to(root)} [{outcome}]\n"
                 f"  acceptance: {acceptance}\n"
                 f"  next bounded action: {next_action}\n"
                 f"  blockers: {blockers}"
