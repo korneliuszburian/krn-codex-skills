@@ -13,6 +13,7 @@ import {
   canonicalPath,
   classifyTarget,
   digestTree,
+  gitAncestor,
   inspectInstall,
   legacyHookTargets,
   managedHookPolicy,
@@ -162,6 +163,12 @@ function copyRuntime(plan, staging) {
   return metadata;
 }
 
+// The committed ledger is the trust anchor for the target's bytes. The ledger
+// commit is always a child of the commit whose digest it carries, so a key is
+// acceptable in exactly two shapes: the target's own entry with equal bytes, or
+// a byte-equality entry whose key is a known ancestor of the target (the
+// documented sealing-commit indirection). Any other key is an unrelated
+// ledger entry and seals nothing.
 function targetSeal(plan, digest) {
   const entries = plan.ledger ?? {};
   const recorded = entries[plan.commit];
@@ -169,7 +176,13 @@ function targetSeal(plan, digest) {
     if (recorded === digest) return { ok: true };
     return { ok: false, reason: "mismatched" };
   }
-  return Object.values(entries).includes(digest) ? { ok: true } : { ok: false, reason: "unsealed" };
+  if (!Object.values(entries).includes(digest)) return { ok: false, reason: "unsealed" };
+  for (const [key, value] of Object.entries(entries)) {
+    if (value === digest && key !== plan.commit && gitAncestor(plan.source, key, plan.commit)) {
+      return { ok: true, seal: "sealed_by_value" };
+    }
+  }
+  return { ok: false, reason: "unsealed" };
 }
 
 function defaultOverrideActor() {
@@ -354,6 +367,7 @@ export function applyInstall(plan, { allowUnsealed = true } = {}) {
     ledger: plan.ledger,
     anchor: "repository",
     requireSealed: seal.ok,
+    source: plan.source,
   });
   const previous = resolvedLink(plan.current);
   replaceCurrent(plan, plan.release);
