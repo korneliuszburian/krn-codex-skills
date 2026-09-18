@@ -65,7 +65,7 @@ classify_check() {
       local script=${spec#npm run }
       script=${script#npm run-script }
       script=$(trim "$script")
-      out=$(cd "$WORK_ROOT" && npm run "$script" 2>&1) && rc=0 || rc=$?
+      out=$(cd "$WORK_ROOT" && env -u NODE_TEST_CONTEXT npm run "$script" 2>&1) && rc=0 || rc=$?
       if printf '%s' "$out" | grep -Eq 'Could not find|Cannot find module|ERR_MODULE_NOT_FOUND|MODULE_NOT_FOUND|SyntaxError'; then
         echo "classification=refused-setup reason=npm-load-error script=$script"
         return 2
@@ -83,7 +83,7 @@ classify_check() {
     echo "classification=refused-setup reason=missing-check path=$path"
     return 2
   fi
-  out=$(node --test "$target" 2>&1) && rc=0 || rc=$?
+  out=$(env -u NODE_TEST_CONTEXT node --test "$target" 2>&1) && rc=0 || rc=$?
   if printf '%s' "$out" | grep -Eq 'Could not find|Cannot find module|ERR_MODULE_NOT_FOUND|MODULE_NOT_FOUND|SyntaxError'; then
     echo "classification=refused-setup reason=load-error path=$path"
     return 2
