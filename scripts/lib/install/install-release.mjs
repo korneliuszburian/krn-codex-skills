@@ -28,9 +28,19 @@ import {
   verifyRelease,
 } from "./install-inspect.mjs";
 import { sealReleaseDigest } from "./install-seal.mjs";
-import { hostCapabilities } from "./host-capabilities.mjs";
+import { FLOW_CAPABILITIES } from "./host-capabilities.mjs";
 
 const { USAGE: EXIT_USAGE, SOURCE: EXIT_SOURCE, CORRUPT: EXIT_CORRUPT, COLLISION: EXIT_COLLISION } = EXIT_CODES;
+
+// The seal flow archives the resolved commit with git and never enters a
+// sandbox, so bwrap is a calibration capability for the host-dependent suites,
+// not a seal requirement. Guarding the declaration keeps the dead probe from
+// returning to an install path.
+function assertSealCapabilities() {
+  if ((FLOW_CAPABILITIES.seal ?? []).includes("bwrap")) {
+    fail("the seal flow must not require the bwrap sandbox", EXIT_SOURCE);
+  }
+}
 
 export { classifyTarget, inspectInstall, managedHookPolicy, managedTargets, pruneReleases };
 
@@ -115,11 +125,11 @@ export function createInstallPlan({ source, cwd, codexHome = process.env.CODEX_H
     runtimePaths: runtimePaths(resolved.root, manifest),
     ledger: releaseDigests(resolved.root),
     manifest,
-    capabilities: hostCapabilities(),
   };
 }
 
 export function sealCurrentRelease({ root, source, cwd, codexHome } = {}) {
+  assertSealCapabilities();
   const plan = createInstallPlan({ source, cwd, codexHome });
   const digest = expectedReleaseDigest(plan);
   const ledgerRoot = path.resolve(root ?? plan.source);
