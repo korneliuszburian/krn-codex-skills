@@ -194,7 +194,7 @@ function proofWarnings(root, sha, rel, gates, git = runGit) {
     const newer = git(root, ["log", "--oneline", `${sha}..HEAD`, "--", target]);
     if (newer.ok && newer.out) {
       const since = git(root, ["rev-list", "--count", `${sha}..HEAD`, "--", target]);
-      warnings.push(`proof ${sha} predates later changes to ${label} (${since.ok ? since.out : "?"} commits since); run \`krn-codex lessons reanchor\``);
+      warnings.push(`proof ${sha} predates later changes to ${label} (${since.ok ? since.out : "?"} commits since); run \`krn lessons reanchor\``);
     }
   }
   return warnings;
@@ -368,7 +368,7 @@ export function checkLessons({ root, git = runGit }) {
     for (const row of rows) {
       if (row.status || !(row.trigger ?? "").trim()) continue;
       const counts = usage.get(row.lesson) ?? { hits: 0, binds: 0 };
-      if (counts.binds === 0) warnings.push(`lesson "${row.lesson}": trigger has never been recalled; verify it with \`krn-codex memory usage\``);
+      if (counts.binds === 0) warnings.push(`lesson "${row.lesson}": trigger has never been recalled; verify it with \`krn memory usage\``);
       if (counts.hits >= DEAD_TRIGGER_HITS && counts.binds === 0) {
         warnings.push(`lesson "${row.lesson}": dead-trigger: trigger matched ${counts.hits} changes but none bound a Recall trailer; tighten or retire it`);
       }

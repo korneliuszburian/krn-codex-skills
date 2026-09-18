@@ -12,8 +12,9 @@
       "authority": "Authority: run only via an explicit install/retire/rollback request; it links and removes global capability paths and never carries the repository root."
     },
     { "path": "scripts/krn-codex-catalog.mjs", "class": "additive" },
+    { "path": "scripts/krn-codex.mjs", "class": "additive" },
     {
-      "path": "scripts/krn-codex.mjs",
+      "path": "scripts/krn.mjs",
       "class": "destructive",
       "authority": "Authority: install, retire, and rollback subcommands mutate the user's global capability index and require an explicit operator request."
     },

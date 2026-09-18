@@ -52,11 +52,11 @@ test("the scaffolded memory commands pass --root .", () => {
   withRoot("# Repo\n", (root) => {
     assert.equal(apply(root).status, 0);
     const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
-    assert.match(agents, /`krn-codex lessons check --root \.`/, "AGENTS.md lessons check needs --root .");
-    assert.match(agents, /`krn-codex lessons verify --root \.`/, "AGENTS.md lessons verify needs --root .");
-    assert.match(agents, /`krn-codex lessons reanchor --root \.`/, "AGENTS.md lessons reanchor needs --root .");
+    assert.match(agents, /`krn lessons check --root \.`/, "AGENTS.md lessons check needs --root .");
+    assert.match(agents, /`krn lessons verify --root \.`/, "AGENTS.md lessons verify needs --root .");
+    assert.match(agents, /`krn lessons reanchor --root \.`/, "AGENTS.md lessons reanchor needs --root .");
     const page = readFileSync(join(root, "docs", "research", "workflow-lessons.md"), "utf8");
-    assert.match(page, /`krn-codex lessons verify --root \.`/, "the memory page lessons verify needs --root .");
+    assert.match(page, /`krn lessons verify --root \.`/, "the memory page lessons verify needs --root .");
   });
 });
 
