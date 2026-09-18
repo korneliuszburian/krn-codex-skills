@@ -3,6 +3,9 @@
 - Status: accepted
 - Date: 2026-09-15
 - Decision owner: KRN skill-system maintainer
+- Superseded for the default posture by [ADR 0005](0005-continuous-hardening-with-bounded-passes.md)
+  (2026-09-18): the finite completion unit and the economics survive; the
+  "do not launch a fresh scan" default is replaced by bounded passes.
 - Evidence: an external read-only review of `6e7e616` plus the harness audits
   recorded in [orchestration.md](../research/orchestration.md)
 

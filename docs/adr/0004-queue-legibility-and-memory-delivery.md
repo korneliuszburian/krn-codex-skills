@@ -54,6 +54,13 @@ and loop economics:
   published; codex is pinned at 0.154.0 while 0.155.0 is published; the host
   runs node v26.2.0 while `.node-version`/`.nvmrc` pin 22.11.0 and CI uses the
   pin.
+- **A bounded swarm reproduced six pipeline holes on 2026-09-18** (ADR 0005):
+  a `green->green` contract with no exercised relation to the change, a
+  `ticket close` that skips scope without an anchor, a lane sandbox that binds
+  the fixture read-write and a preflight that misreads a non-file check, a seal
+  ledger that accepts delete-then-reseal, review evidence that accepts a bare
+  word, and an LT registry with a missing id and a duplicated contradictory
+  row. They are queued as sh-60..sh-65 and run as the first execution batch.
 
 The research already settles the boundaries: Beads' queue mechanics are adopted
 selectively, KRN's divergence is explicit-only adoption plus decision-point
@@ -111,9 +118,11 @@ daemon, and no auto-adoption.
    22.11.0 with the host v26.2.0 discrepancy documented. Updating opencode to
    1.18.31 and codex to 0.155.0 is an operator decision after this review.
 
-Sequencing: 1a+1b and 2c first (no behavioral claim), then 2a+2b (ABI), then 1c
-with its registered pilot, 1d, and 3a–3d. Implementation becomes sh-60+ tickets
-with dependency edges after this ADR is accepted.
+Sequencing: the reproduced pipeline holes sh-60..sh-65 first (they weaken every
+later proof), then 1a+1b and 2c (no behavioral claim), then 2a+2b (ABI), then 1c
+with its registered pilot, 1d, and 3a–3d. The remaining plan items become
+tickets with dependency edges after this ADR is accepted; ADR 0005 owns the
+continuous-hardening posture.
 
 ## Consequences
 

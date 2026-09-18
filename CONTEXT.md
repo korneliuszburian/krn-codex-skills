@@ -11,8 +11,9 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/research/lab-tests.md](docs/research/lab-tests.md) — the LT lab-test registry (LT-1 through LT-79), protocols, and residuals.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
 - [docs/adr/0002-lifecycle-transition-table.md](docs/adr/0002-lifecycle-transition-table.md) — accepted condition → handler → return transition table.
-- [docs/adr/0003-finite-release-decision.md](docs/adr/0003-finite-release-decision.md) — accepted stop rule: a finite release decision replaces the open-ended bug hunt.
+- [docs/adr/0003-finite-release-decision.md](docs/adr/0003-finite-release-decision.md) — accepted completion rule: a finite release decision ends an outcome; its default-stop is superseded by ADR 0005.
 - [docs/adr/0004-queue-legibility-and-memory-delivery.md](docs/adr/0004-queue-legibility-and-memory-delivery.md) — proposed plan for queue legibility, memory delivery, and lane-loop automation after the 2026-09-18 arc.
+- [docs/adr/0005-continuous-hardening-with-bounded-passes.md](docs/adr/0005-continuous-hardening-with-bounded-passes.md) — proposed posture: continuous hardening in bounded, triggered passes; first batch is the verified pipeline holes sh-60..sh-65.
 - [docs/research/workflow-lessons.md](docs/research/workflow-lessons.md) — bounded cross-run workflow memory read at `$delivery-loop` bind.
 - The Matt Pocock skills audit and the unslop lab-test page are indexed under [docs/research/README.md](docs/research/README.md).
 - [scripts/quality-audit.mjs](scripts/quality-audit.mjs) — mechanical slop, dead-code, and credential/env-dump audit gated in `npm run test:lib`.
