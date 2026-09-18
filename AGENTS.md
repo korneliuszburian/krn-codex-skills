@@ -54,6 +54,8 @@ npm run test:state
 npm run test:skills
 npm run skills:check
 npm run lessons:verify
+npm run quality:audit
+npm run test:repro
 npm run changes:check
 npm run test:lessons
 npm run test:lessons-verify

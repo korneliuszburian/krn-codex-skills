@@ -31,8 +31,10 @@ test("the declared Node engine floor excludes the EOL Node 20 line", () => {
 test("every gate named in AGENTS.md runs in the workflow", () => {
   const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
   const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
+  const scripts = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts;
   const gates = new Set([...agents.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
-  const canonical = ["changes:check", "gate", "lessons:verify", "skills:check", "test:bootstrap", "test:catalog", "test:change-contract", "test:conformance", "test:durable-pages", "test:frontend", "test:hooks", "test:install", "test:lessons", "test:lessons-verify", "test:lib", "test:setup", "test:skill-scripts", "test:skills", "test:state", "validate"];
+  const gateSteps = [...String(scripts.gate ?? "").matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]);
+  const canonical = [...new Set([...gateSteps, "gate"])].sort();
   assert.deepEqual([...gates].sort(), canonical, "the AGENTS.md gate block must list the canonical gate set exactly");
   const steps = new Set([...workflow.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
   if (/krn\.mjs changes check/.test(workflow)) steps.add("changes:check");
