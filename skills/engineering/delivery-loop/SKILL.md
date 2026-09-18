@@ -11,11 +11,15 @@ writer ownership, handoffs, and selection and readback of authorized
 transitions. Specialist skills own stage procedures; configured trackers and
 hosts own their mechanics and policy.
 
-1. **Bind one outcome and one writer.** Read the closest repository
-   instructions, current Git state, configured tracker item when one exists,
-   active native goal when one exists, and `docs/research/workflow-lessons.md`
-   when it exists as the cross-run workflow memory. Create a native goal only
-   when the user explicitly requested persistent autonomous progress; otherwise
+1. **Bind one outcome and one writer.** When the configured tracker is a
+   queue, read its frontier with `krn ticket check` and `krn ticket next`,
+   select one ready item, and record `krn ticket claim` before any
+   implementation; keep the frontier and item state in the capsule. Read the
+   closest repository instructions, current Git state, configured tracker item
+   when one exists, active native goal when one exists, and
+   `docs/research/workflow-lessons.md` when it exists as the cross-run workflow
+   memory. Create a native goal only when the user explicitly requested
+   persistent autonomous progress; otherwise
    the accepted request is the outcome authority. Reconcile a pre-existing goal
    with repository and tracker truth before continuing.
    Before mutating, once the intended paths or symbols are known, read the
@@ -139,6 +143,12 @@ hosts own their mechanics and policy.
    fixed-point review only when it changes no behavior, authority, security, or
    spec/acceptance surface; every other slice and explicit review requires it.
 
+   When a lane entry is configured, the proof is the isolated-lane contract: a
+   red-at-base preflight, one writer, worktree isolation, the integrator gate,
+   the `Change-contract:` trailer, and the publication policy, per
+   `docs/research/ticket-protocol.md`. This skill points at that contract; it
+   does not restate the runner or integrator procedure.
+
    Any change to reviewed code, base, acceptance/spec, or applicable standards
    creates a new fixed point and invalidates the old review. An accepted finding
    returns as a bounded composed-upstream `implement` repair only when repair and
@@ -166,7 +176,10 @@ hosts own their mechanics and policy.
    open or update a PR, merge, and deploy only under their separate authorities
    and current repository or host policy. At each shared transition, update and
    read back the configured tracker when one exists, and confirm that any native
-   Goal still owns the current outcome. At the accepted terminal outcome, first
+   Goal still owns the current outcome. For a queue, `krn ticket close` with
+   evidence and resolution at the fixed point ends the item, and a refused
+   attempt is `krn ticket fail`; both follow the queue's own write authority. At
+   the accepted terminal outcome, first
    commission each creating workflow whose cleanup trigger has fired and verify
    its run absent; then close and read back the tracker when configured, remove
    delivery restart state when present, and complete the native Goal as the
