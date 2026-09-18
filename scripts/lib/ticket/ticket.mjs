@@ -91,6 +91,29 @@ function readClaimLock(lockPath) {
   }
 }
 
+// The lenient reader above cannot tell an absent lock from an empty or corrupt
+// one, which is fine for lease lookups but not for the claim itself. The claim
+// must fail closed: an existing-but-unreadable lock never grants a fresh epoch.
+function readClaimLockStrict(lockPath) {
+  let raw;
+  try {
+    raw = fs.readFileSync(lockPath, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return { status: "absent" };
+    return { status: "invalid", reason: `cannot read ${lockPath}` };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { status: "invalid", reason: `${lockPath} is empty or unparseable` };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { status: "invalid", reason: `${lockPath} is empty or unparseable` };
+  }
+  return { status: "held", value: parsed };
+}
+
 // A claim is a lease, not a flag: it expires `duration` seconds after its last
 // renewal. The lock file is the durable record, so it is overwritten on
 // reclaim rather than deleted on release.
@@ -223,7 +246,12 @@ export function claimTicket({ file, root, id, worker, session = "", at = new Dat
   const lockPath = path.join(claimRoot, ".krn", "claims", `${ticketId}.lock`);
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   const { text, fields } = readValidTicket(file);
-  const held = readClaimLock(lockPath);
+  assertClaimUnblocked({ file, root: claimRoot, fields });
+  const lockState = readClaimLockStrict(lockPath);
+  if (lockState.status === "invalid") {
+    throw new Error(`ticket ${ticketId} cannot claim: claim-lock-unreadable: ${lockState.reason}`);
+  }
+  const held = lockState.status === "held" ? lockState.value : null;
   const status = fields.get("Status");
   if (status === "ready") {
     if (held && !leaseExpired(held, at)) throw new Error(`ticket ${ticketId} is already-claimed`);
@@ -239,7 +267,11 @@ export function claimTicket({ file, root, id, worker, session = "", at = new Dat
         handle = fs.openSync(lockPath, "wx");
       } catch (error) {
         if (error.code !== "EEXIST") throw error;
-        const raced = readClaimLock(lockPath);
+        const racedState = readClaimLockStrict(lockPath);
+        if (racedState.status === "invalid") {
+          throw new Error(`ticket ${ticketId} cannot claim: claim-lock-unreadable: ${racedState.reason}`);
+        }
+        const raced = racedState.status === "held" ? racedState.value : null;
         if (raced && !leaseExpired(raced, at)) throw new Error(`ticket ${ticketId} is already-claimed`);
       }
     }
@@ -378,10 +410,26 @@ function hasCostRecord(value) {
 
 const ANCHOR_BYPASS = "allow-unanchored";
 
+const PLACEHOLDER_RESOLUTIONS = new Set(["", "none", "n/a", "na", "tbd", "pending", "-"]);
+
+function realResolution(value) {
+  const clean = String(value ?? "").trim();
+  return clean !== "" && !PLACEHOLDER_RESOLUTIONS.has(clean.toLowerCase());
+}
+
 export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint(), wallSeconds, tokens, allowUnanchored = false }) {
   const { text, fields } = readValidTicket(file);
   const status = fields.get("Status");
   if (status === "done" || status === "abandoned") throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
+  // Closing is the terminal transition of a claimed lifecycle: a ticket that
+  // was never claimed, or whose resolution is a placeholder, has no closure to
+  // record. Refuse both before touching the file.
+  if (status !== "claimed" && status !== "in-review") {
+    throw new Error(`ticket ${fields.get("Id")} cannot close: close-status: Status must be claimed or in-review (Status: ${status})`);
+  }
+  if (!realResolution(resolution)) {
+    throw new Error(`ticket ${fields.get("Id")} cannot close: close-resolution: a real non-placeholder Resolution is required (got "${resolution}")`);
+  }
   const anchorRoot = root ?? rootForTicket(file);
   const ticket = { id: fields.get("Id"), path: file, fields };
   // Closing consumes the same scope and contract verdicts the lane used, so a
@@ -480,6 +528,40 @@ function blockerIds(value) {
   const raw = (value ?? "").trim();
   if (!raw || /^none$/i.test(raw)) return [];
   return raw.split(",").map((entry) => entry.trim()).filter(Boolean);
+}
+
+// A claim must resolve each declared blocker from the queue the ticket lives
+// in: its own directory tree plus the default ticket locations. An unknown id
+// is refused the same way as an open blocker, never silently ignored.
+function queueDirsFor({ file, root }) {
+  const dirs = new Set(DEFAULT_DIRS);
+  if (file) {
+    const relative = path.relative(root, path.dirname(path.resolve(file)));
+    if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) {
+      dirs.add(relative.split(path.sep).join("/"));
+    }
+  }
+  return [...dirs];
+}
+
+function assertClaimUnblocked({ file, root, fields }) {
+  const id = fields.get("Id");
+  const blockers = blockerIds(fields.get("Blocked by"));
+  if (blockers.length === 0) return;
+  const dirs = queueDirsFor({ file, root });
+  for (const blockerId of blockers) {
+    let blocker = null;
+    try {
+      const blockerFile = findTicketFile({ root, dirs, id: blockerId });
+      blocker = parseTicketText(fs.readFileSync(blockerFile, "utf8")).fields;
+    } catch {
+      blocker = null;
+    }
+    if (!blocker) throw new Error(`ticket ${id} cannot claim: blocked-by-unknown: Blocked by names unknown ticket "${blockerId}"`);
+    if (blocker.get("Status") !== "done") {
+      throw new Error(`ticket ${id} cannot claim: blocked-by-open: blocker "${blockerId}" is not done (Status: ${blocker.get("Status")})`);
+    }
+  }
 }
 
 function scopeEntries(value) {
@@ -720,6 +802,9 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
     }
     if (ticket.status === "done" && !hasCostRecord(ticket.fields.get("Evidence"))) {
       warnings.push({ path: ticket.path, rule: "missing-cost", message: `ticket "${ticket.id}" is done without a wall/token cost record` });
+    }
+    if (ticket.status === "blocked" && String(ticket.fields.get("Gate") ?? "").trim() === "") {
+      errors.push({ path: ticket.path, rule: "blocked-without-gate", message: `ticket "${ticket.id}" is blocked without a Gate` });
     }
     if (ticket.status === "claimed") {
       const lease = claimLease({ fields: ticket.fields, root, id: ticket.id });
