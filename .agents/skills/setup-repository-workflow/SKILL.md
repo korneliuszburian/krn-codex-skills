@@ -92,6 +92,20 @@ plans remain ephemeral.
    advances `HEAD` even with both skip flags. Do not run without local commit
    authority, and do not substitute `--stealth` for a shared durable tracker.
 
+   When the KRN local queue is the selected tracker, `apply` scaffolds it
+   directly rather than through a separate tool. `--tracker local` creates
+   `.scratch/tickets/` with a queue README that names the `<krn-ticket>` ABI and
+   the `krn ticket check|next|claim|close|fail` verbs, and appends `.scratch/`
+   to `.git/info/exclude` without rewriting existing entries or a repository's
+   own `.scratch/` tree; `--tracker none` stays scaffolding-free. Operate the
+   queue from the repository root: `ticket check` validates envelopes, blockers,
+   cycles, statuses, scope, and orphans; `ticket next` prints the unblocked ready
+   frontier; `ticket claim` records the worker and lease before any edit;
+   `ticket close` records evidence and resolution at the fixed point; and
+   `ticket fail` records a rejected attempt signature. Keep one writer and at
+   most one implementation item in progress, and resolve separate tracker-write
+   authority before the first mutation.
+
    After any selected tracker initialization — or immediately when no tracker
    is configured or the existing tracker needs none — apply the resolved
    repository contract with:
