@@ -1,6 +1,7 @@
 # ADR 0005: Continuous hardening with bounded passes
 
-- Status: proposed (operator-reopened; ADR-0003's default stop is replaced)
+- Status: accepted (operator direction 2026-09-18; amended after the independent
+  quality review; ADR-0003's default stop is replaced)
 - Date: 2026-09-18
 - Decision owner: KRN skill-system maintainer (operator review)
 - Evidence: the 2026-09-18 bounded swarm (four read-only framings) and its
@@ -44,6 +45,11 @@ read. Six holes were reproduced, not argued:
    when every finding is dispositioned as a ticket, an ADR, a lesson, or a
    retirement. No unbounded judge loops, and no re-sweeping an unchanged surface
    without a new trigger.
+   Each pass records itself in the queue as a `decision` or `epic` ticket with a
+   numeric budget (wall-clock and token caps plus a finding cap) and an
+   exhaustion rule: when the budget is spent, undispositioned findings hand to a
+   named successor pass instead of silently widening the current one. An
+   uncapped pass is not a pass; it is the loop ADR-0003 closed.
 2. **Signals are not proofs.** Every finding is reproduced deterministically
    before it becomes a ticket, and the reproduction command is recorded in the
    ticket evidence.
@@ -53,9 +59,16 @@ read. Six holes were reproduced, not argued:
    because they weaken the proof layer every later change depends on.
 5. **The queue may stay non-empty by design.** A pass ends; a release ends; the
    queue evolves. A permanently empty queue is not a success signal.
-6. **Capability is not excluded.** Hardening passes may target product surfaces
-   (the unrun LT-8 frontend outcome and the parked sh-35 reconcile are the first
-   named candidates), not only harness plumbing.
+6. **Scope order is explicit.** This program closes the harness, memory, and
+   queue register first (sh-60..sh-65 plus the review findings queued behind
+   them); the product outcome — the unrun LT-8 frontend delivery and the parked
+   sh-35 reconcile — waits until the end, per operator direction 2026-09-18.
+   When the registers are empty or fully ticketed, the next pass is the product
+   outcome, not another harness-only scan.
+7. **The cross-family review leg is dark.** The Codex transport returns `401`,
+   so every finding in this pass is same-family reviewed; that gap is recorded
+   rather than papered over, and restoring a second family is an operator
+   action, not a blocker for the sh-60..sh-65 proof-layer fixes.
 
 ## Consequences
 

@@ -1,10 +1,12 @@
 # ADR 0004: Queue legibility and memory delivery for AFK lanes
 
-- Status: proposed
+- Status: accepted (operator direction 2026-09-18; amended after the independent
+  quality review)
 - Date: 2026-09-18
 - Decision owner: KRN skill-system maintainer (operator review before acceptance)
-- Evidence: the 2026-09-18 self-hardening arc (sh-31..sh-59: 58 done tickets,
-  11 PRs #91–#101, the LT-55..LT-79 rows), the queue attempt ledger, the
+- Evidence: the 2026-09-18 self-hardening arc (sh-31..sh-59: 29 envelopes,
+  28 done and sh-35 parked; this session contributed 11 PRs #91–#101; the
+  whole queue is 58 done), the LT-55..LT-79 rows, the queue attempt ledger, the
   [ticket protocol](../research/ticket-protocol.md), the
   [orchestration synthesis](../research/orchestration.md) rows on the local lane,
   Beads onboarding, and decision-point memory, and the pause audit of
@@ -13,12 +15,15 @@
 
 ## Context
 
-The verification layer is not in question. Every ticket in the arc landed with a
-base-red observer, a green gate, an LT row, and stated non-proofs; the
-`changes check --before` overlay caught three real defects a worker had missed
-(a dead export behind a variable dynamic import, a tier-observer conflict, and an
-unregenerated skill export). The measured friction is in legibility, delivery,
-and loop economics:
+The verification layer is the strongest part, but it is not airtight: every
+ticket in the arc landed with a base-red observer, a green gate, an LT row, and
+stated non-proofs, and the `changes check --before` overlay caught three real
+defects a worker had missed (a dead export behind a variable dynamic import, a
+tier-observer conflict, and an unregenerated skill export). At the same time an
+independent quality pass reproduced two proof-layer holes — an unrelated green
+check can seal a behavioral change (sh-60) and closure can skip verification
+without an anchor (sh-61) — which is why those run first. The measured friction
+is in legibility, delivery, and loop economics:
 
 - **In-flight state is invisible in the queue.** Lanes ran 12, 20, and 29
   minutes; the only in-flight state was a worktree, a runner log, and
@@ -99,7 +104,9 @@ daemon, and no auto-adoption.
      that the named check ran green on the head; `Gate: human:<what>` requires a
      named approval recorded at close.
    - **`krn ticket board`.** The queue with statuses, attempts, and journals for
-     humans and for the brief.
+     humans and for the brief; it ships after the typed links and the close
+     gates so it can render superseded rows and gate evidence instead of
+     promising fields the ABI does not yet carry.
 3. **Tier 3 — memory and durable knowledge.**
    - **Recall coverage.** Give the hottest surfaces triggers (starting with
      `path:scripts/lib/install/**`) and measure the hit-rate from the lanes'
@@ -117,18 +124,37 @@ daemon, and no auto-adoption.
      every memory artifact (capsule, lessons, LT, research pages, ADRs,
      CONTEXT, queue) to its writer, reader, delivery trigger, budget, and
      falsifier, so a fresh session or the operator can read the whole wiring
-     without reconstructing it; the operator's stated uncertainty about how the
-     memory system is connected is the acceptance test for this item.
+     without reconstructing it. Acceptance is mechanical: an observer asserts
+     that every memory artifact discoverable in the repository has exactly one
+     row and every row names all five fields, so the map cannot silently drift
+     from the wiring it describes.
 4. **Tool pins are recorded, not silently tracked.** The lane recipe records its
    opencode version per run; the codex pin stays exact; the CI node pin stays
    22.11.0 with the host v26.2.0 discrepancy documented. Updating opencode to
    1.18.31 and codex to 0.155.0 is an operator decision after this review.
 
 Sequencing: the reproduced pipeline holes sh-60..sh-65 first (they weaken every
-later proof), then 1a+1b and 2c (no behavioral claim), then 2a+2b (ABI), then 1c
-with its registered pilot, 1d, and 3a–3d. The remaining plan items become
+later proof), then 1a+1b (no behavioral claim), then 2a+2b (ABI), then 2c, then
+1c with its registered pilot, 1d, and 3a–3d. The remaining plan items become
 tickets with dependency edges after this ADR is accepted; ADR 0005 owns the
 continuous-hardening posture.
+
+## Review findings (2026-09-18)
+
+The independent judge and the two adversarial passes produced findings beyond
+sh-60..sh-65. Disposition: queued as sh-66 (capsule discovery and ghost runs),
+sh-67 (ticket lifecycle gates and the fail-open claim lock), sh-68 (rename
+coverage beyond the observer lists, plus the stale export marker), sh-69 (the
+dead `capabilities` plan field and its `bwrap` probe), sh-70 (the gate list in
+`AGENTS.md` is no longer derived from `package.json`: `quality:audit` and
+`test:repro` are missing), and sh-71 (lesson triggers that can never fire and
+stale anchors). Assessed and deliberately deferred: `docs/prd/0001-0005`
+retention (superseded briefs plus their allowlist), the fifteen duplicated
+ticket-test scaffolds (test-only, LT-64 shows near-twin consolidation is
+context-dependent), the retired `unlazy-codex-port` page (no reader), and the
+`krn-codex-catalog` wrapper (its own retirement decision). The cross-family
+review leg is dark because the Codex transport returns `401`; every finding
+above is same-family reviewed until the operator restores it.
 
 ## Consequences
 
