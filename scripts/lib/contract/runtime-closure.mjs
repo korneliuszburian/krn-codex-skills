@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
@@ -52,6 +52,28 @@ function runtimeClosure({ root, manifest }) {
   return { reachable: [...reachable].sort(), missing: [...missing].map(([file, from]) => ({ file, from: [...from].sort() })).sort((a, b) => a.file.localeCompare(b.file)) };
 }
 
+function consumedNonModulePaths({ root, manifest, reachable }) {
+  const consumed = new Set(
+    (Array.isArray(manifest.opencode_plugins) ? manifest.opencode_plugins : [])
+      .map((plugin) => plugin?.path)
+      .filter((value) => typeof value === "string"),
+  );
+  const declared = Array.isArray(manifest.runtime_paths) ? manifest.runtime_paths : [];
+  for (const module of reachable) {
+    if (!module.endsWith(".mjs")) continue;
+    let source;
+    try {
+      source = stripComments(readFileSync(join(root, module), "utf8"));
+    } catch {
+      continue;
+    }
+    for (const file of declared) {
+      if (source.includes(file)) consumed.add(file);
+    }
+  }
+  return consumed;
+}
+
 export function runtimeClosureErrors({ root, manifest }) {
   const declared = [
     ...(manifest.runtime_paths ?? []),
@@ -80,6 +102,18 @@ export function runtimeClosureErrors({ root, manifest }) {
     if (file.endsWith(".mjs") && !reachable.has(file)) {
       errors.push(`declared runtime path is unreachable from installed entrypoints: ${file}`);
     }
+  }
+  const consumed = consumedNonModulePaths({ root, manifest, reachable: closure.reachable });
+  for (const file of Array.isArray(manifest.runtime_paths) ? manifest.runtime_paths : []) {
+    if (typeof file !== "string" || file.endsWith(".mjs")) continue;
+    let stats;
+    try {
+      stats = statSync(join(root, file));
+    } catch {
+      continue;
+    }
+    if (!stats.isFile() || consumed.has(file)) continue;
+    errors.push(`declared runtime path is unreachable-non-module: ${file}`);
   }
   return [...new Set(errors)];
 }

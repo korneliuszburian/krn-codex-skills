@@ -12,7 +12,6 @@
     "config/release-digests.json",
     "config/upstream-sources.json",
     "scripts/catalog.mjs",
-    "scripts/install.sh",
     "scripts/krn-codex-catalog.mjs",
     "scripts/krn-codex.mjs",
     "scripts/lib/catalog/catalog-config.mjs",
