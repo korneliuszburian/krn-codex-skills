@@ -106,12 +106,21 @@ enforces both, with `test/state/friction-drain.test.mjs` as the observer.
   the lane, the envelope-driven run merges through the integrator, and
   `krn-codex ticket close` records `Evidence` and `Resolution` before the next
   frontier; the lab `run-frontier.sh` wires this with a run cap.
-- Publication: one PR per iteration and adjacent tickets batch into one PR; a
+- Publication: one PR per iteration and adjacent tickets batch into one PR. A
   PR whose diff changes exported skill bytes merges with a merge commit so the
-  export marker commit stays in history, while code-only iterations may squash
-  into a single conventional commit whose body carries `Ticket: <id>` for every
-  ticket it closes, so a squashed closure keeps its commit reference and orphan
-  detection still finds it.
+  export marker commit stays in history; that merge commit keeps the worker
+  commits, so its own body needs only `Ticket: <id>` and `Change-contract:`. A
+  code-only iteration may instead squash the lane into a single conventional
+  commit, which discards the worker commits, so its body must carry every
+  trailer the squashed worker commit carried — `Ticket: <id>`,
+  `Change-contract:`, `Recall:`, `At-risk:`, and `Applicability-change:`, plus
+  any future harness-read trailer — because the contract harness reads the integrated
+  commit body, not the dropped lane commit. The integrator copies the trailers
+  from the lane head before merging, so a squashed closure keeps its commit
+  reference, its recall bindings, and its applicability withdrawal. The sh-71
+  squash named only `Ticket:` and `Change-contract:` and dropped
+  `Applicability-change:`, which reddened the change-contract check on `main`
+  with `applicability-withdrawn`; that is the witness for this rule.
 - `krn-codex ticket check --root .` validates envelopes, blockers, cycles,
   statuses, and orphans; `krn-codex ticket next --root .` prints the frontier;
   `krn-codex ticket claim|close` validates the transitions it writes.
