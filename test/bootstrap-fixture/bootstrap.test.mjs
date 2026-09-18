@@ -7,7 +7,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const CLI = path.join(REPO, "scripts", "krn-codex.mjs");
+const CLI = path.join(REPO, "scripts", "krn.mjs");
 const PROJECT = path.join(path.dirname(fileURLToPath(import.meta.url)), "project");
 
 function sourceFixture(root) {
@@ -99,9 +99,10 @@ test("installed CLI bootstraps a target repository through its public seam", () 
     const source = sourceFixture(root);
     const installed = invoke(CLI, ["install", "apply", "--source", source, "--yes", "--json"], root);
     assert.equal(installed.status, 0, installed.stderr);
-    const installedCli = path.join(root, "bin", "krn-codex");
-    assert.equal(fs.readlinkSync(installedCli), path.join(root, "codex", "krn", "current", "scripts", "krn-codex.mjs"));
-    assert.equal(fs.realpathSync(installedCli), path.join(root, "codex", "krn", "releases", JSON.parse(installed.stdout).commit, "scripts", "krn-codex.mjs"));
+    const installedCli = path.join(root, "bin", "krn");
+    assert.equal(fs.readlinkSync(installedCli), path.join(root, "codex", "krn", "current", "scripts", "krn.mjs"));
+    assert.equal(fs.realpathSync(installedCli), path.join(root, "codex", "krn", "releases", JSON.parse(installed.stdout).commit, "scripts", "krn.mjs"));
+    assert.equal(fs.existsSync(path.join(root, "bin", "krn-codex")), false, "the retired alias link must not be installed");
 
     const target = initTarget(root);
     const fixtureHead = execFileSync("git", ["-C", target, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();

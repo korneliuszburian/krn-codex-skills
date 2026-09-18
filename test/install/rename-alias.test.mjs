@@ -39,22 +39,26 @@ function seedSourceCheckout(destination) {
   return fs.realpathSync(destination);
 }
 
-test("the neutral entry point exists and both bin names are declared", () => {
+test("the neutral entry point exists and the krn-codex alias is retired", () => {
   assert.ok(fs.existsSync(path.join(sourceRoot, "scripts", "krn.mjs")), "scripts/krn.mjs must exist");
   const manifest = JSON.parse(fs.readFileSync(path.join(sourceRoot, "skills", "manifest.json"), "utf8"));
   assert.equal(manifest.bins[0].name, "krn", JSON.stringify(manifest.bins));
   assert.equal(manifest.bins[0].path, "scripts/krn.mjs");
   assert.ok(
-    manifest.bins.some((bin) => bin.name === "krn-codex" && bin.path === "scripts/krn-codex.mjs"),
-    "the manifest keeps the krn-codex alias",
+    !manifest.bins.some((bin) => bin.name === "krn-codex"),
+    "the retired krn-codex alias must leave the manifest bins",
   );
   const pkg = JSON.parse(fs.readFileSync(path.join(sourceRoot, "package.json"), "utf8"));
-  assert.deepEqual(Object.keys(pkg.bin), ["krn", "krn-codex", "krn-codex-catalog"]);
+  assert.deepEqual(Object.keys(pkg.bin), ["krn", "krn-codex-catalog"]);
   assert.equal(pkg.bin.krn, "scripts/krn.mjs");
-  assert.equal(pkg.bin["krn-codex"], "scripts/krn-codex.mjs");
+  assert.equal(pkg.bin["krn-codex"], undefined);
+  assert.ok(
+    fs.existsSync(path.join(sourceRoot, "scripts", "krn-codex.mjs")),
+    "the frozen compatibility shim file must stay in the checkout",
+  );
 });
 
-test("a real install links both names into current and the neutral entry runs", () => {
+test("a real install links only the neutral entry and retires the alias", () => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "krn-rename-alias-"));
   const previous = {
     skills: process.env.KRN_SKILLS_DEST,
@@ -74,9 +78,8 @@ test("a real install links both names into current and the neutral entry runs", 
     const krnLink = path.join(base, "bin", "krn");
     const codexLink = path.join(base, "bin", "krn-codex");
     assert.ok(fs.lstatSync(krnLink).isSymbolicLink(), "krn must be a managed bin link");
-    assert.ok(fs.lstatSync(codexLink).isSymbolicLink(), "krn-codex must stay a managed bin link");
     assert.equal(fs.realpathSync(krnLink), path.join(current, "scripts", "krn.mjs"));
-    assert.equal(fs.realpathSync(codexLink), path.join(current, "scripts", "krn-codex.mjs"));
+    assert.equal(fs.existsSync(codexLink), false, "the retired krn-codex link must not be installed");
 
     const help = spawnSync(process.execPath, [krnLink, "--help"], { encoding: "utf8" });
     assert.equal(help.status, 0, `${help.stdout}${help.stderr}`);
@@ -85,7 +88,7 @@ test("a real install links both names into current and the neutral entry runs", 
     const bare = spawnSync(process.execPath, [krnLink], { encoding: "utf8" });
     assert.equal(bare.status, USAGE, `${bare.stdout}${bare.stderr}`);
 
-    const shimHelp = spawnSync(process.execPath, [codexLink, "--help"], { encoding: "utf8" });
+    const shimHelp = spawnSync(process.execPath, [path.join(sourceRoot, "scripts", "krn-codex.mjs"), "--help"], { encoding: "utf8" });
     assert.equal(shimHelp.status, 0, `${shimHelp.stdout}${shimHelp.stderr}`);
   } finally {
     if (previous.skills === undefined) delete process.env.KRN_SKILLS_DEST;
