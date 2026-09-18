@@ -48,6 +48,14 @@ hosts own their mechanics and policy.
    Next bounded owner and action:
    </outcome-capsule>
 
+   Keep each narrative field within its byte bound: `Evidence observed` ≤ 4096,
+   `Next bounded owner and action` ≤ 2048, `Open unknowns and blockers with
+   owners` ≤ 2048, and `Review fixed point and Standards / Spec disposition`
+   ≤ 2048, with the four together ≤ 8192 UTF-8 bytes. `krn state check` fails
+   `capsule-narrative-over-budget` past any bound. The capsule is a working
+   record, so history belongs in the LT registry at `docs/research/lab-tests.md`,
+   not in the capsule.
+
    Exactly one agent or session may mutate tracked files, the outcome branch,
    tracker state, or goal state at a time. This is a cooperative coordination
    invariant, not process isolation or a security boundary. Transfer that writer role explicitly
