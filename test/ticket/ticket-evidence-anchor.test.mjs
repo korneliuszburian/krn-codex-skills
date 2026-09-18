@@ -159,6 +159,9 @@ test("the CLI closes with an anchor and flags the vanished one", () => {
     const laneSha = laneCommit(dir);
     const run = (...args) => spawnSync(process.execPath, [cli, "ticket", ...args], { encoding: "utf8" });
 
+    const claim = run("claim", "--root", dir, "--path", tickets, "--id", "sh-12", "--worker", "stub", "--json");
+    assert.equal(claim.status, 0, `${claim.stdout}${claim.stderr}`);
+
     const close = run("close", "--root", dir, "--path", tickets, "--id", "sh-12", "--evidence", "gate green", "--resolution", "merged", "--json");
     assert.equal(close.status, 0, `${close.stdout}${close.stderr}`);
     assert.equal(JSON.parse(close.stdout).anchor.sha, laneSha);
