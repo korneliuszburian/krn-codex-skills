@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { gitText as git } from "../support/git-cli.mjs";
+import { gitText as git, runGitRaw } from "../support/git-cli.mjs";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { isInside, posixRelative } from "../support/path-rules.mjs";
 import { readJson } from "../support/read-json.mjs";
@@ -171,6 +171,14 @@ function failLedger(message, rule) {
   throw error;
 }
 
+// Ancestry is provenance, not an integrity claim: it can only ever admit a
+// ledger entry as the sealing-commit indirection, never override a digest
+// mismatch the caller already rejected.
+export function gitAncestor(source, ancestor, descendant) {
+  if (!source || !/^[0-9a-f]{4,64}$/.test(ancestor) || !/^[0-9a-f]{4,64}$/.test(descendant)) return false;
+  return runGitRaw(source, ["merge-base", "--is-ancestor", ancestor, descendant]).ok;
+}
+
 function unsealed(message) {
   failLedger(message, "digest-unsealed");
 }
@@ -189,7 +197,7 @@ function failureFilesystem(error) {
   return { status, detail: error?.message, ...(rule ? { rule } : {}) };
 }
 
-export function verifyRelease(release, commit, { requireSealed = true, ledger, anchor } = {}) {
+export function verifyRelease(release, commit, { requireSealed = true, ledger, anchor, source } = {}) {
   const stat = fs.lstatSync(release, { throwIfNoEntry: false });
   if (!stat || !stat.isDirectory() || stat.isSymbolicLink()) {
     releaseCorrupt(`existing release is not a regular directory: ${release}`);
@@ -211,10 +219,18 @@ export function verifyRelease(release, commit, { requireSealed = true, ledger, a
     return { ...metadata, anchor: usedAnchor, seal: "sealed" };
   }
   // The committed ledger changes the commit that carries it, so the sealing
-  // commit is never the one it names; the same bytes recorded under any name
-  // are sealed, but that indirection is reported as such rather than as a
-  // first-class seal.
-  if (Object.values(entries).includes(actual)) return { ...metadata, anchor: usedAnchor, seal: "sealed_by_value" };
+  // commit is never the one it names. At the mutation boundary the caller
+  // supplies `source`, which narrows byte-equality to the sealing-commit
+  // indirection: the target's own key, or a key that is an ancestor of the
+  // target. Without a source (the release-local fallback doctor reads) a
+  // value match stays sealed_by_value, as the LT-66 anchor reports it.
+  const sealedByValue = Object.entries(entries).some(([key, value]) => {
+    if (value !== actual) return false;
+    if (key === commit) return true;
+    if (!source) return true;
+    return gitAncestor(source, key, commit);
+  });
+  if (sealedByValue) return { ...metadata, anchor: usedAnchor, seal: "sealed_by_value" };
   unsealed(`digest-unsealed: release ${commit} has no digest entry in ${RELEASE_DIGESTS_RELATIVE}`);
 }
 
