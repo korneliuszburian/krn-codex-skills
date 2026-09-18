@@ -24,7 +24,7 @@ cross-cutting and never own a transition.
 | One scoped change or proven repair is clear | `implement` | production behavior plus proportional proof; when `implement` is explicit-only and unattached, a mechanical or single-seam scoped change may proceed directly under the proof budget, while non-mechanical or multi-file work asks for `$implement` |
 | A diff, PR, or fingerprinted working tree needs read-only judgment | `code-review` | Standards and Spec disposition on one fixed point |
 | A repository needs its one-time local contract adoption or repair | `setup-repository-workflow` | a thin managed contract and ignored runs boundary; setup stops |
-| The user requests ownership of an already-agreed outcome through all authorized transitions | `delivery-loop` | lifecycle truth, one current owner, and the actual outcome/publication state |
+| The user requests ownership of an already-agreed outcome through all authorized transitions | `delivery-loop` | lifecycle truth, one current owner, the configured queue's frontier and `krn ticket` claim/close/fail state, and the actual outcome/publication state |
 
 Each handler keeps its manifest invocation mode; an explicit-only handler
 requires the user to attach it by name. Do not add a handler for a condition
