@@ -32,26 +32,26 @@ process.stderr.on("error", (error) => {
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const usage = `Usage:
-  krn-codex install plan [--source REF|PATH] [--json]
-  krn-codex install apply [--source REF|PATH] [--allow-unsealed] --yes [--json]
-  krn-codex install check [--json]
-  krn-codex install seal [--source REF|PATH] --root REPO [--json]
-  krn-codex install prune [--keep N] [--json]
-  krn-codex doctor [--json]
-  krn-codex capability <inventory|usage|profile|plan|apply|check> [...args]
-  krn-codex repo <inspect|apply> [...args]
-  krn-codex state <check|compile|resume> [PATH|--root PATH] [--json]
-  krn-codex skills <export|check> --root DIR [--upstream PATH] [--json]
-  krn-codex lessons <check|verify|reanchor> --root DIR [--json]
-  krn-codex changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
-  krn-codex conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
-  krn-codex frontend <inventory|audit|facts> --root THEME [--docs FILE|DIR] [--accept RULE:FILE[,RULE:FILE]] [--json]
-  krn-codex frontend verify --config FILE [--gate | --approve --by NAME --note WHY] [--json]
-  krn-codex frontend design [--variables FILE] [--metadata FILE] [--json]
-  krn-codex memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
-  krn-codex ticket <check|next> --root DIR [--path DIR] [--id ID --base REF [--head REF]] [--json]
-  krn-codex ticket show <path> [--json]
-  krn-codex ticket <claim|close> --root DIR --id ID [--worker NAME] [--evidence TEXT] [--resolution TEXT] [--json]`;
+  krn install plan [--source REF|PATH] [--json]
+  krn install apply [--source REF|PATH] [--allow-unsealed] --yes [--json]
+  krn install check [--json]
+  krn install seal [--source REF|PATH] --root REPO [--json]
+  krn install prune [--keep N] [--json]
+  krn doctor [--json]
+  krn capability <inventory|usage|profile|plan|apply|check> [...args]
+  krn repo <inspect|apply> [...args]
+  krn state <check|compile|resume> [PATH|--root PATH] [--json]
+  krn skills <export|check> --root DIR [--upstream PATH] [--json]
+  krn lessons <check|verify|reanchor> --root DIR [--json]
+  krn changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
+  krn conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
+  krn frontend <inventory|audit|facts> --root THEME [--docs FILE|DIR] [--accept RULE:FILE[,RULE:FILE]] [--json]
+  krn frontend verify --config FILE [--gate | --approve --by NAME --note WHY] [--json]
+  krn frontend design [--variables FILE] [--metadata FILE] [--json]
+  krn memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
+  krn ticket <check|next> --root DIR [--path DIR] [--id ID --base REF [--head REF]] [--json]
+  krn ticket show <path> [--json]
+  krn ticket <claim|close> --root DIR --id ID [--worker NAME] [--evidence TEXT] [--resolution TEXT] [--json]`;
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
 
@@ -445,6 +445,6 @@ try {
   }
   }
 } catch (error) {
-  process.stderr.write(`krn-codex: ${error.message}\n`);
+  process.stderr.write(`krn: ${error.message}\n`);
   process.exitCode = error.exitCode || 1;
 }

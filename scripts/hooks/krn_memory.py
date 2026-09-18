@@ -25,7 +25,7 @@ MANAGED_START = "<!-- krn-agent-workflow:start -->"
 INSTRUCTION_FILES = ("AGENTS.md", "CLAUDE.md")
 ONBOARDING_SIGNAL = (
     "KRN onboarding: this work tree carries agent instructions without the KRN "
-    "managed contract. Run `krn-codex repo inspect --root .` for a read-only "
+    "managed contract. Run `krn repo inspect --root .` for a read-only "
     "report; adoption stays explicit-only."
 )
 

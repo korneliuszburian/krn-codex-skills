@@ -212,6 +212,6 @@ export function resumeBrief({ repo = process.cwd() } = {}) {
     lessons,
     errors,
     warnings,
-    text: `${lines.join("\n\n")}\n\n${renderLessons(lessons)}${renderErrors(errors)}\n\nRun \`krn-codex state check\` before resuming or completing.`,
+    text: `${lines.join("\n\n")}\n\n${renderLessons(lessons)}${renderErrors(errors)}\n\nRun \`krn state check\` before resuming or completing.`,
   };
 }
