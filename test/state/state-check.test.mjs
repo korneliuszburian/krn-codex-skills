@@ -737,7 +737,7 @@ test("a COMPLETE capsule cannot carry pending or unevidenced review", () => {
   writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(`${field}: none`, `${field}: inspected by a separate reviewer`));
   const bare = inspectSpineState({ repo: root });
   assert.ok(bare.errors.some((error) => error.rule === "complete-review-without-evidence"), JSON.stringify(bare.errors));
-  writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(`${field}: none`, `${field}: evidence=test:state exit=0`));
+  writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(`${field}: none`, `${field}: evidence=.krn/runs/.gitignore exit=0`));
   const evidenced = inspectSpineState({ repo: root });
   assert.ok(!evidenced.errors.some((error) => error.rule.startsWith("complete-review")), JSON.stringify(evidenced.errors));
   writeCapsule(root, capsule({ outcome: "COMPLETE", fixedPoint: `HEAD=${head}` }).replace(`${field}: none`, `${field}: pending; evidence=none`));
