@@ -17,6 +17,7 @@ import datetime
 import json
 import os
 from pathlib import Path
+import re
 import sys
 
 CONTINUING_STATES = {"ACTIVE", "BLOCKED", "DEFERRED", "NEEDS_REVIEW"}
@@ -28,6 +29,11 @@ ONBOARDING_SIGNAL = (
     "managed contract. Run `krn repo inspect --root .` for a read-only "
     "report; adoption stays explicit-only."
 )
+
+TICKET_START = "<krn-ticket>"
+TICKET_END = "</krn-ticket>"
+QUEUE_DIRS = (".scratch", ".krn/tickets")
+CLAIM_COMMAND = "krn ticket claim --root . --id <id>"
 
 
 def worktree_root(cwd: Path) -> Path | None:
@@ -110,6 +116,104 @@ def bounded(path: Path, cwd: Path) -> bool:
     return real == root or str(real).startswith(f"{root}{os.sep}")
 
 
+def managed_root(cwd: Path) -> Path | None:
+    """The work-tree root when its instructions carry the KRN managed block."""
+    root = worktree_root(cwd)
+    if root is None:
+        return None
+    for name in INSTRUCTION_FILES:
+        candidate = root / name
+        try:
+            if not candidate.is_file():
+                continue
+            text = candidate.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        if MANAGED_START in text:
+            return root
+    return None
+
+
+def markdown_files(base: Path) -> list[Path]:
+    try:
+        if not base.is_dir():
+            return []
+        return sorted(path for path in base.rglob("*.md") if path.is_file())
+    except OSError:
+        return []
+
+
+def ticket_fields(text: str) -> dict[str, str] | None:
+    start = text.find(TICKET_START)
+    end = text.find(TICKET_END)
+    if start == -1 or end == -1 or end < start:
+        return None
+    fields: dict[str, str] = {}
+    for line in text[start + len(TICKET_START) : end].splitlines():
+        match = re.match(r"^([A-Za-z][A-Za-z ()-]*):\s*(.*)$", line.strip())
+        if match:
+            fields[match.group(1)] = match.group(2).strip()
+    return fields
+
+
+def blocker_ids(value: str | None) -> list[str]:
+    raw = (value or "").strip()
+    if not raw or raw.lower() == "none":
+        return []
+    return [entry.strip() for entry in raw.split(",") if entry.strip()]
+
+
+def ready_ids(root: Path) -> list[str]:
+    """The frontier: ready tickets whose blockers all resolve to a done ticket."""
+    discovered: dict[str, dict[str, str]] = {}
+    for relative in QUEUE_DIRS:
+        for path in markdown_files(root / relative):
+            try:
+                text = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeError):
+                continue
+            if TICKET_START not in text:
+                continue
+            fields = ticket_fields(text)
+            if fields and fields.get("Id"):
+                discovered[fields["Id"]] = fields
+    done = {tid for tid, field_map in discovered.items() if field_map.get("Status", "").lower() == "done"}
+    ready = [
+        tid
+        for tid, field_map in discovered.items()
+        if field_map.get("Status", "").lower() == "ready"
+        and all(blocker in done for blocker in blocker_ids(field_map.get("Blocked by")))
+    ]
+    return sorted(ready)
+
+
+def has_continuing(cwd: Path) -> bool:
+    for state in containers(cwd):
+        if not bounded(state, cwd):
+            continue
+        try:
+            text = state.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        outcome = (field(text, "Outcome state") or "").strip().upper()
+        if outcome in CONTINUING_STATES:
+            return True
+    return False
+
+
+def queue_brief(cwd: Path) -> str | None:
+    """One bounded line naming the ready frontier, only in a managed tree."""
+    if has_continuing(cwd):
+        return None
+    root = managed_root(cwd)
+    if root is None:
+        return None
+    ids = ready_ids(root)
+    if not ids:
+        return None
+    return f"KRN ready queue: {', '.join(ids[:3])}. Claim one with `{CLAIM_COMMAND}`."
+
+
 def write_boundary(state: Path, outcome: str, acceptance: str, next_action: str, blockers: str) -> None:
     """Materialize the continuation brief on disk at the boundary."""
     try:
@@ -167,7 +271,9 @@ def main() -> int:
             )
 
         if not notes:
-            signal = adoption_signal(cwd) if event == "SessionStart" else None
+            signal = queue_brief(cwd) if event == "SessionStart" else None
+            if signal is None and event == "SessionStart":
+                signal = adoption_signal(cwd)
             if signal:
                 print(json.dumps({
                     "hookSpecificOutput": {
