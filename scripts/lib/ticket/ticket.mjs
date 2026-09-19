@@ -752,6 +752,7 @@ export function reconcileTickets({ root, dirs = DEFAULT_DIRS, headRef = "HEAD", 
     // its patch id over the ticket base is the content identity that survives
     // a squash. A recorded sha that disagrees with the branch is refused.
     let anchor = integratedAnchor({ root, git, fields, head: integration.branch });
+    const branchResolved = Boolean(anchor);
     if (anchor && integration.sha && anchor.sha !== integration.sha) {
       throw new Error(`ticket ${fields.get("Id")} cannot reconcile: reconcile-sha-mismatch: recorded ${integration.sha} but ${integration.branch} is ${anchor.sha}`);
     }
@@ -759,13 +760,28 @@ export function reconcileTickets({ root, dirs = DEFAULT_DIRS, headRef = "HEAD", 
     if (!anchor || !anchor.sha) continue;
     // The ticket base is a mutable ref: once the merge lands, `main..branch`
     // collapses. Bound the headRef range by the branch/headRef merge base so a
-    // squashed patch id is still visible in the integrated history.
+    // squashed patch id is still visible in the integrated history. A missing
+    // branch has no merge base, so recover the fork point from the recorded
+    // sha; otherwise let rangePatchIds fall back to its bounded head window.
     const mergeBase = git(root, ["merge-base", integration.branch, headRef]);
-    const rangeBase = mergeBase.ok && mergeBase.out ? mergeBase.out : ticketBase(fields);
+    let rangeBase = "";
+    if (mergeBase.ok && mergeBase.out) rangeBase = mergeBase.out;
+    else {
+      const shaMergeBase = git(root, ["merge-base", anchor.sha, headRef]);
+      if (shaMergeBase.ok && shaMergeBase.out) rangeBase = shaMergeBase.out;
+    }
     const patch = anchor.patch || integration.patch;
     const merged = git(root, ["merge-base", "--is-ancestor", anchor.sha, headRef]).ok
       || (patch !== "" && rangePatchIds({ root, base: rangeBase, head: headRef }).has(patch));
-    if (!merged) continue;
+    // With the branch gone the recorded sha is the only identity left; a sha
+    // that is neither an ancestor of headRef nor present by patch id cannot be
+    // verified, so the fallback refuses instead of closing on a trusted value.
+    if (!merged) {
+      if (!branchResolved) {
+        throw new Error(`ticket ${fields.get("Id")} cannot reconcile: reconcile-sha-unverifiable: recorded ${anchor.sha} is not an ancestor of ${headRef} and its patch id is absent from the bounded range`);
+      }
+      continue;
+    }
     const evidence = `reconciled; integrated=${anchor.sha}${patch ? `; patch=${patch}` : ""}`;
     let next = setField(text, "Status", "done");
     next = setField(next, "Evidence", evidence);
