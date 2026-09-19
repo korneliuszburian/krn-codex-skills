@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { posixRelative } from "../support/path-rules.mjs";
-import { escapeRegExp } from "../support/regexp.mjs";
+import { escapeRegExp } from "../kernel/text.mjs";
 import path from "node:path";
 
 import { lessonStructureFindings } from "../lessons/lessons.mjs";

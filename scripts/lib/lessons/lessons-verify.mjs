@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
-import { escapeRegExp } from "../support/regexp.mjs";
+import { escapeRegExp } from "../kernel/text.mjs";
 import { spawnSync } from "node:child_process";
 
 import { checkLessons } from "./lessons.mjs";
