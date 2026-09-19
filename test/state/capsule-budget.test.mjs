@@ -122,14 +122,15 @@ test("the LT registry carries the retention rule", () => {
   assert.ok(registryPage.length > 0, "the LT registry page must be readable");
   for (const phrase of [
     "no adoption decision",
-    "`Trigger`",
+    "Result / non-proof",
     "path",
     "symbol",
     "churn",
     "docs/research/workflow-lessons.md",
     "retired@<7-hex>",
-    "capped at 100 rows",
-    "oldest unreferenced row",
+    "capped at 100 non-retired rows",
+    "oldest active row",
+    "gap-free",
   ]) {
     assert.ok(registryPage.includes(phrase), `the LT registry must carry the retention phrase: ${phrase}`);
   }
