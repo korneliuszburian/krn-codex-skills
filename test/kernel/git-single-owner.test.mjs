@@ -19,8 +19,10 @@ function trackedSources() {
     .sort();
 }
 
-test("git invocation has exactly one kernel owner", () => {
-  const owners = trackedSources().filter((relative) => read(relative).includes("rev-parse"));
+test("repository-root resolution has exactly one kernel owner", () => {
+  const owners = trackedSources()
+    .filter((relative) => relative.startsWith("scripts/"))
+    .filter((relative) => read(relative).includes("--show-toplevel"));
   assert.deepEqual(
     owners,
     ["scripts/lib/kernel/git.mjs", "scripts/lib/kernel/repo-root.mjs"],
