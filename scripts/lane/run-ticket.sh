@@ -284,33 +284,9 @@ CONTRACT_REF=""
 CONTRACT_DIR=""
 if [ -n "$TICKET" ] && [ -f "$TICKET" ] && grep -q "<krn-ticket>" "$TICKET" 2>/dev/null; then
   ticket_abi=yes
-  parsed=$(python3 - "$TICKET" <<'PY'
-import re, shlex, sys
-
-text = open(sys.argv[1], encoding="utf-8").read()
-block = text.split("<krn-ticket>", 1)[1].split("</krn-ticket>", 1)[0]
-fields = {}
-for line in block.split("\n"):
-    match = re.match(r"^([A-Za-z][A-Za-z ()-]*):\s*(.*)$", line.strip())
-    if match:
-        fields[match.group(1)] = match.group(2).strip()
-
-for key, name in (("Repository-base", "BASE_REF"), ("Scope", "CHANGED"), ("Id", "TICKET_ID")):
-    if fields.get(key):
-        print(f"{name}={shlex.quote(fields[key])}")
-if fields.get("Deciding check"):
-    check = re.sub(r"^node --test\s+", "", fields["Deciding check"]).strip()
-    print(f"DECIDING_CHECK={shlex.quote(check)}")
-if fields.get("Contract") and ":" in fields["Contract"]:
-    ref, direction = fields["Contract"].rsplit(":", 1)
-    print(f"CONTRACT_REF={shlex.quote(ref.strip())}")
-    print(f"CONTRACT_DIR={shlex.quote(direction.strip())}")
-if fields.get("Execution"):
-    agent = re.search(r"agent=([A-Za-z]+)", fields["Execution"])
-    if agent:
-        print(f"TICKET_AGENT={shlex.quote(agent.group(1))}")
-PY
-)
+  # The envelope has one parser (`scripts/lib/ticket/ticket.mjs`, exposed by
+  # `krn ticket env`); the lane never carries a second copy.
+  parsed=$(node "$KRN" ticket env --file "$TICKET" 2>/dev/null || true)
   eval "$parsed"
   if [ -n "${TICKET_AGENT:-}" ] && [ -z "$WORKER_ENV" ]; then
     WORKER=$TICKET_AGENT

@@ -2,12 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
-import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText, recordAttempt } from "./ticket.mjs";
+import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText, recordAttempt, ticketLaneBindings } from "./ticket.mjs";
 
-const COMMANDS = new Set(["check", "next", "claim", "close", "fail"]);
+const COMMANDS = new Set(["check", "next", "claim", "close", "fail", "fields", "env"]);
 const VALUE_FLAGS = {
   "--root": "root",
   "--path": "path",
+  "--file": "file",
   "--id": "id",
   "--base": "base",
   "--head": "head",
@@ -79,11 +80,40 @@ function showTicket(positional, options, usage) {
   else for (const [key, value] of fields) process.stdout.write(`${key}: ${value}\n`);
 }
 
+// Single-quote a value for `eval` in POSIX shells so a scope or contract field
+// with spaces survives `eval "$(... ticket env ...)"` unchanged.
+const shellQuote = (value) => `'${String(value).replace(/'/g, `'\\''`)}'`;
+
+// `fields` and `env` render the owner's parse: the lane consumes `env`, and the
+// plugin and hooks read the same map through `krn ticket fields`.
+function renderTicketFile(positional, options, usage) {
+  rejectOptions(options, ["file"]);
+  if (positional.length !== 1 || !options.file || options.source || options.yes) fail(usage, EXIT_CODES.USAGE);
+  let text;
+  try {
+    text = fs.readFileSync(options.file, "utf8");
+  } catch {
+    fail(`cannot read ticket file: ${options.file}`, EXIT_CODES.USAGE);
+  }
+  const { fields } = parseTicketText(text);
+  if (positional[0] === "env") {
+    for (const [name, value] of ticketLaneBindings(fields)) process.stdout.write(`${name}=${shellQuote(value)}\n`);
+    return;
+  }
+  const plain = fields ? Object.fromEntries(fields) : {};
+  if (options.json) output(plain, true);
+  else for (const [key, value] of Object.entries(plain)) process.stdout.write(`${key}: ${value}\n`);
+}
+
 export function runTicketCommand(argv, { usage, requireDirectory }) {
   const { positional, options } = parseArgs(argv);
   const command = positional[0];
   if (command === "show") {
     showTicket(positional, options, usage);
+    return;
+  }
+  if (command === "fields" || command === "env") {
+    renderTicketFile(positional, options, usage);
     return;
   }
   rejectOptions(options, ["root", "path", "id", "base", "head", "worker", "session", "evidence", "resolution", "reason", "signature", "wallSeconds", "tokens"]);

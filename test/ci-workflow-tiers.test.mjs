@@ -12,7 +12,7 @@ const workflow = () => read(path.join(".github", "workflows", "validate.yml"));
 const stepsIn = (command) => new Set([...String(command ?? "").matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
 const sorted = (values) => [...values].sort();
 
-const FAST = ["changes:check", "quality:audit", "test:lib", "test:repro", "validate"];
+const FAST = ["changes:check", "conformance:check", "quality:audit", "test:lib", "test:repro", "validate"];
 const DEEP = [
   "lessons:verify",
   "skills:check",
