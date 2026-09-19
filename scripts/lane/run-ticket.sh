@@ -96,6 +96,33 @@ classify_check() {
   return 0
 }
 
+# The declared deciding check must resolve to a file the contract harness can
+# see in the worker tree. A worker that commits the implementation but omits the
+# observer leaves the host gate to report `unknown-check` after a wasted lane;
+# name the missing file here instead. A package script has no single deciding
+# file, so it carries no existence obligation.
+# Prints rule=<none|deciding-check-missing> path=<path>; exits 0 admitted.
+deciding_check_guard() {
+  local root spec path
+  root=$(trim "${1:-}")
+  spec=$(trim "${2:-}")
+  [ -n "$spec" ] || spec=$(trim "$DECIDING_CHECK")
+  if [ "${spec:0:11}" = "node --test" ]; then spec=$(trim "${spec#node --test}"); fi
+  case "$spec" in
+    "npm run "*|"npm run-script "*)
+      echo "rule=none path=$spec"
+      return 0
+      ;;
+  esac
+  path="$spec"
+  if [ -n "$path" ] && [ -f "$root/$path" ]; then
+    echo "rule=none path=$path"
+    return 0
+  fi
+  echo "rule=deciding-check-missing path=$path"
+  return 1
+}
+
 # Verdict over the sandbox probe lines. Any host-home visibility, canary or
 # fixture write, or shared-ref update means the isolation contract is broken.
 probe_verdict() {
@@ -152,6 +179,7 @@ compose_bwrap() {
 mode=${1:-probe}
 case "$mode" in
   classify) shift; classify_check "${1:-}" || exit $?; exit 0 ;;
+  deciding-check-guard) shift; deciding_check_guard "${1:-}" "${2:-}" || exit $?; exit 0 ;;
   probe-verdict) probe_verdict || exit $?; exit 0 ;;
   bwrap-args)
     RUN_DIR=${RUN_DIR:-$BASE/runs-live/print}
@@ -485,6 +513,16 @@ if [ "$worker_head" != "$base" ]; then
   git -C "$FIXTURE" fetch --quiet "$WT" "+refs/heads/$branch:refs/heads/$branch"
 fi
 echo "worker_head=$worker_head"
+
+# After the worker session commits and before the host gate resolves the
+# contract, assert the declared deciding check is present in the worker tree. A
+# worker that omits the observer would otherwise cost the whole lane and surface
+# as a harness `unknown-check`.
+echo "--- deciding check guard ---"
+if ! deciding_check_guard "$WT" "$DECIDING_CHECK"; then
+  echo "lane refused: rule=deciding-check-missing path=$DECIDING_CHECK" >&2
+  exit 71
+fi
 
 echo "--- worker-side gate (host-executed) ---"
 gate=0
