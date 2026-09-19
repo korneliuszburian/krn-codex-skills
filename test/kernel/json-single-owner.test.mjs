@@ -25,7 +25,7 @@ test("json reading has exactly one kernel owner", () => {
 });
 
 test("the duplicated support json module is gone and unreferenced", () => {
-  assert.ok(!exists("scripts/lib/kernel/json.mjs"), "kernel/json.mjs must be deleted");
-  const stale = trackedSources().filter((relative) => read(relative).includes("kernel/json.mjs"));
-  assert.deepEqual(stale, [], "no source may import the retired kernel/json.mjs");
+  assert.ok(!exists("scripts/lib/support/read-json.mjs"), "support/read-json.mjs must be deleted");
+  const stale = trackedSources().filter((relative) => read(relative).includes("support/read-json.mjs"));
+  assert.deepEqual(stale, [], "no source may import the retired support/read-json.mjs");
 });
