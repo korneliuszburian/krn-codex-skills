@@ -13,6 +13,12 @@ const DEAD = [
   "docs/research/mattpocock-skills-deep-audit.md",
   "docs/research/unlazy-codex-port.md",
   "docs/research/unslop-codex-port.md",
+  "docs/prd/README.md",
+  "docs/prd/0001-blind-mutation-evaluation.md",
+  "docs/prd/0002-lt5-power-simulation.md",
+  "docs/prd/0003-lt5-fixture-mechanism-diversity.md",
+  "docs/prd/0004-cost-paired-measurement.md",
+  "docs/prd/0005-lt1-scaling.md",
 ];
 
 test("research pages with no reader are deleted", () => {

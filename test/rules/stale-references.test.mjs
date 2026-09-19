@@ -32,18 +32,6 @@ const OPERATOR_PAGES = ["README.md", "CONTEXT.md", "AGENTS.md"];
 // here so a new stale reference anywhere in the durable surface still fails.
 const HISTORICAL_REFERENCES = new Set([
   "docs/adr/0001-compact-context-spine.md:docs/agents/artifact-paths.json",
-  "docs/prd/0001-blind-mutation-evaluation.md:test/evaluation/blind-mutations.json",
-  "docs/prd/0001-blind-mutation-evaluation.md:scripts/lib/evaluation/score-mutations.mjs",
-  "docs/prd/0001-blind-mutation-evaluation.md:test/evaluation/score-mutations.test.mjs",
-  "docs/prd/0002-lt5-power-simulation.md:scripts/lib/evaluation/lt5-power.mjs",
-  "docs/prd/0002-lt5-power-simulation.md:docs/research/lt5-confirmation-design.json",
-  "docs/prd/0002-lt5-power-simulation.md:test/evaluation/lt5-power.test.mjs",
-  "docs/prd/0003-lt5-fixture-mechanism-diversity.md:test/evaluation/lt5-fixtures/manifest.json",
-  "docs/prd/0003-lt5-fixture-mechanism-diversity.md:scripts/lib/evaluation/check-lt5-fixtures.mjs",
-  "docs/prd/0004-cost-paired-measurement.md:scripts/lib/evaluation/cost-paired.mjs",
-  "docs/prd/0004-cost-paired-measurement.md:test/evaluation/cost-paired.test.mjs",
-  "docs/prd/0005-lt1-scaling.md:test/evaluation/lt1-fixtures/manifest.json",
-  "docs/prd/0005-lt1-scaling.md:scripts/lib/evaluation/check-lt1-fixtures.mjs",
   "docs/research/frontend-delivery.md:docs/design/raw/",
   "docs/research/lab-tests.md:npm run verify",
   "docs/research/lab-tests.md:test/edition.test.mjs",

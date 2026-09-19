@@ -19,7 +19,6 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
 - `docs/adr/` — earned, hard-to-reverse decisions.
 - `docs/capabilities.md` — global capability profiles and evidence states.
 - `docs/migration.md` — installation ownership, retirement, and rollback.
-- `docs/prd/` — agent-facing task briefs, consumed then deleted (see its README).
 - `.krn/runs/` — ignored working state; durable artifacts never live there.
 - `README.md` — operator entrypoint and human skill catalog.
 

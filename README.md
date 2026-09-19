@@ -259,6 +259,5 @@ docs/research/        living source-backed synthesis
 docs/adr/             earned durable decisions
 docs/capabilities.md  global capability profiles and evidence states
 docs/migration.md     installation ownership, retirement, and rollback
-docs/prd/             agent-facing task briefs, consumed then deleted
 .krn/runs/            ignored resumable working state
 ```
