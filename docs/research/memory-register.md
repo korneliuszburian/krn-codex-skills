@@ -74,7 +74,7 @@ needs no row. An exclusion pattern that matches no tracked artifact is a
 | Pattern | Reason | Owner | Falsifier | Verified |
 |---|---|---|---|---|
 | .krn/runs/** | ignored working run state: capsules, boundary pages, and logs are erased with the run and are never durable | maintainer | reviewed with each run removal | 2026-09-19 |
-| .scratch/** | git-excluded local ticket queue: owned and validated by the ticket ABI and `test:ticket`, not durable memory | maintainer | `npm run test:ticket` | 2026-09-19 |
+| .scratch/** | git-excluded local ticket queue: owned and validated by the ticket suites, not durable memory | maintainer | `npm run test:lib` | 2026-09-19 |
 | test/bootstrap-fixture/project/LOCAL.md | foreign fixture page owned by the bootstrap fixture and kept byte-identical | maintainer | test/bootstrap-fixture/bootstrap.test.mjs | 2026-09-19 |
 | LICENSE | static legal text with no writer, reader, or delivery trigger | maintainer | reviewed when the license changes | 2026-09-19 |
 | NOTICE | static attribution text with no writer, reader, or delivery trigger | maintainer | reviewed when attribution changes | 2026-09-19 |
