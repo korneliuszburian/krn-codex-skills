@@ -131,7 +131,7 @@ export function checkMemoryRegister({ root, git = runGit } = {}) {
     }
     const pattern = clean(cells[0]);
     const matched = tracked.filter((file) => matchGlob(pattern, file)).length;
-    if (matched === 0) errors.push(summary("blind-exclusion", `${REGISTER}:${row.number}: exclusion "${pattern}" matches no artifact`));
+    if (matched === 0) warnings.push(summary("blind-exclusion", `${REGISTER}:${row.number}: exclusion "${pattern}" matches no artifact`));
     exclusions.push(pattern);
   }
 

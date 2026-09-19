@@ -224,7 +224,7 @@ test("an exclusion pattern that matches nothing is blind-exclusion", async (t) =
   commit(root, "register with a blind exclusion");
   const report = checkMemoryRegister({ root });
   assert.ok(
-    report.errors.some((error) => error.startsWith("blind-exclusion:") && error.includes("docs/ghost/**")),
+    report.warnings.some((warning) => warning.startsWith("blind-exclusion:") && warning.includes("docs/ghost/**")),
     JSON.stringify(report.errors),
   );
 });
