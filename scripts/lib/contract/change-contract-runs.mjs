@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 
 import { posixRelative } from "../support/path-rules.mjs";
 import { readJson } from "../kernel/json.mjs";
-import { tapName } from "../support/tap.mjs";
+import { tapName, tapSummary } from "../kernel/tap.mjs";
 import { TEST_FILE_RE, CODE_EXT, SETUP_FLAGS, testFlagPresent } from "./command-analysis.mjs";
 
 const DENY = new Set(["changes:check"]);
@@ -240,21 +240,7 @@ export function listTestFilesIn(dir) {
   return found.sort();
 }
 
-export function tapSummary(output) {
-  const text = output ?? "";
-  const tests = Number((/^# tests (\d+)\s*$/m.exec(text)?.[1] ?? "0"));
-  const fail = Number((/^#\s*fail[^0-9]*(\d+)\s*$/m.exec(text)?.[1] ?? "0"));
-  const passing = [];
-  const failing = [];
-  for (const line of text.split("\n")) {
-    const t = tapName(line);
-    if (!t) continue;
-    if (t.pass) passing.push(t.name);
-    else if (!/\.(mjs|js|cjs|ts)$/.test(t.name)) failing.push(t.name);
-  }
-  const setup = /ERR_MODULE_NOT_FOUND|SyntaxError|Cannot find module|Could not find|MODULE_NOT_FOUND/.test(text);
-  return { tests, fail, passing, failing, setup };
-}
+export { tapSummary };
 
 export function frozenRedOk(output) {
   const summary = tapSummary(output);
