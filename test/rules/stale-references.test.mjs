@@ -51,10 +51,7 @@ const HISTORICAL_REFERENCES = new Set([
   "docs/research/lab-tests.md:docs/prd/0002",
   "docs/research/lab-tests.md:docs/prd/0001",
   "docs/research/lab-tests.md:docs/adr/0003",
-  "docs/research/mattpocock-skills-deep-audit.md:scripts/link-skills.sh",
   "docs/research/orchestration.md:docs/adr/0003",
-  "docs/research/unlazy-codex-port.md:skills/meta/unlazy",
-  "docs/research/unslop-codex-port.md:skills/unslop/SKILL.md",
 ]);
 
 function formatStaleReference(finding) {
