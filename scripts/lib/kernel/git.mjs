@@ -31,9 +31,39 @@ export function runGitRaw(repo, args) {
   }
 }
 
+export function runGitInput(repo, args, input) {
+  try {
+    return {
+      ok: true,
+      out: execFileSync("git", ["-C", repo, ...args], {
+        encoding: "utf8",
+        input,
+        stdio: ["pipe", "pipe", "pipe"],
+        maxBuffer: 512 * 1024 * 1024,
+        timeout: 600_000,
+        killSignal: "SIGKILL",
+      }),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      out: typeof error?.stdout === "string" ? error.stdout : "",
+      stderr: typeof error?.stderr === "string" ? error.stderr : "",
+      status: error?.status ?? null,
+      signal: error?.signal ?? null,
+      errorCode: error?.code ?? null,
+    };
+  }
+}
+
 export function gitText(repo, args) {
   const result = runGit(repo, args);
   return result.ok ? result.out : "";
+}
+
+export function gitTopLevel(repo) {
+  const result = runGit(repo, ["rev-parse", "--show-toplevel"]);
+  return result.ok && result.out ? result.out : "";
 }
 
 export function commitChangedFiles(root, git, sha) {

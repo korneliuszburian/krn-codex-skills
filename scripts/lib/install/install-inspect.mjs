@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { gitText as git, runGitRaw } from "../support/git-cli.mjs";
+import { gitText as git, gitTopLevel, runGitRaw } from "../kernel/git.mjs";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { isInside, posixRelative } from "../support/path-rules.mjs";
 import { readJson } from "../support/read-json.mjs";
@@ -193,7 +193,7 @@ function committedReleaseDigests(root) {
 
 function anchoredLedger(source) {
   if (!source) return null;
-  const root = git(source, ["rev-parse", "--show-toplevel"]);
+  const root = gitTopLevel(source);
   if (!root) return null;
   const digests = committedReleaseDigests(fs.realpathSync(root));
   // An empty committed ledger is still the anchor: it attests nothing, so the
@@ -407,7 +407,7 @@ export function classifyTarget(plan, item, linked) {
   if (isInside(plan.releaseRoot, linked)) {
     return isPriorReleasePath(plan, item, linked) ? "prior_release" : "other_release";
   }
-  const sourceRoot = git(path.dirname(linked), ["rev-parse", "--show-toplevel"]);
+  const sourceRoot = gitTopLevel(path.dirname(linked));
   const linkedRelative = sourceRoot ? path.relative(sourceRoot, linked) : null;
   const legacyRelative = item.label === "bin__krn-codex-catalog" ? "scripts/catalog.mjs" : null;
   if (

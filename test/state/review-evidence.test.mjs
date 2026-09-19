@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { runGit } from "../../scripts/lib/support/git-cli.mjs";
+import { runGit } from "../../scripts/lib/kernel/git.mjs";
 import { writeCapsule } from "../support/state-fixtures.mjs";
 
 const REVIEW_FIELD = "Review fixed point and Standards / Spec disposition";

@@ -12,13 +12,13 @@ import {
   parseCleanup,
   stripMarkup,
 } from "./capsule-abi.mjs";
-import { runGit as git } from "../support/git-cli.mjs";
+import { runGit as git } from "../kernel/git.mjs";
 import { lessonStructureFindings } from "../lessons/lessons.mjs";
 import { readJson } from "../support/read-json.mjs";
 import { capsuleStoreReport, runDirectoriesDetailed } from "./spine-runs.mjs";
 import { checkTickets } from "../ticket/ticket.mjs";
 import { isInside } from "../support/path-rules.mjs";
-import { resolveRepositoryRoot } from "../support/repo-root.mjs";
+import { resolveRepositoryRoot } from "../kernel/repo-root.mjs";
 
 // Capsule narrative is a working record, not a history log: the four fields that
 // tend to absorb status prose are bounded per field and in total. Past a bound

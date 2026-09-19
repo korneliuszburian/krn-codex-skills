@@ -3,7 +3,7 @@ import path from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 import { readJson } from "../support/read-json.mjs";
 
-import { runGit } from "../support/git-cli.mjs";
+import { runGit } from "../kernel/git.mjs";
 import { fenceLines, unbalancedFence as hasUnbalancedFence } from "../support/fences.mjs";
 import { recallUsage } from "./lessons-recall.mjs";
 

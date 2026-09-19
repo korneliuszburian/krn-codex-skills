@@ -3,7 +3,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
 import { churnHot } from "../support/churn.mjs";
-import { runGit } from "../support/git-cli.mjs";
+import { runGit } from "../kernel/git.mjs";
 import { maskLiterals, stripComments } from "../support/source-mask.mjs";
 
 const SELF = "scripts/lib/audit/quality-audit.mjs";

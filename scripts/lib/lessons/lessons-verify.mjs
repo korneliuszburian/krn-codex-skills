@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 
 import { checkLessons } from "./lessons.mjs";
 import { tapName } from "../support/tap.mjs";
-import { gitText as git, runGit } from "../support/git-cli.mjs";
+import { gitText as git, runGit } from "../kernel/git.mjs";
 
 const ALLOWED = /^test\/[A-Za-z0-9_./-]+\.mjs$/;
 const TOKEN = /^((?:test|scripts)\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;

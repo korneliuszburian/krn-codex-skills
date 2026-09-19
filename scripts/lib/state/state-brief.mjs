@@ -1,11 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { runGit as git, runGitRaw } from "../support/git-cli.mjs";
+import { runGit as git, runGitRaw } from "../kernel/git.mjs";
 import { capsuleIdsDetailed, runDirectoriesDetailed } from "./spine-runs.mjs";
 import { inspectSpineState, normalizeRunPointer } from "./state-check.mjs";
 import { fieldLine, fixedPointAnchors, parseCleanup, renderCapsule, stripMarkup } from "./capsule-abi.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
-import { resolveRepositoryRoot } from "../support/repo-root.mjs";
+import { resolveRepositoryRoot } from "../kernel/repo-root.mjs";
 
 function porcelain(root) {
   const status = runGitRaw(root, ["status", "--porcelain"]);

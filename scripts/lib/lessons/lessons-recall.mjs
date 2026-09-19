@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords, runGit } from "../support/git-cli.mjs";
+import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords, runGit } from "../kernel/git.mjs";
 import { escapeRegExp } from "../support/regexp.mjs";
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
 import { churnHot } from "../support/churn.mjs";

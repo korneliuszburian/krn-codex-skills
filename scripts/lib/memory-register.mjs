@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { globToRegex } from "./lessons/lessons.mjs";
-import { runGit } from "./support/git-cli.mjs";
+import { runGit } from "./kernel/git.mjs";
 import { fenceLines } from "./support/fences.mjs";
 import { posixRelative } from "./support/path-rules.mjs";
 

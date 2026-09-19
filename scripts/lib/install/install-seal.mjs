@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { EXIT_CODES } from "../support/diagnostics.mjs";
-import { gitText, runGit } from "../support/git-cli.mjs";
+import { gitText, gitTopLevel } from "../kernel/git.mjs";
 import { writeAtomic } from "../support/write-atomic.mjs";
 import { RELEASE_DIGESTS_RELATIVE, releaseDigests } from "./install-inspect.mjs";
 
@@ -20,9 +20,9 @@ function releaseDigestsFile(root) {
 // finding, never a crash here.
 function committedDigests(root) {
   if (typeof root !== "string" || root === "") return null;
-  const toplevel = runGit(root, ["rev-parse", "--show-toplevel"]);
-  if (!toplevel.ok || toplevel.out === "") return null;
-  const text = gitText(toplevel.out, ["show", `HEAD:${RELEASE_DIGESTS_RELATIVE}`]);
+  const toplevel = gitTopLevel(root);
+  if (toplevel === "") return null;
+  const text = gitText(toplevel, ["show", `HEAD:${RELEASE_DIGESTS_RELATIVE}`]);
   if (text === "") return null;
   let document;
   try {

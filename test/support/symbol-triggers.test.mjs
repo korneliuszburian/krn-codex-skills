@@ -97,15 +97,15 @@ test("the diff is read with core.quotePath disabled", () => {
 });
 
 test("touchedSymbols maps changed lines to the symbol they fall inside", () => {
-  const git = strictGit("--- a/scripts/lib/support/git-cli.mjs\n+++ b/scripts/lib/support/git-cli.mjs\n@@ -2,0 +3,1 @@\n", {
-    "abc:scripts/lib/support/git-cli.mjs": "export function runGit(r) {\n  return 1;\n}\nexport const OTHER = 1;\n",
+  const git = strictGit("--- a/scripts/lib/kernel/git.mjs\n+++ b/scripts/lib/kernel/git.mjs\n@@ -2,0 +3,1 @@\n", {
+    "abc:scripts/lib/kernel/git.mjs": "export function runGit(r) {\n  return 1;\n}\nexport const OTHER = 1;\n",
   });
   assert.deepEqual(touchedSymbols({ root: ".", git, sha: "abc" }), ["runGit"]);
 });
 
 test("touchedSymbols reports a deleted symbol from the pre-image", () => {
-  const git = strictGit("--- a/scripts/lib/support/git-cli.mjs\n+++ /dev/null\n@@ -1,3 +0,0 @@\n", {
-    "abc^:scripts/lib/support/git-cli.mjs": "export function runGit(r) {\n  return 1;\n}\n",
+  const git = strictGit("--- a/scripts/lib/kernel/git.mjs\n+++ /dev/null\n@@ -1,3 +0,0 @@\n", {
+    "abc^:scripts/lib/kernel/git.mjs": "export function runGit(r) {\n  return 1;\n}\n",
   });
   assert.deepEqual(touchedSymbols({ root: ".", git, sha: "abc" }), ["runGit"]);
 });

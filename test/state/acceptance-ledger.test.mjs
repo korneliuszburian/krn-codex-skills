@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { inspectSpineState } from "../../scripts/lib/state/state-check.mjs";
-import { runGit } from "../../scripts/lib/support/git-cli.mjs";
+import { runGit } from "../../scripts/lib/kernel/git.mjs";
 import { writeCapsule } from "../support/state-fixtures.mjs";
 
 const git = (root, args) => runGit(root, args).out;

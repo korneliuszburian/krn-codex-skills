@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { runGit } from "../../scripts/lib/support/git-cli.mjs";
+import { runGit } from "../../scripts/lib/kernel/git.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const hook = join(root, "scripts", "hooks", "krn_memory.py");
