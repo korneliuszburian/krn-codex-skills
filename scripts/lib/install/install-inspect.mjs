@@ -169,8 +169,10 @@ export function readOverrideRecord(releaseRoot, commit) {
 
 // The anchor is the ledger as committed, not the working copy: `install seal`
 // writes the ledger before it is committed, and a release that only the
-// working tree seals is not yet anchored. Falls back to the release-local copy
-// when the checkout carries no committed seal.
+// working tree seals is not yet anchored. A committed ledger is authoritative
+// even when it is empty, so a release-local-only seal can never launder a
+// release once the repository ships a ledger; only a checkout with no committed
+// ledger file at all falls back to the release-local copy.
 function committedReleaseDigests(root) {
   const location = `HEAD:${RELEASE_DIGESTS_RELATIVE}`;
   const text = git(root, ["show", location]);
@@ -194,9 +196,11 @@ function anchoredLedger(source) {
   const root = git(source, ["rev-parse", "--show-toplevel"]);
   if (!root) return null;
   const digests = committedReleaseDigests(fs.realpathSync(root));
-  // An empty ledger seals nothing; the in-release copy stays the only anchor
-  // for a day-one install that was allowed through the explicit override.
-  if (!digests || Object.keys(digests).length === 0) return null;
+  // An empty committed ledger is still the anchor: it attests nothing, so the
+  // release must fail as unsealed rather than fall back to a release-local copy
+  // the release itself can rewrite. `null` stays reserved for a checkout that
+  // carries no committed ledger file, where the fallback is the only anchor.
+  if (!digests) return null;
   return digests;
 }
 
@@ -224,6 +228,7 @@ function unsealed(message) {
 const RULE_STATUS = Object.freeze({
   "ledger-unreadable": "ledger_unreadable",
   "ledger-malformed": "ledger_malformed",
+  "ledger-unattested": "digest_unsealed",
   "release-corrupt": "release_corrupt",
   "digest-legacy": "release_superseded",
 });
@@ -232,6 +237,20 @@ function failureFilesystem(error) {
   const rule = error?.rule;
   const status = RULE_STATUS[rule] ?? "broken_link";
   return { status, detail: error?.message, ...(rule ? { rule } : {}) };
+}
+
+// The release-local ledger is an untrusted copy the release itself can
+// rewrite, so it can only be named as a non-attestation, never promoted to an
+// anchor.
+function releaseLocalAttests(entries, commit, digest, source) {
+  const recorded = entries[commit];
+  if (typeof recorded === "string" && recorded === digest) return true;
+  return Object.entries(entries).some(([key, value]) => {
+    if (value !== digest) return false;
+    if (key === commit) return true;
+    if (!source) return true;
+    return gitAncestor(source, key, commit);
+  });
 }
 
 export function verifyRelease(release, commit, { requireSealed = true, ledger, anchor, source } = {}) {
@@ -254,7 +273,11 @@ export function verifyRelease(release, commit, { requireSealed = true, ledger, a
   }
   const usedAnchor = anchor ?? (ledger === undefined ? "release" : "committed");
   if (!requireSealed) return { ...metadata, anchor: usedAnchor };
-  const entries = ledger ?? releaseDigests(release);
+  // The release-local ledger is validated even when the committed ledger
+  // decides, so a torn in-release copy stays a named corruption finding; it is
+  // never consulted for the seal itself when a committed anchor is supplied.
+  const releaseLocal = releaseDigests(release);
+  const entries = ledger ?? releaseLocal;
   const sealed = entries[commit];
   if (typeof sealed === "string") {
     if (sealed !== actual) {
@@ -275,6 +298,15 @@ export function verifyRelease(release, commit, { requireSealed = true, ledger, a
     return gitAncestor(source, key, commit);
   });
   if (sealedByValue) return { ...metadata, anchor: usedAnchor, seal: "sealed_by_value" };
+  // A release that only its own rewriteable copy seals is not attested by the
+  // repository: the committed ledger must carry the entry. Name that refusal so
+  // an empty or rewritten shipped ledger is never mistaken for a plain miss.
+  if (ledger !== undefined && releaseLocalAttests(releaseLocal, commit, actual, source)) {
+    failLedger(
+      `ledger-unattested: release ${commit} is sealed only by its release-local ${RELEASE_DIGESTS_RELATIVE}`,
+      "ledger-unattested",
+    );
+  }
   unsealed(`digest-unsealed: release ${commit} has no digest entry in ${RELEASE_DIGESTS_RELATIVE}`);
 }
 
