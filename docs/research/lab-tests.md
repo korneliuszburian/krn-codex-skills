@@ -28,13 +28,16 @@ are durable.
 
 ## Registry
 
-The registry is capped at 100 rows, and every row must earn its place. A row
-with no adoption decision is retained only while something still references it:
-its `Trigger` column names a path, a symbol, or a churn entry, or
-`docs/research/workflow-lessons.md` references the row. A row with no adoption
-decision and no such reference is retired by the next hardening pass, its Status
-cell gaining a `retired@<7-hex>` token. Adding a row beyond the cap displaces
-the oldest unreferenced row.
+The registry is capped at 100 non-retired rows, and every row must earn its
+place. A row with no adoption decision is retained only while something still
+references it: its Result / non-proof cell names a path, a symbol, or a churn
+entry, or `docs/research/workflow-lessons.md` references the row. A row with no
+adoption decision and no such reference is retired by the next hardening pass,
+its Status cell gaining a `retired@<7-hex>` token; retired tombstones stay in
+the registry, so the numbered rows keep a gap-free 1..max range. Adding a row
+beyond the cap retires the oldest active row with no adoption decision and no
+reference, its Status cell gaining the same `retired@<7-hex>` token, in the same
+change as the addition.
 
 | Id | Claim | Form and lanes | Metric | Falsifier | Status | Result / non-proof |
 |---|---|---|---|---|---|---|
