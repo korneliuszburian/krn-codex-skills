@@ -232,11 +232,11 @@ test("a trigger delivers the matching lesson for changed paths", () => {
   writeFileSync(
     file,
     "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n"
-    + "| Guards | probe | `test:state` | | | path:scripts/lib/support/git-cli.mjs |\n",
+    + "| Guards | probe | `test:state` | | | path:scripts/lib/kernel/git.mjs |\n",
   );
-  const all = recallLessons({ root, files: ["scripts/lib/support/git-cli.mjs", "docs/x.md"] });
+  const all = recallLessons({ root, files: ["scripts/lib/kernel/git.mjs", "docs/x.md"] });
   assert.equal(all.length, 1);
-  assert.deepEqual(all[0].matched, ["scripts/lib/support/git-cli.mjs"]);
+  assert.deepEqual(all[0].matched, ["scripts/lib/kernel/git.mjs"]);
   assert.deepEqual(recallLessons({ root, files: ["docs/x.md"] }), []);
   const matchedFor = (trigger, files) => {
     writeFileSync(
@@ -518,7 +518,7 @@ test("recallBindings binds a recall to a changed target by gate or falsifier", (
 test("a falsifier under a regular-file parent fails closed instead of throwing", () => {
   const root = makeRoot();
   writeFileSync(join(root, "docs", "research", "workflow-lessons.md"),
-    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| A | probe | `test:state` | | `test/gate.test.mjs/x.test.mjs::probe@abcdef0` | path:scripts/lib/support/git-cli.mjs |\n");
+    "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger |\n|---|---|---|---|---|---|\n| A | probe | `test:state` | | `test/gate.test.mjs/x.test.mjs::probe@abcdef0` | path:scripts/lib/kernel/git.mjs |\n");
   let report;
   assert.doesNotThrow(() => { report = checkLessons({ root }); });
   assert.ok(report.errors.some((error) => error.includes("falsifier file not found")), JSON.stringify(report.errors));

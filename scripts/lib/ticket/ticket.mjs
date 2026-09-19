@@ -1,11 +1,11 @@
-import { execFileSync } from "node:child_process";
+
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { parseChangeContract } from "../contract/change-contract.mjs";
-import { runGit, runGitRaw } from "../support/git-cli.mjs";
+import { runGit, runGitInput, runGitRaw } from "../kernel/git.mjs";
 import { writeAtomic } from "../support/write-atomic.mjs";
 
 const STATUSES = new Set(["ready", "claimed", "blocked", "in-review", "done", "abandoned", "deferred"]);
@@ -172,27 +172,10 @@ const INTEGRATED_ANCHOR = /(?:^|[;\s])integrated=([0-9a-f]{7,40})/i;
 const PATCH_ANCHOR = /(?:^|[;\s])patch=([0-9a-f]{40})/i;
 
 // `git patch-id` only reads a patch from stdin, so it needs a runner that
-// forwards input; runGit deliberately does not expose one.
-function gitWithInput(root, args, input) {
-  try {
-    return {
-      ok: true,
-      out: execFileSync("git", ["-C", root, ...args], {
-        input,
-        encoding: "utf8",
-        maxBuffer: 512 * 1024 * 1024,
-        timeout: 600_000,
-        killSignal: "SIGKILL",
-      }).trim(),
-    };
-  } catch (error) {
-    return { ok: false, out: typeof error?.stdout === "string" ? error.stdout : "" };
-  }
-}
-
+// forwards input; runGitInput is the kernel owner for that.
 function stablePatchId(root, diff) {
   if (typeof diff !== "string" || diff.trim() === "") return "";
-  const result = gitWithInput(root, ["patch-id", "--stable"], diff);
+  const result = runGitInput(root, ["patch-id", "--stable"], diff);
   if (!result.ok) return "";
   const line = result.out.split("\n").map((entry) => entry.trim()).find(Boolean);
   return line ? line.split(/\s+/)[0] : "";

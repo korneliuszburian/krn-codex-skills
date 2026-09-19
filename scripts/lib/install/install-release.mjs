@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { gitText as git, runGitRaw } from "../support/git-cli.mjs";
+import { gitText as git, gitTopLevel, runGitRaw } from "../kernel/git.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -47,11 +47,11 @@ export { classifyTarget, inspectInstall, managedHookPolicy, managedTargets, prun
 function sourceRootFromLocator(locator, cwd) {
   const asPath = locator && fs.existsSync(locator) ? path.resolve(locator) : null;
   if (asPath) {
-    const root = git(asPath, ["rev-parse", "--show-toplevel"]);
+    const root = gitTopLevel(asPath);
     if (!root) fail(`source is not a Git checkout: ${asPath}`, EXIT_SOURCE);
     return { root: fs.realpathSync(root), ref: "HEAD" };
   }
-  const root = git(cwd, ["rev-parse", "--show-toplevel"]);
+  const root = gitTopLevel(cwd);
   if (!root) {
     fail("--source must name a clean Git checkout when krn is run outside one", EXIT_USAGE);
   }

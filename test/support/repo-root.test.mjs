@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { resolveRepositoryRoot } from "../../scripts/lib/support/repo-root.mjs";
+import { resolveRepositoryRoot } from "../../scripts/lib/kernel/repo-root.mjs";
 
 test("resolveRepositoryRoot returns a controlled error for malformed inputs", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-root-"));

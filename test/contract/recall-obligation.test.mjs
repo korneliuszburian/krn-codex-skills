@@ -180,9 +180,9 @@ test("a symbol trigger that matches the diff blocks by default", () => {
       const last = args[args.length - 1];
       if (last.includes(":package.json")) return { ok: true, out: JSON.stringify({ scripts: { "test:lessons": "x" } }) };
       if (last.includes(":")) return { ok: true, out: "export function runGit(r) {\n  return 1;\n}\n" };
-      return { ok: true, out: "scripts/lib/support/git-cli.mjs" };
+      return { ok: true, out: "scripts/lib/kernel/git.mjs" };
     }
-    if (args[0] === "diff" || args[2] === "diff") return { ok: true, out: "+++ b/scripts/lib/support/git-cli.mjs\n@@ -0,0 +2,1 @@\n" };
+    if (args[0] === "diff" || args[2] === "diff") return { ok: true, out: "+++ b/scripts/lib/kernel/git.mjs\n@@ -0,0 +2,1 @@\n" };
     if (args[0] === "cat-file") return { ok: true, out: "" };
     return { ok: false, out: "" };
   };

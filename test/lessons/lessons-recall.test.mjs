@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { checkLessons, parseLessons } from "../../scripts/lib/lessons/lessons.mjs";
 import { recallUsage } from "../../scripts/lib/lessons/lessons-recall.mjs";
-import { runGit } from "../../scripts/lib/support/git-cli.mjs";
+import { runGit } from "../../scripts/lib/kernel/git.mjs";
 
 const cli = fileURLToPath(new URL("../../scripts/krn-codex.mjs", import.meta.url));
 

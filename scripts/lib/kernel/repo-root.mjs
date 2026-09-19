@@ -1,7 +1,7 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { gitAvailable, runGit as git } from "./git-cli.mjs";
+import { gitAvailable, runGit as git } from "./git.mjs";
 
 export function resolveRepositoryRoot(repo, { label = "state" } = {}) {
   let requested;

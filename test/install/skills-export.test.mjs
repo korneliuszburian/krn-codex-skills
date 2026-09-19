@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { runGit } from "../../scripts/lib/support/git-cli.mjs";
+import { runGit } from "../../scripts/lib/kernel/git.mjs";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";

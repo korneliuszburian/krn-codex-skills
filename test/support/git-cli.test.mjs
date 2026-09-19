@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { GIT_LOG_FORMAT, commitChangedFiles, gitAvailable, gitText, parseGitLogRecords, runGit } from "../../scripts/lib/support/git-cli.mjs";
+import { GIT_LOG_FORMAT, commitChangedFiles, gitAvailable, gitText, parseGitLogRecords, runGit } from "../../scripts/lib/kernel/git.mjs";
 
 test("gitAvailable detects a usable git", () => {
   assert.equal(gitAvailable(), true);

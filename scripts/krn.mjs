@@ -11,7 +11,7 @@ import { runStateCommand } from "./lib/state/state-cli.mjs";
 import { checkSkills, exportSkills } from "./lib/install/skills-export.mjs";
 import { checkLessons, lessonUsage, recallLessons } from "./lib/lessons/lessons.mjs";
 import { churnHot } from "./lib/support/churn.mjs";
-import { runGit } from "./lib/support/git-cli.mjs";
+import { runGit } from "./lib/kernel/git.mjs";
 import { reanchorLessons, verifyLessons } from "./lib/lessons/lessons-verify.mjs";
 import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
 import { caseIds, loadCases, runConformance } from "./lib/conformance/conformance.mjs";
