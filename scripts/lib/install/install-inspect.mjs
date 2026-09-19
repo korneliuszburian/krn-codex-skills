@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { gitText as git, gitTopLevel, runGitRaw } from "../kernel/git.mjs";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { isInside, posixRelative } from "../support/path-rules.mjs";
-import { readJson } from "../support/read-json.mjs";
+import { readJson } from "../kernel/json.mjs";
 import { removeTree } from "../support/remove-tree.mjs";
 import { parseAssignment, parseDocument, parseDottedHeaderKey, parseTomlString, splitHeader } from "../catalog/catalog-toml.mjs";
 

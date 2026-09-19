@@ -6,7 +6,7 @@ import path from "node:path";
 
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { isSafeRelativePath as safeRelativePath } from "../support/path-rules.mjs";
-import { readJson } from "../support/read-json.mjs";
+import { readJson } from "../kernel/json.mjs";
 
 import {
   RELEASE_DIGESTS_RELATIVE,
