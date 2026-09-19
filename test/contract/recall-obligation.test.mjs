@@ -68,6 +68,7 @@ function report(root, body, { git, strictRecall } = {}) {
 
 const recallErrors = (result) => result.errors.filter((entry) => entry.rule === "unreconstructed-recall");
 const recallWarnings = (result) => result.warnings.filter((entry) => entry.rule === "unreconstructed-recall");
+const waiverErrors = (result) => result.errors.filter((entry) => entry.rule === "recall-waiver-unresolved");
 
 test("a path trigger that matches the diff blocks by default", () => {
   const root = makeRoot();
@@ -86,13 +87,61 @@ test("a reconstructing Recall trailer satisfies a default path obligation", () =
   rmSync(root, { recursive: true, force: true });
 });
 
-test("Recall: none with a reason waives a matching trigger by default", () => {
+test("Recall: none naming a lesson anchor waives a matching trigger by default", () => {
+  const root = makeRoot();
+  writeLessons(root, "| Guards | probe | `test:lessons` | | | path:scripts/lib/x.mjs | |");
+  const body = "Change-contract: test:lessons:red->green\nRecall: none (test:lessons)";
+  const result = report(root, body);
+  assert.equal(recallErrors(result).length, 0, JSON.stringify(result.errors));
+  assert.equal(recallWarnings(result).length, 0, JSON.stringify(result.warnings));
+  assert.equal(waiverErrors(result).length, 0, JSON.stringify(result.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a flippant waiver naming nothing resolvable is refused", () => {
   const root = makeRoot();
   writeLessons(root, "| Guards | probe | `test:lessons` | | | path:scripts/lib/x.mjs | |");
   const body = "Change-contract: test:lessons:red->green\nRecall: none (generated fixture; the lesson does not apply yet)";
   const result = report(root, body);
+  assert.ok(waiverErrors(result).length > 0, `an unresolvable waiver must be named: ${JSON.stringify(result.errors)}`);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a waiver naming an existing path resolves and scopes to its trigger", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, "scripts", "lib"), { recursive: true });
+  writeFileSync(join(root, "scripts", "lib", "x.mjs"), "// x\n");
+  writeLessons(root, "| Guards | probe | `test:lessons` | | | path:scripts/lib/x.mjs | |");
+  const body = "Change-contract: test:lessons:red->green\nRecall: none (scripts/lib/x.mjs)";
+  const result = report(root, body);
   assert.equal(recallErrors(result).length, 0, JSON.stringify(result.errors));
-  assert.equal(recallWarnings(result).length, 0, JSON.stringify(result.warnings));
+  assert.equal(waiverErrors(result).length, 0, JSON.stringify(result.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a waiver for one lesson does not waive an unrelated trigger", () => {
+  const root = makeRoot();
+  writeLessons(
+    root,
+    "| Alpha | probe | `test:lessons` | | | path:scripts/lib/x.mjs | |\n| Beta | probe | `test:lessons` | | | path:scripts/lib/x.mjs | |",
+  );
+  const body = "Change-contract: test:lessons:red->green\nRecall: none (Alpha)";
+  const result = report(root, body);
+  assert.equal(waiverErrors(result).length, 0, JSON.stringify(result.errors));
+  const blocked = recallErrors(result).map((entry) => entry.ref);
+  assert.deepEqual(blocked, ["Beta"], `only the unnamed lesson stays obligated: ${JSON.stringify(result.errors)}`);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a waiver naming a queued ticket resolves", () => {
+  const root = makeRoot();
+  mkdirSync(join(root, ".scratch"), { recursive: true });
+  writeFileSync(join(root, ".scratch", "sh-99.md"), "<krn-ticket>\nId: sh-99\nScope: scripts/lib/x.mjs\n</krn-ticket>\n");
+  writeLessons(root, "| Guards | probe | `test:lessons` | | | path:scripts/lib/x.mjs | |");
+  const body = "Change-contract: test:lessons:red->green\nRecall: none (sh-99)";
+  const result = report(root, body);
+  assert.equal(waiverErrors(result).length, 0, JSON.stringify(result.errors));
+  assert.equal(recallErrors(result).length, 0, JSON.stringify(result.errors));
   rmSync(root, { recursive: true, force: true });
 });
 

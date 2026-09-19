@@ -91,16 +91,72 @@ function recallObligation({ strictRecall, hit, files, symbols }) {
   return diffRecallHit(hit, { files, symbols });
 }
 
-const RECALL_NONE = /^none\s*\(\s*\S.*\)\s*$/i;
+const RECALL_NONE = /^none\s*\(\s*(.*?)\s*\)\s*$/i;
+const TICKET_DIRS = [".scratch", ".krn/tickets"];
+const cleanAnchor = (value) => String(value ?? "").trim().replace(/`/g, "").replace(/^['"]|['"]$/g, "").trim();
+const triggerValues = (trigger) => (trigger ?? "").split(/[;,]/).map((entry) => cleanAnchor(entry.replace(/^(?:path|symbol|churn):/, ""))).filter(Boolean);
+const fieldValue = (text, name) => text.split("\n").map((line) => line.trim()).find((line) => line.startsWith(`${name}:`))?.slice(name.length + 1).trim();
 
-function declinedRecall(lines) {
-  return lines.some((line) => RECALL_NONE.test(line.trim()));
+// A waiver is only accountable when its reason names something the repository
+// already holds: a path, a live lesson anchor, or a ticket in the queue. The
+// resolved tokens scope the waiver to the hit that names the same anchor, so a
+// reason for one lesson never discharges the rest.
+function lessonAnchorTokens(root) {
+  return parseLessons(path.join(root, "docs", "research", "workflow-lessons.md")).rows
+    .filter((row) => !row.status)
+    .map((row) => [
+      row.lesson, cleanAnchor(row.falsifier), ...triggerValues(row.trigger),
+      ...[...row.gate.matchAll(/`([^`]+)`/g)].map((match) => cleanAnchor(match[1]).replace(/^(?:npm run|node)\s+/, "").replace(/^--test\s+/, "")),
+    ].filter(Boolean));
+}
+
+function queueTicketTokens(root, id) {
+  for (const dir of TICKET_DIRS) {
+    let files = [];
+    try { files = fs.readdirSync(path.join(root, dir), { recursive: true }); } catch { continue; }
+    for (const file of files) {
+      let text;
+      try { text = fs.readFileSync(path.join(root, dir, file), "utf8"); } catch { continue; }
+      if (fieldValue(text, "Id") !== id) continue;
+      return [id, ...(fieldValue(text, "Scope") ?? "").split(",").map(cleanAnchor).filter(Boolean)];
+    }
+  }
+  return null;
+}
+
+function resolveRecallWaiver(root, reason) {
+  const anchor = cleanAnchor(reason);
+  if (!anchor) return null;
+  const absolute = !anchor.startsWith("..") && !path.isAbsolute(anchor) ? path.resolve(root, anchor) : null;
+  const relative = absolute ? path.relative(root, absolute).split(path.sep).join("/") : "";
+  if (absolute && relative && !relative.startsWith("..") && fs.existsSync(absolute)) return [relative];
+  for (const tokens of lessonAnchorTokens(root)) if (tokens.includes(anchor)) return [anchor];
+  return queueTicketTokens(root, anchor);
+}
+
+function waiverCoversHit(tokens, hit) {
+  const { named, falsifierFile } = recallBindings({ hit, lines: [] });
+  const anchors = [hit.lesson, falsifierFile, ...named, ...(hit.matched ?? []), ...triggerValues(hit.trigger)].filter(Boolean);
+  return anchors.some((anchor) => tokens.includes(anchor));
+}
+
+function recallWaivers(root, lines) {
+  const waivers = [];
+  const errors = [];
+  for (const line of lines) {
+    const match = RECALL_NONE.exec(String(line).trim());
+    if (!match) continue;
+    const reason = match[1].trim();
+    const resolved = resolveRecallWaiver(root, reason);
+    if (resolved) waivers.push(resolved);
+    else errors.push({ rule: "recall-waiver-unresolved", detail: `Recall: none (${reason || "no reason"}) names no repository path, lesson anchor, or queued ticket` });
+  }
+  return { waivers, errors };
 }
 
 export function runCheckAtBase({ root, base, target, git = runGit, overlay = null }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "krn-base-"));
-  const added = git(root, ["worktree", "add", "--detach", dir, base]);
-  if (!added.ok) {
+  if (!git(root, ["worktree", "add", "--detach", dir, base]).ok) {
     fs.rmSync(dir, { recursive: true, force: true });
     return { unavailable: true };
   }
@@ -109,17 +165,12 @@ export function runCheckAtBase({ root, base, target, git = runGit, overlay = nul
     const rootReal = fs.realpathSync(root);
     for (const rel of overlays) {
       const from = path.join(root, rel);
-      const to = path.join(dir, rel);
-      if (!fs.existsSync(from)) return { unavailable: true };
-      if (fs.lstatSync(from).isSymbolicLink()) return { unavailable: true };
-      const real = path.relative(rootReal, fs.realpathSync(from));
-      if (real.startsWith("..") || path.isAbsolute(real)) return { unavailable: true };
+      const real = fs.existsSync(from) && !fs.lstatSync(from).isSymbolicLink() ? path.relative(rootReal, fs.realpathSync(from)) : "..";
+      if (!fs.existsSync(from) || real.startsWith("..") || path.isAbsolute(real)) return { unavailable: true };
       try {
-        fs.mkdirSync(path.dirname(to), { recursive: true });
-        fs.copyFileSync(from, to);
-      } catch {
-        return { unavailable: true };
-      }
+        fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+        fs.copyFileSync(from, path.join(dir, rel));
+      } catch { return { unavailable: true }; }
     }
     const frozenTests = frozenTestsFor(root, target, () => listTestFilesIn(dir));
     const frozenArgs = target.kind === "script" ? frozenNodeArgs(scriptCommand(root, target) ?? "") : [];
@@ -137,12 +188,9 @@ function importSpecifiers(source) {
   const code = stripComments(source);
   const masked = maskLiterals(code);
   const specifiers = [];
-  for (const match of masked.matchAll(/(?:^|[;\n}])\s*import\s+([^;]*?)\s+from\s+["']([^"']+)["']/dg)) {
-    specifiers.push(code.slice(match.indices[2][0], match.indices[2][1]));
-  }
-  for (const match of masked.matchAll(/export\s*\{([^}]*)\}\s*from\s+["']([^"']+)["']/dg)) {
-    specifiers.push(code.slice(match.indices[2][0], match.indices[2][1]));
-  }
+  const push = (match) => specifiers.push(code.slice(match.indices[2][0], match.indices[2][1]));
+  for (const match of masked.matchAll(/(?:^|[;\n}])\s*import\s+([^;]*?)\s+from\s+["']([^"']+)["']/dg)) push(match);
+  for (const match of masked.matchAll(/export\s*\{([^}]*)\}\s*from\s+["']([^"']+)["']/dg)) push(match);
   for (const match of masked.matchAll(/import\s*\(/g)) {
     const specifier = /^import\s*\(\s*["']([^"']+)["']/.exec(code.slice(match.index))?.[1];
     if (specifier) specifiers.push(specifier);
@@ -180,14 +228,11 @@ function importCone(root) {
 
 function uncoveredImporterWarnings({ graph, changed, namedRisks, commit }) {
   const warnings = [];
-  for (const file of changed) {
-    for (const importer of graph.get(file) ?? []) {
-      if (!isRuntimeModule(importer)) continue;
-      const tests = [...(graph.get(importer) ?? [])].filter(isTestFile).sort();
-      if (tests.length === 0) continue;
-      if (tests.some((test) => namedRisks.includes(test))) continue;
-      warnings.push({ rule: "uncovered-importer", commit, ref: importer, detail: `changed ${file} reaches ${importer}; declare At-risk: ${tests.join(" or ")}` });
-    }
+  for (const file of changed) for (const importer of graph.get(file) ?? []) {
+    if (!isRuntimeModule(importer)) continue;
+    const tests = [...(graph.get(importer) ?? [])].filter(isTestFile).sort();
+    if (tests.length === 0 || tests.some((test) => namedRisks.includes(test))) continue;
+    warnings.push({ rule: "uncovered-importer", commit, ref: importer, detail: `changed ${file} reaches ${importer}; declare At-risk: ${tests.join(" or ")}` });
   }
   return warnings;
 }
@@ -199,46 +244,15 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const importGraph = () => (graph ??= importCone(root));
   const requestedHead = git(root, ["rev-parse", "--verify", `${head}^{commit}`]);
   const checkoutHead = git(root, ["rev-parse", "--verify", "HEAD^{commit}"]);
-  if (requireCleanHead && !requestedHead.ok) {
-    return {
-      root,
-      commits: [],
-      results: [],
-      errors: [{ rule: "unreadable-range", detail: `head ${head} is not resolvable` }],
-      warnings: [],
-    };
-  }
+  const early = (errors) => ({ root, commits: [], results: [], errors, warnings: [] });
+  if (requireCleanHead && !requestedHead.ok) return early([{ rule: "unreadable-range", detail: `head ${head} is not resolvable` }]);
   if (requireCleanHead && requestedHead.ok && checkoutHead.ok && requestedHead.out === checkoutHead.out) {
     const status = git(root, ["status", "--porcelain", "--untracked-files=no"]);
-    if (!status.ok) {
-      return {
-        root,
-        commits: [],
-        results: [],
-        errors: [{ rule: "unreadable-status", detail: "git status could not be read; fix the checkout before `changes check`" }],
-        warnings: [],
-      };
-    }
-    if (status.out !== "") {
-      return {
-        root,
-        commits: [],
-        results: [],
-        errors: [{ rule: "dirty-tree", detail: "commit the working tree before `changes check`" }],
-        warnings: [],
-      };
-    }
+    if (!status.ok) return early([{ rule: "unreadable-status", detail: "git status could not be read; fix the checkout before `changes check`" }]);
+    if (status.out !== "") return early([{ rule: "dirty-tree", detail: "commit the working tree before `changes check`" }]);
   }
   const ancestry = git(root, ["merge-base", "--is-ancestor", base, head]);
-  if (ancestry.status === 1) {
-    return {
-      root,
-      commits: [],
-      results: [],
-      errors: [{ rule: "unreadable-range", detail: `${base} is not an ancestor of ${head}` }],
-      warnings: [],
-    };
-  }
+  if (ancestry.status === 1) return early([{ rule: "unreadable-range", detail: `${base} is not an ancestor of ${head}` }]);
   const baseCommit = git(root, ["rev-parse", "--verify", `${base}^{commit}`]);
   if (requestedHead.ok && baseCommit.ok && baseCommit.out !== "" && baseCommit.out === requestedHead.out) {
     errors.push({ rule: "vacuous-range", detail: `${base}..${head} is empty; nothing to evaluate` });
@@ -270,9 +284,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   })) {
     errors.push({ rule: "missing-lessons", detail: "a surface change requires the workflow-lessons page for trigger delivery" });
   }
-  if (malformed.length > 0) {
-    errors.push({ rule: "malformed-lessons", detail: `${malformed.length} row(s); trigger delivery is unreliable` });
-  }
+  if (malformed.length > 0) errors.push({ rule: "malformed-lessons", detail: `${malformed.length} row(s); trigger delivery is unreliable` });
   const churnEnabled = lessonsExist && localLessons.rows.some((row) => (row.trigger ?? "").includes("churn:"));
   const basePage = git(root, ["show", `${base}:docs/research/workflow-lessons.md`]);
   if (basePage.ok && lessonsExist) {
@@ -290,10 +302,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const permitted = (lesson) => declared.some((entry) => /^all$/i.test(entry) || entry.includes(lesson) || lesson.includes(entry));
     for (const row of parseLessonText(basePage.out).rows.filter((entry) => !entry.status)) {
       const head = headByLesson.get(row.lesson);
-      if (!head) {
-        errors.push({ rule: "lesson-shrinkage", detail: row.lesson.slice(0, 60) });
-        continue;
-      }
+      if (!head) { errors.push({ rule: "lesson-shrinkage", detail: row.lesson.slice(0, 60) }); continue; }
       // A preserved lesson text whose trigger loses an entry withdraws a recall
       // obligation without changing the text, so require an explicit declaration.
       const lost = triggerEntries(row.trigger).filter((entry) => !triggerEntries(head.trigger).includes(entry));
@@ -329,9 +338,10 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const symbols = [...symbolFiles.keys()];
     const hot = churnEnabled ? churnHot({ root, git, sha: commit.sha, files }) : [];
     const recallTrailers = recallLines(`${commit.subject}\n${commit.body}`);
-    const declined = declinedRecall(recallTrailers);
+    const { waivers, errors: waiverErrors } = recallWaivers(root, recallTrailers);
+    for (const waiverError of waiverErrors) errors.push({ ...waiverError, commit: commit.sha });
     for (const hit of recallLessons({ root, files, symbols, hot, symbolFiles })) {
-      if (declined) continue;
+      if (waivers.some((tokens) => waiverCoversHit(tokens, hit))) continue;
       const { falsifierFile, named, reconstructed } = recallBindings({ hit, lines: recallTrailers });
       const record = recallObligation({ strictRecall, hit, files, symbols }) ? errors : warnings;
       if (!reconstructed) {
@@ -436,12 +446,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       results.push({ ref: obligation.ref, commit: obligation.commit, after: obligation.after, status: outcome.ok ? "green" : "red" });
       const failed = obligation.after === "green" ? !outcome.ok : outcome.ok;
       if (failed) {
-        errors.push({
-          rule: obligation.label === "risk" ? "regressed-at-risk" : "unmet-prediction",
-          commit: obligation.commit,
-          ref: obligation.ref,
-          detail: `predicted ${obligation.after}, observed ${outcome.ok ? "green" : "red"}${outputTail(outcome.output)}`,
-        });
+        errors.push({ rule: obligation.label === "risk" ? "regressed-at-risk" : "unmet-prediction", commit: obligation.commit, ref: obligation.ref, detail: `predicted ${obligation.after}, observed ${outcome.ok ? "green" : "red"}${outputTail(outcome.output)}` });
       }
       if (verifyBefore && obligation.label === "contract" && obligation.before === "red" && obligation.after === "green" && outcome.ok) {
         const baseRun = baseOnce(overlays.length ? overlays : null);
@@ -458,17 +463,13 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
           } else if (obligation.frozenObserver) {
             const headPass = new Set(tapSummary(outcome.output).passing);
             const missing = tapSummary(baseOutput).failing.filter((name) => !headPass.has(name));
-            if (missing.length > 0) {
-              errors.push({ rule: "frozen-observer-mismatch", commit: obligation.commit, ref: obligation.ref, detail: `cases failing at base do not pass at head: ${missing.join(", ")}` });
-            }
+            if (missing.length > 0) errors.push({ rule: "frozen-observer-mismatch", commit: obligation.commit, ref: obligation.ref, detail: `cases failing at base do not pass at head: ${missing.join(", ")}` });
             const baseObserver = baseOnce(null);
             if (!baseObserver.unavailable && !baseObserver.outcome?.spawnFailed) {
               const baseSummary = tapSummary(baseObserver.outcome.output);
               const baseCases = [...new Set([...baseSummary.passing, ...baseSummary.failing])].filter(Boolean);
               const lost = baseCases.filter((name) => !headPass.has(name));
-              if (lost.length > 0) {
-                errors.push({ rule: "observer-shrinkage", commit: obligation.commit, ref: obligation.ref, detail: `the observer dropped previously existing cases: ${lost.join(", ")}` });
-              }
+              if (lost.length > 0) errors.push({ rule: "observer-shrinkage", commit: obligation.commit, ref: obligation.ref, detail: `the observer dropped previously existing cases: ${lost.join(", ")}` });
             }
           }
         }
@@ -486,9 +487,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         } else {
           const green = baseRun.outcome.ok;
           results.push({ ref: obligation.ref, commit: obligation.commit, phase: "base", after: "green", status: green ? "green" : "red" });
-          if (!green) {
-            errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the check is red at base; the declared green->green before-state is unverified" });
-          }
+          if (!green) errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the check is red at base; the declared green->green before-state is unverified" });
         }
       }
     }
