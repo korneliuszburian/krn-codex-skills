@@ -6,6 +6,7 @@ import path from "node:path";
 
 import { parseChangeContract } from "../contract/change-contract.mjs";
 import { runGit, runGitInput, runGitRaw } from "../kernel/git.mjs";
+import { globToRegex } from "../kernel/text.mjs";
 import { writeAtomic } from "../support/write-atomic.mjs";
 
 const STATUSES = new Set(["ready", "claimed", "blocked", "in-review", "done", "abandoned", "deferred"]);
@@ -595,29 +596,9 @@ function scopeEntries(value) {
     .filter(Boolean);
 }
 
-function globToRegExp(pattern) {
-  let source = "";
-  for (let index = 0; index < pattern.length; index += 1) {
-    const char = pattern[index];
-    if (char === "*") {
-      if (pattern[index + 1] === "*") {
-        source += ".*";
-        index += 1;
-      } else {
-        source += "[^/]*";
-      }
-    } else if (char === "?") {
-      source += "[^/]";
-    } else {
-      source += char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    }
-  }
-  return new RegExp(`^${source}$`);
-}
-
 function scopeDeclares(entry, file) {
   if (entry.endsWith("/")) return file.startsWith(entry);
-  if (/[*?]/.test(entry)) return globToRegExp(entry).test(file);
+  if (/[*?]/.test(entry)) return globToRegex(entry).test(file);
   return file === entry || file.startsWith(`${entry}/`);
 }
 

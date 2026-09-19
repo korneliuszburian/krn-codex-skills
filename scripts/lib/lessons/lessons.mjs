@@ -4,6 +4,7 @@ import { posixRelative } from "../support/path-rules.mjs";
 import { readJson } from "../kernel/json.mjs";
 
 import { runGit } from "../kernel/git.mjs";
+import { compileGlob, globToRegex } from "../kernel/text.mjs";
 import { fenceLines, unbalancedFence as hasUnbalancedFence } from "../support/fences.mjs";
 import { recallUsage } from "./lessons-recall.mjs";
 
@@ -67,52 +68,6 @@ export function parseLessons(file) {
 const FALSIFIER = /^(test\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
 
 const RETIRE = /^retired@([0-9a-f]{7})(?:;\s*superseded-by:\s*(\S.*?))?$/i;
-
-function compileGlob(glob) {
-  let out = "^";
-  for (let index = 0; index < glob.length; index += 1) {
-    const char = glob[index];
-    if (char === "*") {
-      if (glob[index + 1] === "*") {
-        index += 1;
-        if (glob[index + 1] === "/") {
-          index += 1;
-          out += "(?:.*/)?";
-        } else {
-          out += ".*";
-        }
-      } else {
-        out += "[^/]*";
-      }
-    } else if (char === "?") {
-      out += "[^/]";
-    } else if (char === "[") {
-      const close = glob.indexOf("]", index + 1);
-      if (close === -1) {
-        out += "\\[";
-      } else {
-        let body = glob.slice(index + 1, close);
-        if (body.startsWith("!")) body = `^${body.slice(1)}`;
-        out += `[${body}]`;
-        index = close;
-      }
-    } else if ("\\.+()|^${}".includes(char)) {
-      out += `\\${char}`;
-    } else {
-      out += char;
-    }
-  }
-  return new RegExp(`${out}$`);
-}
-
-const NEVER_MATCHES = /(?!x)x/;
-export const globToRegex = (glob) => {
-  try {
-    return compileGlob(glob);
-  } catch {
-    return NEVER_MATCHES;
-  }
-};
 
 function normalizeTriggerEntry(entry) {
   const trimmed = entry.trim();

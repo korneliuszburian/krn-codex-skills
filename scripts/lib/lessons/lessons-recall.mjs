@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords, runGit } from "../kernel/git.mjs";
-import { escapeRegExp } from "../support/regexp.mjs";
+import { escapeRegExp, globToRegex } from "../kernel/text.mjs";
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
 import { churnHot } from "../support/churn.mjs";
-import { globToRegex, parseLessons, recallLessons, triggerEntries } from "./lessons.mjs";
+import { parseLessons, recallLessons, triggerEntries } from "./lessons.mjs";
 
 export function recallLines(text) {
   return [...text.matchAll(/^Recall:\s*(.+?)\s*$/gim)].map((match) => match[1]);

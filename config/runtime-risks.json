@@ -75,6 +75,7 @@
     { "path": "scripts/lib/kernel/git.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/json.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/repo-root.mjs", "class": "read-only" },
+    { "path": "scripts/lib/kernel/text.mjs", "class": "read-only" },
     { "path": "scripts/lib/lessons/lessons.mjs", "class": "read-only" },
     { "path": "scripts/lib/state/capsule-abi.mjs", "class": "read-only" },
     { "path": "scripts/lib/state/spine-runs.mjs", "class": "read-only" },
@@ -85,7 +86,6 @@
     { "path": "scripts/lib/support/diagnostics.mjs", "class": "read-only" },
     { "path": "scripts/lib/support/fences.mjs", "class": "read-only" },
     { "path": "scripts/lib/support/path-rules.mjs", "class": "read-only" },
-    { "path": "scripts/lib/support/regexp.mjs", "class": "read-only" },
     {
       "path": "scripts/lib/support/remove-tree.mjs",
       "class": "destructive",

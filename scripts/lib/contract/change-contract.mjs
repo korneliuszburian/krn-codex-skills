@@ -4,7 +4,8 @@ import path from "node:path";
 
 import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords } from "../kernel/git.mjs";
 import { readJson } from "../kernel/json.mjs";
-import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings, triggerEntries as lessonTriggerEntries, globToRegex } from "../lessons/lessons.mjs";
+import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings, triggerEntries as lessonTriggerEntries } from "../lessons/lessons.mjs";
+import { globToRegex } from "../kernel/text.mjs";
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
 import { churnHot } from "../support/churn.mjs";
 import { runGit } from "../kernel/git.mjs";
