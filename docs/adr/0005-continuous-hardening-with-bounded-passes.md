@@ -1,13 +1,15 @@
 # ADR 0005: Continuous hardening with bounded passes
 
 - Status: accepted (operator direction 2026-09-18; amended after the independent
-  quality review; ADR-0003's default stop is replaced)
-- Date: 2026-09-18
+  quality review; amended 2026-09-19 to make the operational-state handoff
+  durable against a volatile checkout; ADR-0003's default stop is replaced)
+- Date: 2026-09-18 (durable-handoff amendment 2026-09-19)
 - Decision owner: KRN skill-system maintainer (operator review)
 - Evidence: the 2026-09-18 bounded swarm (four read-only framings) and its
   reproduced findings queued as sh-60..sh-65, the self-hardening arc
-  sh-31..sh-59, [ADR 0003](0003-finite-release-decision.md), and the memory
-  measurements recorded in [ADR 0004](0004-queue-legibility-and-memory-delivery.md)
+  sh-31..sh-59, [ADR 0003](0003-finite-release-decision.md), the memory
+  measurements recorded in [ADR 0004](0004-queue-legibility-and-memory-delivery.md),
+  and the 2026-09-19 volatile-checkout loss and recovery (sh-80)
 - Supersedes: ADR-0003's stop rule only — the finite completion unit survives
 
 ## Context
@@ -86,20 +88,26 @@ read. Six holes were reproduced, not argued:
    rather than papered over, and restoring a second family is an operator
    action, not a blocker for the sh-60..sh-65 proof-layer fixes.
 8. **An active outcome's operational state survives a checkout move by an
-   explicit handoff copy.** The capsule
+   explicit handoff copy and a durable pause export.** The capsule
    (`.krn/runs/delivery-loop/<outcome>/`) and the local queue
    (`.scratch/tickets/`) stay untracked ignored working state, per ADR 0001 and
-   ADR 0004; they are per-checkout by design, so a clone inherits neither. To
-   move an active outcome, at pause the delivery loop copies both directories
-   into the successor checkout's same ignored paths, or archives them at a
-   documented location. The successor resumes with `krn state check`,
-   `krn state resume`, and `krn ticket next`. No tracked operational artifact is
-   added, because that would turn ignored working state into durable knowledge
-   and contradict ADR 0001 and ADR 0004. **Falsifier:** pause in checkout A,
-   perform the explicit handoff copy, and resume in checkout B — the capsule
+   ADR 0004; they are per-checkout by design, so a clone inherits neither. A
+   copy into the successor checkout's same ignored paths is necessary but not
+   sufficient: on a volatile checkout such as `/tmp`, that target is as
+   disposable as the source. To move an active outcome, at pause the delivery
+   loop **exports** both directories into the documented durable host archive
+   `${KRN_OUTCOME_ARCHIVE:-$HOME/.local/state/krn/outcomes}/<outcome>/`, then
+   **restores** them by explicit copy into the successor checkout's same ignored
+   paths. The archive is an operational copy on the host, never a tracked
+   artifact. The successor resumes with `krn state check`, `krn state resume`,
+   and `krn ticket next`. No tracked operational artifact is added, because that
+   would turn ignored working state into durable knowledge and contradict
+   ADR 0001 and ADR 0004. **Falsifier:** pause in checkout A, export to the
+   archive, wipe the checkout, restore into checkout B, and resume — the capsule
    continues and `krn ticket next` reports a populated frontier. A bare clone
-   that skips the copy stays `not-applicable` at `krn state check` with an empty
-   frontier by design, so the copy is the load-bearing step.
+   that skips the restore stays `not-applicable` at `krn state check` with an
+   empty frontier by design, so the archive plus the restore, not a copy into
+   another ignored path, are the load-bearing steps.
 
 ## Consequences
 
@@ -112,8 +120,9 @@ read. Six holes were reproduced, not argued:
 - More tickets accumulate; the completion discipline (one outcome, one writer,
   finite releases) is unchanged.
 - An outcome's operational state is portable by procedure, not by a tracked
-  artifact: the capsule and the queue stay ignored, and the documented explicit
-  handoff copy is what carries them across checkouts.
+  artifact: the capsule and the queue stay ignored, and the documented durable
+  pause export plus the explicit handoff restore are what carry them across
+  checkouts and survive a volatile source wipe.
 
 ## Rejected alternatives
 
@@ -128,8 +137,8 @@ read. Six holes were reproduced, not argued:
   done; capability candidates are in scope.
 - **A tracked operational export written at pause.** A committed handoff file
   would promote ignored working state into durable knowledge and contradict
-  ADR 0001 and ADR 0004; the explicit handoff copy carries the same state
-  without changing what Git tracks.
+  ADR 0001 and ADR 0004; the explicit handoff copy and the durable host archive
+  carry the same state without changing what Git tracks.
 
 ## Supersession rule
 
