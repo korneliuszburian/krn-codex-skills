@@ -149,10 +149,96 @@ compose_bwrap() {
   esac
 }
 
+# Recall delivery: one accountable line per matched lesson at lane close. The
+# runner already holds the recall JSON, the usage counts, the brief nonce, and
+# the worker events, so delivery is recorded without a new service. A field the
+# runner cannot compute is `unknown`, never a silent zero.
+recall_delivery() {
+  local recall=${RECALL_JSON:-} usage=${USAGE_JSON:-} sentinel=${DELIVERY_SENTINEL:-} events=${EVENTS:-} journal=${JOURNAL:-}
+  python3 - "$recall" "$usage" "$sentinel" "$events" "$journal" <<'PY'
+import json, os, sys
+
+recall_path, usage_path, sentinel, events_path, journal = sys.argv[1:6]
+
+def load(path):
+    if not path:
+        return None
+    try:
+        with open(path, encoding="utf-8") as handle:
+            return json.load(handle)
+    except Exception:
+        return None
+
+recall = load(recall_path)
+if not isinstance(recall, dict) or not isinstance(recall.get("hits"), list):
+    sys.exit(0)
+counts = {}
+usage = load(usage_path)
+if isinstance(usage, dict):
+    for entry in usage.get("usage") or []:
+        if isinstance(entry, dict) and isinstance(entry.get("lesson"), str):
+            counts[entry["lesson"]] = entry
+if sentinel:
+    try:
+        with open(events_path, encoding="utf-8", errors="replace") as handle:
+            sentinel_value = "seen" if sentinel in handle.read() else "absent"
+    except Exception:
+        sentinel_value = "unknown"
+else:
+    sentinel_value = "unknown"
+lines, seen = [], set()
+for hit in recall.get("hits") or []:
+    lesson = hit.get("lesson") if isinstance(hit, dict) else None
+    if not lesson or lesson in seen:
+        continue
+    seen.add(lesson)
+    entry = counts.get(lesson) or {}
+    hits = entry.get("hits") if isinstance(entry.get("hits"), int) else "unknown"
+    binds = entry.get("binds") if isinstance(entry.get("binds"), int) else "unknown"
+    lines.append(f"Recall-delivery: {lesson} hits={hits} binds={binds} sentinel={sentinel_value}")
+if not lines:
+    sys.exit(0)
+print("\n".join(lines))
+if journal:
+    try:
+        os.makedirs(os.path.dirname(journal), exist_ok=True)
+        with open(journal, "a", encoding="utf-8") as handle:
+            handle.write("\n".join(lines) + "\n")
+    except Exception:
+        pass
+PY
+}
+
+# A missing delivery line reads as `unknown`, never as a silent zero.
+recall_delivery_report() {
+  local journal=${1:-${JOURNAL:-}} lesson=${2:-${LESSON:-}}
+  python3 - "$journal" "$lesson" <<'PY'
+import re, sys
+
+journal, lesson = sys.argv[1:3]
+try:
+    with open(journal, encoding="utf-8") as handle:
+        text = handle.read()
+except Exception:
+    text = ""
+found = None
+if lesson:
+    match = re.search(r"^Recall-delivery:\s*" + re.escape(lesson) + r"\s+hits=(\S+)\s+binds=(\S+)\s+sentinel=(\S+)\s*$", text, re.M)
+    if match:
+        found = (lesson, match.group(1), match.group(2), match.group(3))
+if found is None:
+    print(f"Recall-delivery: {lesson} hits=unknown binds=unknown sentinel=unknown")
+else:
+    print(f"Recall-delivery: {found[0]} hits={found[1]} binds={found[2]} sentinel={found[3]}")
+PY
+}
+
 mode=${1:-probe}
 case "$mode" in
   classify) shift; classify_check "${1:-}" || exit $?; exit 0 ;;
   probe-verdict) probe_verdict || exit $?; exit 0 ;;
+  recall-delivery) shift; recall_delivery; exit $? ;;
+  recall-delivery-report) shift; recall_delivery_report "${1:-}" "${2:-}"; exit $? ;;
   bwrap-args)
     RUN_DIR=${RUN_DIR:-$BASE/runs-live/print}
     WT=${WT:-$RUN_DIR/wt}
@@ -285,6 +371,9 @@ else
 fi
 sentinel=$(openssl rand -hex 16)
 echo "$sentinel" >"$RUN_DIR/sentinel.txt"
+# A separate nonce is planted in the brief and searched for in the worker
+# events: seeing it proves the recalled brief reached the session (LT-10).
+delivery_sentinel=$(openssl rand -hex 8)
 
 # The worker commits inside a private clone, so the fixture and its shared git
 # common directory stay read-only; the host fetches the branch back below.
@@ -360,6 +449,7 @@ Rules:
 $trailers
 - Do not push. Do not modify docs/research/workflow-lessons.md or .krn/.
 - Print the commit SHA and the check result in your final message.
+- Include this brief sentinel verbatim in your final message: $delivery_sentinel
 EOF
 
 compose_bwrap
@@ -490,6 +580,17 @@ echo "--- worker-side gate (host-executed) ---"
 gate=0
 node "$KRN" changes check --root "$WT" --base "$base" --head HEAD --before --strict-recall || gate=$?
 echo "worker_gate_exit=$gate"
+
+# At close, record what the harness actually delivered: hits/binds from the
+# worker clone's committed history and the brief sentinel from the events. A
+# field that cannot be computed stays `unknown`.
+printf '%s' "$recall_json" >"$RUN_DIR/out/recall.json"
+node "$KRN" memory usage --root "$WT" --json >"$RUN_DIR/out/usage.json" 2>/dev/null || printf '{}' >"$RUN_DIR/out/usage.json"
+cat "$RUN_DIR/out/events.jsonl" >"$RUN_DIR/out/all-events.jsonl" 2>/dev/null || :
+if [ -f "$RUN_DIR/out/recovery-events.jsonl" ]; then cat "$RUN_DIR/out/recovery-events.jsonl" >>"$RUN_DIR/out/all-events.jsonl"; fi
+RECALL_JSON="$RUN_DIR/out/recall.json" USAGE_JSON="$RUN_DIR/out/usage.json" \
+  DELIVERY_SENTINEL="$delivery_sentinel" EVENTS="$RUN_DIR/out/all-events.jsonl" \
+  JOURNAL="$RUN_DIR/journal.txt" recall_delivery || true
 echo "run_dir=$RUN_DIR"
 
 [ "$status" -eq 0 ] && [ "$leak" = "no" ] && [ "$gate" -eq 0 ]
