@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCapabilityProfiles } from "./lib/catalog/catalog-inventory.mjs";
-import { readJson } from "./lib/support/read-json.mjs";
+import { readJson } from "./lib/kernel/json.mjs";
 import { posixRelative } from "./lib/support/path-rules.mjs";
 import { ABI_LABELS } from "./lib/state/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/rules/durable-pages.mjs";

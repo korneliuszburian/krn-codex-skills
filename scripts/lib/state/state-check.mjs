@@ -14,7 +14,7 @@ import {
 } from "./capsule-abi.mjs";
 import { runGit as git } from "../kernel/git.mjs";
 import { lessonStructureFindings } from "../lessons/lessons.mjs";
-import { readJson } from "../support/read-json.mjs";
+import { readJson } from "../kernel/json.mjs";
 import { capsuleStoreReport, runDirectoriesDetailed } from "./spine-runs.mjs";
 import { checkTickets } from "../ticket/ticket.mjs";
 import { isInside } from "../support/path-rules.mjs";

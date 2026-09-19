@@ -3,7 +3,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { posixRelative } from "../support/path-rules.mjs";
-import { readJson } from "../support/read-json.mjs";
+import { readJson } from "../kernel/json.mjs";
 import { tapName } from "../support/tap.mjs";
 import { TEST_FILE_RE, CODE_EXT, SETUP_FLAGS, testFlagPresent } from "./command-analysis.mjs";
 

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
-import { readJson } from "../support/read-json.mjs";
+import { readJson } from "../kernel/json.mjs";
 
 import { runGit } from "../kernel/git.mjs";
 import { fenceLines, unbalancedFence as hasUnbalancedFence } from "../support/fences.mjs";

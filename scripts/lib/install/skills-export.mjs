@@ -1,5 +1,5 @@
 import { gitText as git, runGitRaw } from "../kernel/git.mjs";
-import { readJson } from "../support/read-json.mjs";
+import { readJson } from "../kernel/json.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
