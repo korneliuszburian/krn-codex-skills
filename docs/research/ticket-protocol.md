@@ -107,10 +107,16 @@ enforces both, with `test/state/friction-drain.test.mjs` as the observer.
   `krn-codex ticket close` records `Evidence` and `Resolution` before the next
   frontier; the lab `run-frontier.sh` wires this with a run cap.
 - Publication: one PR per iteration and adjacent tickets batch into one PR. A
-  PR whose diff changes exported skill bytes merges with a merge commit so the
-  export marker commit stays in history; that merge commit keeps the worker
-  commits, so its own body needs only `Ticket: <id>` and `Change-contract:`. A
-  code-only iteration may instead squash the lane into a single conventional
+  PR whose diff changes exported skill bytes is a **lane-integration merge**:
+  the integrator merges it with a merge commit whose body is the exact
+  lane-integration merge template — `merge: integrate <branch>`, a blank line,
+  `Ticket: <id>`, then `Change-contract: <ref>:<direction>` — so the export
+  marker commit stays in history; that merge commit keeps the worker commits,
+  so its own body needs only `Ticket: <id>` and
+  `Change-contract: <ref>:<direction>`. The sh-68 merge `464e535` and the sh-76
+  merge `8098f11` changed harness and skill surfaces but carried empty bodies
+  with no `Ticket:` or `Change-contract:`, and they are the witnesses for this
+  rule. A code-only iteration may instead squash the lane into a single conventional
   commit, which discards the worker commits, so its body must carry every
   trailer the squashed worker commit carried — `Ticket: <id>`,
   `Change-contract:`, `Recall:`, `At-risk:`, and `Applicability-change:`, plus
@@ -120,7 +126,7 @@ enforces both, with `test/state/friction-drain.test.mjs` as the observer.
   reference, its recall bindings, and its applicability withdrawal. The sh-71
   squash named only `Ticket:` and `Change-contract:` and dropped
   `Applicability-change:`, which reddened the change-contract check on `main`
-  with `applicability-withdrawn`; that is the witness for this rule.
+  with `applicability-withdrawn`; that is the witness for that rule.
 - `krn-codex ticket check --root .` validates envelopes, blockers, cycles,
   statuses, and orphans; `krn-codex ticket next --root .` prints the frontier;
   `krn-codex ticket claim|close` validates the transitions it writes.
