@@ -46,6 +46,30 @@ export function parseTicketText(text) {
   return { fields, findings };
 }
 
+// The lane consumes the envelope through this binding map rather than its own
+// copy of the field parser: the owner decides which fields become which shell
+// variables, and `krn ticket env` renders the map for `eval`.
+export function ticketLaneBindings(fields) {
+  const get = (name) => fields?.get(name) ?? "";
+  const bindings = [];
+  const add = (name, value) => {
+    if (String(value ?? "").trim() !== "") bindings.push([name, String(value)]);
+  };
+  add("BASE_REF", get("Repository-base"));
+  add("CHANGED", get("Scope"));
+  add("TICKET_ID", get("Id"));
+  add("DECIDING_CHECK", get("Deciding check").replace(/^node\s+--test\s+/, "").trim());
+  const contract = get("Contract").trim();
+  const separator = contract.lastIndexOf(":");
+  if (separator !== -1) {
+    add("CONTRACT_REF", contract.slice(0, separator).trim());
+    add("CONTRACT_DIR", contract.slice(separator + 1).trim());
+  }
+  const agent = /agent=([A-Za-z]+)/.exec(get("Execution"));
+  if (agent) add("TICKET_AGENT", agent[1]);
+  return bindings;
+}
+
 function setField(text, name, value) {
   const start = text.indexOf("<krn-ticket>");
   const end = text.indexOf("</krn-ticket>");

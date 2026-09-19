@@ -17,7 +17,7 @@ import datetime
 import json
 import os
 from pathlib import Path
-import re
+import subprocess
 import sys
 
 CONTINUING_STATES = {"ACTIVE", "BLOCKED", "DEFERRED", "NEEDS_REVIEW"}
@@ -30,9 +30,6 @@ ONBOARDING_SIGNAL = (
     "report; adoption stays explicit-only."
 )
 
-TICKET_START = "<krn-ticket>"
-TICKET_END = "</krn-ticket>"
-QUEUE_DIRS = (".scratch", ".krn/tickets")
 CLAIM_COMMAND = "krn ticket claim --root . --id <id>"
 
 
@@ -76,12 +73,40 @@ def adoption_signal(cwd: Path) -> str | None:
     return None
 
 
-def field(text: str, label: str) -> str | None:
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith(f"{label}:"):
-            return stripped[len(label) + 1 :].strip()
-    return None
+def krn_command() -> list[str]:
+    """The CLI that owns the ABI parsers, resolved beside the hook or on PATH.
+
+    The installed hook is a symlink into the release tree, so its real path
+    locates the release's `scripts/krn.mjs`; a host without one falls back to
+    the installed `krn` bin. The hook never parses the envelope itself.
+    """
+    candidate = Path(__file__).resolve().parents[2] / "scripts" / "krn.mjs"
+    if candidate.is_file():
+        return ["node", str(candidate)]
+    return ["krn"]
+
+
+def krn_json(args: list[str]) -> object | None:
+    try:
+        result = subprocess.run(
+            [*krn_command(), *args, "--json"],
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+    if result.returncode != 0:
+        return None
+    try:
+        return json.loads(result.stdout)
+    except ValueError:
+        return None
+
+
+def capsule_fields(state: Path) -> dict:
+    data = krn_json(["state", "fields", "--file", str(state)])
+    return data if isinstance(data, dict) else {}
 
 
 def resolved(path: Path) -> Path | None:
@@ -165,67 +190,19 @@ def managed_root(cwd: Path) -> Path | None:
     return None
 
 
-def markdown_files(base: Path) -> list[Path]:
-    try:
-        if not base.is_dir():
-            return []
-        return sorted(path for path in base.rglob("*.md") if path.is_file())
-    except OSError:
-        return []
-
-
-def ticket_fields(text: str) -> dict[str, str] | None:
-    start = text.find(TICKET_START)
-    end = text.find(TICKET_END)
-    if start == -1 or end == -1 or end < start:
-        return None
-    fields: dict[str, str] = {}
-    for line in text[start + len(TICKET_START) : end].splitlines():
-        match = re.match(r"^([A-Za-z][A-Za-z ()-]*):\s*(.*)$", line.strip())
-        if match:
-            fields[match.group(1)] = match.group(2).strip()
-    return fields
-
-
-def blocker_ids(value: str | None) -> list[str]:
-    raw = (value or "").strip()
-    if not raw or raw.lower() == "none":
-        return []
-    return [entry.strip() for entry in raw.split(",") if entry.strip()]
-
-
 def ready_ids(root: Path) -> list[str]:
-    """The frontier: ready tickets whose blockers all resolve to a done ticket."""
-    discovered: dict[str, dict[str, str]] = {}
-    for relative in QUEUE_DIRS:
-        for path in markdown_files(root / relative):
-            try:
-                text = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeError):
-                continue
-            if TICKET_START not in text:
-                continue
-            fields = ticket_fields(text)
-            if fields and fields.get("Id"):
-                discovered[fields["Id"]] = fields
-    done = {tid for tid, field_map in discovered.items() if field_map.get("Status", "").lower() == "done"}
-    ready = [
-        tid
-        for tid, field_map in discovered.items()
-        if field_map.get("Status", "").lower() == "ready"
-        and all(blocker in done for blocker in blocker_ids(field_map.get("Blocked by")))
-    ]
-    return sorted(ready)
+    """The frontier, delegated to the ticket owner via `krn ticket next`."""
+    data = krn_json(["ticket", "next", "--root", str(root)])
+    frontier = data.get("frontier") if isinstance(data, dict) else None
+    if not isinstance(frontier, list):
+        return []
+    return [entry for entry in frontier if isinstance(entry, str)]
 
 
 def has_continuing(cwd: Path) -> bool:
     root = worktree_root(cwd) or cwd
     for state in containers(root):
-        try:
-            text = state.read_text(encoding="utf-8")
-        except (OSError, UnicodeError):
-            continue
-        outcome = (field(text, "Outcome state") or "").strip().upper()
+        outcome = (capsule_fields(state).get("Outcome state") or "").strip().upper()
         if outcome in CONTINUING_STATES:
             return True
     return False
@@ -280,16 +257,13 @@ def main() -> int:
         root = worktree_root(cwd) or cwd
         notes = []
         for state in containers(root):
-            try:
-                text = state.read_text(encoding="utf-8")
-            except (OSError, UnicodeError):
-                continue
-            outcome = (field(text, "Outcome state") or "").strip().upper()
+            fields = capsule_fields(state)
+            outcome = (fields.get("Outcome state") or "").strip().upper()
             if outcome not in CONTINUING_STATES:
                 continue
-            next_action = field(text, "Next bounded owner and action") or "unspecified"
-            blockers = field(text, "Open unknowns and blockers with owners") or "none"
-            acceptance = field(text, "Outcome and observable acceptance") or "unspecified"
+            next_action = fields.get("Next bounded owner and action") or "unspecified"
+            blockers = fields.get("Open unknowns and blockers with owners") or "none"
+            acceptance = fields.get("Outcome and observable acceptance") or "unspecified"
             if event == "PreCompact":
                 write_boundary(state, outcome, acceptance, next_action, blockers)
             notes.append(

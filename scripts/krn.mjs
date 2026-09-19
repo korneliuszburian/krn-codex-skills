@@ -7,8 +7,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { applyInstall, createInstallPlan, inspectInstall, pruneReleases, sealCurrentRelease } from "./lib/install/install-release.mjs";
-import { inspectSpineState } from "./lib/state/state-check.mjs";
-import { compileCapsule, resumeBrief } from "./lib/state/state-brief.mjs";
+import { runStateCommand } from "./lib/state/state-cli.mjs";
 import { checkSkills, exportSkills } from "./lib/install/skills-export.mjs";
 import { checkLessons, lessonUsage, recallLessons } from "./lib/lessons/lessons.mjs";
 import { churnHot } from "./lib/support/churn.mjs";
@@ -20,7 +19,7 @@ import { auditTheme, inventoryTheme } from "./lib/frontend/theme.mjs";
 import { auditFacts } from "./lib/frontend/facts.mjs";
 import { approveEvidence, captureEvidence, gateEvidence } from "./lib/frontend/browser.mjs";
 import { parseDesign } from "./lib/frontend/design.mjs";
-import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
+import { EXIT_CODES, fail as baseFail } from "./lib/support/diagnostics.mjs";
 import { runTicketCommand } from "./lib/ticket/ticket-cli.mjs";
 import { runHarnessCommand } from "./lib/harness/e2e-compare.mjs";
 
@@ -42,6 +41,7 @@ const usage = `Usage:
   krn capability <inventory|usage|profile|plan|apply|check> [...args]
   krn repo <inspect|apply> [...args]
   krn state <check|compile|resume> [PATH|--root PATH] [--json]
+  krn state fields --file FILE [--json]
   krn skills <export|check> --root DIR [--upstream PATH] [--json]
   krn lessons <check|verify|reanchor> --root DIR [--json]
   krn changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
@@ -52,6 +52,8 @@ const usage = `Usage:
   krn memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
   krn ticket <check|next> --root DIR [--path DIR] [--id ID --base REF [--head REF]] [--json]
   krn ticket show <path> [--json]
+  krn ticket fields --file FILE [--json]
+  krn ticket env --file FILE
   krn ticket <claim|close> --root DIR --id ID [--worker NAME] [--evidence TEXT] [--resolution TEXT] [--json]
   krn harness compare --task FILE --lanes NAME,NAME [--runs N] [--root DIR] [--json]`;
 
@@ -377,28 +379,7 @@ try {
     }
     }
   } else if (raw[0] === "state") {
-    const { positional, options } = parseOptions(raw.slice(1));
-    rejectForeignOptions(options, ["root"]);
-    const command = positional[0];
-    if (!["check", "compile", "resume"].includes(command) || positional.length > 2 || options.source || options.yes || (options.root && positional[1])) fail(usage);
-    const repo = options.root ?? positional[1] ?? process.cwd();
-    let report;
-    try {
-      report = command === "check"
-        ? inspectSpineState({ repo })
-        : command === "compile"
-          ? compileCapsule({ repo })
-          : resumeBrief({ repo });
-    } catch (error) {
-      fail(error.message, EXIT_CODES.USAGE);
-    }
-    if (command === "compile" && !options.json) process.stdout.write(`${report.capsule}\n`);
-    else if (command === "resume" && !options.json) process.stdout.write(`${report.text}\n`);
-    else print(report, options.json);
-    const diagnostics = renderDiagnostics(report);
-    for (const warning of diagnostics.warnings) process.stderr.write(`warning: ${warning}\n`);
-    for (const error of diagnostics.errors) process.stderr.write(`error: ${error}\n`);
-    if (report.errors.length > 0 || report.status === "divergent") process.exitCode = 1;
+    runStateCommand(raw.slice(1), { usage });
   } else if (raw[0] === "harness") {
     await runHarnessCommand(raw.slice(1), { usage });
   } else {

@@ -52,6 +52,7 @@
     "scripts/lib/state/spine-runs.mjs",
     "scripts/lib/state/state-brief.mjs",
     "scripts/lib/state/state-check.mjs",
+    "scripts/lib/state/state-cli.mjs",
     "scripts/lib/support/churn.mjs",
     "scripts/lib/support/diagnostics.mjs",
     "scripts/lib/support/fences.mjs",

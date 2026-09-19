@@ -50,6 +50,9 @@ jobs:
       - name: Test shared libraries
         if: matrix.tier == 'fast'
         run: npm run test:lib
+      - name: Apply the frozen base acceptance set locally
+        if: matrix.tier == 'fast'
+        run: npm run conformance:check
       - name: Test installed-release bootstrap
         if: matrix.tier == 'deep'
         run: npm run test:bootstrap

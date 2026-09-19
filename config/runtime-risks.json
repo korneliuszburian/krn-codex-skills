@@ -77,6 +77,7 @@
     { "path": "scripts/lib/state/spine-runs.mjs", "class": "read-only" },
     { "path": "scripts/lib/state/state-brief.mjs", "class": "read-only" },
     { "path": "scripts/lib/state/state-check.mjs", "class": "read-only" },
+    { "path": "scripts/lib/state/state-cli.mjs", "class": "read-only" },
     { "path": "scripts/lib/support/churn.mjs", "class": "read-only" },
     { "path": "scripts/lib/support/diagnostics.mjs", "class": "read-only" },
     { "path": "scripts/lib/support/fences.mjs", "class": "read-only" },
