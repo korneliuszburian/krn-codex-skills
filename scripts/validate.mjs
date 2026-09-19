@@ -9,6 +9,7 @@ import { readJson } from "./lib/support/read-json.mjs";
 import { posixRelative } from "./lib/support/path-rules.mjs";
 import { ABI_LABELS } from "./lib/state/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/rules/durable-pages.mjs";
+import { checkMemoryRegister } from "./lib/memory-register.mjs";
 import { checkLessons } from "./lib/lessons/lessons.mjs";
 import { runtimeClosureErrors } from "./lib/contract/runtime-closure.mjs";
 import { loadRuntimeRisks, riskClassErrors } from "./lib/contract/risk-classes.mjs";
@@ -310,6 +311,15 @@ for (const markdown of repositoryMarkdown) {
     for (const error of durable.errors) fail(error);
   } catch (error) {
     fail(`durable-pages check failed: ${error.message}`);
+  }
+}
+
+{
+  try {
+    const register = checkMemoryRegister({ root });
+    for (const error of register.errors) fail(error);
+  } catch (error) {
+    fail(`memory register check failed: ${error.message}`);
   }
 }
 
