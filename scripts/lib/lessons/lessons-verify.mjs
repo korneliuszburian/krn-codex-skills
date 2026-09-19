@@ -6,7 +6,7 @@ import { escapeRegExp } from "../kernel/text.mjs";
 import { spawnSync } from "node:child_process";
 
 import { checkLessons } from "./lessons.mjs";
-import { tapName } from "../support/tap.mjs";
+import { tapName } from "../kernel/tap.mjs";
 import { gitText as git, runGit } from "../kernel/git.mjs";
 
 const ALLOWED = /^test\/[A-Za-z0-9_./-]+\.mjs$/;
