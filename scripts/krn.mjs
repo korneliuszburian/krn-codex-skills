@@ -22,6 +22,7 @@ import { approveEvidence, captureEvidence, gateEvidence } from "./lib/frontend/b
 import { parseDesign } from "./lib/frontend/design.mjs";
 import { EXIT_CODES, fail as baseFail, renderDiagnostics } from "./lib/support/diagnostics.mjs";
 import { runTicketCommand } from "./lib/ticket/ticket-cli.mjs";
+import { runHarnessCommand } from "./lib/harness/e2e-compare.mjs";
 
 process.stdout.on("error", (error) => {
   if (error.code === "EPIPE") process.exit(0);
@@ -51,9 +52,12 @@ const usage = `Usage:
   krn memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
   krn ticket <check|next> --root DIR [--path DIR] [--id ID --base REF [--head REF]] [--json]
   krn ticket show <path> [--json]
-  krn ticket <claim|close> --root DIR --id ID [--worker NAME] [--evidence TEXT] [--resolution TEXT] [--json]`;
+  krn ticket <claim|close> --root DIR --id ID [--worker NAME] [--evidence TEXT] [--resolution TEXT] [--json]
+  krn harness compare --task FILE --lanes NAME,NAME [--runs N] [--root DIR] [--json]`;
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
+
+const BOOLEAN_FLAGS = { "--json": "json", "--yes": "yes", "--before": "before", "--allow-unsealed": "allowUnsealed", "--gate": "gate", "--approve": "approve", "--strict-recall": "strictRecall", "--frozen": "frozen" };
 
 function parseOptions(args) {
   const positional = [];
@@ -69,14 +73,7 @@ function parseOptions(args) {
   };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
-    if (arg === "--json") options.json = true;
-    else if (arg === "--yes") options.yes = true;
-    else if (arg === "--before") options.before = true;
-    else if (arg === "--allow-unsealed") options.allowUnsealed = true;
-    else if (arg === "--gate") options.gate = true;
-    else if (arg === "--approve") options.approve = true;
-    else if (arg === "--strict-recall") options.strictRecall = true;
-    else if (arg === "--frozen") options.frozen = true;
+    if (arg in BOOLEAN_FLAGS) options[BOOLEAN_FLAGS[arg]] = true;
     else if (arg === "--source") setOnce("source", "--source", take(index++, "--source"));
     else if (arg === "--root") setOnce("root", "--root", take(index++, "--root"));
     else if (arg === "--base") setOnce("base", "--base", take(index++, "--base"));
@@ -402,6 +399,8 @@ try {
     for (const warning of diagnostics.warnings) process.stderr.write(`warning: ${warning}\n`);
     for (const error of diagnostics.errors) process.stderr.write(`error: ${error}\n`);
     if (report.errors.length > 0 || report.status === "divergent") process.exitCode = 1;
+  } else if (raw[0] === "harness") {
+    await runHarnessCommand(raw.slice(1), { usage });
   } else {
   const { positional, options } = parseOptions(raw);
   if (positional[0] === "install") {
