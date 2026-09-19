@@ -10,6 +10,9 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { parseTicketText } from "../../../scripts/lib/ticket/ticket.mjs";
+import { fieldLine } from "../../../scripts/lib/state/capsule-abi.mjs";
+
 const GUARD = fileURLToPath(new URL("../../../scripts/hooks/krn_pretooluse.py", import.meta.url));
 const CONTINUING = new Set(["ACTIVE", "BLOCKED", "DEFERRED", "NEEDS_REVIEW"]);
 const MANAGED_START = "<!-- krn-agent-workflow:start -->";
@@ -20,17 +23,8 @@ const ONBOARDING_SIGNAL =
   "finished, run `krn repo inspect --root .` for a read-only report; " +
   "adoption stays explicit-only.";
 const TICKET_START = "<krn-ticket>";
-const TICKET_END = "</krn-ticket>";
 const QUEUE_DIRS = [".scratch", ".krn/tickets"];
 const CLAIM_COMMAND = "krn ticket claim --root . --id <id>";
-
-export function field(text, label) {
-  for (const line of text.split("\n")) {
-    const stripped = line.trim();
-    if (stripped.startsWith(`${label}:`)) return stripped.slice(label.length + 1).trim();
-  }
-  return null;
-}
 
 function isInside(parent, candidate) {
   const base = path.resolve(parent);
@@ -90,14 +84,14 @@ export function capsuleBrief(directory) {
     } catch {
       continue;
     }
-    const outcome = (field(text, "Outcome state") ?? "").toUpperCase();
+    const outcome = (fieldLine(text, "Outcome state") ?? "").toUpperCase();
     if (!CONTINUING.has(outcome)) continue;
     notes.push(
       [
         `Capsule .krn/runs/delivery-loop/${path.basename(path.dirname(state))}/state.md [${outcome}]`,
-        `  acceptance: ${field(text, "Outcome and observable acceptance") ?? "unspecified"}`,
-        `  next bounded action: ${field(text, "Next bounded owner and action") ?? "unspecified"}`,
-        `  blockers: ${field(text, "Open unknowns and blockers with owners") ?? "none"}`,
+        `  acceptance: ${fieldLine(text, "Outcome and observable acceptance") ?? "unspecified"}`,
+        `  next bounded action: ${fieldLine(text, "Next bounded owner and action") ?? "unspecified"}`,
+        `  blockers: ${fieldLine(text, "Open unknowns and blockers with owners") ?? "none"}`,
       ].join("\n"),
     );
   }
@@ -169,18 +163,6 @@ function markdownFiles(base) {
   return files.sort();
 }
 
-function ticketFields(text) {
-  const start = text.indexOf(TICKET_START);
-  const end = text.indexOf(TICKET_END);
-  if (start === -1 || end === -1 || end < start) return null;
-  const fields = new Map();
-  for (const line of text.slice(start + TICKET_START.length, end).split("\n")) {
-    const match = /^([A-Za-z][A-Za-z ()-]*):\s*(.*)$/.exec(line.trim());
-    if (match) fields.set(match[1], match[2].trim());
-  }
-  return fields;
-}
-
 function blockerIds(value) {
   const raw = String(value ?? "").trim();
   if (!raw || /^none$/i.test(raw)) return [];
@@ -198,7 +180,7 @@ export function readyIds(root) {
         continue;
       }
       if (!text.includes(TICKET_START)) continue;
-      const fields = ticketFields(text);
+      const { fields } = parseTicketText(text);
       const id = fields?.get("Id");
       if (id) discovered.set(id, fields);
     }
