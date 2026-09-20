@@ -81,6 +81,8 @@ export function loadTask(file) {
     id,
     prompt: typeof payload.prompt === "string" ? payload.prompt.trim() : "",
     check: typeof payload.check === "string" ? payload.check.trim() : "",
+    workspace: typeof payload.workspace === "string" ? payload.workspace.trim() : "",
+    setup: typeof payload.setup === "string" ? payload.setup.trim() : "",
     mutation: payload.mutation && typeof payload.mutation === "object" ? payload.mutation : null,
   };
 }
@@ -88,7 +90,21 @@ export function loadTask(file) {
 function defaultRunner({ lane, enabled, mutation, task, run, root, runs }) {
   const entrypoint = process.env.KRN_HARNESS_LANE_RUNNER;
   if (!entrypoint) refuse("runner-missing", "set KRN_HARNESS_LANE_RUNNER or inject a runner adapter");
-  const payload = JSON.stringify({ lane, enabled, mutation, task: { id: task?.id ?? null, check: task?.check ?? null }, run, runs, root });
+  const payload = JSON.stringify({
+    lane,
+    enabled,
+    mutation,
+    task: {
+      id: task?.id ?? null,
+      check: task?.check ?? null,
+      prompt: task?.prompt ?? null,
+      workspace: task?.workspace ?? null,
+      setup: task?.setup ?? null,
+    },
+    run,
+    runs,
+    root,
+  });
   const outcome = runProcess(process.execPath, [entrypoint], { cwd: root ?? process.cwd(), input: payload });
   if (outcome.errorCode) refuse("runner-spawn-failed", outcome.errorMessage);
   if (outcome.status !== 0) refuse("runner-failed", `${lane} run ${run} exited ${outcome.status}: ${outcome.err.trim()}`);
