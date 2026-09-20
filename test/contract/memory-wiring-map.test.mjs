@@ -23,6 +23,7 @@ const ARTIFACTS = [
   "krn memory recall",
   "krn_memory.py",
   "e2e-compare.mjs",
+  "lane-runner.mjs",
   "mutation-probe.mjs",
 ];
 
