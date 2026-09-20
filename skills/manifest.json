@@ -50,6 +50,7 @@
     "scripts/lib/kernel/repo-root.mjs",
     "scripts/lib/kernel/tap.mjs",
     "scripts/lib/kernel/text.mjs",
+    "scripts/lib/kernel/worktree.mjs",
     "scripts/lib/lessons/lessons-recall.mjs",
     "scripts/lib/lessons/lessons-verify.mjs",
     "scripts/lib/lessons/lessons.mjs",
