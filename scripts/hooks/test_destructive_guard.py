@@ -152,7 +152,12 @@ class DestructiveGuardSmoke(unittest.TestCase):
                 patch_reason("*** Add File: superpowers/notes.md") or "",
             )
             self.assertIn("protected file write blocked", patch_reason("*** Update File: .env\n+x\n") or "")
-            self.assertIn("protected file write blocked", patch_reason("*** Update File: AGENTS.md\n+x\n") or "")
+            self.assertIsNone(patch_reason("*** Update File: AGENTS.md\n+x\n"), "the repository owner may update its instruction file")
+            self.assertIn("protected file deletion blocked", patch_reason("*** Delete File: AGENTS.md") or "")
+            self.assertIn(
+                "protected file write blocked",
+                patch_reason(f"*** Update File: {Path.home() / '.codex' / 'AGENTS.md'}\n+x\n") or "",
+            )
             self.assertIsNone(patch_reason("*** Add File: notes.md\n+hello"))
 
             invalid = subprocess.run(

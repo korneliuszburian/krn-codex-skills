@@ -22,6 +22,7 @@ sys.dont_write_bytecode = True
 
 from destructive_guard import (
     direct_destructive_denial_reason,
+    find_repo_root,
     protected_path_reason,
     redirection_denial_reason,
     resolve_target,
@@ -652,11 +653,19 @@ def patch_denial_reason(command: str, cwd: Path) -> str | None:
         if path_has_forbidden_component(candidate):
             return "patch target belongs to the quarantined capability"
 
+    # The repository's own instruction file is maintained by the session that
+    # owns the repository, so the sanctioned edit path may update it; deleting
+    # it, moving another file onto it, shell writers, and the installed global
+    # instruction files stay denied (see the sh-105 decision).
+    repo_root = find_repo_root(cwd)
+    repo_instructions = {repo_root / "AGENTS.md", repo_root / "CLAUDE.md"} if repo_root is not None else set()
     write_paths = re.findall(r"^\*\*\* (?:Add|Update) File: (.+)$", command, re.MULTILINE)
     for raw_target in write_paths:
         target = resolve_target(raw_target.strip(), cwd)
         if target is None:
             return "file write target is not inspectable"
+        if target in repo_instructions:
+            continue
         reason = protected_path_reason(target, cwd, recursive=False)
         if reason is not None:
             return f"protected file write blocked: {reason}"
