@@ -5,6 +5,7 @@ import { posixRelative } from "../support/path-rules.mjs";
 import { readJson } from "../kernel/json.mjs";
 import { runProcess } from "../kernel/proc.mjs";
 import { tapName, tapSummary } from "../kernel/tap.mjs";
+import { walkFiles } from "../kernel/walk.mjs";
 import { TEST_FILE_RE, CODE_EXT, SETUP_FLAGS, testFlagPresent } from "./command-analysis.mjs";
 
 const DENY = new Set(["changes:check"]);
@@ -224,20 +225,9 @@ export function scriptCommand(root, target) {
 }
 
 export function listTestFilesIn(dir) {
-  const found = [];
-  const walk = (rel) => {
-    for (const entry of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
-      const next = rel ? `${rel}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) walk(next);
-      else if (isTestFile(next)) found.push(next);
-    }
-  };
-  try {
-    walk("");
-  } catch {
-    return [];
-  }
-  return found.sort();
+  return walkFiles(dir, { filter: (entry) => isTestFile(entry.relative) })
+    .map((entry) => entry.relative)
+    .sort();
 }
 
 export { tapSummary };
