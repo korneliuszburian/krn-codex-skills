@@ -157,3 +157,25 @@ test("the CLI prints the comparison summary and exits 0 on a fixture", async () 
     assert.equal(readdirSync(evalRoot).length, 1);
   });
 });
+
+test("the ablation lanes disable exactly one surface from the full lane", async () => {
+  const harness = await loadHarness();
+  assert.ok(harness, "the harness must load");
+  const seen = new Map();
+  const runner = ({ lane, enabled }) => {
+    seen.set(lane, enabled);
+    return { pass: true, tokens: 1, wallSeconds: 1 };
+  };
+  const report = await harness.compareHarness({
+    task: { id: "ablation", check: "node --test test/widget.test.mjs" },
+    lanes: ["full", "no-skills", "no-memory", "no-brief", "no-hooks"],
+    runs: 1,
+    runner,
+  });
+  assert.equal(report.lanes.length, 5);
+  assert.deepEqual(seen.get("full"), { skills: true, memory: true, brief: true, hooks: true });
+  assert.deepEqual(seen.get("no-skills"), { skills: false, memory: true, brief: true, hooks: true });
+  assert.deepEqual(seen.get("no-memory"), { skills: true, memory: false, brief: true, hooks: true });
+  assert.deepEqual(seen.get("no-brief"), { skills: true, memory: true, brief: false, hooks: true });
+  assert.deepEqual(seen.get("no-hooks"), { skills: true, memory: true, brief: true, hooks: false });
+});
