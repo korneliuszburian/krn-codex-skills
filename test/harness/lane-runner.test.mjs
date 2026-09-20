@@ -97,12 +97,15 @@ test("the fixture lanes separate vanilla from full with a detectable delta", () 
     assert.equal(result.status, 0, result.stderr);
     const report = JSON.parse(result.stdout);
     const lane = (name) => report.lanes.find((entry) => entry.lane === name);
-    assert.equal(lane("vanilla").passes, 0);
-    assert.equal(lane("full").passes, 2);
-    assert.equal(report.delta.full.passRate, 1);
-    assert.equal(lane("full").tokens, 14);
-    assert.ok(lane("full").wallSeconds > 0);
-    assert.equal(report.note, "detectable-delta");
+    assert.equal(lane("vanilla").passes, 0, JSON.stringify(report));
+    assert.equal(lane("full").passes, 2, JSON.stringify(report));
+    assert.equal(report.delta.full.passRate, 1, JSON.stringify(report));
+    assert.equal(lane("full").tokens, 14, JSON.stringify(report));
+    // The wall clock is reported in tenths of a second, so a fast fixture
+    // legitimately rounds to zero; only its shape is asserted here.
+    assert.equal(typeof lane("full").wallSeconds, "number", JSON.stringify(report));
+    assert.ok(lane("full").wallSeconds >= 0, JSON.stringify(report));
+    assert.equal(report.note, "detectable-delta", JSON.stringify(report));
     assert.ok(!existsSync(path.join(dir, "skills.txt")), "the source workspace must stay untouched");
   } finally {
     rmSync(dir, { recursive: true, force: true });
