@@ -1,7 +1,8 @@
-import { spawnSync } from "node:child_process";
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+import { runProcess } from "../kernel/proc.mjs";
 
 const IGNORED = new Set([".git", ".krn", "node_modules"]);
 
@@ -130,7 +131,7 @@ function focusedArgs(mutation) {
   return args;
 }
 
-function runMutation({ workspace, mutation, spawn }) {
+function runMutation({ workspace, mutation, run }) {
   const target = join(workspace, mutation.file);
   const original = readFileSync(target, "utf8");
   if (!original.includes(mutation.symbol)) {
@@ -144,10 +145,10 @@ function runMutation({ workspace, mutation, spawn }) {
   try {
     const env = { ...process.env, KRN_CHANGE_CONTRACT: "0" };
     delete env.NODE_TEST_CONTEXT;
-    const result = spawn(process.execPath, focusedArgs(mutation), { cwd: workspace, encoding: "utf8", env });
-    const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+    const result = run(process.execPath, focusedArgs(mutation), { cwd: workspace, env });
+    const output = `${result.out}${result.err}`;
     const tests = Number((/^# tests (\d+)$/m.exec(output) ?? [])[1] ?? "0");
-    const killed = result.status !== 0;
+    const killed = !result.ok;
     const detail = killed ? "" : tests > 0 ? "the focused suite stayed green" : "the focused selector ran no tests";
     return { id: mutation.id, file: mutation.file, killed, applied: true, tests, detail };
   } finally {
@@ -155,11 +156,11 @@ function runMutation({ workspace, mutation, spawn }) {
   }
 }
 
-export function runMutationProbe({ root, mutations = MUTATIONS, spawn = spawnSync } = {}) {
+export function runMutationProbe({ root, mutations = MUTATIONS, run = runProcess } = {}) {
   const workspace = mkdtempSync(join(tmpdir(), "krn-mutation-"));
   try {
     copyTree(root, workspace);
-    return mutations.map((mutation) => runMutation({ workspace, mutation, spawn }));
+    return mutations.map((mutation) => runMutation({ workspace, mutation, run }));
   } finally {
     rmSync(workspace, { recursive: true, force: true });
   }

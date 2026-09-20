@@ -1,4 +1,13 @@
-import { execFileSync } from "node:child_process";
+import { runProcess } from "./proc.mjs";
+
+const asGitResult = (result) => ({
+  ok: result.ok,
+  out: result.out,
+  stderr: result.err,
+  status: result.status,
+  signal: result.signal,
+  errorCode: result.errorCode,
+});
 
 export function runGit(repo, args) {
   const raw = runGitRaw(repo, args);
@@ -8,52 +17,11 @@ export function runGit(repo, args) {
 }
 
 export function runGitRaw(repo, args) {
-  try {
-    return {
-      ok: true,
-      out: execFileSync("git", ["-C", repo, ...args], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        maxBuffer: 512 * 1024 * 1024,
-        timeout: 600_000,
-        killSignal: "SIGKILL",
-      }),
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      out: typeof error?.stdout === "string" ? error.stdout : "",
-      stderr: typeof error?.stderr === "string" ? error.stderr : "",
-      status: error?.status ?? null,
-      signal: error?.signal ?? null,
-      errorCode: error?.code ?? null,
-    };
-  }
+  return asGitResult(runProcess("git", ["-C", repo, ...args]));
 }
 
 export function runGitInput(repo, args, input) {
-  try {
-    return {
-      ok: true,
-      out: execFileSync("git", ["-C", repo, ...args], {
-        encoding: "utf8",
-        input,
-        stdio: ["pipe", "pipe", "pipe"],
-        maxBuffer: 512 * 1024 * 1024,
-        timeout: 600_000,
-        killSignal: "SIGKILL",
-      }),
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      out: typeof error?.stdout === "string" ? error.stdout : "",
-      stderr: typeof error?.stderr === "string" ? error.stderr : "",
-      status: error?.status ?? null,
-      signal: error?.signal ?? null,
-      errorCode: error?.code ?? null,
-    };
-  }
+  return asGitResult(runProcess("git", ["-C", repo, ...args], { input, stdio: ["pipe", "pipe", "pipe"] }));
 }
 
 export function gitText(repo, args) {
@@ -73,12 +41,7 @@ export function commitChangedFiles(root, git, sha) {
 }
 
 export function gitAvailable() {
-  try {
-    execFileSync("git", ["--version"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
+  return runProcess("git", ["--version"], { stdio: "ignore" }).ok;
 }
 
 export const GIT_LOG_FORMAT = "--format=%H%x1f%s%x1f%b%x1e";

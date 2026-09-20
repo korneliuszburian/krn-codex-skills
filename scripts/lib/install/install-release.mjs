@@ -1,5 +1,5 @@
-import { execFileSync, spawnSync } from "node:child_process";
 import { gitText as git, gitTopLevel, runGitRaw } from "../kernel/git.mjs";
+import { runProcess } from "../kernel/proc.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -75,13 +75,12 @@ function resolveSource({ source, cwd = process.cwd() } = {}) {
 function validateSource(root) {
   const validator = path.join(root, "scripts", "validate.mjs");
   if (!fs.existsSync(validator)) fail(`source lacks scripts/validate.mjs: ${root}`, EXIT_SOURCE);
-  const result = spawnSync(process.execPath, [validator], {
+  const result = runProcess(process.execPath, [validator], {
     cwd: root,
-    encoding: "utf8",
     env: process.env,
   });
-  if (result.status !== 0) {
-    fail(`source validation failed:\n${result.stdout}${result.stderr}`, EXIT_SOURCE);
+  if (!result.ok) {
+    fail(`source validation failed:\n${result.out}${result.err}`, EXIT_SOURCE);
   }
 }
 
@@ -143,11 +142,14 @@ export function sealCurrentRelease({ root, source, cwd, codexHome } = {}) {
 // Git archive, rather than a filesystem copy, makes the release exactly the
 // resolved commit: ignored and untracked bytes can never cross the boundary.
 function buildRuntime(plan, staging) {
-  const archive = execFileSync("git", ["archive", "--format=tar", plan.commit, "--", ...plan.runtimePaths], {
+  const archive = runProcess("git", ["archive", "--format=tar", plan.commit, "--", ...plan.runtimePaths], {
     cwd: plan.source,
     maxBuffer: 32 * 1024 * 1024,
+    encoding: null,
   });
-  execFileSync("tar", ["-x", "-C", staging, "--no-same-owner"], { input: archive });
+  if (!archive.ok) throw new Error(`git archive failed: ${archive.err}`);
+  const extract = runProcess("tar", ["-x", "-C", staging, "--no-same-owner"], { input: archive.out });
+  if (!extract.ok) throw new Error(`tar extract failed: ${extract.err}`);
 }
 
 function expectedReleaseDigest(plan) {
@@ -406,14 +408,14 @@ function verifyInstalledCli(plan) {
   // KRN_SMOKE_TIMEOUT_MS only shortens the bound for tests.
   const configured = Number(process.env.KRN_SMOKE_TIMEOUT_MS);
   const timeout = Number.isFinite(configured) && configured > 0 ? configured : 15000;
-  const result = spawnSync(process.execPath, [entry], { encoding: "utf8", timeout, killSignal: "SIGKILL" });
-  if (result.error?.code === "ETIMEDOUT" || result.signal) {
+  const result = runProcess(process.execPath, [entry], { timeout });
+  if (result.errorCode === "ETIMEDOUT" || result.signal) {
     const reason =
-      result.error?.code === "ETIMEDOUT" ? `timed out after ${timeout}ms` : `terminated by signal ${result.signal}`;
+      result.errorCode === "ETIMEDOUT" ? `timed out after ${timeout}ms` : `terminated by signal ${result.signal}`;
     fail(`installed CLI smoke ${reason}`, EXIT_CORRUPT);
   }
   if (result.status !== EXIT_USAGE) {
-    const detail = `${result.stderr || result.stdout || ""}`.split("\n").find((line) => line.trim()) ?? "no output";
+    const detail = `${result.err || result.out || ""}`.split("\n").find((line) => line.trim()) ?? "no output";
     fail(`installed CLI smoke failed (exit ${result.status ?? "signal"}): ${detail}`, EXIT_CORRUPT);
   }
 }

@@ -5,7 +5,7 @@ import path from "node:path";
 import { posixRelative } from "./lib/support/path-rules.mjs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+import { spawnInherit } from "./lib/kernel/proc.mjs";
 import { applyInstall, createInstallPlan, inspectInstall, pruneReleases, sealCurrentRelease } from "./lib/install/install-release.mjs";
 import { runStateCommand } from "./lib/state/state-cli.mjs";
 import { checkSkills, exportSkills } from "./lib/install/skills-export.mjs";
@@ -146,8 +146,7 @@ function print(value, json) {
 }
 
 function delegate(script, args) {
-  const result = spawnSync(process.execPath, [path.join(root, script), ...args], { stdio: "inherit" });
-  process.exitCode = result.status ?? 1;
+  process.exitCode = spawnInherit(process.execPath, [path.join(root, script), ...args]).status ?? 1;
 }
 
 function renderInstallReport(report) {

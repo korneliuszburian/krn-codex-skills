@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { runProcess } from "../kernel/proc.mjs";
 
 const PROBES = {
   bwrap: () => probeCommand("bwrap", ["--version"]),
@@ -12,12 +12,7 @@ export const FLOW_CAPABILITIES = {
 };
 
 function probeCommand(command, args) {
-  try {
-    const result = spawnSync(command, args, { encoding: "utf8", timeout: 10000 });
-    return !result.error && result.status === 0;
-  } catch {
-    return false;
-  }
+  return runProcess(command, args, { timeout: 10000 }).ok;
 }
 
 export function hostCapabilities(probes = PROBES) {
