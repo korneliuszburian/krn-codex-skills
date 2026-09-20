@@ -51,6 +51,12 @@ class KrnLaneAgent(AbstractInstalledAgent):
         home = Path(tempfile.mkdtemp(prefix="krn-tb-home-"))
         (home / ".config" / "opencode").mkdir(parents=True, exist_ok=True)
         (home / ".local" / "share" / "opencode").mkdir(parents=True, exist_ok=True)
+        # A minimal config: the host config's MCP secret path does not exist in
+        # the task container, so only the schema and the autoupdate flag travel.
+        (home / ".config" / "opencode" / "opencode.json").write_text(
+            '{ "$schema": "https://opencode.ai/config.json", "autoupdate": false }\n',
+            encoding="utf-8",
+        )
         shutil.copy(HOST_HOME / ".local/share/opencode/auth.json", home / ".local/share/opencode/auth.json")
         if self._lane != "vanilla":
             contract = HOST_HOME / ".config/opencode/AGENTS.md"

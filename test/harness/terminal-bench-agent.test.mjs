@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -16,4 +16,9 @@ test("the Terminal-Bench lane agent ships with a valid setup script", () => {
   assert.equal(runProcess("sh", ["-n", SETUP]).ok, true, "the setup script must parse");
   const compiled = runProcess("python3", ["-c", `compile(open(${JSON.stringify(AGENT)}).read(), ${JSON.stringify(AGENT)}, "exec")`]);
   assert.equal(compiled.ok, true, `the agent must compile: ${compiled.err}`);
+});
+
+test("the lane home carries a minimal opencode config", () => {
+  const source = readFileSync(AGENT, "utf8");
+  assert.match(source, /opencode\.json/, "the agent must write a minimal opencode.json into the lane home");
 });
