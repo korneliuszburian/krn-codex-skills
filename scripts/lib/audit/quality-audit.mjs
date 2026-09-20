@@ -4,7 +4,7 @@ import { posixRelative } from "../support/path-rules.mjs";
 
 import { churnHot } from "../support/churn.mjs";
 import { runGit } from "../kernel/git.mjs";
-import { maskLiterals, stripComments } from "../support/source-mask.mjs";
+import { maskLiterals, stripComments } from "../kernel/js.mjs";
 
 const SELF = "scripts/lib/audit/quality-audit.mjs";
 

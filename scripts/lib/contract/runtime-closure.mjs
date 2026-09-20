@@ -2,7 +2,7 @@ import { readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
-import { maskLiterals, stripComments } from "../support/source-mask.mjs";
+import { maskLiterals, stripComments } from "../kernel/js.mjs";
 
 function relativePath(root, from, specifier) {
   return posixRelative(root, resolve(dirname(join(root, from)), specifier));
