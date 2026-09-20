@@ -52,7 +52,7 @@ budget, so aging is explicit instead of a silent deletion.
 
 | Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |
 |---|---|---|---|---|---|---|
-| Derive the installed runtime closure from the artifact being installed, never from the running installer version. | A release silently omitted `state-brief.mjs` and still reported `filesystem_installed`. | `runtime_paths` in `skills/manifest.json`, the post-switch CLI smoke, and `test/install/install-smoke.test.mjs`. |
+| Derive the installed runtime closure from the artifact being installed, never from the running installer version. | A release silently omitted `state-brief.mjs` and still reported `filesystem_installed`. | `runtime_paths` in `skills/manifest.json`, the post-switch CLI smoke, and `test/install/install-smoke.test.mjs`. | | | path:scripts/lib/install/**; path:skills/manifest.json | |
 | Treat model-stated references as unverified; deterministic artifacts are authoritative. | A low-effort review misquoted a base commit SHA before self-correcting. | `config/AGENTS.md` proof rule; `manual:review` at the fixed point. |
 | Prefer proactive capsule rewrites at boundaries over window-limit autocompact. | Context-rot and compaction studies plus official harness guidance. | `skills/engineering/delivery-loop/SKILL.md` step 3. |
 | Commission review from a context that did not produce the change. | Self-preference and self-correction research, and the low-effort imitation probe. | `manual:review` at the fixed point. |

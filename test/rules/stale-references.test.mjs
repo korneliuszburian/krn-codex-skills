@@ -39,7 +39,13 @@ const HISTORICAL_REFERENCES = new Set([
   "docs/research/lab-tests.md:docs/prd/0002",
   "docs/research/lab-tests.md:docs/prd/0001",
   "docs/research/lab-tests.md:docs/adr/0003",
+  "docs/research/lab-tests.md:docs/BRIEF.md",
+  "docs/research/lab-tests.md:scripts/lib/audit/falsifier-mutate.mjs",
+  "docs/research/lab-tests.md:scripts/lib/contract/flake-classify.mjs",
+  "docs/research/lab-tests.md:test/audit/falsifier-mutate.test.mjs",
+  "docs/research/lab-tests.md:test/contract/flake-classify.test.mjs",
   "docs/research/orchestration.md:docs/adr/0003",
+  "docs/research/orchestration.md:docs/BRIEF.md",
 ]);
 
 function formatStaleReference(finding) {
