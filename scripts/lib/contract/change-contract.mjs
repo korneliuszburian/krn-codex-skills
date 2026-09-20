@@ -1,11 +1,11 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 
 import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords } from "../kernel/git.mjs";
 import { readJson } from "../kernel/json.mjs";
 import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings, triggerEntries as lessonTriggerEntries } from "../lessons/lessons.mjs";
 import { globToRegex } from "../kernel/text.mjs";
+import { withWorktree } from "../kernel/worktree.mjs";
 import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
 import { churnHot } from "../support/churn.mjs";
 import { runGit } from "../kernel/git.mjs";
@@ -156,12 +156,7 @@ function recallWaivers(root, lines) {
 }
 
 export function runCheckAtBase({ root, base, target, git = runGit, overlay = null }) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "krn-base-"));
-  if (!git(root, ["worktree", "add", "--detach", dir, base]).ok) {
-    fs.rmSync(dir, { recursive: true, force: true });
-    return { unavailable: true };
-  }
-  try {
+  const result = withWorktree({ root, ref: base, git, prefix: "krn-base-" }, (dir) => {
     const overlays = Array.isArray(overlay) ? overlay : overlay ? [overlay] : [];
     const rootReal = fs.realpathSync(root);
     for (const rel of overlays) {
@@ -176,11 +171,8 @@ export function runCheckAtBase({ root, base, target, git = runGit, overlay = nul
     const frozenTests = frozenTestsFor(root, target, () => listTestFilesIn(dir));
     const frozenArgs = target.kind === "script" ? frozenNodeArgs(scriptCommand(root, target) ?? "") : [];
     return { outcome: runCheck({ root: dir, target, frozenTests, frozenArgs }) };
-  } finally {
-    git(root, ["worktree", "remove", "--force", dir]);
-    git(root, ["worktree", "prune"]);
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
+  });
+  return result ?? { unavailable: true };
 }
 
 const isRuntimeModule = (rel) => rel.startsWith("scripts/") && rel.endsWith(".mjs") && !isTestFile(rel);
