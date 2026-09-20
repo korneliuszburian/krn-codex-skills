@@ -69,7 +69,9 @@ export function laneMounts(enabled, home = homedir()) {
     if (enabled.memory || enabled.skills) {
       writeFileSync(path.join(minimal, "AGENTS.md"), "Before editing, run `krn memory recall --root <repository> --changed <path>` and apply the lesson it returns.\n");
     }
-    add(minimal, "/root/.config/opencode");
+    // opencode writes a .gitignore into its config dir, so the minimal config
+    // must be writable.
+    add(minimal, "/root/.config/opencode", "rw");
   }
   add(path.join(home, ".config", "opencode", "secrets"), path.join(home, ".config", "opencode", "secrets"));
   if (enabled.skills) {
