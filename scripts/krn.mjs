@@ -10,6 +10,7 @@ import { applyInstall, createInstallPlan, inspectInstall, pruneReleases, sealCur
 import { runStateCommand } from "./lib/state/state-cli.mjs";
 import { checkSkills, exportSkills } from "./lib/install/skills-export.mjs";
 import { checkLessons, lessonUsage, recallLessons } from "./lib/lessons/lessons.mjs";
+import { compileBrief } from "./lib/brief/compile.mjs";
 import { churnHot } from "./lib/support/churn.mjs";
 import { runGit } from "./lib/kernel/git.mjs";
 import { reanchorLessons, verifyLessons } from "./lib/lessons/lessons-verify.mjs";
@@ -41,6 +42,7 @@ const usage = `Usage:
   krn capability <inventory|usage|profile|plan|apply|check> [...args]
   krn repo <inspect|apply> [...args]
   krn state <check|compile|resume> [PATH|--root PATH] [--json]
+  krn brief --root DIR [--write|--check] [--json]
   krn state fields --file FILE [--json]
   krn skills <export|check> --root DIR [--upstream PATH] [--json]
   krn lessons <check|verify|reanchor> --root DIR [--json]
@@ -59,7 +61,7 @@ const usage = `Usage:
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
 
-const BOOLEAN_FLAGS = { "--json": "json", "--yes": "yes", "--before": "before", "--allow-unsealed": "allowUnsealed", "--gate": "gate", "--approve": "approve", "--strict-recall": "strictRecall", "--frozen": "frozen" };
+const BOOLEAN_FLAGS = { "--json": "json", "--yes": "yes", "--before": "before", "--allow-unsealed": "allowUnsealed", "--gate": "gate", "--approve": "approve", "--strict-recall": "strictRecall", "--frozen": "frozen", "--write": "write", "--check": "check" };
 
 function parseOptions(args) {
   const positional = [];
@@ -380,6 +382,18 @@ try {
     }
   } else if (raw[0] === "state") {
     runStateCommand(raw.slice(1), { usage });
+  } else if (raw[0] === "brief") {
+    const { positional, options } = parseOptions(raw.slice(1));
+    rejectForeignOptions(options, ["root", "write", "check"]);
+    if (positional.length > 0 || !options.root) fail(usage);
+    requireDirectory(options.root);
+    const target = path.join(options.root, "docs", "BRIEF.md");
+    const content = compileBrief({ root: options.root });
+    const current = fs.existsSync(target) ? fs.readFileSync(target, "utf8") : "";
+    if (options.check && current !== content) fail("docs/BRIEF.md is stale; run krn brief --root . --write");
+    if (options.write) fs.writeFileSync(target, content);
+    if (!options.write && !options.check) process.stdout.write(content);
+    if (options.json) print({ target, written: Boolean(options.write), current: current === content }, true);
   } else if (raw[0] === "harness") {
     await runHarnessCommand(raw.slice(1), { usage });
   } else {
