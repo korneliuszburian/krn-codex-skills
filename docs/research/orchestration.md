@@ -712,3 +712,18 @@ exactly one `Recall` trailer. The ADR 0004 hottest surface
 closure lesson gains it. The four frontend triggers keep their consumer, the
 parked frontend outcome, and their zero hits in this checkout are expected
 rather than dead.
+
+### Phase 2 dispositions (2026-09-20)
+
+- `config/paths.json` is not created. ADR 0001 already fixes durable paths by
+  meaning rather than configured generic roles, so a path registry would be a
+  second owner of the same meaning; the plan item is struck rather than built.
+- The gate and tier membership has one owner in `package.json`'s `gate:fast`
+  and `gate:deep`. The AGENTS.md Local gates block is checked against `gate` by
+  `test/rules/gate-list-drift.test.mjs`, and the CI workflow is checked against
+  the two tier scripts by `test/ci-workflow-tiers.test.mjs`, so the workflow no
+  longer carries a hand-listed copy of the tiers.
+- The export provenance has one writer: `krn skills export` writes
+  `.agents/skills/.krn-export.json` and renders the README pin from it.
+  `config/release-digests.json` is a distinct trust artifact for sealed release
+  bytes, not a second export provenance.
