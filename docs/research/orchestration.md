@@ -729,3 +729,26 @@ rather than dead.
   `.agents/skills/.krn-export.json` and renders the README pin from it.
   `config/release-digests.json` is a distinct trust artifact for sealed release
   bytes, not a second export provenance.
+
+## Adoption ledger
+
+Every adopted mechanism, lesson, and instrument carries its owner, the evidence
+that earned it, an expiry date, and the trigger that retires it. The consumer is
+the maintainer at outcome bind and the bounded hardening pass; the invalidation
+rule is the expiry date, which fails closed until the row is re-adopted with
+fresh evidence; the deletion owner is the maintainer.
+`test/contract/adoption-ledger.test.mjs` fails when a row is missing a field, the
+ledger is short, or a date has passed.
+
+| Adoption | Owner | Evidence | Expires | Retirement trigger |
+|---|---|---|---|---|
+| Kernel single-owner rule (`scripts/lib/kernel/**` plus a `*-single-owner` observer each) | maintainer | sh-94 through sh-111 tickets and the `test/kernel/*-single-owner.test.mjs` observers | 2026-12-31 | a second implementation appears, or an observer is deleted without a replacement |
+| `mutation-probe.mjs` as the single mutation owner | maintainer | LT-29, LT-34, `test/audit/mutation-probe.test.mjs` in `test:lib` | 2026-12-31 | a diff-scoped mutation mode replaces the hand-listed set |
+| `boundary.md` as the PreCompact re-arm materialization | delivery-loop | LT-6 and `test/hooks-guard.test.mjs` | 2026-12-31 | PreCompact `additionalContext` retention is proven, or the run is deleted |
+| Measurement track (`e2e-compare.mjs`, `lane-runner.mjs`, `test/harness/tasks/`) | maintainer | LT-102 plus `test/harness/*.test.mjs` | 2026-11-30 | LT-102 runs and the row is re-adopted with its result, or the measurement is retired |
+| Memory wiring map and its observer | maintainer | LT-101 and `test/contract/memory-wiring-map.test.mjs` | 2026-12-31 | a memory artifact moves or the map stops being observed |
+| Workflow lessons with trigger-based recall | maintainer | `npm run lessons:verify`, `krn memory usage`, and the delivery measurement in the sh-104 pass | 2026-12-31 | a triggered lesson stays at zero delivery after its trigger is tightened |
+| Local ticket queue as the frontier | maintainer | `krn ticket check` and `next`, and `docs/research/ticket-protocol.md` | 2026-12-31 | a second operator needs shared state, or the queue stops being the frontier |
+| Export marker as the single export provenance | maintainer | `test/install/rename-completion.test.mjs` and `krn skills check` | 2026-12-31 | a single provenance artifact supersedes the marker |
+| Frozen conformance policy (base case list, candidate runner) | maintainer | sh-110 and `test/ci-workflow-tiers.test.mjs` | 2026-12-31 | a base-runner defect or an operator policy change |
+| CI tier owner in `package.json` | maintainer | sh-112 and `test/ci-workflow-tiers.test.mjs` | 2026-12-31 | the workflow stops deriving from the gate scripts |
