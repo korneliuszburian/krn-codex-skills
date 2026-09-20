@@ -1,12 +1,6 @@
 # Brief
 
-Compiled from the outcome capsule, the workflow lessons, and the lab-test registry. Do not edit by hand; regenerate with `krn brief --root . --write`.
-
-## Objective
-
-[the KRN harness is consolidated into one coherent architecture with a single owner per primitive and one compiled memory substrate and one gate list; pass, every change lands through a lane PR with green CI and a Change-contract trailer; pass, dead and self-referential knowledge artifacts are deleted so net surface shrinks each pass; pass, a frozen harness-vs-vanilla measurement with ablation shows gain not status; pass, the boundary stays clean with zero PRs and worktrees and branches and a clean capsule and ticket check zero errors; pass, work happens only in the durable canonical checkout; todo]
-
-Outcome state: ACTIVE
+Compiled from the workflow lessons and the lab-test registry. Do not edit by hand; regenerate with `krn brief --root . --write`.
 
 ## Invariants
 

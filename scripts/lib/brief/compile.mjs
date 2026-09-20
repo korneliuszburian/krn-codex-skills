@@ -1,14 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { fieldLine } from "../state/capsule-abi.mjs";
 import { parseLessons } from "../lessons/lessons.mjs";
 
 // The compiled-memory station. It is derived, never hand-edited: `krn brief
-// --write` regenerates it, `krn brief --check` fails when it is stale. The
-// shape follows the researched pattern that a harness keeps one small, current
-// map (Karpathy's compiled wiki, OpenAI's short AGENTS.md map, Anthropic's
-// progress file) instead of re-deriving context per session.
+// --write` regenerates it, `krn brief --check` fails when it is stale. It is
+// reproducible from committed sources only, so it reads the workflow lessons
+// and the lab-test registry and deliberately ignores transient working state
+// (the capsule and the local ticket queue). The shape follows the researched
+// pattern that a harness keeps one small, current map (Karpathy's compiled
+// wiki with a lint pass, OpenAI's short AGENTS.md map, Anthropic's progress
+// file) instead of re-deriving context per session.
 const INVARIANTS = [
   "One owner per primitive; a meaning implemented twice is a defect.",
   "One writer per outcome; independent work is read-only.",
@@ -16,22 +18,6 @@ const INVARIANTS = [
   "Gain is measured against a frozen baseline, never asserted.",
   "Deletion is progress.",
 ];
-
-function newestCapsule(root) {
-  const base = path.join(root, ".krn", "runs", "delivery-loop");
-  let entries = [];
-  try {
-    entries = fs.readdirSync(base, { withFileTypes: true });
-  } catch {
-    return null;
-  }
-  const files = entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(base, entry.name, "state.md"))
-    .filter((file) => fs.existsSync(file))
-    .sort();
-  return files.length > 0 ? files[files.length - 1] : null;
-}
 
 function labTestIds(root) {
   const file = path.join(root, "docs", "research", "lab-tests.md");
@@ -47,17 +33,7 @@ function labTestIds(root) {
 export function compileBrief({ root }) {
   const lines = [];
   lines.push("# Brief", "");
-  lines.push("Compiled from the outcome capsule, the workflow lessons, and the lab-test registry. Do not edit by hand; regenerate with `krn brief --root . --write`.", "");
-
-  const capsule = newestCapsule(root);
-  lines.push("## Objective", "");
-  if (capsule) {
-    const text = fs.readFileSync(capsule, "utf8");
-    lines.push((fieldLine(text, "Outcome and observable acceptance") ?? "none recorded").trim(), "");
-    lines.push(`Outcome state: ${(fieldLine(text, "Outcome state") ?? "unknown").trim()}`, "");
-  } else {
-    lines.push("No outcome capsule recorded.", "");
-  }
+  lines.push("Compiled from the workflow lessons and the lab-test registry. Do not edit by hand; regenerate with `krn brief --root . --write`.", "");
 
   lines.push("## Invariants", "");
   for (const invariant of INVARIANTS) lines.push(`- ${invariant}`);

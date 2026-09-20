@@ -15,12 +15,7 @@ async function loadCompile() {
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), "krn-brief-"));
-  mkdirSync(join(root, ".krn", "runs", "delivery-loop", "outcome"), { recursive: true });
   mkdirSync(join(root, "docs", "research"), { recursive: true });
-  writeFileSync(
-    join(root, ".krn", "runs", "delivery-loop", "outcome", "state.md"),
-    "<outcome-capsule>\nOutcome and observable acceptance: [do the thing; todo]\nOutcome state: ACTIVE\n</outcome-capsule>\n",
-  );
   writeFileSync(
     join(root, "docs", "research", "workflow-lessons.md"),
     "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Keep it small | x | `test:state` | | `test/proof.test.mjs::probe@0000000` | path:scripts/** | |\n| Old rule | y | `test:state` | | `test/proof.test.mjs::probe@0000000` | | retired@0000000 |\n",
@@ -37,8 +32,6 @@ test("the brief compiles the capsule, lessons, measurements, and frontier", asyn
   const root = fixture();
   const brief = compileBrief({ root });
   assert.match(brief, /^# Brief\n/);
-  assert.match(brief, /## Objective[\s\S]*do the thing/);
-  assert.match(brief, /Outcome state: ACTIVE/);
   assert.match(brief, /## Invariants[\s\S]*One owner per primitive/);
   assert.match(brief, /1 active lessons/);
   assert.match(brief, /2 lab-test rows; latest: LT-1, LT-2/);
