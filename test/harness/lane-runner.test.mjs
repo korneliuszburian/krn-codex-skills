@@ -103,6 +103,7 @@ test("the fixture lanes separate vanilla from full with a detectable delta", () 
     assert.equal(lane("full").tokens, 14);
     assert.ok(lane("full").wallSeconds > 0);
     assert.equal(report.note, "detectable-delta");
+    assert.ok(!existsSync(path.join(dir, "skills.txt")), "the source workspace must stay untouched");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
