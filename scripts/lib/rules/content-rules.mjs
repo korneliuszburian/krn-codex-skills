@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { fenceLines, unfencedLines } from "../support/fences.mjs";
+import { splitTableRow } from "../kernel/text.mjs";
 
 export { fenceLines, unfencedLines };
 
@@ -52,29 +53,6 @@ export function staleReferenceErrors(
     }
   }
   return findings;
-}
-
-function splitTableRow(line) {
-  const cells = [];
-  const inner = line.startsWith("|") ? line.slice(1) : line;
-  const body = inner.endsWith("|") ? inner.slice(0, -1) : inner;
-  let current = "";
-  for (let index = 0; index < body.length; index += 1) {
-    const char = body[index];
-    if (char === "\\" && body[index + 1] === "|") {
-      current += "|";
-      index += 1;
-      continue;
-    }
-    if (char === "|") {
-      cells.push(current.trim());
-      current = "";
-      continue;
-    }
-    current += char;
-  }
-  cells.push(current.trim());
-  return cells;
 }
 
 function linkTargets(line) {

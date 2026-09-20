@@ -4,7 +4,7 @@ import { posixRelative } from "../support/path-rules.mjs";
 import { readJson } from "../kernel/json.mjs";
 
 import { runGit } from "../kernel/git.mjs";
-import { compileGlob, globToRegex } from "../kernel/text.mjs";
+import { compileGlob, globToRegex, splitTableRow } from "../kernel/text.mjs";
 import { fenceLines, unbalancedFence as hasUnbalancedFence } from "../support/fences.mjs";
 import { recallUsage } from "./lessons-recall.mjs";
 
@@ -20,30 +20,16 @@ export function parseLessonText(text) {
   const rows = [];
   const malformed = [];
   let headerColumns = null;
-  const splitLessonCells = (row) => {
-    const cells = [];
-    let current = "";
-    for (let index = 0; index < row.length; index += 1) {
-      const char = row[index];
-      if (char === "\\" && row[index + 1] === "|") { current += "|"; index += 1; continue; }
-      if (char === "|") { cells.push(current); current = ""; continue; }
-      current += char;
-    }
-    cells.push(current);
-    return cells.map((cell) => cell.trim());
-  };
   for (const { line, fenced } of fenceLines(text)) {
     if (fenced) continue;
     const trimmed = line.trim();
     if (!trimmed.startsWith("|")) continue;
     if (/^\|[\s:|-]*-{1,}[\s:|-]*\|?$/.test(trimmed)) continue;
     if (/^\|\s*lesson\s*\|\s*evidence\s*\|/i.test(trimmed)) {
-      headerColumns = splitLessonCells(trimmed.replace(/^\|/, "").replace(/\|$/, "")).length;
+      headerColumns = splitTableRow(trimmed).length;
       continue;
     }
-    const body = trimmed.startsWith("|") ? trimmed.slice(1) : trimmed;
-    const inner = body.endsWith("|") ? body.slice(0, -1) : body;
-    const cells = splitLessonCells(inner);
+    const cells = splitTableRow(trimmed);
     if (cells.length < 3 || cells.length > 7 || cells.slice(0, 3).some((cell) => cell === "")) {
       malformed.push(line);
       continue;

@@ -31,3 +31,8 @@ test("the duplicated support regexp module is gone and unreferenced", () => {
   const stale = trackedSources().filter((relative) => read(relative).includes("support/regexp.mjs"));
   assert.deepEqual(stale, [], "no source may import the retired support/regexp.mjs");
 });
+
+test("markdown table row parsing has exactly one kernel owner", () => {
+  const owners = trackedSources().filter((relative) => read(relative).includes("export function splitTableRow"));
+  assert.deepEqual(owners, ["scripts/lib/kernel/text.mjs"], "table row parsing must live only in the kernel");
+});
