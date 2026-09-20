@@ -29,6 +29,7 @@ import {
   usageStateContract,
 } from "./lib/catalog/catalog-report.mjs";
 
+import { parseCliArgs } from "./lib/kernel/cli.mjs";
 import { EXIT_CODES, fail } from "./lib/support/diagnostics.mjs";
 
 const EXIT_USAGE = EXIT_CODES.USAGE;
@@ -56,43 +57,18 @@ Mutations happen only through the explicit apply command. A new Codex session
 is required before changed plugin, MCP, or skill exposure is observable.`;
 
 function parseArguments(argv) {
-  const seen = new Set();
-  const options = { json: false, days: 30 };
-  const positional = [];
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const argument = argv[index];
-    if (argument === "--json") {
-      options.json = true;
-      continue;
-    }
-    if (argument === "--help" || argument === "-h") {
-      options.help = true;
-      continue;
-    }
-    if (["--config", "--profiles", "--sessions-root", "--days"].includes(argument)) {
-      const value = argv[index + 1];
-      if (!value || value.startsWith("--")) {
-        fail(`${argument} requires a value`, EXIT_USAGE);
-      }
-      index += 1;
-      const key = {
-        "--config": "configPath",
-        "--profiles": "profilesPath",
-        "--sessions-root": "sessionsRoot",
-        "--days": "days",
-      }[argument];
-      if (seen.has(key)) fail(`duplicate option: ${argument}`, EXIT_USAGE);
-      seen.add(key);
-      options[key] = key === "days" ? Number(value) : value;
-      continue;
-    }
-    if (argument.startsWith("--")) {
-      fail(`unknown option: ${argument}`, EXIT_USAGE);
-    }
-    positional.push(argument);
-  }
-
+  const { options, positional } = parseCliArgs(argv, {
+    booleans: { "--json": "json", "--help": "help", "-h": "help" },
+    values: {
+      "--config": "configPath",
+      "--profiles": "profilesPath",
+      "--sessions-root": "sessionsRoot",
+      "--days": "days",
+    },
+    defaults: { json: false, days: 30 },
+    fail: (message) => fail(message, EXIT_USAGE),
+  });
+  if (typeof options.days === "string") options.days = Number(options.days);
   if (!Number.isInteger(options.days) || options.days < 1 || options.days > 3650) {
     fail("--days must be an integer from 1 to 3650", EXIT_USAGE);
   }
