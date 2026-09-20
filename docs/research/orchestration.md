@@ -660,3 +660,55 @@ production authority boundary.
 The architecture is deliberately falsifiable. A mechanism that does not change
 routing, restart accuracy, proof quality, or maintenance cost does not earn
 permanent prompt or documentation space.
+
+## Memory and measurement wiring map
+
+ADR 0004 asks for one table that maps every living memory artifact to its
+writer, reader, delivery trigger, budget, and falsifier; ADR 0001 adds the
+invalidation rule and the deletion owner. One row per artifact, one artifact
+per row: `test/contract/memory-wiring-map.test.mjs` fails when a row is missing,
+a field is empty, or a retired surface reappears.
+
+| Artifact | Writer | Reader | Delivery trigger | Budget | Falsifier | Invalidation rule | Deletion owner |
+|---|---|---|---|---|---|---|---|
+| `state.md` | `$delivery-loop` (sole writer) | the session at bind and SessionStart | every owner or context boundary | four narrative fields, 8192 bytes total | `krn state check` and `test/state/*` | rewritten in place, deleted with the run at cleanup | delivery-loop |
+| `boundary.md` | `krn_memory.py` on PreCompact | the post-compaction session, because PreCompact `additionalContext` retention is unproven | PreCompact on a continuing capsule | one small file per run | `test/hooks-guard.test.mjs` | rewritten at each PreCompact, never written for a non-continuing capsule, deleted with the run | delivery-loop cleanup |
+| `workflow-lessons.md` | maintainer session | `krn memory recall` and `changes check` before mutation | path, symbol, or churn trigger match on the change | 24 active rows, bounded by displacement | `npm run lessons:verify` and `npm run test:lessons` | retire with `retired@<sha>`; a zero-delivery row leaves the budget | maintainer |
+| `lab-tests.md` | maintainer session | `$source-to-decision` and the review fixed point | a behavioral claim that needs a registered pilot | 100 non-retired rows | `test/rules/lt-registry.test.mjs` and `test/rules/lt-retention.test.mjs` | `retired@<7-hex>` in the Status cell, tombstones stay | maintainer |
+| `docs/research/` | maintainer session | sessions and operators through the index | a decision or falsifier needs durable synthesis | one page per topic, state and reopen condition in the index | `npm run test:durable-pages` | rework in place; a page with no reader is deleted | maintainer |
+| `docs/adr/` | maintainer session | instruction and skill owners, by link only | a rare, hard-to-reverse trade-off | one ADR per decision, no restatement elsewhere | each ADR supersession rule and `npm run test:durable-pages` | superseded by a successor that names the migrator | maintainer |
+| `CONTEXT.md` | maintainer session | every session and operator as the compact model | vocabulary or knowledge-map change | one index line per artifact | `test/rules/instruction-ownership.test.mjs` and `npm run test:durable-pages` | update in place in the change that moves the vocabulary | maintainer |
+| `.scratch/tickets/` | `krn ticket` verbs and the maintainer | `krn ticket next` and `check`, the lane runner, and the session brief | claim, close, fail, or frontier read | ignored local queue, one ready item in flight | `krn ticket check` | terminal status, superseded through typed links | maintainer |
+| `krn memory recall` | lesson triggers | the session before mutating a triggered path or symbol | changed path, symbol, or churn match | advisory hit; `--strict-recall` blocks in lanes | `test/lessons/recall-hit-rate.test.mjs` and `test/lessons/lesson-trigger-hygiene.test.mjs` | trigger removed or lesson retired when delivery stays zero | maintainer |
+| `krn_memory.py` | maintainer session, installed by release | the SessionStart and PreCompact host events | session start in a managed tree, or PreCompact on a continuing capsule | one capsule note or one queue line | `test/hooks-guard.test.mjs` and `test/hooks-queue-brief.test.mjs` | hook policy change; adoption stays explicit-only | maintainer |
+| `e2e-compare.mjs` | maintainer session | the frozen harness-vs-vanilla measurement with per-component ablation | baseline and paired runs at a fixed SHA | at least 3 paired trials with tokens and wall recorded | `test/harness/e2e-compare.test.mjs` | retire when the measurement lands or its window expires | maintainer |
+| `mutation-probe.mjs` | maintainer session | `npm run test:lib` | every gate run over the audit and contract spines | 8 to 12 hand-listed mutants | `test/audit/mutation-probe.test.mjs` | replace only with a diff-scoped mutation mode | maintainer |
+
+### ADR 0001 first decisions (2026-09-20)
+
+Each surface below carries a named consumer, an invalidation rule, and a
+deletion owner, or it is deleted in the sh-104 pass:
+
+- `docs/BRIEF.md` with the `krn brief` station: deleted. No reader exists, and
+  the file is a second copy of `workflow-lessons.md` and `lab-tests.md`.
+- `boundary.md`: kept. The reader is the post-compaction session, and LT-6 is
+  the evidence that the on-disk file is the mechanical guarantee.
+- `e2e-compare.mjs`: kept. The consumer is the frozen paired measurement with
+  per-component ablation required by the measurement phase.
+- `falsifier-mutate.mjs`: deleted. It is fixture-only per LT-76 and subsumed by
+  `changes check --before` plus `mutation-probe.mjs`.
+- `mutation-probe.mjs`: kept as the single mutation owner; it runs the
+  hand-listed mutants against the audit and contract spines on every `test:lib`.
+- `flake-classify.mjs`: deleted. No production consumer exists and no runner
+  has adopted the retry ordering.
+- ADR 0001 to 0004: kept as link-only. Consumers link to them; no surface
+  restates their decisions.
+
+The delivery hit-rate tripwire is disposed by measurement, not by prose. On
+2026-09-20 `krn memory usage` reported 7 triggered lessons, 3 of them with any
+delivery, 89 hits, 3 binds, and 3 recalls, while the last 100 commits carried
+exactly one `Recall` trailer. The ADR 0004 hottest surface
+`path:scripts/lib/install/**` had no trigger at all, so the installed-runtime-
+closure lesson gains it. The four frontend triggers keep their consumer, the
+parked frontend outcome, and their zero hits in this checkout are expected
+rather than dead.

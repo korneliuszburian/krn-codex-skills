@@ -13,7 +13,6 @@
     "config/upstream-sources.json",
     "scripts/catalog.mjs",
     "scripts/krn-codex-catalog.mjs",
-    "scripts/lib/brief/compile.mjs",
     "scripts/lib/catalog/catalog-config.mjs",
     "scripts/lib/catalog/catalog-desired.mjs",
     "scripts/lib/catalog/catalog-document.mjs",
