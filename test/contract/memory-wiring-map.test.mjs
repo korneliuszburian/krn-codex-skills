@@ -24,6 +24,7 @@ const ARTIFACTS = [
   "krn_memory.py",
   "e2e-compare.mjs",
   "lane-runner.mjs",
+  "test/harness/tasks/",
   "mutation-probe.mjs",
 ];
 
