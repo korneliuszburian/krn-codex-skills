@@ -46,6 +46,7 @@ const HISTORICAL_REFERENCES = new Set([
   "docs/research/lab-tests.md:test/contract/flake-classify.test.mjs",
   "docs/research/orchestration.md:docs/adr/0003",
   "docs/research/orchestration.md:docs/BRIEF.md",
+  "docs/research/orchestration.md:config/paths.json",
 ]);
 
 function formatStaleReference(finding) {
