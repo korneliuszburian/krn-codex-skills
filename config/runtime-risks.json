@@ -75,6 +75,7 @@
     { "path": "scripts/lib/kernel/cli.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/digest.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/git.mjs", "class": "read-only" },
+    { "path": "scripts/lib/kernel/js.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/json.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/proc.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/repo-root.mjs", "class": "read-only" },
@@ -96,8 +97,6 @@
       "class": "destructive",
       "authority": "Authority: destructive helper; callers must pass a confined target below the working root and guard against the repository root itself."
     },
-    { "path": "scripts/lib/support/source-mask.mjs", "class": "read-only" },
-    { "path": "scripts/lib/support/symbol-triggers.mjs", "class": "read-only" },
     {
       "path": "scripts/lib/support/write-atomic.mjs",
       "class": "destructive",

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { changedLineNumbers, extractSymbols, removedLineNumbers, touchedSymbolFiles } from "../../scripts/lib/support/symbol-triggers.mjs";
+import { changedLineNumbers, extractSymbols, removedLineNumbers, touchedSymbolFiles } from "../../scripts/lib/kernel/js.mjs";
 
 const touchedSymbols = (args) => [...touchedSymbolFiles(args).keys()];
 

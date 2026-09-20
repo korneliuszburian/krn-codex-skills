@@ -6,10 +6,9 @@ import { readJson } from "../kernel/json.mjs";
 import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings, triggerEntries as lessonTriggerEntries } from "../lessons/lessons.mjs";
 import { globToRegex } from "../kernel/text.mjs";
 import { withWorktree } from "../kernel/worktree.mjs";
-import { touchedSymbolFiles } from "../support/symbol-triggers.mjs";
 import { churnHot } from "../support/churn.mjs";
 import { runGit } from "../kernel/git.mjs";
-import { maskLiterals, stripComments } from "../support/source-mask.mjs";
+import { maskLiterals, stripComments, touchedSymbolFiles } from "../kernel/js.mjs";
 import {
   changedFilesUnder, checkFileRedefined, frozenNodeArgs, frozenRedOk, frozenTestsFor,
   isTestFile, listTestFiles, listTestFilesIn, normalizeRef, outputTail, resolveCheck, runCheck,
