@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -37,6 +37,11 @@ const withWorkspace = (taskId, run) => {
     rmSync(workspace, { recursive: true, force: true });
   }
 };
+
+test("the task-set observer is wired into the library gate", () => {
+  const scripts = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).scripts;
+  assert.match(scripts["test:lib"] ?? "", /test\/harness\/tasks\.test\.mjs/, "the task-set observer must run in test:lib");
+});
 
 test("the held-out task set is present and complete", () => {
   assert.deepEqual(taskIds(), EXPECTED, "the task set must carry the three held-out tasks");
