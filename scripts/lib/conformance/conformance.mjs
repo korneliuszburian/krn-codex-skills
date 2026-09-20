@@ -106,7 +106,7 @@ function runCase({ candidate, entry, workRoot = os.tmpdir() }) {
     buildFixture(dir, entry.steps);
     if (entry.after) {
       const head = git(dir, ["rev-parse", "HEAD"]);
-      const sha = head.status === 0 ? head.stdout.trim() : "";
+      const sha = head.status === 0 ? head.out.trim() : "";
       if (!sha) throw new Error("fixture has no HEAD to substitute");
       for (const [relative, content] of Object.entries(entry.after)) {
         const target = path.join(dir, relative);

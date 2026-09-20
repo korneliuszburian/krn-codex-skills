@@ -73,10 +73,10 @@ test("the manifest and package bins retire the krn-codex entry", () => {
   );
 });
 
-test("the base-ref conformance invocation keeps the frozen shim alive", () => {
+test("the base-ref conformance invocation applies the frozen case list with the candidate runner", () => {
   const workflow = fs.readFileSync(path.join(sourceRoot, ".github", "workflows", "validate.yml"), "utf8");
-  assert.match(workflow, /\/tmp\/krn-conformance\/scripts\/krn-codex\.mjs conformance check/);
-  assert.doesNotMatch(workflow, /node scripts\/krn-codex\.mjs/);
+  assert.match(workflow, /node scripts\/krn\.mjs conformance check --root \/tmp\/krn-conformance --candidate "\$PWD" --frozen/);
+  assert.doesNotMatch(workflow, /\/tmp\/krn-conformance\/scripts\/krn-codex\.mjs/);
   assert.ok(
     fs.existsSync(path.join(sourceRoot, "scripts", "krn-codex.mjs")),
     "the frozen shim file must stay in the repository",
