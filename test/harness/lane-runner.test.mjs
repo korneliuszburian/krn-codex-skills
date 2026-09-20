@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -61,6 +61,7 @@ test("the harness task carries its workspace and setup", () => {
 });
 
 test("the lane runner refuses a missing agent or check", () => {
+  assert.ok(existsSync(ADAPTER), "scripts/harness/lane-runner.mjs must exist");
   const dir = fixture();
   try {
     const withoutAgent = { ...env(), KRN_HARNESS_AGENT: "" };
@@ -85,6 +86,7 @@ test("the lane runner refuses a missing agent or check", () => {
 });
 
 test("the fixture lanes separate vanilla from full with a detectable delta", () => {
+  assert.ok(existsSync(ADAPTER), "scripts/harness/lane-runner.mjs must exist");
   const dir = fixture();
   try {
     const result = spawnSync(
