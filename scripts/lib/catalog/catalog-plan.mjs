@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { sha256Hex } from "../kernel/digest.mjs";
 
 import { ConfigReconcileError } from "./catalog-errors.mjs";
 import { applyOperations, appendPrefix, assertSingleBlock, indexNamedBlocks, parseSkillPath, quoteToml, removeBlock, setEnabled, skillPathContainsQuarantine, MCP_SERVER_KEYS, PLUGIN_KEYS, SKILL_KEYS } from "./catalog-document.mjs";
@@ -8,7 +8,7 @@ import { matchesQuarantined, pluginFamilyFromId } from "./plugin-identity.mjs";
 
 
 export function digest(source) {
-  return createHash("sha256").update(source).digest("hex");
+  return sha256Hex(source);
 }
 
 export function planCatalogConfig({

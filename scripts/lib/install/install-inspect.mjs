@@ -1,9 +1,9 @@
-import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { sha256Hex } from "../kernel/digest.mjs";
 import { gitText as git, gitTopLevel, runGitRaw } from "../kernel/git.mjs";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { isInside, posixRelative } from "../support/path-rules.mjs";
@@ -46,7 +46,6 @@ export function digestKey(value) {
 }
 
 export function digestTree(root) {
-  const hash = crypto.createHash("sha256");
   const entries = [];
   function visit(relative = "") {
     const absolute = path.join(root, relative);
@@ -61,14 +60,13 @@ export function digestTree(root) {
     }
   }
   visit();
+  const parts = [];
   for (const relative of entries) {
     // Content-only hashing: the extractor's umask must not move the trust
     // anchor, so the executable bit is deliberately not part of the digest.
-    hash.update(`${relative}\0`);
-    hash.update(fs.readFileSync(path.join(root, relative)));
-    hash.update("\0");
+    parts.push(`${relative}\0`, fs.readFileSync(path.join(root, relative)), "\0");
   }
-  return { digest: hash.digest("hex"), files: entries };
+  return { digest: sha256Hex(...parts), files: entries };
 }
 
 // The pre-sh-56 digest spelling is retained so a release sealed before the
@@ -76,7 +74,6 @@ export function digestTree(root) {
 // It differs in key spelling (path.join), sibling order (localeCompare), and
 // the executable bit; a release whose bytes match this digest is `superseded`.
 export function legacyDigestTree(root) {
-  const hash = crypto.createHash("sha256");
   const entries = [];
   function visit(relative = "") {
     const absolute = path.join(root, relative);
@@ -89,13 +86,12 @@ export function legacyDigestTree(root) {
     }
   }
   visit();
+  const parts = [];
   for (const relative of entries) {
     const stat = fs.statSync(path.join(root, relative));
-    hash.update(`${relative}\0${stat.mode & 0o111 ? "x" : "-"}\0`);
-    hash.update(fs.readFileSync(path.join(root, relative)));
-    hash.update("\0");
+    parts.push(`${relative}\0${stat.mode & 0o111 ? "x" : "-"}\0`, fs.readFileSync(path.join(root, relative)), "\0");
   }
-  return { digest: hash.digest("hex"), files: entries };
+  return { digest: sha256Hex(...parts), files: entries };
 }
 
 // A failed release is not automatically a broken link: each corruption family

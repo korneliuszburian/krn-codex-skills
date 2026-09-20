@@ -45,6 +45,7 @@
     "scripts/lib/install/install-seal.mjs",
     "scripts/lib/install/skill-metadata.mjs",
     "scripts/lib/install/skills-export.mjs",
+    "scripts/lib/kernel/digest.mjs",
     "scripts/lib/kernel/git.mjs",
     "scripts/lib/kernel/json.mjs",
     "scripts/lib/kernel/repo-root.mjs",
