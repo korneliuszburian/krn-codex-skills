@@ -8,7 +8,8 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, write
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { spawnSync } from "node:child_process";
+
+import { runProcess } from "../lib/kernel/proc.mjs";
 
 const ALL_ON = { skills: true, memory: true, brief: true, hooks: true };
 export const LANES = {
