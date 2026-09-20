@@ -18,6 +18,7 @@
       "class": "destructive",
       "authority": "Authority: install, retire, and rollback subcommands mutate the user's global capability index and require an explicit operator request."
     },
+    { "path": "scripts/lib/brief/compile.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-config.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-desired.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-document.mjs", "class": "read-only" },
