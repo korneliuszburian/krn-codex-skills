@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+
+import { runProcess } from "../kernel/proc.mjs";
 
 const COMMIT_ENV = {
   GIT_AUTHOR_NAME: "krn-conformance",
@@ -60,13 +61,13 @@ export function caseIds(file) {
 }
 
 function git(dir, args) {
-  return spawnSync("git", args, { cwd: dir, encoding: "utf8", env: { ...process.env, ...COMMIT_ENV } });
+  return runProcess("git", args, { cwd: dir, env: { ...process.env, ...COMMIT_ENV } });
 }
 
 function buildFixture(dir, steps) {
   fs.mkdirSync(dir, { recursive: true });
   const init = git(dir, ["init", "-q"]);
-  if (init.status !== 0) throw new Error(`git init failed: ${init.stderr}`);
+  if (init.status !== 0) throw new Error(`git init failed: ${init.err}`);
   for (const step of steps) {
     for (const [relative, content] of Object.entries(step.files ?? {})) {
       const target = path.join(dir, relative);
@@ -75,9 +76,9 @@ function buildFixture(dir, steps) {
     }
     if (step.remove) for (const relative of step.remove) fs.rmSync(path.join(dir, relative), { force: true });
     const added = git(dir, ["add", "-A"]);
-    if (added.status !== 0) throw new Error(`git add failed: ${added.stderr}`);
+    if (added.status !== 0) throw new Error(`git add failed: ${added.err}`);
     const committed = git(dir, ["commit", "-q", "-m", step.message ?? "chore: step"]);
-    if (committed.status !== 0) throw new Error(`git commit failed: ${committed.stderr}`);
+    if (committed.status !== 0) throw new Error(`git commit failed: ${committed.err}`);
   }
 }
 
@@ -116,15 +117,14 @@ function runCase({ candidate, entry, workRoot = os.tmpdir() }) {
     const program = resolveProgram(candidate, entry.program ?? DEFAULT_PROGRAM);
     const rootArg = entry.rootArg === undefined ? "--root" : entry.rootArg;
     const argv = rootArg ? [...entry.run, rootArg, dir] : [...entry.run];
-    const run = spawnSync(process.execPath, [program, ...argv], {
+    const run = runProcess(process.execPath, [program, ...argv], {
       cwd: dir,
-      encoding: "utf8",
       timeout: entry.timeoutMs ?? 120000,
       env: { ...process.env, KRN_CHANGE_CONTRACT: "1" },
     });
-    const outcome = { exit: run.status ?? -1, stdout: run.stdout ?? "", stderr: run.stderr ?? "" };
+    const outcome = { exit: run.status ?? -1, stdout: run.out, stderr: run.err };
     const problems = evaluate(entry, outcome);
-    if (run.error) problems.push(`spawn error: ${run.error.message}`);
+    if (run.errorCode) problems.push(`spawn error: ${run.errorMessage}`);
     return { id: entry.id, ok: problems.length === 0, detail: problems.join("; "), exit: outcome.exit };
   } catch (error) {
     return { id: entry.id, ok: false, detail: error.message, exit: -1 };

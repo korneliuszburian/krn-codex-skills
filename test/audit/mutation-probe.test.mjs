@@ -31,8 +31,8 @@ test("every hand-listed mutation is killed by its focused suite", async () => {
 test("the probe reports a mutant as surviving when its suite stays green", async () => {
   const probe = await loadProbe();
   assert.ok(probe, "scripts/lib/audit/mutation-probe.mjs must exist");
-  const spawn = () => ({ status: 0, stdout: "# tests 1\n# fail 0\n", stderr: "" });
-  const results = probe.runMutationProbe({ root, spawn });
+  const run = () => ({ ok: true, out: "# tests 1\n# fail 0\n", err: "" });
+  const results = probe.runMutationProbe({ root, run });
   assert.equal(results.length, probe.MUTATIONS.length);
   assert.ok(results.every((result) => result.killed === false), JSON.stringify(results));
 });

@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 
 import { posixRelative } from "../support/path-rules.mjs";
 import { readJson } from "../kernel/json.mjs";
+import { runProcess } from "../kernel/proc.mjs";
 import { tapName, tapSummary } from "../kernel/tap.mjs";
 import { TEST_FILE_RE, CODE_EXT, SETUP_FLAGS, testFlagPresent } from "./command-analysis.mjs";
 
@@ -83,13 +83,13 @@ export function resolveCheck(root, scripts, ref) {
 export function runCheck({ root, target, frozenTests = null, frozenArgs = [] }) {
   const env = { ...process.env, KRN_CHANGE_CONTRACT: "0" };
   delete env.NODE_TEST_CONTEXT;
-  const result = target.kind === "script" && frozenTests?.length
-    ? spawnSync(process.execPath, ["--test", "--test-reporter=tap", ...frozenArgs, ...frozenTests], { cwd: root, timeout: 600000, encoding: "utf8", env })
+  const [command, argv] = target.kind === "script" && frozenTests?.length
+    ? [process.execPath, ["--test", "--test-reporter=tap", ...frozenArgs, ...frozenTests]]
     : target.kind === "script"
-      ? spawnSync("npm", ["run", target.name], { cwd: root, timeout: 600000, encoding: "utf8", env })
-      : spawnSync(process.execPath, target.kind === "test" ? ["--test", "--test-reporter=tap", target.name] : [target.name], { cwd: root, timeout: 600000, encoding: "utf8", env });
-  const spawnFailed = result.error !== undefined && result.error !== null || result.status === null;
-  return { ok: result.status === 0, status: result.status, spawnFailed, output: `${result.stdout ?? ""}${result.stderr ?? ""}` };
+      ? ["npm", ["run", target.name]]
+      : [process.execPath, target.kind === "test" ? ["--test", "--test-reporter=tap", target.name] : [target.name]];
+  const result = runProcess(command, argv, { cwd: root, timeout: 600000, env });
+  return { ok: result.ok, status: result.status, spawnFailed: result.errorCode !== null || result.status === null, output: `${result.out}${result.err}` };
 }
 
 export function checkFileRedefined(root, base, git, rel) {

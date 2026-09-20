@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { spawnSync } from "node:child_process";
+
+import { runProcess } from "../kernel/proc.mjs";
 
 const CAPABILITY_KEYS = ["skills", "memory", "brief", "hooks"];
 
@@ -88,10 +89,10 @@ function defaultRunner({ lane, enabled, mutation, task, run, root, runs }) {
   const entrypoint = process.env.KRN_HARNESS_LANE_RUNNER;
   if (!entrypoint) refuse("runner-missing", "set KRN_HARNESS_LANE_RUNNER or inject a runner adapter");
   const payload = JSON.stringify({ lane, enabled, mutation, task: { id: task?.id ?? null, check: task?.check ?? null }, run, runs, root });
-  const outcome = spawnSync(process.execPath, [entrypoint], { cwd: root ?? process.cwd(), input: payload, encoding: "utf8" });
-  if (outcome.error) refuse("runner-spawn-failed", outcome.error.message);
-  if (outcome.status !== 0) refuse("runner-failed", `${lane} run ${run} exited ${outcome.status}: ${(outcome.stderr ?? "").trim()}`);
-  const line = (outcome.stdout ?? "").trim().split("\n").filter(Boolean).at(-1);
+  const outcome = runProcess(process.execPath, [entrypoint], { cwd: root ?? process.cwd(), input: payload });
+  if (outcome.errorCode) refuse("runner-spawn-failed", outcome.errorMessage);
+  if (outcome.status !== 0) refuse("runner-failed", `${lane} run ${run} exited ${outcome.status}: ${outcome.err.trim()}`);
+  const line = outcome.out.trim().split("\n").filter(Boolean).at(-1);
   try {
     return JSON.parse(line);
   } catch {
