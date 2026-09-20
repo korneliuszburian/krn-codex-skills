@@ -4,7 +4,8 @@
 // the configured agent command inside the task workspace with the lane's
 // enabled components, then runs the task's deciding check there and reports the
 // pass verdict, the agent's token count, and the wall time.
-import fs from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 
@@ -12,7 +13,7 @@ import { runProcess } from "../lib/kernel/proc.mjs";
 
 function readStdin() {
   try {
-    return fs.readFileSync(0, "utf8");
+    return readFileSync(0, "utf8");
   } catch {
     return "";
   }
@@ -46,31 +47,39 @@ function main() {
   const agent = process.env.KRN_HARNESS_AGENT;
   if (!agent || !agent.trim()) refuse("agent-missing", "set KRN_HARNESS_AGENT to the agent command");
   const root = path.resolve(payload.root ?? process.cwd());
-  const workspace = task.workspace ? path.resolve(root, task.workspace) : root;
-  if (!fs.existsSync(workspace)) refuse("workspace-missing", workspace);
+  const source = task.workspace ? path.resolve(root, task.workspace) : root;
+  if (!existsSync(source)) refuse("workspace-missing", source);
+  // Each run gets its own copy so a repository-tracked task is never mutated
+  // and two lanes can never share state.
+  const disposable = mkdtempSync(path.join(tmpdir(), "krn-harness-workspace-"));
+  const workspace = disposable;
+  try {
+    cpSync(source, disposable, { recursive: true });
+    if (task.setup) {
+      const setup = runProcess("sh", ["-c", task.setup], { cwd: workspace });
+      if (!setup.ok) refuse("setup-failed", setup.err.trim() || `exit ${setup.status}`);
+    }
 
-  if (task.setup) {
-    const setup = runProcess("sh", ["-c", task.setup], { cwd: workspace });
-    if (!setup.ok) refuse("setup-failed", setup.err.trim() || `exit ${setup.status}`);
+    const started = Date.now();
+    const agentRun = runProcess("sh", ["-c", agent], {
+      cwd: workspace,
+      input: JSON.stringify({
+        lane: payload.lane ?? null,
+        enabled: payload.enabled ?? {},
+        prompt: task.prompt ?? "",
+        workspace,
+        run: payload.run ?? null,
+        runs: payload.runs ?? null,
+      }),
+    });
+    if (agentRun.errorCode) refuse("agent-spawn-failed", agentRun.errorMessage);
+    const tokens = Number(lastJsonLine(agentRun.out)?.tokens) || 0;
+    const checked = runProcess("sh", ["-c", check], { cwd: workspace });
+    const wallSeconds = Math.round((Date.now() - started) / 100) / 10;
+    process.stdout.write(`${JSON.stringify({ pass: checked.ok, tokens, wallSeconds })}\n`);
+  } finally {
+    rmSync(disposable, { recursive: true, force: true });
   }
-
-  const started = Date.now();
-  const agentRun = runProcess("sh", ["-c", agent], {
-    cwd: workspace,
-    input: JSON.stringify({
-      lane: payload.lane ?? null,
-      enabled: payload.enabled ?? {},
-      prompt: task.prompt ?? "",
-      workspace,
-      run: payload.run ?? null,
-      runs: payload.runs ?? null,
-    }),
-  });
-  if (agentRun.errorCode) refuse("agent-spawn-failed", agentRun.errorMessage);
-  const tokens = Number(lastJsonLine(agentRun.out)?.tokens) || 0;
-  const checked = runProcess("sh", ["-c", check], { cwd: workspace });
-  const wallSeconds = Math.round((Date.now() - started) / 100) / 10;
-  process.stdout.write(`${JSON.stringify({ pass: checked.ok, tokens, wallSeconds })}\n`);
 }
 
 main();
