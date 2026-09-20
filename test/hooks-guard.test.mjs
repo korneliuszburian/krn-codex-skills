@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -41,6 +41,22 @@ test("apply_patch move into a protected path is denied", () => {
 test("apply_patch move to an ordinary path stays allowed", () => {
   const command = "*** Begin Patch\n*** Update File: notes.md\n*** Move to: docs/notes.md\n+x\n*** End Patch";
   assert.equal(decision("apply_patch", command), null);
+});
+
+test("apply_patch may update the repository's own instruction file", () => {
+  const command = "*** Begin Patch\n*** Update File: AGENTS.md\n+<!-- note -->\n*** End Patch";
+  assert.equal(decision("apply_patch", command), null, "the repository owner may update its instruction file");
+});
+
+test("apply_patch may not delete or move onto the repository instruction file", () => {
+  assert.ok(decision("apply_patch", "*** Begin Patch\n*** Delete File: AGENTS.md\n*** End Patch"), "deleting AGENTS.md must stay denied");
+  assert.ok(decision("apply_patch", "*** Begin Patch\n*** Update File: notes.md\n*** Move to: AGENTS.md\n+x\n*** End Patch"), "moving onto AGENTS.md must stay denied");
+});
+
+test("the installed global instruction file and shell writers stay denied", () => {
+  const global = join(homedir(), ".codex", "AGENTS.md");
+  assert.ok(decision("apply_patch", `*** Begin Patch\n*** Update File: ${global}\n+x\n*** End Patch`), "the installed global instruction file must stay denied");
+  assert.ok(decision("Bash", "sed -i s/a/b/ AGENTS.md"), "a shell writer to the repository instruction file stays denied");
 });
 
 test("cp target-directory into a protected path is denied", () => {
