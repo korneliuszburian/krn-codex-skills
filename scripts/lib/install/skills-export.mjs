@@ -1,6 +1,7 @@
 import { gitBlobHash, sha256Hex } from "../kernel/digest.mjs";
 import { gitText as git, runGitRaw } from "../kernel/git.mjs";
 import { readJson } from "../kernel/json.mjs";
+import { walkFiles } from "../kernel/walk.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
@@ -11,17 +12,10 @@ const MARKER = ".krn-export.json";
 const BUDGET = 8000;
 
 function directoryDigest(directory) {
-  const walk = (dir) =>
-    fs
-      .readdirSync(dir, { withFileTypes: true })
-      .sort((left, right) => left.name.localeCompare(right.name))
-      .flatMap((entry) => {
-        const full = path.join(dir, entry.name);
-        return entry.isDirectory() ? walk(full) : [[posixRelative(directory, full), full]];
-      });
+  const entries = walkFiles(directory, { compare: (left, right) => left.name.localeCompare(right.name) });
   const parts = [];
-  for (const [relativePath, file] of walk(directory)) {
-    parts.push(relativePath, "\0", fs.readFileSync(file), "\0");
+  for (const entry of entries) {
+    parts.push(entry.relative, "\0", fs.readFileSync(entry.path), "\0");
   }
   return sha256Hex(...parts);
 }

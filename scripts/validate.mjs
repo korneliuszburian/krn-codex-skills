@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { loadCapabilityProfiles } from "./lib/catalog/catalog-inventory.mjs";
 import { readJson } from "./lib/kernel/json.mjs";
+import { walkFiles } from "./lib/kernel/walk.mjs";
 import { posixRelative } from "./lib/support/path-rules.mjs";
 import { ABI_LABELS } from "./lib/state/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/rules/durable-pages.mjs";
@@ -64,30 +65,11 @@ function fail(message) {
 }
 
 function filesNamed(directory, basename) {
-  const results = [];
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const file = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      results.push(...filesNamed(file, basename));
-    } else if (entry.name === basename) {
-      results.push(file);
-    }
-  }
-  return results;
+  return walkFiles(directory, { filter: (entry) => entry.dirent.name === basename }).map((entry) => entry.path);
 }
 
 function filesUnder(directory, predicate = () => true) {
-  if (!fs.existsSync(directory)) return [];
-  const results = [];
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const file = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      results.push(...filesUnder(file, predicate));
-    } else if (predicate(file)) {
-      results.push(file);
-    }
-  }
-  return results;
+  return walkFiles(directory, { filter: (entry) => predicate(entry.path) }).map((entry) => entry.path);
 }
 
 function validateMarkdownLinks(file) {

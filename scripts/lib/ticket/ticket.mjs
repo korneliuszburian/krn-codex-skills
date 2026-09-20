@@ -7,6 +7,7 @@ import { parseChangeContract } from "../contract/change-contract.mjs";
 import { sha256Hex } from "../kernel/digest.mjs";
 import { runGit, runGitInput, runGitRaw } from "../kernel/git.mjs";
 import { globToRegex } from "../kernel/text.mjs";
+import { walkFiles } from "../kernel/walk.mjs";
 import { writeAtomic } from "../support/write-atomic.mjs";
 
 const STATUSES = new Set(["ready", "claimed", "blocked", "in-review", "done", "abandoned", "deferred"]);
@@ -531,22 +532,9 @@ export function findTicketFile({ root, dirs = DEFAULT_DIRS, id } = {}) {
 }
 
 function markdownFiles(root, dirs) {
-  const files = [];
-  const walk = (dir) => {
-    let entries;
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.isFile() && entry.name.endsWith(".md")) files.push(full);
-    }
-  };
-  for (const dir of dirs) walk(path.join(root, dir));
-  return files.sort();
+  return dirs
+    .flatMap((dir) => walkFiles(path.join(root, dir), { filter: (entry) => entry.dirent.name.endsWith(".md") }).map((entry) => entry.path))
+    .sort();
 }
 
 function blockerIds(value) {

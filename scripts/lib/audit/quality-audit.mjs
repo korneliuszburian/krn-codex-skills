@@ -1,21 +1,16 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 
 import { churnHot } from "../support/churn.mjs";
 import { runGit } from "../kernel/git.mjs";
 import { maskLiterals, stripComments } from "../kernel/js.mjs";
+import { walkFiles } from "../kernel/walk.mjs";
 
 const SELF = "scripts/lib/audit/quality-audit.mjs";
 
-const walk = (directory, keep = (candidate) => candidate.endsWith(".mjs")) => {
-  if (!existsSync(directory)) return [];
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) return walk(path, keep);
-    return entry.isFile() && keep(path) ? [path] : [];
-  });
-};
+const walk = (directory, keep = (candidate) => candidate.endsWith(".mjs")) =>
+  walkFiles(directory, { filter: (entry) => keep(entry.path) }).map((entry) => entry.path);
 
 const functionDeclarations = (source) =>
   [...source.matchAll(/(?:export\s+)?(?:async\s+)?function\*?\s+([A-Za-z0-9_$]+)\s*\(/g)].map((m) => m[1]);

@@ -81,6 +81,7 @@
     { "path": "scripts/lib/kernel/repo-root.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/tap.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/text.mjs", "class": "read-only" },
+    { "path": "scripts/lib/kernel/walk.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/worktree.mjs", "class": "read-only" },
     { "path": "scripts/lib/lessons/lessons.mjs", "class": "read-only" },
     { "path": "scripts/lib/state/capsule-abi.mjs", "class": "read-only" },
