@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -26,6 +26,17 @@ const FAKE = [
   'process.stdout.write(`${JSON.stringify({ type: "step_finish", part: { tokens: { total: 42 } } })}\\n`);',
 ].join("\n");
 
+function fixtureHome(dir) {
+  const home = path.join(dir, "home");
+  mkdirSync(path.join(home, ".agents", "skills"), { recursive: true });
+  mkdirSync(path.join(home, ".config", "opencode", "plugins"), { recursive: true });
+  mkdirSync(path.join(home, ".local", "share", "opencode"), { recursive: true });
+  writeFileSync(path.join(home, ".config", "opencode", "AGENTS.md"), "# KRN contract\n");
+  writeFileSync(path.join(home, ".config", "opencode", "opencode.json"), "{}\n");
+  writeFileSync(path.join(home, ".local", "share", "opencode", "auth.json"), "{}\n");
+  return home;
+}
+
 function runAdapter(enabled) {
   assert.ok(existsSync(ADAPTER), "scripts/harness/opencode-agent.mjs must exist");
   const dir = mkdtempSync(path.join(tmpdir(), "krn-opencode-agent-"));
@@ -37,7 +48,12 @@ function runAdapter(enabled) {
     const result = spawnSync(process.execPath, [ADAPTER], {
       input: JSON.stringify({ lane: "full", enabled, prompt: "fix the bug", workspace: root, run: 1, runs: 1 }),
       encoding: "utf8",
-      env: { ...process.env, KRN_HARNESS_OPENCODE: fake, KRN_FAKE_OUT: out },
+      env: {
+        ...process.env,
+        KRN_HARNESS_OPENCODE: fake,
+        KRN_FAKE_OUT: out,
+        KRN_HARNESS_AGENT_HOME: fixtureHome(dir),
+      },
     });
     assert.equal(result.status, 0, result.stderr);
     return { seen: JSON.parse(readFileSync(out, "utf8")), stdout: result.stdout.trim() };

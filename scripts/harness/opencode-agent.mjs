@@ -16,7 +16,9 @@ import process from "node:process";
 
 import { runProcess } from "../lib/kernel/proc.mjs";
 
-const REAL_HOME = homedir();
+// The installed surfaces live under the real home; a test supplies a fixture
+// home so the lane's materialization is observed without a host installation.
+const REAL_HOME = process.env.KRN_HARNESS_AGENT_HOME ?? homedir();
 const OPENCODE = process.env.KRN_HARNESS_OPENCODE ?? path.join(REAL_HOME, ".opencode", "bin", "opencode");
 const MODEL = process.env.KRN_HARNESS_MODEL ?? "opencode-go/deepseek-v4.1-flash";
 
