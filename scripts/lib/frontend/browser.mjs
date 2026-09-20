@@ -1,8 +1,8 @@
-import { createHash } from "node:crypto";
 import { execFile, spawn } from "node:child_process";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { once } from "node:events";
+import { sha256Hex } from "../kernel/digest.mjs";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -89,7 +89,6 @@ export function measurementEval(extra) {
   return `(() => { const out = ${MEASUREMENTS}; ${extra}\nreturn out; })()`;
 }
 
-const sha256 = (buffer) => createHash("sha256").update(buffer).digest("hex");
 const artifactsFile = (outputDirectory) => path.join(outputDirectory, "manifest.json");
 const signatureFile = (outputDirectory) => path.join(outputDirectory, "signature.json");
 
@@ -129,7 +128,7 @@ async function inventory(directory, prefix = "") {
     if (entry.isDirectory()) entries.push(...await inventory(path.join(directory, entry.name), relative));
     else if (entry.isFile()) {
       const data = await readFile(path.join(directory, entry.name));
-      entries.push({ path: relative.split(path.sep).join("/"), bytes: data.byteLength, sha256: sha256(data) });
+      entries.push({ path: relative.split(path.sep).join("/"), bytes: data.byteLength, sha256: sha256Hex(data) });
     }
   }
   return entries.sort((left, right) => left.path.localeCompare(right.path));
@@ -219,7 +218,7 @@ export async function captureEvidence({ configFile, run = runTool }) {
   const artifacts = [];
   for (const name of names) {
     const data = await readFile(path.join(outputDirectory, name));
-    artifacts.push({ path: name, bytes: data.byteLength, sha256: sha256(data) });
+    artifacts.push({ path: name, bytes: data.byteLength, sha256: sha256Hex(data) });
   }
   const runtimeValue = JSON.parse(await readFile(path.join(outputDirectory, "runtime.json"), "utf8"));
   const measurements = typeof runtimeValue === "string" ? JSON.parse(runtimeValue) : runtimeValue;
@@ -250,7 +249,7 @@ export async function approveEvidence({ configFile, by, note }) {
   const manifest = await readFile(artifactsFile(outputDirectory));
   const signature = {
     schema: "krn.frontend.browser-signature.v1",
-    manifest: sha256(manifest),
+    manifest: sha256Hex(manifest),
     by: by.trim(),
     at: new Date().toISOString(),
     note: note.trim(),
@@ -277,7 +276,7 @@ async function gateFailures({ config, root, outputDirectory, requireSignature = 
   for (const artifact of manifest.artifacts ?? []) {
     try {
       const data = await readFile(path.join(outputDirectory, artifact.path));
-      if (data.byteLength !== artifact.bytes || sha256(data) !== artifact.sha256) failures.push(`${artifact.path}: digest or byte count mismatch`);
+      if (data.byteLength !== artifact.bytes || sha256Hex(data) !== artifact.sha256) failures.push(`${artifact.path}: digest or byte count mismatch`);
     } catch {
       failures.push(`${artifact.path}: missing`);
     }
@@ -285,7 +284,7 @@ async function gateFailures({ config, root, outputDirectory, requireSignature = 
   for (const file of manifest.build?.files ?? []) {
     try {
       const data = await readFile(path.join(root, manifest.build.outputRoot, file.path));
-      if (data.byteLength !== file.bytes || sha256(data) !== file.sha256) failures.push(`build/${file.path}: digest or byte count mismatch`);
+      if (data.byteLength !== file.bytes || sha256Hex(data) !== file.sha256) failures.push(`build/${file.path}: digest or byte count mismatch`);
     } catch {
       failures.push(`build/${file.path}: missing`);
     }
@@ -305,7 +304,7 @@ async function gateFailures({ config, root, outputDirectory, requireSignature = 
   if (requireSignature) {
     try {
       const signature = JSON.parse(await readFile(signatureFile(outputDirectory), "utf8"));
-      const current = sha256(await readFile(artifactsFile(outputDirectory)));
+      const current = sha256Hex(await readFile(artifactsFile(outputDirectory)));
       if (signature.manifest !== current) failures.push("signature: manifest changed after approval");
       if (signature.schema !== "krn.frontend.browser-signature.v1") failures.push("signature: unknown schema");
       if (typeof signature.by !== "string" || signature.by.trim() === "") failures.push("signature: missing approver");

@@ -1,10 +1,10 @@
 
-import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { parseChangeContract } from "../contract/change-contract.mjs";
+import { sha256Hex } from "../kernel/digest.mjs";
 import { runGit, runGitInput, runGitRaw } from "../kernel/git.mjs";
 import { globToRegex } from "../kernel/text.mjs";
 import { writeAtomic } from "../support/write-atomic.mjs";
@@ -408,7 +408,7 @@ export function envFingerprint({
   totalmem = os.totalmem(),
   node = process.versions.node,
 } = {}) {
-  const host = createHash("sha256").update(String(hostname)).digest("hex").slice(0, 12);
+  const host = sha256Hex(String(hostname)).slice(0, 12);
   const mem = Math.round(totalmem / 1024 ** 3);
   return `host=${host}; cpu=${cpus}; mem=${mem}; node=${node}`;
 }

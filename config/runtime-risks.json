@@ -72,6 +72,7 @@
     },
     { "path": "scripts/lib/lessons/lessons-recall.mjs", "class": "read-only" },
     { "path": "scripts/lib/lessons/lessons-verify.mjs", "class": "read-only" },
+    { "path": "scripts/lib/kernel/digest.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/git.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/json.mjs", "class": "read-only" },
     { "path": "scripts/lib/kernel/repo-root.mjs", "class": "read-only" },

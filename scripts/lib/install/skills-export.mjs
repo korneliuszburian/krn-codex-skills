@@ -1,6 +1,6 @@
+import { gitBlobHash, sha256Hex } from "../kernel/digest.mjs";
 import { gitText as git, runGitRaw } from "../kernel/git.mjs";
 import { readJson } from "../kernel/json.mjs";
-import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
@@ -11,7 +11,6 @@ const MARKER = ".krn-export.json";
 const BUDGET = 8000;
 
 function directoryDigest(directory) {
-  const hash = crypto.createHash("sha256");
   const walk = (dir) =>
     fs
       .readdirSync(dir, { withFileTypes: true })
@@ -20,13 +19,11 @@ function directoryDigest(directory) {
         const full = path.join(dir, entry.name);
         return entry.isDirectory() ? walk(full) : [[posixRelative(directory, full), full]];
       });
+  const parts = [];
   for (const [relativePath, file] of walk(directory)) {
-    hash.update(relativePath);
-    hash.update("\0");
-    hash.update(fs.readFileSync(file));
-    hash.update("\0");
+    parts.push(relativePath, "\0", fs.readFileSync(file), "\0");
   }
-  return hash.digest("hex");
+  return sha256Hex(...parts);
 }
 
 function harnessCommit(source) {
@@ -187,7 +184,6 @@ export function exportSkills({ source, upstream, root }) {
     fs.cpSync(path.join(resolvedUpstream, relative), path.join(skillsDir, name), { recursive: true, dereference: true });
     skills.push({ name, origin: "upstream", description: skillMetadata(path.join(resolvedUpstream, relative, "SKILL.md"))?.description ?? "" });
   }
-  const blobHash = (buffer) => crypto.createHash("sha1").update(`blob ${buffer.length}\0`).update(buffer).digest("hex");
   for (const dir of harnessDirs) {
     const exportedDir = path.join(skillsDir, path.basename(dir));
     const files = [];
@@ -202,7 +198,7 @@ export function exportSkills({ source, upstream, root }) {
     for (const rel of files) {
       const repoRel = `${dir}/${rel}`;
       const pinned = git(resolvedUpstream, ["rev-parse", `${upstreamPin.commit}:${repoRel}`]);
-      const actual = blobHash(fs.readFileSync(path.join(exportedDir, rel)));
+      const actual = gitBlobHash(fs.readFileSync(path.join(exportedDir, rel)));
       if (!pinned || pinned !== actual) {
         throw new Error(`upstream export for ${repoRel} does not match the pinned blob; refusing to certify`);
       }
