@@ -35,6 +35,10 @@ const withDirAsync = async (body) => {
 };
 
 const makeCapsule = (dir, id, outcome, next) => {
+  // A work-tree marker keeps the fixture's root deterministic: without it, a
+  // stray `.git` in an ancestor (for example /tmp/.git on some hosts) makes the
+  // adapter resolve the root above the fixture.
+  mkdirSync(join(dir, ".git"), { recursive: true });
   const capsule = join(dir, ".krn", "runs", "delivery-loop", id);
   mkdirSync(capsule, { recursive: true });
   writeFileSync(
