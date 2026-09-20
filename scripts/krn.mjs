@@ -11,6 +11,7 @@ import { runStateCommand } from "./lib/state/state-cli.mjs";
 import { checkSkills, exportSkills } from "./lib/install/skills-export.mjs";
 import { checkLessons, lessonUsage, recallLessons } from "./lib/lessons/lessons.mjs";
 import { churnHot } from "./lib/support/churn.mjs";
+import { parseCliArgs } from "./lib/kernel/cli.mjs";
 import { runGit } from "./lib/kernel/git.mjs";
 import { reanchorLessons, verifyLessons } from "./lib/lessons/lessons-verify.mjs";
 import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
@@ -60,53 +61,38 @@ const usage = `Usage:
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
 
 const BOOLEAN_FLAGS = { "--json": "json", "--yes": "yes", "--before": "before", "--allow-unsealed": "allowUnsealed", "--gate": "gate", "--approve": "approve", "--strict-recall": "strictRecall", "--frozen": "frozen", "--write": "write", "--check": "check" };
+const VALUE_FLAGS = {
+  "--source": "source",
+  "--root": "root",
+  "--base": "base",
+  "--keep": "keep",
+  "--head": "head",
+  "--variables": "variables",
+  "--metadata": "metadata",
+  "--docs": "docs",
+  "--config": "config",
+  "--by": "by",
+  "--note": "note",
+  "--path": "path",
+  "--id": "id",
+  "--worker": "worker",
+  "--session": "session",
+  "--evidence": "evidence",
+  "--resolution": "resolution",
+  "--candidate": "candidate",
+  "--filter": "filter",
+  "--upstream": "upstream",
+};
+const LIST_FLAGS = { "--changed": "changed", "--symbol": "symbols", "--accept": "accept" };
 
 function parseOptions(args) {
-  const positional = [];
-  const options = { json: false, yes: false };
-  const take = (index, flag) => {
-    const value = args[index + 1];
-    if (value === undefined || value === "" || value.startsWith("--")) fail(`${flag} requires a value`);
-    return value;
-  };
-  const setOnce = (key, flag, value) => {
-    if (options[key] !== undefined) fail(`duplicate option: ${flag}`);
-    options[key] = value;
-  };
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    if (arg in BOOLEAN_FLAGS) options[BOOLEAN_FLAGS[arg]] = true;
-    else if (arg === "--source") setOnce("source", "--source", take(index++, "--source"));
-    else if (arg === "--root") setOnce("root", "--root", take(index++, "--root"));
-    else if (arg === "--base") setOnce("base", "--base", take(index++, "--base"));
-    else if (arg === "--changed") {
-      options.changed = [...(options.changed ?? []), ...take(index++, "--changed").split(",").map((entry) => entry.trim()).filter(Boolean)];
-    } else if (arg === "--symbol") {
-      options.symbols = [...(options.symbols ?? []), ...take(index++, "--symbol").split(",").map((entry) => entry.trim()).filter(Boolean)];
-    } else if (arg === "--keep") setOnce("keep", "--keep", take(index++, "--keep"));
-    else if (arg === "--head") setOnce("head", "--head", take(index++, "--head"));
-    else if (arg === "--variables") setOnce("variables", "--variables", take(index++, "--variables"));
-    else if (arg === "--metadata") setOnce("metadata", "--metadata", take(index++, "--metadata"));
-    else if (arg === "--docs") setOnce("docs", "--docs", take(index++, "--docs"));
-    else if (arg === "--config") setOnce("config", "--config", take(index++, "--config"));
-    else if (arg === "--by") setOnce("by", "--by", take(index++, "--by"));
-    else if (arg === "--note") setOnce("note", "--note", take(index++, "--note"));
-    else if (arg === "--accept") {
-      options.accept = [...(options.accept ?? []), ...take(index++, "--accept").split(",").map((entry) => entry.trim()).filter(Boolean)];
-    }
-    else if (arg === "--path") setOnce("path", "--path", take(index++, "--path"));
-    else if (arg === "--id") setOnce("id", "--id", take(index++, "--id"));
-    else if (arg === "--worker") setOnce("worker", "--worker", take(index++, "--worker"));
-    else if (arg === "--session") setOnce("session", "--session", take(index++, "--session"));
-    else if (arg === "--evidence") setOnce("evidence", "--evidence", take(index++, "--evidence"));
-    else if (arg === "--resolution") setOnce("resolution", "--resolution", take(index++, "--resolution"));
-    else if (arg === "--candidate") setOnce("candidate", "--candidate", take(index++, "--candidate"));
-    else if (arg === "--filter") setOnce("filter", "--filter", take(index++, "--filter"));
-    else if (arg === "--upstream") setOnce("upstream", "--upstream", take(index++, "--upstream"));
-    else if (arg.startsWith("--")) fail(`unknown option: ${arg}`);
-    else positional.push(arg);
-  }
-  return { positional, options };
+  return parseCliArgs(args, {
+    booleans: BOOLEAN_FLAGS,
+    values: VALUE_FLAGS,
+    lists: LIST_FLAGS,
+    defaults: { json: false, yes: false },
+    fail: (message) => fail(message),
+  });
 }
 
 function requireDirectory(root) {

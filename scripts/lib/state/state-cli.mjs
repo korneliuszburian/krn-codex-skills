@@ -2,6 +2,7 @@ import fs from "node:fs";
 import process from "node:process";
 
 import { ABI_LABELS, fieldLine } from "./capsule-abi.mjs";
+import { parseCliArgs } from "../kernel/cli.mjs";
 import { compileCapsule, resumeBrief } from "./state-brief.mjs";
 import { inspectSpineState } from "./state-check.mjs";
 import { EXIT_CODES, fail, renderDiagnostics } from "../support/diagnostics.mjs";
@@ -12,23 +13,12 @@ const VALUE_FLAGS = {
 };
 
 function parseArgs(argv) {
-  const positional = [];
-  const options = { json: false, source: false, yes: false };
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
-    if (arg === "--json") options.json = true;
-    else if (arg === "--source") options.source = true;
-    else if (arg === "--yes") options.yes = true;
-    else if (Object.hasOwn(VALUE_FLAGS, arg)) {
-      const key = VALUE_FLAGS[arg];
-      const value = argv[index + 1];
-      if (value === undefined || value === "" || value.startsWith("--")) fail(`${arg} requires a value`, EXIT_CODES.USAGE);
-      options[key] = value;
-      index += 1;
-    } else if (arg.startsWith("--")) fail(`unknown option: ${arg}`, EXIT_CODES.USAGE);
-    else positional.push(arg);
-  }
-  return { positional, options };
+  return parseCliArgs(argv, {
+    booleans: { "--json": "json", "--source": "source", "--yes": "yes" },
+    values: VALUE_FLAGS,
+    defaults: { json: false, source: false, yes: false },
+    fail: (message) => fail(message, EXIT_CODES.USAGE),
+  });
 }
 
 function print(value, json) {
