@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { splitTableRow } from "../kernel/text.mjs";
+
 const readText = (file) => {
   try {
     return fs.readFileSync(file, "utf8");
@@ -31,7 +33,7 @@ const ELEMENTS = new Set([
 const splitRow = (line) => {
   const trimmed = line.trim();
   if (!trimmed.startsWith("|") || trimmed.length < 2) return null;
-  return trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+  return splitTableRow(trimmed);
 };
 
 function parseTable(markdown, needles) {
