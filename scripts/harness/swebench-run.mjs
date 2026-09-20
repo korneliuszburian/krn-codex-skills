@@ -120,7 +120,7 @@ function main() {
     else if (args[index] === "--out") options.out = take();
     else if (args[index] === "--model") options.model = take();
     else if (args[index] === "--run-id") options.runId = take();
-    else throw new Error(`unknown option: ${args[index]}`);
+    else throw new Error(`unrecognized option: ${args[index]}`);
   }
   if (!options.slice || !options.problems || !options.out) throw new Error("--slice, --problems, and --out are required");
   const enabled = LANES[options.lane];
@@ -134,8 +134,7 @@ function main() {
     const outDir = mkdtempSync(path.join(tmpdir(), `krn-swebench-${instance.instance_id}-`));
     writeFileSync(path.join(outDir, "problem.txt"), problems[instance.instance_id] ?? "");
     const problemFile = path.join(outDir, "problem.txt");
-    const result = spawnSync("docker", containerArgs({ image: instance.image, mounts, model: options.model, problemFile, outDir }), {
-      encoding: "utf8",
+    const result = runProcess("docker", containerArgs({ image: instance.image, mounts, model: options.model, problemFile, outDir }), {
       timeout: 1_500_000,
     });
     const events = existsSync(path.join(outDir, "events.jsonl")) ? readFileSync(path.join(outDir, "events.jsonl"), "utf8") : "";
