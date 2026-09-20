@@ -10,7 +10,7 @@ import { runProcess } from "../../scripts/lib/kernel/proc.mjs";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const TASKS = path.join(root, "test", "harness", "tasks");
-const EXPECTED = ["fail-closed", "single-owner", "slugify"];
+const EXPECTED = ["cube-block", "fail-closed", "single-owner", "slugify"];
 
 const taskIds = () => {
   try {
