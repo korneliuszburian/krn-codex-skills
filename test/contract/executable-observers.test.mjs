@@ -83,7 +83,7 @@ test("an integration merge keeps the worker commit and carries the template", as
       ticket: "sh-1",
       contract: "test/contract/executable-observers.test.mjs:red->green",
     });
-    git(root, ["merge", "--no-ff", "-q", "-m", message, "lane/sh-1"]);
+    git(root, ["-c", "user.email=lab@krn.local", "-c", "user.name=lab", "merge", "--no-ff", "-q", "-m", message, "lane/sh-1"]);
     assert.equal(headBody(root), message);
     assert.match(git(root, ["rev-list", "--count", "HEAD"]), /^[2-9]/);
     assert.match(git(root, ["log", "--format=%s", "-1", "lane/sh-1"]), /feat\(ticket\)/);
