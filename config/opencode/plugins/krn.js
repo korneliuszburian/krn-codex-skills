@@ -252,6 +252,12 @@ export function guardReason(tool, args, directory) {
   }
 }
 
+// The per-component ablation flags are read at call time so a harness lane can
+// disable the brief and the guard independently without unloading the plugin.
+function disabled(name) {
+  return Boolean(process.env[name]);
+}
+
 export const KrnAdapter = async ({ directory } = {}) => {
   const cwd = directory ?? process.cwd();
   const marker = (text) =>
@@ -261,16 +267,19 @@ export const KrnAdapter = async ({ directory } = {}) => {
     // not the user turn, so it informs the session without competing with the
     // user's own request.
     "experimental.chat.system.transform": async (input, output) => {
+      if (disabled("KRN_DISABLE_BRIEF")) return;
       if (!Array.isArray(output?.system)) return;
       if (output.system.some(marker)) return;
       const injected = capsuleBrief(cwd) ?? queueBrief(cwd) ?? adoptionSignal(cwd);
       if (injected) output.system.push(injected);
     },
     "experimental.session.compacting": async (input, output) => {
+      if (disabled("KRN_DISABLE_BRIEF")) return;
       const brief = capsuleBrief(cwd);
       if (brief) output?.context?.push(brief);
     },
     "tool.execute.before": async (input, output) => {
+      if (disabled("KRN_DISABLE_GUARD")) return;
       const reason = guardReason(input?.tool, output?.args ?? {}, cwd);
       if (reason) throw new Error(reason);
     },

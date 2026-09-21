@@ -99,16 +99,24 @@ function main() {
 
   const enabled = payload.enabled ?? {};
   const home = prepareHome(enabled);
+  // The installed plugin always loads for a brief-or-hooks lane, so the
+  // per-component ablation travels as environment flags read by the adapter at
+  // call time: a disabled brief must not inject the capsule, and a disabled
+  // guard must not intercept tools. The flags merge into the inherited
+  // environment so HOME/XDG/PATH and every other value survive.
+  const env = {
+    ...process.env,
+    HOME: home,
+    XDG_CONFIG_HOME: path.join(home, ".config"),
+    XDG_DATA_HOME: path.join(home, ".local", "share"),
+    XDG_CACHE_HOME: path.join(home, ".cache"),
+    XDG_STATE_HOME: path.join(home, ".state"),
+  };
+  if (enabled.brief !== true) env.KRN_DISABLE_BRIEF = "1";
+  if (enabled.hooks !== true) env.KRN_DISABLE_GUARD = "1";
   try {
     const result = runProcess(OPENCODE, ["run", "--model", MODEL, "--format", "json", "--auto", "--dir", workspace, prompt], {
-      env: {
-        ...process.env,
-        HOME: home,
-        XDG_CONFIG_HOME: path.join(home, ".config"),
-        XDG_DATA_HOME: path.join(home, ".local", "share"),
-        XDG_CACHE_HOME: path.join(home, ".cache"),
-        XDG_STATE_HOME: path.join(home, ".state"),
-      },
+      env,
       timeout: 900_000,
     });
     if (result.errorCode) refuse("opencode-spawn-failed", result.errorMessage);

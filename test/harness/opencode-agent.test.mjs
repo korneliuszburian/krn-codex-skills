@@ -21,6 +21,8 @@ const FAKE = [
   '  skills: existsSync(path.join(home, ".agents", "skills")),',
   '  plugins: existsSync(path.join(configDir, "plugins")),',
   '  instructions: existsSync(agents) ? readFileSync(agents, "utf8") : "",',
+  '  briefDisabled: process.env.KRN_DISABLE_BRIEF ?? null,',
+  '  guardDisabled: process.env.KRN_DISABLE_GUARD ?? null,',
   "};",
   "writeFileSync(process.env.KRN_FAKE_OUT, JSON.stringify(seen));",
   'process.stdout.write(`${JSON.stringify({ type: "step_finish", part: { tokens: { total: 42 } } })}\\n`);',
@@ -67,9 +69,25 @@ test("the vanilla lane materializes no KRN surface", () => {
   assert.equal(seen.skills, false);
   assert.equal(seen.plugins, false);
   assert.equal(seen.instructions, "");
+  assert.equal(seen.briefDisabled, "1", "a lane without brief must disable the brief");
+  assert.equal(seen.guardDisabled, "1", "a lane without hooks must disable the guard");
 });
 
 test("the adapter reports the token total from the opencode stream", () => {
   const { stdout } = runAdapter({ skills: true, brief: true, hooks: true });
   assert.equal(stdout, JSON.stringify({ tokens: 42 }));
+});
+
+test("the adapter ablates the brief and the guard independently", () => {
+  const noBrief = runAdapter({ skills: true, brief: false, hooks: true }).seen;
+  assert.equal(noBrief.briefDisabled, "1", "no-brief must disable the brief");
+  assert.equal(noBrief.guardDisabled, null, "no-brief must keep the guard on");
+
+  const noHooks = runAdapter({ skills: true, brief: true, hooks: false }).seen;
+  assert.equal(noHooks.briefDisabled, null, "no-hooks must keep the brief on");
+  assert.equal(noHooks.guardDisabled, "1", "no-hooks must disable the guard");
+
+  const full = runAdapter({ skills: true, brief: true, hooks: true }).seen;
+  assert.equal(full.briefDisabled, null, "the full lane must keep the brief on");
+  assert.equal(full.guardDisabled, null, "the full lane must keep the guard on");
 });
