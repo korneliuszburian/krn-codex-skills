@@ -37,6 +37,11 @@ sandboxed worker:
 - `OPENCODE_HOME`/`OPENCODE_AUTH` — the OpenCode install and its auth file.
 - `MISE_ROOT` — optional toolchain root mounted read-only at `/mise`.
 - `STUB_SCRIPT` — the double's script when `WORKER=stub`.
+- `PUBLISH_GATE` — the command that verifies a green PR at the lane branch's
+  fixed point (for example a CI check and a tagged PR readiness check). It is
+  invoked as `"$PUBLISH_GATE" <branch>`. `run-frontier.sh` and `integrate.sh`
+  refuse to merge, and the frontier refuses to close the ticket, when it is
+  unset or exits non-zero.
 
 The worker runs inside a private clone under `$RUN_DIR/wt`. The fixture and the
 shared git common directory are bound read-only; only the run directory and the
