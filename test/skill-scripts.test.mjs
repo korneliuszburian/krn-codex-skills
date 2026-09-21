@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -228,6 +228,7 @@ const seedRepo = (dir) => {
 };
 
 test("the ask-gpt renderer builds a demanding read-only prompt", () => {
+  assert.ok(existsSync(renderPrompt), "skills/advisory/ask-gpt/scripts/render-prompt.mjs must exist");
   const dir = mkdtempSync(join(tmpdir(), "krn-ask-gpt-"));
   try {
     seedRepo(dir);
@@ -244,6 +245,7 @@ test("the ask-gpt renderer builds a demanding read-only prompt", () => {
 });
 
 test("the ask-gpt renderer refuses a commit the connector cannot read", () => {
+  assert.ok(existsSync(renderPrompt), "skills/advisory/ask-gpt/scripts/render-prompt.mjs must exist");
   const dir = mkdtempSync(join(tmpdir(), "krn-ask-gpt-unpushed-"));
   try {
     seedRepo(dir);
