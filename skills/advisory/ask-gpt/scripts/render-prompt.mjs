@@ -4,9 +4,10 @@
 // read outside this checkout, so it shells out to git and imports nothing from
 // the repository's runtime.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 function git(root, args) {
   try {
@@ -150,7 +151,18 @@ function main() {
   process.stdout.write("```\n");
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// The installed skill is a symlink into the release tree, so argv[1] and
+// import.meta.url differ by their real paths; compare resolved paths or the
+// installed invocation silently does nothing.
+const invokedAsScript = (() => {
+  try {
+    return realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+})();
+
+if (invokedAsScript) {
   try {
     main();
   } catch (error) {
