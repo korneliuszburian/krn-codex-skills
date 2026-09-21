@@ -85,6 +85,9 @@ export function loadTask(file) {
     check: typeof payload.check === "string" ? payload.check.trim() : "",
     workspace: typeof payload.workspace === "string" ? payload.workspace.trim() : "",
     setup: typeof payload.setup === "string" ? payload.setup.trim() : "",
+    hidden: Array.isArray(payload.hidden)
+      ? payload.hidden.filter((entry) => typeof entry === "string" && entry.trim() !== "").map((entry) => entry.trim())
+      : [],
     mutation: payload.mutation && typeof payload.mutation === "object" ? payload.mutation : null,
   };
 }
@@ -102,6 +105,7 @@ function defaultRunner({ lane, enabled, mutation, task, run, root, runs }) {
       prompt: task?.prompt ?? null,
       workspace: task?.workspace ?? null,
       setup: task?.setup ?? null,
+      hidden: task?.hidden ?? null,
     },
     run,
     runs,

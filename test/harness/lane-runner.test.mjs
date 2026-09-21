@@ -111,3 +111,42 @@ test("the fixture lanes separate vanilla from full with a detectable delta", () 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+const HIDDEN_AGENT = [
+  'import fs from "node:fs";',
+  'let raw = "";',
+  'try { raw = fs.readFileSync(0, "utf8"); } catch {}',
+  "JSON.parse(raw || \"{}\");",
+  'fs.writeFileSync("seen.txt", String(fs.existsSync("check.test.mjs")));',
+  'process.stdout.write(`${JSON.stringify({ tokens: 3 })}\\n`);',
+].join("\n");
+
+const HIDDEN_CHECK = [
+  'import assert from "node:assert/strict";',
+  'import fs from "node:fs";',
+  'import test from "node:test";',
+  'test("the check was hidden from the agent", () => {',
+  '  assert.equal(fs.readFileSync("seen.txt", "utf8"), "false", "the deciding check must be absent during the agent run");',
+  "});",
+].join("\n");
+
+test("the lane runner hides a declared check from the agent and restores it for scoring", () => {
+  assert.ok(existsSync(ADAPTER), "scripts/harness/lane-runner.mjs must exist");
+  const dir = mkdtempSync(path.join(tmpdir(), "krn-lane-hidden-"));
+  try {
+    writeFileSync(path.join(dir, "agent.mjs"), HIDDEN_AGENT);
+    writeFileSync(path.join(dir, "check.test.mjs"), HIDDEN_CHECK);
+    const task = { id: "hidden", check: "node check.test.mjs", workspace: ".", hidden: ["check.test.mjs"] };
+    const result = spawnSync(process.execPath, [ADAPTER], {
+      input: JSON.stringify({ lane: "full", enabled: {}, task, root: dir }),
+      encoding: "utf8",
+      env: env(),
+      cwd: dir,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const line = result.stdout.trim().split("\n").filter(Boolean).at(-1);
+    assert.equal(JSON.parse(line).pass, true, result.stderr);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
