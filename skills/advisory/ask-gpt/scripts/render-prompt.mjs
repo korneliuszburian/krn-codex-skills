@@ -9,6 +9,8 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+import { latestFor } from "./project-index.mjs";
+
 function git(root, args) {
   try {
     return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trimEnd();
@@ -55,7 +57,7 @@ export function gatherContext({ root, base }) {
   return { repoUrl, branch, head, remoteHead, pushed, base, dirty, modified, untracked, diffStat, files };
 }
 
-export function renderPrompt({ context, question, focus = [], model = "gpt-6-astra" }) {
+export function renderPrompt({ context, question, focus = [], model = "gpt-6-astra", project = null }) {
   const scope = focus.length > 0 ? focus : context.files.map((entry) => entry.path);
   const fileList = scope.length > 0 ? scope.map((file) => `- \`${file}\``).join("\n") : "- (no files changed in the range)";
   const dirty = context.dirty ? `yes (${context.modified} modified, ${context.untracked} untracked)` : "no";
@@ -75,6 +77,16 @@ export function renderPrompt({ context, question, focus = [], model = "gpt-6-ast
     `- base ref: ${context.base}`,
     `- working tree dirty: ${dirty}`,
     `- untracked or ignored files are invisible to you; if a needed file is absent, ask for it instead of assuming`,
+    ...(project
+      ? [
+          ``,
+          `## Project`,
+          `- project: ${project[1]}`,
+          `- project instructions: ${project[3]}`,
+          `- project paths: ${project[4] || "(none recorded)"}`,
+          `- project standards: ${project[5] || "(none recorded)"}`,
+        ]
+      : []),
     ``,
     `## Scope`,
     fileList,
@@ -98,13 +110,14 @@ export function renderPrompt({ context, question, focus = [], model = "gpt-6-ast
   ].join("\n");
 }
 
-export function promptFromArgs({ root, base, question, focus, model }) {
+export function promptFromArgs({ root, base, question, focus, model, index }) {
   const context = gatherContext({ root, base });
-  return { context, prompt: renderPrompt({ context, question, focus, model }) };
+  const project = index ? latestFor({ index, repository: context.repoUrl }) : null;
+  return { context, project, prompt: renderPrompt({ context, question, focus, model, project }) };
 }
 
 function parseArgs(args) {
-  const options = { root: null, base: null, question: null, questionFile: null, focus: [], json: false, model: "gpt-6-astra", allowUnpushed: false };
+  const options = { root: null, base: null, question: null, questionFile: null, focus: [], json: false, model: "gpt-6-astra", allowUnpushed: false, index: null };
   for (let index = 0; index < args.length; index += 1) {
     const take = () => {
       const value = args[index + 1];
@@ -120,6 +133,7 @@ function parseArgs(args) {
     else if (args[index] === "--model") options.model = take();
     else if (args[index] === "--json") options.json = true;
     else if (args[index] === "--allow-unpushed") options.allowUnpushed = true;
+    else if (args[index] === "--index") options.index = take();
     else throw new Error(`unrecognized option: ${args[index]}`);
   }
   if (!options.root) throw new Error("--root is required");
@@ -133,7 +147,8 @@ function main() {
   const question = options.question ?? readFileSync(options.questionFile, "utf8").trim();
   if (!question) throw new Error("the question is empty");
   const root = path.resolve(options.root);
-  const { context, prompt } = promptFromArgs({ root, base: options.base, question, focus: options.focus, model: options.model });
+  const index = options.index ? path.resolve(root, options.index) : path.join(root, "docs", "research", "ask-gpt-projects.md");
+  const { context, project, prompt } = promptFromArgs({ root, base: options.base, question, focus: options.focus, model: options.model, index });
   // The connector reads the pushed commit; a prompt whose commit is local-only
   // cannot work. Refuse rather than send it, unless the operator is drafting.
   if (!context.pushed && !options.allowUnpushed) {
@@ -143,7 +158,7 @@ function main() {
     );
   }
   if (options.json) {
-    process.stdout.write(`${JSON.stringify({ ...context, question, prompt }, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({ ...context, question, project, prompt }, null, 2)}\n`);
     return;
   }
   process.stdout.write("```text\n");

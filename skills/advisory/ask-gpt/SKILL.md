@@ -15,14 +15,26 @@ Use the bundled renderer for every prompt; do not hand-write the prompt or paste
 a partial diff instead of the commit it belongs to. The answer is advisory
 evidence, never an approval or a gate.
 
-1. **Fix the question and the scope.** Name the repository, the branch, the base
+1. **Run the project intake.** Read the append-only index
+   (`node ~/.agents/skills/ask-gpt/scripts/project-index.mjs show --index
+   docs/research/ask-gpt-projects.md`). When it has no entry for this
+   repository, ask the operator the three intake questions from
+   [`references/project-intake.md`](references/project-intake.md) — create or
+   reuse a project, whether the project instructions are written, and which
+   files and standards belong to it — and append one row. The ChatGPT project
+   surface accepts additions only, so never rewrite an entry; a change is a new
+   row with a fresh date.
+   **Done when:** the index has a current row for this repository, or the
+   operator explicitly declined a project.
+
+2. **Fix the question and the scope.** Name the repository, the branch, the base
    ref, the exact paths or symbols in scope, the decision the analysis must
    inform, and what it must not decide. If the question is vague, write the
    sharpest version you can and let the prompt ask GPT for the rest.
    **Done when:** one question, one base ref, one bounded path set, and the
    forbidden decisions are explicit.
 
-2. **Gather the context deterministically.** Run
+3. **Gather the context deterministically.** Run
    `node ~/.agents/skills/ask-gpt/scripts/render-prompt.mjs --root . --base <ref>
    --question <text> [--focus a,b] [--json] [--allow-unpushed]`. It reads the remote URL, branch,
    HEAD, the remote ref, the dirty state, and the diff stat and name list
@@ -32,7 +44,7 @@ evidence, never an approval or a gate.
    **Done when:** the renderer exits 0 and the prompt names the same HEAD the
    checkout reports.
 
-3. **Publish the state the prompt points at.** The connector reads the pushed
+4. **Publish the state the prompt points at.** The connector reads the pushed
    commit, never the working tree, so an uncommitted change, an untracked file,
    or a gitignored path is invisible to GPT and the analysis silently misses it.
    Under the repository's commit and push authority, commit every intended file
@@ -44,7 +56,7 @@ evidence, never an approval or a gate.
    **Done when:** the renderer exits 0 with `pushed: yes`, and the working tree
    carries nothing the prompt omits (or the omission is stated as a non-proof).
 
-4. **Render and hand over the prompt.** Copy the fenced block the renderer
+5. **Render and hand over the prompt.** Copy the fenced block the renderer
    prints into the GPT-6 Astra chat. The prompt is deliberately demanding: it
    fixes the read-only contract, requires `file:line` evidence, separates
    observation from inference, and fixes the answer format (verdict, findings
@@ -52,7 +64,7 @@ evidence, never an approval or a gate.
    **Done when:** the operator has the prompt, or a written blocker says why the
    state could not be published.
 
-5. **Disposition the answer locally.** When the answer comes back, verify every
+6. **Disposition the answer locally.** When the answer comes back, verify every
    finding against the code before acting, record each accepted finding as a
    ticket, an ADR, a lesson, or a retirement, and state the non-proofs (GPT
    cannot run the repository gates, cannot see uncommitted state, and cannot
@@ -68,3 +80,5 @@ evidence, never an approval or a gate.
 - [`references/chatgpt-capabilities.md`](references/chatgpt-capabilities.md) —
   which ChatGPT surface or connector the prompt may name, and the limits of
   each.
+- [`references/project-intake.md`](references/project-intake.md) — the three
+  intake questions and the append-only project index rules.
