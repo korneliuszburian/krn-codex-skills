@@ -306,6 +306,18 @@ and trusted-result writes. A sentinel can reveal a leak; its absence alone does
 not prove unreachability. Hidden answers are allowed; hidden product requirements
 are not.
 
+The selected first backend is non-setuid `bubblewrap >= 0.12` with independent
+namespaces and a cleared environment. Its admitted network profile is `denied`.
+The public candidate copy is the only writable task mount. A runner-owned
+observer sees only the frozen read-only artifact and emits a public observation
+envelope; a separate evaluator sees only that envelope and the sealed read-only
+workspace whose tree digest is bound by the task. Candidate-authored runtime is
+therefore never launched where the answer store is mounted. The environment
+digest comes from a runner-owned probe of the effective sandbox, browser build,
+font inventory, and public local assets rather than evaluator self-attestation.
+Hosted-model execution that requires Internet access remains
+outside this admission until a constrained, recorded egress adapter exists.
+
 Each task declares a track, public contract, stable public requirement identities,
 environment, viewports, perturbations, state paths, required evidence, per-axis
 applicability, and evaluator identity. Every sealed assertion links to a public

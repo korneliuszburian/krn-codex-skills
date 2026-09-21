@@ -33,6 +33,22 @@ descendants, freezes candidate output, and only then invokes the evaluator under
 a separate authority. A sentinel detects some leaks but does not by itself prove
 unreachability. Hidden answers are permitted; hidden requirements are not.
 
+The first admitted backend is non-setuid `bubblewrap >= 0.12`. Candidate and
+evaluator execute in separate mount, PID, IPC, UTS, cgroup, user, and network
+namespaces with a cleared environment. The candidate receives one writable copy
+of the public workspace. A runner-owned observer receives only the frozen
+read-only artifact and emits the public observation envelope. In a different
+namespace, the evaluator receives only that envelope plus a read-only sealed
+workspace whose bytes match the task's declared evaluator digest; candidate
+code is never executed where the sealed workspace is mounted. A runner-owned
+probe measures the effective sandbox locale, timezone, runtime, browser build,
+font inventory, container, OS, and public local-asset digests. Capture-only
+settings remain explicitly not applicable until a browser observer enforces
+them. The first admitted network profile is `denied`. A model run
+that needs Internet access is refused until an operator-owned proxy or equivalent
+egress adapter can record and constrain the effective traffic; inherited host
+network access is not an isolation profile.
+
 Evaluation has two explicit tracks. `design-transfer` leaves composition and art
 direction open within the canonical method and never claims pixel identity.
 `source-fidelity` exposes a source contract and may require exact geometry and
@@ -65,6 +81,9 @@ consumers remain.
 ## Consequences
 
 - The runner, not candidate cooperation, enforces evaluator isolation.
+- The offline backend is sufficient for deterministic fixtures and locally
+  available agents, but it does not claim that a hosted model can run inside the
+  same profile.
 - A failure stays attributable to a named axis; visual quality cannot hide a
   broken interaction and architectural purity cannot hide a broken layout.
 - Source-fidelity thresholds cannot leak into ordinary design-transfer work.

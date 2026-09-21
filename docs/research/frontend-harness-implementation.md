@@ -201,18 +201,23 @@ green. Only then may the obsolete authority and visible oracle be removed.
 
 - **Repository:** KRN.
 - **Entry → exit:** the runner copies one visible workspace → v2 uses a selected
-  containment backend, copies only public input, denies candidate access to the
+  non-setuid `bubblewrap >= 0.12` backend, copies only public input, denies candidate access to the
   oracle and trusted result writer, records network behavior, freezes output and
-  terminates candidate descendants before external evaluation, then evaluates
-  the frozen artifact under a separate authority and attaches a measured
-  environment digest. The sentinel is one leak detector, not proof of
-  unreachability.
+  terminates candidate descendants before external evaluation, observes the
+  frozen artifact in an artifact-only namespace, then gives only that observation
+  envelope to a sealed evaluator under a separate authority and attaches a measured
+  environment digest. The task binds both the evaluator identity and sealed-tree
+  digest. The admitted profile denies network; a networked model run remains
+  refused until an operator-owned constrained and recorded egress adapter exists.
+  The sentinel is one leak detector, not proof of unreachability.
 - **Fastest falsifier:** an adversarial fixture attempts forbidden filesystem,
   symlink, inherited-state, network, post-handoff mutation, answer-store read,
-  and trusted-result write paths; every attempt is denied and recorded. A real
-  browser/font/locale change must invalidate the measured environment identity.
+  trusted-result write, delayed descendant, and evaluator-side candidate-runtime
+  paths; every attempt is denied and recorded. A real browser/font/locale change
+  must invalidate the measured environment identity.
 - **Decision carried:** evaluator is outside the candidate sandbox; captures are
-  immutable and paired only under the same environment.
+  immutable and paired only under the same environment; inherited unrestricted
+  networking is never relabeled as containment.
 - **Dependencies:** blocked by FH-04. Blocks FH-08, FH-09, FH-10, FH-12, and
   FH-13.
 - **Rollback:** v1 lane runner remains callable until contract.
