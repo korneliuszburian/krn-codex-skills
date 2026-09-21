@@ -193,6 +193,11 @@
       "name": "frontend-tokens",
       "path": "skills/frontend/frontend-tokens",
       "implicit": true
+    },
+    {
+      "name": "ask-gpt",
+      "path": "skills/advisory/ask-gpt",
+      "implicit": false
     }
   ],
   "source_only_skills": [],
