@@ -85,6 +85,40 @@ test("the lane runner refuses a missing agent or check", () => {
   }
 });
 
+const SILENT_AGENT = ['import fs from "node:fs";', 'try { fs.readFileSync(0, "utf8"); } catch {}', "process.exit(0);"].join("\n");
+
+const NEGATIVE_AGENT = [
+  'import fs from "node:fs";',
+  'try { fs.readFileSync(0, "utf8"); } catch {}',
+  'process.stdout.write(`${JSON.stringify({ tokens: -5 })}\\n`);',
+].join("\n");
+
+test("the lane runner refuses a missing or invalid agent outcome", () => {
+  assert.ok(existsSync(ADAPTER), "scripts/harness/lane-runner.mjs must exist");
+  const dir = fixture();
+  try {
+    writeFileSync(path.join(dir, "silent.mjs"), SILENT_AGENT);
+    writeFileSync(path.join(dir, "negative.mjs"), NEGATIVE_AGENT);
+    const outcome = (agent) =>
+      spawnSync(process.execPath, [ADAPTER], {
+        input: JSON.stringify({ lane: "full", enabled: {}, task: { id: "validity", check: "true", workspace: "." }, root: dir }),
+        encoding: "utf8",
+        env: env({ KRN_HARNESS_AGENT: `node ${agent}` }),
+        cwd: dir,
+      });
+
+    const missing = outcome("silent.mjs");
+    assert.equal(missing.status, 2, missing.stderr);
+    assert.match(missing.stderr, /agent-outcome-missing/);
+
+    const invalid = outcome("negative.mjs");
+    assert.equal(invalid.status, 2, invalid.stderr);
+    assert.match(invalid.stderr, /agent-tokens-invalid/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("the fixture lanes separate vanilla from full with a detectable delta", () => {
   assert.ok(existsSync(ADAPTER), "scripts/harness/lane-runner.mjs must exist");
   const dir = fixture();
