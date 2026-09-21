@@ -22,6 +22,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
 - [skills/frontend/frontend-stage/SKILL.md](skills/frontend/frontend-stage/SKILL.md) — frontend stage entry: intake → architecture → build → verify, with exit criteria and a per-section acceptance.
+- [docs/research/frontend-harness.md](docs/research/frontend-harness.md) — lab-test frontend-harness architecture under LT-8: canonical boilerplate export, exact CUBE conformance, deep Text/ACF profiles, sealed evaluation, and track-specific claims.
 - [skills/meta/unslop/SKILL.md](skills/meta/unslop/SKILL.md) — explicit prose audit/rewrite with protected factual and technical fragments; it does not own publication or fact-checking.
 
 ## System vocabulary

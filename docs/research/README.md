@@ -90,6 +90,7 @@ freshness, not permanence.
 | Capability surface | [capabilities.md](../capabilities.md) | named profiles and evidence-bounded reconciliation | catalog schema, runtime event, or trust boundary changes |
 | Installation and migration | [migration.md](../migration.md) | collision-safe symlinks, explicit timestamped-backup authority, recoverable retirement | installer target or host layout changes |
 | Frontend delivery | [frontend-delivery.md](frontend-delivery.md) | the A-to-Z logic for the frontend stage: CUBE model, size from structure (no section height), composition set, thin-block bar, two-tier tokens, variants, copy-verbatim reuse and the freeze rule, the forced build phases, enforcement, and the facts artifacts; first fixture is Bloom Barista | a design or build contradicts a rule, or the Bloom fixture exposes a stage gap that needs a new mechanism |
+| Frontend harness and canonical boilerplate | [frontend-harness.md](frontend-harness.md) | lab-test architecture: boilerplate-owned core exported with provenance, exact CUBE recipes, deep Text plus ACF context profiles, sealed public/evaluator split, track-specific claims, multi-axis results, and the first discriminative task pack | the core classification changes, LT-8 reports a result, a real project falsifies a Text/profile rule, or current Piccalilli/Set Studio behavior contradicts an adopted recipe |
 
 ## Primary source ledger
 
