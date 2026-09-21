@@ -1,84 +1,98 @@
 ---
 name: ask-gpt
-description: Gather the current repository context, publish it to Git, and render a demanding read-only analysis prompt for ChatGPT GPT-6 Astra with a fixed findings format; the operator pastes it into the chat and returns the answer for local disposition.
+description: Shape a repository question into a rigorous, evidence-bound prompt for ChatGPT GPT-6 Astra over the GitHub connector and its other surfaces, with a fixed findings format; advisory only, no scripts, and the answer returns for local verification.
 ---
 
 # Ask GPT
 
-Turn the current problem into one rigorous, read-only analysis request for
-ChatGPT GPT-6 Astra, whose GitHub connector reads the repository. The skill
-never edits code, never adopts GPT's answer, and never calls a model itself: it
-gathers context, publishes the state, renders the prompt, and hands the answer
-back to the owning workflow for verification.
+Turn a repository problem into one rigorous prompt for ChatGPT GPT-6 Astra,
+whose GitHub connector reads the repository live on demand. This skill is
+reference material, not an engine: it ships no scripts, calls no model, and
+waits for nothing. You fix the question, prepare what the connector will read,
+choose the surface, assemble the prompt from the reference, hand it to the
+operator to run in ChatGPT, and disposition the answer through the owning
+workflow.
 
-Use the bundled renderer for every prompt; do not hand-write the prompt or paste
-a partial diff instead of the commit it belongs to. The answer is advisory
-evidence, never an approval or a gate.
+The answer is advisory evidence, never an approval or a gate.
 
-1. **Run the project intake.** Read the append-only index
-   (`node ~/.agents/skills/ask-gpt/scripts/project-index.mjs show --index
-   docs/research/ask-gpt-projects.md`). When it has no entry for this
-   repository, ask the operator the three intake questions from
-   [`references/project-intake.md`](references/project-intake.md) — create or
-   reuse a project, whether the project instructions are written, and which
-   files and standards belong to it — and append one row. The ChatGPT project
-   surface accepts additions only, so never rewrite an entry; a change is a new
-   row with a fresh date.
-   **Done when:** the index has a current row for this repository, or the
-   operator explicitly declined a project.
+## Invocation
 
-2. **Fix the question and the scope.** Name the repository, the branch, the base
-   ref, the exact paths or symbols in scope, the decision the analysis must
+Explicit only. The operator decides when a ChatGPT read is worth the round trip.
+
+## The workflow
+
+1. **Fix the question and the scope.** Name the repository, the branch, the
+   commit, the exact paths or symbols in scope, the decision the analysis must
    inform, and what it must not decide. If the question is vague, write the
-   sharpest version you can and let the prompt ask GPT for the rest.
-   **Done when:** one question, one base ref, one bounded path set, and the
+   sharpest version you can and let the prompt ask Astra for the rest in its
+   final section.
+   **Done when:** one question, one commit, one bounded path set, and the
    forbidden decisions are explicit.
 
-3. **Gather the context deterministically.** Run
-   `node ~/.agents/skills/ask-gpt/scripts/render-prompt.mjs --root . --base <ref>
-   --question <text> [--focus a,b] [--json] [--allow-unpushed]`. It reads the remote URL, branch,
-   HEAD, the remote ref, the dirty state, and the diff stat and name list
-   between the base and HEAD, and it renders the prompt from those facts. Never
-   type the facts by hand; `--allow-unpushed` is only for drafting a prompt you
-   know the connector cannot read yet.
-   **Done when:** the renderer exits 0 and the prompt names the same HEAD the
-   checkout reports.
+2. **Prepare what the connector will read.** The connector reads the pushed
+   commit, never the working tree; an uncommitted change, an untracked file, or
+   a gitignored path is invisible and the analysis silently misses it. Under the
+   repository's commit and push authority, publish every intended file and
+   record the exact commit SHA the prompt will name. If publication is not
+   authorized, stop and report the missing commit instead of sending a prompt
+   that describes a state the connector cannot see. Never commit secrets.
+   **Done when:** the named commit exists on the remote and the working tree
+   carries nothing the prompt omits, or the omission is stated as a non-proof.
 
-4. **Publish the state the prompt points at.** The connector reads the pushed
-   commit, never the working tree, so an uncommitted change, an untracked file,
-   or a gitignored path is invisible to GPT and the analysis silently misses it.
-   Under the repository's commit and push authority, commit every intended file
-   and push the branch, then re-run the renderer: it reads
-   `git ls-remote origin refs/heads/<branch>`, refuses when the remote ref does
-   not equal HEAD, and prints the modified and untracked counts. Never send a
-   prompt whose commit is local-only; if publication is not authorized, stop and
-   report the exact commit and push that are missing. Never commit secrets.
-   **Done when:** the renderer exits 0 with `pushed: yes`, and the working tree
-   carries nothing the prompt omits (or the omission is stated as a non-proof).
+3. **Choose the surface and the model settings.** Read
+   [`references/chatgpt-capabilities.md`](references/chatgpt-capabilities.md)
+   and name only the surface the question needs: the GitHub connector for
+   cross-file or cross-history reasoning, deep research for a public landscape,
+   the code interpreter for a cheap snippet, web browsing for a live external
+   fact, agent mode when the answer needs the browser. State each surface's
+   limit beside it. Pick the model and reasoning effort deliberately; the
+   settings and when to raise them are in
+   [`references/prompting-gpt-6-astra.md`](references/prompting-gpt-6-astra.md).
+   **Done when:** the surface, the model, the reasoning effort, and each
+   surface's limit are stated.
 
-5. **Render and hand over the prompt.** Copy the fenced block the renderer
-   prints into the GPT-6 Astra chat. The prompt is deliberately demanding: it
-   fixes the read-only contract, requires `file:line` evidence, separates
-   observation from inference, and fixes the answer format (verdict, findings
-   with severity and evidence, open questions, non-proofs, next action).
+4. **Assemble the prompt from the contract.** Build the six blocks in order from
+   [`references/prompting-gpt-6-astra.md`](references/prompting-gpt-6-astra.md):
+   role and contract, fixed point, the question, the evidence bar, the output
+   schema, and questions back. Write it by hand from the reference; there is no
+   generator. When the repository belongs to a ChatGPT project, apply
+   [`references/project-setup.md`](references/project-setup.md) so the project
+   instructions, knowledge, and connector scope are in place before the prompt
+   names the project.
+   **Done when:** the prompt carries all six blocks, pins the commit, and fixes
+   the answer schema.
+
+5. **Hand over and retrieve.** The operator pastes the prompt into the chat and
+   returns the answer. This skill does not drive a browser, wait on a transport,
+   or call a model; an answer that never arrives is a reported blocker, not a
+   hang.
    **Done when:** the operator has the prompt, or a written blocker says why the
    state could not be published.
 
-6. **Disposition the answer locally.** When the answer comes back, verify every
-   finding against the code before acting, record each accepted finding as a
-   ticket, an ADR, a lesson, or a retirement, and state the non-proofs (GPT
-   cannot run the repository gates, cannot see uncommitted state, and cannot
-   know the live host). Do not treat agreement as proof.
+6. **Disposition the answer locally.** Verify every finding against the code
+   before acting, record each accepted finding as a ticket, an ADR, a lesson, or
+   a retirement, and state the non-proofs: Astra cannot run the repository
+   gates, cannot see uncommitted state, and cannot know the live host. Do not
+   treat agreement as proof; a recommended change is described, never applied by
+   the model.
    **Done when:** every finding has a local disposition and the answer is
    recorded where its consumer will read it.
+
+## What this skill does not do
+
+- No scripts and no bundled renderer: the prompt is written from the reference.
+- No browser automation, no daemon, no automatic round trip or waiting.
+- No adoption: the answer never edits code, opens a pull request, or bypasses a
+  gate.
 
 ## References
 
 - [`references/prompting-gpt-6-astra.md`](references/prompting-gpt-6-astra.md) —
-  how the prompt is built for this model: framing, evidence bar, output schema,
-  and the failure modes to avoid.
+  the six-block prompt contract, the output schema, model and reasoning
+  settings, multi-turn tactics, and the failure modes to design against.
 - [`references/chatgpt-capabilities.md`](references/chatgpt-capabilities.md) —
-  which ChatGPT surface or connector the prompt may name, and the limits of
-  each.
-- [`references/project-intake.md`](references/project-intake.md) — the three
-  intake questions and the append-only project index rules.
+  every surface the prompt may name, with the full GitHub-connector capability
+  and its read-only limit.
+- [`references/project-setup.md`](references/project-setup.md) — setting up a
+  ChatGPT project for a repository: instructions, knowledge, connector scope,
+  and the append-only project memory.

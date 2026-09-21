@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -207,67 +207,5 @@ test("run-opinion records elapsed time and token usage in meta.json", () => {
     assert.ok(Number.isInteger(meta.elapsedSeconds) && meta.elapsedSeconds >= 1, JSON.stringify(meta));
   } finally {
     rmSync(root, { recursive: true, force: true });
-  }
-});
-
-const renderPrompt = fileURLToPath(new URL("../skills/advisory/ask-gpt/scripts/render-prompt.mjs", import.meta.url));
-
-const gitIn = (dir, args) => spawnSync("git", ["-C", dir, ...args], { encoding: "utf8" });
-
-const seedRepo = (dir) => {
-  gitIn(dir, ["init", "-q"]);
-  gitIn(dir, ["config", "user.email", "lab@krn.local"]);
-  gitIn(dir, ["config", "user.name", "lab"]);
-  gitIn(dir, ["remote", "add", "origin", "https://example.invalid/example.git"]);
-  writeFileSync(join(dir, "a.mjs"), "export const a = 1;\n");
-  gitIn(dir, ["add", "-A"]);
-  gitIn(dir, ["commit", "-q", "-m", "chore: base"]);
-  writeFileSync(join(dir, "a.mjs"), "export const a = 2;\n");
-  gitIn(dir, ["add", "-A"]);
-  gitIn(dir, ["commit", "-q", "-m", "feat: change"]);
-};
-
-test("the ask-gpt renderer builds a demanding read-only prompt", () => {
-  assert.ok(existsSync(renderPrompt), "skills/advisory/ask-gpt/scripts/render-prompt.mjs must exist");
-  const dir = mkdtempSync(join(tmpdir(), "krn-ask-gpt-"));
-  try {
-    seedRepo(dir);
-    const result = run(renderPrompt, ["--root", dir, "--base", "HEAD~1", "--question", "Is the change correct?", "--allow-unpushed"]);
-    assert.equal(result.status, 0, result.stderr);
-    for (const needle of ["read-only", "path:line", "## Findings", "## Non-proofs", "Is the change correct?", "a.mjs", "pushed to the remote"]) {
-      assert.ok(result.stdout.includes(needle), `the prompt must include ${needle}`);
-    }
-    const head = gitIn(dir, ["rev-parse", "HEAD"]).stdout.trim();
-    assert.ok(result.stdout.includes(head), "the prompt must name the HEAD commit");
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("the ask-gpt renderer runs through an installed symlink", () => {
-  assert.ok(existsSync(renderPrompt), "skills/advisory/ask-gpt/scripts/render-prompt.mjs must exist");
-  const dir = mkdtempSync(join(tmpdir(), "krn-ask-gpt-link-"));
-  try {
-    seedRepo(dir);
-    const link = join(dir, "render-link.mjs");
-    symlinkSync(renderPrompt, link);
-    const result = run(link, ["--root", dir, "--base", "HEAD~1", "--question", "q", "--allow-unpushed"]);
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /read-only principal reviewer/, "a symlinked invocation must render the prompt");
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("the ask-gpt renderer refuses a commit the connector cannot read", () => {
-  assert.ok(existsSync(renderPrompt), "skills/advisory/ask-gpt/scripts/render-prompt.mjs must exist");
-  const dir = mkdtempSync(join(tmpdir(), "krn-ask-gpt-unpushed-"));
-  try {
-    seedRepo(dir);
-    const result = run(renderPrompt, ["--root", dir, "--base", "HEAD", "--question", "q"]);
-    assert.equal(result.status, 2);
-    assert.match(result.stderr, /not on the remote/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
   }
 });
