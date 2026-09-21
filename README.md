@@ -114,7 +114,7 @@ disagreement blocks the next transition until the owner records the resolution.
 | [`setup-repository-workflow`](skills/engineering/setup-repository-workflow/SKILL.md) | explicit only | one-time adoption or repair of a thin local contract |
 | [`typescript-engineering`](skills/engineering/typescript-engineering/SKILL.md) | model or user | TypeScript inference, public APIs, compiler mechanics, and proof |
 | [`opencode-second-opinion`](skills/advisory/opencode-second-opinion/SKILL.md) | explicit only | bounded independent-model opinion on one explicit path, without diffs |
-| [`ask-gpt`](skills/advisory/ask-gpt/SKILL.md) | explicit only | gather the pushed context and render a read-only GPT-6 Astra analysis prompt with a fixed findings format |
+| [`ask-gpt`](skills/advisory/ask-gpt/SKILL.md) | explicit only | shape an evidence-bound GPT-6 Astra prompt over the GitHub connector and disposition the answer locally |
 | [`managing-codex-capabilities`](skills/meta/managing-codex-capabilities/SKILL.md) | model or user | global skill, plugin, MCP, and profile control |
 | [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
 | [`frontend-stage`](skills/frontend/frontend-stage/SKILL.md) | model or user | the stage entry: intake, architecture, build, verify with exit criteria and per-section acceptance |
