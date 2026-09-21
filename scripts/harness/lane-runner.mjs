@@ -4,7 +4,7 @@
 // the configured agent command inside the task workspace with the lane's
 // enabled components, then runs the task's deciding check there and reports the
 // pass verdict, the agent's token count, and the wall time.
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -53,8 +53,22 @@ function main() {
   // and two lanes can never share state.
   const disposable = mkdtempSync(path.join(tmpdir(), "krn-harness-workspace-"));
   const workspace = disposable;
+  const hidden = Array.isArray(task.hidden) ? task.hidden : [];
+  const stash = hidden.length > 0 ? mkdtempSync(path.join(tmpdir(), "krn-harness-hidden-")) : null;
   try {
     cpSync(source, disposable, { recursive: true });
+    // The agent must not read or tamper with the evaluator, so the task's
+    // declared hidden files (the deciding check and any gold answer) are moved
+    // out before the agent runs and restored for scoring.
+    for (const relative of hidden) {
+      const from = path.resolve(disposable, relative);
+      if (path.isAbsolute(relative) || (from !== disposable && !from.startsWith(`${disposable}${path.sep}`))) refuse("hidden-outside-workspace", relative);
+      if (!existsSync(from)) refuse("hidden-missing", relative);
+      const to = path.join(stash, relative);
+      mkdirSync(path.dirname(to), { recursive: true });
+      cpSync(from, to, { recursive: true });
+      rmSync(from, { recursive: true, force: true });
+    }
     if (task.setup) {
       const setup = runProcess("sh", ["-c", task.setup], { cwd: workspace });
       if (!setup.ok) refuse("setup-failed", setup.err.trim() || `exit ${setup.status}`);
@@ -73,12 +87,18 @@ function main() {
       }),
     });
     if (agentRun.errorCode) refuse("agent-spawn-failed", agentRun.errorMessage);
+    for (const relative of hidden) {
+      const to = path.join(disposable, relative);
+      mkdirSync(path.dirname(to), { recursive: true });
+      cpSync(path.join(stash, relative), to, { recursive: true });
+    }
     const tokens = Number(lastJsonLine(agentRun.out)?.tokens) || 0;
     const checked = runProcess("sh", ["-c", check], { cwd: workspace });
     const wallSeconds = Math.round((Date.now() - started) / 100) / 10;
     process.stdout.write(`${JSON.stringify({ pass: checked.ok, tokens, wallSeconds })}\n`);
   } finally {
     rmSync(disposable, { recursive: true, force: true });
+    if (stash) rmSync(stash, { recursive: true, force: true });
   }
 }
 

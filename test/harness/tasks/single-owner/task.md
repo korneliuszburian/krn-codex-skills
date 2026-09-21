@@ -5,6 +5,9 @@
   "id": "single-owner",
   "prompt": "Remove the duplicated regexp escaper so exactly one module owns it, and keep the consumer working.",
   "check": "node check.mjs",
-  "workspace": "test/harness/tasks/single-owner/workspace"
+  "workspace": "test/harness/tasks/single-owner/workspace",
+  "hidden": [
+    "check.mjs"
+  ]
 }
 ```

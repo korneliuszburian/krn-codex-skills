@@ -15,7 +15,7 @@ test("the answer matches the recorded memory", () => {
   const gold = norm(readFileSync("gold.txt", "utf8"));
   const answers = JSON.parse(readFileSync("answers.json", "utf8"));
   const got = norm(answers[0]);
-  assert.ok(answers.length === 1 && (got === gold || got.includes(gold) || gold.includes(got)), \`answer \${JSON.stringify(answers)} does not match the recorded memory\`);
+  assert.ok(answers.length === 1 && got.length > 0 && (got === gold || got.includes(gold) || gold.includes(got)), \`answer \${JSON.stringify(answers)} does not match the recorded memory\`);
 });
 `;
 
@@ -29,6 +29,7 @@ export function taskFiles(row, id) {
       "Read context.md and question.txt, then write answers.json as a JSON array with exactly one string answer. Do not write anything else.",
     check: "node check.mjs",
     workspace: `${id}/workspace`,
+    hidden: ["check.mjs", "gold.txt"],
   };
   return {
     taskMd: `# Harness task: ${id}\n\n\`\`\`krn-harness-task\n${JSON.stringify(task, null, 2)}\n\`\`\`\n`,
