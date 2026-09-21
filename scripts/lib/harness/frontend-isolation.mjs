@@ -197,11 +197,12 @@ result.network = await new Promise((resolve) => {
 process.stdout.write(JSON.stringify(result));
 `;
 
-function isolationProbe({ bwrap, workspace, sealed }) {
+function isolationProbe({ bwrap, workspace, sealed, environment }) {
   const link = path.join(workspace, ".krn-isolation-link");
   fs.symlinkSync(sealed, link, "dir");
   try {
     const outcome = runSandbox(bwrap, sandboxArgs({
+      ...environment,
       mounts: [{ source: workspace, destination: "/workspace", writable: true }],
       chdir: "/workspace",
     }), ["/usr/bin/node", "--input-type=module", "-e", PROBE_SOURCE]);
@@ -260,17 +261,21 @@ process.stdout.write(JSON.stringify({
 }));
 `;
 
-function measureEnvironment({ bwrap, task, publicSource }) {
+function effectiveEnvironment(task) {
   const locale = typeof task.environment.locale === "string" && task.environment.locale.trim()
     ? task.environment.locale.trim()
     : "C.UTF-8";
   const timezone = typeof task.environment.timezone === "string" && task.environment.timezone.trim()
     ? task.environment.timezone.trim()
     : "UTC";
+  return { locale, timezone };
+}
+
+function measureEnvironment({ bwrap, task, publicSource, environment }) {
   const browserCommand = command(task.environment.browser?.command, "malformed-browser-command");
   const probe = runSandbox(
     bwrap,
-    sandboxArgs({ locale, timezone, mounts: kernelMounts(["digest.mjs", "proc.mjs"]) }),
+    sandboxArgs({ ...environment, mounts: kernelMounts(["digest.mjs", "proc.mjs"]) }),
     ["/usr/bin/node", "--input-type=module", "-e", ENVIRONMENT_PROBE_SOURCE],
     JSON.stringify({ browser: browserCommand }),
   );
@@ -329,12 +334,13 @@ const files = request.files.map((entry) => {
 process.stdout.write(JSON.stringify({ schema: "krn.frontend-harness.observation.v1", files }));
 `;
 
-function observeArtifact({ bwrap, artifact, task }) {
+function observeArtifact({ bwrap, artifact, task, environment }) {
   const request = task.public.observation;
   if (!object(request)) refuse("missing-public-observation", task.id);
   const outcome = runSandbox(
     bwrap,
     sandboxArgs({
+      ...environment,
       mounts: [
         { source: artifact, destination: "/artifact" },
         ...kernelMounts(["digest.mjs"]),
@@ -377,9 +383,9 @@ function loadEvaluator(task, sealed) {
   return { evaluator, command: command(evaluator.command, "malformed-evaluator-command"), digest };
 }
 
-function postHandoffProbe({ bwrap, artifact }) {
+function postHandoffProbe({ bwrap, artifact, environment }) {
   const source = 'import fs from "node:fs"; try { fs.writeFileSync("/artifact/.post-handoff", "bad"); process.stdout.write("exposed"); } catch { process.stdout.write("denied"); }';
-  const args = sandboxArgs({ mounts: [{ source: artifact, destination: "/artifact" }], chdir: "/artifact" });
+  const args = sandboxArgs({ ...environment, mounts: [{ source: artifact, destination: "/artifact" }], chdir: "/artifact" });
   const outcome = runSandbox(bwrap, args, ["/usr/bin/node", "--input-type=module", "-e", source]);
   if (!outcome.ok || outcome.out !== "denied") refuse("post-handoff-mutation-exposed", outcome.out || outcome.err);
   return "denied";
@@ -404,6 +410,7 @@ export function runIsolatedFrontendEvaluation(payload, {
     "directory",
   );
   const bwrap = inspectBwrap(bwrapBinary);
+  const environment = effectiveEnvironment(task);
   const candidateCommand = command(agent, "malformed-agent-command");
   const { evaluator, command: evaluatorCommand, digest: evaluatorDigest } = loadEvaluator(task, sealed);
   const disposable = fs.mkdtempSync(path.join(os.tmpdir(), "krn-frontend-isolation-"));
@@ -411,10 +418,11 @@ export function runIsolatedFrontendEvaluation(payload, {
   const frozen = path.join(disposable, "frozen");
   try {
     fs.cpSync(publicSource, candidate, { recursive: true, verbatimSymlinks: true });
-    const probes = isolationProbe({ bwrap, workspace: candidate, sealed });
+    const probes = isolationProbe({ bwrap, workspace: candidate, sealed, environment });
     const candidateRun = runSandbox(
       bwrap,
       sandboxArgs({
+        ...environment,
         mounts: [{ source: candidate, destination: "/workspace", writable: true }],
         chdir: "/workspace",
       }),
@@ -426,12 +434,16 @@ export function runIsolatedFrontendEvaluation(payload, {
     const candidateAtHandoff = treeDigest(candidate);
     fs.cpSync(candidate, frozen, { recursive: true, verbatimSymlinks: true });
     const beforeObservation = treeDigest(frozen);
-    const observation = observeArtifact({ bwrap, artifact: frozen, task });
-    const measured = measureEnvironment({ bwrap, task, publicSource });
+    const observation = observeArtifact({ bwrap, artifact: frozen, task, environment });
+    const measured = measureEnvironment({ bwrap, task, publicSource, environment });
     if (measured.identity !== task.environment.identity) {
       refuse("environment-identity-mismatch", `expected ${task.environment.identity}, measured ${measured.identity}`);
     }
-    const evaluatorArgs = sandboxArgs({ mounts: [{ source: sealed, destination: "/evaluator" }], chdir: "/evaluator" });
+    const evaluatorArgs = sandboxArgs({
+      ...environment,
+      mounts: [{ source: sealed, destination: "/evaluator" }],
+      chdir: "/evaluator",
+    });
     const evaluated = runSandbox(
       bwrap,
       evaluatorArgs,
@@ -440,7 +452,7 @@ export function runIsolatedFrontendEvaluation(payload, {
     );
     if (!evaluated.ok) refuse("evaluator-failed", evaluated.err.trim() || String(evaluated.status));
     const observed = lastJson(evaluated.out, "evaluator-bad-output");
-    probes.postHandoffMutation = postHandoffProbe({ bwrap, artifact: frozen });
+    probes.postHandoffMutation = postHandoffProbe({ bwrap, artifact: frozen, environment });
     const afterEvaluation = treeDigest(frozen);
     if (afterEvaluation !== beforeObservation) refuse("frozen-artifact-mutated", `${beforeObservation}:${afterEvaluation}`);
     const candidateAfterEvaluation = treeDigest(candidate);

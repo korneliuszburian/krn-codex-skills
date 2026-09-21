@@ -26,7 +26,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
 - [skills/frontend/frontend-stage/SKILL.md](skills/frontend/frontend-stage/SKILL.md) — frontend stage entry: intake → architecture → build → verify, with exit criteria and a per-section acceptance.
 - [docs/research/frontend-harness.md](docs/research/frontend-harness.md) — lab-test frontend-harness architecture under LT-8: canonical boilerplate export, exact CUBE conformance, deep Text/ACF profiles, sealed evaluation, and track-specific claims.
-- [docs/research/frontend-harness-implementation.md](docs/research/frontend-harness-implementation.md) — durable Bloom-lab execution plan from source epoch through no-model mutation admission, treatment comparison, transfer profile, adapter track, and retirement.
+- [docs/research/frontend-harness-implementation.md](docs/research/frontend-harness-implementation.md) — durable Bloom-lab execution plan from reference freeze through no-model mutation admission, experiment epoch, treatment comparison, transfer profile, adapter track, and retirement.
 - [docs/research/complete-css-bloom-benchmark.md](docs/research/complete-css-bloom-benchmark.md) — source identities, distilled Complete CSS mechanisms, candidate/sealed boundary, result axes, mutants, and prior-attempt disposition.
 - [skills/meta/unslop/SKILL.md](skills/meta/unslop/SKILL.md) — explicit prose audit/rewrite with protected factual and technical fragments; it does not own publication or fact-checking.
 
@@ -99,9 +99,15 @@ survives a different admitted starter and design; its result cannot be merged
 into Bloom fidelity.
 _Avoid_: second Bloom score, profile migration
 
-**Source epoch** — the immutable identity joining public inputs, sealed answer,
-environment, evaluator, known-good, and mutants for one comparable experiment.
-_Avoid_: latest live site, screenshot folder
+**Reference freeze** — the immutable identity of the admitted starter, public
+design contract, sealed reference material, and their provenance before an
+evaluator or mutant suite is admitted.
+_Avoid_: final epoch, latest live site, screenshot folder
+
+**Experiment epoch** — the immutable identity joining one reference freeze with
+the admitted environment, evaluator, known-good result, and mutant suite for one
+comparable experiment.
+_Avoid_: source epoch, reference folder
 
 ## Context continuity
 

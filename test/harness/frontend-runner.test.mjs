@@ -42,6 +42,7 @@ const CANDIDATE_SOURCE = [
   'const input = JSON.parse(readFileSync(0, "utf8"));',
   'if (Object.hasOwn(input, "evaluator") || Object.hasOwn(input, "environment")) process.exit(23);',
   'writeFileSync("candidate-input.json", JSON.stringify(input));',
+  'writeFileSync("execution-environment.json", JSON.stringify({ locale: process.env.LANG, timezone: process.env.TZ }));',
   'writeFileSync("solution.txt", "candidate output\\n");',
   'spawn("/usr/bin/node", ["-e", "setTimeout(() => require(\\\"node:fs\\\").writeFileSync(\\\"/workspace/.late-descendant\\\", \\\"survived\\\"), 300)"], { detached: true, stdio: "ignore" }).unref();',
   'process.stdout.write(JSON.stringify({ tokens: 7 }) + "\\n");',
@@ -124,7 +125,12 @@ function taskSource(payload) {
   return `# Isolated frontend task\n\n\`\`\`krn-harness-task\n${JSON.stringify(payload)}\n\`\`\`\n`;
 }
 
-function makeFixture({ runtimeLocale = "C.UTF-8", expectedLocale = "C.UTF-8" } = {}) {
+function makeFixture({
+  runtimeLocale = "C.UTF-8",
+  expectedLocale = "C.UTF-8",
+  runtimeTimezone = "UTC",
+  expectedTimezone = "UTC",
+} = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "krn-frontend-runner-"));
   const publicWorkspace = path.join(root, "fixtures", "public");
   const sealedWorkspace = path.join(root, "fixtures", "sealed");
@@ -138,8 +144,11 @@ function makeFixture({ runtimeLocale = "C.UTF-8", expectedLocale = "C.UTF-8" } =
     'const request = JSON.parse(readFileSync(0, "utf8"));',
     'const files = Object.fromEntries(request.observation.files.map((entry) => [entry.path, entry]));',
     'const candidate = files["candidate-input.json"].value;',
+    'const executionEnvironment = files["execution-environment.json"].value;',
     'if (candidate.evaluator || candidate.environment) process.exit(31);',
     'if (files["solution.txt"].value !== "candidate output\\n") process.exit(32);',
+    `if (executionEnvironment.locale !== ${JSON.stringify(runtimeLocale)} || executionEnvironment.timezone !== ${JSON.stringify(runtimeTimezone)}) { process.stderr.write("candidate-effective-environment-mismatch"); process.exit(34); }`,
+    `if (process.env.LANG !== ${JSON.stringify(runtimeLocale)} || process.env.TZ !== ${JSON.stringify(runtimeTimezone)}) { process.stderr.write("evaluator-effective-environment-mismatch"); process.exit(35); }`,
     'const escape = spawnSync("node", ["/artifact/candidate.mjs"], { encoding: "utf8" });',
     'if (escape.status === 0) process.exit(33);',
     `process.stdout.write(JSON.stringify({ axes: ${JSON.stringify(resultAxes())} }) + "\\n");`,
@@ -171,6 +180,7 @@ function makeFixture({ runtimeLocale = "C.UTF-8", expectedLocale = "C.UTF-8" } =
         kind: "files",
         files: [
           { path: "candidate-input.json", format: "json" },
+          { path: "execution-environment.json", format: "json" },
           { path: "solution.txt", format: "text" },
         ],
       },
@@ -181,9 +191,9 @@ function makeFixture({ runtimeLocale = "C.UTF-8", expectedLocale = "C.UTF-8" } =
       digest: treeIdentity(sealedWorkspace),
     },
     environment: {
-      identity: identity(measuredEnvironment({ locale: expectedLocale })),
+      identity: identity(measuredEnvironment({ locale: expectedLocale, timezone: expectedTimezone })),
       locale: runtimeLocale,
-      timezone: "UTC",
+      timezone: runtimeTimezone,
       browser: { command: [chromium, "--version"] },
       localAssets: ["candidate.mjs"],
     },
@@ -278,6 +288,21 @@ test("a real sandbox locale change invalidates the declared environment identity
     const run = invoke(fixture);
     assert.notEqual(run.status, 0);
     assert.match(run.stderr, /environment-identity-mismatch/);
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("candidate and evaluator use the non-default measured environment", { skip: guard }, () => {
+  const fixture = makeFixture({
+    runtimeLocale: "C",
+    expectedLocale: "C",
+    runtimeTimezone: "Europe/Warsaw",
+    expectedTimezone: "Europe/Warsaw",
+  });
+  try {
+    const run = invoke(fixture);
+    assert.equal(run.status, 0, run.stderr);
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }

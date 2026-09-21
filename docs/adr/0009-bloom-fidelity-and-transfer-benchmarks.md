@@ -13,8 +13,9 @@ profile into the fidelity task would confound starter differences with skill
 effects, while treating the course starter as the production starter would make
 the course the owner of Rekurencja project creation.
 
-The task, source epochs, sealed reference, mutants, raw runs, and experiment
-protocol belong to a new private `bloom-frontend-lab` repository. KRN continues
+The task, reference freezes, experiment epochs, sealed reference, mutants, raw
+runs, and experiment protocol belong to a new private `bloom-frontend-lab`
+repository. KRN continues
 to own only generic task/result, isolation, evaluator-axis, treatment, and
 reporting contracts. `boilerplate-rekurencja` continues to own project creation,
 canonical reusable core, and runtime profiles. Private course lessons remain an

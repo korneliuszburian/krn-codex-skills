@@ -16,7 +16,7 @@ after the KRN fixed point is re-cut around the real Complete CSS Bloom target.
 This page is not a progress log or permission to publish, merge, install, mutate
 a remote, or clean an existing dirty repository. Delete it after BL-18 when code,
 ADRs, the lab protocol, and the registered result own every surviving contract.
-Supersede it in place if the source epoch, repository boundary, or benchmark
+Supersede it in place if the reference freeze, experiment epoch, repository boundary, or benchmark
 claim changes; re-cut all affected downstream units.
 
 ## Accepted outcome
@@ -68,7 +68,7 @@ every item stays preserved; no reusable contract stores a host mount prefix.
 | Generic frontend procedures and optional frontend-stage routing | `krn-codex-skills` skill owners | product agents and treatment profile |
 | Generic v2 admission, containment, evaluator axes, and reporting | `krn-codex-skills` harness owners | Bloom lab and future frontend tasks |
 | Canonical Rekurencja core, project creator, static/WordPress profiles | `boilerplate-rekurencja` | created product projects and transfer fixtures |
-| Bloom public contract, source epochs, sealed answers, mutants, raw runs | new private `bloom-frontend-lab` | this benchmark only |
+| Bloom public contract, reference freezes, experiment epochs, sealed answers, mutants, raw runs | new private `bloom-frontend-lab` | this benchmark only |
 | Complete CSS private lessons and solutions | operator private source store | source curator and sealed reference preparation only |
 | Official starter and public Figma artifacts | pinned upstream identities admitted by the lab | fidelity candidate and evaluator |
 | Product-specific WordPress implementation | its product repository | product runtime only; never the benchmark oracle |
@@ -102,13 +102,20 @@ retention/deletion trigger, and publication boundary. A manifest or digest may
 be committed while the underlying course, Figma, font, or site bytes remain
 local-only; remote publication needs separate authority.
 
-## Fixed source epoch
+## Reference freeze and experiment epoch
 
-One epoch binds the starter archive digest, license, selected Figma page/node
-exports and digests, designer-resolution log digest, public content/assets,
-final-site HTML/CSS/capture identities, browser/font/locale/viewport environment,
-known-good identity, evaluator identity, and mutant identities. A mutable URL,
-folder name, screenshot alone, or prose claim is not an epoch.
+BL-05 creates a reference freeze: one immutable identity binds the starter
+archive digest and license, selected Figma page/node exports and digests,
+designer-resolution log digest, public content/assets, final-site
+HTML/CSS/capture identities, reference capture environment, known-good source
+identity, provenance, and rights. It deliberately does not claim that an
+evaluator, execution environment, or mutant suite has been admitted.
+
+BL-11 seals the complete experiment epoch by joining exactly one reference
+freeze with the admitted starter materialization, effective execution
+environment, evaluator identity, known-good result, and mutant identities. A
+change to any member creates a new experiment epoch. A mutable URL, folder name,
+screenshot alone, or prose claim is neither boundary.
 
 The candidate-visible Figma scope begins with the intended course round. Later
 rounds are sealed. Every final requirement learned through feedback is disclosed
@@ -151,7 +158,9 @@ old cross-epoch comparisons.
 - **Entry → exit:** no canonical Bloom lab → instructions, ownership boundaries,
   ignored raw-run storage, four physical zones, source manifest schema, commands,
   per-artifact rights/retention/publication fields, and a zero-answer public
-  projection exist.
+  projection exist. The manifest schema distinguishes the BL-05 reference
+  freeze from the BL-11 complete experiment epoch and cannot mutate either
+  identity in place.
 - **Falsifier:** a clean public projection contains a sealed path, course file,
   later-round asset, live URL, solution fragment, credential, or result.
 - **Dependencies:** BL-00. Blocks BL-03–BL-05.
@@ -166,7 +175,7 @@ old cross-epoch comparisons.
   authenticated upstream artifact is compared with the observed SHA-256 and
   extracted tree identity; source URL, version, license ambiguity, Node/build
   contract, file classes, and reproducible materialization are recorded. A byte
-  mismatch creates a new source epoch instead of being explained away.
+  mismatch creates a new reference freeze instead of being explained away.
 - **Falsifier:** one changed byte, omitted license, undeclared file, completed
   solution byte, or non-empty destination fails admission.
 - **Decision:** fidelity uses this exact artifact. Rekurencja's new profile is not
@@ -185,7 +194,7 @@ old cross-epoch comparisons.
   failure.
 - **Dependencies:** BL-02. Blocks BL-06, BL-09, and BL-14.
 
-### BL-05 — Freeze the sealed final reference epoch
+### BL-05 — Freeze the sealed reference inputs
 
 - **Repository:** Bloom lab sealed zone/private artifact storage.
 - **Entry → exit:** moving live site and unversioned course answers → immutable
@@ -197,7 +206,7 @@ old cross-epoch comparisons.
   provenance. Rights class, storage, retention, and publication boundary are
   recorded for every sealed byte.
 - **Falsifier:** a recapture, font/browser/locale change, moving URL, or changed
-  reference byte can reuse the old epoch identity.
+  reference byte can reuse the old reference-freeze identity.
 - **Dependencies:** BL-02 and BL-04. Blocks BL-08A/B/C and BL-09–BL-11.
 
 ### BL-06 — Align optional frontend skills with the real task
@@ -216,12 +225,16 @@ old cross-epoch comparisons.
 ### BL-07 — Admit generic evaluator obligations
 
 - **Repository:** KRN.
-- **Entry → exit:** v2 has isolation and structural admission → every declared
-  axis/requirement obligation has an evaluator assertion and explicit result
-  evidence or justified non-applicability; evaluator identity follows the task
-  through result admission.
-- **Falsifier:** duplicated cross-axis requirement with one assertion, empty-pass
-  evidence, stale evaluator substitution, or omitted applicable axis is admitted.
+- **Retained guards:** cross-axis assertion coverage, evaluator/result identity,
+  complete applicable-axis envelopes, non-empty pass substantiation, and
+  required evidence IDs remain green under their existing owner.
+- **Entry → exit:** those guards exist → every declared axis/requirement/assertion
+  obligation is explicitly accounted for by its own result evidence or justified
+  nonapplicability; one unrelated non-empty measurement cannot substantiate the
+  whole axis.
+- **Incremental falsifier:** two obligations share an applicable axis, but a
+  result carrying evidence for only one is admitted as a pass. Existing negative
+  cases are regression checks, not manufactured red-before-green work.
 - **Dependencies:** published FH-04/FH-05. Blocks BL-08A/B/C and BL-11.
 
 ### BL-08A — Implement structural evaluator axes
@@ -287,14 +300,21 @@ old cross-epoch comparisons.
 - **Entry → exit:** mechanisms exist independently → the exact public projection
   crosses isolated generation/frozen handoff/evaluation without invoking a model;
   known-good passes, every mutant fails, answer reads/writes are denied, and raw
-  receipts bind task, epoch, evaluator, environment, and artifact.
+  receipts bind task, complete experiment epoch, evaluator, effective
+  environment, and artifact. This is the first point at which the complete
+  starter–environment–evaluator–known-good–mutant identity becomes immutable.
 - **Falsifier:** candidate-writable gate/evaluator, mutated public inputs after
-  sealing, live Bloom access, surviving descendant, or result/artifact mismatch.
+  sealing, live Bloom access, surviving descendant, result/artifact mismatch, or
+  a candidate/evaluator receiving locale or timezone different from the measured
+  environment receipt.
 - **Required receipt:** containment backend/version and namespace identity plus
   positive denial probes for parent/sibling absolute reads, symlink traversal,
   inherited environment/state, live Bloom DNS/network, sealed/result writes,
   surviving descendants, frozen-artifact mutation, and evaluator/result-writer
-  access. A sentinel remains only a leak detector.
+  access. One runner-owned effective environment configuration must drive
+  candidate execution, observation, measurement, and evaluation; a matching
+  non-default locale/timezone is the admission case. A sentinel remains only a
+  leak detector.
 - **Dependencies:** BL-07, BL-10. Blocks BL-14–BL-16.
 
 ### BL-12 — Create the production static HTML/CSS/CUBE profile
@@ -407,11 +427,12 @@ old cross-epoch comparisons.
 ## Dependency graph
 
 ```text
-published KRN FH-03..FH-05 -> BL-07 -> {BL-08A, BL-08B, BL-08C}
-BL-00 -> BL-01 -> BL-06
-   |        +------> BL-12
+published KRN FH-03..FH-05 -> BL-07
+BL-00 -> BL-01 -> BL-12
    +-> BL-02 -> BL-03
-             -> BL-04 -> BL-05
+             +-> BL-04 -> BL-05
+{BL-01, BL-03, BL-04} -> BL-06
+{BL-05, BL-07} -> {BL-08A, BL-08B, BL-08C}
 {BL-03, BL-04, BL-05, applicable BL-08A/B/C} -> BL-09 -> BL-10 -> BL-11
 {BL-06, BL-11} -> BL-14
 {BL-08A/B/C, BL-11} -> BL-15
@@ -420,6 +441,9 @@ BL-00 -> BL-01 -> BL-06
 BL-11 + adapter decision -> BL-17
 BL-12/BL-16 + executed optional tracks + reader inventory -> BL-18
 ```
+
+The `Dependencies:` field in each unit is canonical; this graph is only its
+compact projection and must not weaken an incoming edge.
 
 BL-03 and BL-12 deliberately do not share an entry edge: exact-starter fidelity
 and production-profile transfer are different experiments. BL-17 is optional and

@@ -30,7 +30,7 @@ WordPress correctness, or whether a skill should be promoted globally.
 | Public Figma community file | `1440671766024567005`, “Complete CSS — Bloom Barista Academy — All Rounds” | Design provenance. The all-rounds file leaks later decisions; candidate admission requires a frozen manifest of only the intended page/nodes. |
 | Bloom homepage | `https://bloom-barista.academy/`; HTML SHA-256 observed 2026-09-21: `47e546a1cfe0019f4e1c1c36018e59aebc50ae38f7245eb50f112fb4432639e5` | Mutable final behavior reference. Freeze captures; never use the moving URL as the run-time oracle. |
 | Bloom CSS and pattern library | `global.css` SHA-256 `6eea40be0dcc2c5851e6daf501e1f217b5fef212831767972b9b5b26751644d2`; `pattern-library.css` SHA-256 `30e6915e63be0d0f1e1bba4489234602ac085250e71c9c3ebde9f09d133fd6bf` | Sealed answer and architecture calibration only. The public pattern library reveals tokens, compositions, utilities, and named blocks, so it is not candidate input. |
-| Set Studio/Piccalilli public material | pinned URLs and source captures already indexed by the frontend synthesis | Mechanism and production counterexample source. It cannot replace the Bloom task's exact source epoch. |
+| Set Studio/Piccalilli public material | pinned URLs and source captures already indexed by the frontend synthesis | Mechanism and production counterexample source. It cannot replace the Bloom task's exact experiment epoch. |
 
 The locally held starter candidate supplies completed compositions, reset, fonts, basic global
 CSS/utilities, token JSON, assets, data/markup shells, and pattern-library
@@ -184,7 +184,7 @@ known-good reference fails, a named mutant passes, the candidate can reach any
 answer surface, treatment/control inputs differ beyond frontend skills, or the
 static/WordPress tracks are combined into the Bloom fidelity claim.
 
-Supersede this page in place when the starter/source epoch changes, the public
+Supersede this page in place when the reference freeze or experiment epoch changes, the public
 resolution changes, a reference rule is rejected, or a completed fidelity pilot
 changes the benchmark decision. Delete it when neither the frontend skills,
 lab protocol, boilerplate profiles, nor evaluator consumes Bloom.
