@@ -36,6 +36,8 @@ test("the generator emits a runnable task per row", async () => {
     assert.equal(runProcess("node", ["check.mjs"], { cwd: workspace }).ok, true, "a containing answer must pass");
     writeFileSync(path.join(workspace, "answers.json"), JSON.stringify(["four"]));
     assert.equal(runProcess("node", ["check.mjs"], { cwd: workspace }).ok, false, "a wrong answer must fail");
+    writeFileSync(path.join(workspace, "answers.json"), JSON.stringify([""]));
+    assert.equal(runProcess("node", ["check.mjs"], { cwd: workspace }).ok, false, "an empty answer must fail");
   } finally {
     rmSync(out, { recursive: true, force: true });
   }
