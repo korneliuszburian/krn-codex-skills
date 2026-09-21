@@ -9,6 +9,9 @@ canonical HTML/CSS/CUBE/WordPress/ACF substrate it evaluates. It complements
 method itself. [The implementation plan](frontend-harness-implementation.md)
 owns project creation, the migration units, dependency graph, and phase exits.
 No behavioral uplift is claimed before the registered LT-8 run.
+The first real target and its two distinct claims are fixed by
+[ADR 0009](../adr/0009-bloom-fidelity-and-transfer-benchmarks.md) and the
+[Complete CSS/Bloom decision](complete-css-bloom-benchmark.md).
 
 ## Accepted outcome
 
@@ -19,13 +22,21 @@ exact canonical CUBE recipes, keep project art direction open in the
 `design-transfer` track, and reserve exact source reconstruction claims for the
 `source-fidelity` track.
 
-The physical production starter is `Rekurencja/boilerplate-rekurencja`. Its
-stable frontend core is exported with source revision and per-file digests into
+The production project factory and reusable-core authority is
+`Rekurencja/boilerplate-rekurencja`. Its stable frontend core is exported with
+source revision and per-file digests into
 the `frontend-library` skill. The skill is a generated consumer, never a second
 writer. The generic runner, task/result contracts, deterministic frontend
 checks, and LT-8 lane belong in this repository. Private course material and
 large captures remain outside Git; the experimental corpus remains a lab
 consumer rather than an authority over production code.
+
+Bloom is the first source-backed task. Its fidelity lane will start from the
+Complete CSS 0.1.3 starter candidate after BL-03 independently authenticates and
+admits it, not from the Rekurencja starter, and compares a candidate with a
+frozen public design contract plus sealed known-good reference.
+A different lane later starts from a generated Rekurencja static profile to test
+method transfer. The WordPress/ACF lane remains a third, separate adapter claim.
 
 There is no production frontend project in `krn-codex-skills`. Project creation
 is therefore an explicit boilerplate-owned capability: a documented, executable
@@ -61,6 +72,9 @@ sealed v2 migration boundary is recorded in
   Promotion needs independent tasks, paired lanes with common task/model/seed/
   budget/environment, interleaved order, raw per-pair outputs, and a sample size
   justified from pilot variance.
+- Require known-good green and named mutants red without a model before any
+  Bloom candidate call. Fidelity, static-profile transfer, and CMS adapter
+  results are never collapsed into one quality claim.
 
 ## Grilling decision ledger
 
@@ -120,6 +134,19 @@ from silently dropping a decision or reverting a correction.
     render-time validation; "registry" is not a separate product concept.
 28. Give standalone Text the broad set of design-proven options, while nested
     Hero/CTA/Media contexts may set defaults, hide, or lock selected axes.
+29. Use the official Complete CSS starter byte-for-byte for Bloom fidelity;
+    changing the starter defines a different experiment.
+30. Keep the all-rounds Figma, completed site, pattern library, later rounds,
+    and course solutions sealed; expose only an admitted design export and an
+    original public designer-resolution log.
+31. Create a new private `bloom-frontend-lab`; do not repurpose the dirty
+    WordPress spike, Sandcastle, frontend vault, or a KRN fixture.
+32. Treat the Rekurencja `static-html-cube` profile as a separate transfer task,
+    not as the Bloom fidelity baseline.
+33. Admit every evaluator first through the completed reference and independent
+    mutants without a model.
+34. Harvest old experiments by mechanism only; quarantine copied course data,
+    hand-tuned winners, writable gates, manual leaderboards, and raw runs.
 
 ## Evidence and source ownership
 
@@ -128,9 +155,9 @@ The evidence set is deliberately layered:
 1. The locally held Complete CSS course is a private source for distilled
    mechanisms. No course transcript, exercise, solution, copied passage, or raw
    corpus is committed.
-2. The local `frontend-vault` is the existing catalog for official starter
-   files, exemplars, standards, adapters, and hypotheses. It is not copied into
-   another repository.
+2. The local `frontend-vault` is a duplicated private cache of earlier attempts,
+   not a catalog authority. It may help locate a primary source, but it is not
+   copied into another repository or promoted as evidence.
 3. Piccalilli and Set Studio article/category archives supply public method and
    production examples. "Archive" means the content archive, not an arbitrary
    quota of historical website versions.
@@ -199,11 +226,11 @@ SugarCube is the adopted generator. The Tailwind setup in the public 2024
 boilerplate is historical implementation evidence, not a retained dependency.
 Token and utility generation stays demand-driven where the build can know usage.
 
-Current drift is a blocker to enforcement, not evidence that either copy is
-right. The skill and boilerplate differ in `grid`, `wrapper`, `button`, `text`,
-global layout, tokens, and several blocks. Each file must be classified as
-upstream recipe, accepted production evolution, project-only example, obsolete
-copy, or deferred experiment before the generated snapshot is replaced.
+The KRN snapshot at the published FH-03 fixed point is an admitted generated
+consumer, while the source-side FH-01/FH-02 branch remains local and unpublished.
+BL-12 therefore re-observes the current boilerplate creator and classifies any
+new drift before admitting a production profile; neither the old local branch nor
+the installed snapshot silently becomes current source truth.
 
 Generated core and workflow procedure have different writers. The boilerplate
 export is the source of stable recipe bytes; KRN's frontend skills remain the
@@ -374,10 +401,11 @@ delivery probe verify the difference while core, project facts, assets, hooks,
 evaluator exclusion, and unrelated KRN surfaces remain equivalent. The sealed
 protocol records that receipt before the first experimental candidate call.
 
-## First discriminative pack
+## Post-Bloom expansion pack
 
-The initial pack contains independent failure modes rather than many cosmetic
-variants of one page:
+After BL-11 proves the Bloom known-good/mutant gate and BL-16 records the bounded
+fidelity pilot, a later pack may expand independent failure modes rather than
+adding cosmetic variants of the same page:
 
 1. responsive reflow at 320px, a boundary width, desktop, long Polish content,
    and 200% text, including focus-not-obscured and horizontal overflow;
@@ -411,13 +439,17 @@ repeating one screenshot many times.
 
 ## Open implementation facts
 
-The architecture is settled, but implementation still has to classify every
-drifted core file, define the cross-repository export artifact, write the Text
-context profiles, calibrate visual thresholds, and run LT-8. The source
-boilerplate and experimental corpus require their own isolated branches and
-writers; this repository's branch must not mutate those checkouts directly.
+The repository boundaries and experiment claims are settled. Implementation must
+still admit the exact starter and design epoch, write the public resolution log,
+freeze and validate the sealed reference, admit generic evaluator obligations,
+make known-good/mutants discriminate without a model, align the optional skills,
+create the production static profile as a separate transfer baseline, and only
+then run the registered pilot. The source boilerplate and new lab require their
+own isolated branches and writers; this repository's branch must not mutate dirty
+historical checkouts.
 
-Supersession: rewrite this page when the canonical-core classification changes,
-LT-8 reports a result, a real project falsifies a Text/context rule, or current
-Piccalilli/Set Studio production behavior contradicts an adopted recipe. Delete
-it only if both the frontend owners and LT-8 are retired.
+Supersession: rewrite this page when the Bloom source epoch, canonical-core
+classification, public resolution contract, experiment claim, or an adopted
+mechanism changes; also rewrite it when LT-8 reports a result or a real project
+falsifies a Text/context rule. Delete it only if the frontend owners, Bloom lab,
+and LT-8 are all retired.

@@ -1,524 +1,463 @@
-# Frontend harness implementation plan
+# Bloom frontend harness implementation plan
 
-Status: `lab-test`. Consumer: `$delivery-loop`, `$slice-work`, the unit
-implementer, LT-8, and the maintainer. Owner: maintainer. Verified: 2026-09-21.
+Status: `lab-test`. Consumer: `$delivery-loop`, unit implementers, the Bloom lab,
+LT-8, and the maintainer. Owner: maintainer. Verified: 2026-09-21.
 
-This page is the durable execution contract for
-[the frontend harness architecture](frontend-harness.md),
-[ADR 0007](../adr/0007-canonical-frontend-source-and-project-creation.md), and
-[ADR 0008](../adr/0008-sealed-frontend-evaluation.md). It exists because the
-outcome crosses repositories and fresh implementation contexts. It is not a
-progress log, ticket queue, or permission to publish, install, merge, or mutate
-a remote. Rewrite unit state in the active outcome capsule or configured tracker;
-rewrite this page only when the dependency graph or acceptance contract changes.
+This is the durable execution contract for the optional frontend branch of the
+existing KRN harness. It supersedes the earlier generic FH-06–FH-17 sequence,
+which had no real canonical task and incorrectly allowed an unrelated product to
+stand in for frontend evidence. KRN's FH-03–FH-05 snapshot import, versioned v2
+contracts, and isolated generation/evaluation are published at `92092a7`.
+Boilerplate FH-01/FH-02 export and project-creation work remains local,
+unpublished evidence: Bloom fidelity does not depend on it, and BL-12 must
+re-observe and admit the current source-side creator/profile behavior. Everything
+after the KRN fixed point is re-cut around the real Complete CSS Bloom target.
 
-The plan's sole durable consumer is the frontend-harness outcome through its
-implementation and LT-8 release decision. Delete this page after FH-17 completes
-and its surviving contracts are owned by code, ADRs, and the LT-8 result. If the
-architecture changes first, the maintainer supersedes this page in place and
-re-cuts every affected downstream unit.
+This page is not a progress log or permission to publish, merge, install, mutate
+a remote, or clean an existing dirty repository. Delete it after BL-18 when code,
+ADRs, the lab protocol, and the registered result own every surviving contract.
+Supersede it in place if the source epoch, repository boundary, or benchmark
+claim changes; re-cut all affected downstream units.
 
-## Outcome and authority
+## Accepted outcome
 
-Deliver a sealed, discriminative frontend evaluation path for semantic HTML,
-CSS, CUBE CSS, WordPress, and ACF Flexible Content, backed by one canonical
-production starter and a generated skill snapshot. The implementation succeeds
-only when it can create a real disposable project, keep candidate and evaluator
-workspaces separate, report independent result axes, run known-good/mutant
-fixtures, and execute an honest paired LT-8 pilot without claiming uplift from
-the mechanism alone.
+Create one sealed and discriminative frontend evaluation route that can answer:
 
-Authority is deliberately split:
+1. Does the frontend treatment improve reconstruction of Bloom from the exact
+   admitted Complete CSS starter and an honest public design contract?
+2. Do the same method and evaluator mechanisms transfer to a project generated
+   by Rekurencja's static HTML/CSS/CUBE profile?
+3. Later and separately, can a WordPress/ACF adapter render an already admitted
+   frontend contract without corrupting it?
 
-| Surface | Sole writer | Consumer |
+Success requires a no-model known-good/mutant gate before any candidate call,
+identical public inputs between control and treatment, a sealed answer boundary,
+independent result axes, raw one-shot evidence, and claim language that never
+turns Bloom fidelity into general frontend uplift.
+
+## Correction and cleanup boundary
+
+- The clean planning base is KRN `92092a7`, the published FH-05 fixed point.
+- The unpublished `feat/frontend-harness` FH-06 attempt using `bop-2026` is not
+  part of this plan and must not be published or merged as evidence.
+- `bloom-barista-www` is an active dirty WordPress spike with a boilerplate
+  remote; preserve it unchanged and exclude it from candidate/reference roles.
+- `krn-sandcastle` and other historical labs remain observation-only until their
+  current writers freeze them. Harvest contracts manually; never copy their
+  generated corpus, answer-bearing workspaces, or duplicated skills.
+- No destructive cleanup occurs before BL-18 passes and every retained mechanism
+  has a named new owner and falsifier. Retirement then means archive/quarantine
+  or readerless deletion by the original repository owner.
+
+The retirement inventory is explicit by logical identity: the active
+`krn-sandcastle` frontend experiment; `research-lab`; `mini-metalab-skills`;
+`prototype-krn`; the `frontend-vault` cache; the deprecated
+`deprecated/krn-skills-lab` repository; the standalone `lab/frontend` inventory
+scripts; the `bloom-barista-www` WordPress spike; and KRN's abandoned
+`feat/frontend-harness` worktree/branch. The local boilerplate FH-01/FH-02
+worktree is retained source-side evidence, not a cleanup target. BL-18 first
+resolves each logical identity to a current checkout under the target-repo-work
+boundary, then records original owner, retained mechanism and new owner,
+disposition, reader-zero proof, and cleanup authority. Until that receipt exists,
+every item stays preserved; no reusable contract stores a host mount prefix.
+
+## Authority map
+
+| Surface | Sole writer | Consumers |
 |---|---|---|
-| Stable frontend core, tooling integration, WordPress/ACF adapter, project creation | `Rekurencja/boilerplate-rekurencja` | created projects and the export artifact |
-| Generated CUBE snapshot | KRN importer, from one admitted boilerplate export | project agents, project audit, and evaluator tasks |
-| Generic frontend procedures | the owning KRN frontend skills | project agents and the frontend treatment profile |
-| Generic v1/v2 task/result contracts, isolation, evaluator axes, LT lane | `krn-codex-skills` | harness tasks and LT-8 |
-| Experimental tasks, private Complete CSS evidence, large captures | the lab checkout/storage | registered LT-8 only |
-| Project brand, content, art direction, and earned project blocks | the created product project | that product only |
+| Generic frontend procedures and optional frontend-stage routing | `krn-codex-skills` skill owners | product agents and treatment profile |
+| Generic v2 admission, containment, evaluator axes, and reporting | `krn-codex-skills` harness owners | Bloom lab and future frontend tasks |
+| Canonical Rekurencja core, project creator, static/WordPress profiles | `boilerplate-rekurencja` | created product projects and transfer fixtures |
+| Bloom public contract, source epochs, sealed answers, mutants, raw runs | new private `bloom-frontend-lab` | this benchmark only |
+| Complete CSS private lessons and solutions | operator private source store | source curator and sealed reference preparation only |
+| Official starter and public Figma artifacts | pinned upstream identities admitted by the lab | fidelity candidate and evaluator |
+| Product-specific WordPress implementation | its product repository | product runtime only; never the benchmark oracle |
 
-No unit may make KRN the canonical frontend application or make a task fixture
-the production starter. The current branch owns only KRN-side documentation and,
-later, KRN-side units. Boilerplate changes require a separate isolated worktree,
-branch, writer, and proof. The lab corpus likewise stays outside this checkout.
+KRN never owns a frontend application, Bloom-specific selector, course solution,
+or private corpus. The lab never authors generic skills, core recipes, project
+creation, or harness protocol. The boilerplate never authors experimental
+results or hidden answers.
 
-## Project creation is a required capability
+## Physical lab zones
 
-There is intentionally no frontend project under `krn-codex-skills`. Therefore
-"start the frontend harness" cannot mean "edit the current repository until a
-site appears." Before any product-like task is admitted, the boilerplate must
-own and prove the following new-project contract:
+The new lab repository must expose four physically and logically distinct zones:
 
-1. Its main entrypoint links one canonical project-creation instruction page.
-2. The page names a literal executable command already supported by that
-   checkout; the implementation unit inspects the real scripts before choosing
-   the command and does not invent an aspirational CLI.
-3. The command refuses a non-empty destination unless an explicit future
-   migration mode owns that case. The normal path writes outside both source
-   repositories into a disposable or user-selected project directory.
-4. The result is a self-contained complete starter, not a thin sample. It carries
-   stable core, build tooling, WordPress/ACF integration, and project scaffolding
-   while keeping those classes manifest-distinguishable.
-5. The result records boilerplate revision, export schema, per-file core digests,
-   and the creation command or equivalent reproducible parameters.
-6. The instructions include dependency setup, local start/build, the cheapest
-   smoke check, where project design facts live, how core updates are migrated,
-   and which files are project-owned. Credentials and production data are never
-   seeded.
-7. The unit executes the documented path against an empty temporary destination,
-   runs the emitted smoke check, verifies the recorded core, and removes the
-   disposable project. A prose-only walkthrough is not acceptance.
+```text
+public/       admitted starter, design export, content/assets, requirements
+workspaces/   disposable candidate copies only; ignored after raw retention
+sealed/       final reference, later rounds, anchors, expected states, mutants
+results/      evaluator-owned immutable receipts and raw trial envelopes
+```
 
-HTML/CSS/CUBE tasks may use a reduced public workspace generated from the same
-manifest, but that projection is not a second starter. WordPress/ACF tasks use a
-disposable project created through this path or a hermetic fixture derived from
-and verified against its recorded artifact. CI must not require access to the
-private remote after the artifact has been admitted.
+The task contract, preflight executable, manifest, and expected public-input
+digests remain in a runner-owned read-only projection. Only a declared project
+output write-set is copied writable for the candidate. The runner seals the
+immutable projection before and after generation and rejects any changed task or
+gate. `sealed/` and trusted result paths are absent from the candidate namespace.
+The evaluator receives only the frozen candidate observation and sealed inputs.
+Large captures, raw private course data, credentials, caches, and dependency
+trees are never committed merely because the repo is private. Each third-party
+artifact receives a provenance/rights class, approved private storage location,
+retention/deletion trigger, and publication boundary. A manifest or digest may
+be committed while the underlying course, Figma, font, or site bytes remain
+local-only; remote publication needs separate authority.
 
-## Operational preflight: repair the compaction boundary separately
+## Fixed source epoch
 
-Long execution spans fresh contexts, so the current memory-hook defect must be
-fixed before the multi-unit run relies on automatic continuation. This is a KRN
-runtime preflight, not a frontend architecture dependency and not part of LT-8's
-treatment.
+One epoch binds the starter archive digest, license, selected Figma page/node
+exports and digests, designer-resolution log digest, public content/assets,
+final-site HTML/CSS/capture identities, browser/font/locale/viewport environment,
+known-good identity, evaluator identity, and mutant identities. A mutable URL,
+folder name, screenshot alone, or prose claim is not an epoch.
 
-Observed on 2026-09-21 with Codex CLI `0.154.0` and installed KRN release
-`05be389adaf13af9b8d22d085e312d8d94093366`:
-
-- invoking the installed hook for an active capsule and
-  `hook_event_name=PreCompact` exits `0` and prints syntactically valid JSON with
-  top-level `hookSpecificOutput`, `hookEventName: PreCompact`, and
-  `additionalContext` (3607 bytes in the reproduced case);
-- Codex reports `hook returned invalid PreCompact hook JSON output`;
-- the current script says PreCompact "never signals" but appends every active
-  capsule to `notes` and emits the same event-specific context shape used by
-  `SessionStart`;
-- commit `206c0a9` introduced PreCompact context injection, while `cc06653`
-  added the correct SessionStart channel without removing the old output;
-- the official hook contract allows only common output fields for PreCompact,
-  while `hookSpecificOutput.additionalContext` is explicitly supported for
-  SessionStart. After compaction, SessionStart with source `compact` is the
-  model-context delivery point.
-
-The repair unit is `KRN-HOOK-01`: make PreCompact persist `boundary.md` and exit
-silently on success; keep capsule context delivery in SessionStart, including
-source `compact`; split the test helper by event and prove the current
-PreCompact-specific output red before changing code. Its focused falsifier must
-assert both sides: PreCompact writes the boundary and emits no stdout, while
-SessionStart emits valid `additionalContext` and does not write the boundary.
-Also remove the old test assertion that PreCompact injects context. Run this in
-a separate commit with `Change-contract: test/hooks-guard.test.mjs:red->green`.
-
-The local `test/hooks-guard.test.mjs` fixture can be masked when `/tmp/.git`
-exists, because `worktree_root()` then treats `/tmp` as a repository root and
-does not discover the nested temporary capsule. That fixture-environment defect
-is distinct from the host schema mismatch; the repair must place the fixture in
-a root whose repository identity is explicit or otherwise prevent the ambient
-`/tmp/.git` from changing discovery. A green host-schema test may not be claimed
-until both failure modes are separated.
-
-Primary contract: [OpenAI Hooks documentation](https://developers.openai.com/codex/hooks).
-
-## Decomposition choice
-
-Use expand–migrate–contract. The current manually copied `frontend-library`, v1
-task/result shape, and candidate-visible `cube-block` check are live compatibility
-surfaces. The new source export, project creation, v2 contracts, and evaluator
-must coexist with them until all admitted v2 tasks and project consumers are
-green. Only then may the obsolete authority and visible oracle be removed.
+The candidate-visible Figma scope begins with the intended course round. Later
+rounds are sealed. Every final requirement learned through feedback is disclosed
+through the public resolution log; private conversation is never a hidden
+requirement. Changing the public contract creates a new epoch and invalidates
+old cross-epoch comparisons.
 
 ## Work units
 
-### FH-01 — Expand: classify and export the canonical core at its source
-
-- **Repository:** an isolated `boilerplate-rekurencja` worktree.
-- **Entry → exit:** the starter behaves unchanged but core/project ownership is
-  implicit → every stable file is classified as `core`, `tooling`, `wordpress`,
-  or `project`, and one deterministic export emits schema version, source commit,
-  upstream provenance, path set, and per-file digests while excluding project
-  material.
-- **Fastest falsifier:** mutate one exported byte or admit one project-only file;
-  the source reproducibility check fails while the unchanged tree passes.
-- **Decision carried:** the boilerplate is the physical one-writer source; Set
-  Studio PR 15 is provenance; stable recipes are exact.
-- **Dependencies:** none. Blocks FH-02 and FH-03.
-- **Rollback:** additive exporter and manifest; runtime and current projects stay
-  unchanged.
-
-### FH-02 — Expand: executable project creation and operator instructions
-
-- **Repository:** the same isolated boilerplate line after FH-01.
-- **Entry → exit:** project creation is implicit/chat-dependent → the repository
-  entrypoint links one instruction page whose literal command creates a
-  self-contained project in an empty external destination, records FH-01
-  provenance/digests, and passes the emitted starter smoke check.
-- **Fastest falsifier:** execute the documented command in a disposable empty
-  directory, then alter the command, source revision, destination state, or one
-  copied core byte; stale instructions, unsafe overwrite, and provenance drift
-  must fail by name.
-- **Decision carried:** there is no project in KRN; one complete boilerplate owns
-  setup, and a fresh session must be able to follow the repository alone.
-- **Dependencies:** blocked by FH-01's manifest contract. Blocks FH-06, FH-12,
-  and FH-13.
-- **Rollback:** creation is additive and targets a new directory; no existing
-  project or database is rewritten.
-
-### FH-03 — Expand: reproducible `frontend-library` import
+### BL-00 — Freeze the corrected architecture
 
 - **Repository:** KRN.
-- **Entry → exit:** the skill keeps its current bytes → KRN imports a source
-  bundle only when revision, schema, paths, provenance, and digests agree, and
-  verifies the checked-in snapshot without the private remote.
-- **Fastest falsifier:** digest mismatch, undeclared file, missing source
-  identity, or hand edit to the generated snapshot is rejected.
-- **Decision carried:** generated consumer, never a second writer.
-- **Dependencies:** blocked by FH-01. Blocks FH-06.
-- **Rollback:** the current snapshot remains accepted until the first valid
-  manifest is explicitly migrated.
+- **Entry → exit:** generic plan with an arbitrary product consumer → ADR 0009,
+  Bloom source decision, authority map, corrected dependency graph, and an
+  unpublished old branch explicitly excluded.
+- **Falsifier:** any durable page still makes `bop-2026`, `bloom-barista-www`,
+  Sandcastle winners, or a KRN fixture the Bloom authority.
+- **Proof budget:** documentation readback and link/index checks; no runtime test.
+- **Rollback:** revert this planning fixed point; published KRN FH-03–FH-05
+  remain intact and local source-side work remains unpublished evidence.
 
-### FH-04 — Expand: versioned sealed task and result contracts
+### BL-01 — Complete the source-to-decision matrix
 
-- **Repository:** KRN.
-- **Entry → exit:** v1 tasks continue to load → v2 declares track, public
-  workspace, sealed evaluator, environment, viewports, perturbations, state
-  paths, evidence, public requirement identities, per-axis applicability, and a
-  multi-axis result without changing v1 behavior. Every sealed assertion names
-  the public requirement it verifies; an omitted measurement differs from an
-  explicit, justified `not-applicable` result.
-- **Fastest falsifier:** malformed track, evaluator inside public workspace,
-  assertion without a public requirement, missing or false axis applicability,
-  missing environment identity, unknown version, lost CLI-to-runner-to-result
-  field, or weighted aggregate is refused; retaining a public requirement while
-  hiding its answer is valid and existing v1 checks remain green.
-- **Decision carried:** hidden answer but no hidden requirement; two tracks; no
-  magic score.
-- **Dependencies:** none. Blocks FH-05, FH-08, FH-09, FH-10, FH-13, and FH-14.
-- **Rollback:** versioned loader dispatch preserves v1.
+- **Repository:** KRN research and owning frontend skills only.
+- **Entry → exit:** course mechanisms are partially and multiply summarized →
+  every adopted/rejected/lab-tested mechanism has one named skill/evaluator
+  consumer, counterexample, falsifier, and provenance; no copied private prose.
+- **Required cases:** design feedback/resolution, sketch-up, disposable
+  prototype, HTML-first/source order, fluid scales, layout compositions, core vs
+  flair, progressive enhancement, page composition without new block CSS,
+  documentation/Icebox, and minimum-code semantics.
+- **Falsifier:** a rule exists in a skill but has no source decision or testable
+  behavioral consequence, or the same procedure has two writers.
+- **Dependencies:** BL-00. Blocks BL-06 and BL-14.
 
-### FH-05 — Expand: isolated runner and environment digest
+### BL-02 — Create the private Bloom lab repository
 
-- **Repository:** KRN.
-- **Entry → exit:** the runner copies one visible workspace → v2 uses a selected
-  non-setuid `bubblewrap >= 0.12` backend, copies only public input, denies candidate access to the
-  oracle and trusted result writer, records network behavior, freezes output and
-  terminates candidate descendants before external evaluation, observes the
-  frozen artifact in an artifact-only namespace, then gives only that observation
-  envelope to a sealed evaluator under a separate authority and attaches a measured
-  environment digest. The task binds both the evaluator identity and sealed-tree
-  digest. The admitted profile denies network; a networked model run remains
-  refused until an operator-owned constrained and recorded egress adapter exists.
-  The sentinel is one leak detector, not proof of unreachability.
-- **Fastest falsifier:** an adversarial fixture attempts forbidden filesystem,
-  symlink, inherited-state, network, post-handoff mutation, answer-store read,
-  trusted-result write, delayed descendant, and evaluator-side candidate-runtime
-  paths; every attempt is denied and recorded. A real browser/font/locale change
-  must invalidate the measured environment identity.
-- **Decision carried:** evaluator is outside the candidate sandbox; captures are
-  immutable and paired only under the same environment; inherited unrestricted
-  networking is never relabeled as containment.
-- **Dependencies:** blocked by FH-04. Blocks FH-08, FH-09, FH-10, FH-12, and
-  FH-13.
-- **Rollback:** v1 lane runner remains callable until contract.
+- **Repository:** new `bloom-frontend-lab`, initialized locally on an owned
+  branch; remote creation/publication requires separate authority.
+- **Entry → exit:** no canonical Bloom lab → instructions, ownership boundaries,
+  ignored raw-run storage, four physical zones, source manifest schema, commands,
+  per-artifact rights/retention/publication fields, and a zero-answer public
+  projection exist.
+- **Falsifier:** a clean public projection contains a sealed path, course file,
+  later-round asset, live URL, solution fragment, credential, or result.
+- **Dependencies:** BL-00. Blocks BL-03–BL-05.
+- **Rollback:** remove only the newly created unpopulated repo or archive its
+  initial fixed point; do not touch historical labs.
 
-### FH-06 — Migrate: classify drift and promote the generated core
+### BL-03 — Authenticate and admit the exact starter
 
-- **Repositories:** boilerplate classification fixed point plus KRN importer;
-  one writer per repository and one integrator per branch.
-- **Entry → exit:** source and skill copies disagree → every file has an
-  adopt/reject/defer disposition, the boilerplate export is sole admitted source,
-  the skill snapshot is regenerated, and manifest-selected consumers resolve an
-  unchanged project's recorded core rather than silently interpreting it through
-  the newest KRN bundle. Browser, build, and existing project-audit behavior is
-  preserved for a named legacy consumer until an explicit core migration.
-- **Fastest falsifier:** source export plus KRN import checks catch deliberate
-  drift in `flow`, `grid`, `wrapper`, `text`, tokens, or a stable block; a
-  digest-consistent export that changes the named legacy consumer fails its
-  browser/build/audit check, while a project pinned to core A retains A under
-  tooling carrying B and an explicit A→B migration selects B.
-- **Decision carried:** public recipes plus accepted production evolution become
-  core; project art direction and experiments do not.
-- **Dependencies:** blocked by FH-01, FH-02, and FH-03. Blocks FH-08 and FH-11.
-- **Rollback:** file-level dispositions and one manifest allow whole promotion
-  revert; no mixed manual/generated authority survives.
+- **Repository:** Bloom lab.
+- **Entry → exit:** the locally held 0.1.3 zip is only a starter candidate linked
+  by the official course page → a newly acquired or otherwise independently
+  authenticated upstream artifact is compared with the observed SHA-256 and
+  extracted tree identity; source URL, version, license ambiguity, Node/build
+  contract, file classes, and reproducible materialization are recorded. A byte
+  mismatch creates a new source epoch instead of being explained away.
+- **Falsifier:** one changed byte, omitted license, undeclared file, completed
+  solution byte, or non-empty destination fails admission.
+- **Decision:** fidelity uses this exact artifact. Rekurencja's new profile is not
+  substituted here.
+- **Dependencies:** BL-02. Blocks BL-06 and BL-09.
 
-### FH-07 — Migrate: align KRN frontend procedures with the method
+### BL-04 — Compile the honest public design contract
 
-- **Repository:** KRN; `skills/frontend/frontend-components/SKILL.md` owns the
-  block-size procedure and `skills/frontend/frontend-architecture/SKILL.md` owns
-  design consolidation and ACF intake. The importer is not their writer.
-- **Entry → exit:** live workflow instructions can require a split solely at
-  ~80–100 lines and can conflate heading semantics with visual size → the owning
-  frontend skills define minimum code as reuse/deletion, treat size as a review
-  smell rather than a source-code budget, separate semantic heading level from
-  visual token role, and allow reviewed semantic/structural choices that are not
-  presentation tokens.
-- **Fastest falsifier:** procedure acceptance cases exercise those exact skills
-  with a valid block over 100 lines that has no better composition boundary,
-  independent semantic/visual heading combinations, and a justified non-token
-  structural choice; the workflow, synthesis, and evaluator contract agree on
-  all three without weakening the thin-block or token-bypass rules.
-- **Decision carried:** KRN owns generic procedures; generated resources never
-  rewrite them, and candidate instructions must describe the method the evaluator
-  measures.
-- **Dependencies:** none; it may run beside FH-01/FH-04/FH-06 and joins only at
-  task/treatment admission. Blocks FH-12, FH-13, and FH-15.
-- **Compatibility:** existing project work and the current project audit retain
-  their pre-migration semantics; no v2 task or LT-8 treatment is admitted until
-  both live procedure owners pass the named cases.
-- **Rollback:** revert the one bounded procedure commit and keep v2 tasks and the
-  treatment profile unadmitted; the generated snapshot, importer, existing
-  projects, and current project audit remain unchanged.
+- **Repository:** Bloom lab.
+- **Entry → exit:** all-rounds Figma URL and private course conversation can leak
+  answers/requirements → one public manifest identifies admitted round nodes,
+  captures, content/assets, section inventory, supported environment, requirement
+  IDs, and an original designer-resolution log.
+- **Falsifier:** removing any public requirement leaves a sealed assertion; adding
+  a later-round or solution-derived artifact changes no manifest; either is a
+  failure.
+- **Dependencies:** BL-02. Blocks BL-06, BL-09, and BL-14.
 
-### FH-08 — Migrate: canonical architecture evaluator axis
+### BL-05 — Freeze the sealed final reference epoch
+
+- **Repository:** Bloom lab sealed zone/private artifact storage.
+- **Entry → exit:** moving live site and unversioned course answers → immutable
+  final HTML/CSS/capture, fonts/assets, later-round identities, semantic anchors,
+  state paths, environment receipt, and one provenance-bound known-good identity.
+  BL-05 must establish whether that identity is an admitted upstream completed
+  source artifact or a lab-owned private reconstruction validated against the
+  frozen public output and requirement map; the deployment alone is not source
+  provenance. Rights class, storage, retention, and publication boundary are
+  recorded for every sealed byte.
+- **Falsifier:** a recapture, font/browser/locale change, moving URL, or changed
+  reference byte can reuse the old epoch identity.
+- **Dependencies:** BL-02 and BL-04. Blocks BL-08A/B/C and BL-09–BL-11.
+
+### BL-06 — Align optional frontend skills with the real task
 
 - **Repository:** KRN.
-- **Entry → exit:** project audit emits a broad policy summary → a sealed task
-  evaluator emits named failures for core digest, local knockoff, ownership,
-  token bypass, exception naming, and duplicate module/ACF identity.
-- **Fastest falsifier:** one targeted mutation per independent rule is red and
-  the canonical known-good project is green.
-- **Decision carried:** custom property → named exception → new block → upstream
-  core edit; minimum code means reuse and deletion, not numeric limits.
-- **Dependencies:** blocked by FH-05 and FH-06. Blocks FH-12 and FH-13.
-- **Rollback:** the new axis is additive; current project audit remains the gate
-  until FH-17.
+- **Entry → exit:** WordPress assumptions and KRN-core authority can leak into a
+  static task → `$frontend-stage` selects static fidelity, static transfer, or
+  WordPress adapter; architecture makes ACF conditional; components/library
+  honor the task-pinned starter/core; line-count splitting is absent; feedback
+  produces the public resolution artifact.
+- **Falsifier:** the static Bloom fixture is instructed to create ACF, replace an
+  admitted course composition from KRN, split solely by line count, or infer a
+  private requirement.
+- **Dependencies:** BL-01, BL-03, BL-04. Blocks BL-14.
 
-### FH-09 — Migrate: responsive, interaction, and accessibility state paths
-
-- **Repository:** KRN.
-- **Entry → exit:** browser evidence supports viewport and a simple click path →
-  v2 executes declarative state transitions and perturbations with named runtime,
-  focus, ARIA/ACT, overflow, target-size, contrast, long-content, zoom,
-  reduced-motion, and manual-unknown results.
-- **Fastest falsifier:** broken Escape/focus return, hidden focus, 320px overflow,
-  long Polish copy, 200% text, and reduced motion each fail their own requirement;
-  a known-good path passes.
-- **Decision carried:** state graph, not one hard-coded click; automated a11y is
-  partial evidence only.
-- **Dependencies:** blocked by FH-04 and FH-05. Blocks FH-12 and FH-13.
-- **Rollback:** existing signed browser evidence remains valid; v2 uses a
-  versioned schema.
-
-### FH-10 — Migrate: geometry and visual evidence axis
+### BL-07 — Admit generic evaluator obligations
 
 - **Repository:** KRN.
-- **Entry → exit:** only project screenshots/measurements exist → sealed
-  evaluation supports semantic anchors, component matching, geometry, raw pixel
-  mismatch, and diagnostic perceptual metrics with track-specific authority.
-- **Fastest falsifier:** independently corrupt presence, placement, typography,
-  color, and a secondary image; the appropriate anchor/geometry/raw metric must
-  catch each intended corruption. No perceptual hard gate exists before blinded
-  human calibration.
-- **Decision carried:** exact pixels only in source-fidelity; class/DOM identity
-  is not the target; VLM diagnostics never override deterministic evidence.
-- **Dependencies:** blocked by FH-04 and FH-05. Blocks FH-12 and FH-14.
-- **Rollback:** design-transfer reports visual evidence without granting it sole
-  pass authority.
+- **Entry → exit:** v2 has isolation and structural admission → every declared
+  axis/requirement obligation has an evaluator assertion and explicit result
+  evidence or justified non-applicability; evaluator identity follows the task
+  through result admission.
+- **Falsifier:** duplicated cross-axis requirement with one assertion, empty-pass
+  evidence, stale evaluator substitution, or omitted applicable axis is admitted.
+- **Dependencies:** published FH-04/FH-05. Blocks BL-08A/B/C and BL-11.
 
-### FH-11 — Migrate: deep Text profiles and smart ACF normalization
+### BL-08A — Implement structural evaluator axes
 
-- **Repository:** an isolated boilerplate worktree based on the promoted core.
-- **Entry → exit:** Text clones expose an unconstrained or duplicated surface →
-  one field group and renderer serve standalone/Hero/CTA/Media Content profiles
-  with defaults, allowed, locked, and hidden values in one code-owned map used by
-  both editor and render-time validation.
-- **Fastest falsifier:** duplicate fields/renderers, raw CSS choice, profile-
-  invalid value, known legacy token, a newly admitted real design role, lock/
-  default precedence, and independent semantic/visual heading choices take
-  distinct paths; stale fallback is reported rather than silently discarded.
-- **Decision carried:** Text owns eyebrow/heading/body/actions composition;
-  semantic heading level differs from visual role; token metadata usually
-  supplies presentation choices; normalization may expand a justified system.
-- **Dependencies:** blocked by FH-06. Before FH-13 consumes its output, a changed
-  core is re-exported/imported and affected fixtures are re-admitted; an
-  adapter-only change records the source/adapter identity and proves core
-  unchanged. Blocks FH-13.
-- **Rollback:** stored rows remain readable; old values are supported before any
-  explicit data migration rewrites them.
+- **Repositories:** KRN owns the generic engine; Bloom lab owns configuration.
+- **Entry → exit:** broad audit only → independent build/completeness, semantic
+  structure, CUBE architecture, implementation-economy, and documentation
+  observations behind the BL-07 axis interface.
+- **Falsifier:** targeted generic fixtures independently break source order,
+  token use, layout ownership, local primitive reuse, required content, and one
+  unnecessary mechanism.
+- **Dependencies:** BL-05, BL-07. Blocks BL-09.
 
-### FH-12 — Migrate: HTML/CSS/CUBE discriminative task pack
+### BL-08B — Implement responsive, state, and accessibility axes
 
-- **Repositories:** KRN task contracts plus lab-owned corpus/captures; admitted
-  fixtures only are committed to KRN.
-- **Entry → exit:** `cube-block` is the sole frontend smoke → sealed tasks cover
-  project creation, responsive reflow, interaction, design transfer, and
-  canonical consolidation, each with known-good green and targeted red mutants.
-- **Fastest falsifier:** run the deterministic evaluator against known-good and
-  mutant fixtures without a model; every admitted mutation fails only its named
-  requirement or documented coupled requirements.
-- **Decision carried:** task diversity over screenshot repetition; product tasks
-  receive canonical core; maintenance tasks test replacement of local knockoffs.
-- **Dependencies:** blocked by FH-02, FH-05, FH-07, FH-08, FH-09, and FH-10,
-  plus immutable lab-input receipts. Blocks FH-14, FH-15, and FH-16.
-- **Rollback:** tasks coexist with `cube-block` until FH-17 proves no reader.
+- **Repositories:** KRN owns the state-path engine; Bloom lab owns task states.
+- **Entry → exit:** basic browser evidence → viewport/perturbation observations,
+  keyboard and focus transitions, reduced-motion/no-JS behavior, contrast, long
+  content, zoom, and text enlargement behind the same interface.
+- **Falsifier:** targeted generic fixtures independently break overflow, focus,
+  Escape/focus return, reduced motion, no-JS content, and enlarged text.
+- **Dependencies:** BL-05, BL-07. Blocks BL-09.
 
-### FH-13 — Migrate: WordPress/ACF adapter task pack
+### BL-08C — Implement geometry and visual axes
 
-- **Repositories:** boilerplate-derived disposable fixture plus KRN evaluator.
-- **Entry → exit:** browser output and ACF topology are not jointly exercised →
-  one sealed task separately reports rendered frontend and adapter correctness
-  for clone ownership, Text profiles, static layout allowlist, reachability,
-  escaping, token mapping, and stale-state normalization.
-- **Fastest falsifier:** duplicate group, database-derived template path,
-  unescaped output, invalid presentation state, and unreachable layout fail;
-  the canonical created project passes.
-- **Decision carried:** frontend and CMS adapter are separate axes; Flexible
-  Content is the page composer; no Gutenberg, ACF Blocks, or page builder enters
-  the baseline.
-- **Dependencies:** blocked by FH-02, FH-04, FH-05, FH-07, FH-08, FH-09, and
-  FH-11's source-artifact re-admission. FH-10 is additionally required when the
-  admitted task claims geometry or visual evidence; otherwise FH-04 must record
-  those axes as explicitly not applicable. Blocks FH-14, FH-15, and FH-16.
-- **Rollback:** only disposable WordPress state is touched; no developer or
-  production database is mutated.
+- **Repositories:** KRN owns generic observation/comparison; Bloom lab owns named
+  anchors and reference captures. Bloom selectors never enter KRN.
+- **Entry → exit:** screenshot evidence only → anchor geometry, typography,
+  color, media crop, and raw pixel evidence with explicit environment identity.
+- **Falsifier:** targeted generic fixtures independently move an anchor, corrupt
+  typography/color, and replace a secondary image.
+- **Authority:** raw pixel mismatch is evidence; hard acceptance uses calibrated
+  named anchors/tolerances. Perceptual metrics never override deterministic
+  failures, and no weighted composite exists.
+- **Dependencies:** BL-05, BL-07. Blocks BL-09.
 
-### FH-14 — Migrate: bounded repair and paired raw reporting
+### BL-09 — Bind and pass the known-good reference
 
-- **Repository:** KRN.
-- **Entry → exit:** the harness aggregates pass/tokens/wall → v2 retains raw
-  per-trial output, separates one-shot from repair, permits at most one repair
-  for one external causal category, and reports worst-viewport delta, cached/
-  input/output/reasoning tokens, latency, retries, and artifact identities. The
-  task contract defines category → axis → viewport ordering, direction, ties,
-  errors, and missing data before repair; no cross-axis composite is introduced.
-- **Fastest falsifier:** unconditional repair, mixed cohort aggregate, repair
-  without a stable category, missing raw pair, or average improvement with a
-  worse category-selected viewport is rejected; two viewports with conflicting
-  axes, a tie, an error, and a missing measurement select deterministically.
-- **Decision carried:** external verification beats self-critique; efficiency is
-  evidence, never a source-code budget.
-- **Dependencies:** blocked by FH-10, FH-12, and FH-13. Blocks FH-15 and FH-16.
-- **Rollback:** generic v1 summaries stay available during migration.
+- **Repository:** Bloom lab.
+- **Entry → exit:** an upstream answer is assumed correct → the BL-05 admitted
+  known-good is built in the frozen environment and every public
+  requirement/assertion is reconciled. Reference defects reject or narrow rules
+  rather than receiving automatic authority.
+- **Falsifier:** any applicable axis fails, evidence is missing, public/hidden
+  requirement mapping is incomplete, or result identity differs from the epoch.
+- **Dependencies:** BL-03–BL-05 and the applicable BL-08A/B/C axes. Blocks BL-10.
 
-### FH-15 — Migrate: admit the frontend treatment profile
+### BL-10 — Admit the discriminative mutant suite
 
-- **Repository:** KRN protocol/profile; the lab only consumes its immutable
-  receipt. Do not change the global default `harness_skills` export to satisfy
-  this experiment.
-- **Entry → exit:** broad lane flags and capability profiles do not establish the
-  intended method → a disposable treatment profile names and delivers
-  `$frontend-stage` plus its six frontend owners, while the control omits exactly
-  that method and both lanes retain equivalent core, project facts, assets,
-  hooks, evaluator exclusion, and unrelated KRN surfaces.
-- **Fastest falsifier:** candidate-visible inventory and a delivery probe fail if
-  any named frontend owner is missing from treatment, present in control, the
-  oracle is visible, or any non-treatment surface differs. The receipt pins the
-  profile, KRN revision, artifact hashes, and transport actually used.
-- **Decision carried:** an installed or globally available skill is not proof
-  that an experimental candidate received it; treatment delivery is measured.
-- **Dependencies:** blocked by FH-07, FH-12, FH-13, and FH-14. Blocks FH-16.
-- **Rollback:** the experiment-specific profile is additive and removable without
-  altering default installation or global skill export.
+- **Repository:** Bloom lab.
+- **Entry → exit:** green known-good only → named independent mutants cover fixed
+  one-viewport layout, source order, fluid scale, layout ownership, duplicated
+  primitives, token bypass, focus/contrast, long content/text enlargement,
+  no-JS, missing content, leakage, coverage, evaluator identity, and the rejected
+  complex heading treatment.
+- **Falsifier:** a mutant passes, the control reference fails, or unrelated axes
+  fail without a documented causal coupling.
+- **Dependencies:** BL-09. Blocks BL-11.
 
-### FH-16 — Migrate: LT-8 feasibility pilot and powered-run decision
+### BL-11 — Seal the no-model fidelity gate
 
-- **Repositories:** KRN owns the sealed protocol/profile fixed point and result;
-  the lab owns execution and private raw outputs. These are sequential handoffs,
-  never one concurrent writer context.
-- **Entry → exit:** LT-8 has architecture and anecdotes only → alternating paired
-  control/treatment runs hold task/model/seed/budget/environment constant,
-  preserve raw outputs, report one-shot and repair separately, and decide whether
-  pilot variance and discrimination justify a larger run and required N.
-- **Fastest falsifier:** before the first experimental candidate call, the sealed
-  protocol revision, FH-15 treatment receipt, candidate-visible inventories,
-  pairing/order, seeds/budgets, task mutation, project creation, raw retention,
-  blinded qualitative decisions, repair cohorts, and pair completeness must pass.
-  The revision must supersede the LT-8 row in `docs/research/lab-tests.md`, and
-  the fixed-point readback must agree with the lab handoff. No uplift statistic
-  is read before that admission.
-- **Decision carried:** three pairs are feasibility only; a null or negative
-  result changes adoption; maintainer-authored reference is acceptance, not
-  independent evidence.
-- **Dependencies:** blocked by FH-12, FH-13, FH-14, and FH-15. Blocks FH-17.
-- **Rollback:** holdout tasks are never tuned after result inspection; a failed
-  pilot leaves mechanisms available but unpromoted.
+- **Repositories:** KRN runner plus Bloom lab.
+- **Entry → exit:** mechanisms exist independently → the exact public projection
+  crosses isolated generation/frozen handoff/evaluation without invoking a model;
+  known-good passes, every mutant fails, answer reads/writes are denied, and raw
+  receipts bind task, epoch, evaluator, environment, and artifact.
+- **Falsifier:** candidate-writable gate/evaluator, mutated public inputs after
+  sealing, live Bloom access, surviving descendant, or result/artifact mismatch.
+- **Required receipt:** containment backend/version and namespace identity plus
+  positive denial probes for parent/sibling absolute reads, symlink traversal,
+  inherited environment/state, live Bloom DNS/network, sealed/result writes,
+  surviving descendants, frozen-artifact mutation, and evaluator/result-writer
+  access. A sentinel remains only a leak detector.
+- **Dependencies:** BL-07, BL-10. Blocks BL-14–BL-16.
 
-### FH-17 — Contract: remove obsolete frontend authority
+### BL-12 — Create the production static HTML/CSS/CUBE profile
 
-- **Repository:** KRN, after every live consumer is enumerated.
-- **Entry → exit:** admitted v2 tasks and project consumers use generated core
-  and sealed evaluation → candidate-visible `cube-block` oracle, manual snapshot
-  authority, and superseded frontend-only v1 paths are deleted while generic
-  comparison and signed project verification with readers remain.
-- **Fastest falsifier:** repository search and contract tests prove zero old
-  consumer; full gate plus known-good/mutant suite stays green after deletion.
-- **Decision carried:** one writer per artifact; delete only readerless surfaces.
-- **Dependencies:** blocked by FH-16 and any migrate unit that still names an old
-  consumer.
-- **Rollback:** one contract commit names every deletion and is revertible as a
-  fixed point.
+- **Repository:** isolated `boilerplate-rekurencja` worktree.
+- **Entry → exit:** creator only emits the WordPress/Bedrock baseline → a named
+  `static-html-cube` profile creates an empty-destination, self-contained project
+  with canonical core, tokens, build/serve/lint/a11y/browser smoke, pattern
+  library, and provenance, without PHP, database, Bedrock, WordPress, or ACF.
+- **Falsifier:** re-observe the current creator rather than inheriting the local
+  FH-01/FH-02 claim; run the literal create command plus smoke for both the
+  existing default profile and `static-html-cube`. The emitted disposable
+  project is the initial browser/build/audit compatibility consumer. Preserve a
+  pinned project-A fixture so every later A→B core promotion proves unchanged
+  interpretation until explicit migration. Non-empty destination, default-
+  profile regression, profile contamination, core-byte drift, behavior-regressing
+  digest-consistent B, and missing provenance fail.
+- **Dependencies:** BL-01. Blocks BL-13. It does not block Bloom fidelity.
+
+### BL-13 — Admit a separate static transfer task
+
+- **Repositories:** the boilerplate supplies the artifact; `bloom-frontend-lab`
+  owns this distinct transfer track and epoch. It does not reuse the Bloom target
+  or source-fidelity claim.
+- **Entry → exit:** only in-domain Bloom fidelity exists → the same generic axes
+  evaluate a project generated by `static-html-cube` against a distinct public
+  design contract and sealed answer.
+- **Falsifier:** changing starter alone is reported as skill uplift, Bloom answer
+  material leaks, or fidelity and transfer results share one claim.
+- **Holdout:** freeze immutable dev/validation/holdout membership before the
+  treatment, evaluator thresholds, and skill decision are frozen. The transfer
+  holdout is first read only afterward; its output cannot tune those inputs and
+  carries a forward-test receipt.
+- **Dependencies:** BL-08A/B/C, BL-11, BL-12. Blocks generalization claims only.
+
+### BL-14 — Admit the frontend treatment profile
+
+- **Repository:** KRN profile/protocol; lab consumes its receipt.
+- **Entry → exit:** installed/global skills do not prove treatment delivery →
+  treatment receives exactly `$frontend-stage` and the admitted frontend owners;
+  control omits them; starter, public facts/assets, model, seed/budget, hooks,
+  unrelated skills, network, evaluator exclusion, and runtime remain equivalent.
+- **Falsifier:** candidate-visible inventories or a delivery probe find a missing
+  treatment owner, a frontend owner in control, an oracle, or any other lane
+  difference.
+- **Dependencies:** BL-06, BL-11. Blocks BL-16.
+
+### BL-15 — Preserve raw one-shot and bounded repair
+
+- **Repositories:** KRN owns result schemas, causal classification, and
+  coordinator code; the Bloom lab is the sole writer of Bloom run envelopes,
+  raw results, and retained candidate artifacts.
+- **Entry → exit:** generic aggregate → immutable one-shot result plus optional
+  one-repair cohort classified externally by one causal category, with per-axis,
+  per-viewport raw evidence, tokens, latency, retries, and artifact identities.
+- **Falsifier:** rejected repair leaves modified code/results inconsistent,
+  average hides a worse category-selected viewport, missing/errors disappear,
+  or one-shot and repair are aggregated.
+- **Dependencies:** BL-08A/B/C, BL-11. Blocks BL-16.
+
+### BL-16 — Run the preregistered Bloom feasibility comparison
+
+- **Repositories:** KRN fixes protocol/treatment identities; Bloom lab executes
+  and owns private raw results. Sequential handoff, never concurrent writers.
+- **Entry → exit:** no behavioral evidence → matched control/treatment runs use
+  identical public epoch/model/seed/budget/environment and report independent
+  axes, one-shot and repair separately. Ordering, retention, exclusions, and
+  analysis are frozen before the first candidate call.
+- **Human evidence:** the first feasibility gate has no manual score authority.
+  If later calibration needs judgment, it uses immutable blinded packets, named
+  reviewer role/identity, both presentation orders, append-only trusted receipts,
+  and no editable aggregate; it never changes deterministic pass/fail.
+- **Falsifier:** incomplete pair, treatment mismatch, leaked answer, task mutation,
+  post-observation threshold change, or missing raw receipt invalidates the run.
+- **Claim:** feasibility and in-domain Bloom fidelity only. A null/negative result
+  changes the skill decision. Larger N and a transfer run require a new decision.
+- **Dependencies:** BL-11, BL-14, BL-15.
+
+### BL-17 — Add the WordPress/ACF adapter track
+
+- **Repositories:** `boilerplate-rekurencja` profile/adapter plus lab fixture and
+  KRN generic evaluator.
+- **Entry → exit:** static frontend contract is admitted → a disposable created
+  project separately reports frontend fidelity and adapter correctness for clone
+  ownership, Text profiles, static layout allowlist, reachability, escaping,
+  token mapping, and stale-state normalization.
+- **Falsifier:** duplicate group, database-derived template, invalid state,
+  unreachable layout, unescaped output, or frontend/adapter score conflation.
+- **Dependencies:** BL-11 and an accepted source-side adapter/profile plan. It is
+  not required for BL-16.
+
+### BL-18 — Contract and retire obsolete authority
+
+- **Repositories:** each original owner retires its own readerless surfaces;
+  KRN removes only migrated frontend fixtures/procedures.
+- **Entry → exit:** multiple old labs and visible toy oracle coexist → retained
+  mechanisms have one owner, live readers are enumerated, obsolete duplicates are
+  archived/quarantined or removed, and generic v1 readers remain intact.
+- **Required ledger:** for every item named in the correction boundary, record
+  original owner, retained mechanism, new owner, disposition, reader-zero proof,
+  cleanup authority, and rollback/archive pointer. No blanket directory cleanup.
+- **Falsifier:** repository search plus behavioral gates reveal a live reader,
+  copied private course content, duplicated skill owner, or lost historical
+  evidence needed by a named consumer.
+- **Dependencies:** BL-11 for fidelity infrastructure, BL-12 for transfer
+  infrastructure, BL-16 for experiment-only surfaces, and every optional track
+  actually executed (especially BL-13/BL-17). Product and Sandcastle cleanup
+  needs their owners' authority.
 
 ## Dependency graph
 
 ```text
-KRN-HOOK-01 (operational preflight; separate from frontend semantics)
-
-FH-01 -> FH-02 -------------------------------------> FH-12/FH-13
-   |
-   +-----> FH-03 -> FH-06 -> FH-08 -> FH-12
-                         |       |        |
-                         |       +------> FH-13
-                         +----> FH-11 --receipt-> FH-13
-
-FH-07 ---------------------------------------------> FH-12/FH-13/FH-15
-
-FH-04 -> FH-05 -> FH-08
-   |        |       ^
-   |        +----> FH-09 -> FH-12/FH-13
-   |        +----> FH-10 -> FH-12/FH-14
-   +-------------> FH-09/FH-10/FH-13
-
-FH-12/FH-13 -> FH-14 -> FH-15 -> FH-16 -> FH-17
+published KRN FH-03..FH-05 -> BL-07 -> {BL-08A, BL-08B, BL-08C}
+BL-00 -> BL-01 -> BL-06
+   |        +------> BL-12
+   +-> BL-02 -> BL-03
+             -> BL-04 -> BL-05
+{BL-03, BL-04, BL-05, applicable BL-08A/B/C} -> BL-09 -> BL-10 -> BL-11
+{BL-06, BL-11} -> BL-14
+{BL-08A/B/C, BL-11} -> BL-15
+{BL-11, BL-14, BL-15} -> BL-16
+{BL-08A/B/C, BL-11, BL-12} -> BL-13
+BL-11 + adapter decision -> BL-17
+BL-12/BL-16 + executed optional tracks + reader inventory -> BL-18
 ```
 
-Only load-bearing edges apply. FH-01 and FH-04 may begin independently because
-they have different repositories and seams. FH-09 and FH-10 may proceed
-independently after runner isolation. FH-11 has a distinct boilerplate writer.
-Parallel writers never share a worktree; one integrator per repository owns the
-merged fixed point.
+BL-03 and BL-12 deliberately do not share an entry edge: exact-starter fidelity
+and production-profile transfer are different experiments. BL-17 is optional and
+cannot delay the first static Bloom result.
 
-## Unit execution contract
+## Unit execution and proof contract
 
 For every unit:
 
-1. Start one fresh implementation context with only that unit, its ADR/research
-   pointers, dependency evidence, and repository instructions.
-2. State repository, branch/worktree, sole writer, write authority, public seam,
-   and cheapest proof before mutation.
-3. For a new or changed runtime observer, demonstrate the named falsifier red at
-   the entry fixed point, then make that same signal green. Documentation and
-   behavior-preserving topology changes use the contract's zero-test or observed
-   `green->green` budget instead of manufacturing a test.
-4. Every harness-surface commit carries an exact `Change-contract` trailer and
-   `npm run changes:check -- --before <entry-sha>` (or the repository-equivalent)
-   must accept it before publication.
-5. Record source/base/head revisions, dirty-state ownership, environment digest,
-   raw evidence pointer, compatibility state, rollback, and net surface added or
-   deleted. A model self-review is advisory, never completion proof.
-6. Run the focused check first and the repository's full required gate once at
-   handoff. Do not use a broad suite as the debugging loop.
-7. Commit, push, open a PR, merge, install, publish tickets, deploy, or touch a
-   remote only under the separately recorded authority for that operation.
+1. Name repository, branch/worktree, sole writer, write authority, candidate-
+   visible surface, sealed surface, and cheapest falsifier before mutation.
+2. Preserve unrelated dirty work. Cross-repository observation never grants
+   repair, cleanup, publication, or migration authority.
+3. Demonstrate each new runtime falsifier red at the entry fixed point and green
+   at the exit. Documentation/topology uses readback rather than manufactured
+   tests.
+4. A KRN harness-surface commit carries `Change-contract: <check>:red->green` or
+   the justified unchanged `green->green` form and passes `changes:check` against
+   its real base.
+5. Record immutable source/base/head, environment, artifact and evaluator
+   identities, public-input digest, denied probes, raw evidence location,
+   rollback, and non-proofs.
+6. Run focused checks first and each repository's required full gate once at
+   handoff. Same-model review is advisory; deterministic mutation proof wins.
+7. Commit, push, create remote/PR, merge, install, deploy, archive, or delete only
+   under separately recorded authority.
 
-## Phase exits
+## Ask-GPT review gate
 
-- **Readiness exit:** KRN-HOOK-01 is green when the outcome will depend on
-  compaction; both repositories have owned clean worktrees; the project-creation
-  destination and lab storage are explicit.
-- **Expand exit:** FH-01 through FH-05 are green; a disposable project can be
-  created; v1 behavior is unchanged; v2 refuses leaked evaluators.
-- **Migrate exit:** FH-06 through FH-16 are green; every task has known-good and
-  targeted-mutant evidence; LT-8 reports results and non-proofs.
-- **Contract exit:** FH-17 proves no old reader, deletes obsolete authority, and
-  the merged fixed point passes the full KRN gate and source-side required gates.
+After BL-00 documentation is committed, fully gated, and pushed, perform exactly
+one GPT-6 Astra high-reasoning GitHub-connector review of that fixed point. Its
+question is whether the repository boundaries, two-experiment design, leakage
+model, dependency graph, and no-model admission gate are sufficient to begin
+BL-01/BL-02 without recreating Sandcastle's second authority. It must not decide
+merge, validate private course contents, claim gates ran, or recommend copying
+old lab code. Every finding requires `path:line`, quotation, observation vs
+inference, and the fixed output schema owned by `$ask-gpt`.
 
-Ticket publication state: `NOT_REQUESTED`. The plan defines work units but does
-not create, claim, or sequence tracker items. `$delivery-loop` may select exactly
-one ready unit when lifecycle ownership is explicitly requested.
-
-Supersession: rewrite this plan when an ADR changes, a source-side inspection
-invalidates the project-creation/export assumptions, a unit cannot preserve its
-entry invariant, or LT-8 changes the contract destination. Delete it under the
-rule in the opening paragraph after FH-17 and the release decision are complete.
+The single Astra response returns to `$delivery-loop`; every accepted finding is
+verified locally and incorporated before implementation. No second Astra run is
+planned for this planning fixed point.

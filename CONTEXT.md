@@ -8,7 +8,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [README.md](README.md) — operator entrypoint, main workflow, and skill catalog.
 - [docs/research/README.md](docs/research/README.md) — research index and curation contract.
 - [docs/research/orchestration.md](docs/research/orchestration.md) — current lifecycle spine, admission map, retrieval ladder, and falsifiers.
-- [docs/research/lab-tests.md](docs/research/lab-tests.md) — the LT lab-test registry (LT-1 through LT-101), protocols, and residuals.
+- [docs/research/lab-tests.md](docs/research/lab-tests.md) — the LT lab-test registry (LT-1 through LT-102), protocols, and residuals.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
 - [docs/adr/0002-lifecycle-transition-table.md](docs/adr/0002-lifecycle-transition-table.md) — accepted condition → handler → return transition table.
 - [docs/adr/0003-finite-release-decision.md](docs/adr/0003-finite-release-decision.md) — accepted completion rule: a finite release decision ends an outcome; its default-stop is superseded by ADR 0005.
@@ -17,6 +17,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/adr/0006-keep-the-krn-surfaces.md](docs/adr/0006-keep-the-krn-surfaces.md) — accepted decision: keep the KRN surfaces as the default with the measured cost recorded, and reopen on a discriminative benchmark or an operator scope change.
 - [docs/adr/0007-canonical-frontend-source-and-project-creation.md](docs/adr/0007-canonical-frontend-source-and-project-creation.md) — accepted frontend ownership boundary: the boilerplate owns stable core and executable project creation; KRN owns workflows, verified exports, and evaluation.
 - [docs/adr/0008-sealed-frontend-evaluation.md](docs/adr/0008-sealed-frontend-evaluation.md) — accepted sealed-evaluator boundary and distinct design-transfer/source-fidelity claims; behavioral uplift remains a lab-test.
+- [docs/adr/0009-bloom-fidelity-and-transfer-benchmarks.md](docs/adr/0009-bloom-fidelity-and-transfer-benchmarks.md) — accepted separation of exact-starter Bloom fidelity, Rekurencja static-profile transfer, and the later WordPress/ACF adapter track.
 - [docs/research/workflow-lessons.md](docs/research/workflow-lessons.md) — bounded cross-run workflow memory read at `$delivery-loop` bind.
 - The Matt Pocock skills audit and the unslop lab-test page are indexed under [docs/research/README.md](docs/research/README.md).
 - [scripts/quality-audit.mjs](scripts/quality-audit.mjs) — mechanical slop, dead-code, and credential/env-dump audit gated in `npm run test:lib`.
@@ -25,7 +26,8 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
 - [skills/frontend/frontend-stage/SKILL.md](skills/frontend/frontend-stage/SKILL.md) — frontend stage entry: intake → architecture → build → verify, with exit criteria and a per-section acceptance.
 - [docs/research/frontend-harness.md](docs/research/frontend-harness.md) — lab-test frontend-harness architecture under LT-8: canonical boilerplate export, exact CUBE conformance, deep Text/ACF profiles, sealed evaluation, and track-specific claims.
-- [docs/research/frontend-harness-implementation.md](docs/research/frontend-harness-implementation.md) — durable expand–migrate–contract plan, including executable project creation, 17 frontend units, and the independent PreCompact continuity preflight.
+- [docs/research/frontend-harness-implementation.md](docs/research/frontend-harness-implementation.md) — durable Bloom-lab execution plan from source epoch through no-model mutation admission, treatment comparison, transfer profile, adapter track, and retirement.
+- [docs/research/complete-css-bloom-benchmark.md](docs/research/complete-css-bloom-benchmark.md) — source identities, distilled Complete CSS mechanisms, candidate/sealed boundary, result axes, mutants, and prior-attempt disposition.
 - [skills/meta/unslop/SKILL.md](skills/meta/unslop/SKILL.md) — explicit prose audit/rewrite with protected factual and technical fragments; it does not own publication or fact-checking.
 
 ## System vocabulary
@@ -86,6 +88,20 @@ _Avoid_: KRN demo app, harness fixture
 external evaluator and explicit claim track. It is evidence infrastructure, not
 a production starter.
 _Avoid_: reference project, hidden specification
+
+**Bloom fidelity task** — the in-domain reconstruction benchmark that begins
+from the exact admitted Complete CSS starter and an honest public design and
+resolution contract, while the completed Bloom surfaces remain sealed.
+_Avoid_: generic frontend benchmark, Rekurencja starter test
+
+**Frontend transfer task** — a distinct benchmark that asks whether the method
+survives a different admitted starter and design; its result cannot be merged
+into Bloom fidelity.
+_Avoid_: second Bloom score, profile migration
+
+**Source epoch** — the immutable identity joining public inputs, sealed answer,
+environment, evaluator, known-good, and mutants for one comparable experiment.
+_Avoid_: latest live site, screenshot folder
 
 ## Context continuity
 

@@ -64,9 +64,13 @@ KRN's generated snapshot and KRN's frontend procedures are separate artifacts.
 The importer may materialize and verify the snapshot but never becomes the writer
 of procedure. Project-aware audits resolve canonical vocabulary from the
 project's recorded core manifest, so tooling carrying core B cannot silently
-reinterpret a project pinned to core A. Promotion requires a named existing
-browser/build/audit consumer that rejects a behavior-regressing but internally
-digest-consistent bundle; rollback restores the complete admitted identity.
+reinterpret a project pinned to core A. Initial admission may use the
+creator-emitted disposable project as the named browser/build/audit consumer.
+Every later A→B core promotion additionally requires a project pinned to A that
+proves unchanged interpretation until an explicit migration and rejects a
+behavior-regressing but internally digest-consistent B bundle. Rollback restores
+the complete admitted identity. An unrelated product repository is never needed
+to manufacture this receipt.
 
 ## Consequences
 
