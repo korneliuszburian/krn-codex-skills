@@ -168,14 +168,13 @@ test("the ablation lanes disable exactly one surface from the full lane", async 
   };
   const report = await harness.compareHarness({
     task: { id: "ablation", check: "node --test test/widget.test.mjs" },
-    lanes: ["full", "no-skills", "no-memory", "no-brief", "no-hooks"],
+    lanes: ["full", "no-skills", "no-brief", "no-hooks"],
     runs: 1,
     runner,
   });
-  assert.equal(report.lanes.length, 5);
-  assert.deepEqual(seen.get("full"), { skills: true, memory: true, brief: true, hooks: true });
-  assert.deepEqual(seen.get("no-skills"), { skills: false, memory: true, brief: true, hooks: true });
-  assert.deepEqual(seen.get("no-memory"), { skills: true, memory: false, brief: true, hooks: true });
-  assert.deepEqual(seen.get("no-brief"), { skills: true, memory: true, brief: false, hooks: true });
-  assert.deepEqual(seen.get("no-hooks"), { skills: true, memory: true, brief: true, hooks: false });
+  assert.equal(report.lanes.length, 4);
+  assert.deepEqual(seen.get("full"), { skills: true, brief: true, hooks: true });
+  assert.deepEqual(seen.get("no-skills"), { skills: false, brief: true, hooks: true });
+  assert.deepEqual(seen.get("no-brief"), { skills: true, brief: false, hooks: true });
+  assert.deepEqual(seen.get("no-hooks"), { skills: true, brief: true, hooks: false });
 });
