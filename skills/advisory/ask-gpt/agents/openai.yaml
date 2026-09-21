@@ -1,0 +1,6 @@
+interface:
+  display_name: "Ask GPT"
+  short_description: "Read-only GPT-6 Astra analysis prompt from pushed state"
+  default_prompt: "Use $ask-gpt to gather the current context, publish it to Git, and render a demanding read-only analysis prompt for GPT-6 Astra."
+policy:
+  allow_implicit_invocation: false
