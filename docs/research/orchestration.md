@@ -1,7 +1,7 @@
 # Orchestration and compact context
 
 Status: `accepted`. Consumer: maintainer, `$delivery-loop`, and
-`$source-to-decision`. Owner: maintainer. Verified: 2026-09-16. Rework this page
+`$source-to-decision`. Owner: maintainer. Verified: 2026-09-21. Rework this page
 in place when a falsifier fires; do not append a parallel “v2” report.
 
 ## Decision question
@@ -242,18 +242,21 @@ transfer into a successor does not delete it before the original Goal's
 non-active transition is read back.
 
 The boundary is host-triggered. `config/hooks.json` wires
-`scripts/hooks/krn_memory.py` on two events: **SessionStart** injects each
-continuing capsule's acceptance, next action, and blockers as `additionalContext`,
-and **PreCompact** writes a `boundary.md` next to each continuing capsule
-(timestamp, acceptance, next action, blockers) and also emits the brief. Proven in
-the LT-6 lab on 2026-09-16: a 12k context window compacted mid-run and PreCompact
-wrote `boundary.md`; and a fresh codex session with the neutral prompt "Continue
-the work in this repository." wrote the file named by the capsule's next action,
-with no prompt telling it to read the capsule. Bound: SessionStart
-`additionalContext` is retained in the session, but PreCompact's was not observed
-in the rollout after compaction, so the mechanical guarantee there is the on-disk
-`boundary.md`. Both hooks need `--dangerously-bypass-hook-trust` or a persisted
-hook trust on the host, and neither blocks a session.
+`scripts/hooks/krn_memory.py` on two events: **PreCompact** writes a `boundary.md`
+next to each continuing capsule (timestamp, acceptance, next action, blockers)
+and deliberately emits no stdout; **SessionStart** injects each continuing
+capsule's acceptance, next action, and blockers as `additionalContext`.
+`SessionStart` with `source=compact` is the delivery point after compaction,
+because the official hook contract does not admit event-specific
+`additionalContext` output for PreCompact. The LT-6 lab on 2026-09-16 established
+the retained on-disk mechanism: a 12k context window compacted mid-run and
+PreCompact wrote `boundary.md`; a fresh Codex session with the neutral prompt
+"Continue the work in this repository." then wrote the file named by the
+capsule's next action, with no prompt telling it to read the capsule. The
+2026-09-21 hook correction supersedes the earlier attempt to emit the brief from
+PreCompact while retaining that persistence evidence. Both hooks need
+`--dangerously-bypass-hook-trust` or persisted hook trust on the host, and
+neither blocks a session.
 
 ## One spine, typed entries
 
@@ -672,7 +675,7 @@ a field is empty, or a retired surface reappears.
 | Artifact | Writer | Reader | Delivery trigger | Budget | Falsifier | Invalidation rule | Deletion owner |
 |---|---|---|---|---|---|---|---|
 | `state.md` | `$delivery-loop` (sole writer) | the session at bind and SessionStart | every owner or context boundary | four narrative fields, 8192 bytes total | `krn state check` and `test/state/*` | rewritten in place, deleted with the run at cleanup | delivery-loop |
-| `boundary.md` | `krn_memory.py` on PreCompact | the post-compaction session, because PreCompact `additionalContext` retention is unproven | PreCompact on a continuing capsule | one small file per run | `test/hooks-guard.test.mjs` | rewritten at each PreCompact, never written for a non-continuing capsule, deleted with the run | delivery-loop cleanup |
+| `boundary.md` | `krn_memory.py` on PreCompact | the post-compaction SessionStart (`source=compact`) | PreCompact on a continuing capsule | one small file per run | `test/hooks-guard.test.mjs` | rewritten at each PreCompact, never written for a non-continuing capsule, deleted with the run | delivery-loop cleanup |
 | `workflow-lessons.md` | maintainer session | `krn memory recall` and `changes check` before mutation | path, symbol, or churn trigger match on the change | 24 active rows, bounded by displacement | `npm run lessons:verify` and `npm run test:lessons` | retire with `retired@<sha>`; a zero-delivery row leaves the budget | maintainer |
 | `lab-tests.md` | maintainer session | `$source-to-decision` and the review fixed point | a behavioral claim that needs a registered pilot | 100 non-retired rows | `test/rules/lt-registry.test.mjs` and `test/rules/lt-retention.test.mjs` | `retired@<7-hex>` in the Status cell, tombstones stay | maintainer |
 | `docs/research/` | maintainer session | sessions and operators through the index | a decision or falsifier needs durable synthesis | one page per topic, state and reopen condition in the index | `npm run test:durable-pages` | rework in place; a page with no reader is deleted | maintainer |
@@ -680,7 +683,7 @@ a field is empty, or a retired surface reappears.
 | `CONTEXT.md` | maintainer session | every session and operator as the compact model | vocabulary or knowledge-map change | one index line per artifact | `test/rules/instruction-ownership.test.mjs` and `npm run test:durable-pages` | update in place in the change that moves the vocabulary | maintainer |
 | `.scratch/tickets/` | `krn ticket` verbs and the maintainer | `krn ticket next` and `check`, the lane runner, and the session brief | claim, close, fail, or frontier read | ignored local queue, one ready item in flight | `krn ticket check` | terminal status, superseded through typed links | maintainer |
 | `krn memory recall` | lesson triggers | the session before mutating a triggered path or symbol | changed path, symbol, or churn match | advisory hit; `--strict-recall` blocks in lanes | `test/lessons/recall-hit-rate.test.mjs` and `test/lessons/lesson-trigger-hygiene.test.mjs` | trigger removed or lesson retired when delivery stays zero | maintainer |
-| `krn_memory.py` | maintainer session, installed by release | the SessionStart and PreCompact host events | session start in a managed tree, or PreCompact on a continuing capsule | one capsule note or one queue line | `test/hooks-guard.test.mjs` and `test/hooks-queue-brief.test.mjs` | hook policy change; adoption stays explicit-only | maintainer |
+| `krn_memory.py` | maintainer session, installed by release | the SessionStart and PreCompact host events | SessionStart in a managed tree, or PreCompact on a continuing capsule | SessionStart emits one capsule note or one queue line; PreCompact emits no stdout and writes one boundary per continuing capsule | `test/hooks-guard.test.mjs` and `test/hooks-queue-brief.test.mjs` | hook policy change; adoption stays explicit-only | maintainer |
 | `e2e-compare.mjs` | maintainer session | the frozen harness-vs-vanilla measurement with per-component ablation | baseline and paired runs at a fixed SHA | at least 3 paired trials with tokens and wall recorded | `test/harness/e2e-compare.test.mjs` | retire when the measurement lands or its window expires | maintainer |
 | `lane-runner.mjs` | maintainer session | `krn harness compare` through `KRN_HARNESS_LANE_RUNNER` | an explicit paired measurement with `KRN_HARNESS_AGENT` set | one payload per lane run, no daemon | `test/harness/lane-runner.test.mjs` | retire with the harness adapter contract; it is a checkout-local tool, never a runtime path | maintainer |
 | `test/harness/tasks/` | maintainer session | `krn harness compare` under LT-102 | an explicit paired measurement | three small held-out tasks, one per failure mode | `test/harness/tasks.test.mjs` | retire a task whose check stops flipping red to green, or delete the set with the measurement | maintainer |
@@ -744,7 +747,7 @@ ledger is short, or a date has passed.
 |---|---|---|---|---|
 | Kernel single-owner rule (`scripts/lib/kernel/**` plus a `*-single-owner` observer each) | maintainer | sh-94 through sh-111 tickets and the `test/kernel/*-single-owner.test.mjs` observers | 2026-12-31 | a second implementation appears, or an observer is deleted without a replacement |
 | `mutation-probe.mjs` as the single mutation owner | maintainer | LT-29, LT-34, `test/audit/mutation-probe.test.mjs` in `test:lib` | 2026-12-31 | a diff-scoped mutation mode replaces the hand-listed set |
-| `boundary.md` as the PreCompact re-arm materialization | delivery-loop | LT-6 and `test/hooks-guard.test.mjs` | 2026-12-31 | PreCompact `additionalContext` retention is proven, or the run is deleted |
+| `boundary.md` as the PreCompact re-arm materialization | delivery-loop | LT-6 and `test/hooks-guard.test.mjs` | 2026-12-31 | a different host persistence contract supersedes the file, or the run is deleted |
 | Measurement track (`e2e-compare.mjs`, `lane-runner.mjs`, `opencode-agent.mjs`, `swebench-run.mjs`, `memory-tasks.mjs`, `terminal_bench_agent.py`, `test/harness/tasks/`) | maintainer | LT-102 toy baseline and cube-block ablation; LT-103 SWE-bench Verified slice (full 5/5, vanilla 5/5, four identical patches, full +1.13M tokens and ~2x wall); LT-104 LongMemEval-S (weak, noisy signal: 4/5, 5/5, 5/5; earlier 1/3, 3/3, 2/3) and MemoryAgentBench CR (both 1/1); LT-105 Terminal-Bench (oracle proven, KRN lanes blocked by a provider error inside the task container); plus `test/harness/*.test.mjs` | 2027-06-30 | the scale is re-run with discriminative instances (where vanilla fails) and each component is re-justified or retired; the component disposition is not retirement on the current evidence (consistent cost with a weak, noisy pass-rate signal; the surfaces are workflow discipline rather than a code-solving substitute), and an operator scope decision (opt-in surfaces for trivial tasks) stays open |
 | Memory wiring map and its observer | maintainer | LT-101 and `test/contract/memory-wiring-map.test.mjs` | 2026-12-31 | a memory artifact moves or the map stops being observed |
 | Workflow lessons with trigger-based recall | maintainer | `npm run lessons:verify`, `krn memory usage`, and the delivery measurement in the sh-104 pass | 2026-12-31 | a triggered lesson stays at zero delivery after its trigger is tightened |
