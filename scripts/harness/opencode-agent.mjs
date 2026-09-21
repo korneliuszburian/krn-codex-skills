@@ -6,7 +6,6 @@
 //
 // Components (a lane's `enabled` map):
 //   skills: the exported skill set plus the AGENTS.md catalog.
-//   memory: the edit-time recall instruction (the agent must call `krn memory recall`).
 //   brief + hooks: the installed KRN plugin, which owns the session brief and the guard.
 //   The global contract AGENTS.md loads only when at least one surface is on.
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
@@ -52,7 +51,7 @@ function prepareHome(enabled) {
   const realConfig = path.join(REAL_HOME, ".config", "opencode", "opencode.json");
   if (existsSync(realConfig)) cpSync(realConfig, path.join(configDir, "opencode.json"));
   link(path.join(REAL_HOME, ".local", "share", "opencode", "auth.json"), path.join(home, ".local", "share", "opencode", "auth.json"));
-  const anySurface = enabled.skills || enabled.memory || enabled.brief || enabled.hooks;
+  const anySurface = enabled.skills || enabled.brief || enabled.hooks;
   if (enabled.skills) {
     link(path.join(REAL_HOME, ".agents", "skills"), path.join(home, ".agents", "skills"));
   }
@@ -63,11 +62,6 @@ function prepareHome(enabled) {
   if (anySurface) {
     const contract = path.join(REAL_HOME, ".config", "opencode", "AGENTS.md");
     if (existsSync(contract)) instructions.push(readFileSync(contract, "utf8"));
-  }
-  if (enabled.memory) {
-    instructions.push(
-      "Before editing, run `krn memory recall --root <repository> --changed <path>` for every path you are about to change and apply the lesson it returns.",
-    );
   }
   if (instructions.length > 0) {
     writeFileSync(path.join(configDir, "AGENTS.md"), `${instructions.join("\n\n")}\n`);

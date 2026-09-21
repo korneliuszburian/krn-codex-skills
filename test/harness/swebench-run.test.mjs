@@ -23,7 +23,7 @@ const EVENTS = [
 test("the runner exposes the lane set and the pure helpers", async () => {
   const runner = await loadRunner();
   assert.ok(runner, "scripts/harness/swebench-run.mjs must exist");
-  assert.deepEqual(Object.keys(runner.LANES).sort(), ["full", "no-brief", "no-hooks", "no-memory", "no-skills", "vanilla"]);
+  assert.deepEqual(Object.keys(runner.LANES).sort(), ["full", "no-brief", "no-hooks", "no-skills", "vanilla"]);
   assert.equal(runner.parseTokens(EVENTS), 125);
   assert.deepEqual(runner.buildPredictions("full", [{ instanceId: "a__a-1", patch: "diff" }]), [
     { instance_id: "a__a-1", model_name_or_path: "krn-full", model_patch: "diff" },

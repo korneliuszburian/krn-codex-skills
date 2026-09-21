@@ -22,10 +22,6 @@ from terminal_bench.agents.installed_agents.abstract_installed_agent import (
 from terminal_bench.terminal.models import TerminalCommand
 
 HOST_HOME = Path(os.path.expanduser("~"))
-MEMORY_INSTRUCTION = (
-    "Before editing, run `krn memory recall --root <repository> --changed <path>` "
-    "and apply the lesson it returns.\n"
-)
 
 
 class KrnLaneAgent(AbstractInstalledAgent):
@@ -64,9 +60,6 @@ class KrnLaneAgent(AbstractInstalledAgent):
                 shutil.copy(contract, home / ".config" / "opencode" / "AGENTS.md")
         if self._lane == "full":
             shutil.copytree(HOST_HOME / ".agents", home / ".agents", symlinks=False, dirs_exist_ok=True)
-        if self._lane in {"full", "no-skills"}:
-            with open(home / ".config" / "opencode" / "AGENTS.md", "a", encoding="utf-8") as handle:
-                handle.write(MEMORY_INSTRUCTION)
         return home
 
     def perform_task(self, instruction, session, logging_dir=None):

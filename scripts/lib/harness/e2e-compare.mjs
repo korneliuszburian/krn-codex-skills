@@ -4,15 +4,14 @@ import process from "node:process";
 
 import { runProcess } from "../kernel/proc.mjs";
 
-const CAPABILITY_KEYS = ["skills", "memory", "brief", "hooks"];
+const CAPABILITY_KEYS = ["skills", "brief", "hooks"];
 
-const ALL_ON = { skills: true, memory: true, brief: true, hooks: true };
+const ALL_ON = { skills: true, brief: true, hooks: true };
 const LANE_DEFINITIONS = {
-  vanilla: { skills: false, memory: false, brief: false, hooks: false },
+  vanilla: { skills: false, brief: false, hooks: false },
   full: { ...ALL_ON },
   // Per-component ablation: the full lane with exactly one surface removed.
   "no-skills": { ...ALL_ON, skills: false },
-  "no-memory": { ...ALL_ON, memory: false },
   "no-brief": { ...ALL_ON, brief: false },
   "no-hooks": { ...ALL_ON, hooks: false },
 };
@@ -22,9 +21,6 @@ const KIND_TO_CAPABILITY = {
   hooks: "hooks",
   skill: "skills",
   skills: "skills",
-  lesson: "memory",
-  lessons: "memory",
-  memory: "memory",
   brief: "brief",
 };
 

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -54,12 +54,4 @@ test("every task check is red before the solution and green after", () => {
       assert.equal(after, true, `${task.id}: the deciding check must be green on the solved workspace`);
     });
   }
-});
-
-test("at least one task depends on a lesson-owned path", () => {
-  const dependent = taskIds().filter((taskId) => {
-    const task = loadTask(path.join(TASKS, taskId, "task.md"));
-    return existsSync(path.join(root, task.workspace, "scripts", "lib", "lessons"));
-  });
-  assert.deepEqual(dependent, ["fail-closed"], "the memory ablation needs a task under a lesson-triggered path");
 });

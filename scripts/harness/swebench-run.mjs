@@ -11,12 +11,11 @@ import process from "node:process";
 
 import { runProcess } from "../lib/kernel/proc.mjs";
 
-const ALL_ON = { skills: true, memory: true, brief: true, hooks: true };
+const ALL_ON = { skills: true, brief: true, hooks: true };
 export const LANES = {
-  vanilla: { skills: false, memory: false, brief: false, hooks: false },
+  vanilla: { skills: false, brief: false, hooks: false },
   full: { ...ALL_ON },
   "no-skills": { ...ALL_ON, skills: false },
-  "no-memory": { ...ALL_ON, memory: false },
   "no-brief": { ...ALL_ON, brief: false },
   "no-hooks": { ...ALL_ON, hooks: false },
 };
@@ -66,9 +65,6 @@ export function laneMounts(enabled, home = homedir()) {
   } else {
     const minimal = mkdtempSync(path.join(tmpdir(), "krn-swebench-config-"));
     writeFileSync(path.join(minimal, "opencode.json"), '{ "$schema": "https://opencode.ai/config.json", "autoupdate": false }\n');
-    if (enabled.memory || enabled.skills) {
-      writeFileSync(path.join(minimal, "AGENTS.md"), "Before editing, run `krn memory recall --root <repository> --changed <path>` and apply the lesson it returns.\n");
-    }
     // opencode writes a .gitignore into its config dir, so the minimal config
     // must be writable.
     add(minimal, "/root/.config/opencode", "rw");

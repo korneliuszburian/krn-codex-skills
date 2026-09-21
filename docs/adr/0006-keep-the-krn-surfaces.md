@@ -1,6 +1,6 @@
 # ADR 0006: Keep the KRN surfaces with a recorded cost
 
-- Status: accepted (operator direction 2026-09-20)
+- Status: accepted (operator direction 2026-09-20; amended 2026-09-21: the decision-point memory delivery is retired, see LT-104)
 - Date: 2026-09-20
 - Decision owner: KRN skill-system maintainer (operator decision)
 - Evidence: LT-102 (toy baseline and cube-block ablation), LT-103 (SWE-bench
@@ -55,6 +55,19 @@ operator changes the scope.
   named reopening option rather than an untested default.
 - **Keep measuring without a decision.** The measured cost is real; recording
   the decision and the expiry is the bounded alternative to an open-ended loop.
+
+## Amendment (2026-09-21)
+
+The decision-point memory delivery (the instruction to run `krn memory recall`
+before editing) is retired. LT-104's decisive-lesson test showed that a strong
+model already reads `docs/research/workflow-lessons.md` unprompted, so the
+delivery added no measurable pass-rate contribution (vanilla, no-memory, and
+full all passed 9/9) while costing about 40-60% more tokens; the instruction was
+also duplicated across the global contract, the delivery-loop skill, and three
+harness adapters, so the `memory` component had no unique behavior. The
+`krn memory recall` and `usage` CLI, the lessons machinery, and the commit-guard
+recall enforcement stay, because their consumer is `changes check`, not the
+agent prompt. The skills, brief, and hook surfaces stay under the decision above.
 
 ## Supersession rule
 

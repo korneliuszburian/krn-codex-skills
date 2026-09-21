@@ -63,29 +63,13 @@ function runAdapter(enabled) {
 }
 
 test("the vanilla lane materializes no KRN surface", () => {
-  const { seen } = runAdapter({ skills: false, memory: false, brief: false, hooks: false });
+  const { seen } = runAdapter({ skills: false, brief: false, hooks: false });
   assert.equal(seen.skills, false);
   assert.equal(seen.plugins, false);
   assert.equal(seen.instructions, "");
 });
 
-test("the full lane materializes skills, the plugin, and the recall instruction", () => {
-  const { seen } = runAdapter({ skills: true, memory: true, brief: true, hooks: true });
-  assert.equal(seen.skills, true);
-  assert.equal(seen.plugins, true);
-  assert.match(seen.instructions, /krn memory recall/);
-  assert.ok(seen.argv.includes("--dir"));
-  assert.ok(seen.argv.includes("run"));
-});
-
-test("the memory surface alone adds only the recall instruction", () => {
-  const { seen } = runAdapter({ skills: false, memory: true, brief: false, hooks: false });
-  assert.equal(seen.skills, false);
-  assert.equal(seen.plugins, false);
-  assert.match(seen.instructions, /krn memory recall/);
-});
-
 test("the adapter reports the token total from the opencode stream", () => {
-  const { stdout } = runAdapter({ skills: true, memory: true, brief: true, hooks: true });
+  const { stdout } = runAdapter({ skills: true, brief: true, hooks: true });
   assert.equal(stdout, JSON.stringify({ tokens: 42 }));
 });
