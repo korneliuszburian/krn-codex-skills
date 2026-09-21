@@ -8,6 +8,7 @@ TICKETS=${TICKETS:-$ROOT/.scratch/tickets}
 MAX_RUNS=${MAX_RUNS:-3}
 KRN=${KRN:-$(command -v krn 2>/dev/null || echo "$ROOT/scripts/krn.mjs")}
 LANE=${LANE:-$(dirname "$0")/run-ticket.sh}
+PUBLISH_GATE=${PUBLISH_GATE:-}
 WORKER_NAME=${WORKER_NAME:-krn-frontier}
 LOG_DIR=${LOG_DIR:-$ROOT/../runs-frontier}
 mkdir -p "$LOG_DIR"
@@ -26,6 +27,15 @@ for iteration in $(seq 1 "$MAX_RUNS"); do
   FIXTURE="$ROOT" TICKET="$file" "$LANE" run >"$lane_log" 2>&1
   branch=$(grep -oE 'branch=[^ ]+' "$lane_log" | head -1 | cut -d= -f2)
   sha=$(git -C "$ROOT" rev-parse "$branch")
+
+  if [ -z "$PUBLISH_GATE" ]; then
+    echo "publication gate required: set PUBLISH_GATE to the command that verifies a green PR at the branch fixed point; refusing to merge $branch" >&2
+    exit 1
+  fi
+  if ! "$PUBLISH_GATE" "$branch"; then
+    echo "publication gate failed for $branch; refusing to merge and close" >&2
+    exit 1
+  fi
 
   git -C "$ROOT" -c user.email=frontier@lab.invalid -c user.name=frontier merge --no-ff "$branch" -m "merge: integrate $id" >/dev/null
   node "$KRN" ticket close --root "$ROOT" --path "$TICKETS" --id "$id" --head "$sha" \

@@ -7,6 +7,7 @@ BASE=${BASE:-$PWD}
 FIXTURE=${FIXTURE:-$BASE}
 KRN=${KRN:-$FIXTURE/scripts/krn.mjs}
 WRITEBACK=${WRITEBACK:-$(dirname "$0")/capsule-writeback.py}
+PUBLISH_GATE=${PUBLISH_GATE:-}
 
 branch=${1:?usage: integrate.sh <branch> <base-sha> [deciding-check]}
 base=${2:?usage: integrate.sh <branch> <base-sha> [deciding-check]}
@@ -15,6 +16,15 @@ check=${3:-}
 if [ -n "$(git -C "$FIXTURE" status --porcelain)" ]; then
   echo "integrator requires a clean fixture worktree" >&2
   exit 68
+fi
+
+if [ -z "$PUBLISH_GATE" ]; then
+  echo "publication gate required: set PUBLISH_GATE to the command that verifies a green PR at the branch fixed point; refusing to merge $branch" >&2
+  exit 1
+fi
+if ! "$PUBLISH_GATE" "$branch"; then
+  echo "publication gate failed for $branch; refusing to merge" >&2
+  exit 1
 fi
 
 git -C "$FIXTURE" merge --no-ff "$branch" -m "merge: integrate $branch"
