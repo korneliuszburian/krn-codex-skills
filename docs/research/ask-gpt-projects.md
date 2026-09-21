@@ -1,0 +1,3 @@
+| at | project | repository | instructions | paths | standards |
+|---|---|---|---|---|---|
+| 2026-09-21 | KRN — Frontend Harness | https://github.com/korneliuszburian/krn-codex-skills.git | existing | CONTEXT.md,docs/research/frontend-harness.md,docs/research/frontend-harness-implementation.md,docs/adr/0007-canonical-frontend-source-and-project-creation.md,docs/adr/0008-sealed-frontend-evaluation.md,scripts/lib/frontend/library-import.mjs,scripts/lib/harness/frontend-contract.mjs,scripts/lib/harness/e2e-compare.mjs,skills/frontend/frontend-library/SKILL.md,test/frontend/frontend.test.mjs,test/harness/frontend-contract.test.mjs | AGENTS.md,config/AGENTS.md,CONTEXT.md |
