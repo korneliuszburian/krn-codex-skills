@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -239,6 +239,21 @@ test("the ask-gpt renderer builds a demanding read-only prompt", () => {
     }
     const head = gitIn(dir, ["rev-parse", "HEAD"]).stdout.trim();
     assert.ok(result.stdout.includes(head), "the prompt must name the HEAD commit");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the ask-gpt renderer runs through an installed symlink", () => {
+  assert.ok(existsSync(renderPrompt), "skills/advisory/ask-gpt/scripts/render-prompt.mjs must exist");
+  const dir = mkdtempSync(join(tmpdir(), "krn-ask-gpt-link-"));
+  try {
+    seedRepo(dir);
+    const link = join(dir, "render-link.mjs");
+    symlinkSync(renderPrompt, link);
+    const result = run(link, ["--root", dir, "--base", "HEAD~1", "--question", "q", "--allow-unpushed"]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /read-only principal reviewer/, "a symlinked invocation must render the prompt");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
