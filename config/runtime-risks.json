@@ -58,6 +58,7 @@
     },
     { "path": "scripts/lib/frontend/theme.mjs", "class": "read-only" },
     { "path": "scripts/lib/harness/e2e-compare.mjs", "class": "additive" },
+    { "path": "scripts/lib/harness/frontend-contract.mjs", "class": "additive" },
     { "path": "scripts/lib/install/host-capabilities.mjs", "class": "read-only" },
     {
       "path": "scripts/lib/install/install-inspect.mjs",

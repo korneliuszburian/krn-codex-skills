@@ -3,6 +3,11 @@ import path from "node:path";
 import process from "node:process";
 
 import { runProcess } from "../kernel/proc.mjs";
+import {
+  TASK_V2_SCHEMA,
+  admitV2Result,
+  admitV2Task,
+} from "./frontend-contract.mjs";
 
 const CAPABILITY_KEYS = ["skills", "memory", "brief", "hooks"];
 
@@ -80,6 +85,10 @@ export function loadTask(file) {
     }
   }
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) refuse("malformed-task", file);
+  if (payload.schema !== undefined) {
+    if (payload.schema !== TASK_V2_SCHEMA) refuse("unknown-task-version", String(payload.schema));
+    return admitV2Task(payload);
+  }
   const id = typeof payload.id === "string" && payload.id.trim()
     ? payload.id.trim()
     : path.basename(file).replace(/\.(?:md|markdown|json)$/i, "");
@@ -100,7 +109,7 @@ function defaultRunner({ lane, enabled, mutation, task, run, root, runs }) {
     lane,
     enabled,
     mutation,
-    task: {
+    task: task?.schema === TASK_V2_SCHEMA ? task : {
       id: task?.id ?? null,
       check: task?.check ?? null,
       prompt: task?.prompt ?? null,
@@ -130,6 +139,10 @@ function runId(task) {
 }
 
 export function summaryLine(report) {
+  if (report.schema === "krn.harness.compare.v2") {
+    const lanes = report.lanes.map((entry) => `${entry.lane}=${entry.results.length}/${entry.runs}`).join(" ");
+    return `harness compare ${lanes} | independent-axis-results`;
+  }
   const lanes = report.lanes
     .map((entry) => `${entry.lane}=${entry.passes}/${entry.runs} tokens=${entry.tokens} wall=${entry.wallSeconds}s`)
     .join(" ");
@@ -151,8 +164,9 @@ function persistReport({ root, task, report }) {
 export async function compareHarness({ task, lanes, runs, runner, root } = {}) {
   const runCount = runs === undefined ? 1 : runs;
   if (!Number.isInteger(runCount) || runCount < 1) refuse("bad-runs", String(runs));
+  const v2 = task?.schema === TASK_V2_SCHEMA;
   const check = typeof task?.check === "string" ? task.check.trim() : "";
-  if (!check) refuse("missing-deciding-check", String(task?.id ?? "task"));
+  if (!v2 && !check) refuse("missing-deciding-check", String(task?.id ?? "task"));
   const specs = Array.isArray(lanes) ? lanes : [];
   if (specs.length < 2) refuse("too-few-lanes", `${specs.length}`);
 
@@ -185,13 +199,33 @@ export async function compareHarness({ task, lanes, runs, runner, root } = {}) {
     let passes = 0;
     let tokens = 0;
     let wallSeconds = 0;
+    const results = [];
     for (let run = 1; run <= runCount; run += 1) {
       const outcome = await adapter({ lane: entry.name, enabled: effective, mutation: applied, task, run, runs: runCount, root });
+      if (v2) {
+        results.push(admitV2Result(task, outcome?.result));
+        continue;
+      }
       if (outcome?.pass === true) passes += 1;
       tokens += Number(outcome?.tokens) || 0;
       wallSeconds += Number(outcome?.wallSeconds) || 0;
     }
-    lanesReport.push({ lane: entry.name, runs: runCount, passes, passRate: passes / runCount, tokens, wallSeconds });
+    lanesReport.push(v2
+      ? { lane: entry.name, runs: runCount, results }
+      : { lane: entry.name, runs: runCount, passes, passRate: passes / runCount, tokens, wallSeconds });
+  }
+
+  if (v2) {
+    const report = {
+      schema: "krn.harness.compare.v2",
+      task,
+      baseline,
+      lanes: lanesReport,
+      mutations,
+      note: "independent-axis-results",
+    };
+    if (root) persistReport({ root, task, report });
+    return report;
   }
 
   const baselineReport = lanesReport.find((entry) => entry.lane === baseline);

@@ -42,6 +42,7 @@ function main() {
     refuse("bad-payload", error.message);
   }
   const task = payload?.task ?? {};
+  if (task.schema === "krn.frontend-harness.task.v2") refuse("v2-requires-isolated-runner", String(task.id ?? "task"));
   const check = typeof task.check === "string" ? task.check.trim() : "";
   if (!check) refuse("missing-check", String(task.id ?? "task"));
   const agent = process.env.KRN_HARNESS_AGENT;

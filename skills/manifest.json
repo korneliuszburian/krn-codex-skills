@@ -41,6 +41,7 @@
     "scripts/lib/frontend/library-import.mjs",
     "scripts/lib/frontend/theme.mjs",
     "scripts/lib/harness/e2e-compare.mjs",
+    "scripts/lib/harness/frontend-contract.mjs",
     "scripts/lib/install/host-capabilities.mjs",
     "scripts/lib/install/install-inspect.mjs",
     "scripts/lib/install/install-release.mjs",
