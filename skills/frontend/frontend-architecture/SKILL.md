@@ -35,7 +35,19 @@ component code before the phases below have an exit.
   raw results to `docs/design/raw/` and keep them out of the chat.
 - IF only screenshots exist THEN read them for layout relationships and use
   `get_screenshot` per section; treat pixel values as approximate.
-- EXIT: raw variables and raw metadata exist as files.
+- Inspect contrast, logical source/tab order, missing interaction states,
+  inconsistent viewport treatments, and decorative complexity before accepting
+  the design as buildable. Architecture is the sole writer of
+  `docs/design/resolutions.md`; the design owner supplies decisions, not file
+  edits. Record each intake as exactly `accepted`, `no-change`, or `unresolved`.
+  An `accepted` item names the resulting public behavior; `no-change` records
+  that the inspected input needs no correction; `unresolved` records the
+  question and smallest accessible proposal but remains a blocker and MUST NOT
+  become a requirement until its owner accepts it. NEVER silently turn private
+  feedback, an agent guess, or a fallback proposal into a product requirement.
+- EXIT: raw variables and metadata exist, `resolutions.md` exists even when all
+  items are `no-change`, and no build-affecting item is `unresolved` for the
+  phase that consumes it.
 
 ### Phase 1 — Token inventory
 

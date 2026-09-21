@@ -31,3 +31,14 @@ test("tokens govern presentation without pretending structural choices are token
   assert.match(acf, /Tokens govern presentation values, not every editor choice/);
   assert.doesNotMatch(acf, /Every selectable value .* is a token choice/);
 });
+
+test("design resolutions have one writer and unresolved proposals are not requirements", () => {
+  const skill = read("skills/frontend/frontend-architecture/SKILL.md");
+  const facts = read("skills/frontend/frontend-architecture/references/facts.md");
+  assert.match(skill, /Architecture is the sole writer of\s+`docs\/design\/resolutions\.md`/);
+  assert.match(skill, /exactly `accepted`, `no-change`, or `unresolved`/);
+  assert.match(skill, /`unresolved`[\s\S]+remains a blocker[\s\S]+MUST NOT\s+become a requirement/);
+  assert.match(skill, /`resolutions\.md` exists even when all\s+items are `no-change`/);
+  assert.match(facts, /\| `resolutions\.md` \|[^\n]+\| architecture \|/);
+  assert.doesNotMatch(facts, /architecture \+ design owner/);
+});

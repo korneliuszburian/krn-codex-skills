@@ -8,6 +8,7 @@ re-derives it. Facts live in the project; process rules live as lessons.
 | File | Holds | Owner |
 |---|---|---|
 | `raw/variables.json`, `raw/metadata.txt` | raw MCP dumps, kept out of chat | architecture |
+| `resolutions.md` | `accepted`/`no-change`/`unresolved` design findings and the supplying decision owner | architecture |
 | `tokens.md` | every design value, its snapped token, deviations | architecture |
 | `sections.md` | every section of every page, with occurrence counts | architecture |
 | `components.md` | the block × variant × optionals matrix | architecture |
@@ -68,6 +69,6 @@ evidence, a gate or owner, and a trigger; it is not a place for one-off notes.
 
 ## Exit
 
-A new session can read `tokens.md`, `sections.md`, `components.md`, and
-`blocks.md` and know what to build next without reading history or the design
-again for anything already decided.
+A new session can read `resolutions.md`, `tokens.md`, `sections.md`,
+`components.md`, and `blocks.md` and know what to build next without reading
+history or the design again for anything already decided.
