@@ -6,7 +6,9 @@ maintainer. Owner: maintainer. Verified: 2026-09-21.
 This page owns the engineering decisions for a KRN frontend harness and the
 canonical HTML/CSS/CUBE/WordPress/ACF substrate it evaluates. It complements
 [frontend-delivery.md](frontend-delivery.md), which continues to own the build
-method itself. No behavioral uplift is claimed before the registered LT-8 run.
+method itself. [The implementation plan](frontend-harness-implementation.md)
+owns project creation, the migration units, dependency graph, and phase exits.
+No behavioral uplift is claimed before the registered LT-8 run.
 
 ## Accepted outcome
 
@@ -24,6 +26,15 @@ writer. The generic runner, task/result contracts, deterministic frontend
 checks, and LT-8 lane belong in this repository. Private course material and
 large captures remain outside Git; the experimental corpus remains a lab
 consumer rather than an authority over production code.
+
+There is no production frontend project in `krn-codex-skills`. Project creation
+is therefore an explicit boilerplate-owned capability: a documented, executable
+path materializes a self-contained project outside this checkout and records
+the source/core provenance. KRN task workspaces are evaluator fixtures, never a
+substitute canonical project. This ownership boundary is recorded in
+[ADR 0007](../adr/0007-canonical-frontend-source-and-project-creation.md); the
+sealed v2 migration boundary is recorded in
+[ADR 0008](../adr/0008-sealed-frontend-evaluation.md).
 
 ## Resolved scope and claims
 

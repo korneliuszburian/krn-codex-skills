@@ -15,6 +15,8 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/adr/0004-queue-legibility-and-memory-delivery.md](docs/adr/0004-queue-legibility-and-memory-delivery.md) — accepted plan for queue legibility, memory delivery, and lane-loop automation after the 2026-09-18 arc.
 - [docs/adr/0005-continuous-hardening-with-bounded-passes.md](docs/adr/0005-continuous-hardening-with-bounded-passes.md) — accepted posture: continuous hardening in bounded, triggered passes; first batch is the verified pipeline holes sh-60..sh-65.
 - [docs/adr/0006-keep-the-krn-surfaces.md](docs/adr/0006-keep-the-krn-surfaces.md) — accepted decision: keep the KRN surfaces as the default with the measured cost recorded, and reopen on a discriminative benchmark or an operator scope change.
+- [docs/adr/0007-canonical-frontend-source-and-project-creation.md](docs/adr/0007-canonical-frontend-source-and-project-creation.md) — accepted frontend ownership boundary: the boilerplate owns stable core and executable project creation; KRN owns workflows, verified exports, and evaluation.
+- [docs/adr/0008-sealed-frontend-evaluation.md](docs/adr/0008-sealed-frontend-evaluation.md) — accepted sealed-evaluator boundary and distinct design-transfer/source-fidelity claims; behavioral uplift remains a lab-test.
 - [docs/research/workflow-lessons.md](docs/research/workflow-lessons.md) — bounded cross-run workflow memory read at `$delivery-loop` bind.
 - The Matt Pocock skills audit and the unslop lab-test page are indexed under [docs/research/README.md](docs/research/README.md).
 - [scripts/quality-audit.mjs](scripts/quality-audit.mjs) — mechanical slop, dead-code, and credential/env-dump audit gated in `npm run test:lib`.
@@ -23,6 +25,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
 - [skills/frontend/frontend-stage/SKILL.md](skills/frontend/frontend-stage/SKILL.md) — frontend stage entry: intake → architecture → build → verify, with exit criteria and a per-section acceptance.
 - [docs/research/frontend-harness.md](docs/research/frontend-harness.md) — lab-test frontend-harness architecture under LT-8: canonical boilerplate export, exact CUBE conformance, deep Text/ACF profiles, sealed evaluation, and track-specific claims.
+- [docs/research/frontend-harness-implementation.md](docs/research/frontend-harness-implementation.md) — durable expand–migrate–contract plan, including executable project creation, 15 frontend units, and the independent PreCompact continuity preflight.
 - [skills/meta/unslop/SKILL.md](skills/meta/unslop/SKILL.md) — explicit prose audit/rewrite with protected factual and technical fragments; it does not own publication or fact-checking.
 
 ## System vocabulary
@@ -68,6 +71,21 @@ owner/companion relationship.
 **Project adapter** — local domain and runtime constraints that connect a
 global workflow owner to one repository without becoming global doctrine.
 _Avoid_: global project standard, universal stack
+
+**Canonical frontend core** — the stable, reusable CUBE recipes and token schema
+owned by the production boilerplate and projected into KRN as a verified generated
+snapshot.
+_Avoid_: skill-owned CSS source, project-local core
+
+**Created frontend project** — a self-contained product checkout materialized by
+the boilerplate's documented creation path, with its source revision and core
+provenance recorded.
+_Avoid_: KRN demo app, harness fixture
+
+**Frontend evaluator task** — a public candidate workspace paired with a sealed
+external evaluator and explicit claim track. It is evidence infrastructure, not
+a production starter.
+_Avoid_: reference project, hidden specification
 
 ## Context continuity
 
