@@ -7,11 +7,17 @@
 body {
   background: var(--body-bg);
   color: var(--body-color);
+  display: grid;
   font-family: var(--font-base);
   font-size: var(--text-size-base);
+  grid-template-rows: auto 1fr auto;
   letter-spacing: var(--kerning);
   line-height: var(--leading-standard);
   overflow-x: clip;
+}
+
+body > main {
+  background: var(--body-bg);
 }
 
 :where(h1, h2, h3, h4) {

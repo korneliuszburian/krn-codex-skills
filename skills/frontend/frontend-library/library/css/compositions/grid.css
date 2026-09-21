@@ -12,25 +12,18 @@ between each item.
 ideally, as a minimum.
 
 --grid-placement (auto-fill): Set either auto-fit or auto-fill
-to change how empty grid tracks are handled */
+to change how empty grid tracks are handled
+
+--grid-template-columns: Override the generated tracks with an explicit grid */
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(
-    var(--grid-placement, auto-fill),
-    minmax(var(--grid-min-item-size, 16rem), 1fr)
+  grid-template-columns: var(
+    --grid-template-columns,
+    repeat(
+      var(--grid-placement, auto-fill),
+      minmax(var(--grid-min-item-size, 16rem), 1fr)
+    )
   );
   gap: var(--gutter, var(--space-s-l));
-}
-
-/* A split 50/50 layout */
-.grid[data-layout='halves'] {
-  --grid-placement: auto-fit;
-  --grid-min-item-size: clamp(16rem, 50vw, 33rem);
-}
-
-/* Three column grid layout */
-.grid[data-layout='thirds'] {
-  --grid-placement: auto-fit;
-  --grid-min-item-size: clamp(16rem, 33%, 20rem);
 }

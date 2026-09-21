@@ -131,6 +131,22 @@
           }
         }
       }
+    },
+    "step-6": {
+      "$type": "dimension",
+      "$value": { "value": 6.25, "unit": "rem" },
+      "$extensions": {
+        "pl.rekurencja.acf": {
+          "label": "Hero display",
+          "contexts": ["heading-size"]
+        },
+        "sh.sugarcube": {
+          "fluid": {
+            "min": { "value": 3.25, "unit": "rem" },
+            "max": { "value": 6.25, "unit": "rem" }
+          }
+        }
+      }
     }
   }
 }

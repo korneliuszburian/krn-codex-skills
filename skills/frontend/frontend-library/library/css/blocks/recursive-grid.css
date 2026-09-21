@@ -1,0 +1,89 @@
+.recursive-grid {
+  block-size: 100%;
+  border-block: var(--stroke) solid var(--color-dark);
+  container-type: inline-size;
+}
+
+.recursive-grid__reel {
+  --gutter: 0;
+  --reel-item-width: 20%;
+
+  block-size: 100%;
+  overscroll-behavior-inline: contain;
+  padding-block-end: 0;
+}
+
+.recursive-grid__stage {
+  appearance: none;
+  background: var(--color-light);
+  border: 0;
+  border-inline-start: var(--stroke) solid var(--color-dark);
+  color: var(--color-dark);
+  display: grid;
+  font: inherit;
+  grid-template-rows: minmax(0, 1fr);
+  min-block-size: 100%;
+  min-inline-size: 0;
+  padding: var(--space-xs) var(--space-xs) 0;
+  text-align: start;
+  transition: color var(--transition-fade);
+}
+
+.recursive-grid__stage:last-child {
+  border-inline-end: var(--stroke) solid var(--color-dark);
+}
+
+.recursive-grid__stage[data-active='true'] {
+  color: var(--color-primary);
+}
+
+.recursive-grid__field {
+  font-family: var(--font-mono);
+  font-size: var(--size-step-01);
+  line-height: var(--leading-compact);
+  min-block-size: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.recursive-grid__fallback,
+.recursive-grid__canvas {
+  block-size: calc(100% - var(--space-s));
+  inline-size: 100%;
+  inset: var(--space-s) 0 0;
+  position: absolute;
+}
+
+.recursive-grid__fallback {
+  display: grid;
+  gap: var(--space-3xs);
+  opacity: 0.55;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.recursive-grid__fallback span:nth-child(2n) {
+  transform: translateX(var(--space-2xs));
+}
+
+.recursive-grid__fallback span:nth-child(3n) {
+  transform: translateX(var(--space-xs));
+}
+
+.recursive-grid__canvas {
+  display: none;
+}
+
+.recursive-grid[data-enhanced='true'] .recursive-grid__fallback {
+  display: none;
+}
+
+.recursive-grid[data-enhanced='true'] .recursive-grid__canvas {
+  display: block;
+}
+
+@media (width < 48rem) {
+  .recursive-grid__reel {
+    --reel-item-width: min(78vw, 18.5rem);
+  }
+}

@@ -1,35 +1,69 @@
-/* Hero — blok wg CUBE: konfiguracja kompozycji zmiennymi + dekoracja.
-   Wartości designu (kolory, spacing, typo, ratio, radius) z API variables.css;
-   słowa kluczowe (uppercase, cover) i geometria układu — lokalne. */
 .hero {
-  background: var(--color-primary);
-  color: var(--color-light);
+  --hero-bg: var(--color-light);
+  --hero-color: var(--color-dark);
+  --region-space: 0;
+
+  background: var(--hero-bg);
+  color: var(--hero-color);
+  display: grid;
+  grid-template-rows: auto minmax(calc(var(--space-3xl) * 2), 1fr);
 }
 
-.hero__layout {
-  --gutter: var(--space-l-xl);
-  --switcher-target-container-width: var(--measure);
+main > .hero:only-child {
+  min-block-size: 100%;
+}
+
+.hero__intro {
+  --gutter: 0;
+  --grid-template-columns: repeat(5, minmax(0, 1fr));
+  --wrapper-max-width: none;
+
+  padding-block: var(--space-m-l);
 }
 
 .hero__content {
-  --flow-space: var(--space-m);
-  max-width: var(--measure-compact);
+  align-content: center;
+  display: grid;
+  grid-column: 1 / 4;
+  padding-inline: var(--space-xs);
 }
 
-.hero__eyebrow {
-  color: var(--color-accent);
-  font-size: var(--text-size-meta);
-  letter-spacing: var(--kerning-caps);
-  text-transform: uppercase;
+.hero__motif {
+  min-block-size: 0;
 }
 
-.hero__lead {
-  max-width: var(--measure-compact);
+.hero__media {
+  align-content: center;
+  display: grid;
+  grid-column: 3 / 6;
+  padding-inline: var(--space-xs);
 }
 
 .hero__media img {
   aspect-ratio: var(--ratio-media);
-  border-radius: var(--radius-m);
   object-fit: cover;
   width: 100%;
+}
+
+.hero:has(.hero__media) {
+  grid-template-rows: 1fr;
+}
+
+.hero:has(.hero__media) .hero__content {
+  grid-column: 1 / 3;
+}
+
+@media (width < 48rem) {
+  .hero {
+    grid-template-rows: auto minmax(calc(var(--space-3xl) * 2), 1fr);
+  }
+
+  .hero__content,
+  .hero__media {
+    grid-column: 1 / -1;
+  }
+
+  .hero:has(.hero__media) .hero__content {
+    grid-column: 1 / -1;
+  }
 }

@@ -1,11 +1,20 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { auditTheme, inventoryTheme } from "../../scripts/lib/frontend/theme.mjs";
 import { parseDesign } from "../../scripts/lib/frontend/design.mjs";
+const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
+const sha256 = (value) => createHash("sha256").update(value).digest("hex");
+const frontendLibraryUrl = new URL("../../scripts/lib/frontend/library-import.mjs", import.meta.url);
+const loadFrontendLibrary = () => {
+  assert.equal(existsSync(frontendLibraryUrl), true, "frontend library importer module exists");
+  return import(frontendLibraryUrl);
+};
 
 function makeTheme({ block = "", blocks = {}, tokens = {}, registry = null, templates = {} } = {}) {
   const root = mkdtempSync(join(tmpdir(), "krn-frontend-"));
@@ -31,6 +40,32 @@ function makeTheme({ block = "", blocks = {}, tokens = {}, registry = null, temp
   writeFileSync(join(root, "src", "design-tokens", "spacing.json"), JSON.stringify(tokens));
   writeFileSync(join(root, "inc", "flexible-content-layouts.php"), "<?php\nreturn [\n    'text' => 'components/text/template',\n];\n");
   writeFileSync(join(root, "acf-json", "group.json"), JSON.stringify({ title: "Components", fields: [{ name: "heading_size", type: "select" }, { name: "link", type: "link" }] }));
+  return root;
+}
+
+function makeCoreBundle() {
+  const root = mkdtempSync(join(tmpdir(), "krn-core-bundle-"));
+  const css = ".flow > * + * { margin-block-start: var(--flow-space, 1em); }\n";
+  const token = "{\"space\":{\"m\":{\"$value\":\"1rem\"}}}\n";
+  const files = [
+    { path: "css/compositions/flow.css", sourcePath: "theme/src/css/compositions/flow.css", classification: "core", bytes: Buffer.byteLength(css), sha256: sha256(css) },
+    { path: "design-tokens/spacing.json", sourcePath: "theme/src/design-tokens/spacing.json", classification: "core", bytes: Buffer.byteLength(token), sha256: sha256(token) },
+  ];
+  const manifest = {
+    schemaVersion: 1,
+    source: { repository: "https://github.com/rekurencja/boilerplate-rekurencja", commit: "a".repeat(40) },
+    upstream: { repository: "https://github.com/Set-Creative-Studio/cube-boilerplate", pullRequest: "https://github.com/Set-Creative-Studio/cube-boilerplate/pull/15" },
+    projection: [],
+    classifications: { core: [], tooling: [], wordpress: [], project: [] },
+    inventory: [],
+    files,
+    bundleDigest: sha256(`${JSON.stringify(files)}\n`),
+  };
+  mkdirSync(join(root, "files", "css", "compositions"), { recursive: true });
+  mkdirSync(join(root, "files", "design-tokens"), { recursive: true });
+  writeFileSync(join(root, "files", files[0].path), css);
+  writeFileSync(join(root, "files", files[1].path), token);
+  writeFileSync(join(root, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   return root;
 }
 
@@ -156,4 +191,51 @@ test("parseDesign unwraps the MCP envelope into tokens, sections, and components
   assert.deepEqual(report.sections.map((section) => section.name), ["Hero", "Footer"]);
   assert.deepEqual(report.components, [{ name: "Button", count: 2 }]);
   rmSync(dir, { recursive: true, force: true });
+});
+
+test("frontend library import materializes and verifies only the declared source bundle", async () => {
+  const { checkFrontendLibrary, importFrontendLibrary } = await loadFrontendLibrary();
+  const bundle = makeCoreBundle();
+  const root = mkdtempSync(join(tmpdir(), "krn-library-consumer-"));
+  mkdirSync(join(root, "skills", "frontend", "frontend-library", "library"), { recursive: true });
+  writeFileSync(join(root, "skills", "frontend", "frontend-library", "library", "stale.css"), "stale\n");
+  const imported = importFrontendLibrary({ root, bundle });
+  const checked = checkFrontendLibrary({ root });
+  assert.equal(imported.bundleDigest, checked.bundleDigest);
+  assert.equal(checked.files, 2);
+  assert.throws(() => readFileSync(join(root, "skills", "frontend", "frontend-library", "library", "stale.css")), /ENOENT/);
+  appendFileSync(join(root, "skills", "frontend", "frontend-library", "library", "css", "compositions", "flow.css"), "/* hand edit */\n");
+  assert.throws(() => checkFrontendLibrary({ root }), /digest mismatch/i);
+  rmSync(bundle, { recursive: true, force: true });
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("frontend library import refuses invalid source, extra files, and byte drift without replacing the consumer", async () => {
+  const { importFrontendLibrary } = await loadFrontendLibrary();
+  const invalidIdentity = makeCoreBundle();
+  const root = mkdtempSync(join(tmpdir(), "krn-library-consumer-"));
+  const library = join(root, "skills", "frontend", "frontend-library", "library");
+  mkdirSync(library, { recursive: true });
+  writeFileSync(join(library, "preserved.css"), "preserved\n");
+  const manifestPath = join(invalidIdentity, "manifest.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  delete manifest.source.commit;
+  writeFileSync(manifestPath, `${JSON.stringify(manifest)}\n`);
+  assert.throws(() => importFrontendLibrary({ root, bundle: invalidIdentity }), /source identity/i);
+
+  const undeclared = makeCoreBundle();
+  writeFileSync(join(undeclared, "files", "answer.css"), "not declared\n");
+  assert.throws(() => importFrontendLibrary({ root, bundle: undeclared }), /undeclared file/i);
+
+  const drift = makeCoreBundle();
+  writeFileSync(join(drift, "files", "css", "compositions", "flow.css"), "mutated\n");
+  assert.throws(() => importFrontendLibrary({ root, bundle: drift }), /digest mismatch/i);
+  assert.equal(readFileSync(join(library, "preserved.css"), "utf8"), "preserved\n");
+
+  for (const directory of [invalidIdentity, undeclared, drift, root]) rmSync(directory, { recursive: true, force: true });
+});
+
+test("the committed frontend-library snapshot verifies without source access", async () => {
+  const { checkFrontendLibrary } = await loadFrontendLibrary();
+  assert.doesNotThrow(() => checkFrontendLibrary({ root: repositoryRoot }));
 });

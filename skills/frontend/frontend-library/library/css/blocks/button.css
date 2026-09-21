@@ -27,6 +27,11 @@
   --button-padding: 0 0 var(--space-3xs);
 }
 
+.button[data-button-variant='inverse'] {
+  --button-bg: var(--color-light);
+  --button-color: var(--color-primary);
+}
+
 .button__icon {
   display: inline-flex;
   flex: none;
@@ -42,9 +47,4 @@
 
 .button__label {
   font-size: var(--button-font-size, var(--size-step-00));
-}
-
-.hero .button {
-  --button-bg: var(--color-light);
-  --button-color: var(--color-primary);
 }

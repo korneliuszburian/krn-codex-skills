@@ -12,6 +12,7 @@
     "config/release-digests.json",
     "config/upstream-sources.json",
     "scripts/catalog.mjs",
+    "scripts/frontend-library.mjs",
     "scripts/krn-codex-catalog.mjs",
     "scripts/lib/catalog/catalog-config.mjs",
     "scripts/lib/catalog/catalog-desired.mjs",
@@ -37,6 +38,7 @@
     "scripts/lib/frontend/browser.mjs",
     "scripts/lib/frontend/design.mjs",
     "scripts/lib/frontend/facts.mjs",
+    "scripts/lib/frontend/library-import.mjs",
     "scripts/lib/frontend/theme.mjs",
     "scripts/lib/harness/e2e-compare.mjs",
     "scripts/lib/install/host-capabilities.mjs",
@@ -111,6 +113,10 @@
     {
       "name": "krn-codex-catalog",
       "path": "scripts/krn-codex-catalog.mjs"
+    },
+    {
+      "name": "krn-frontend-library",
+      "path": "scripts/frontend-library.mjs"
     }
   ],
   "skills": [

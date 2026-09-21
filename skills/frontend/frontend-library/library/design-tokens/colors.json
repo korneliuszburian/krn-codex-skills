@@ -24,19 +24,19 @@
       }
     },
     "primary": {
-      "$value": "#02394A",
+      "$value": "#8D49B0",
       "$extensions": {
         "pl.rekurencja.acf": { "label": "Primary", "contexts": ["heading-color", "content-color", "eyebrow-color"] }
       }
     },
     "accent": {
-      "$value": "#ffcf33",
+      "$value": "#faff00",
       "$extensions": {
         "pl.rekurencja.acf": { "label": "Accent", "contexts": ["heading-color", "eyebrow-color"] }
       }
     },
     "focus": {
-      "$value": "#ff7a00"
+      "$value": "{color.primary}"
     },
     "bg": {
       "$value": "{color.light}"

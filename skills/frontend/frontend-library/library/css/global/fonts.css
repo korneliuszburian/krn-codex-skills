@@ -1,1 +1,15 @@
-/* @font-face here */
+@font-face {
+  font-display: swap;
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url('../../fonts/dm-sans/DMSans-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: url('../../fonts/dm-sans/DMSans-Bold.woff2') format('woff2');
+}

@@ -37,6 +37,10 @@
             "min": { "value": 0.5625, "unit": "rem" },
             "max": { "value": 0.75, "unit": "rem" }
           }
+        },
+        "pl.rekurencja.acf": {
+          "contexts": ["flow-space"],
+          "label": "Tight"
         }
       }
     },
@@ -49,6 +53,10 @@
             "min": { "value": 0.875, "unit": "rem" },
             "max": { "value": 1.125, "unit": "rem" }
           }
+        },
+        "pl.rekurencja.acf": {
+          "contexts": ["flow-space"],
+          "label": "Compact"
         }
       }
     },
@@ -61,6 +69,10 @@
             "min": { "value": 1.125, "unit": "rem" },
             "max": { "value": 1.5, "unit": "rem" }
           }
+        },
+        "pl.rekurencja.acf": {
+          "contexts": ["flow-space"],
+          "label": "Standard"
         }
       }
     },
@@ -73,6 +85,10 @@
             "min": { "value": 1.6875, "unit": "rem" },
             "max": { "value": 2.25, "unit": "rem" }
           }
+        },
+        "pl.rekurencja.acf": {
+          "contexts": ["flow-space"],
+          "label": "Relaxed"
         }
       }
     },

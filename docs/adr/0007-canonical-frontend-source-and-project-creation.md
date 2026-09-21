@@ -46,6 +46,14 @@ a second starter. WordPress/ACF tasks materialize a disposable project through
 the recorded creation path. Files under KRN's task fixtures are evaluator inputs
 or known-good/mutant fixtures, never the canonical production project.
 
+The core is independent of a particular WordPress filesystem, editor, or theme
+adapter. The first executable profile is `bedrock-acf`, decomposed as runtime
+`bedrock-frankenphp`, content model `acf-flexible-content`, and theme adapter
+`custom-php`. Future classic-WordPress, Block Editor, or Roots/Sage profiles
+must project the same provenance-carrying core through their own adapters; they
+must not fork or become additional writers of CSS and tokens. This decision
+reserves those seams but does not claim those future profiles are implemented.
+
 A created project receives a physical copy of the stable core so it remains
 self-contained. It configures core recipes through tokens and custom properties,
 adds a named exception or a genuinely new block when earned, and never edits the
@@ -69,6 +77,8 @@ digest-consistent bundle; rollback restores the complete admitted identity.
   boilerplate.
 - KRN does not gain a demo application, production database, theme, or duplicate
   component library.
+- A new runtime/editor combination is a named project profile and adapter, not a
+  new frontend-core authority.
 - The first implementation unit must inspect the boilerplate's real scripts and
   document the command they actually provide; this ADR does not invent a command
   that the source repository cannot execute.

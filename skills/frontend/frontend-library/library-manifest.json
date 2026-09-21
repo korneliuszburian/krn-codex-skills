@@ -1,0 +1,836 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "https://github.com/rekurencja/boilerplate-rekurencja",
+    "commit": "953dc0f4d2da7315fb1c1621121beeacfcc2d34e"
+  },
+  "upstream": {
+    "repository": "https://github.com/Set-Creative-Studio/cube-boilerplate",
+    "pullRequest": "https://github.com/Set-Creative-Studio/cube-boilerplate/pull/15"
+  },
+  "projection": [
+    {
+      "source": "src/web/app/themes/rekurencja-theme/src/css/",
+      "target": "css/"
+    },
+    {
+      "source": "src/web/app/themes/rekurencja-theme/src/design-tokens/",
+      "target": "design-tokens/"
+    }
+  ],
+  "classifications": {
+    "core": [
+      "src/web/app/themes/rekurencja-theme/src/css/",
+      "src/web/app/themes/rekurencja-theme/src/design-tokens/"
+    ],
+    "tooling": [
+      ".github/",
+      ".dockerignore",
+      ".gitignore",
+      ".nvmrc",
+      ".vscode/",
+      "AGENTS.md",
+      "LICENSE",
+      "README.md",
+      "package.json",
+      "package-lock.json",
+      "rek",
+      "src/cli/",
+      "src/docs/",
+      "src/frontend-core.json",
+      "src/packages/",
+      "src/testing/",
+      "src/web/app/themes/rekurencja-theme/package.json",
+      "src/web/app/themes/rekurencja-theme/vite.config.js"
+    ],
+    "wordpress": [
+      "composer.json",
+      "composer.lock",
+      "src/config/",
+      "src/docker/",
+      "src/tests/",
+      "src/web/",
+      "src/web/app/mu-plugins/",
+      "src/web/app/themes/rekurencja-theme/acf-json/",
+      "src/web/app/themes/rekurencja-theme/components/",
+      "src/web/app/themes/rekurencja-theme/inc/",
+      "src/web/app/themes/rekurencja-theme/templates/"
+    ],
+    "project": [
+      ".env",
+      "auth.json",
+      "src/project.json",
+      "src/content/",
+      "src/docs/project.md",
+      "src/runtime/",
+      "src/web/app/uploads/"
+    ]
+  },
+  "inventory": [
+    {
+      "path": ".dockerignore",
+      "classification": "tooling"
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "classification": "tooling"
+    },
+    {
+      "path": ".github/workflows/build.yml",
+      "classification": "tooling"
+    },
+    {
+      "path": ".gitignore",
+      "classification": "tooling"
+    },
+    {
+      "path": ".nvmrc",
+      "classification": "tooling"
+    },
+    {
+      "path": ".vscode/extensions.json",
+      "classification": "tooling"
+    },
+    {
+      "path": ".vscode/settings.json",
+      "classification": "tooling"
+    },
+    {
+      "path": "AGENTS.md",
+      "classification": "tooling"
+    },
+    {
+      "path": "LICENSE",
+      "classification": "tooling"
+    },
+    {
+      "path": "README.md",
+      "classification": "tooling"
+    },
+    {
+      "path": "composer.json",
+      "classification": "wordpress"
+    },
+    {
+      "path": "composer.lock",
+      "classification": "wordpress"
+    },
+    {
+      "path": "package-lock.json",
+      "classification": "tooling"
+    },
+    {
+      "path": "package.json",
+      "classification": "tooling"
+    },
+    {
+      "path": "rek",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/cli/cli.mjs",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/cli/commands.mjs",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/cli/component-inventory.php",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/cli/frontend-core.mjs",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/cli/frontend-core.test.mjs",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/cli/presentation-state.php",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/cli/provision-site.php",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/cli/rekurencja.mjs",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/cli/rekurencja.test.mjs",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/config/application.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/config/environments/development.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/config/environments/staging.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/config/wp-cli.yml",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/content/page-presentation.json",
+      "classification": "project"
+    },
+    {
+      "path": "src/docker/Caddyfile",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/docker/Dockerfile",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/docker/compose.yml",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/docker/docker-entrypoint.sh",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/docs/acf-pro.md",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/docs/architecture.md",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/docs/flexible-content.md",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/docs/plesk.md",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/docs/prototyping-tool.md",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/docs/setup.md",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/frontend-core.json",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/packages/prototyping-tool-export/README.md",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/packages/prototyping-tool-export/composer.json",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/packages/prototyping-tool-export/prototyping-tool-export.php",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/project.json",
+      "classification": "project"
+    },
+    {
+      "path": "src/testing/frontend-browser.config.json",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/testing/phpstan.neon",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/testing/phpstan/acf-functions.php",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/testing/phpstan/theme-constants.php",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/testing/phpunit.xml",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/testing/pint.json",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/tests/Feature/ExampleTest.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/tests/Feature/FlexibleContentContractTest.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/tests/Feature/PresentationStateContractTest.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/tests/Feature/PrototypingToolSnapshotContractTest.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/tests/Feature/TextComponentContractTest.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/tests/Pest.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/languages/.gitkeep",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/mu-plugins/bedrock-autoloader.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/mu-plugins/frankenphp-hot-reload.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/plugins/.gitkeep",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/acf-json/group_rekurencja_components.json",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/acf-json/group_rekurencja_flexible_home.json",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/assets/images/arrow.svg",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/assets/images/rekurencja-logo.svg",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/assets/images/rekurencja-mark.svg",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/components/button/template.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/components/buttons/template.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/components/cta/template.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/components/hero/template.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/components/icon/template.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/components/media-content/template.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/components/text/template.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/footer.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/functions.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/header.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/inc/assets.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/inc/flexible-content-layouts.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/inc/flexible-content.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/inc/presentation-state.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/inc/token-fields.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/index.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/main.js",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/package.json",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/page.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/blocks/button.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/blocks/buttons.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/blocks/cta.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/blocks/hero.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/blocks/media-content.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/blocks/prose.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/blocks/recursive-grid.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/blocks/site-foot.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/blocks/site-head.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/blocks/text.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/compositions/breakout.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/compositions/cluster.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/compositions/flow.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/compositions/frame.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/compositions/grid.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/compositions/reel.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/compositions/repel.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/compositions/sidebar.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/compositions/switcher.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/compositions/wrapper.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/global/fonts.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/global/global-styles.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/global/reset.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/global/variables.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/utilities/region.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/css/utilities/visually-hidden.css",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/design-tokens/colors.json",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/design-tokens/fonts.json",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/design-tokens/spacing.json",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/design-tokens/text-leading.json",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/design-tokens/text-sizes.json",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/design-tokens/text-weights.json",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/design-tokens/tokens.resolver.json",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/design-tokens/viewports.json",
+      "classification": "core"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/fonts/dm-sans/DMSans-Bold.woff2",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/fonts/dm-sans/DMSans-Regular.woff2",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/fonts/dm-sans/OFL.txt",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/fonts/space-grotesk/OFL.txt",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/fonts/space-grotesk/SpaceGrotesk-Variable.woff2",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/src/js/recursive-grid.js",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/style.css",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/sugarcube.config.js",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/template-parts/flexible-home.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/app/themes/rekurencja-theme/vite.config.js",
+      "classification": "tooling"
+    },
+    {
+      "path": "src/web/app/uploads/.gitkeep",
+      "classification": "project"
+    },
+    {
+      "path": "src/web/index.php",
+      "classification": "wordpress"
+    },
+    {
+      "path": "src/web/wp-config.php",
+      "classification": "wordpress"
+    }
+  ],
+  "files": [
+    {
+      "path": "css/blocks/button.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/blocks/button.css",
+      "classification": "core",
+      "bytes": 1521,
+      "sha256": "101c25ad18c8d9746aafa1f967e09c076dced51bc9ac4f781330b6ae014c56ba"
+    },
+    {
+      "path": "css/blocks/buttons.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/blocks/buttons.css",
+      "classification": "core",
+      "bytes": 123,
+      "sha256": "88d59ec0f2fdfaa3f7c9329432e79b292f37a2a2d1d005131a224ebed7abdf9b"
+    },
+    {
+      "path": "css/blocks/cta.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/blocks/cta.css",
+      "classification": "core",
+      "bytes": 45,
+      "sha256": "f713ae6e06fdd283d512a644d386740661347ac7edb270ef2e83e39c77bcc2b3"
+    },
+    {
+      "path": "css/blocks/hero.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/blocks/hero.css",
+      "classification": "core",
+      "bytes": 1189,
+      "sha256": "64a271564e115edfc80980761e9b85e917a53dc87752f2912082362f1698c01b"
+    },
+    {
+      "path": "css/blocks/media-content.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/blocks/media-content.css",
+      "classification": "core",
+      "bytes": 218,
+      "sha256": "512d02b05699aba74f4da84097d268ca6d126c85885dfddd37542014dd4e20e9"
+    },
+    {
+      "path": "css/blocks/prose.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/blocks/prose.css",
+      "classification": "core",
+      "bytes": 748,
+      "sha256": "d630bd0f4d7bf5e987c9e5704b6b4618f96030cb4b5e4f9677b213dc3a9bb88b"
+    },
+    {
+      "path": "css/blocks/recursive-grid.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/blocks/recursive-grid.css",
+      "classification": "core",
+      "bytes": 1874,
+      "sha256": "128b931de465509aabc8edd0f8b2661a07972d7780552107adcf587b0dfef1d7"
+    },
+    {
+      "path": "css/blocks/site-foot.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/blocks/site-foot.css",
+      "classification": "core",
+      "bytes": 1379,
+      "sha256": "b426a7898da62b198c70cf3fa179ecdd1e07edccc5b79c58e12548f3269e99a5"
+    },
+    {
+      "path": "css/blocks/site-head.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/blocks/site-head.css",
+      "classification": "core",
+      "bytes": 1141,
+      "sha256": "6ee1c50248d0d6334c4822c4b165f21b0605583a142237f574d899aa22a749a5"
+    },
+    {
+      "path": "css/blocks/text.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/blocks/text.css",
+      "classification": "core",
+      "bytes": 1613,
+      "sha256": "3f0c5a76a0bc055d770c376026929ebf8f295ead5a9a79bf094dac052cb14992"
+    },
+    {
+      "path": "css/compositions/breakout.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/compositions/breakout.css",
+      "classification": "core",
+      "bytes": 285,
+      "sha256": "9da6d3b124762ba70a09e952a30a0c0eed4a32ec2c54cf5089935d0a5cc76fa1"
+    },
+    {
+      "path": "css/compositions/cluster.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/compositions/cluster.css",
+      "classification": "core",
+      "bytes": 721,
+      "sha256": "9a5b135b15d316a7463d97e1be679c082f959ca212d5aee62c420b3d5ebc94d0"
+    },
+    {
+      "path": "css/compositions/flow.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/compositions/flow.css",
+      "classification": "core",
+      "bytes": 224,
+      "sha256": "93c009ff2017e4970f77e5284524f7dc81461cc409e0a04fe5f489aee11b82f3"
+    },
+    {
+      "path": "css/compositions/frame.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/compositions/frame.css",
+      "classification": "core",
+      "bytes": 235,
+      "sha256": "9f5042b03a6c08077eabb22039d9b3e5238b5fb7a0a76eebbcb73e41cf911fb9"
+    },
+    {
+      "path": "css/compositions/grid.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/compositions/grid.css",
+      "classification": "core",
+      "bytes": 917,
+      "sha256": "40c517a86ca09f3564b6a378b48fb3ae26db39f867655f5d89b17789bc80cf32"
+    },
+    {
+      "path": "css/compositions/reel.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/compositions/reel.css",
+      "classification": "core",
+      "bytes": 398,
+      "sha256": "b106b50cb3ffa9bf6b98cd0637954c4e8a5b02e91d416d527a6f1f3a8997e217"
+    },
+    {
+      "path": "css/compositions/repel.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/compositions/repel.css",
+      "classification": "core",
+      "bytes": 575,
+      "sha256": "b38d5e1688168966073673432bd4cb9f1456996d9d9f2727b107885cac47a858"
+    },
+    {
+      "path": "css/compositions/sidebar.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/compositions/sidebar.css",
+      "classification": "core",
+      "bytes": 984,
+      "sha256": "a7d2cb87accda3bf349406b7adc85939c16f31784443a830b6ad9662268497e5"
+    },
+    {
+      "path": "css/compositions/switcher.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/compositions/switcher.css",
+      "classification": "core",
+      "bytes": 923,
+      "sha256": "ee927dc5c8ce0d374b7d6501c34571438abe369c1fdace1f2270d7362aa26d50"
+    },
+    {
+      "path": "css/compositions/wrapper.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/compositions/wrapper.css",
+      "classification": "core",
+      "bytes": 228,
+      "sha256": "877960e811454aeecef46b2056a0ca115a8b690fa6941c74de7a92b9493ab57c"
+    },
+    {
+      "path": "css/global/fonts.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/global/fonts.css",
+      "classification": "core",
+      "bytes": 352,
+      "sha256": "c0b1d4ccbdf692c8c05b5e7a8b0eb469083b3fc07ac1a23cadf24be971351b5d"
+    },
+    {
+      "path": "css/global/global-styles.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/global/global-styles.css",
+      "classification": "core",
+      "bytes": 1995,
+      "sha256": "e6a89487ab3ba0f51a3f8cf25641276fdc5ded1d1da3086acc765cae00fcc443"
+    },
+    {
+      "path": "css/global/reset.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/global/reset.css",
+      "classification": "core",
+      "bytes": 1186,
+      "sha256": "7d7c2785b13323329f6b24b070767672b0b6195f570d1d4dd096d2e6adbf8081"
+    },
+    {
+      "path": "css/global/variables.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/global/variables.css",
+      "classification": "core",
+      "bytes": 1180,
+      "sha256": "af348c2632815d404e3d10de196454ced87e2e42de680f89b030344a8c2676a7"
+    },
+    {
+      "path": "css/utilities/region.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/utilities/region.css",
+      "classification": "core",
+      "bytes": 135,
+      "sha256": "300b1a91a7cef84fc0d78ccb98439035662f56429618fff77ddd1af56c90efe6"
+    },
+    {
+      "path": "css/utilities/visually-hidden.css",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/css/utilities/visually-hidden.css",
+      "classification": "core",
+      "bytes": 314,
+      "sha256": "4ea02387352b8cf1b6986ccaf0c95c14e8a6fe47bfeca23bceb1edfbd472a2f8"
+    },
+    {
+      "path": "design-tokens/colors.json",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/design-tokens/colors.json",
+      "classification": "core",
+      "bytes": 1645,
+      "sha256": "5504a124c636b4c4e0b4f6a058e3ce39bd223830edbe8f9210ab2e4ce49ef0c2"
+    },
+    {
+      "path": "design-tokens/fonts.json",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/design-tokens/fonts.json",
+      "classification": "core",
+      "bytes": 751,
+      "sha256": "df6b97b66ace2273c5fb325a42b6bfba569485135440134233aa726382513faa"
+    },
+    {
+      "path": "design-tokens/spacing.json",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/design-tokens/spacing.json",
+      "classification": "core",
+      "bytes": 7477,
+      "sha256": "b96c7b026035a6dfc7f5607e9a2710c6826ddec53b2330c6d6961ff2ec1df57b"
+    },
+    {
+      "path": "design-tokens/text-leading.json",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/design-tokens/text-leading.json",
+      "classification": "core",
+      "bytes": 442,
+      "sha256": "7191f498a9856e1f8f8f6536a44abe45ea9f6283ae71e50005ef33bd6787fe34"
+    },
+    {
+      "path": "design-tokens/text-sizes.json",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/design-tokens/text-sizes.json",
+      "classification": "core",
+      "bytes": 4407,
+      "sha256": "90464c1bc8aabacf39b4a233843ba6a872adb774f3b54a1d195631a9bf226ea9"
+    },
+    {
+      "path": "design-tokens/text-weights.json",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/design-tokens/text-weights.json",
+      "classification": "core",
+      "bytes": 674,
+      "sha256": "e7e018f220fe16b835bf0e33672101c97aca965144095865f1c0817890ac214e"
+    },
+    {
+      "path": "design-tokens/tokens.resolver.json",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/design-tokens/tokens.resolver.json",
+      "classification": "core",
+      "bytes": 414,
+      "sha256": "73f5ec89b3c1912477e29d57438f4863498dc2f3a52086450239bff9a3c5e3b2"
+    },
+    {
+      "path": "design-tokens/viewports.json",
+      "sourcePath": "src/web/app/themes/rekurencja-theme/src/design-tokens/viewports.json",
+      "classification": "core",
+      "bytes": 251,
+      "sha256": "78891b43e20583e6950d08520fd3c434ae4c5b5a18df8d905745a14bedf65f33"
+    }
+  ],
+  "bundleDigest": "d8e450668151ef917f56f72ab682965180bc7dbd230416985459f252673100de"
+}

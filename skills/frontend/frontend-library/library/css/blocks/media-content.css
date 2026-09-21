@@ -6,6 +6,6 @@
   --frame-ratio: var(--ratio-media);
 }
 
-.media-content[data-media-position='right'] .sidebar {
+.media-content[data-media-position='right'] .media-content__layout {
   flex-direction: row-reverse;
 }

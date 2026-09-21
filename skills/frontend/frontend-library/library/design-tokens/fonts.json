@@ -3,12 +3,12 @@
     "$type": "fontFamily",
     "$description": "Each array of fonts creates a priority-based order. The first font in the array should be the ideal font, followed by sensible, web-safe fallbacks.",
     "base": {
-      "$value": ["Atkinson Hyperlegible", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
-      "$description": "System fonts for body copy and globally set text."
+      "$value": ["DM Sans", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+      "$description": "Self-hosted DM Sans stack for body copy and interface text."
     },
     "display": {
-      "$value": ["Fraunces", "Georgia", "Times New Roman", "serif"],
-      "$description": "Display stack for headings. The first family can be supplied by a project theme if needed."
+      "$value": ["DM Sans", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+      "$description": "Self-hosted DM Sans stack for headings."
     },
     "mono": {
       "$value": ["ui-monospace", "SFMono-Regular", "Consolas", "Liberation Mono", "monospace"],
