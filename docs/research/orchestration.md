@@ -752,3 +752,4 @@ ledger is short, or a date has passed.
 | Export marker as the single export provenance | maintainer | `test/install/rename-completion.test.mjs` and `krn skills check` | 2026-12-31 | a single provenance artifact supersedes the marker |
 | Frozen conformance policy (base case list, candidate runner) | maintainer | sh-110 and `test/ci-workflow-tiers.test.mjs` | 2026-12-31 | a base-runner defect or an operator policy change |
 | CI tier owner in `package.json` | maintainer | sh-112 and `test/ci-workflow-tiers.test.mjs` | 2026-12-31 | the workflow stops deriving from the gate scripts |
+| KRN surfaces (skills, brief, hooks, memory) as the default | maintainer | LT-102 through LT-105 and the 2026-09-20 operator decision recorded in ADR 0006 | 2027-06-30 | a discriminative benchmark shows a negative contribution, a measured failure traces to a surface, or the operator changes the scope |

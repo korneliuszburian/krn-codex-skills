@@ -14,6 +14,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/adr/0003-finite-release-decision.md](docs/adr/0003-finite-release-decision.md) — accepted completion rule: a finite release decision ends an outcome; its default-stop is superseded by ADR 0005.
 - [docs/adr/0004-queue-legibility-and-memory-delivery.md](docs/adr/0004-queue-legibility-and-memory-delivery.md) — accepted plan for queue legibility, memory delivery, and lane-loop automation after the 2026-09-18 arc.
 - [docs/adr/0005-continuous-hardening-with-bounded-passes.md](docs/adr/0005-continuous-hardening-with-bounded-passes.md) — accepted posture: continuous hardening in bounded, triggered passes; first batch is the verified pipeline holes sh-60..sh-65.
+- [docs/adr/0006-keep-the-krn-surfaces.md](docs/adr/0006-keep-the-krn-surfaces.md) — accepted decision: keep the KRN surfaces as the default with the measured cost recorded, and reopen on a discriminative benchmark or an operator scope change.
 - [docs/research/workflow-lessons.md](docs/research/workflow-lessons.md) — bounded cross-run workflow memory read at `$delivery-loop` bind.
 - The Matt Pocock skills audit and the unslop lab-test page are indexed under [docs/research/README.md](docs/research/README.md).
 - [scripts/quality-audit.mjs](scripts/quality-audit.mjs) — mechanical slop, dead-code, and credential/env-dump audit gated in `npm run test:lib`.
