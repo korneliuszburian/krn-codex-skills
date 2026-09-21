@@ -99,7 +99,7 @@ export function checkFrontendLibrary({ root }) {
   return { bundleDigest: manifest.bundleDigest, source: manifest.source, files: manifest.files.length };
 }
 
-export function importFrontendLibrary({ root, bundle }) {
+export function importFrontendLibrary({ root, bundle, copyTree = fs.cpSync }) {
   const resolvedRoot = path.resolve(root);
   const resolvedBundle = path.resolve(bundle);
   const manifest = verifyBundle(resolvedBundle);
@@ -112,22 +112,38 @@ export function importFrontendLibrary({ root, bundle }) {
   const backup = path.join(staging, "previous-library");
   const manifestFile = path.join(skill, MANIFEST_NAME);
   const previousManifest = fs.existsSync(manifestFile) ? fs.readFileSync(manifestFile) : null;
+  let backupCreated = false;
+  let replacementInstalled = false;
   try {
-    fs.cpSync(path.join(resolvedBundle, "files"), stagedLibrary, { recursive: true, errorOnExist: true });
+    copyTree(path.join(resolvedBundle, "files"), stagedLibrary, { recursive: true, errorOnExist: true });
     verifyFiles({ directory: stagedLibrary, manifest });
-    if (fs.existsSync(library)) fs.renameSync(library, backup);
+    if (fs.existsSync(library)) {
+      fs.renameSync(library, backup);
+      backupCreated = true;
+    }
     fs.renameSync(stagedLibrary, library);
+    replacementInstalled = true;
     fs.writeFileSync(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
     checkFrontendLibrary({ root: resolvedRoot });
     removeTree(backup);
     return { bundleDigest: manifest.bundleDigest, source: manifest.source, files: manifest.files.length };
   } catch (error) {
-    if (fs.existsSync(library)) removeTree(library);
-    if (fs.existsSync(backup)) fs.renameSync(backup, library);
-    if (previousManifest === null) fs.rmSync(manifestFile, { force: true });
-    else fs.writeFileSync(manifestFile, previousManifest);
+    if (backupCreated) {
+      if (replacementInstalled && fs.existsSync(library)) removeTree(library);
+      try {
+        fs.renameSync(backup, library);
+      } catch (restoreError) {
+        throw new AggregateError([error, restoreError], `frontend library restore failed; previous library retained at ${backup}`);
+      }
+    } else if (replacementInstalled && fs.existsSync(library)) {
+      removeTree(library);
+    }
+    if (replacementInstalled) {
+      if (previousManifest === null) fs.rmSync(manifestFile, { force: true });
+      else fs.writeFileSync(manifestFile, previousManifest);
+    }
     throw error;
   } finally {
-    removeTree(staging);
+    if (!fs.existsSync(backup)) removeTree(staging);
   }
 }

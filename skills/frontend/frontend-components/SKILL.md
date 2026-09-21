@@ -10,7 +10,7 @@ A block is a skeletal component. Most work is already done by global CSS, compos
 ## <required> — before writing a block
 
 1. Compose from the smallest existing pieces. IF an existing block/atom/molecule covers the need THEN reuse it (check variants first). NEVER create a duplicate component.
-2. IF the canonical library exists THEN copy the needed block file VERBATIM from `skills/frontend/frontend-library/library/css/blocks/` (button, buttons, cta, hero, text, media-content, site-head, site-foot, prose). NEVER paraphrase or re-implement it — the snippets below are the pattern, the library is the implementation.
+2. Resolve the project's core through `$frontend-library`. IF its resolved core contains the needed block THEN reuse that project-selected file VERBATIM. The snippets below are the pattern; the resolved core is the implementation.
 3. IF a new block is needed THEN build its internals with composition classes, not hand-rolled layout.
 4. Check the existing naming convention for block internals and use it consistently.
 5. IF the project has no pattern inventory THEN the new block must be documented (file header + pattern library entry).
@@ -85,8 +85,8 @@ A block is a skeletal component. Most work is already done by global CSS, compos
 ```
 
 - NEVER split `--button-padding` into per-axis or per-variant tokens (`--button-padding-y`, `--button-small-padding-block`). One knob, one shorthand.
-- IF an attribute is shared vocabulary declared by the library (`data-alignment`, `data-layout`, `data-measure`, `data-media-position`, …) THEN use it unprefixed. IF it is a block-local exception THEN prefix it with the block name. NEVER invent a new unprefixed attribute — `krn-codex frontend audit` reports `variant-naming`.
-- IF a `-variant` value is needed THEN it must already exist in the theme or the library (`[data-button-variant='link']`). NEVER pass a value the design never defined; the default is expressed by omitting the attribute (e.g. the default button carries no `data-button-variant`). `frontend audit` reports `template-variant` for an undefined value.
+- IF an attribute is shared vocabulary declared by the resolved core (`data-alignment`, `data-layout`, `data-measure`, `data-media-position`, …) THEN use it unprefixed. IF it is a block-local exception THEN prefix it with the block name. NEVER invent a new unprefixed attribute — `krn-codex frontend audit` reports `variant-naming`.
+- IF a `-variant` value is needed THEN it must already exist in the theme or resolved core (`[data-button-variant='link']`). NEVER pass a value the design never defined; the default is expressed by omitting the attribute (e.g. the default button carries no `data-button-variant`). `frontend audit` reports `template-variant` for an undefined value.
 - IF a variant exists THEN it sets 2–4 existing knobs ONLY. NEVER declare new CSS properties in a variant.
 - IF the variant is a size change THEN override `--button-font-size`/`--button-padding` knobs in the same attribute. NEVER a separate padding token pair.
 - Disabled = native `disabled` attribute / `:disabled`. NEVER a data-state.

@@ -61,6 +61,7 @@ function validEvaluator(overrides = {}) {
   return {
     schema: "krn.frontend-harness.evaluator.v2",
     taskId: "card-section",
+    identity: "card-section-evaluator-v1",
     assertions: [
       { id: "ASSERT-EXEC", requirementId: "REQ-EXEC", track: "design-transfer", axis: "execution" },
       { id: "ASSERT-CUBE", requirementId: "REQ-CUBE", track: "design-transfer", axis: "architecture" },
@@ -73,7 +74,11 @@ function validResult(task, overrides = {}) {
   const axes = Object.fromEntries(AXES.map((axis) => {
     const contract = task.axes[axis];
     return contract.applicable
-      ? [axis, { status: "pass", measurements: [], evidence: [] }]
+      ? [axis, {
+        status: "pass",
+        measurements: [{ id: `${axis}-assertions`, value: 1 }],
+        evidence: task.evidence.filter((entry) => entry.axis === axis).map((entry) => ({ id: entry.id })),
+      }]
       : [axis, { status: "not-applicable", reason: contract.reason }];
   }));
   return {
@@ -81,6 +86,7 @@ function validResult(task, overrides = {}) {
     taskId: task.id,
     track: task.track,
     environmentIdentity: task.environment.identity,
+    evaluatorIdentity: task.evaluator.identity,
     axes,
     ...overrides,
   };
@@ -150,6 +156,51 @@ test("sealed assertions must map to a public requirement, track, and applicable 
     assert.throws(
       () => contract.admitSealedEvaluator(task, validEvaluator({ assertions: [{ id: "ONLY-ONE", requirementId: "REQ-CUBE", track: task.track, axis: "architecture" }] })),
       /requirement-without-assertion/,
+    );
+  });
+});
+
+test("sealed evaluator covers every declared axis-requirement obligation", async () => {
+  const source = validTask();
+  source.axes.execution.requirementIds.push("REQ-CUBE");
+  await withTask(source, (file) => {
+    const task = loadTask(file);
+    assert.throws(
+      () => contract.admitSealedEvaluator(task, validEvaluator()),
+      /axis-requirement-without-assertion/,
+    );
+  });
+});
+
+test("evaluator identity is bound through evaluator and result admission", async () => {
+  await withTask(validTask(), (file) => {
+    const task = loadTask(file);
+    assert.throws(
+      () => contract.admitSealedEvaluator(task, validEvaluator({ identity: "other-evaluator" })),
+      /evaluator-identity-mismatch/,
+    );
+    assert.throws(
+      () => contract.admitV2Result(task, validResult(task, { evaluatorIdentity: "other-evaluator" })),
+      /result-evaluator-mismatch/,
+    );
+  });
+});
+
+test("an applicable axis cannot pass without measurements or required evidence", async () => {
+  await withTask(validTask(), (file) => {
+    const task = loadTask(file);
+    const empty = validResult(task);
+    empty.axes.execution.measurements = [];
+    empty.axes.execution.evidence = [];
+    assert.throws(
+      () => contract.admitV2Result(task, empty),
+      /unsubstantiated-axis-pass/,
+    );
+    const missingEvidence = validResult(task);
+    missingEvidence.axes.architecture.evidence = [];
+    assert.throws(
+      () => contract.admitV2Result(task, missingEvidence),
+      /missing-required-evidence/,
     );
   });
 });

@@ -74,6 +74,8 @@ function namedArray(value, rule) {
   });
 }
 
+const obligationKey = (axis, requirementId) => `${axis}\0${requirementId}`;
+
 export function admitV2Task(payload) {
   if (!object(payload) || payload.schema !== TASK_V2_SCHEMA) refuse("unknown-task-version", String(payload?.schema ?? "missing"));
   rejectAggregateAuthority(payload);
@@ -156,6 +158,7 @@ export function admitSealedEvaluator(task, evaluator) {
   if (!object(evaluator) || evaluator.schema !== EVALUATOR_V2_SCHEMA) refuse("unknown-evaluator-version", String(evaluator?.schema ?? "missing"));
   rejectAggregateAuthority(evaluator);
   if (text(evaluator.taskId) !== task.id) refuse("evaluator-task-mismatch", text(evaluator.taskId));
+  if (text(evaluator.identity) !== task.evaluator.identity) refuse("evaluator-identity-mismatch", text(evaluator.identity));
   const requirements = new Set(task.public.requirements.map((entry) => entry.id));
   const assertions = namedArray(evaluator.assertions, "malformed-assertions").map((assertion) => {
     const requirementId = text(assertion.requirementId);
@@ -171,7 +174,22 @@ export function admitSealedEvaluator(task, evaluator) {
   for (const requirementId of requirements) {
     if (!covered.has(requirementId)) refuse("requirement-without-assertion", requirementId);
   }
-  return { ...structuredClone(evaluator), schema: EVALUATOR_V2_SCHEMA, taskId: task.id, assertions };
+  const coveredObligations = new Set(assertions.map((entry) => obligationKey(entry.axis, entry.requirementId)));
+  for (const [axis, axisContract] of Object.entries(task.axes)) {
+    if (!axisContract.applicable) continue;
+    for (const requirementId of axisContract.requirementIds) {
+      if (!coveredObligations.has(obligationKey(axis, requirementId))) {
+        refuse("axis-requirement-without-assertion", `${axis}:${requirementId}`);
+      }
+    }
+  }
+  return {
+    ...structuredClone(evaluator),
+    schema: EVALUATOR_V2_SCHEMA,
+    taskId: task.id,
+    identity: task.evaluator.identity,
+    assertions,
+  };
 }
 
 export function admitV2Result(task, result) {
@@ -181,6 +199,7 @@ export function admitV2Result(task, result) {
   if (text(result.taskId) !== task.id) refuse("result-task-mismatch", text(result.taskId));
   if (text(result.track) !== task.track) refuse("result-track-mismatch", text(result.track));
   if (text(result.environmentIdentity) !== task.environment.identity) refuse("result-environment-mismatch", text(result.environmentIdentity));
+  if (text(result.evaluatorIdentity) !== task.evaluator.identity) refuse("result-evaluator-mismatch", text(result.evaluatorIdentity));
 
   const axes = {};
   for (const axis of V2_AXES) {
@@ -193,6 +212,11 @@ export function admitV2Result(task, result) {
       if (!RESULT_STATUSES.has(status)) refuse("malformed-axis-status", `${axis}:${status || "missing"}`);
       if (!Object.hasOwn(observed, "measurements") || !Array.isArray(observed.measurements)) refuse("missing-axis-measurements", axis);
       if (!Object.hasOwn(observed, "evidence") || !Array.isArray(observed.evidence)) refuse("missing-axis-evidence", axis);
+      if (status === "pass" && observed.measurements.length === 0 && observed.evidence.length === 0) refuse("unsubstantiated-axis-pass", axis);
+      const evidenceIds = new Set(observed.evidence.map((entry) => text(typeof entry === "string" ? entry : entry?.id)).filter(Boolean));
+      for (const required of task.evidence.filter((entry) => entry.axis === axis)) {
+        if (!evidenceIds.has(required.id)) refuse("missing-required-evidence", `${axis}:${required.id}`);
+      }
       axes[axis] = { ...structuredClone(observed), status };
     } else {
       if (status !== "not-applicable") refuse("false-result-applicability", axis);
@@ -209,6 +233,7 @@ export function admitV2Result(task, result) {
     taskId: task.id,
     track: task.track,
     environmentIdentity: task.environment.identity,
+    evaluatorIdentity: task.evaluator.identity,
     axes,
   };
 }

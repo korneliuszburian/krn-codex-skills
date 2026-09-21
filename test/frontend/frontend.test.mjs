@@ -16,8 +16,8 @@ const loadFrontendLibrary = () => {
   return import(frontendLibraryUrl);
 };
 
-function makeTheme({ block = "", blocks = {}, tokens = {}, registry = null, templates = {} } = {}) {
-  const root = mkdtempSync(join(tmpdir(), "krn-frontend-"));
+function makeTheme({ block = "", blocks = {}, tokens = {}, registry = null, templates = {}, directory = null } = {}) {
+  const root = directory ?? mkdtempSync(join(tmpdir(), "krn-frontend-"));
   mkdirSync(join(root, "src", "css", "blocks"), { recursive: true });
   mkdirSync(join(root, "src", "css", "compositions"), { recursive: true });
   mkdirSync(join(root, "src", "css", "utilities"), { recursive: true });
@@ -135,6 +135,32 @@ test("auditTheme flags an unprefixed variant but keeps the shared vocabulary", (
   rmSync(dirty, { recursive: true, force: true });
 });
 
+test("auditTheme selects shared vocabulary from the project's pinned physical core", () => {
+  const project = mkdtempSync(join(tmpdir(), "krn-pinned-core-"));
+  const theme = join(project, "theme");
+  const coreCss = ".text[data-core-a] { text-align: start; }\n";
+  makeTheme({
+    directory: theme,
+    block: coreCss,
+    blocks: { courses: ".courses[data-core-a] { display: block; }\n" },
+  });
+  const files = [{ path: "css/blocks/text.css", bytes: Buffer.byteLength(coreCss), sha256: sha256(coreCss) }];
+  const manifest = { schemaVersion: 1, source: { repository: "source", commit: "a".repeat(40) }, files, bundleDigest: sha256(`${JSON.stringify(files)}\n`) };
+  mkdirSync(join(project, "src"), { recursive: true });
+  writeFileSync(join(project, "src", "frontend-core-manifest.json"), `${JSON.stringify(manifest)}\n`);
+  writeFileSync(join(project, "src", "project.json"), JSON.stringify({
+    foundation: {
+      coreTarget: "theme/src",
+      manifest: "src/frontend-core-manifest.json",
+      digest: manifest.bundleDigest,
+      source: manifest.source,
+    },
+  }));
+
+  assert.equal(auditTheme({ root: theme }).hard, 0);
+  rmSync(project, { recursive: true, force: true });
+});
+
 test("auditTheme cross-checks the block registry against the code", () => {
   const registry = [
     "# Blocks",
@@ -233,6 +259,31 @@ test("frontend library import refuses invalid source, extra files, and byte drif
   assert.equal(readFileSync(join(library, "preserved.css"), "utf8"), "preserved\n");
 
   for (const directory of [invalidIdentity, undeclared, drift, root]) rmSync(directory, { recursive: true, force: true });
+});
+
+test("frontend library import preserves the admitted consumer when staging fails before swap", async () => {
+  const { importFrontendLibrary } = await loadFrontendLibrary();
+  const bundle = makeCoreBundle();
+  const root = mkdtempSync(join(tmpdir(), "krn-library-consumer-"));
+  const skill = join(root, "skills", "frontend", "frontend-library");
+  const library = join(skill, "library");
+  const manifest = join(skill, "library-manifest.json");
+  mkdirSync(library, { recursive: true });
+  writeFileSync(join(library, "preserved.css"), "preserved\n");
+  writeFileSync(manifest, "previous manifest\n");
+
+  assert.throws(
+    () => importFrontendLibrary({
+      root,
+      bundle,
+      copyTree: () => { throw new Error("injected staging failure"); },
+    }),
+    /injected staging failure/,
+  );
+  assert.equal(readFileSync(join(library, "preserved.css"), "utf8"), "preserved\n");
+  assert.equal(readFileSync(manifest, "utf8"), "previous manifest\n");
+
+  for (const directory of [bundle, root]) rmSync(directory, { recursive: true, force: true });
 });
 
 test("the committed frontend-library snapshot verifies without source access", async () => {

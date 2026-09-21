@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { sha256Hex } from "../kernel/digest.mjs";
+
 const CSS = ".css";
 const LIBRARY_BLOCKS = fileURLToPath(new URL("../../../skills/frontend/frontend-library/library/css/blocks/", import.meta.url));
 const listCss = (dir) => {
@@ -66,11 +68,55 @@ function prefixedBy(attribute, slug) {
   return attribute === `data-${slug}` || attribute.startsWith(`data-${slug}-`);
 }
 
-function libraryVocabulary(library = LIBRARY_BLOCKS) {
+function installedCoreBlocks() {
+  return listCss(LIBRARY_BLOCKS).map((file) => path.join(LIBRARY_BLOCKS, file));
+}
+
+function inside(parent, child) {
+  const relative = path.relative(parent, child);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function projectCoreBlocks(root) {
+  const theme = path.resolve(root);
+  for (let current = theme; ; current = path.dirname(current)) {
+    const projectFile = path.join(current, "src", "project.json");
+    if (fs.statSync(projectFile, { throwIfNoEntry: false })?.isFile()) {
+      const project = JSON.parse(fs.readFileSync(projectFile, "utf8"));
+      const foundation = project.foundation;
+      if (foundation?.coreTarget && path.resolve(current, foundation.coreTarget) === path.join(theme, "src")) {
+        const manifestFile = path.resolve(current, String(foundation.manifest ?? ""));
+        if (!foundation.manifest || !inside(current, manifestFile)) throw new Error("frontend audit refused an unsafe project core manifest");
+        const manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
+        if (foundation.digest !== manifest.bundleDigest || JSON.stringify(foundation.source) !== JSON.stringify(manifest.source)) {
+          throw new Error("frontend audit found a project core identity mismatch");
+        }
+        const core = path.resolve(current, foundation.coreTarget);
+        const files = Array.isArray(manifest.files) ? manifest.files : [];
+        const blocks = files.filter((file) => /^css\/blocks\/[^/]+\.css$/.test(file?.path ?? ""));
+        if (blocks.length === 0) throw new Error("frontend audit found no blocks in the project core manifest");
+        return blocks.map((file) => {
+          const absolute = path.resolve(core, file.path);
+          if (!inside(core, absolute)) throw new Error(`frontend audit refused an unsafe project core path: ${file.path}`);
+          const contents = fs.readFileSync(absolute);
+          if (contents.byteLength !== file.bytes || sha256Hex(contents) !== file.sha256) {
+            throw new Error(`frontend audit found project core drift: ${file.path}`);
+          }
+          return absolute;
+        });
+      }
+    }
+    const parent = path.dirname(current);
+    if (parent === current) break;
+  }
+  return installedCoreBlocks();
+}
+
+function libraryVocabulary(files) {
   const vocabulary = new Set();
-  for (const file of listCss(library)) {
-    const slug = file.slice(0, -CSS.length);
-    for (const attribute of dataAttributes(readText(path.join(library, file)))) {
+  for (const file of files) {
+    const slug = path.basename(file, CSS);
+    for (const attribute of dataAttributes(readText(file))) {
       if (prefixedBy(attribute, slug)) continue;
       vocabulary.add(attribute);
     }
@@ -206,7 +252,9 @@ export function auditTheme({ root, accept = [], docs = null } = {}) {
   const accepted = new Set(accept);
   const findings = [];
   const severityFor = (rule, relative) => (accepted.has(`${rule}:${relative}`) ? "accepted" : "hard");
-  const vocabulary = libraryVocabulary();
+  const coreBlocks = projectCoreBlocks(root);
+  const coreBlockBySlug = new Map(coreBlocks.map((file) => [path.basename(file, CSS), file]));
+  const vocabulary = libraryVocabulary(coreBlocks);
   const rows = registryRows(docs);
   const blockDir = path.join(root, "src", "css", "blocks");
   const blockFiles = listCss(blockDir);
@@ -269,7 +317,7 @@ export function auditTheme({ root, accept = [], docs = null } = {}) {
 
   for (const file of listPhp(path.join(root, "components"))) {
     const relative = path.relative(root, file).split(path.sep).join("/");
-    const known = new Set([...blockSlugs, ...listCss(LIBRARY_BLOCKS).map((entry) => entry.slice(0, -CSS.length))]);
+    const known = new Set([...blockSlugs, ...coreBlockBySlug.keys()]);
     for (const match of readText(file).matchAll(/\b(data-[a-z][\w-]*)\s*=\s*["']([^"']*)["']/g)) {
       const [, attribute, value] = match;
       if (vocabulary.has(attribute)) continue;
@@ -287,7 +335,7 @@ export function auditTheme({ root, accept = [], docs = null } = {}) {
       if (value.includes("<?php")) continue;
       const allowed = new Set([
         ...variantValues(readText(path.join(blockDir, `${owner}${CSS}`)), owner),
-        ...variantValues(readText(path.join(LIBRARY_BLOCKS, `${owner}${CSS}`)), owner),
+        ...variantValues(readText(coreBlockBySlug.get(owner)), owner),
       ]);
       if (allowed.size > 0 && !allowed.has(value)) {
         findings.push({
