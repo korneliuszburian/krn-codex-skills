@@ -164,6 +164,7 @@ function persistReport({ root, task, report }) {
 export async function compareHarness({ task, lanes, runs, runner, root } = {}) {
   const runCount = runs === undefined ? 1 : runs;
   if (!Number.isInteger(runCount) || runCount < 1) refuse("bad-runs", String(runs));
+  if (task?.schema !== undefined) task = admitV2Task(task);
   const v2 = task?.schema === TASK_V2_SCHEMA;
   const check = typeof task?.check === "string" ? task.check.trim() : "";
   if (!v2 && !check) refuse("missing-deciding-check", String(task?.id ?? "task"));

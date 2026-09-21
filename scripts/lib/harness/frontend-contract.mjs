@@ -53,10 +53,12 @@ function inside(parent, child) {
   return child === parent || child.startsWith(`${parent}/`);
 }
 
-function rejectAggregateAuthority(value) {
-  if (!object(value)) return;
-  for (const key of Object.keys(value)) {
+function rejectAggregateAuthority(value, seen = new WeakSet()) {
+  if (!value || typeof value !== "object" || seen.has(value)) return;
+  seen.add(value);
+  for (const [key, nested] of Object.entries(value)) {
     if (AGGREGATE_KEYS.has(key)) refuse("weighted-aggregate", key);
+    rejectAggregateAuthority(nested, seen);
   }
 }
 
@@ -152,6 +154,7 @@ export function admitV2Task(payload) {
 export function admitSealedEvaluator(task, evaluator) {
   if (task?.schema !== TASK_V2_SCHEMA) refuse("evaluator-requires-v2-task", String(task?.id ?? "task"));
   if (!object(evaluator) || evaluator.schema !== EVALUATOR_V2_SCHEMA) refuse("unknown-evaluator-version", String(evaluator?.schema ?? "missing"));
+  rejectAggregateAuthority(evaluator);
   if (text(evaluator.taskId) !== task.id) refuse("evaluator-task-mismatch", text(evaluator.taskId));
   const requirements = new Set(task.public.requirements.map((entry) => entry.id));
   const assertions = namedArray(evaluator.assertions, "malformed-assertions").map((assertion) => {

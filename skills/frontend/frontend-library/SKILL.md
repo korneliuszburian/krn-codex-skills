@@ -12,13 +12,19 @@ snapshot by hand; only `krn-frontend-library import` may replace it after the
 source bundle verifies. A created project's own pinned manifest remains its
 authority when its core revision differs from this snapshot.
 
+In the procedure below, **resolved core** means the physical core governed by
+the existing project's recorded manifest. The checked-in `library/` may stand
+in for it only when both manifests name the same source revision and bundle
+digest. If they differ, use the project's pinned files and manifest; never
+silently substitute the KRN snapshot.
+
 ## <required> — before writing any CSS
 
-1. IF creating a new project THEN use the boilerplate's executable profile; do not assemble a project from this skill. IF working in an existing project THEN resolve its recorded frontend-core manifest first. IF that identity matches `library-manifest.json` and a needed composition, utility, block, global file, or token set exists in `library/` THEN copy the file(s) VERBATIM. NEVER paraphrase, rewrite, "simplify", or rename the core code. (Disposable prototypes are exempt.)
-2. IF the project already contains a local implementation of any library primitive (e.g. a hand-rolled `.wrapper`, `.cluster`, or button) THEN replace it with the library version and re-point the markup. NEVER keep two implementations of the same job.
-3. IF a library block needs project-specific values THEN configure its custom properties in the project context — never edit the library file itself.
-4. IF the project already contains a file with a library name (`.text`, `.hero`, a composition) THEN diff it against `library/css/…` before trusting it: a drifted local copy is not the library. Re-point the project to the library copy, or record the deviation in the project's facts docs. NEVER call a file "verbatim" without diffing it — the harness audit reads the library's own vocabulary, so drift shows up as invented variants.
-5. IF you audit existing CSS THEN use the library as the reference implementation for the audit rules (`krn-codex frontend audit`): the shared `data-*` vocabulary and a block's variant values are read from these files.
+1. IF creating a new project THEN use the boilerplate's executable profile; do not assemble a project from this skill. IF working in an existing project THEN resolve its recorded frontend-core manifest and physical core first. IF that identity matches `library-manifest.json`, `library/` is an available verified copy of the resolved core. NEVER paraphrase, rewrite, "simplify", or rename resolved-core code. (Disposable prototypes are exempt.)
+2. IF the project already contains a local implementation of a resolved-core primitive (e.g. a hand-rolled `.wrapper`, `.cluster`, or button) THEN replace it with the project-selected version and re-point the markup. NEVER replace it from a different KRN snapshot or keep two implementations of the same job.
+3. IF a resolved-core block needs project-specific values THEN configure its custom properties in the project context — never edit the core file itself.
+4. IF the project already contains a file with a core name (`.text`, `.hero`, a composition) THEN verify it against the project's recorded manifest and resolved-core bytes before trusting it. Re-point a local knockoff to the resolved core, or record a genuine project-owned deviation in the project's facts docs. NEVER call a file "verbatim" without this comparison.
+5. IF the project manifest matches `library-manifest.json` THEN `krn-codex frontend audit` may use this snapshot's shared `data-*` vocabulary and block variants. IF the identities differ THEN use the project's manifest verification and treat KRN's current vocabulary audit as unavailable until its consumer can select that recorded revision; do not report drift against another revision as a project defect.
 
 ## Library map
 
@@ -58,23 +64,23 @@ Import order: reset → global-styles → variables → fonts → compositions �
 
 Run this when an existing codebase has scattered or duplicated components.
 
-1. IDENTIFY: list (a) the same treatment implemented in 3+ places, (b) components that duplicate a library block, (c) local knockoffs of library primitives (hand-rolled `.wrapper`/`.cluster`/`.grid`/button), (d) raw values where tokens exist.
+1. IDENTIFY: list (a) the same treatment implemented in 3+ places, (b) components that duplicate a resolved-core block, (c) local knockoffs of resolved-core primitives (hand-rolled `.wrapper`/`.cluster`/`.grid`/button), (d) raw values where tokens exist.
 2. GROUP: sort findings by layer — layout → compositions; one-job tweaks → utilities; context skeletons → blocks; variants/states → data-attribute exceptions.
-3. REEVALUATE: per finding, ask in order: does a library file already cover it? (replace and re-point markup) → does the same rule repeat 3+ times? (extract a one-job utility with knobs) → is it a component with context-only styles? (library-pattern block) → is it a variant of an existing block? (`[data-*]` exception). NEVER abstract a one-off; NEVER create a duplicate.
+3. REEVALUATE: per finding, ask in order: does a resolved-core file already cover it? (replace and re-point markup) → does the same rule repeat 3+ times? (extract a one-job utility with knobs) → is it a component with context-only styles? (core-pattern block) → is it a variant of an existing block? (`[data-*]` exception). NEVER abstract a one-off; NEVER create a duplicate.
    - IF you find modifier classes during consolidation (`.badge--new`, `.card--feature`) THEN convert them to data-attribute exceptions (`.badge[data-badge-variant='new']`).
 4. CONDENSE: replace duplicates with the canonical class/file; delete local knockoffs; re-point markup; tokenize leftover values; document new patterns. NEVER keep two implementations of the same job.
 
 Evidence: GOV.UK — undocumented patterns led to duplicated breadcrumbs/search boxes/templates; the fix was one component guide and "never re-implement an existing pattern". Complete CSS lesson 057: people add code rather than use what is already there. cube.fyi: abstraction only on real repetition; lesson 019: slice into the smallest reusable pieces.
 
 ## NEVER
-- NEVER paraphrase, rewrite, rename, or "improve" library code — copy verbatim.
-- NEVER keep a local knockoff when the library primitive exists.
-- NEVER edit a library file for a project-specific value — configure custom properties in context.
-- NEVER add a new primitive to the project before checking `library/` covers it.
+- NEVER paraphrase, rewrite, rename, or "improve" resolved-core code — copy verbatim.
+- NEVER keep a local knockoff when the resolved-core primitive exists.
+- NEVER edit a resolved-core file for a project-specific value — configure custom properties in context.
+- NEVER add a new primitive to the project before checking the resolved core covers it.
 - NEVER invent new block/utility names for what an existing block + `[data-*]` exception already expresses.
 
 ## Final checklist
-- [ ] Every composition/utility/block in the project matches `library/` verbatim
+- [ ] Every resolved-core composition/utility/block matches the project's recorded manifest and physical core verbatim
 - [ ] Zero local knockoffs of library primitives
 - [ ] Duplicates consolidated; markup re-pointed to canonical classes
 - [ ] Project-specific values configured via custom properties, not file edits

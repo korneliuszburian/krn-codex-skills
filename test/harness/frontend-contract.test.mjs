@@ -173,6 +173,23 @@ test("v2 results distinguish missing measurements from justified non-applicabili
   });
 });
 
+test("v2 admission refuses nested weighted aggregate authority in every envelope", async () => {
+  await withTask(validTask({ summary: { weightedScore: 0.9 } }), (file) => {
+    assert.throws(() => loadTask(file), /weighted-aggregate/);
+  });
+  await withTask(validTask(), (file) => {
+    const task = loadTask(file);
+    assert.throws(
+      () => contract.admitSealedEvaluator(task, validEvaluator({ summary: { weights: { execution: 1 } } })),
+      /weighted-aggregate/,
+    );
+    assert.throws(
+      () => contract.admitV2Result(task, validResult(task, { summary: { overallScore: 1 } })),
+      /weighted-aggregate/,
+    );
+  });
+});
+
 test("v2 fields round-trip from harness dispatch into independent-axis results", async () => {
   await withTask(validTask(), async (file) => {
     const task = loadTask(file);
@@ -194,6 +211,19 @@ test("v2 fields round-trip from harness dispatch into independent-axis results",
     assert.equal(report.lanes[1].results[0].axes.architecture.status, "pass");
     assert.equal(report.delta, undefined, "v2 must not manufacture a cross-axis aggregate");
   });
+});
+
+test("v2 comparison admits direct programmatic tasks before runner dispatch", async () => {
+  await assert.rejects(
+    compareHarness({
+      task: validTask({ check: "candidate-visible-oracle" }),
+      lanes: ["vanilla", "full"],
+      runner: () => {
+        throw new Error("runner must not receive an unadmitted v2 task");
+      },
+    }),
+    /candidate-visible-check/,
+  );
 });
 
 test("the legacy lane adapter refuses v2 until the isolated runner exists", () => {
