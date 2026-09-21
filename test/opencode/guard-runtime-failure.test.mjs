@@ -22,7 +22,7 @@ async function loadAdapter() {
 const withPythonShim = (script, run) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-guard-shim-"));
   const shim = join(dir, "python3");
-  writeFileSync(shim, `#!/bin/sh\n${script}\n`);
+  writeFileSync(shim, `#!/bin/sh\ncat >/dev/null\n${script}\n`);
   chmodSync(shim, 0o755);
   const original = process.env.PATH;
   process.env.PATH = `${dir}${delimiter}${original ?? ""}`;
