@@ -273,9 +273,12 @@ def main() -> int:
                 f"  blockers: {blockers}"
             )
 
+        if event == "PreCompact":
+            return 0
+
         if not notes:
-            signal = queue_brief(cwd) if event == "SessionStart" else None
-            if signal is None and event == "SessionStart":
+            signal = queue_brief(cwd)
+            if signal is None:
                 signal = adoption_signal(cwd)
             if signal:
                 print(json.dumps({

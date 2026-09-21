@@ -10,8 +10,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const hook = join(root, "scripts", "hooks", "krn_pretooluse.py");
 const precompact = join(root, "scripts", "hooks", "krn_memory.py");
 
-function precompactContext(cwd, event = "PreCompact") {
-  const payload = JSON.stringify({ hook_event_name: event, cwd });
+function precompactContext(cwd, event = "PreCompact", fields = {}) {
+  const payload = JSON.stringify({ hook_event_name: event, cwd, ...fields });
   const result = spawnSync("python3", ["-B", precompact], { input: payload, encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   if (!result.stdout.trim()) return null;
@@ -147,10 +147,14 @@ test("a mutating writer hidden in a pipeline still fails closed", () => {
   );
 });
 
+// Keep this historical TAP identity so the frozen change-contract observer can
+// compare the strengthened contract with its base case. The assertions below
+// define the corrected behavior: persist the capsule boundary, emit no context.
 test("PreCompact injects a continuing capsule and ignores a completed one", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-precompact-"));
   try {
-    assert.equal(precompactContext(dir), null, "no capsule means no injected context");
+    mkdirSync(join(dir, ".git"));
+    assert.equal(precompactContext(dir), null, "no capsule means no hook output");
     const make = (id, outcome, next) => {
       const capsule = join(dir, ".krn", "runs", "delivery-loop", id);
       mkdirSync(capsule, { recursive: true });
@@ -163,14 +167,12 @@ test("PreCompact injects a continuing capsule and ignores a completed one", () =
       ].join("\n"));
     };
     make("out-1", "ACTIVE", "update src/b.mjs and run npm test");
-    const context = precompactContext(dir);
-    assert.match(context, /update src\/b\.mjs and run npm test/);
-    assert.match(context, /out-1/);
+    assert.equal(precompactContext(dir), null, "PreCompact persists state without emitting context");
     const boundary = readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-1", "boundary.md"), "utf8");
     assert.match(boundary, /next bounded action: update src\/b\.mjs and run npm test/);
     make("out-2", "COMPLETE", "do not continue this");
     const after = precompactContext(dir);
-    assert.doesNotMatch(after, /do not continue this/);
+    assert.equal(after, null, "PreCompact remains silent with mixed capsule states");
     assert.throws(() => readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-2", "boundary.md")), "a completed capsule gets no boundary file");
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -180,6 +182,7 @@ test("PreCompact injects a continuing capsule and ignores a completed one", () =
 test("SessionStart loads a continuing capsule without writing a boundary", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-sessionstart-"));
   try {
+    mkdirSync(join(dir, ".git"));
     assert.equal(precompactContext(dir, "SessionStart"), null, "no capsule means no loaded context");
     const capsule = join(dir, ".krn", "runs", "delivery-loop", "out-1");
     mkdirSync(capsule, { recursive: true });
@@ -190,7 +193,7 @@ test("SessionStart loads a continuing capsule without writing a boundary", () =>
       "Outcome and observable acceptance: run `npm test`",
       "",
     ].join("\n"));
-    assert.match(precompactContext(dir, "SessionStart"), /finish the slice/);
+    assert.match(precompactContext(dir, "SessionStart", { source: "compact" }), /finish the slice/);
     assert.throws(() => readFileSync(join(capsule, "boundary.md")), "SessionStart must not write a boundary file");
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -200,7 +203,6 @@ test("SessionStart loads a continuing capsule without writing a boundary", () =>
 test("SessionStart signals adoption only for an unmanaged work tree with agent instructions", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-onboard-"));
   try {
-    assert.equal(precompactContext(dir, "SessionStart"), null, "a plain directory gets no signal");
     mkdirSync(join(dir, ".git"));
     assert.equal(precompactContext(dir, "SessionStart"), null, "a work tree without agent instructions gets no signal");
     writeFileSync(join(dir, "AGENTS.md"), "# Demo\n");
@@ -240,4 +242,3 @@ test("SessionStart signals adoption from CLAUDE.md when AGENTS.md is absent", ()
     rmSync(dir, { recursive: true, force: true });
   }
 });
-
