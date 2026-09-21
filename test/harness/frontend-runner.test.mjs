@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { release, tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -208,7 +208,26 @@ function makeFixture({
   return { root, taskFile, sealedWorkspace };
 }
 
-function invoke({ root, taskFile }) {
+function observerDriftBwrap(root) {
+  const wrapper = path.join(root, "bwrap-observer-drift.mjs");
+  writeFileSync(wrapper, [
+    "#!/usr/bin/node",
+    'import { spawnSync } from "node:child_process";',
+    "const args = process.argv.slice(2);",
+    'if (args.some((value) => value.includes("krn.frontend-harness.observation.v1"))) {',
+    '  for (let index = 0; index < args.length - 2; index += 1) {',
+    '    if (args[index] === "--setenv" && args[index + 1] === "TZ") args[index + 2] = "UTC";',
+    "  }",
+    "}",
+    `const outcome = spawnSync(${JSON.stringify(bwrap)}, args, { stdio: "inherit" });`,
+    "process.exit(outcome.status ?? 1);",
+    "",
+  ].join("\n"));
+  chmodSync(wrapper, 0o755);
+  return wrapper;
+}
+
+function invoke({ root, taskFile }, { bwrapBinary = bwrap } = {}) {
   return spawnSync(process.execPath, [
     cli,
     "harness",
@@ -229,7 +248,7 @@ function invoke({ root, taskFile }) {
       ...process.env,
       KRN_HARNESS_LANE_RUNNER: runner,
       KRN_FRONTEND_HARNESS_AGENT: JSON.stringify(["node", "candidate.mjs"]),
-      KRN_FRONTEND_HARNESS_BWRAP: bwrap,
+      KRN_FRONTEND_HARNESS_BWRAP: bwrapBinary,
       KRN_FRONTEND_HOST_SENTINEL: "must-not-cross-clearenv",
     },
   });
@@ -250,6 +269,7 @@ test("v2 crosses artifact-only observation into sealed offline evaluation", { sk
       assert.equal(result.axes.execution.status, "pass");
       assert.deepEqual(result.receipt.isolation.probes, {
         answerStoreRead: "denied",
+        environment: { locale: "C.UTF-8", timezone: "UTC" },
         filesystemEscape: "denied",
         inheritedState: "denied",
         network: "denied",
@@ -303,6 +323,29 @@ test("candidate and evaluator use the non-default measured environment", { skip:
   try {
     const run = invoke(fixture);
     assert.equal(run.status, 0, run.stderr);
+    const report = JSON.parse(run.stdout);
+    for (const lane of report.lanes) {
+      assert.deepEqual(lane.results[0].receipt.isolation.probes.environment, {
+        locale: "C",
+        timezone: "Europe/Warsaw",
+      });
+    }
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("observer environment drift is refused at the stage boundary", { skip: guard }, () => {
+  const fixture = makeFixture({
+    runtimeLocale: "C",
+    expectedLocale: "C",
+    runtimeTimezone: "Europe/Warsaw",
+    expectedTimezone: "Europe/Warsaw",
+  });
+  try {
+    const run = invoke(fixture, { bwrapBinary: observerDriftBwrap(fixture.root) });
+    assert.notEqual(run.status, 0);
+    assert.match(run.stderr, /artifact-observation-environment-mismatch/);
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }

@@ -182,6 +182,7 @@ const deniedRead = (target) => { try { fs.readFileSync(target); return "exposed"
 const deniedWrite = (target) => { try { fs.writeFileSync(target, "probe"); return "exposed"; } catch { return "denied"; } };
 const result = {
   answerStoreRead: deniedRead("/oracle/answer.json"),
+  environment: { locale: process.env.LANG, timezone: process.env.TZ },
   filesystemEscape: deniedRead("/etc/passwd"),
   inheritedState: process.env.KRN_FRONTEND_HOST_SENTINEL ? "exposed" : "denied",
   symlinkEscape: deniedRead("/workspace/.krn-isolation-link/evaluator.json"),
@@ -211,6 +212,7 @@ function isolationProbe({ bwrap, workspace, sealed, environment }) {
     for (const key of PROBE_KEYS) {
       if (probes[key] !== "denied") refuse("isolation-probe-exposed", `${key}:${String(probes[key])}`);
     }
+    assertEffectiveEnvironment(probes.environment, environment, "isolation-probe-environment-mismatch");
     return probes;
   } finally {
     fs.rmSync(link, { force: true });
@@ -269,6 +271,12 @@ function effectiveEnvironment(task) {
     ? task.environment.timezone.trim()
     : "UTC";
   return { locale, timezone };
+}
+
+function assertEffectiveEnvironment(observed, expected, rule) {
+  if (observed?.locale !== expected.locale || observed?.timezone !== expected.timezone) {
+    refuse(rule, `${String(observed?.locale)}:${String(observed?.timezone)}`);
+  }
 }
 
 function measureEnvironment({ bwrap, task, publicSource, environment }) {
@@ -331,7 +339,11 @@ const files = request.files.map((entry) => {
   else process.exit(55);
   return { path: entry.path, format: entry.format, sha256: sha256Hex(bytes), size: bytes.length, value };
 });
-process.stdout.write(JSON.stringify({ schema: "krn.frontend-harness.observation.v1", files }));
+process.stdout.write(JSON.stringify({
+  schema: "krn.frontend-harness.observation.v1",
+  environment: { locale: process.env.LANG, timezone: process.env.TZ },
+  files,
+}));
 `;
 
 function observeArtifact({ bwrap, artifact, task, environment }) {
@@ -351,7 +363,9 @@ function observeArtifact({ bwrap, artifact, task, environment }) {
     JSON.stringify(request),
   );
   if (!outcome.ok) refuse("artifact-observation-failed", outcome.err.trim() || String(outcome.status));
-  return lastJson(outcome.out, "artifact-observation-bad-output");
+  const observation = lastJson(outcome.out, "artifact-observation-bad-output");
+  assertEffectiveEnvironment(observation.environment, environment, "artifact-observation-environment-mismatch");
+  return observation;
 }
 
 function projectForCandidate(task, payload) {
@@ -384,10 +398,13 @@ function loadEvaluator(task, sealed) {
 }
 
 function postHandoffProbe({ bwrap, artifact, environment }) {
-  const source = 'import fs from "node:fs"; try { fs.writeFileSync("/artifact/.post-handoff", "bad"); process.stdout.write("exposed"); } catch { process.stdout.write("denied"); }';
+  const source = 'import fs from "node:fs"; let access; try { fs.writeFileSync("/artifact/.post-handoff", "bad"); access = "exposed"; } catch { access = "denied"; } process.stdout.write(JSON.stringify({ access, environment: { locale: process.env.LANG, timezone: process.env.TZ } }));';
   const args = sandboxArgs({ ...environment, mounts: [{ source: artifact, destination: "/artifact" }], chdir: "/artifact" });
   const outcome = runSandbox(bwrap, args, ["/usr/bin/node", "--input-type=module", "-e", source]);
-  if (!outcome.ok || outcome.out !== "denied") refuse("post-handoff-mutation-exposed", outcome.out || outcome.err);
+  if (!outcome.ok) refuse("post-handoff-mutation-exposed", outcome.err.trim() || String(outcome.status));
+  const observed = lastJson(outcome.out, "post-handoff-probe-bad-output");
+  if (observed.access !== "denied") refuse("post-handoff-mutation-exposed", String(observed.access));
+  assertEffectiveEnvironment(observed.environment, environment, "post-handoff-environment-mismatch");
   return "denied";
 }
 

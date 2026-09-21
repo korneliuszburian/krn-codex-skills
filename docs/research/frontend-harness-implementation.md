@@ -275,11 +275,13 @@ old cross-epoch comparisons.
 
 - **Repository:** Bloom lab.
 - **Entry → exit:** an upstream answer is assumed correct → the BL-05 admitted
-  known-good is built in the frozen environment and every public
-  requirement/assertion is reconciled. Reference defects reject or narrow rules
-  rather than receiving automatic authority.
+  known-good is built in the task's admitted effective execution environment and
+  every public requirement/assertion is reconciled. Reference defects reject or
+  narrow rules rather than receiving automatic authority.
 - **Falsifier:** any applicable axis fails, evidence is missing, public/hidden
-  requirement mapping is incomplete, or result identity differs from the epoch.
+  requirement mapping is incomplete, or the result names a different BL-05
+  reference-freeze identity. The complete experiment-epoch identity does not
+  exist until BL-11.
 - **Dependencies:** BL-03–BL-05 and the applicable BL-08A/B/C axes. Blocks BL-10.
 
 ### BL-10 — Admit the discriminative mutant suite
