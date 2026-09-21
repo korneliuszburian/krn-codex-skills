@@ -114,10 +114,14 @@ test("the fixture lanes separate vanilla from full with a detectable delta", () 
 
 const HIDDEN_AGENT = [
   'import fs from "node:fs";',
+  'import { tmpdir } from "node:os";',
+  'import path from "node:path";',
   'let raw = "";',
   'try { raw = fs.readFileSync(0, "utf8"); } catch {}',
   "JSON.parse(raw || \"{}\");",
   'fs.writeFileSync("seen.txt", String(fs.existsSync("check.test.mjs")));',
+  'const found = fs.readdirSync(tmpdir()).filter((name) => name.startsWith("krn-harness-hidden-") && fs.existsSync(path.join(tmpdir(), name, "check.test.mjs")));',
+  'fs.writeFileSync("found.txt", JSON.stringify(found));',
   'process.stdout.write(`${JSON.stringify({ tokens: 3 })}\\n`);',
 ].join("\n");
 
@@ -127,6 +131,7 @@ const HIDDEN_CHECK = [
   'import test from "node:test";',
   'test("the check was hidden from the agent", () => {',
   '  assert.equal(fs.readFileSync("seen.txt", "utf8"), "false", "the deciding check must be absent during the agent run");',
+  '  assert.equal(fs.readFileSync("found.txt", "utf8"), "[]", "no on-disk copy of the check may exist under tmpdir during the agent run");',
   "});",
 ].join("\n");
 

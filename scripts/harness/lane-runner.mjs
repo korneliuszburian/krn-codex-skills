@@ -4,7 +4,7 @@
 // the configured agent command inside the task workspace with the lane's
 // enabled components, then runs the task's deciding check there and reports the
 // pass verdict, the agent's token count, and the wall time.
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -19,9 +19,19 @@ function readStdin() {
   }
 }
 
+// A refusal is thrown, not exited, so the `finally` that removes the disposable
+// workspace and the held evaluator always runs.
+class Refusal extends Error {
+  constructor(rule, detail) {
+    super(`lane-runner refused: ${rule}${detail ? ` (${detail})` : ""}`);
+    this.name = "Refusal";
+    this.rule = rule;
+    this.detail = detail;
+  }
+}
+
 function refuse(rule, detail) {
-  process.stderr.write(`lane-runner refused: ${rule}${detail ? ` (${detail})` : ""}\n`);
-  process.exit(2);
+  throw new Refusal(rule, detail);
 }
 
 function lastJsonLine(text) {
@@ -54,20 +64,20 @@ function main() {
   const disposable = mkdtempSync(path.join(tmpdir(), "krn-harness-workspace-"));
   const workspace = disposable;
   const hidden = Array.isArray(task.hidden) ? task.hidden : [];
-  const stash = hidden.length > 0 ? mkdtempSync(path.join(tmpdir(), "krn-harness-hidden-")) : null;
+  // The agent must not read or tamper with the evaluator, so the task's
+  // declared hidden files (the deciding check and any gold answer) are held in
+  // this process's memory while the agent runs and written back for scoring.
+  // Nothing readable or writable is left on disk.
+  const held = new Map();
   try {
     cpSync(source, disposable, { recursive: true });
-    // The agent must not read or tamper with the evaluator, so the task's
-    // declared hidden files (the deciding check and any gold answer) are moved
-    // out before the agent runs and restored for scoring.
     for (const relative of hidden) {
       const from = path.resolve(disposable, relative);
       if (path.isAbsolute(relative) || (from !== disposable && !from.startsWith(`${disposable}${path.sep}`))) refuse("hidden-outside-workspace", relative);
       if (!existsSync(from)) refuse("hidden-missing", relative);
-      const to = path.join(stash, relative);
-      mkdirSync(path.dirname(to), { recursive: true });
-      cpSync(from, to, { recursive: true });
-      rmSync(from, { recursive: true, force: true });
+      if (!statSync(from).isFile()) refuse("hidden-not-file", relative);
+      held.set(relative, readFileSync(from));
+      rmSync(from, { force: true });
     }
     if (task.setup) {
       const setup = runProcess("sh", ["-c", task.setup], { cwd: workspace });
@@ -87,10 +97,10 @@ function main() {
       }),
     });
     if (agentRun.errorCode) refuse("agent-spawn-failed", agentRun.errorMessage);
-    for (const relative of hidden) {
+    for (const [relative, content] of held) {
       const to = path.join(disposable, relative);
       mkdirSync(path.dirname(to), { recursive: true });
-      cpSync(path.join(stash, relative), to, { recursive: true });
+      writeFileSync(to, content);
     }
     const tokens = Number(lastJsonLine(agentRun.out)?.tokens) || 0;
     const checked = runProcess("sh", ["-c", check], { cwd: workspace });
@@ -98,8 +108,15 @@ function main() {
     process.stdout.write(`${JSON.stringify({ pass: checked.ok, tokens, wallSeconds })}\n`);
   } finally {
     rmSync(disposable, { recursive: true, force: true });
-    if (stash) rmSync(stash, { recursive: true, force: true });
   }
 }
 
-main();
+try {
+  main();
+} catch (error) {
+  if (error instanceof Refusal) {
+    process.stderr.write(`${error.message}\n`);
+    process.exit(2);
+  }
+  throw error;
+}

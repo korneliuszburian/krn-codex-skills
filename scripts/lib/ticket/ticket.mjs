@@ -11,10 +11,11 @@ import { walkFiles } from "../kernel/walk.mjs";
 import { writeAtomic } from "../support/write-atomic.mjs";
 
 const STATUSES = new Set(["ready", "claimed", "blocked", "in-review", "done", "abandoned", "deferred"]);
-// A commit trailer names a ticket that was open when the commit was authored. A
-// terminal or parked ticket is not open, so its historical commits are not a
-// warning: only the active lifecycle states are.
-const CLOSED_STATUSES = new Set(["done", "abandoned", "deferred"]);
+// `TERMINAL_STATUSES` cannot be closed again; `deferred` is parked, not terminal,
+// but neither is open: a commit trailer names a ticket that was open when the
+// commit was authored, so only the active lifecycle states warn.
+const TERMINAL_STATUSES = new Set(["done", "abandoned"]);
+const CLOSED_STATUSES = new Set([...TERMINAL_STATUSES, "deferred"]);
 const TYPES = new Set(["task", "bug", "refactor", "research", "decision", "epic"]);
 const REQUIRED = [
   "Id",
@@ -450,7 +451,7 @@ function realResolution(value) {
 export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint(), wallSeconds, tokens, allowUnanchored = false }) {
   const { text, fields } = readValidTicket(file);
   const status = fields.get("Status");
-  if (status === "done" || status === "abandoned") throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
+  if (TERMINAL_STATUSES.has(status)) throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
   // Closing is the terminal transition of a claimed lifecycle: a ticket that
   // was never claimed, or whose resolution is a placeholder, has no closure to
   // record. Refuse both before touching the file.
