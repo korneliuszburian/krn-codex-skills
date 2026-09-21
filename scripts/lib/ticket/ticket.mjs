@@ -11,6 +11,10 @@ import { walkFiles } from "../kernel/walk.mjs";
 import { writeAtomic } from "../support/write-atomic.mjs";
 
 const STATUSES = new Set(["ready", "claimed", "blocked", "in-review", "done", "abandoned", "deferred"]);
+// A commit trailer names a ticket that was open when the commit was authored. A
+// terminal or parked ticket is not open, so its historical commits are not a
+// warning: only the active lifecycle states are.
+const CLOSED_STATUSES = new Set(["done", "abandoned", "deferred"]);
 const TYPES = new Set(["task", "bug", "refactor", "research", "decision", "epic"]);
 const REQUIRED = [
   "Id",
@@ -861,7 +865,7 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
   for (const id of trailered) {
     const ticket = byId.get(id);
     if (!ticket) warnings.push({ rule: "orphan-commit-ticket", message: `commit names unknown ticket "${id}"` });
-    else if (ticket.status !== "done") warnings.push({ path: ticket.path, rule: "open-ticket-committed", message: `commits exist for open ticket "${id}"` });
+    else if (!CLOSED_STATUSES.has(ticket.status)) warnings.push({ path: ticket.path, rule: "open-ticket-committed", message: `commits exist for open ticket "${id}"` });
   }
   for (const ticket of tickets) {
     if (!id && ticket.status === "ready") errors.push(...envelopeLintErrors({ root, git, ticket }));
