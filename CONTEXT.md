@@ -25,7 +25,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
 - [skills/frontend/frontend-stage/SKILL.md](skills/frontend/frontend-stage/SKILL.md) — frontend stage entry: intake → architecture → build → verify, with exit criteria and a per-section acceptance.
 - [docs/research/frontend-harness.md](docs/research/frontend-harness.md) — lab-test frontend-harness architecture under LT-8: canonical boilerplate export, exact CUBE conformance, deep Text/ACF profiles, sealed evaluation, and track-specific claims.
-- [docs/research/frontend-harness-implementation.md](docs/research/frontend-harness-implementation.md) — durable expand–migrate–contract plan, including executable project creation, 15 frontend units, and the independent PreCompact continuity preflight.
+- [docs/research/frontend-harness-implementation.md](docs/research/frontend-harness-implementation.md) — durable expand–migrate–contract plan, including executable project creation, 17 frontend units, and the independent PreCompact continuity preflight.
 - [skills/meta/unslop/SKILL.md](skills/meta/unslop/SKILL.md) — explicit prose audit/rewrite with protected factual and technical fragments; it does not own publication or fact-checking.
 
 ## System vocabulary

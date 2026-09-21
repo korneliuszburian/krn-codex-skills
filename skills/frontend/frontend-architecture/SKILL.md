@@ -63,8 +63,8 @@ component code before the phases below have an exit.
   **reuse** an existing library block (check variants first), **extend** a block
   with a variant, or **author** a new block.
 - A repeated pattern that differs only by layout (media left vs right), optional
-  content (eyebrow, heading, text, button), or scale (H1–H6) is **one block with
-  variants and optionals** — never N near-identical blocks.
+  content (eyebrow, heading, text, button), semantic heading level, or visual role
+  is **one block with variants and optionals** — never N near-identical blocks.
 - Prefer the smallest set: shared composition for layout, block for semantics,
   `data-*` for the variant. NEVER fork a block to change one value.
 - EXIT: `docs/design/components.md` holds the **block × variant × optionals**
@@ -73,10 +73,12 @@ component code before the phases below have an exit.
 ### Phase 4 — ACF mapping
 
 - For each block define its Flexible Content layout and sub-fields: optional
-  eyebrow/corner, heading with H1–H6 size, rich text, button, media plus its side,
-  and an explicit variant selector.
-- Drive choices from tokens (reuse the boilerplate token-field bridge); NEVER
-  hardcode values in fields.
+  eyebrow/corner, heading content, semantic heading level, independent visual
+  role, rich text, button, media plus its side, and an explicit variant selector.
+- Tokens govern presentation values; semantic and structural choices are finite domain options
+  mapped by code. Reuse the boilerplate token-field bridge for presentation and
+  NEVER expose raw CSS values in fields; do not invent fake tokens for document
+  semantics or layout state.
 - EXIT: every block row names its layout, fields, and which are optional.
 
 ### Phase 5 — Build plan and status
@@ -101,8 +103,9 @@ component code before the phases below have an exit.
 
 ## Quality bar (checked later by the build workflow and enforcement)
 
-- Block CSS is a thin skeleton (target ≤ ~100 lines) that composes `compositions`
-  and `utilities`; tokens only; variants via `data-*`; no magic numbers.
+- Block CSS is a cohesive thin skeleton that composes `compositions` and
+  `utilities`; line count is a review signal rather than a budget. Presentation
+  uses tokens, variants use `data-*`, and raw magic values stay out.
 - Copy the canonical library verbatim; configure a block through custom properties
   in the project context, never by editing the library file.
 

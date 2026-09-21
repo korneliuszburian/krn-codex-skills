@@ -20,7 +20,11 @@ A block is a skeletal component. Most work is already done by global CSS, compos
 ### The skeleton contract
 - IF styles apply only in the component's own context THEN they go in the block. NEVER restyle in a block what global CSS, a composition, or a utility already covers.
 - GOOD: `.prose { --flow-space: var(--space-l) }` — one line configuring the flow composition / BAD: a 400-line `.card` with its own grid and margins.
-- IF a block exceeds ~80–100 lines THEN split it or move parts up to global/composition/utility.
+- Line count is a review signal, never a split trigger or code budget. IF a block
+  grows THEN inspect it for a second contextual responsibility, duplicated rules,
+  or a reusable composition/utility; move only the responsibility with an earned
+  owner. A cohesive block may exceed 100 lines when splitting it would scatter
+  one component contract or manufacture abstractions without another consumer.
 - NEVER solve two distinct components in one block file.
 
 ### Naming and grouping
@@ -114,7 +118,8 @@ A block is a skeletal component. Most work is already done by global CSS, compos
 - IF you debate atom-vs-molecule THEN use the project's own vocabulary and move on. NEVER block work on taxonomy debates.
 
 ## Final checklist
-- [ ] Block is a thin skeleton (≤ ~100 lines) extending global/composition/utility
+- [ ] Block is a cohesive thin skeleton extending global/composition/utility; any
+      extracted rule has an earned owner and consumer
 - [ ] Internals use composition classes
 - [ ] Every presentational property is a `var(--x, default)` knob
 - [ ] No variant class names, no duplicate components, no other block's classes in this file

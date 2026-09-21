@@ -43,7 +43,7 @@
     "test:change-contract": "node --test test/contract/change-contract.test.mjs test/contract/green-before-execution.test.mjs test/contract/import-cone-risk.test.mjs",
     "test:conformance": "node --test test/conformance/after-substitution.test.mjs test/conformance/conformance.test.mjs test/conformance/fixture-evidence-token.test.mjs",
     "conformance:check": "base=$(git merge-base origin/main HEAD 2>/dev/null || true); if [ -z \"$base\" ] || [ \"$base\" = \"$(git rev-parse HEAD)\" ]; then base=HEAD~1; fi; if git cat-file -e \"$base:config/conformance.json\" 2>/dev/null; then dir=$(mktemp -d); git worktree add --detach \"$dir\" \"$base\" >/dev/null 2>&1; node scripts/krn.mjs conformance check --root \"$dir\" --candidate \"$PWD\" --frozen; status=$?; git worktree remove --force \"$dir\" >/dev/null 2>&1 || true; git worktree prune; exit $status; else node scripts/krn.mjs conformance check --root . --frozen; fi",
-    "test:frontend": "node --test test/frontend/frontend.test.mjs test/frontend/facts.test.mjs test/frontend/browser.test.mjs",
+    "test:frontend": "node --test test/frontend/frontend.test.mjs test/frontend/facts.test.mjs test/frontend/browser.test.mjs test/frontend/procedure.test.mjs",
     "test:lessons": "node --test test/lessons/anchor-ancestry.test.mjs test/lessons/lessons.test.mjs test/lessons/lessons-recall.test.mjs",
     "test:lessons-verify": "node --test test/lessons/lessons-verify.test.mjs",
     "test:catalog": "node --test test/catalog/catalog-cli.test.mjs",

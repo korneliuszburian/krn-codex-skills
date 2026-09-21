@@ -19,7 +19,8 @@ changes:
 
 - **layout** — media left vs media right, stacked vs split;
 - **presentation** — does an element exist (eyebrow, button, media);
-- **scale** — heading level H1–H6, measure;
+- **semantics** — semantic heading level follows the document outline;
+- **visual role** — the independent type-size token/profile and measure;
 - **state** — hover, active, expanded.
 
 A difference is a **new block** only when the content contract differs — a
@@ -31,7 +32,7 @@ block).
 | Block | Variant (`data-*`) | Optionals | Occurrences | Library file |
 |---|---|---|---|---|
 | media-content | `data-media-position="left\|right"` | — | 45 / 43 | `library/css/blocks/media-content.css` |
-| text | `data-variant` / `data-measure` | eyebrow, heading H1–H6, button | 73 | `library/css/blocks/text.css` |
+| text | `data-variant` / `data-measure` | eyebrow, heading level + visual role, button | 73 | `library/css/blocks/text.css` |
 | hero | `data-variant="primary\|secondary"` | media, button | 15 | `library/css/blocks/hero.css` |
 
 ## Naming

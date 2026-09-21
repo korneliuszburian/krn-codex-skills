@@ -1,7 +1,8 @@
-# ACF mapping — fields, optionals, tokens
+# ACF mapping — fields, optionals, semantics, and tokens
 
-Each block becomes one Flexible Content layout with token-driven fields, so the
-editor configures the block without ever choosing a raw value.
+Each block becomes one Flexible Content layout. Presentation fields use approved
+tokens or profiles; semantic and structural fields use finite domain choices, so
+the editor never chooses a raw CSS value.
 
 ## Per-block layout
 
@@ -12,13 +13,17 @@ editor configures the block without ever choosing a raw value.
 - **Variant selector** — an explicit choice mapped to a `data-*` attribute. The
   default variant is the common case.
 
-## Field → token rules
+## Field mapping rules
 
-- Every selectable value (heading size, spacing, color role) is a token choice,
-  generated from the token layer (reuse `inc/token-fields.php`). Never a free
-  text or a hardcoded value.
-- Heading fields offer H1–H6 and nothing else; the block maps the level to the
-  corresponding token size.
+- Tokens govern presentation values, not every editor choice. Heading visual
+  role, spacing, and color role come from the token layer or a reviewed profile
+  map (reuse `inc/token-fields.php`); never expose free-form CSS values.
+- A heading's semantic heading level (`h1`–`h6`) follows the document outline.
+  Its visual role is a separate approved token/profile choice. Changing either
+  one never silently rewrites the other.
+- Structural choices such as media position, content presence, and layout mode
+  are finite code-owned options. They may map to `data-*` state or renderer
+  behavior without masquerading as design tokens.
 - Media fields offer the media plus its position when the block has more than one
   position variant.
 
@@ -26,8 +31,8 @@ editor configures the block without ever choosing a raw value.
 
 | Block | Layout | Required | Optional | Variant |
 |---|---|---|---|---|
-| hero | `hero` | heading, media | button, eyebrow | `primary` (bg image) / `secondary` (image right) |
-| text | `text` | heading | eyebrow, rich text, button | `split` when beside media |
+| hero | `hero` | heading, semantic heading level, visual role, media | button, eyebrow | `primary` (bg image) / `secondary` (image right) |
+| text | `text` | heading, semantic heading level, visual role | eyebrow, rich text, button | `split` when beside media |
 | media_content | `media_content` | media, rich text | heading, button | media position left/right |
 | cta | `cta` | heading | rich text, button | — |
 

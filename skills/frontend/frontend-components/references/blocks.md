@@ -88,7 +88,11 @@ context sets it in one place and dependent values can default to the result:
 
 ## Block skeleton contract
 - "A block is a skeletal component or organisational structure" — most of the work is already done by global CSS, compositions and utilities, so block CSS stays tiny.
-- "It shouldn't grow to anything larger than a handful of CSS rules (max 80-100 lines)" and must not "solve more than one contextual problem".
+- The source heuristic says it "shouldn't grow to anything larger than a handful
+  of CSS rules (max 80-100 lines)" and must not "solve more than one contextual
+  problem". Apply the responsibility rule as the contract: line count prompts a
+  review for duplication or a second concern, but never forces a cohesive block
+  to split or promotes code without an earned consumer.
 - Block internals: "approach the internals of your block with a composition layer" — `.card__content flow`, never hand-rolled internal layout.
 - Sources: https://cube.fyi/block.html ; course lessons 010/032/036/037 (research/sources/complete-css/).
 
