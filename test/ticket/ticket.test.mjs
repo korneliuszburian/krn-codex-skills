@@ -111,5 +111,11 @@ test("commit trailers surface orphan and open-ticket warnings", async () => {
     const warnings = ticketLib.checkTickets({ root: dir }).warnings;
     assert.ok(warnings.some((entry) => entry.rule === "open-ticket-committed"));
     assert.ok(warnings.some((entry) => entry.rule === "orphan-commit-ticket"));
+    writeFileSync(join(dir, ".scratch", "a.md"), ticket({ ...baseFields, Status: "abandoned" }));
+    const closed = ticketLib.checkTickets({ root: dir }).warnings;
+    assert.ok(!closed.some((entry) => entry.rule === "open-ticket-committed" && entry.path.endsWith("a.md")), "an abandoned ticket is not open");
+    writeFileSync(join(dir, ".scratch", "a.md"), ticket({ ...baseFields, Status: "deferred" }));
+    const parked = ticketLib.checkTickets({ root: dir }).warnings;
+    assert.ok(!parked.some((entry) => entry.rule === "open-ticket-committed" && entry.path.endsWith("a.md")), "a deferred ticket is not open");
   }, { git: true });
 });
