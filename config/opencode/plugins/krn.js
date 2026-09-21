@@ -234,12 +234,21 @@ export function guardReason(tool, args, directory) {
     encoding: "utf8",
     timeout: 5000,
   });
-  if (result.error || result.status !== 0 || !result.stdout) return null;
+  // Fail closed: a guard that cannot run, times out, exits non-zero, or returns
+  // an unreadable decision must refuse the call, never allow it. A guard that
+  // runs and prints nothing has raised no objection, which is the allow signal.
+  if (result.error) {
+    return `the destructive-command guard could not run (${result.error.code ?? "spawn error"}); refusing the call rather than failing open`;
+  }
+  if (result.status !== 0) {
+    return `the destructive-command guard exited ${result.status}; refusing the call rather than failing open`;
+  }
+  if (!result.stdout) return null;
   try {
     const parsed = JSON.parse(result.stdout);
     return parsed?.hookSpecificOutput?.permissionDecisionReason ?? null;
   } catch {
-    return null;
+    return "the destructive-command guard returned an unreadable decision; refusing the call rather than failing open";
   }
 }
 
