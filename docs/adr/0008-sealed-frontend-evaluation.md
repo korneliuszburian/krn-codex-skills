@@ -25,10 +25,13 @@ defects.
 Introduce a versioned v2 frontend task/result contract beside v1. A v2 task
 separates a public candidate workspace from an evaluator workspace that remains
 outside the candidate sandbox. Public inputs carry every product requirement;
-the sealed side carries only answers, captures, state paths, and checks. The
-runner records oracle-sentinel and network evidence, freezes candidate output,
-and only then invokes the evaluator. Hidden answers are permitted; hidden
-requirements are not.
+each sealed assertion links to a stable public requirement identity and declares
+its applicable track and axis. The sealed side carries only answers, captures,
+state paths, and checks. The runner uses a selected containment backend, records
+active denial, oracle-sentinel, and network evidence, terminates candidate
+descendants, freezes candidate output, and only then invokes the evaluator under
+a separate authority. A sentinel detects some leaks but does not by itself prove
+unreachability. Hidden answers are permitted; hidden requirements are not.
 
 Evaluation has two explicit tracks. `design-transfer` leaves composition and art
 direction open within the canonical method and never claims pixel identity.
@@ -40,9 +43,18 @@ There is no weighted composite authority.
 
 One-shot and bounded-repair runs remain separate cohorts. A repair follows one
 externally classified causal failure and cannot retroactively improve the
-one-shot result. Automated accessibility checks report their covered rules and
-manual unknowns; they never claim complete WCAG conformance. Perceptual or VLM
-judges remain diagnostic until a registered human calibration earns a gate.
+one-shot result. That category selects a named axis whose direction, viewport
+ordering, ties, errors, and missing-data behavior are fixed before repair; no
+cross-axis composite is created. Automated accessibility checks report their
+covered rules and manual unknowns; they never claim complete WCAG conformance.
+Perceptual or VLM judges remain diagnostic until a registered human calibration
+earns a gate.
+
+Experimental treatment is also explicit. A revision-pinned frontend profile and
+candidate-visible delivery probe establish that treatment receives the frontend
+method and control does not, while unrelated inputs and surfaces remain
+equivalent. Global installation, a broad capability profile, or the generic KRN
+harness export is not evidence of treatment delivery.
 
 Migration uses expand–migrate–contract: v1 and v2 coexist, new tasks prove their
 known-good and targeted-mutant pairs, LT-8 runs on the sealed v2 path, and only

@@ -190,6 +190,10 @@ digests. Updating it is an explicit migration. A project does not edit a core
 recipe. It configures the recipe through custom properties, adds a named
 `data-*` exception, or introduces a genuinely new block when semantic identity,
 DOM structure, interaction, layout ownership, or accessibility behavior changes.
+KRN tools that inspect a project resolve shared vocabulary from that project's
+recorded core manifest. Installing tooling that carries a newer bundle does not
+reinterpret an unchanged project; selecting a new core is an explicit migration
+with a named browser/build/audit compatibility check.
 
 SugarCube is the adopted generator. The Tailwind setup in the public 2024
 boilerplate is historical implementation evidence, not a retained dependency.
@@ -200,6 +204,15 @@ right. The skill and boilerplate differ in `grid`, `wrapper`, `button`, `text`,
 global layout, tokens, and several blocks. Each file must be classified as
 upstream recipe, accepted production evolution, project-only example, obsolete
 copy, or deferred experiment before the generated snapshot is replaced.
+
+Generated core and workflow procedure have different writers. The boilerplate
+export is the source of stable recipe bytes; KRN's frontend skills remain the
+source of generic procedure. Importing a bundle may not rewrite those skills.
+Before evaluator tasks are admitted, the procedures and evaluator must agree
+that a line count is a review signal rather than a splitting mandate, that
+semantic heading level is independent from visual token role, and that a
+semantic or structural choice does not need to masquerade as a presentation
+token. Thin blocks, reuse, and token-bypass checks remain enforceable.
 
 ## CUBE conformance model
 
@@ -284,18 +297,25 @@ public task workspace             sealed evaluator workspace
 - method and constraints         - result assembler
 ```
 
-The runner copies only the public workspace, blocks or records network access,
-runs the candidate, freezes its output, and only then invokes the evaluator from
-outside the candidate sandbox. A sentinel proves that the oracle and answer key
-were unreachable during generation. Hidden answers are allowed; hidden product
-requirements are not.
+The runner copies only the public workspace, enforces a selected containment
+boundary, blocks or records network access, runs the candidate, freezes its
+output, terminates candidate descendants, and only then invokes the evaluator
+under a separate authority. Active denial probes cover filesystem and symlink
+escape, inherited host state, network, post-handoff mutation, answer-store reads,
+and trusted-result writes. A sentinel can reveal a leak; its absence alone does
+not prove unreachability. Hidden answers are allowed; hidden product requirements
+are not.
 
-Each task declares a track, public contract, environment, viewports,
-perturbations, state paths, required evidence, and evaluator identity. State
-paths are declarative transitions such as initial -> click -> visible/ARIA/
-focus/network expectation, not only one hard-coded click script. The first
-matrix covers 320px, a breakpoint boundary, desktop, 200% text/zoom, long Polish
-content, keyboard navigation, reduced motion, and relevant color scheme.
+Each task declares a track, public contract, stable public requirement identities,
+environment, viewports, perturbations, state paths, required evidence, per-axis
+applicability, and evaluator identity. Every sealed assertion links to a public
+requirement; the answer can remain hidden, but deleting that requirement makes
+admission fail. A missing measurement is not the same as an explicit, justified
+`not-applicable` axis. State paths are declarative transitions such as initial ->
+click -> visible/ARIA/focus/network expectation, not only one hard-coded click
+script. The first matrix covers 320px, a breakpoint boundary, desktop, 200%
+text/zoom, long Polish content, keyboard navigation, reduced motion, and relevant
+color scheme.
 
 The environment digest pins OS/container, browser build, fonts, locale,
 timezone, device-pixel ratio, color scheme, reduced motion, headless mode,
@@ -325,6 +345,22 @@ corrupted pages are labeled by humans and metric thresholds correlate with
 those labels. A VLM judge may provide anonymized pairwise diagnostics in both
 orders; disagreement makes the result inconclusive. Automated checks never
 claim full WCAG compliance.
+
+A bounded repair is classified before the repair call. Its category selects one
+named result axis, and that axis defines direction, viewport ordering, tie
+handling, errors, and missing measurements. The recorded worst viewport is
+therefore deterministic without inventing a cross-axis score. A failed or
+worsening repair remains raw evidence and never rewrites the one-shot result.
+
+## Treatment delivery
+
+LT-8 does not infer treatment exposure from a global installation, a broad
+capability profile, or KRN's generic `harness_skills` export. A disposable,
+revision-pinned frontend treatment profile delivers `$frontend-stage` and its six
+owners; the control omits exactly that method. A candidate-visible inventory and
+delivery probe verify the difference while core, project facts, assets, hooks,
+evaluator exclusion, and unrelated KRN surfaces remain equivalent. The sealed
+protocol records that receipt before the first experimental candidate call.
 
 ## First discriminative pack
 

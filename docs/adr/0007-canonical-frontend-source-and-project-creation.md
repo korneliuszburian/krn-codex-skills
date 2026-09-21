@@ -52,6 +52,14 @@ adds a named exception or a genuinely new block when earned, and never edits the
 copied core locally. Core updates are explicit migrations verified against the
 recorded manifest; they are not floating dependency upgrades.
 
+KRN's generated snapshot and KRN's frontend procedures are separate artifacts.
+The importer may materialize and verify the snapshot but never becomes the writer
+of procedure. Project-aware audits resolve canonical vocabulary from the
+project's recorded core manifest, so tooling carrying core B cannot silently
+reinterpret a project pinned to core A. Promotion requires a named existing
+browser/build/audit consumer that rejects a behavior-regressing but internally
+digest-consistent bundle; rollback restores the complete admitted identity.
+
 ## Consequences
 
 - Creating a project becomes a tested deliverable rather than an undocumented
