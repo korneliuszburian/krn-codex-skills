@@ -102,9 +102,15 @@ function main() {
       mkdirSync(path.dirname(to), { recursive: true });
       writeFileSync(to, content);
     }
-    const tokens = Number(lastJsonLine(agentRun.out)?.tokens) || 0;
+    const agentOutcome = lastJsonLine(agentRun.out);
+    if (agentOutcome === null) refuse("agent-outcome-missing", "the agent produced no JSON outcome line");
+    const tokens = agentOutcome.tokens;
+    if (!(typeof tokens === "number" && Number.isFinite(tokens) && tokens >= 0)) {
+      refuse("agent-tokens-invalid", JSON.stringify(tokens ?? null));
+    }
     const checked = runProcess("sh", ["-c", check], { cwd: workspace });
     const wallSeconds = Math.round((Date.now() - started) / 100) / 10;
+    if (!(Number.isFinite(wallSeconds) && wallSeconds >= 0)) refuse("wall-invalid", String(wallSeconds));
     process.stdout.write(`${JSON.stringify({ pass: checked.ok, tokens, wallSeconds })}\n`);
   } finally {
     rmSync(disposable, { recursive: true, force: true });

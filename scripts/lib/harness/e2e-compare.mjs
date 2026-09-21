@@ -26,6 +26,18 @@ const KIND_TO_CAPABILITY = {
 
 const DETECTABLE_EPSILON = 1e-9;
 
+function nonNegativeFinite(value) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function invalidOutcomeReason(outcome) {
+  const reasons = [];
+  if (typeof outcome?.pass !== "boolean") reasons.push("pass-not-boolean");
+  if (!nonNegativeFinite(outcome?.tokens)) reasons.push("tokens-invalid");
+  if (!nonNegativeFinite(outcome?.wallSeconds)) reasons.push("wall-invalid");
+  return reasons.join(",");
+}
+
 class HarnessCompareError extends Error {
   constructor(rule, detail) {
     super(`harness compare refused: ${rule}${detail ? ` (${detail})` : ""}`);
@@ -185,13 +197,32 @@ export async function compareHarness({ task, lanes, runs, runner, root } = {}) {
     let passes = 0;
     let tokens = 0;
     let wallSeconds = 0;
+    let invalid = 0;
+    const trials = [];
     for (let run = 1; run <= runCount; run += 1) {
       const outcome = await adapter({ lane: entry.name, enabled: effective, mutation: applied, task, run, runs: runCount, root });
-      if (outcome?.pass === true) passes += 1;
-      tokens += Number(outcome?.tokens) || 0;
-      wallSeconds += Number(outcome?.wallSeconds) || 0;
+      const reason = invalidOutcomeReason(outcome);
+      if (reason) {
+        invalid += 1;
+        trials.push({ run, invalid: true, reason });
+        continue;
+      }
+      if (outcome.pass === true) passes += 1;
+      tokens += outcome.tokens;
+      wallSeconds += outcome.wallSeconds;
+      trials.push({ run, pass: outcome.pass, tokens: outcome.tokens, wallSeconds: outcome.wallSeconds });
     }
-    lanesReport.push({ lane: entry.name, runs: runCount, passes, passRate: passes / runCount, tokens, wallSeconds });
+    const valid = runCount - invalid;
+    lanesReport.push({
+      lane: entry.name,
+      runs: runCount,
+      passes,
+      passRate: valid > 0 ? passes / valid : 0,
+      tokens,
+      wallSeconds,
+      invalid,
+      trials,
+    });
   }
 
   const baselineReport = lanesReport.find((entry) => entry.lane === baseline);
