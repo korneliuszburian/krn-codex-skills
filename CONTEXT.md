@@ -21,7 +21,6 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [config/conformance.json](config/conformance.json) — frozen public-seam acceptance cases run by `krn conformance check`; CI runs the base ref's copy against the candidate.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
-- [skills/frontend/frontend-stage/SKILL.md](skills/frontend/frontend-stage/SKILL.md) — frontend stage entry: intake → architecture → build → verify, with exit criteria and a per-section acceptance.
 - [skills/meta/unslop/SKILL.md](skills/meta/unslop/SKILL.md) — explicit prose audit/rewrite with protected factual and technical fragments; it does not own publication or fact-checking.
 
 ## System vocabulary

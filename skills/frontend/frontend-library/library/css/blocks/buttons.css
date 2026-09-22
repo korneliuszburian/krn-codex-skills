@@ -1,7 +1,0 @@
-.buttons {
-  --gutter: var(--space-xs);
-}
-
-.buttons[data-alignment='center'] {
-  --cluster-horizontal-alignment: center;
-}

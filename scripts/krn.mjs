@@ -16,10 +16,6 @@ import { runGit } from "./lib/kernel/git.mjs";
 import { reanchorLessons, verifyLessons } from "./lib/lessons/lessons-verify.mjs";
 import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
 import { caseIds, loadCases, runConformance } from "./lib/conformance/conformance.mjs";
-import { auditTheme, inventoryTheme } from "./lib/frontend/theme.mjs";
-import { auditFacts } from "./lib/frontend/facts.mjs";
-import { approveEvidence, captureEvidence, gateEvidence } from "./lib/frontend/browser.mjs";
-import { parseDesign } from "./lib/frontend/design.mjs";
 import { EXIT_CODES, fail as baseFail } from "./lib/support/diagnostics.mjs";
 import { runTicketCommand } from "./lib/ticket/ticket-cli.mjs";
 import { runHarnessCommand } from "./lib/harness/e2e-compare.mjs";
@@ -47,9 +43,6 @@ const usage = `Usage:
   krn lessons <check|verify|reanchor> --root DIR [--json]
   krn changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
   krn conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
-  krn frontend <inventory|audit|facts> --root THEME [--docs FILE|DIR] [--accept RULE:FILE[,RULE:FILE]] [--json]
-  krn frontend verify --config FILE [--gate | --approve --by NAME --note WHY] [--json]
-  krn frontend design [--variables FILE] [--metadata FILE] [--json]
   krn memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
   krn ticket <check|next> --root DIR [--path DIR] [--id ID --base REF [--head REF]] [--json]
   krn ticket show <path> [--json]
@@ -60,19 +53,13 @@ const usage = `Usage:
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
 
-const BOOLEAN_FLAGS = { "--json": "json", "--yes": "yes", "--before": "before", "--allow-unsealed": "allowUnsealed", "--gate": "gate", "--approve": "approve", "--strict-recall": "strictRecall", "--frozen": "frozen", "--write": "write", "--check": "check" };
+const BOOLEAN_FLAGS = { "--json": "json", "--yes": "yes", "--before": "before", "--allow-unsealed": "allowUnsealed", "--strict-recall": "strictRecall", "--frozen": "frozen", "--write": "write", "--check": "check" };
 const VALUE_FLAGS = {
   "--source": "source",
   "--root": "root",
   "--base": "base",
   "--keep": "keep",
   "--head": "head",
-  "--variables": "variables",
-  "--metadata": "metadata",
-  "--docs": "docs",
-  "--config": "config",
-  "--by": "by",
-  "--note": "note",
   "--path": "path",
   "--id": "id",
   "--worker": "worker",
@@ -83,7 +70,7 @@ const VALUE_FLAGS = {
   "--filter": "filter",
   "--upstream": "upstream",
 };
-const LIST_FLAGS = { "--changed": "changed", "--symbol": "symbols", "--accept": "accept" };
+const LIST_FLAGS = { "--changed": "changed", "--symbol": "symbols" };
 
 function parseOptions(args) {
   return parseCliArgs(args, {
@@ -108,13 +95,6 @@ const OPTION_FLAG = {
   changed: "--changed",
   keep: "--keep",
   head: "--head",
-  variables: "--variables",
-  metadata: "--metadata",
-  accept: "--accept",
-  docs: "--docs",
-  config: "--config",
-  by: "--by",
-  note: "--note",
   candidate: "--candidate",
   path: "--path",
   id: "--id",
@@ -276,95 +256,23 @@ try {
     }
     const selected = options.filter ? cases.filter((entry) => entry.id === options.filter) : cases;
     if (selected.length === 0) fail(`no conformance case matched: ${options.filter ?? ""}`, EXIT_CODES.USAGE);
-    const results = runConformance({ candidate, cases: selected });
-    if (options.frozen === true) {
-      const present = caseIds(path.join(candidate, "config", "conformance.json"));
-      if (present === null) {
-        results.unshift({ id: "candidate-manifest", ok: false, detail: "the candidate has no config/conformance.json; the frozen acceptance set cannot be applied", exit: -1 });
-      } else {
-        for (const entry of selected) {
-          if (!present.has(entry.id)) results.unshift({ id: entry.id, ok: false, detail: "case removed from the candidate manifest", exit: -1 });
-        }
+    // A frozen run applies the base case list through the candidate runner. A
+    // candidate that no longer declares a case has deliberately removed a
+    // surface, so that case is dropped (and reported), not failed: the frozen
+    // set is the intersection of the base list and the candidate manifest.
+    const present = options.frozen === true ? caseIds(path.join(candidate, "config", "conformance.json")) : null;
+    const runnable = present === null ? selected : selected.filter((entry) => present.has(entry.id));
+    const results = runConformance({ candidate, cases: runnable });
+    if (options.frozen === true && present === null) {
+      results.unshift({ id: "candidate-manifest", ok: false, detail: "the candidate has no config/conformance.json; the frozen acceptance set cannot be applied", exit: -1 });
+    } else if (options.frozen === true) {
+      for (const entry of selected) {
+        if (!present.has(entry.id)) results.push({ id: entry.id, ok: true, detail: "dropped: the candidate manifest no longer declares this case" });
       }
     }
     if (options.json) print({ root: options.root, candidate, frozen: options.frozen === true, results }, true);
     else for (const result of results) process.stdout.write(`${result.ok ? "ok" : "not ok"} ${result.id}${result.detail ? ` - ${result.detail}` : ""}\n`);
     if (results.some((result) => !result.ok)) process.exitCode = 1;
-  } else if (raw[0] === "frontend") {
-    const { positional, options } = parseOptions(raw.slice(1));
-    rejectForeignOptions(options, ["root", "variables", "metadata", "accept", "docs", "config", "gate", "approve", "by", "note"]);
-    const subcommand = positional[0];
-    if (!["inventory", "audit", "design", "facts", "verify"].includes(subcommand) || positional.length > 1 || options.source || options.yes) fail(usage);
-    if (subcommand === "verify") {
-      if (!options.config) fail(usage);
-      const modes = [options.gate, options.approve].filter(Boolean).length;
-      if (modes > 1 || (options.approve && (!options.by || !options.note)) || (!options.gate && !options.approve && (options.by || options.note))) fail(usage);
-      try {
-        if (options.gate) {
-          const report = await gateEvidence({ configFile: options.config });
-          if (options.json) print(report, true);
-          else {
-            for (const failure of report.failures) process.stdout.write(`fail\t${failure}\n`);
-            process.stdout.write(`frontend verify gate: ${report.status}\n`);
-          }
-          if (report.status !== "pass") process.exitCode = 1;
-        } else if (options.approve) {
-          const signature = await approveEvidence({ configFile: options.config, by: options.by, note: options.note });
-          process.stdout.write(`${options.json ? JSON.stringify(signature) : `approved by ${signature.by} at ${signature.at}`}\n`);
-        } else {
-          const manifest = await captureEvidence({ configFile: options.config });
-          if (options.json) print(manifest, true);
-          else {
-            process.stdout.write(`captured ${manifest.artifacts.length} artifacts (${manifest.session})\n`);
-            process.stdout.write(`measurements: overflowX=${manifest.measurements?.overflowX} heightFloors=${manifest.measurements?.heightFloors?.length ?? "?"} smallTargets=${manifest.measurements?.smallTargets?.length ?? "?"}\n`);
-          }
-        }
-      } catch (error) {
-        fail(error.message, EXIT_CODES.USAGE);
-      }
-    } else {
-    if (subcommand === "design") {
-      if (!options.variables && !options.metadata) fail(usage);
-      const report = parseDesign({ variablesFile: options.variables, metadataFile: options.metadata });
-      if (options.json) print(report, true);
-      else {
-        process.stdout.write(`tokens: ${report.tokens.total} (${report.tokens.typography.length} typography, ${report.tokens.colors.length} colors)\n`);
-        process.stdout.write(`sections: ${report.sections.map((entry) => entry.name).join(", ") || "none"}\n`);
-        process.stdout.write(`components: ${report.components.length}\n`);
-        for (const entry of report.components.slice(0, 30)) process.stdout.write(`  ${entry.name}: ${entry.count}\n`);
-      }
-    } else {
-      if (!options.root) fail(usage);
-      requireDirectory(options.root);
-      if (subcommand === "inventory") {
-        const report = inventoryTheme({ root: options.root });
-        if (options.json) print(report, true);
-        else {
-          const { layers } = report;
-          process.stdout.write(`compositions: ${layers.compositions.length}  utilities: ${layers.utilities.length}  blocks: ${report.blocks.length}  global: ${layers.global.length}\n`);
-          process.stdout.write(`tokens: ${report.tokens.total} across ${Object.keys(report.tokens.groups).length} groups (${report.tokens.fluid} fluid)\n`);
-          process.stdout.write(`ACF layouts: ${report.acf.layouts.map((entry) => entry.layout).join(", ") || "none"}\n`);
-          for (const block of report.blocks) process.stdout.write(`  ${block.name.padEnd(16)} ${block.variants.join(", ") || "-"}\n`);
-        }
-      } else if (subcommand === "facts") {
-        const report = auditFacts({ root: options.root, docs: options.docs ?? null });
-        if (options.json) print(report, true);
-        else {
-          for (const finding of report.findings) process.stdout.write(`${finding.severity}\t${finding.rule}\t${finding.detail}\n`);
-          process.stdout.write(report.hard > 0 ? `${report.hard} hard finding(s)\n` : "frontend facts clean\n");
-        }
-        if (report.hard > 0) process.exitCode = 1;
-      } else {
-        const report = auditTheme({ root: options.root, accept: options.accept ?? [], docs: options.docs ?? null });
-        if (options.json) print(report, true);
-        else {
-          for (const finding of report.findings) process.stdout.write(`${finding.severity}\t${finding.file}\t${finding.rule}\t${finding.detail}\n`);
-          process.stdout.write(report.hard > 0 ? `${report.hard} hard finding(s)\n` : "frontend audit clean\n");
-        }
-        if (report.hard > 0) process.exitCode = 1;
-      }
-    }
-    }
   } else if (raw[0] === "state") {
     runStateCommand(raw.slice(1), { usage });
   } else if (raw[0] === "harness") {

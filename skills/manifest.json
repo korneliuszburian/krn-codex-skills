@@ -34,10 +34,6 @@
     "scripts/lib/contract/change-contract-runs.mjs",
     "scripts/lib/contract/change-contract.mjs",
     "scripts/lib/contract/command-analysis.mjs",
-    "scripts/lib/frontend/browser.mjs",
-    "scripts/lib/frontend/design.mjs",
-    "scripts/lib/frontend/facts.mjs",
-    "scripts/lib/frontend/theme.mjs",
     "scripts/lib/harness/e2e-compare.mjs",
     "scripts/lib/install/host-capabilities.mjs",
     "scripts/lib/install/install-inspect.mjs",
@@ -161,41 +157,6 @@
       "name": "unslop",
       "path": "skills/meta/unslop",
       "implicit": false
-    },
-    {
-      "name": "frontend-stage",
-      "path": "skills/frontend/frontend-stage",
-      "implicit": true
-    },
-    {
-      "name": "frontend-architecture",
-      "path": "skills/frontend/frontend-architecture",
-      "implicit": true
-    },
-    {
-      "name": "frontend-enforcement",
-      "path": "skills/frontend/frontend-enforcement",
-      "implicit": true
-    },
-    {
-      "name": "frontend-library",
-      "path": "skills/frontend/frontend-library",
-      "implicit": true
-    },
-    {
-      "name": "frontend-process",
-      "path": "skills/frontend/frontend-process",
-      "implicit": true
-    },
-    {
-      "name": "frontend-components",
-      "path": "skills/frontend/frontend-components",
-      "implicit": true
-    },
-    {
-      "name": "frontend-tokens",
-      "path": "skills/frontend/frontend-tokens",
-      "implicit": true
     },
     {
       "name": "ask-gpt",

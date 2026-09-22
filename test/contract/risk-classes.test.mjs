@@ -40,7 +40,7 @@ test("the seeded registry covers every runtime path with a known class", async (
     assert.ok(covered.has(path), `${path} must have a seeded risk class`);
   }
   const classes = new Set(document.entries.map((entry) => entry.class));
-  for (const value of ["read-only", "additive", "destructive", "external"]) {
+  for (const value of ["read-only", "additive", "destructive"]) {
     assert.ok(classes.has(value), `the seed must exercise the ${value} class`);
   }
 });

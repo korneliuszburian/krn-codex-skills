@@ -3,7 +3,7 @@
 - Status: accepted (operator direction 2026-09-20; amended 2026-09-21: the decision-point memory delivery is retired, see LT-104)
 - Date: 2026-09-20
 - Decision owner: KRN skill-system maintainer (operator decision)
-- Evidence: LT-102 (toy baseline and cube-block ablation), LT-103 (SWE-bench
+- Evidence: LT-102 (toy baseline), LT-103 (SWE-bench
   Verified slice: full 5/5 against vanilla 5/5, four of five patches identical,
   full spending about 1.13M more tokens and about twice the wall), LT-104
   (LongMemEval-S: vanilla 4/5, full 5/5, no-memory 5/5; earlier 1/3, 3/3, 2/3;

@@ -9,8 +9,8 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
 - `config/AGENTS.md` — installed global contract; keep local facts out of it.
 - `skills/<group>/<name>/` — one promoted workflow with its direct resources.
 - `skills/manifest.json` — install names, paths, invocation, and retirement.
-- `scripts/` — CLI, hooks, and `lib/<owner>/` (audit, catalog, conformance, contract, frontend, install, kernel, lessons, rules, state, support, ticket).
-- `test/<group>/` — suites for architecture, audit, bootstrap-fixture, catalog, cli, conformance, contract, frontend, install, lane, lessons, opencode, repro, rules, state, support, and ticket, plus top-level `ci-workflow`, `hooks-guard`, `setup-workflow`, and `skill-scripts`.
+- `scripts/` — CLI, hooks, and `lib/<owner>/` (audit, catalog, conformance, contract, install, kernel, lessons, rules, state, support, ticket).
+- `test/<group>/` — suites for architecture, audit, bootstrap-fixture, catalog, cli, conformance, contract, install, lane, lessons, opencode, repro, rules, state, support, and ticket, plus top-level `ci-workflow`, `hooks-guard`, `setup-workflow`, and `skill-scripts`.
 - `.agents/skills/` — generated skill export; regenerate with `krn skills export`, gated by `skills:check`.
 - `.github/` — CI workflow; `npm run gate` is the local equivalent of the gate sequence.
 - `test/bootstrap-fixture/` — retained installed-release smoke.
@@ -61,7 +61,6 @@ npm run test:lessons
 npm run test:lessons-verify
 npm run test:change-contract
 npm run test:conformance
-npm run test:frontend
 npm run test:durable-pages
 npm run test:catalog
 npm run test:setup
