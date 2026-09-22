@@ -161,7 +161,9 @@ function renderInstallReport(report) {
 
 try {
   const raw = process.argv.slice(2);
-  if (["-h", "--help", "help"].includes(raw[0])) {
+  // Help is answered wherever it appears, so `krn <command> --help` prints the
+  // usage instead of failing on an option the command does not define.
+  if (raw.includes("-h") || raw.includes("--help") || raw[0] === "help") {
     process.stdout.write(`${usage}\n`);
     process.exit(0);
   }
