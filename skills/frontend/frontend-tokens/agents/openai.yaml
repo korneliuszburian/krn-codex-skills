@@ -1,6 +1,0 @@
-interface:
-  display_name: "Frontend tokens"
-  short_description: "Two-tier tokens, fluid scales, and theming"
-  default_prompt: "Use $frontend-tokens for design tokens, custom properties, theming, fluid scales, or contrast."
-policy:
-  allow_implicit_invocation: true

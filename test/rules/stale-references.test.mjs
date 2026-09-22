@@ -32,7 +32,6 @@ const OPERATOR_PAGES = ["README.md", "CONTEXT.md", "AGENTS.md"];
 // here so a new stale reference anywhere in the durable surface still fails.
 const HISTORICAL_REFERENCES = new Set([
   "docs/adr/0001-compact-context-spine.md:docs/agents/artifact-paths.json",
-  "docs/research/frontend-delivery.md:docs/design/raw/",
   "docs/research/lab-tests.md:npm run verify",
   "docs/research/lab-tests.md:test/edition.test.mjs",
   "docs/research/lab-tests.md:scripts/lib/evaluation/lt5-admissibility.mjs",

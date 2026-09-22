@@ -1,6 +1,0 @@
-interface:
-  display_name: "Frontend components"
-  short_description: "Thin CUBE blocks with knobs and data-attribute variants"
-  default_prompt: "Use $frontend-components for a new component, a restyle, naming, or composing from existing patterns."
-policy:
-  allow_implicit_invocation: true

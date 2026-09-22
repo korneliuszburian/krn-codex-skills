@@ -117,13 +117,6 @@ disagreement blocks the next transition until the owner records the resolution.
 | [`ask-gpt`](skills/advisory/ask-gpt/SKILL.md) | explicit only | shape an evidence-bound GPT-6 Astra prompt over the GitHub connector and disposition the answer locally |
 | [`managing-codex-capabilities`](skills/meta/managing-codex-capabilities/SKILL.md) | model or user | global skill, plugin, MCP, and profile control |
 | [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
-| [`frontend-stage`](skills/frontend/frontend-stage/SKILL.md) | model or user | the stage entry: intake, architecture, build, verify with exit criteria and per-section acceptance |
-| [`frontend-architecture`](skills/frontend/frontend-architecture/SKILL.md) | model or user | design intake to a frozen block × variant × ACF plan and facts file |
-| [`frontend-enforcement`](skills/frontend/frontend-enforcement/SKILL.md) | model or user | stylelint token and specificity caps, scoped disables, visual and a11y gates |
-| [`frontend-library`](skills/frontend/frontend-library/SKILL.md) | model or user | the canonical CUBE CSS library to copy verbatim and consolidate against |
-| [`frontend-process`](skills/frontend/frontend-process/SKILL.md) | model or user | the forced plan-to-verify build workflow with an exit per phase |
-| [`frontend-components`](skills/frontend/frontend-components/SKILL.md) | model or user | thin CUBE blocks with custom-property knobs and data-* variants |
-| [`frontend-tokens`](skills/frontend/frontend-tokens/SKILL.md) | model or user | two-tier tokens, fluid clamp scales, semantic aliases, and theming |
 
 The shared engineering and productivity flow is **composed from a clean
 checkout of the upstream [`mattpocock/skills`](https://github.com/mattpocock/skills)
@@ -252,8 +245,8 @@ AGENTS.md             source-repository editing contract
 config/               installed global contract and hook configuration
 skills/               canonical workflow owners and direct resources
 .agents/skills/       generated skill export, verified by skills:check
-scripts/              CLI, hooks, and lib/ grouped by owner (audit, catalog, conformance, contract, frontend, install, kernel, lessons, rules, state, support, ticket)
-test/                 suites for architecture, audit, bootstrap-fixture, catalog, cli, conformance, contract, frontend, install, lane, lessons, opencode, repro, rules, state, support, and ticket, plus top-level ci-workflow, hooks-guard, setup-workflow, and skill-scripts
+scripts/              CLI, hooks, and lib/ grouped by owner (audit, catalog, conformance, contract, install, kernel, lessons, rules, state, support, ticket)
+test/                 suites for architecture, audit, bootstrap-fixture, catalog, cli, conformance, contract, install, lane, lessons, opencode, repro, rules, state, support, and ticket, plus top-level ci-workflow, hooks-guard, setup-workflow, and skill-scripts
 .github/              CI workflow that runs the change-contract and gate suites
 CONTEXT.md            compact current vocabulary and knowledge index
 docs/research/        living source-backed synthesis

@@ -21,9 +21,8 @@ operator reports the system standing still and asks for continuous improvement
 of logical, architectural, and pipeline inconsistencies.
 
 The bounded swarm confirms the stall with measurements and repros. The last arc
-was harness-internal (27 tickets, no skill capability change); the frontend
-outcome (LT-8) is registered and unrun; the lane runner lives outside the
-repository; memory delivery reached 1 of 29 arc commits (2.2% over the last 181
+was harness-internal (27 tickets, no skill capability change); the lane runner
+lives outside the repository; memory delivery reached 1 of 29 arc commits (2.2% over the last 181
 commits); the capsule is 32.8 KB with 91.5% narrative that the checks do not
 read. Six holes were reproduced, not argued:
 
@@ -79,10 +78,7 @@ read. Six holes were reproduced, not argued:
    queue evolves. A permanently empty queue is not a success signal.
 6. **Scope order is explicit.** This program closes the harness, memory, and
    queue register first (sh-60..sh-65 plus the review findings queued behind
-   them); the product outcome — the unrun LT-8 frontend delivery and the parked
-   sh-35 reconcile — waits until the end, per operator direction 2026-09-18.
-   When the registers are empty or fully ticketed, the next pass is the product
-   outcome, not another harness-only scan.
+   them), per operator direction 2026-09-18.
 7. **The cross-family review leg is dark.** The Codex transport returns `401`,
    so every finding in this pass is same-family reviewed; that gap is recorded
    rather than papered over, and restoring a second family is an operator

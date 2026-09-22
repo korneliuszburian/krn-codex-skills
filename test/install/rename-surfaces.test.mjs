@@ -16,7 +16,6 @@ const LIVE_SURFACES = [
   "config/AGENTS.md",
   "docs/capabilities.md",
   "docs/migration.md",
-  "docs/research/frontend-delivery.md",
   "package.json",
   ".github/workflows/validate.yml",
   "scripts/install.sh",

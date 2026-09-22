@@ -1,6 +1,0 @@
-interface:
-  display_name: "Frontend architecture"
-  short_description: "Design intake to frozen blocks, variants, and ACF fields"
-  default_prompt: "Use $frontend-architecture to turn the design into a frozen architecture and facts before any component code."
-policy:
-  allow_implicit_invocation: true

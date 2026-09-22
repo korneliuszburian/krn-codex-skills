@@ -59,7 +59,6 @@ file cannot regrow through unwrapped prose.
 |---|---|
 | `minimal` | KRN engineering plus the Wakatime baseline, with other optional surfaces off |
 | `lean` | daily KRN engineering with GitHub and official OpenAI docs |
-| `engineering-full` | lean engineering plus Playwright CLI, Figma MCP, CUBE CSS and GSAP |
 | `design` | lean engineering plus Figma, Canva, and GSAP |
 | `web-qa` | lean engineering plus browser automation, documentation lookup, and Figma MCP |
 | `comms` | lean engineering plus mail, calendar, and task coordination |

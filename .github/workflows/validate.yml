@@ -86,9 +86,6 @@ jobs:
       - name: Test the frozen acceptance conformance gate
         if: matrix.tier == 'deep'
         run: npm run test:conformance
-      - name: Test the frontend inventory and audit tools
-        if: matrix.tier == 'deep'
-        run: npm run test:frontend
       - name: Apply the frozen conformance set from the base
         if: matrix.tier == 'deep'
         env:

@@ -65,7 +65,6 @@ test("the observer rejects a source that re-introduces a hand-rolled hash", () =
 });
 
 test("the retired local digest helpers are gone", () => {
-  assert.ok(!read("scripts/lib/frontend/browser.mjs").includes("const sha256 ="), "the browser sha256 helper must be retired");
   assert.ok(!read("scripts/lib/install/skills-export.mjs").includes("blobHash ="), "the export blob helper must be retired");
   assert.ok(!read("scripts/lib/install/install-inspect.mjs").includes("crypto"), "the release tree digest must not reach for crypto directly");
 });
