@@ -31,6 +31,11 @@ function nonNegativeFinite(value) {
 }
 
 function invalidOutcomeReason(outcome) {
+  // An adapter that witnessed a provider or transport failure reports it
+  // explicitly so the trial is excluded rather than scored as a zero-cost pass.
+  if (outcome && outcome.invalid === true) {
+    return typeof outcome.reason === "string" && outcome.reason.trim() ? outcome.reason.trim() : "invalid-trial";
+  }
   const reasons = [];
   if (typeof outcome?.pass !== "boolean") reasons.push("pass-not-boolean");
   if (!nonNegativeFinite(outcome?.tokens)) reasons.push("tokens-invalid");
@@ -125,7 +130,13 @@ function defaultRunner({ lane, enabled, mutation, task, run, root, runs }) {
   });
   const outcome = runProcess(process.execPath, [entrypoint], { cwd: root ?? process.cwd(), input: payload });
   if (outcome.errorCode) refuse("runner-spawn-failed", outcome.errorMessage);
-  if (outcome.status !== 0) refuse("runner-failed", `${lane} run ${run} exited ${outcome.status}: ${outcome.err.trim()}`);
+  // A runner that exits nonzero did not complete the trial: an agent provider
+  // failure or an interrupted transport. Surface it as an explicit invalid trial
+  // so it is excluded from the comparison instead of aborting or scoring it.
+  if (outcome.status !== 0) {
+    const detail = outcome.err.trim() || (outcome.signal ? `signal ${outcome.signal}` : `exit ${outcome.status}`);
+    return { invalid: true, reason: "runner-failed", detail };
+  }
   const line = outcome.out.trim().split("\n").filter(Boolean).at(-1);
   try {
     return JSON.parse(line);
@@ -204,7 +215,9 @@ export async function compareHarness({ task, lanes, runs, runner, root } = {}) {
       const reason = invalidOutcomeReason(outcome);
       if (reason) {
         invalid += 1;
-        trials.push({ run, invalid: true, reason });
+        const trial = { run, invalid: true, reason };
+        if (outcome && typeof outcome.detail === "string" && outcome.detail) trial.detail = outcome.detail;
+        trials.push(trial);
         continue;
       }
       if (outcome.pass === true) passes += 1;
@@ -213,23 +226,35 @@ export async function compareHarness({ task, lanes, runs, runner, root } = {}) {
       trials.push({ run, pass: outcome.pass, tokens: outcome.tokens, wallSeconds: outcome.wallSeconds });
     }
     const valid = runCount - invalid;
-    lanesReport.push({
+    const estimable = valid > 0;
+    const laneReport = {
       lane: entry.name,
       runs: runCount,
       passes,
-      passRate: valid > 0 ? passes / valid : 0,
       tokens,
       wallSeconds,
       invalid,
+      estimable,
       trials,
-    });
+    };
+    // A pass rate over zero valid trials is not a measurement, so it is omitted
+    // rather than reported as zero.
+    if (estimable) laneReport.passRate = passes / valid;
+    lanesReport.push(laneReport);
   }
 
   const baselineReport = lanesReport.find((entry) => entry.lane === baseline);
   const delta = {};
   let detectable = false;
+  // A delta exists only when both the lane and the baseline hold at least one
+  // valid trial; otherwise the comparison is unestimable, not a zero delta.
+  let unestimable = !baselineReport.estimable;
   for (const entry of lanesReport) {
     if (entry.lane === baseline) continue;
+    if (!entry.estimable || !baselineReport.estimable) {
+      unestimable = true;
+      continue;
+    }
     const value = {
       passRate: entry.passRate - baselineReport.passRate,
       tokens: entry.tokens - baselineReport.tokens,
@@ -251,7 +276,7 @@ export async function compareHarness({ task, lanes, runs, runner, root } = {}) {
     lanes: lanesReport,
     delta,
     mutations,
-    note: detectable ? "detectable-delta" : "no-detectable-delta",
+    note: unestimable ? "unestimable" : detectable ? "detectable-delta" : "no-detectable-delta",
   };
   if (root) persistReport({ root, task, report });
   return report;
