@@ -36,7 +36,8 @@ test("a lane of empty outcomes records invalid trials without a pass or a cost",
     assert.equal(typeof trial.reason, "string");
     assert.ok(trial.reason.length > 0, JSON.stringify(trial));
   }
-  assert.equal(report.note, "no-detectable-delta");
+  assert.ok(!("passRate" in lane), "an all-invalid lane must not report a pass rate");
+  assert.equal(report.note, "unestimable");
 });
 
 test("a negative token count is invalid and never reduces the reported cost", async () => {

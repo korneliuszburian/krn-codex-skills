@@ -69,8 +69,13 @@ function prepareHome(enabled) {
   return home;
 }
 
-function tokenTotal(stdout) {
+// A successful transport carries at least one `step_finish` usage event. Its
+// absence is an incomplete transport, and a zero total is not a real run, so the
+// adapter refuses both rather than emitting a zero-cost outcome the harness
+// would score as a pass.
+function tokenUsage(stdout) {
   let total = 0;
+  let sawUsage = false;
   for (const line of String(stdout ?? "").split("\n")) {
     if (!line.trim()) continue;
     let event;
@@ -79,9 +84,12 @@ function tokenTotal(stdout) {
     } catch {
       continue;
     }
-    if (event?.type === "step_finish" && event.part?.tokens) total += Number(event.part.tokens.total) || 0;
+    if (event?.type !== "step_finish" || !event.part?.tokens) continue;
+    sawUsage = true;
+    const value = Number(event.part.tokens.total);
+    if (Number.isFinite(value) && value > 0) total += value;
   }
-  return total;
+  return { total, sawUsage };
 }
 
 function main() {
@@ -120,7 +128,11 @@ function main() {
       timeout: 900_000,
     });
     if (result.errorCode) refuse("opencode-spawn-failed", result.errorMessage);
-    process.stdout.write(`${JSON.stringify({ tokens: tokenTotal(result.out) })}\n`);
+    if (result.status !== 0) refuse("opencode-exit-nonzero", result.signal ? `signal ${result.signal}` : `exit ${result.status}`);
+    const usage = tokenUsage(result.out);
+    if (!usage.sawUsage) refuse("opencode-usage-missing", "the stream carried no step_finish usage event");
+    if (usage.total <= 0) refuse("opencode-usage-zero", String(usage.total));
+    process.stdout.write(`${JSON.stringify({ tokens: usage.total })}\n`);
   } finally {
     rmSync(home, { recursive: true, force: true });
   }

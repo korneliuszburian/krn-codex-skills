@@ -97,6 +97,9 @@ function main() {
       }),
     });
     if (agentRun.errorCode) refuse("agent-spawn-failed", agentRun.errorMessage);
+    // A provider failure or an interrupted transport surfaces as a nonzero agent
+    // exit; it is not a completed trial and must never be scored.
+    if (agentRun.status !== 0) refuse("agent-failed", agentRun.signal ? `signal ${agentRun.signal}` : `exit ${agentRun.status}`);
     for (const [relative, content] of held) {
       const to = path.join(disposable, relative);
       mkdirSync(path.dirname(to), { recursive: true });
@@ -108,6 +111,9 @@ function main() {
     if (!(typeof tokens === "number" && Number.isFinite(tokens) && tokens >= 0)) {
       refuse("agent-tokens-invalid", JSON.stringify(tokens ?? null));
     }
+    // A token-only outcome with a zero count carries no usage, so it is a
+    // provider or transport failure, not a free pass.
+    if (tokens === 0) refuse("agent-usage-missing", "the agent reported no token usage");
     const checked = runProcess("sh", ["-c", check], { cwd: workspace });
     const wallSeconds = Math.round((Date.now() - started) / 100) / 10;
     if (!(Number.isFinite(wallSeconds) && wallSeconds >= 0)) refuse("wall-invalid", String(wallSeconds));
