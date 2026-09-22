@@ -103,7 +103,10 @@
       "class": "destructive",
       "authority": "Authority: overwrites only the caller-provided file through a sibling temp and rename; callers confine the target to repository ticket and lock state."
     },
+    { "path": "scripts/lib/ticket/ticket-abi.mjs", "class": "read-only" },
+    { "path": "scripts/lib/ticket/ticket-check.mjs", "class": "read-only" },
     { "path": "scripts/lib/ticket/ticket-cli.mjs", "class": "additive" },
+    { "path": "scripts/lib/ticket/ticket-reconcile.mjs", "class": "additive" },
     { "path": "scripts/lib/ticket/ticket.mjs", "class": "additive" },
     { "path": "skills/manifest.json", "class": "read-only" }
   ]
