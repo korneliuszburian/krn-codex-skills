@@ -70,7 +70,10 @@
     "scripts/lib/support/path-rules.mjs",
     "scripts/lib/support/remove-tree.mjs",
     "scripts/lib/support/write-atomic.mjs",
+    "scripts/lib/ticket/ticket-abi.mjs",
+    "scripts/lib/ticket/ticket-check.mjs",
     "scripts/lib/ticket/ticket-cli.mjs",
+    "scripts/lib/ticket/ticket-reconcile.mjs",
     "scripts/lib/ticket/ticket.mjs",
     "skills/manifest.json"
   ],
