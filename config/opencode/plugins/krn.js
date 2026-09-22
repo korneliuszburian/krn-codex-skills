@@ -211,6 +211,33 @@ function patchMappable(text) {
   return text.includes("*** Begin Patch") || PATCH_DIRECTIVE.test(text);
 }
 
+const MALFORMED_DECISION =
+  "the destructive-command guard returned a malformed decision; refusing the call rather than failing open";
+const UNEXPLAINED_DENIAL =
+  "the destructive-command guard denied the call without an explanation; refusing the call rather than failing open";
+
+// A guard decision is authoritative only when it is well formed. A parseable but
+// shapeless payload, an unknown decision, or a denial with no explanatory text
+// is malformed, and a malformed decision refuses the call instead of silently
+// becoming an allow. Only an explicit `allow` and the guard's own silent success
+// (empty output) allow the call.
+function decisionReason(parsed) {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return MALFORMED_DECISION;
+  const output = parsed.hookSpecificOutput;
+  if (!output || typeof output !== "object" || Array.isArray(output)) return MALFORMED_DECISION;
+  const decision = output.permissionDecision;
+  const reason = output.permissionDecisionReason;
+  const explained = typeof reason === "string" && reason.trim().length > 0;
+  if (decision === "allow") return null;
+  if (decision === "deny") return explained ? reason : UNEXPLAINED_DENIAL;
+  if (decision === undefined || decision === null) {
+    // A decision-less payload is malformed unless it still carries a reason,
+    // which the guard contract has always treated as a denial.
+    return explained ? reason : MALFORMED_DECISION;
+  }
+  return MALFORMED_DECISION;
+}
+
 export function guardReason(tool, args, directory) {
   let payload = null;
   if (tool === "bash") {
@@ -244,12 +271,13 @@ export function guardReason(tool, args, directory) {
     return `the destructive-command guard exited ${result.status}; refusing the call rather than failing open`;
   }
   if (!result.stdout) return null;
+  let parsed;
   try {
-    const parsed = JSON.parse(result.stdout);
-    return parsed?.hookSpecificOutput?.permissionDecisionReason ?? null;
+    parsed = JSON.parse(result.stdout);
   } catch {
     return "the destructive-command guard returned an unreadable decision; refusing the call rather than failing open";
   }
+  return decisionReason(parsed);
 }
 
 // The per-component ablation flags are read at call time so a harness lane can
