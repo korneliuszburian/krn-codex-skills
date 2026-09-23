@@ -330,6 +330,33 @@ test("gate-backed retirement keeps a live gate and names the exact resolved gate
   rmSync(root, { recursive: true, force: true });
 });
 
+test("repository lesson retirements preserve their exact structural gates", () => {
+  const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
+  const file = join(repositoryRoot, "docs", "research", "workflow-lessons.md");
+  const rows = parseLessons(file).rows;
+  const retired = new Map([
+    ["Render CLI diagnostics as text, never raw objects.", "test/state/state-check.test.mjs"],
+    ["Blocking errors must be visible in human command output, not only in the exit code.", "test/state/state-brief.test.mjs"],
+    ["Hand-written capsule fixed points must use full commit tokens.", "test/state/state-check.test.mjs"],
+    ["A read-only review cannot prove runtime reachability; every extracted runtime module needs at least one executing test, and mechanical detection must back the class.", "test/audit/quality-audit.test.mjs"],
+    ["Broadening executing coverage can expose silently lost records that a green suite hides.", "test/catalog/catalog-inventory-quarantine.test.mjs"],
+    ["Duplicated low-level adapters drift; centralize once and alias at call sites.", "test/support/git-cli.test.mjs"],
+    ["A test that drives a guarded gate must clear the ambient recursion guard.", "test/contract/guard-inheritance.test.mjs"],
+    ["A test that archives the committed HEAD can pass before the commit and fail after it.", ".github/workflows/validate.yml"],
+  ]);
+
+  for (const [lesson, gate] of retired) {
+    const row = rows.find((candidate) => candidate.lesson === lesson);
+    assert.ok(row, `missing lesson row: ${lesson}`);
+    assert.equal(row.status, `retired@3579c0e; enforced-by:${gate}`, lesson);
+  }
+
+  const staleWording = rows.find((row) => row.lesson === "Memory artifacts must fail closed, not warn, once staleness or contradiction is measured.");
+  assert.equal(staleWording?.status, "retired@3579c0e; superseded-by:npm run test:state");
+  assert.ok(rows.some((row) => row.lesson.startsWith("Block stale COMPLETE capsules,") && !row.status && row.trigger === "path:scripts/lib/lessons/**"));
+  assert.deepEqual(checkLessons({ root: repositoryRoot }).errors, []);
+});
+
 test("retirement is invalid without a commit and budgets count only active rows", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");
