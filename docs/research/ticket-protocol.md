@@ -240,9 +240,9 @@ performance results.
 
 **Falsifier and non-proof.** Reopen the selection if the full production
 acceptance below fails or if a supported file/SQLite implementation proves a
-lower total operating cost. The adapters are test-only; they do not prove
-production import, rollback, installation cost, performance or cross-clone
-synchronization. No current queue data has been imported.
+lower total operating cost. The adapters are test-only; they do not prove the
+production CLI, import, rollback, installation cost, performance or
+cross-clone synchronization. No current queue data has been imported.
 
 The smallest product falsifier is two linked worktrees claiming the same ready
 ID: exactly one may succeed, and a reopened queue must have one claim and no
@@ -343,19 +343,19 @@ boundary and H2 has selected Git-ref. Implement the production ref store with
 the expected-old CAS and one shared task API. Reopen SQLite only if a supported
 driver at the advertised Node floor is shown to cost less overall. Before
 switching callers, import the current ID/path set with an unmapped-field
-report, run capsule candidate resolution and both host queue briefs against
-the imported state, and exercise delivery-loop archive/restore with a
-post-import task. The H2 trial already exercised the task loop and two
-linked-worktree claims using test-only adapters; it did not exercise the
-production CLI. Cutover freezes writers, switches readers and writers
-together, verifies each public caller, and retains the old snapshot for
-rollback. The present checker requires `integrated=<sha>` for every `done`
-ticket, so a new human close without a Git commit cannot be faithfully
-exported into the old CLI. After new writes begin, rollback needs a reverse
-export from the new store, not only a binary switch. A JSONL export alone is
-data preservation, not proof that the old CLI can operate it. Reject cutover
-if a post-cutover task is lost on restore or a capsule candidate goes dangling
-because a reader still uses the old paths.
+report, then verify the production CLI, current task-selection projections,
+capsule candidate resolution and delivery-loop archive/restore with a
+post-import task. The optional lesson-match brief in Candidate 2 is a separate
+lab-test; it does not gate the store cutover unless that interface is separately
+adopted. Cutover freezes writers, switches readers and writers together,
+verifies each public caller, and retains the old snapshot for rollback. The
+present checker requires `integrated=<sha>` for every `done` ticket, so a new
+human close without a Git commit cannot be faithfully exported into the old
+CLI. After new writes begin, rollback needs a reverse export from the new
+store, not only a binary switch. A JSONL export alone is data preservation,
+not proof that the old CLI can operate it. Reject cutover if a post-cutover
+task is lost on restore or a capsule candidate goes dangling because a reader
+still uses the old paths.
 
 The 2026-09-23 independent OpenCode advisory review identified the old
 `done` anchor requirement and the in-process/host reader set; the owner
