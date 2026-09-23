@@ -42,7 +42,22 @@
         "skills/engineering/to-spec/SKILL.md",
         "skills/engineering/wayfinder/SKILL.md",
         "skills/productivity/grilling/SKILL.md"
-      ]
+      ],
+      "companions": {
+        "implement": [
+          "tdd"
+        ],
+        "wayfinder": [
+          "research",
+          "setup-matt-pocock-skills"
+        ],
+        "code-review": [
+          "setup-matt-pocock-skills"
+        ],
+        "to-spec": [
+          "setup-matt-pocock-skills"
+        ]
+      }
     }
   ]
 }

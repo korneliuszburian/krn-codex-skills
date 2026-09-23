@@ -94,16 +94,17 @@ hosts own their mechanics and policy.
 
    When the checkout is volatile or the outcome must move, a copy into another
    ignored path is not durable. At pause, export the capsule directory
-   `.krn/runs/delivery-loop/<outcome-id>/` and the queue directory
-   `.scratch/tickets/` into the documented durable host archive
-   `${KRN_OUTCOME_ARCHIVE:-$HOME/.local/state/krn/outcomes}/<outcome-id>/`, then
-   restore them by explicit copy into the successor checkout's same ignored
-   paths before resuming with `krn state check`, `krn state resume`, and
-   `krn ticket next`. The archive is an operational copy on the host, never a
-   tracked artifact. **Falsifier:** export, wipe the checkout, restore, and
-   resume — the capsule continues and `krn ticket next` reports a populated
-   frontier; a checkout that skips the restore stays `not-applicable` with an
-   empty frontier, so the archive and the restore are load-bearing.
+   `.krn/runs/delivery-loop/<outcome-id>/` and every discovered ticket under
+   the default `.scratch/` and `.krn/tickets/` roots into the documented
+   durable host archive
+   `${KRN_OUTCOME_ARCHIVE:-$HOME/.local/state/krn/outcomes}/<outcome-id>/`.
+   Preserve each ticket's path relative to the checkout. Restore those paths
+   into the successor checkout before `krn state check`, `krn state resume`,
+   and `krn ticket next`. The archive is an operational copy on the host,
+   never a tracked artifact. **Falsifier:** compare the ticket path and ID set
+   reported by `krn ticket check --root REPO --json` before export and after
+   restore, then confirm the capsule continues and `krn ticket next` gives
+   the same frontier. A missing root or ticket fails the comparison.
 
    When a composed workflow returns a run
    pointer, upsert one `Outstanding workflow-run cleanup` entry keyed by that

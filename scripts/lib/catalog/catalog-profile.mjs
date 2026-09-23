@@ -1,4 +1,7 @@
+import fs from "node:fs";
+import path from "node:path";
 import { pluginFamilyFromId } from "./plugin-identity.mjs";
+import { hasPinnedUpstreamOrigin } from "./capability-admission.mjs";
 
 function selectorMatches(record, selectors = []) {
   return selectors.some((selector) =>
@@ -8,6 +11,20 @@ function selectorMatches(record, selectors = []) {
 
 function familyMatches(record, families = []) {
   return families.includes(record.family);
+}
+
+function admittedOwnerMatches(skill, admission, codexHome) {
+  if (skill.scope !== "global-index") return false;
+  const owner = admission.owners?.[skill.id];
+  if (!owner) return true;
+  if (owner.origin !== "krn") return hasPinnedUpstreamOrigin(skill.targetPath, owner);
+  if (typeof skill.targetPath !== "string" || typeof codexHome !== "string") return false;
+  const relative = owner.path.endsWith("/SKILL.md") ? owner.path : `${owner.path}/SKILL.md`;
+  try {
+    return fs.realpathSync(skill.targetPath) === fs.realpathSync(path.join(codexHome, "krn", "current", relative));
+  } catch {
+    return false;
+  }
 }
 
 function assignDesired(target, key, enabled, reason) {
@@ -27,6 +44,8 @@ export function resolveProfile(
   inventory,
   hardQuarantine = {},
   pluginSkillAliases = {},
+  admission = { names: [] },
+  { codexHome } = {},
 ) {
   const desired = {
     plugins: {},
@@ -35,6 +54,10 @@ export function resolveProfile(
     skills: {},
   };
   const unresolved = { plugins: [], skills: [] };
+  const defaults = Object.fromEntries([["plugins", profile.plugins?.default], ["mcpServers", profile.mcps?.default]].filter(([, value]) => value !== undefined));
+  if (Object.keys(defaults).length) desired.defaults = defaults;
+  const admitted = new Set(admission.names);
+  const available = new Set();
 
   for (const selector of profile.plugins?.enable || []) {
     // Resolve a name/family/manifest selector to the real plugin id(s), mirroring
@@ -74,6 +97,9 @@ export function resolveProfile(
     if (familyMatches(plugin, profile.plugins?.disableFamilies)) {
       assignDesired(desired.plugins, plugin.id, false, "plugins.disableFamilies");
     }
+    if (profile.plugins?.default === "disabled" && !Object.hasOwn(desired.plugins, plugin.id)) {
+      assignDesired(desired.plugins, plugin.id, false, "plugins default");
+    }
   }
 
   const exactPluginSelectors = new Set([
@@ -92,11 +118,13 @@ export function resolveProfile(
     ...(profile.skills?.disable || []),
   ]);
   for (const skill of inventory.skills) {
+    if (preservedScopes.has(skill.scope)) continue;
+    const owningCandidate = admitted.has(skill.id) && admittedOwnerMatches(skill, admission, codexHome);
+    if (owningCandidate) available.add(skill.id);
     const exactEnable = selectorMatches(skill, profile.skills?.enable);
     const exactDisable = selectorMatches(skill, profile.skills?.disable);
     const familyEnable = familyMatches(skill, profile.skills?.enableFamilies);
     const familyDisable = familyMatches(skill, profile.skills?.disableFamilies);
-    const preserved = preservedScopes.has(skill.scope);
 
     if (exactEnable || exactDisable) {
       if (exactEnable && exactDisable) {
@@ -107,12 +135,15 @@ export function resolveProfile(
       assignDesired(
         desired.skills,
         skill.path,
-        exactEnable,
+        exactEnable && (!admitted.has(skill.id) || owningCandidate),
         "skills exact selector",
       );
       continue;
     }
-    if (preserved) continue;
+    if (owningCandidate) {
+      assignDesired(desired.skills, skill.path, true, "derived workflow owner");
+      continue;
+    }
     if (familyEnable && familyDisable) {
       throw new Error(`profile conflict for skill family ${skill.family}`);
     }
@@ -123,6 +154,16 @@ export function resolveProfile(
         familyEnable,
         `skill family ${skill.family}`,
       );
+    } else if (profile.skills?.default === "disabled") {
+      assignDesired(desired.skills, skill.path, false, "skills default");
+    }
+  }
+
+  const missingSkills = [...admitted].filter((name) => !profile.skills?.disable?.includes(name) && !available.has(name)).sort();
+  for (const [owner, companions] of Object.entries(admission.companions ?? {})) {
+    if (profile.skills?.disable?.includes(owner)) continue;
+    for (const companion of companions) {
+      if (profile.skills?.disable?.includes(companion)) throw new Error(`profile disables companion ${owner} -> ${companion}`);
     }
   }
 
@@ -223,6 +264,7 @@ export function resolveProfile(
 
   return {
     desired,
+    missingSkills,
     unresolved: {
       plugins: [...new Set(unresolved.plugins)].sort(),
       skills: [...new Set(unresolved.skills)].sort(),

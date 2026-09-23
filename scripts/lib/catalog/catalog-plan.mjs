@@ -36,6 +36,7 @@ export function planCatalogConfig({
   const managedPluginStates = new Map();
 
   for (const [id] of pluginBlocks) {
+    if (normalizedDesired.defaults.plugins === "disabled") managedPluginStates.set(id, false);
     const family = pluginFamilyFromId(id);
     if (family !== undefined && normalizedDesired.pluginFamilies.has(family)) {
       managedPluginStates.set(id, false);
@@ -96,6 +97,7 @@ export function planCatalogConfig({
 
   const managedMcpStates = new Map(normalizedDesired.mcpServers);
   for (const [id] of mcpBlocks) {
+    if (normalizedDesired.defaults.mcpServers === "disabled" && !managedMcpStates.has(id)) managedMcpStates.set(id, false);
     if (matchesQuarantined(id, families)) managedMcpStates.set(id, false);
   }
 

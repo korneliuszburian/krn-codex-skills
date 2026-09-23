@@ -166,7 +166,7 @@ function anchorErrors({ root, git, ticket, base, head }) {
   return [{ path: anchor.path, rule: "evidence-anchor-missing", message: `${anchor.message} and its patch id is absent from the range` }];
 }
 
-export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD", now = new Date().toISOString(), listFiles, parseTicket } = {}) {
+export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD", now = new Date().toISOString(), reconcile = true, listFiles, parseTicket } = {}) {
   const tickets = [];
   const errors = [];
   const warnings = [];
@@ -174,10 +174,12 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
   // first: a crashed merge-then-close heals before the frontier is computed
   // and the merged ticket never re-enters the queue.
   const reconciled = [];
-  try {
-    reconciled.push(...reconcileTickets({ root, dirs, headRef: head, git, at: now, now, listFiles, parseTicket }));
-  } catch (error) {
-    errors.push({ rule: "reconcile-refused", message: error?.message ?? String(error) });
+  if (reconcile) {
+    try {
+      reconciled.push(...reconcileTickets({ root, dirs, headRef: head, git, at: now, now, listFiles, parseTicket }));
+    } catch (error) {
+      errors.push({ rule: "reconcile-refused", message: error?.message ?? String(error) });
+    }
   }
   for (const file of listFiles(root, dirs)) {
     let text;

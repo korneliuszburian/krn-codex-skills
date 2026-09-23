@@ -8,9 +8,10 @@ import { posixRelative } from "../support/path-rules.mjs";
 // a comparator, so a digest caller can pin the order it hashes. Each result
 // carries the absolute path, the POSIX-relative path, and the dirent, and an
 // unreadable root yields an empty list unless the caller asks for the error.
-export function walkFiles(root, { filter = () => true, compare = null, onError = "empty" } = {}) {
+export function walkFiles(root, { filter = () => true, compare = null, onError = "empty", beforeAccess = () => {}, onEntry = () => {} } = {}) {
   const results = [];
   const visit = (dir) => {
+    beforeAccess(dir);
     let entries;
     try {
       entries = readdirSync(dir, { withFileTypes: true });
@@ -22,6 +23,8 @@ export function walkFiles(root, { filter = () => true, compare = null, onError =
     for (const entry of entries) {
       const absolute = path.join(dir, entry.name);
       const record = { path: absolute, relative: posixRelative(root, absolute), dirent: entry };
+      beforeAccess(absolute);
+      onEntry(record);
       if (entry.isDirectory()) {
         visit(absolute);
         continue;

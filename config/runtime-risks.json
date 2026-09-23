@@ -18,6 +18,7 @@
       "class": "destructive",
       "authority": "Authority: install, retire, and rollback subcommands mutate the user's global capability index and require an explicit operator request."
     },
+    { "path": "scripts/lib/catalog/capability-admission.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-config.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-desired.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-document.mjs", "class": "read-only" },
@@ -34,6 +35,7 @@
     { "path": "scripts/lib/catalog/catalog-usage-literals.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-usage-normalize.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-usage.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/opencode-capabilities.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/plugin-identity.mjs", "class": "read-only" },
     { "path": "scripts/lib/conformance/conformance.mjs", "class": "additive" },
     { "path": "scripts/lib/contract/change-contract-runs.mjs", "class": "read-only" },
@@ -56,6 +58,7 @@
       "class": "destructive",
       "authority": "Authority: appends a commit digest to the release ledger inside the user's release store and the source checkout; run only under an explicit seal request."
     },
+    { "path": "scripts/lib/install/project-skill-composition.mjs", "class": "read-only" },
     { "path": "scripts/lib/install/skill-metadata.mjs", "class": "read-only" },
     {
       "path": "scripts/lib/install/skills-export.mjs",

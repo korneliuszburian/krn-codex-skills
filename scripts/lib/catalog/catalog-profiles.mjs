@@ -165,9 +165,10 @@ function validateProfile(name, profile) {
     }
     assertExactKeys(
       policy,
-      surface === "apps" ? [...keys, "mode"] : keys,
+      surface === "apps" ? [...keys, "mode"] : [...keys, "default"],
       `profile '${name}' ${surface}`,
     );
+    if (surface !== "apps" && policy.default !== undefined && policy.default !== "disabled") throw new Error(`Profile '${name}' ${surface}.default must be disabled`);
     for (const key of keys) {
       const values = policy[key];
       if (!Array.isArray(values) || values.some((value) => typeof value !== "string")) {
@@ -197,6 +198,7 @@ function validateProfile(name, profile) {
   if (!profile.skills.preserveScopes.includes("project-local")) {
     throw new Error(`Profile '${name}' must preserve project-local skills`);
   }
+  if (profile.skills.preserveScopes.some((scope) => !["project-local", "system"].includes(scope))) throw new Error(`Profile '${name}' may preserve only project-local and system scopes`);
   const familyConflict = profile.skills.enableFamilies.filter((family) =>
     profile.skills.disableFamilies.includes(family),
   );

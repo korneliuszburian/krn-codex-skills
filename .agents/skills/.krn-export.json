@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "krn": {
-    "commit": "7bf0c4d82305cfb9066d56f4a4bcb08a2cc5bc7a",
-    "dirty": false
+    "commit": "1e37511c7b29cb7ea45059009f3f13184fc04a11",
+    "dirty": true
   },
   "upstream": {
     "id": "mattpocock/skills",
@@ -24,10 +24,10 @@
     "wayfinder"
   ],
   "digests": {
-    "delivery-loop": "a72a27b8233fd3b885b70bb23d4271a8efca2058c8eff1781adf2b8a88fbdc2d",
+    "delivery-loop": "8e6724360bd046acb9befa5b25210d5c8a1a76d01d752ad239dc47aabe2a9349",
     "source-to-decision": "5bd95f3844e5f436d6e0658de98cd653d847c21653bbc89fc96eecedc102001f",
     "slice-work": "204cf02c807b8849ced029d8d1a64481e153df67b7c5bea231ef0a9cbb9ffeaa",
-    "setup-repository-workflow": "9a5c615a9804b13b4f2380f3059f76153936f87b42d3e2d7d35d07d83de94575",
+    "setup-repository-workflow": "51eff04bb0aa45bb80e674a902a8e6fc699808afa477661c94c1b47af4ad8a71",
     "code-review": "12daafb9c4f77deb3c3303dc2e6f8a3c2a0ff7928fc004af959ba18b8bd38068",
     "codebase-design": "9f457cc65ef2d70eb5b8a44a4dae2b139840078b6596a67ee8c4e95f5a0e6f5c",
     "diagnosing-bugs": "bcdaec9e1033901c396437fcb102161d8ad3cd87632007aaf270b19e03e70117",

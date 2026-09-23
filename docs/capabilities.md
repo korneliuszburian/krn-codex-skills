@@ -6,7 +6,7 @@ reconciles named profiles into `config.toml` without rewriting unrelated
 configuration.
 
 Status: `accepted`. Consumer: operators selecting or auditing a KRN capability
-profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-13.
+profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-23.
 
 ## Trust model
 
@@ -67,6 +67,72 @@ file cannot regrow through unwrapped prose.
 Profiles are complete policy documents rather than inheritance chains. A
 reader can see every intended state without mentally expanding a parent.
 
+Retained explicit-only skills can still be disabled by a profile. The user
+explicitly restored `ask-gpt` availability on 2026-09-22: `lean` and `minimal`
+now admit the installed owner from `skills/manifest.json`. It remains
+explicit-only; enabling it does not start a model or a research run. The earlier
+exclusion was a profile choice, not retirement or evidence of disuse. Manual
+availability and automatic workflow invocation are separate decisions.
+
+Workflow admission is derived from `skills/manifest.json` and the pinned
+`harness_paths` plus explicit availability companions in
+`config/upstream-sources.json`. Companions make an upstream procedure available;
+they do not force its invocation. Profiles own optional extensions and explicit
+exclusions. Unknown global skills, plugins, and MCP servers default disabled,
+including plugin/MCP records found only in configuration. Project and system
+scopes are preserved before ordinary name selectors. Missing derived owners
+make `check` report an incomplete installation rather than convergence.
+
+## Equivalent exports and host scope
+
+`plan`, `apply`, and `check` reconcile the current repository, or the explicit
+`--root`, against installed owners. Only a generated KRN export with a matching
+marker, complete directory digest, authorized global source, and enabled global
+owner can defer to that installed owner. The writer marks its exact project-path
+overrides in Codex TOML; there is no additional registry. A changed reference,
+missing owner, or lost equivalence makes `check` drift and `apply` withdraws its
+own override. Independent user overrides and authored project skills remain
+untouched. Run reconciliation after changing an export, checkout, release, or
+profile: Codex path overrides are not conditional on a content digest.
+
+These are user-layer rules rather than project TOML settings: Codex 0.155.1
+reads skill enablement from user and session layers. Fresh CLI discovery has
+bounded local evidence; a current desktop session still needs its own readback.
+
+OpenCode has its own discovery and permission model. The sh-166 candidate extends
+the existing KRN adapter to project the profile at instance configuration, using
+`KRN_CAPABILITY_PROFILE` or `lean`. It disables unadmitted global skill names,
+preserves names owned by the current project, and leaves native system defaults
+with OpenCode. It does not infer OpenCode state from Codex TOML. These are name
+permissions for visibility and invocation, not a filesystem sandbox: OpenCode
+may parse a discovered skill before filtering it. Global agent prompts, goal
+plugins, and account connections retain their separate owners.
+
+The admission and composition rules above describe the source candidate. Its
+full frozen observer, six reviewed edge cases and full gates remain open;
+the OpenCode extension is not installed. Local Codex convergence does not imply
+complete cross-host implementation or a sealed release. The outcome capsule
+and configured sh-166 ticket own current execution evidence and remaining work.
+
+Read-only check on 2026-09-23: the global OpenCode plugin symlink resolved to
+the installed `7acc1d4` release and its bytes matched that baseline, while the
+new capability projection exists only in the dirty sh-166 source. The available
+`opencode --version` returned `1.18.30`. These observations establish selected
+installed bytes and a CLI version; they do not show which plugin/config a
+running application process loaded. The five sh-166 cases remain the known
+source defects, with no additional behavioral defect established by the report
+campaign. A later local review found that KRN origin admission still trusted a
+matching path suffix; a focused counterexample failed before the current source
+repair and passed after checking the real installed owner under `krn/current`.
+After authorized repair and installation, a fresh process must read
+back effective permissions for admitted global, denied global and preserved
+project skills. A source or symlink check is insufficient for that claim.
+
+Falsifier: an unknown global option stays enabled, a preserved project skill is
+disabled by a global name collision, an unavailable owner hides its project
+fallback, or a changed export keeps a producer-owned exclusion after apply.
+Supersede these host rules when discovery or permission semantics change.
+
 ## Capability state vocabulary
 
 Catalog output uses four evidence-bounded states. They are separate dimensions,
@@ -110,8 +176,17 @@ krn capability apply lean
 krn capability check lean
 ```
 
-`krn-codex-catalog` remains a one-release compatibility entrypoint. Inside the
-source checkout, `npm run catalog -- COMMAND` is equivalent.
+`krn-codex-catalog` is still declared as a compatibility entrypoint, but the
+sealed release `9f18ab2442ab0f920e2aa8753228e12dc0c7c549` exits with
+`MODULE_NOT_FOUND`: its wrapper calls the retired, unshipped
+`scripts/krn-codex.mjs`. The current source WIP points the wrapper at shipped
+`krn.mjs` and passes an isolated installed-bin smoke; the live installed alias
+remains broken until a new release is authorized and installed. Use
+`krn capability` for installed operations now. The source-checkout
+`npm run catalog -- COMMAND` alone does not prove the installed alias works.
+`scripts/catalog.mjs` is the
+capability implementation behind the public `krn capability` command;
+`scripts/krn-codex.mjs` remains in the checkout only for frozen conformance.
 
 `apply` is the only mutating command. Restart Codex after it succeeds: current
 sessions retain the capability index loaded at session start.

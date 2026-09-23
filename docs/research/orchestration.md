@@ -1,7 +1,7 @@
 # Orchestration and compact context
 
 Status: `accepted`. Consumer: maintainer, `$delivery-loop`, and
-`$source-to-decision`. Owner: maintainer. Verified: 2026-09-16. Rework this page
+`$source-to-decision`. Owner: maintainer. Verified: 2026-09-23. Rework this page
 in place when a falsifier fires; do not append a parallel “v2” report.
 
 ## Decision question
@@ -236,15 +236,16 @@ The boundary is host-triggered. `config/hooks.json` wires
 `scripts/hooks/krn_memory.py` on two events: **SessionStart** injects each
 continuing capsule's acceptance, next action, and blockers as `additionalContext`,
 and **PreCompact** writes a `boundary.md` next to each continuing capsule
-(timestamp, acceptance, next action, blockers) and also emits the brief. Proven in
-the LT-6 lab on 2026-09-16: a 12k context window compacted mid-run and PreCompact
-wrote `boundary.md`; and a fresh codex session with the neutral prompt "Continue
-the work in this repository." wrote the file named by the capsule's next action,
-with no prompt telling it to read the capsule. Bound: SessionStart
-`additionalContext` is retained in the session, but PreCompact's was not observed
-in the rollout after compaction, so the mechanical guarantee there is the on-disk
-`boundary.md`. Both hooks need `--dangerously-bypass-hook-trust` or a persisted
-hook trust on the host, and neither blocks a session.
+(timestamp, acceptance, next action, blockers) and exits silently. The current
+[Codex Hooks contract](https://learn.chatgpt.com/docs/hooks) documents
+`hookSpecificOutput.additionalContext` for SessionStart, including a
+SessionStart following compaction; PreCompact supports common JSON output fields
+and accepts exit 0 with no output. LT-6 on 2026-09-16 observed the boundary file
+written during compaction and a separate fresh-session continuation from the
+capsule. It did not observe the post-compaction session reading `boundary.md`.
+That file's automatic reader remains unverified and sh-170 owns its retention
+decision. Both hooks need `--dangerously-bypass-hook-trust` or persisted hook
+trust on the host, and neither blocks a session.
 
 ## One spine, typed entries
 
@@ -442,7 +443,8 @@ Four local skills remain explicit-only:
 
 - `setup-repository-workflow` because it mutates repository instructions;
 - `opencode-second-opinion` because it starts an external advisory run;
-- `unslop` because it performs a deliberate prose audit or rewrite.
+- `unslop` because it performs a deliberate prose audit or rewrite;
+- `ask-gpt` because it starts an external advisory research request.
 
 `slice-work` is model-invocable because `delivery-loop` composes it. Ticket
 publication remains a separate authority branch; invocation does not grant
@@ -451,6 +453,18 @@ remote mutation.
 No central router is added. Skill descriptions are the admission router; add a
 router only after repeated human recall failures across the four explicit-only
 local skills.
+
+OpenAI's 2026-09-23 [skill guidance](https://learn.chatgpt.com/docs/build-skills)
+puts the user goal and trigger boundary in the short description and calls for
+direct, indirect, negative and edge-case prompt checks. KRN's current
+`routingCaseErrors` is a structural check: it matches declared trigger strings
+against descriptions but does not evaluate positive-case query text. An
+unrelated positive query passed with its original trigger unchanged. The first
+dirty sh166 capability description failed two pinned trigger phrases (7/9);
+the source repair passed 9/9, while the installed release still has the older
+description. sh166 owns installed readback; sh170 owns the bounded
+admission-proof review. These
+findings do not establish a live misroute or justify a learned selector.
 
 ## Complete owner map
 
@@ -663,14 +677,14 @@ a field is empty, or a retired surface reappears.
 | Artifact | Writer | Reader | Delivery trigger | Budget | Falsifier | Invalidation rule | Deletion owner |
 |---|---|---|---|---|---|---|---|
 | `state.md` | `$delivery-loop` (sole writer) | the session at bind and SessionStart | every owner or context boundary | four narrative fields, 8192 bytes total | `krn state check` and `test/state/*` | rewritten in place, deleted with the run at cleanup | delivery-loop |
-| `boundary.md` | `krn_memory.py` on PreCompact | the post-compaction session, because PreCompact `additionalContext` retention is unproven | PreCompact on a continuing capsule | one small file per run | `test/hooks-guard.test.mjs` | rewritten at each PreCompact, never written for a non-continuing capsule, deleted with the run | delivery-loop cleanup |
-| `workflow-lessons.md` | maintainer session | `changes check` before mutation | path, symbol, or churn trigger match on the change | 24 active rows, bounded by displacement | `npm run lessons:verify` and `npm run test:lessons` | retire with `retired@<sha>`; a zero-delivery row leaves the budget | maintainer |
+| `boundary.md` | `krn_memory.py` on PreCompact | no observed reader; manual recovery is a proposed use, and automatic post-compaction read is unverified | PreCompact on a continuing capsule | one small file per run | `test/hooks-guard.test.mjs` proves writing only; a real post-compaction continuation must show use or non-use | rewritten at each PreCompact, never written for a non-continuing capsule, deleted with the run | delivery-loop cleanup |
+| `workflow-lessons.md` | maintainer session | `changes check` before mutation | path, symbol, or churn trigger match on the change | 24 active rows, bounded by displacement | `npm run lessons:verify` and `npm run test:lessons` | retire with `retired@<sha>` when superseded or its live gate is gone; zero delivery alone is a review trigger, not deletion proof | maintainer |
 | `lab-tests.md` | maintainer session | `$source-to-decision` and the review fixed point | a behavioral claim that needs a registered pilot | 100 non-retired rows | `test/rules/lt-registry.test.mjs` and `test/rules/lt-retention.test.mjs` | `retired@<7-hex>` in the Status cell, tombstones stay | maintainer |
 | `docs/research/` | maintainer session | sessions and operators through the index | a decision or falsifier needs durable synthesis | one page per topic, state and reopen condition in the index | `npm run test:durable-pages` | rework in place; a page with no reader is deleted | maintainer |
 | `docs/adr/` | maintainer session | instruction and skill owners, by link only | a rare, hard-to-reverse trade-off | one ADR per decision, no restatement elsewhere | each ADR supersession rule and `npm run test:durable-pages` | superseded by a successor that names the migrator | maintainer |
 | `CONTEXT.md` | maintainer session | every session and operator as the compact model | vocabulary or knowledge-map change | one index line per artifact | `test/rules/instruction-ownership.test.mjs` and `npm run test:durable-pages` | update in place in the change that moves the vocabulary | maintainer |
-| `.scratch/tickets/` | `krn ticket` verbs and the maintainer | `krn ticket next` and `check`, the lane runner, and the session brief | claim, close, fail, or frontier read | ignored local queue, one ready item in flight | `krn ticket check` | terminal status, superseded through typed links | maintainer |
-| `krn memory recall` | lesson triggers | the maintainer, manually, and the lane preflight through `changes check --strict-recall` | a manual advisory query, or a triggered change in a lane | advisory hit; `--strict-recall` blocks in lanes | `test/lessons/recall-hit-rate.test.mjs` and `test/lessons/lesson-trigger-hygiene.test.mjs` | trigger removed or lesson retired when delivery stays zero | maintainer |
+| `.scratch/` and `.krn/tickets/` ticket files | `krn ticket` verbs and the maintainer | `krn ticket next` and `check`, the lane runner, and the session brief | claim, close, fail, or frontier read | ignored local queue, one ready item in flight | `krn ticket check`; delivery archive restores the same path and ID set | terminal status, superseded through typed links | maintainer |
+| `krn memory recall` | lesson triggers | the maintainer, manually, and the lane preflight through `changes check --strict-recall` | a manual advisory query, or a triggered change in a lane | advisory hit; `--strict-recall` blocks in lanes | `test/lessons/recall-hit-rate.test.mjs` and `test/lessons/lesson-trigger-hygiene.test.mjs` | trigger or lesson retired only after its consumer is gone, a structural gate supersedes it, or a bounded negative-use check supports retirement | maintainer |
 | `krn_memory.py` | maintainer session, installed by release | the SessionStart and PreCompact host events | session start in a managed tree, or PreCompact on a continuing capsule | one capsule note or one queue line | `test/hooks-guard.test.mjs` and `test/hooks-queue-brief.test.mjs` | hook policy change; adoption stays explicit-only | maintainer |
 | `e2e-compare.mjs` | maintainer session | the frozen harness-vs-vanilla measurement with per-component ablation | baseline and paired runs at a fixed SHA | at least 3 paired trials with tokens and wall recorded | `test/harness/e2e-compare.test.mjs` | retire when the measurement lands or its window expires | maintainer |
 | `lane-runner.mjs` | maintainer session | `krn harness compare` through `KRN_HARNESS_LANE_RUNNER` | an explicit paired measurement with `KRN_HARNESS_AGENT` set | one payload per lane run, no daemon | `test/harness/lane-runner.test.mjs` | retire with the harness adapter contract; it is a checkout-local tool, never a runtime path | maintainer |
@@ -684,8 +698,9 @@ deletion owner, or it is deleted in the sh-104 pass:
 
 - `docs/BRIEF.md` with the `krn brief` station: deleted. No reader exists, and
   the file is a second copy of `workflow-lessons.md` and `lab-tests.md`.
-- `boundary.md`: kept. The reader is the post-compaction session, and LT-6 is
-  the evidence that the on-disk file is the mechanical guarantee.
+- `boundary.md`: kept in the historical sh-104 decision. LT-6 proved the write,
+  but no automatic read has been observed; sh-170 reopens retention against the
+  native post-compaction SessionStart path.
 - `e2e-compare.mjs`: kept. The consumer is the frozen paired measurement with
   per-component ablation required by the measurement phase.
 - `falsifier-mutate.mjs`: deleted. It is fixture-only per LT-76 and subsumed by
@@ -719,6 +734,206 @@ closure lesson gains it.
   `config/release-digests.json` is a distinct trust artifact for sealed release
   bytes, not a second export provenance.
 
+## Requirement applicability and current proof
+
+Disposition: `lab-test`. Owner: `$source-to-decision`; prospective runtime
+owner: `$delivery-loop`. Consumer: the maintainer deciding whether sh-163 is
+worth running. Supersede this section when the qualified mechanism screen
+accepts, rejects or leaves the claim inconclusive. Sequencing belongs to
+[self-hardening-roadmap.md](self-hardening-roadmap.md), not a second ledger here.
+
+Observation: LT-107 recorded vanilla 0/1 complete and current KRN 0/1. Step 5
+passed its own check while four old checks failed after createStore became
+openStore. Their hidden imports used the old symbol. Therefore the pilot cannot
+identify forgetting, a recurrence rate or a causal benefit from proof binding;
+legal contract replacement and a stale oracle remain competing explanations.
+The earlier assertion that the pilot established a vanilla weakness is
+superseded. [SWE-bench Verified](https://openai.com/index/introducing-swe-bench-verified/)
+(OpenAI, 2024-08-13) independently documents how overly specific tests and
+underspecified tasks can reject correct solutions. That is a reason to audit
+our oracle, not evidence of a KRN treatment effect.
+
+[Build Systems à la Carte](https://www.microsoft.com/en-us/research/wp-content/uploads/2018/03/build-systems-final.pdf)
+(Mokhov, Mitchell and Peyton Jones, ICFP 2018, section 4.2.2) describes verifying
+traces containing dependency hashes to decide whether a result is current.
+This gives a deterministic invalidation mechanism; it does not establish which
+user requirement remains applicable. Freshness alone is established build-system
+practice, not a new verification theory. The paper and the SWE-bench source were
+rechecked on 2026-09-22.
+
+The sharper KRN hypothesis is a complete intent transition: every old requirement
+is preserved with current evidence, replaced with an executable mapping to an
+existing successor, or revoked against an authoritative request. New requirements
+enter the current manifest; none disappear without a disposition. The capsule
+remains the sole manifest, with previous versions in existing history. No second
+store, universal graph engine or learned dependency selector is proposed.
+
+The three labels need scope and authority. A later delta request leaves an
+omitted obligation active unless an authorized, overlapping replace or revoke
+says otherwise; only a request format explicitly declared as a complete
+authoritative snapshot changes that default. At base `7acc1d4`,
+`scripts/harness/trajectory-runner.mjs` deactivates each ID in `step.retires`
+without checking authority. sh-167 must accept gold preserve/replace/revoke
+cases and reject the same candidate code when only retirement authority
+changes. This falsifier is designed, not run. A code diff alone cannot decide
+whether a change of requirement was authorized.
+
+[W3C PROV-Dictionary section 3.3](https://www.w3.org/TR/prov-dictionary/#dictionary-removal)
+(Note, 2013-04-30) models removal with a complete removed-key set, while
+[Specifying Systems section 5.8](https://lamport.azurewebsites.net/tla/book-02-08-08.pdf)
+(Lamport, 2002) uses refinement mappings to establish an implication. Applying
+these ideas to request boundaries is our inference. Calling a link a refinement
+does not prove it, and a model verdict cannot establish retirement authority.
+
+For example, an explicitly replaced API may lose its old name while isolation
+and atomicity survive. A behavioral-check adapter can witness the replacement
+only if independent mutants that violate those properties still fail. Identical
+code under different explicit retirement requests is a required authority control.
+Finite checks do not prove implication over every behavior or initial intent
+completeness. Cost is manifest coverage plus mapping and execution at genuine
+supersession; semantic checking may dominate.
+
+Separate local mechanism evidence: the preserved, unpublished sh-165 candidate
+afe2ceff3a234f30a41cacd136ac06d31a872e66 had focused 24/24 and coherence 18/18
+green; its identical frozen observer produced 17 assertion failures and one
+passing negative case at 7acc1d4. These results concern cooperative executed
+receipts and shared advancement consumers, not agent uplift. They are not source
+present in this main-based checkout, a release install or a fresh proof for
+historical prose acceptance. Ignored dependencies, undeclared environment and a
+writer able to forge or erase receipts remain outside the guarantee.
+
+At `afe2ceff3a234f30a41cacd136ac06d31a872e66`, the sh-165 inspector
+fingerprints the whole tracked tree plus requirement/check and declared
+environment. That gives a cooperative receipt for that fixed point; unrelated
+tracked edits cause extra invalidation. It cannot notice a changed ignored
+file, generated input, live network response or host tool that a check reads
+but the key omits. [Bazel's remote caching documentation](https://bazel.build/remote/caching)
+likewise identifies outside-workspace tools as a possible false cache hit.
+This supports an input-closure warning, not a new proof framework. Before
+promising reuse beyond the tracked tree, sh-165 must exclude each hidden input
+class by execution boundary, bind it explicitly, or narrow the promise. An
+ignored-input flip is the cheapest designed falsifier. A typed coverage
+certificate stays `defer` until that counterexample is observed and an
+existing consumer needs reuse rather than rerunning the check.
+
+### Qualify the oracle, then screen the mechanism
+
+Before model calls, accept gold implementations for compatible rename, explicit
+breaking rename and shared-dependency change without public rename; reject silent
+deletion and independent isolation/atomicity mutants. Include identical-code
+authority cases and an unrelated change. Reject the instrument if any expected
+gold/mutant verdict is wrong; changing it after outcomes invalidates that run.
+
+Fork one correct, frozen pre-change checkpoint into five continuations:
+
+| Cell | Intervention | Contrast |
+|---|---|---|
+| R | Restart and last request; prior requirements accessible | Reference |
+| M | R plus current-requirement reminder | M minus R: reminder availability |
+| I | M plus stale-proof notice without regression diagnostics | I minus M: invalidation information |
+| G | M plus ordinary regression feedback | G minus M: test feedback |
+| B | G plus binding and refusal of unsupported completion | B minus G: marginal binding value |
+
+Hold code, model, settings, available information, budgets and repair chances
+equal. G and B receive identical test output. Report final product correctness,
+unsupported success claims, false blocking, no-regression-at-any-step trajectory
+success and recovery latency separately. A refusal is not a product repair;
+one persistent failure is not a new loss at every boundary. All attempts,
+checking, retries, tokens and wall count.
+
+The first five continuations choose a mechanism contrast. Replicate only that
+contrast on a non-rename dependency change before scaling: seven continuations
+inform direction, not significance or effect size. If G matches B at no greater
+cost, reject a distinct binding benefit for these cases. Reject false blocking
+of legal evolution. No live screen has run. A new correct checkpoint is a new
+experiment, not a replay of the unavailable historical step-4 checkpoint.
+
+The unit is one complete trajectory, not five request steps. I and G are
+sibling additions to M: `I-M` measures the stale notice and `G-M` the
+regression-feedback package; `G-I` cannot isolate diagnostics over the notice.
+The causal target for binding is `B-G` with byte-identical diagnostics,
+available repair opportunities and continuation condition. A refusal remains
+part of B's treatment and its cost. Freeze practical stop thresholds, fixture
+identity, invalid/retry handling and the cost meter before any model run; five
+initial continuations support only a screen, not a confidence bound. An
+infra-invalid attempt still costs time and resources; a valid model failure is
+not retried as infrastructure. A missing cost component makes the cost result
+inconclusive. This design draws on paired binary inference, but it cannot
+identify the model's internal attention or forgetting mechanism.
+
+sh-163 retains its three-arm acceptance: 24 matched trajectories per arm,
+at least +25 percentage points against both vanilla and current KRN, positive
+paired confidence bounds and total tokens/wall at most 1.25 times each baseline.
+Regression-only is an additional causal control, not a silent replacement of a
+ticket arm. Freeze the scenario distribution, paired-difference interval,
+decision against both baselines, clustering and invalid-trial handling first.
+Exact McNemar alone is not a risk-difference interval. See
+[Fay and Lumbard](https://pmc.ncbi.nlm.nih.gov/articles/PMC9447366/) for paired
+difference inference and [Howard et al.](https://arxiv.org/abs/1810.08240) for a
+possible prespecified sequential method. Otherwise use one terminal decision;
+24 pairs do not guarantee power. Missing pairs or costs remain inconclusive.
+Before sh-163 is frozen, specify whether those 24 pairs are distinct fixtures
+or repeated stochastic runs and name the sampling frame; changing that unit is
+an explicit amendment. The existing acceptance has two separate cost gates,
+tokens and wall time, each at most 1.25 times each baseline. Monetized billing,
+tool and human effort may be reported in addition, but a summed money ratio
+cannot silently replace either registered gate. Regression-only is an added
+causal control, not a substitute for vanilla or current KRN.
+
+### Memory writing remains a separate uncertainty
+
+LT-6 demonstrated sufficiency of a lab-authored capsule, not the agent's ability
+to write a current one. This session's capsule also retained an old branch after
+work moved, an observed production-of-memory failure with no established rate.
+[LongMemEval v2](https://arxiv.org/html/2410.10813v2) (ICLR 2025; rechecked
+2026-09-22) separates knowledge updates from retrieval and shows that reading
+strategy matters even with oracle evidence sessions. Transfer to KRN is a
+hypothesis: evaluate an agent-authored real boundary with capsule, transcript
+and repository-only controls before adding another delivery instruction.
+sh-169 owns that bounded decision; LT-104's retired delivery stays retired.
+LongMemEval tests update as well as retrieval, but neither it nor the local
+LT-6 tests whether an agent can write a correct KRN handoff with current
+authority. One genuine checkpoint and the existing three controls remain the
+first screen; a proposed 24–36-run factorial has no earned consumer or cost
+case. A capsule that passes its ABI but resurrects a revoked obligation is the
+deciding writer counterexample. Preserve the native Goal and unchanged repo
+continuation as baselines before attributing any gain to the capsule.
+
+### Capability composition is a separate engineering result
+
+The host audit distinguishes policy intent from effective exposure. Current
+Matt exports and global links matched the pin byte-for-byte; duplication did
+not demonstrate a hidden fork. After the explicit `ask-gpt` restoration, fresh Codex CLI discovery reported
+29 enabled entries and no equivalent owner duplicates, with producer-owned
+user-layer rules over 13 identical project exports. A current application session was not
+proved reloaded. OpenCode has a different discovery/permission seam and its
+candidate hook remains uninstalled with open reviewed defects.
+
+Disposition: `lab-test` for complete host composition, returned to
+`$managing-codex-capabilities`. That owner maintains policy and its falsifiers
+in [capabilities](../capabilities.md): authorized source identity, preserved
+project/system scope, optional exposure and withdrawal after lost equivalence.
+Unknown admission, false source identity, hidden project fallback or a host
+readback contradicting a converged plan falsify the candidate. Cost is inventory,
+closure comparison and per-host readback. It is not filesystem isolation,
+account authorization or measured model-quality uplift.
+
+### Advisory instruction authority (2026-09-23)
+
+`ask-gpt` is installed and declared explicit-only, but no trace shows it was
+loaded in the behavior discussed by the research reports. Its source had two
+repairable authority drifts: publication was a preparation gate even for an
+already pushed fixed point, and ChatGPT Project was called a durable,
+append-only record of repository rules. Local source WIP now chooses the
+surface before preparing evidence, permits an already published SHA without a
+new push, and treats project context as an optional snapshot. [OpenAI's Projects documentation](https://learn.chatgpt.com/docs/projects)
+describes shared project files, instructions and sources; it does not grant
+authority over repository knowledge. `CONTEXT.md`, ADR and research remain the
+repository owners. sh-170 records the original findings; a traced
+false-positive load or an authorized source/Project divergence is the deciding
+falsifier. Installation or a manifest `implicit:false` declaration alone does
+not prove loading in a current session. No new memory owner is adopted.
+
 ## Adoption ledger
 
 Every adopted mechanism, lesson, and instrument carries its owner, the evidence
@@ -733,8 +948,8 @@ ledger is short, or a date has passed.
 |---|---|---|---|---|
 | Kernel single-owner rule (`scripts/lib/kernel/**` plus a `*-single-owner` observer each) | maintainer | sh-94 through sh-111 tickets and the `test/kernel/*-single-owner.test.mjs` observers | 2026-12-31 | a second implementation appears, or an observer is deleted without a replacement |
 | `mutation-probe.mjs` as the single mutation owner | maintainer | LT-29, LT-34, `test/audit/mutation-probe.test.mjs` in `test:lib` | 2026-12-31 | a diff-scoped mutation mode replaces the hand-listed set |
-| `boundary.md` as the PreCompact re-arm materialization | delivery-loop | LT-6 and `test/hooks-guard.test.mjs` | 2026-12-31 | PreCompact `additionalContext` retention is proven, or the run is deleted |
-| Measurement track (`e2e-compare.mjs`, `lane-runner.mjs`, `opencode-agent.mjs`, `swebench-run.mjs`, `memory-tasks.mjs`, `terminal_bench_agent.py`, `test/harness/tasks/`) | maintainer | LT-102 toy baseline; LT-103 SWE-bench Verified slice (full 5/5, vanilla 5/5, four identical patches, full +1.13M tokens and ~2x wall) and the hard slice (largest gold patch per harder repository: full 5/5, vanilla 5/5, full +2.02M tokens and 467s); LT-104 LongMemEval-S (weak, noisy signal: 4/5, 5/5, 5/5; earlier 1/3, 3/3, 2/3) and MemoryAgentBench CR (both 1/1), and the decisive-lesson test (vanilla, no-memory, and full all 9/9, so the agent-facing memory delivery and the harness `memory` lane are retired); LT-106 guard-recovery (full 6/6, no-hooks 6/6, the guard unexercised and the delta zero); LT-105 Terminal-Bench (oracle proven, KRN lanes blocked by a provider error inside the task container); plus `test/harness/*.test.mjs` | 2027-06-30 | the code-side discriminative question is closed (both SWE-bench slices saturated, so the benchmark measures the model ceiling, not the workflow surfaces) and the Terminal-Bench KRN lanes are permanently harness-proven-only until a task container has provider reachability; the memory-side scale (LongMemEval-S, MemoryAgentBench CR) is re-run with discriminative instances and each component is re-justified or retired; the remaining surfaces (skills, brief, hooks) are not retired on the current evidence (consistent cost with a weak, noisy pass-rate signal; they are workflow discipline rather than a code-solving substitute), the decision-point memory delivery was retired in sh-138 and is not part of this row, the LT-102..LT-105 deltas predate the sh-142 evaluator-integrity fix so a null delta establishes overhead not the absence of benefit, and an operator scope decision (opt-in surfaces for trivial tasks) stays open |
+| `boundary.md` as a provisional PreCompact recovery artifact | delivery-loop | LT-6 proves the write; `test/hooks-guard.test.mjs` checks it, and repository caller search found no reader; a real post-compaction continuation remains unobserved | 2026-12-31 | retire if that continuation succeeds without reading the file and no manual recovery consumer is demonstrated, or when the run is deleted |
+| Measurement track (`e2e-compare.mjs`, `lane-runner.mjs`, `opencode-agent.mjs`, `swebench-run.mjs`, `memory-tasks.mjs`, `terminal_bench_agent.py`, `test/harness/tasks/`) | maintainer | LT-102 toy baseline; LT-103 SWE-bench Verified slice (full 5/5, vanilla 5/5, four identical patches, full +1.13M tokens and ~2x wall) and the hard slice (largest gold patch per harder repository: full 5/5, vanilla 5/5, full +2.02M tokens and 467s); LT-104 LongMemEval-S (weak, noisy signal: 4/5, 5/5, 5/5; earlier 1/3, 3/3, 2/3) and MemoryAgentBench CR (both 1/1), and the decisive-lesson test (vanilla, no-memory, and full all 9/9, so the agent-facing memory delivery and the harness `memory` lane are retired); LT-106 guard-recovery (full 6/6, no-hooks 6/6, the guard unexercised and the delta zero); LT-105 Terminal-Bench (oracle proven, KRN lanes blocked by a provider error inside the task container); plus `test/harness/*.test.mjs` | 2027-06-30 | the code-side discriminative question is closed (both SWE-bench slices saturated, so the benchmark measures the model ceiling, not the workflow surfaces) and the Terminal-Bench KRN lanes are permanently harness-proven-only until a task container has provider reachability; the memory-side scale (LongMemEval-S, MemoryAgentBench CR) is re-run with discriminative instances and each component is re-justified or retired; the remaining surfaces (skills, brief, hooks) are not retired on the current evidence (consistent cost with a weak, noisy pass-rate signal; they are workflow discipline rather than a code-solving substitute), the decision-point memory delivery was retired in sh-138 and is not part of this row, the LT-102..LT-105 local-lane deltas predate the sh-144 direct evaluator-exposure fix (sh-142 still left a readable /tmp stash) so a null delta establishes overhead not the absence of benefit, and an operator scope decision (opt-in surfaces for trivial tasks) stays open |
 | Memory wiring map and its observer | maintainer | LT-101 and `test/contract/memory-wiring-map.test.mjs` | 2026-12-31 | a memory artifact moves or the map stops being observed |
 | Workflow lessons with trigger-based recall | maintainer | `npm run lessons:verify`, `krn memory usage`, and the delivery measurement in the sh-104 pass | 2026-12-31 | a triggered lesson stays at zero delivery after its trigger is tightened |
 | Local ticket queue as the frontier | maintainer | `krn ticket check` and `next`, and `docs/research/ticket-protocol.md` | 2026-12-31 | a second operator needs shared state, or the queue stops being the frontier |

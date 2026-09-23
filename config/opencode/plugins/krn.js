@@ -10,8 +10,9 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { parseTicketText } from "../../../scripts/lib/ticket/ticket.mjs";
+import { checkTickets } from "../../../scripts/lib/ticket/ticket.mjs";
 import { fieldLine } from "../../../scripts/lib/state/capsule-abi.mjs";
+import { configureOpenCodeCapabilities } from "../../../scripts/lib/catalog/opencode-capabilities.mjs";
 
 const GUARD = fileURLToPath(new URL("../../../scripts/hooks/krn_pretooluse.py", import.meta.url));
 const CONTINUING = new Set(["ACTIVE", "BLOCKED", "DEFERRED", "NEEDS_REVIEW"]);
@@ -22,8 +23,6 @@ const ONBOARDING_SIGNAL =
   "instructions without the KRN managed contract. When your current task is " +
   "finished, run `krn repo inspect --root .` for a read-only report; " +
   "adoption stays explicit-only.";
-const TICKET_START = "<krn-ticket>";
-const QUEUE_DIRS = [".scratch", ".krn/tickets"];
 const CLAIM_COMMAND = "krn ticket claim --root . --id <id>";
 
 function isInside(parent, candidate) {
@@ -144,56 +143,13 @@ function managedRoot(directory) {
   return null;
 }
 
-function markdownFiles(base) {
-  const files = [];
-  const walk = (dir) => {
-    let entries;
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.isFile() && entry.name.endsWith(".md")) files.push(full);
-    }
-  };
-  walk(base);
-  return files.sort();
-}
-
-function blockerIds(value) {
-  const raw = String(value ?? "").trim();
-  if (!raw || /^none$/i.test(raw)) return [];
-  return raw.split(",").map((entry) => entry.trim()).filter(Boolean);
-}
-
 export function readyIds(root) {
-  const discovered = new Map();
-  for (const dir of QUEUE_DIRS) {
-    for (const file of markdownFiles(path.join(root, dir))) {
-      let text;
-      try {
-        text = fs.readFileSync(file, "utf8");
-      } catch {
-        continue;
-      }
-      if (!text.includes(TICKET_START)) continue;
-      const { fields } = parseTicketText(text);
-      const id = fields?.get("Id");
-      if (id) discovered.set(id, fields);
-    }
+  try {
+    const report = checkTickets({ root, reconcile: false });
+    return report.errors.length === 0 ? report.frontier : [];
+  } catch {
+    return [];
   }
-  const done = new Set(
-    [...discovered].filter(([, fields]) => (fields.get("Status") ?? "").toLowerCase() === "done").map(([id]) => id),
-  );
-  const ready = [];
-  for (const [id, fields] of discovered) {
-    if ((fields.get("Status") ?? "").toLowerCase() !== "ready") continue;
-    if (blockerIds(fields.get("Blocked by")).every((blocker) => done.has(blocker))) ready.push(id);
-  }
-  return ready.sort();
 }
 
 export function queueBrief(directory) {
@@ -291,6 +247,7 @@ export const KrnAdapter = async ({ directory } = {}) => {
   const marker = (text) =>
     text.includes("KRN memory layer") || text.includes("KRN ready queue") || text.includes("KRN onboarding");
   return {
+    config: async (config) => configureOpenCodeCapabilities(config, { directory: cwd }),
     // The Codex SessionStart equivalent: the brief enters the system prompt,
     // not the user turn, so it informs the session without competing with the
     // user's own request.

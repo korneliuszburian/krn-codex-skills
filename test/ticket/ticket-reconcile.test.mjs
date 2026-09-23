@@ -104,6 +104,10 @@ test("reconcileTickets closes a claimed ticket whose recorded branch is an ances
     const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}; patch=${patch}` });
     mergeLane(dir);
 
+    const observed = ticketLib.checkTickets({ root: dir, dirs: [".scratch"], reconcile: false });
+    assert.deepEqual(observed.reconciled, [], "a host observation must not reconcile the ticket");
+    assert.equal(statusOf(file), "claimed", "the observer must leave the ticket bytes alone");
+
     const closed = ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" });
     assert.deepEqual(closed, ["sh-35"]);
     assert.equal(statusOf(file), "done");

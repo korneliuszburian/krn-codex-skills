@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -111,6 +111,20 @@ test("the plugin names only the frontier, resolving Blocked by against done ids"
     assert.match(brief, /t-other/);
     assert.match(brief, /t-tickets/);
     assert.doesNotMatch(brief, /t-wait/);
+  });
+});
+
+test("the plugin does not advertise a queue that ticket check rejects", async () => {
+  const adapter = await import(pathToFileURL(pluginPath).href);
+  await withDir(async (dir) => {
+    writeInstructions(dir);
+    makeTicket(dir, "sh-01", "ready");
+    const file = join(dir, ".scratch", "sh-01.md");
+    writeFileSync(file, readFileSync(file, "utf8").replace("Title: sh-01", "Title: "));
+    const result = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "ticket", "check", "--root", dir, "--json"], { encoding: "utf8" });
+    assert.notEqual(result.status, 0);
+    assert.ok(JSON.parse(result.stdout).errors.some((error) => error.rule === "missing-field"));
+    assert.equal(adapter.queueBrief(dir), null);
   });
 });
 

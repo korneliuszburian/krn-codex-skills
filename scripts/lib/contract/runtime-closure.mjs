@@ -14,8 +14,9 @@ function runtimeClosure({ root, manifest }) {
     manifest.global_agents,
     manifest.global_hooks,
     ...(manifest.global_hook_files ?? []).map((hook) => hook.path),
+    ...(manifest.opencode_plugins ?? []).map((plugin) => plugin.path),
   ]
-    .filter((file) => typeof file === "string" && file.endsWith(".mjs"))
+    .filter((file) => typeof file === "string" && /\.m?js$/.test(file))
     .map((file) => [null, file]);
   const reachable = new Set();
   const missing = new Map();
@@ -26,7 +27,7 @@ function runtimeClosure({ root, manifest }) {
     try {
       source = readFileSync(join(root, file), "utf8");
     } catch {
-      if (file.endsWith(".mjs")) {
+      if (/\.m?js$/.test(file)) {
         if (!missing.has(file)) missing.set(file, new Set());
         if (from) missing.get(file).add(from);
       }

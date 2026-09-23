@@ -154,6 +154,10 @@ export function normalizeDesired(desired, families, pluginSkillAliases) {
   if (desired === null || typeof desired !== "object" || Array.isArray(desired)) {
     throw new ConfigReconcileError("desired must be an object");
   }
+  const defaults = desired.defaults ?? {};
+  if (defaults === null || typeof defaults !== "object" || Array.isArray(defaults) || Object.entries(defaults).some(([key, value]) => !["plugins", "mcpServers"].includes(key) || value !== "disabled")) {
+    throw new ConfigReconcileError("desired.defaults supports only disabled plugins and mcpServers");
+  }
 
   const plugins = normalizeStateRecord(desired.plugins, "desired.plugins");
   const pluginFamilies = normalizePluginFamilies(desired.pluginFamilies);
@@ -232,6 +236,7 @@ export function normalizeDesired(desired, families, pluginSkillAliases) {
   }
 
   return {
+    defaults,
     plugins,
     pluginOwners,
     pluginFamilies,
