@@ -287,7 +287,7 @@ goes dangling merely because a reader still uses the old paths.
 The 2026-09-23 independent OpenCode advisory review identified the old
 `done` anchor requirement and the in-process/host reader set; the owner
 verified those at `ticket-check.mjs:147-159`, `state-check.mjs:106-120`,
-`config/opencode/plugins/krn.js:146-153` and the delivery-loop archive
+`config/opencode/plugins/krn.js` lines 146–153 and the delivery-loop archive
 instruction. The advisory did not execute a replacement-queue falsifier.
 SQLite's transaction and WAL guarantees support a local trial, while its
 [documented single-host WAL limit](https://www.sqlite.org/wal.html) and KRN's
