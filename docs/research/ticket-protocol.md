@@ -240,7 +240,8 @@ performance results.
 
 **Falsifier and non-proof.** Reopen the selection if the full production
 acceptance below fails or if a supported file/SQLite implementation proves a
-lower total operating cost. The adapters are test-only; they do not prove the
+lower total operating cost and the operator explicitly accepts that backend.
+The adapters are test-only; they do not prove the
 production CLI, import, rollback, installation cost, performance or
 cross-clone synchronization. No current queue data has been imported.
 
@@ -341,7 +342,8 @@ retirement consumer needs one.
 **Cutover order and recovery.** Sh-174 has settled the knowledge-reference
 boundary and H2 has selected Git-ref. Implement the production ref store with
 the expected-old CAS and one shared task API. Reopen SQLite only if a supported
-driver at the advertised Node floor is shown to cost less overall. Before
+driver at the advertised Node floor is explicitly accepted by the operator and
+shown to cost less overall. Before
 switching callers, import the current ID/path set with an unmapped-field
 report, then verify the production CLI, current task-selection projections,
 capsule candidate resolution and delivery-loop archive/restore with a
