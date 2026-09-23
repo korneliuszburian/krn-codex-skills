@@ -98,13 +98,17 @@ hosts own their mechanics and policy.
    the default `.scratch/` and `.krn/tickets/` roots into the documented
    durable host archive
    `${KRN_OUTCOME_ARCHIVE:-$HOME/.local/state/krn/outcomes}/<outcome-id>/`.
+   Include the common `.scratch/tickets/` directory and ticket files found
+   elsewhere under either root.
    Preserve each ticket's path relative to the checkout. Restore those paths
    into the successor checkout before `krn state check`, `krn state resume`,
    and `krn ticket next`. The archive is an operational copy on the host,
    never a tracked artifact. **Falsifier:** compare the ticket path and ID set
    reported by `krn ticket check --root REPO --json` before export and after
    restore, then confirm the capsule continues and `krn ticket next` gives
-   the same frontier. A missing root or ticket fails the comparison.
+   the same frontier. A fresh checkout that skips restore has an empty frontier;
+   the archive and restore are load-bearing. A missing root or ticket fails the
+   comparison.
 
    When a composed workflow returns a run
    pointer, upsert one `Outstanding workflow-run cleanup` entry keyed by that
