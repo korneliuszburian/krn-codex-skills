@@ -723,6 +723,28 @@ are verified for a specific decision.
 | Persistence and portability | Durable knowledge lives in Git; capsule and current tickets are ignored per checkout; linked worktrees share Git common state but not their local run files | Moving a task store to the common dir does not move a capsule or make knowledge authority transactional with Git | Keep one explicit export/restore and cross-worktree reference rule; decide storage only for the state whose owner needs sharing, and never infer multi-clone synchronization |
 | Evaluation and cost | LT rows hold bounded pilots; structural checks prove format/provenance; ADR 0006 records memory-prompt overhead and its evaluator limit | Synthetic recall hits, matching trailers and a same-model judgment do not measure changed decisions; prior null results were evaluator-exposed | Use a real continuation and one action-relevant lesson/staleness case with an independent fixed point, native/current baseline, invalid/retry accounting and tokens plus wall; defer causal claims when the instrument cannot discriminate |
 
+The row-by-row triage at `e19c4d8` covers all 20 active lessons in
+`workflow-lessons.md` (numbers are row order at that revision):
+
+| Candidate disposition | Rows and distinct question before changing them |
+|---|---|
+| Retain pending a real cue/use check | 1 installed closure, 11 real base-red, 18 memory staleness, 20 change prediction have triggers and a commit-time consumer. Row 11 has one historical hit and zero bindings; the other three also need decision-use evidence, not just trailers. |
+| Simplify or retire from the lesson page after instruction readback | 2 verified references, 3 capsule boundary, 4 independent review, 5 text budget, 7 red-before-green already live in the global contract, delivery-loop or validation. Check whether their broad bind-time presentation changes a decision beyond those owners. |
+| Retire prose after a gate-only baseline if no other reader exists | 6 readable diagnostics, 8 visible blocking errors, 10 full SHA, 13 broader coverage, 14 adapter deduplication, 16 recursion guard, 19 post-commit suite are incident-specific knowledge already enforced or documented by a test/CI rule. Keep the gate and historical Git evidence. |
+| Test transfer before retention | 9 unenforced prose, 12 review versus reachability, 15 exact Git-output helpers, 17 NUL-safe Git parsing express reusable engineering mechanisms but have no active trigger. A named later task and a wrong-near-match are required before a permanent lesson claim. |
+
+This is triage, not retirement. The current verifier rejects `retired@<sha>`
+when the cited gate remains live unless a different active lesson is named as
+`superseded-by`; `scripts/lib/lessons/lessons.mjs` and its retirement tests
+enforce it. That rule couples prose retention to a test's existence: even when
+a structural gate has fully absorbed a lesson, removing the lesson while
+keeping the useful gate is not a valid current transition. sh-174 must decide
+whether an explicit gate-absorbed retirement with a reachable gate is safer
+and simpler than preserving redundant prose. A disposable row with a live gate
+and no successor is the smallest existing counterexample; current code rejects
+it. Do not weaken retirement or delete rows before a focused red→green
+behavioral check and an owner/consumer disposition.
+
 Target contract, pending those gates: one current-outcome writer, Git-reviewed
 durable knowledge owners, and at most one bounded procedural-knowledge owner.
 Render a task's explicit references and live source status only when a named
