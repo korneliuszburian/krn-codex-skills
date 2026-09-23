@@ -237,15 +237,19 @@ superseded by the trial result, not by adding another live queue beside it.
 
 ### Architecture review: join work to memory without a new memory owner
 
+The memory product decision under sh-174 precedes the task backend/cutover
+decision under sh-175. The candidates below are trial designs, not a frozen
+task schema or permission to build a second live store.
+
 The queue's **Work item** owns identity, dependencies, discussion and result;
 the **Claim** owns one executor turn. The outcome capsule still owns current
-outcome authority, and `workflow-lessons.md` still owns active and retired
-cross-run lessons. This follows the existing vocabulary in `CONTEXT.md` and
+outcome authority, and `workflow-lessons.md` currently owns active and retired
+cross-run lessons pending sh-174's retain/simplify/retire decision. This follows the existing vocabulary in `CONTEXT.md` and
 ADR 0001/0005. A task may link to a capsule ID, a lesson anchor, a Git
 revision or a path, but the queue does not copy their contents or verdicts.
 `Compiled context` is a read view for a consumer, not a fourth memory store.
 
-**Candidate 1 — deepen the queue module (`lab-test`, sh-170).** Its small
+**Candidate 1 — deepen the queue module (`lab-test`, sh-175).** Its small
 interface should make one transaction responsible for readiness, claim epoch,
 dependencies, comments and closure. CLI, lane, hook, OpenCode and state-check
 are callers; a public storage-adapter interface is premature while there is
@@ -258,7 +262,7 @@ claim; a lane close needs the current claim epoch and the existing fixed-point
 proof. The queue must reference that proof rather than store another verdict.
 
 **Candidate 2 — compose a provisional task brief (`lab-test`, delivery-loop
-consumer).** At claim or continuation, resolve explicit context links and
+consumer, conditional on sh-174).** At claim or continuation, resolve explicit context links and
 show active lesson matches with their match reason and source revision. For a
 lane, the pre-work match uses declared scope and is labelled provisional:
 `run-ticket.sh` currently recalls from `Scope`, whereas `changes check
@@ -305,7 +309,8 @@ decision enough to pay for its resolver and host presentation. Do not add a
 durable context-use event or a new memory table until a named audit or
 retirement consumer needs one.
 
-**Cutover order and recovery.** First settle a supported Node `>=22` SQLite
+**Cutover order and recovery.** After sh-174 decides the knowledge-reference
+contract or explicitly chooses no link, settle a supported Node `>=22` SQLite
 driver or change the advertised floor after a lowest-version smoke. Trial the
 daily task loop and two linked-worktree claims in a disposable store. Then
 import the current ID/path set with an unmapped-field report, run capsule

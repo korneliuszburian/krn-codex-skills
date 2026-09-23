@@ -12,15 +12,36 @@ second queue or a claim that the planned mechanisms work.
 ## Current decision and execution boundary
 
 The user resumed local stabilization on 2026-09-23 and explicitly requested
-read-only Luna workers. sh-171 repaired PreCompact's event output contract and
-was installed; sh-172's bounded restore guard was installed separately and is
-now integrated in the active branch. The sh-166/sh-173 source repairs and
-instruction/queue repairs are committed through `ad4b220`. The user separately
-authorized local commits, sh-172 integration, release installation and fresh
-host readback; push, PR and benchmarks remain outside this operation. The
+read-only Luna workers. sh-171 repaired PreCompact's event output contract;
+sh-172's bounded restore guard is integrated. The sh-166/sh-173 capability and
+CLI repairs passed the full gate at `61b9366`, were sealed and installed at
+`10fd088`, and received fresh Codex SessionStart, OpenCode configuration and
+installed CLI readback. The user authorized local commits, integration and
+installation; push, PR and benchmarks remain outside this operation. The
 capability owner records availability, while
 prompts and source snapshots remain outside Git under the research curation
 contract.
+
+## Product completion order: memory, then tasks
+
+The 2026-09-23 operator priority is sequential: finish the memory product
+before selecting or cutting over the replacement task store. These are two
+owned outcomes, sh-174 then sh-175; sh-170's repository coverage remains
+historical input, not a combined implementation ticket. Existing sh-165/sh-167
+through sh-169 research gates retain their own authority but do not turn this
+product sequence into parallel runtime work.
+
+| Phase | Question and current baseline | Exit condition before the next phase |
+|---|---|---|
+| sh-174: memory | Separate outcome continuation, durable shared knowledge and reusable workflow lessons from task history. Native Goal plus repository reading and the current KRN surfaces are baselines. At source `109193e`, lessons has 25 rows, 20 active and four active triggers; one triggered row has no `Recall:` binding. | Map every writer, reader, invalidation and retirement path; classify active lessons as retain, simplify or retire; test one real continuation/retrieval decision with a stale or retired counterexample and full context cost. Decide the smallest memory contract and whether task links need any resolver. Do not assume the current lessons table is permanent. |
+| sh-175: task product | The present Markdown queue requires lane fields for human work, splits claim across ticket and lock, and lives per checkout. Beads supplies the operator-flow benchmark; current files repaired for a shared common dir, SQLite and Git-ref CAS are design countercandidates. | After sh-174 fixes the memory boundary, prove `add → ready → claim → comment → close → history`, human close without a claim, one winner across linked worktrees, crash/retry and lossless import. Choose one canonical backend, switch all readers and writers together, then retire old live files and locks. Do not build a second memory owner. |
+
+The invariant across both phases is one owner for each kind of truth: Goal and
+capsule for current outcome, task tracker for work state, Git/checks for code
+proof, and a named knowledge owner for reusable claims. A task may reference
+knowledge with provenance; it does not automatically turn its comments into
+lessons. The task schema must not hard-code today's lesson-row layout before
+sh-174's decision. No new ADR or backend is earned by this plan alone.
 
 The decisive correction is that LT-107 does not identify forgetting: its hidden
 checks import a renamed symbol. Requirement applicability, evidence freshness,
@@ -73,21 +94,22 @@ capabilities; the raw reports remain outside Git.
 | Ticket | One observable outcome | Required predecessor and reason | Deciding boundary |
 |---|---|---|---|
 | sh-171 | PreCompact writes the boundary without emitting SessionStart-specific JSON | none; operator-observed hook protocol error | done: focused observer red against old hook and green after repair, direct installed PreCompact output empty, fresh SessionStart continuation observed; live compaction event remains unobserved |
-| sh-172 | Named `git restore` files pass the hook while glob, root and protected targets stay blocked | sh-171 fixed the prior hook release used as its base | installed sealed release and direct guard readback passed; branch integrated at merge `6ff0a3a`; final merged-descendant gate and readback remain |
-| sh-166 | The declared capability profile resolves to the intended effective host surface without duplicate or incorrectly hidden owners | none; preserved WIP already exists | repair the five initial cases and the later KRN-origin counterexample; freeze red-base/green-candidate proof; full gates; source/install/fresh-host readback separately; explicit disposition of optional skills such as ask-gpt |
-| sh-173 | The declared compatibility catalog command works from an installed release | sh-166 release is its delivery vehicle, not a behavioral dependency | source installed-bin fixture failed with `MODULE_NOT_FOUND` before repair and passed after; live installed alias remains broken until the next authorized release and readback |
+| sh-172 | Named `git restore` files pass the hook while glob, root and protected targets stay blocked | sh-171 fixed the prior hook release used as its base | integrated at `6ff0a3a`; full gate passed on merged descendant `61b9366`, and sealed `10fd088` installed with matching hook SHA; a live fresh-session PreToolUse restore remains unobserved |
+| sh-166 | The declared capability profile resolves to the intended effective host surface without duplicate or incorrectly hidden owners | none; preserved WIP already exists | initial cases and KRN-origin counterexample red→green; full gate, sealed install and fresh Codex/OpenCode configuration readback passed at `10fd088`; terminal ticket review remains |
+| sh-173 | The declared compatibility catalog command works from an installed release | sh-166 release is its delivery vehicle, not a behavioral dependency | installed-bin fixture failed before repair and passed after; alias and canonical CLI returned identical profile lists from sealed `10fd088`; external caller audit remains |
 | sh-167 | The trajectory oracle distinguishes preserved behavior, legal replacement and unauthorized loss | none; instrument qualification is independent of binding | gold implementations pass, semantic mutants fail, and identical code with different retirement authority receives the correct verdict |
 | sh-165 | All advancement consumers use one executed requirement/proof inspector | existing sh-161; the cumulative evaluator is its consumer seam | preserve compliant successor history; prove final observer at base/head, migrate historical proof claims honestly, isolate test temp roots, complete gates before publication |
 | sh-168 | A bounded causal screen decides whether binding adds value over reminder and regression feedback | sh-167 supplies a valid oracle; sh-165 supplies the candidate mechanism | five matched checkpoint continuations, then only the informative contrast on a non-rename case; count all feedback, repairs and cost; stop on oracle failure or regression-only dominance |
 | sh-163 | A preregistered larger comparison makes a bounded promotion decision | sh-165 and sh-168; runnable candidate and a screen that warrants scaling | existing three-arm 24-matched-trajectory acceptance stays; add causal control explicitly, freeze paired inference and costs; insufficient evidence remains inconclusive |
 | sh-169 | A fresh session can use an agent-authored capsule, with its writing failures visible | none; run against one explicitly pinned supported revision | continue one real boundary with capsule/transcript/repository-only controls; include a revoked-obligation counterexample and native Goal baseline; measure current intent, authority, scope, unresolved work and cost, not merely ABI validity |
 | sh-170 | Every owned repository surface has evidence of its consumer, or an explicit retain/repair/retire/defer disposition | none; read-only coverage can proceed independently | one bounded coverage pass over all owned groups, at most ten prioritized findings; include the reproduced installed catalog alias failure, duplicated host state/frontier readers and `ask-gpt` authority drift; no new runtime architecture or second registry |
+| sh-174 | Decide the smallest complete memory product and retire or justify each current surface | current ADR 0001/0006 boundaries and sh-170 coverage are input; no task backend dependency | owner/consumer/retirement map, current-versus-native baseline, one real continuation and one stale-knowledge counterexample, full context cost, and an explicit retained reference contract or no-link decision |
+| sh-175 | Deliver the human task product and replace the operating queue once | sh-174 must settle what a task may reference and which memory owner resolves it | full operator flow, shared-worktree claim and recovery, import/rollback and all-reader cutover; one live store and no duplicated claim or lesson state |
 
-The main research edges are sh-167 + sh-165 → sh-168 → sh-163. The
-sh-171 hook repair is complete; sh-172 is integrated. sh-169 and sh-170 can
-receive read-only investigation in parallel;
-the maintainer remains the only writer. sh-166 already owns installation and
-host readback: do not create a duplicate release ticket.
+The active product edge is sh-174 → sh-175, one phase at a time. The separate
+research edges are sh-167 + sh-165 → sh-168 → sh-163. sh-171 is done;
+sh-172 is integrated; sh-166 owns the installed release. sh-169's capsule
+writing question informs sh-174 without becoming a second memory writer.
 
 Earlier queue work is preserved: sh-156 and sh-159 are done; sh-157 and sh-158
 were superseded by sh-161/162/163. sh-162 is preserved and sh-165 is its compliant
@@ -113,17 +135,15 @@ uninspected, observed and inferred separately. A promising paper is a source
 for a competing mechanism, never sufficient evidence of KRN benefit.
 
 The sh-170 coverage pass at source HEAD `1e37511c7b29cb7ea45059009f3f13184fc04a11`
-plus preserved WIP and installed release `9f18ab2442ab0f920e2aa8753228e12dc0c7c549`
-found one confirmed installed CLI failure: `krn-codex-catalog` calls an
-unshipped shim, while `krn capability` works. A staged `krn-codex` → `krn`
-rename also left one live diagnostic and one setup reference with the retired
-name. Local sh-173 WIP now points the wrapper at shipped `krn.mjs`, corrects
-the live hints and passes an installed-bin fixture red to green; the installed
-host remains at the broken release until a separately authorized install.
-External caller evidence still decides alias retirement. The delivery-loop
+and then-installed release `9f18ab2442ab0f920e2aa8753228e12dc0c7c549`
+found a broken `krn-codex-catalog` alias and two live retired-name hints. sh-173
+repointed the wrapper at shipped `krn.mjs`, corrected the hints, passed an
+installed-bin fixture red to green, and the sealed `10fd088` release passed
+installed CLI readback. External caller evidence still decides alias
+retirement. The delivery-loop
 archive instruction now covers every discovered ticket under `.scratch/` and
 `.krn/tickets/`; a disposable two-root restore preserved the path and ID set.
-`ask-gpt` instruction WIP now conditions publication on the selected remote
+`ask-gpt` instruction repair now conditions publication on the selected remote
 evidence and keeps ChatGPT Project as optional context, while a session load
 trace remains unobserved;
 OpenCode's queue reader now uses the ticket owner's read-only check after an
@@ -142,17 +162,18 @@ must pass before replacing the operating ABI. This is a separate queue
 architecture decision under sh-170's consumer audit, not part of the sh-166
 release or permission to build a second live store.
 
-The architecture review sharpened the sequence: prove a supported Node driver
-and complete human task loop first; then claim fencing and lane proof at one
-fixed point; then lossless import plus every queue reader (state candidate
-resolution, Codex hook, OpenCode plugin and delivery-loop archive); finally
-switch and delete old files/locks/parser. The optional task brief composes
-explicit capsule/lesson links and visibly provisional scope matches; it must
-beat task display plus manual recall on a real decision without copying memory
-or weakening the final diff-based check. The old CLI cannot faithfully read a
+The architecture review sharpened the later task sequence: after sh-174 fixes
+the memory boundary, prove a supported Node driver and complete human task
+loop; then claim fencing and lane proof at one fixed point; then lossless import
+plus every queue reader (state candidate resolution, Codex hook, OpenCode
+plugin and delivery-loop archive); finally switch and delete old live files,
+locks and parser. An optional task brief may compose explicit knowledge links
+and provisional scope matches only under the reference contract selected by
+sh-174. It must beat task display plus manual recall on a real decision without
+copying memory or weakening the final diff-based check. The old CLI cannot faithfully read a
 human `done` without an integrated commit anchor, so post-cutover recovery
 cannot be described as rollback to the old CLI. These remain sh-170 trial
-conditions, not a new runtime lane in this release.
+conditions carried into sh-175, not a new runtime lane in this release.
 
 ## Research and deletion discipline
 

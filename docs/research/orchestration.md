@@ -678,7 +678,7 @@ a field is empty, or a retired surface reappears.
 |---|---|---|---|---|---|---|---|
 | `state.md` | `$delivery-loop` (sole writer) | the session at bind and SessionStart | every owner or context boundary | four narrative fields, 8192 bytes total | `krn state check` and `test/state/*` | rewritten in place, deleted with the run at cleanup | delivery-loop |
 | `boundary.md` | `krn_memory.py` on PreCompact | no observed reader; manual recovery is a proposed use, and automatic post-compaction read is unverified | PreCompact on a continuing capsule | one small file per run | `test/hooks-guard.test.mjs` proves writing only; a real post-compaction continuation must show use or non-use | rewritten at each PreCompact, never written for a non-continuing capsule, deleted with the run | delivery-loop cleanup |
-| `workflow-lessons.md` | maintainer session | `changes check` before mutation | path, symbol, or churn trigger match on the change | 24 active rows, bounded by displacement | `npm run lessons:verify` and `npm run test:lessons` | retire with `retired@<sha>` when superseded or its live gate is gone; zero delivery alone is a review trigger, not deletion proof | maintainer |
+| `workflow-lessons.md` | maintainer session | `$delivery-loop` at bind and `state resume` read active rows; maintainer may call `memory recall`; `changes check` checks triggered commits | bind/resume read or path, symbol, or churn match on a change; SessionStart does not inject lesson rows | 24 active rows, bounded by displacement | `npm run lessons:verify` and `npm run test:lessons` check structure/proof, not decision benefit | retire with `retired@<sha>` when superseded or its live gate is gone; zero delivery alone is a review trigger, not deletion proof | maintainer |
 | `lab-tests.md` | maintainer session | `$source-to-decision` and the review fixed point | a behavioral claim that needs a registered pilot | 100 non-retired rows | `test/rules/lt-registry.test.mjs` and `test/rules/lt-retention.test.mjs` | `retired@<7-hex>` in the Status cell, tombstones stay | maintainer |
 | `docs/research/` | maintainer session | sessions and operators through the index | a decision or falsifier needs durable synthesis | one page per topic, state and reopen condition in the index | `npm run test:durable-pages` | rework in place; a page with no reader is deleted | maintainer |
 | `docs/adr/` | maintainer session | instruction and skill owners, by link only | a rare, hard-to-reverse trade-off | one ADR per decision, no restatement elsewhere | each ADR supersession rule and `npm run test:durable-pages` | superseded by a successor that names the migrator | maintainer |
@@ -690,6 +690,50 @@ a field is empty, or a retired surface reappears.
 | `lane-runner.mjs` | maintainer session | `krn harness compare` through `KRN_HARNESS_LANE_RUNNER` | an explicit paired measurement with `KRN_HARNESS_AGENT` set | one payload per lane run, no daemon | `test/harness/lane-runner.test.mjs` | retire with the harness adapter contract; it is a checkout-local tool, never a runtime path | maintainer |
 | `test/harness/tasks/` | maintainer session | `krn harness compare` under LT-102 | an explicit paired measurement | three small held-out tasks, one per failure mode | `test/harness/tasks.test.mjs` | retire a task whose check stops flipping red to green, or delete the set with the measurement | maintainer |
 | `mutation-probe.mjs` | maintainer session | `npm run test:lib` | every gate run over the audit and contract spines | 8 to 12 hand-listed mutants | `test/audit/mutation-probe.test.mjs` | replace only with a diff-scoped mutation mode | maintainer |
+
+### Memory product decision boundary (sh-174, 2026-09-23)
+
+The [primary-source ledger](README.md#primary-source-ledger) already identifies
+the memory papers; this section applies their mechanisms to the local product.
+[ACE v3](https://arxiv.org/abs/2510.04618v3) supports incremental curation
+against context collapse, and the [OpenAI Agents SDK cookbook](https://developers.openai.com/cookbook/examples/agents_sdk/building_reliable_agents_memory_compaction)
+separates current-run compaction, reusable workflow lessons, and reviewed case
+facts. Neither tests KRN's writer or proves that its lessons table helps a
+current model. [Delivery, Not Storage v1](https://arxiv.org/abs/2607.20972v1)
+reports cue-based injection on one coding setting; its result cannot reverse
+ADR 0006's local retirement of automatic prompt recall. [ContextBench v3](https://arxiv.org/abs/2602.05892v3)
+finds only marginal context-retrieval gains from elaborate agent scaffolding;
+[Total Recall v1](https://arxiv.org/abs/2608.11879v1) finds that memory serving
+cost and accuracy vary by system and backbone. These are reasons to compare
+current/native reading with every proposed resolver at full cost, not to infer
+that retrieval or a database wins here. The ledger's other memory sources
+remain mechanisms or hypotheses until their exact version and local consumer
+are verified for a specific decision.
+
+| Plane | Current authority and handoff | Unresolved failure or duplication | sh-174 disposition gate |
+|---|---|---|---|
+| Current session | Native Goal/request holds live intent; `$delivery-loop` alone rewrites one ignored `state.md`; SessionStart and `state resume` present it | A structurally valid capsule can contain stale or revoked authority; an external Goal/tracker is not synchronously checked | Keep the capsule only if an agent-authored real continuation beats Goal plus live repository readback on current intent, authority, scope and next action at acceptable cost; sh-169 supplies the writer evidence |
+| Boundary transport | PreCompact writes `boundary.md`; later SessionStart reads the capsule | The boundary file has a writer but no observed consumer | Observe one actual post-compaction read or retire the file and its writer; successful write alone is insufficient |
+| Durable facts and decisions | `CONTEXT.md`, ADRs and curated research pages are Git-reviewed truth with named consumers and supersession | A copied task/capsule summary can stay stale after a source changes | Retain the semantic owners and compose live references; reopen ADR 0001 only after a failure survives simpler readback or repair |
+| Reusable workflow knowledge | `workflow-lessons.md` has 20 active rows at `e19c4d8`; four have active triggers and five carry occurrence tokens | Most rows restate an enforcing rule or test; a live gate can outlast useful prose | Classify each row by distinct reader and action; retain only rules that change a decision or are needed by a live gate, simplify redundant rows, retire with the existing provenance rule |
+| Recall and proof | Manual `memory recall`, lane preflight and commit-time `changes check` use deterministic path/symbol/churn matches | `memory usage` retrospectively counts Git matches and `Recall:` trailers, not agent delivery or benefit; at `e19c4d8`, four triggered rows have 268 hits and 11 bindings, including one with zero bindings | Compare native/manual reading, current trigger delivery and a narrow explicit reference on one real decision plus a stale/retired near-match; record irrelevant context, misses and full cost; keep commit proof distinct from agent advice |
+| Task context | The tracker owns work state; a task may cite knowledge without copying it | A resolver fixed to today's lesson-row layout would preserve a transitional schema as product architecture | Decide a typed revisioned reference or no dedicated link before sh-175; no task comment silently becomes a lesson |
+| Promotion and retirement | Outcome friction may nominate a reusable rule; the maintainer promotes it to a reviewed owner and retires it when superseded or its consumer ends | A task comment, run note or model-generated summary can bypass evidence, become a second fact store, or outlive its source | Require a named future reader, evidence, falsifier or enforcing rule, current source identity and a retirement trigger; reject automatic task-to-lesson promotion |
+| Host delivery and trust | Source skills/config are sealed into an installed release; Codex and OpenCode adapters read the installed hook/plugin at distinct events | Source, installed bytes and fresh-process loading can differ; a source-only check does not prove host delivery | Trace one real event through source → installed → host; count delivered bytes/context and preserve untrusted-source boundaries; do not create a new hook for advice without a consumer |
+| Persistence and portability | Durable knowledge lives in Git; capsule and current tickets are ignored per checkout; linked worktrees share Git common state but not their local run files | Moving a task store to the common dir does not move a capsule or make knowledge authority transactional with Git | Keep one explicit export/restore and cross-worktree reference rule; decide storage only for the state whose owner needs sharing, and never infer multi-clone synchronization |
+| Evaluation and cost | LT rows hold bounded pilots; structural checks prove format/provenance; ADR 0006 records memory-prompt overhead and its evaluator limit | Synthetic recall hits, matching trailers and a same-model judgment do not measure changed decisions; prior null results were evaluator-exposed | Use a real continuation and one action-relevant lesson/staleness case with an independent fixed point, native/current baseline, invalid/retry accounting and tokens plus wall; defer causal claims when the instrument cannot discriminate |
+
+Target contract, pending those gates: one current-outcome writer, Git-reviewed
+durable knowledge owners, and at most one bounded procedural-knowledge owner.
+Render a task's explicit references and live source status only when a named
+consumer needs them. Do not add a memory database, embedding index, automatic
+selector, general graph or persistent compiled-context cache. The baseline is
+native Goal plus current repository/tracker reading, a compact capsule where
+continuation requires it, and direct access to the enforcing rule/test. If that
+baseline passes the real decision and restart counterexamples with lower total
+cost, retire the redundant memory layer rather than moving it into SQLite.
+This target is an architectural hypothesis, not evidence that the sh-174 exit
+conditions have passed.
 
 ### ADR 0001 first decisions (2026-09-20)
 

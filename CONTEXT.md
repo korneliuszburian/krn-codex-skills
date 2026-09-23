@@ -80,6 +80,11 @@ reader commands are owned by `config/AGENTS.md`; `$delivery-loop` owns its field
 ABI and lifecycle, and other artifacts link to it instead of restating its
 fields.
 
+**Repository memory** — information preserved for later work. Continuation
+state serves one active outcome; reusable knowledge can serve later outcomes.
+A work item's status, comments and history remain work records until a named
+knowledge owner deliberately promotes a reusable conclusion.
+
 **Working run** — private ignored state at
 `.krn/runs/<workflow>/<run-id>/`. It may carry that workflow's prompt, manifest,
 transient spec or slice list, job state, or review evidence while its goal is
