@@ -170,7 +170,7 @@ test("a mutating writer hidden in a pipeline still fails closed", () => {
   );
 });
 
-// Keep this observer identity across the host-output contract correction.
+// Preserve the frozen historical observer identity; its assertion now guards the no-copy contract.
 test("PreCompact injects a continuing capsule and ignores a completed one", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-precompact-"));
   try {
@@ -189,8 +189,10 @@ test("PreCompact injects a continuing capsule and ignores a completed one", () =
     make("out-1", "ACTIVE", "update src/b.mjs and run npm test");
     const context = precompactContext(dir);
     assert.equal(context, null, "PreCompact must not emit SessionStart-specific context");
-    const boundary = readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-1", "boundary.md"), "utf8");
-    assert.match(boundary, /next bounded action: update src\/b\.mjs and run npm test/);
+    assert.throws(
+      () => readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-1", "boundary.md"), "utf8"),
+      "PreCompact must not write a second continuation brief",
+    );
     make("out-2", "COMPLETE", "do not continue this");
     const after = precompactContext(dir);
     assert.equal(after, null, "PreCompact stays silent when completed capsules coexist");

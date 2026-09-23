@@ -13,7 +13,6 @@ const DECISION_HEADING = "### ADR 0001 first decisions (2026-09-20)";
 
 const ARTIFACTS = [
   "state.md",
-  "boundary.md",
   "workflow-lessons.md",
   "lab-tests.md",
   "docs/research/",
@@ -119,8 +118,8 @@ test("every living memory artifact has one complete wiring row", () => {
 });
 
 test("a map that omits an artifact is rejected", () => {
-  const errors = wiringErrors(fixture(ARTIFACTS.filter((key) => key !== "boundary.md")));
-  assert.ok(errors.includes("boundary.md has no wiring row"), JSON.stringify(errors));
+  const errors = wiringErrors(fixture(ARTIFACTS.filter((key) => key !== "workflow-lessons.md")));
+  assert.ok(errors.includes("workflow-lessons.md has no wiring row"), JSON.stringify(errors));
 });
 
 test("a row with an empty field is rejected", () => {

@@ -46,9 +46,15 @@ exercised rather than decorative.
 
 A row may carry a seventh `Status` column. A retired row is archived as
 `retired@<7-hex>` and must either name `superseded-by:<anchor>` that resolves to
-an active row, or have no live gate left (its enforcement was removed); retired
-rows are excluded from trigger delivery and do not consume the 24-row active
-budget, so aging is explicit instead of a silent deletion.
+an active row, have no live gate left (its enforcement was removed), or name
+`enforced-by:<gate-ref>` for one of its exact existing structural gates. A
+structural gate is an npm script, a resolved `.mjs`, `.js`, `.cjs`, `.sh`, or
+`.py` command file directly under `scripts/`, a resolved `*.test.*` or
+`*.spec.*` file under `test/`, or a resolved YAML workflow under
+`.github/workflows/`. Prose, fixture files, helper modules, other configuration
+files, and manual checks do not qualify. The checker resolves this reference on each run.
+Retired rows are excluded from trigger delivery and do not consume the 24-row
+active budget, so aging is explicit instead of a silent deletion.
 
 | Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |
 |---|---|---|---|---|---|---|
@@ -63,7 +69,7 @@ budget, so aging is explicit instead of a silent deletion.
 | A prose rule that no check enforces is ignored at low effort. | The explicit-only rule was ignored by a low-effort model until it was narrowed and behaviorally checked; per-slice and held-out rules now have a test/inspection gate; the ticket ABI's `Scope` field was equally inert, so the sh-1 lane added `skills/manifest.json` while Scope named four other paths, until `krn-codex ticket check --id --base` made it structural (`scope-undeclared`). | `manual:review`; `scripts/lib/lessons/lessons.mjs`; `test/ticket/ticket-scope.test.mjs`. | 2026-09-16@082b237 | `test/ticket/ticket-scope.test.mjs::checkTickets reports changed files outside the ticket Scope@5dc2974` | |
 | Hand-written capsule fixed points must use full commit tokens. | A hand-filled capsule with short hashes failed `state check` with `invalid-fixed-point` until the full tokens were used. | `test/state/state-check.test.mjs`. |
 | Verification lanes on this host cannot spawn git children, so state tests run only in the main session. | Two independent luna reviews reported `spawnSync git EPERM` and could not execute `test:state`; each stated the execution gap instead of claiming a regression. | none. | | | | retired@bcba2a5 |
-| A declared base red must be a real assertion failure: a module-load error is a setup error, and a check that already passes is not a flip. | The sh-2 lane declared a new observer whose base failure was a missing export (refused as `before-state-unverified`), and the sh-8 suite was green at base until a case asserted the legacy files' removal (refused as `before-state-not-red`); both tickets now carry the constraint. | The lane preflight and worker gate in the lab runner; `frozenRedOk` in `scripts/lib/contract/change-contract-runs.mjs`. | 2026-09-16@082b237, 2026-09-16@4ce02d1 | `test/contract/change-contract.test.mjs::verifyBefore requires the declared check to be red at base@bb6c77f` | symbol:frozenRedOk |
+| A declared base red must be a real assertion failure: a module-load error is a setup error, and a check that already passes is not a flip. | The sh-2 lane declared a new observer whose base failure was a missing export (refused as `before-state-unverified`), and the sh-8 suite was green at base until a case asserted the legacy files' removal (refused as `before-state-not-red`); both tickets now carry the constraint. | The lane preflight and worker gate in the lab runner; `frozenRedOk` in `scripts/lib/contract/change-contract-runs.mjs`; `test/contract/change-contract.test.mjs`. | 2026-09-16@082b237, 2026-09-16@4ce02d1 | `test/contract/change-contract.test.mjs::verifyBefore requires the declared check to be red at base@bb6c77f` | symbol:frozenRedOk |
 | A read-only review cannot prove runtime reachability; every extracted runtime module needs at least one executing test, and mechanical detection must back the class. | The extraction at `83101ae` left `derivedRolloutDay` calling an unexported `isValidDay`, and a later dedupe at `f40286d` removed `gitAvailable` from `state-brief` but left the call; luna reported no finding both times and only an executing test or the quality audit surfaced it. | `scripts/quality-audit.mjs`; `test/catalog/catalog-usage-scan.test.mjs`; `test/audit/quality-audit.test.mjs`. | 2026-09-11@83101ae, 2026-09-11@f40286d | `test/audit/quality-audit.test.mjs::the audit catches a cross-file call that is never imported@508ba28` |
 | Broadening executing coverage can expose silently lost records that a green suite hides. | The manifest-name quarantine passed `family@marketplace` as the id, so the collector filtered it: the plugin was skipped and `hardQuarantine` kept no record until the plugin-cache integration test exercised the branch. | `test/catalog/catalog-inventory-quarantine.test.mjs`. |
 | Duplicated low-level adapters drift; centralize once and alias at call sites. | Four copies of a git wrapper with two different contracts lived across `state-check`, `state-brief`, `skills-export`, and `install-release`; one `git-cli` module with `runGit`/`gitText`/`gitAvailable` now backs all four. | `test/support/git-cli.test.mjs`. | | `test/support/git-cli.test.mjs::runGit returns trimmed output inside a repo and fails safely outside@8f67f21` | |
