@@ -796,8 +796,17 @@ under `test/`, or a YAML workflow under `.github/workflows/`). Documents,
 fixtures, helper modules, other configuration files and manual checks cannot
 stand in for executable enforcement. Missing, mismatched, or non-structural references fail. Retired
 rows remain excluded from resume, recall and change-time matching. The focused
-parser now enforces this contract; the eight target rows remain active until a
-truthful commit anchor and row-specific live gate references can be recorded.
+parser now enforces this contract. The eight target rows were retired at
+`3579c0e` against exact structural gates; the former row-18 wording was
+superseded by its precise active successor, which retains the
+`path:scripts/lib/lessons/**` trigger.
+
+The row-9 proof anchor was refreshed after the checker change. On 2026-09-23,
+`krn lessons reanchor --root . --json` reported the ticket-scope falsifier
+`test/ticket/ticket-scope.test.mjs::checkTickets reports changed files outside the ticket Scope`
+updated from `5dc2974` to `3579c0e`; `npm run lessons:verify` then passed. This
+records that the existing case was rerun successfully after the gate changed;
+it does not claim a new base-red observation.
 
 | Row | Additional reader | Live gate or trigger | Maintainer disposition |
 |---|---|---|---|
@@ -806,40 +815,45 @@ truthful commit anchor and row-specific live gate references can be recorded.
 | 3 | `$delivery-loop` capsule writer | Delivery-loop step 3 | **Simplify.** Keep boundary rewriting in the delivery-loop skill; do not conflate it with ADR 0006's retired automatic decision-point recall. |
 | 4 | Reviewer who did not produce the change | Fixed-point review procedure | **Simplify.** Keep the cross-context review requirement with the review owner. |
 | 5 | Authors of budgeted surfaces | `scripts/validate.mjs` budget check | **Simplify.** Keep the budget gate and link the brief cue to its owner. |
-| 6 | CLI user | Readable-warning test in `test/state/state-check.test.mjs` | **Retire prose; keep the test.** The test remains the executable contract. |
+| 6 | CLI user | `test/state/state-check.test.mjs` | **Retired at `3579c0e`; gate-backed.** The test remains the executable contract. |
 | 7 | Change author and reviewer | Global proof rule and fixed-point review | **Simplify.** Keep red-before-green in the global proof rule. |
-| 8 | `state resume` user | Blocking-error case in `test/state/state-brief.test.mjs` | **Retire prose; keep the test.** The test preserves visible blocking errors. |
+| 8 | `state resume` user | `test/state/state-brief.test.mjs` | **Retired at `3579c0e`; gate-backed.** The test preserves visible blocking errors. |
 | 9 | Ticket author and reviewer | Lesson check plus ticket-scope test | **Simplify.** Replace the overbroad prose with the specific ticket `Scope` contract. |
-| 10 | Capsule author | Full-token case in `test/state/state-check.test.mjs` | **Retire prose; keep the test.** The parser test preserves the fixed-point format rule. |
+| 10 | Capsule author | `test/state/state-check.test.mjs` | **Retired at `3579c0e`; gate-backed.** The parser test preserves the fixed-point format rule. |
 | 11 | Lane runner and observer author | Lane preflight, worker gate, `frozenRedOk`; symbol trigger | **Retain active.** Change-time recall binds the real base-red observer. |
-| 12 | Runtime-module extraction author | Quality audit and catalog-usage tests | **Retire prose; keep the audit and tests.** |
-| 13 | Catalog/integration test author | `test/catalog/catalog-inventory-quarantine.test.mjs` | **Retire prose; keep the test.** |
-| 14 | Git adapter maintainer | `test/support/git-cli.test.mjs` | **Retire prose; keep the centralized adapter and test.** |
+| 12 | Runtime-module extraction author | Quality audit and catalog-usage tests | **Retired at `3579c0e`; gate-backed by `test/audit/quality-audit.test.mjs`.** |
+| 13 | Catalog/integration test author | `test/catalog/catalog-inventory-quarantine.test.mjs` | **Retired at `3579c0e`; gate-backed.** |
+| 14 | Git adapter maintainer | `test/support/git-cli.test.mjs` | **Retired at `3579c0e`; gate-backed.** The centralized adapter and test remain. |
 | 15 | Git-output helper author | `test/support/symbol-triggers.test.mjs`; parser implementation | **Simplify.** Keep the exact-output requirement at the parser/test owner. |
-| 16 | Guarded-gate test author | Guard-inheritance and integration-memory tests | **Retire prose; keep both tests.** |
+| 16 | Guarded-gate test author | Guard-inheritance and integration-memory tests | **Retired at `3579c0e`; gate-backed by `test/contract/guard-inheritance.test.mjs`.** Both tests remain. |
 | 17 | Git-output parser author | Quoted-path falsifiers in change-contract and symbol-trigger tests | **Simplify.** Keep the NUL-safe contract at the parser and test owners. |
 | 18 | State and validation maintainer | State tests and `validate`; path trigger | **Retain active.** The corrected rule distinguishes stale COMPLETE (block), stale ACTIVE (warn), and malformed active obligations (block). |
-| 19 | Installer/test maintainer | CI on committed tree; install/bootstrap suites | **Retire prose; keep the CI and artifact checks.** |
+| 19 | Installer/test maintainer | `.github/workflows/validate.yml`; install/bootstrap suites | **Retired at `3579c0e`; gate-backed.** The CI and artifact checks remain. |
 | 20 | Harness change author | `Change-contract:` and `npm run changes:check`; churn trigger | **Retain active.** Change-time recall requires a falsifiable prediction; trailer presence alone is not proof. |
 
-This disposition keeps four active triggered lessons, simplifies eight into
-their canonical owners, and targets eight duplicate advice rows for retirement
-while keeping all enforcing gates. `state resume` omits retired rows, while the
-gate itself remains in the CLI, CI or focused test. The table is the accepted
-target state; the active lesson rows stay unchanged until a truthful retirement
-commit anchor and exact row-specific gate references can be recorded.
+This disposition is applied: four triggered lessons remain active, eight rows
+are simplified into their canonical owners, and eight duplicate advice rows
+are retired with their live gates preserved. The row-18 predecessor remains in
+the archive as superseded, while its precise active successor retains the path
+trigger. `state resume` omits retired rows, while the gates remain in the CLI,
+CI or focused tests.
 
-Target contract, pending those gates: one current-outcome writer, Git-reviewed
-durable knowledge owners, and at most one bounded procedural-knowledge owner.
-Render a task's explicit references and live source status only when a named
-consumer needs them. Do not add a memory database, embedding index, automatic
-selector, general graph or persistent compiled-context cache. The baseline is
-native Goal plus current repository/tracker reading, a compact capsule where
-continuation requires it, and direct access to the enforcing rule/test. If that
+Adopted minimal contract: one current-outcome writer, Git-reviewed durable
+knowledge owners, and at most one bounded procedural-knowledge owner. Task
+references carry source type/ID, immutable revision when available, locator and
+reason without copied source contents or verdicts. A resolver/view remains
+deferred until a named task comparison establishes its utility. Do not add a
+memory database, embedding index, automatic selector, general graph or
+persistent compiled-context cache. The baseline is native Goal plus current
+repository/tracker reading, a compact capsule where continuation requires it,
+and direct access to the enforcing rule/test. If that
 baseline passes the real decision and restart counterexamples with lower total
 cost, retire the redundant memory layer rather than moving it into SQLite.
-This target is an architectural hypothesis, not evidence that the sh-174 exit
-conditions have passed.
+The minimal reference contract and eight gate-backed retirements are implemented
+and structurally verified. The H1 behavioral comparison and any claim that
+lesson delivery benefits agents remain deferred and unverified because no real
+revoked or superseded obligation is available; this does not prove either
+benefit or lack of benefit.
 
 ### sh-174 task-reference decision (2026-09-23)
 
