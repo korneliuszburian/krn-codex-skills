@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readJson } from "../kernel/json.mjs";
-import { gitText } from "../kernel/git.mjs";
+import { gitText, gitTopLevel } from "../kernel/git.mjs";
 import { isHardQuarantined } from "./catalog-profiles.mjs";
 
 const SOURCE = fileURLToPath(new URL("../../../", import.meta.url));
@@ -17,7 +17,7 @@ export function hasPinnedUpstreamOrigin(targetPath, owner) {
   if (typeof targetPath !== "string" || typeof owner?.path !== "string" || typeof owner.repository !== "string" || typeof owner.commit !== "string") return false;
   if (!targetPath.endsWith(`${path.sep}${owner.path}`)) return false;
   const upstream = targetPath.slice(0, -owner.path.length - 1);
-  return gitText(upstream, ["rev-parse", "--show-toplevel"]) === upstream
+  return gitTopLevel(upstream) === upstream
     && gitText(upstream, ["remote", "get-url", "origin"]) === owner.repository
     && gitText(upstream, ["rev-parse", "HEAD"]) === owner.commit
     && gitText(upstream, ["status", "--porcelain", "--untracked-files=all", "--ignored=matching", "--", path.posix.dirname(owner.path)]) === "";
