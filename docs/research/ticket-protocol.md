@@ -181,21 +181,36 @@ task still consumes the existing fixed-point proof; a general task can close
 with a non-placeholder reason. Claim recovery is an explicit audited release
 or takeover, rather than a second expiring lock file.
 
-The candidate storage adapter is one private Git ref, `refs/krn/queue`, with a
-versioned snapshot and an old-object compare-and-swap on every mutation. Git
-[shares ordinary refs across linked worktrees](https://git-scm.com/docs/git-worktree)
-and [checks the expected old object when updating a ref](https://git-scm.com/docs/git-update-ref).
-This could make all worktrees in one clone observe one queue with no daemon,
-database package, per-ticket lock or dirty worktree files. It does **not** make
-separate clones coordinate, and every mutation serializes on one ref. A single
-SQLite database is the competing baseline if Git-object plumbing or snapshot
-growth exceeds the code removed; the pinned Node 22.11 SQLite interface is
-[experimental](https://nodejs.org/download/release/v22.11.0/docs/api/sqlite.html),
-so it would add a runtime flag or package dependency.
+SQLite is the preferred **engine to trial**, in one database under the resolved
+Git common directory so linked worktrees share task state without a daemon or
+per-ticket lock. Its [write transactions](https://www.sqlite.org/lang_transaction.html)
+serialize claims, and [WAL](https://www.sqlite.org/wal.html) permits readers
+beside one writer on a local host. This is a storage choice, not a decision to
+require a database service. The driver is still a release gate: KRN advertises
+Node `>=22`, while the built-in module at pinned Node 22.11 is
+[experimental and flag-gated](https://nodejs.org/download/release/v22.11.0/docs/api/sqlite.html).
+Either a supported pinned driver or an explicit Node-floor change must earn its
+install cost. A database in the Git common directory does **not** sync between
+separate clones; export/import remains explicit until a real sync consumer is
+established.
 
-The smallest falsifier is two linked worktrees claiming the same ready ID from
-the same ref version: exactly one may succeed, and a reopened queue must have
-one claim and no sidecar lock. Also verify `add → claim → comment → close →
+The lighter storage countercandidate is one private Git ref,
+`refs/krn/queue`, with a versioned snapshot and old-object compare-and-swap.
+Git [shares ordinary refs across linked worktrees](https://git-scm.com/docs/git-worktree)
+and [checks the expected old object](https://git-scm.com/docs/git-update-ref).
+A disposable 2026-09-23 two-worktree race from the same absent ref returned one
+successful update, one rejected update, and identical readback. That proves
+only the Git primitive; indexing, ambiguous retry, growth, backup and import
+remain untested. Reject the ref adapter if it needs more custom queue/storage
+code than SQLite saves in installation cost. Beads uses
+[embedded or server Dolt](https://github.com/gastownhall/beads/blob/main/docs/architecture/dolt.md)
+for versioned history and cross-clone sync; KRN should pay that cost only if
+those become required here.
+
+The smallest product falsifier is two linked worktrees claiming the same ready
+ID: exactly one may succeed, and a reopened queue must have one claim and no
+sidecar lock. The Git-ref primitive race above does not satisfy this product
+falsifier. Also verify `add → claim → comment → close →
 reopen`, crash before/after the ref update, duplicate retry after an ambiguous
 response, blocker cycles, and a lossless import of the current path/ID set.
 The import first reports unmapped fields and keeps old files read-only;
@@ -203,9 +218,11 @@ cutover changes readers and writers together; deletion of `.scratch` tickets,
 `.krn/claims`, the old parser/reconcile code, and stale instructions follows
 only after readback and rollback export. A Git bundle or explicit export carries
 the queue to a different clone; no network write is implied by local commands.
-Reject the replacement if it does not remove the duplicate state and public
-field ceremony, or if the same acceptance can be met more cheaply by a single
-SQLite store. This trial does not claim a performance or cross-machine win.
+Reject the replacement if it does not remove duplicate state and public field
+ceremony. Compare SQLite, the Git-ref countercandidate, and the unchanged queue
+on actual code, install, import and recovery cost; reject SQLite if its driver
+or distribution burden outweighs the simpler queue implementation. This trial
+does not claim a performance or cross-machine win.
 
 Reopen the operating ABI when a lane needs a field it cannot express, a tracker
 integration rewrites the block, cross-repository work is measured, or the
