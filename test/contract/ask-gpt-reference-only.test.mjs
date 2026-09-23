@@ -35,5 +35,6 @@ test("the capabilities reference states the connector read-only limit and the Co
   const reference = read("references/chatgpt-capabilities.md");
   assert.match(reference, /read-only/i, "the connector read-only limit must be stated");
   assert.match(reference, /Codex/, "the write path must name Codex");
-  assert.match(reference, /pushed commit/, "the connector reads the pushed commit, not the working tree");
+  assert.match(reference, /already published commit/, "the connector may read an existing remote commit");
+  assert.match(reference, /separate commit and push authority/, "a newer remote commit requires separate authority");
 });
