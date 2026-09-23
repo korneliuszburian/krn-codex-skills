@@ -13,12 +13,12 @@ second queue or a claim that the planned mechanisms work.
 
 The user resumed local stabilization on 2026-09-23 and explicitly requested
 read-only Luna workers. sh-171 repaired PreCompact's event output contract and
-was installed; sh-172's bounded restore guard is installed on a separate local
-branch and awaits integration. The active branch carries preserved sh-166,
-sh-173 and instruction/queue source WIP. Local source, test and documentation
-edits are authorized. New commits, integration, publication, global host
-mutation, release installation and benchmark runs require their separate
-authority. The capability owner records availability, while
+was installed; sh-172's bounded restore guard was installed separately and is
+now integrated in the active branch. The sh-166/sh-173 source repairs and
+instruction/queue repairs are committed through `ad4b220`. The user separately
+authorized local commits, sh-172 integration, release installation and fresh
+host readback; push, PR and benchmarks remain outside this operation. The
+capability owner records availability, while
 prompts and source snapshots remain outside Git under the research curation
 contract.
 
@@ -73,7 +73,7 @@ capabilities; the raw reports remain outside Git.
 | Ticket | One observable outcome | Required predecessor and reason | Deciding boundary |
 |---|---|---|---|
 | sh-171 | PreCompact writes the boundary without emitting SessionStart-specific JSON | none; operator-observed hook protocol error | done: focused observer red against old hook and green after repair, direct installed PreCompact output empty, fresh SessionStart continuation observed; live compaction event remains unobserved |
-| sh-172 | Named `git restore` files pass the hook while glob, root and protected targets stay blocked | sh-171 fixed the prior hook release used as its base | installed sealed release and direct guard readback passed; integrate its separate branch under authority, then preserve the hook checks at the merged fixed point |
+| sh-172 | Named `git restore` files pass the hook while glob, root and protected targets stay blocked | sh-171 fixed the prior hook release used as its base | installed sealed release and direct guard readback passed; branch integrated at merge `6ff0a3a`; final merged-descendant gate and readback remain |
 | sh-166 | The declared capability profile resolves to the intended effective host surface without duplicate or incorrectly hidden owners | none; preserved WIP already exists | repair the five initial cases and the later KRN-origin counterexample; freeze red-base/green-candidate proof; full gates; source/install/fresh-host readback separately; explicit disposition of optional skills such as ask-gpt |
 | sh-173 | The declared compatibility catalog command works from an installed release | sh-166 release is its delivery vehicle, not a behavioral dependency | source installed-bin fixture failed with `MODULE_NOT_FOUND` before repair and passed after; live installed alias remains broken until the next authorized release and readback |
 | sh-167 | The trajectory oracle distinguishes preserved behavior, legal replacement and unauthorized loss | none; instrument qualification is independent of binding | gold implementations pass, semantic mutants fail, and identical code with different retirement authority receives the correct verdict |
@@ -84,7 +84,7 @@ capabilities; the raw reports remain outside Git.
 | sh-170 | Every owned repository surface has evidence of its consumer, or an explicit retain/repair/retire/defer disposition | none; read-only coverage can proceed independently | one bounded coverage pass over all owned groups, at most ten prioritized findings; include the reproduced installed catalog alias failure, duplicated host state/frontier readers and `ask-gpt` authority drift; no new runtime architecture or second registry |
 
 The main research edges are sh-167 + sh-165 → sh-168 → sh-163. The
-sh-171 hook repair is complete; sh-172 awaits branch integration. sh-169 and sh-170 can
+sh-171 hook repair is complete; sh-172 is integrated. sh-169 and sh-170 can
 receive read-only investigation in parallel;
 the maintainer remains the only writer. sh-166 already owns installation and
 host readback: do not create a duplicate release ticket.
@@ -131,6 +131,16 @@ invalid-ticket red/green counterexample; its capsule reader, `boundary.md`
 retention and skill activation still need
 their named behavioral checks before a new owner or layer is justified. The
 pass found no reason to add a registry, selector or CLI facade.
+
+The user clarified that the task goal is a lighter, complete KRN alternative
+to Beads, not merely a wrapper around the existing envelope or a migration to
+Beads. [Ticket protocol](ticket-protocol.md) records the bounded replacement
+candidate: one transactional queue shared by linked worktrees, a complete
+`add → ready → claim → comment → close` flow, an optional lane recipe, and a
+single claim record. Its two-worktree contention and import/rollback checks
+must pass before replacing the operating ABI. This is a separate queue
+architecture decision under sh-170's consumer audit, not part of the sh-166
+release or permission to build a second live store.
 
 ## Research and deletion discipline
 

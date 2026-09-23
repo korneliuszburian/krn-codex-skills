@@ -1,7 +1,7 @@
 # Ticket protocol
 
 Status: `accepted`. Consumer: the maintainer, the lane runner, and any worker or
-integrator session. Owner: maintainer. Verified: 2026-09-16.
+integrator session. Owner: maintainer. Verified: 2026-09-23.
 
 ## Decision question
 
@@ -145,5 +145,69 @@ enforces both, with `test/state/friction-drain.test.mjs` as the observer.
   authority, and concurrent claims are not fenced: two loops can pick the same
   ready ticket until one claim lands.
 
-Reopen when a lane needs a field the ABI cannot express, a tracker integration
-rewrites the block, or cross-repository work is measured.
+## 2026-09-23 correction: the operator loop is incomplete
+
+The current ABI is an operating compatibility contract, not the intended final
+task product. At source `ad4b220`, `scripts/lib/ticket/ticket-cli.mjs` exposes
+`check`, `next`, `claim`, `close`, `fail`, `fields`, and `env`; `show` is separate.
+It cannot create a task or add a comment. A simple file needs nine required
+fields before it enters the frontier, while claim state is written both into
+the ticket and `.krn/claims/<id>.lock`. The source has 1,208 lines under
+`scripts/lib/ticket/` and the ticket tests have 2,797 lines. These are file
+counts, not a quality score; the missing daily operations and doubled claim
+state are the decisive observations. The underlying seam error is that the
+same required envelope serves as the human task, lane configuration, claim
+record and proof receipt. A general task therefore inherits the lane's proof
+fields while the issue operations a human expects never became first-class.
+
+The installed Beads v1.0.4 exposes `create`, `ready --claim`, `comments add`,
+dependency commands, and `close --reason` as one operator flow. Its current
+[introduction](https://github.com/gastownhall/beads/blob/main/docs/index.md)
+documents a Dolt-backed issue graph and a broader coordination product; that
+page describes v1.3.0, so it does not prove the local v1.0.4 behavior. KRN
+should match the useful flow for its own consumers without adopting Dolt,
+tracker federation, formula machinery, or automatic remote sync.
+
+**Disposition: `lab-test`, owner maintainer, consumer delivery-loop and lane
+runner.** Trial one replacement queue module whose daily path is
+`add`, `ready`, `claim` (also `claim --ready`), `comment`, and `close`.
+`list`, `show`, and `check` are read views; `edit` changes dependencies or
+content, and `release` records an abandoned claim. An ordinary task requires
+only a title; its body is optional. The KRN lane recipe (base, scope, check,
+contract, acceptance) is optional until
+that task enters an automated lane. A claim, its owner and epoch, comments,
+dependencies, and close result live in the same task record. Closing a lane
+task still consumes the existing fixed-point proof; a general task can close
+with a non-placeholder reason. Claim recovery is an explicit audited release
+or takeover, rather than a second expiring lock file.
+
+The candidate storage adapter is one private Git ref, `refs/krn/queue`, with a
+versioned snapshot and an old-object compare-and-swap on every mutation. Git
+[shares ordinary refs across linked worktrees](https://git-scm.com/docs/git-worktree)
+and [checks the expected old object when updating a ref](https://git-scm.com/docs/git-update-ref).
+This could make all worktrees in one clone observe one queue with no daemon,
+database package, per-ticket lock or dirty worktree files. It does **not** make
+separate clones coordinate, and every mutation serializes on one ref. A single
+SQLite database is the competing baseline if Git-object plumbing or snapshot
+growth exceeds the code removed; the pinned Node 22.11 SQLite interface is
+[experimental](https://nodejs.org/download/release/v22.11.0/docs/api/sqlite.html),
+so it would add a runtime flag or package dependency.
+
+The smallest falsifier is two linked worktrees claiming the same ready ID from
+the same ref version: exactly one may succeed, and a reopened queue must have
+one claim and no sidecar lock. Also verify `add → claim → comment → close →
+reopen`, crash before/after the ref update, duplicate retry after an ambiguous
+response, blocker cycles, and a lossless import of the current path/ID set.
+The import first reports unmapped fields and keeps old files read-only;
+cutover changes readers and writers together; deletion of `.scratch` tickets,
+`.krn/claims`, the old parser/reconcile code, and stale instructions follows
+only after readback and rollback export. A Git bundle or explicit export carries
+the queue to a different clone; no network write is implied by local commands.
+Reject the replacement if it does not remove the duplicate state and public
+field ceremony, or if the same acceptance can be met more cheaply by a single
+SQLite store. This trial does not claim a performance or cross-machine win.
+
+Reopen the operating ABI when a lane needs a field it cannot express, a tracker
+integration rewrites the block, cross-repository work is measured, or the
+replacement trial passes its cutover checks. The replacement candidate is
+superseded by the trial result, not by adding another live queue beside it.

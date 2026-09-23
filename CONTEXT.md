@@ -100,6 +100,17 @@ the current thread's continuation authority, not shared repository knowledge.
 
 ## Engineering vocabulary
 
+**Work item** — one unit of planned work in the configured queue, with an
+identity, dependencies, discussion, and a result. It does not replace the
+current session's Goal or the outcome capsule.
+
+**Claim** — an exclusive assignment of a work item to one executor. It gives
+the executor a turn at the item, not authority to commit, publish, install, or
+change another repository.
+
+**Lane recipe** — optional implementation constraints and a deciding proof for
+a work item assigned to an automated lane. Ordinary work items need no recipe.
+
 **Vertical slice** — the smallest route from a real caller through a public seam
 to an observable result.
 
