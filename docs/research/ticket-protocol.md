@@ -184,8 +184,10 @@ or takeover, rather than a second expiring lock file.
 SQLite is the preferred **engine to trial**, in one database under the resolved
 Git common directory so linked worktrees share task state without a daemon or
 per-ticket lock. Its [write transactions](https://www.sqlite.org/lang_transaction.html)
-serialize claims, and [WAL](https://www.sqlite.org/wal.html) permits readers
-beside one writer on a local host. This is a storage choice, not a decision to
+serialize claims. Start the correctness trial with SQLite's default rollback
+journal; [WAL](https://www.sqlite.org/wal.html) needs a demonstrated concurrency
+benefit and a verified SQLite library version with the WAL-reset fix before it
+enters the design. This is a storage choice, not a decision to
 require a database service. The driver is still a release gate: KRN advertises
 Node `>=22`, while the built-in module at pinned Node 22.11 is
 [experimental and flag-gated](https://nodejs.org/download/release/v22.11.0/docs/api/sqlite.html).
@@ -202,7 +204,11 @@ A disposable 2026-09-23 two-worktree race from the same absent ref returned one
 successful update, one rejected update, and identical readback. That proves
 only the Git primitive; indexing, ambiguous retry, growth, backup and import
 remain untested. Reject the ref adapter if it needs more custom queue/storage
-code than SQLite saves in installation cost. Beads uses
+code than SQLite saves in installation cost. A repaired file baseline is also
+live: place one canonical task set under Git common dir, use one short mutation
+mutex, and keep claim plus history in the same owned record. Reject SQLite if
+that complete operator flow and crash recovery are simpler to maintain without
+the driver, schema and migration costs. Beads uses
 [embedded or server Dolt](https://github.com/gastownhall/beads/blob/main/docs/architecture/dolt.md)
 for versioned history and cross-clone sync; KRN should pay that cost only if
 those become required here.
@@ -221,7 +227,7 @@ the queue to a different clone; no network write is implied by local commands.
 Reject the replacement if it does not remove duplicate state and public field
 ceremony. Compare SQLite, the Git-ref countercandidate, and the unchanged queue
 on actual code, install, import and recovery cost; reject SQLite if its driver
-or distribution burden outweighs the simpler queue implementation. This trial
+or distribution burden outweighs the repaired file baseline. This trial
 does not claim a performance or cross-machine win.
 
 Reopen the operating ABI when a lane needs a field it cannot express, a tracker
@@ -289,7 +295,7 @@ The 2026-09-23 independent OpenCode advisory review identified the old
 verified those at `ticket-check.mjs:147-159`, `state-check.mjs:106-120`,
 `config/opencode/plugins/krn.js` lines 146–153 and the delivery-loop archive
 instruction. The advisory did not execute a replacement-queue falsifier.
-SQLite's transaction and WAL guarantees support a local trial, while its
-[documented single-host WAL limit](https://www.sqlite.org/wal.html) and KRN's
+SQLite's transaction guarantees support a local trial; its
+[documented WAL-reset version boundary](https://www.sqlite.org/wal.html) and KRN's
 Node floor remain costs. Supersede these candidates with the measured sh-170
 trial result, not with a second live queue.
