@@ -196,7 +196,7 @@ export function closeTicket({ file, root, git = runGit, evidence = "none", resol
       throw new Error(`ticket ${ticket.id} cannot close: ${violations.map((entry) => `${entry.rule}: ${entry.message}`).join("; ")}`);
     }
   }
-  const anchor = integratedAnchor({ root: anchorRoot, git, fields });
+  const anchor = integratedAnchor({ root: anchorRoot, git, fields, head });
   const cost = costRecord({ wallSeconds, tokens });
   let evidenceLine = anchor ? `${evidence}; integrated=${anchor.sha}; patch=${anchor.patch}` : evidence;
   if (cost) evidenceLine = `${evidenceLine}; ${cost}`;
