@@ -26,14 +26,16 @@ contract.
 
 The 2026-09-23 operator priority is sequential: finish the memory product
 before selecting or cutting over the replacement task store. These are two
-owned outcomes, sh-174 then sh-175; sh-170's repository coverage remains
+queued product phases, sh-174 then sh-175, under the current self-hardening
+outcome; a ticket does not automatically create another outcome capsule.
+sh-170's repository coverage remains
 historical input, not a combined implementation ticket. Existing sh-165/sh-167
 through sh-169 research gates retain their own authority but do not turn this
 product sequence into parallel runtime work.
 
 | Phase | Question and current baseline | Exit condition before the next phase |
 |---|---|---|
-| sh-174: memory | Separate outcome continuation, durable shared knowledge and reusable workflow lessons from task history. Native Goal plus repository reading and the current KRN surfaces are baselines. At source `109193e`, lessons has 25 rows, 20 active and four active triggers; one triggered row has no `Recall:` binding. | Map every writer, reader, invalidation and retirement path; classify active lessons as retain, simplify or retire; test one real continuation/retrieval decision with a stale or retired counterexample and full context cost. Decide the smallest memory contract and whether task links need any resolver. Do not assume the current lessons table is permanent. |
+| sh-174: memory | Separate outcome continuation, durable shared knowledge and reusable workflow lessons from task history. Native Goal plus live repository/tracker reading and the current KRN surfaces are baselines. A disposable clone at `c20e928` showed that a ticket can change `ready → deferred` while `state check` stays clean and SessionStart repeats stale capsule advice; this is structural evidence, not agent behavior. At source `109193e`, lessons has 25 rows, 20 active and four active triggers; one triggered row has no `Recall:` binding. | Map every writer, reader, invalidation and retirement path; classify active lessons as retain, simplify or retire; observe at least two real work/authority transitions within one session, then a fresh continuation, including stale or revoked state and full context cost. Decide the smallest memory contract and whether task links need any resolver. Do not assume the current lessons table is permanent. |
 | sh-175: task product | The present Markdown queue requires lane fields for human work, splits claim across ticket and lock, and lives per checkout. Beads supplies the operator-flow benchmark; current files repaired for a shared common dir, SQLite and Git-ref CAS are design countercandidates. | After sh-174 fixes the memory boundary, prove `add → ready → claim → comment → close → history`, human close without a claim, one winner across linked worktrees, crash/retry and lossless import. Choose one canonical backend, switch all readers and writers together, then retire old live files and locks. Do not build a second memory owner. |
 
 The invariant across both phases is one owner for each kind of truth: Goal and

@@ -53,7 +53,7 @@ export function parseLessons(file) {
 
 const FALSIFIER = /^(test\/[A-Za-z0-9_./-]+\.mjs)::(.+?)@([0-9a-f]{7})$/;
 
-const RETIRE = /^retired@([0-9a-f]{7})(?:;\s*superseded-by:\s*(\S.*?))?$/i;
+const RETIRE = /^retired@([0-9a-f]{7})(?:;\s*superseded-by:\s*(\S.*?)|;\s*enforced-by:\s*(\S.*?))?$/i;
 
 function normalizeTriggerEntry(entry) {
   const trimmed = entry.trim();
@@ -181,6 +181,22 @@ function resolveReference(root, scripts, reference) {
   return { ok: false, reason: `no npm script or owned path at ${reference}` };
 }
 
+function isStructuralGate(result) {
+  if (result.kind === "script") return true;
+  const resolvedPath = result.kind === "path" ? (result.path ?? "") : "";
+  return /^scripts\/[^/]+\.(mjs|js|cjs|sh|py)$/i.test(resolvedPath)
+    || /^test\/.+\.(test|spec)\.(mjs|js|cjs|sh|py)$/i.test(resolvedPath)
+    || /^\.github\/workflows\/.+\.ya?ml$/i.test(resolvedPath);
+}
+
+function gateReferences(gate) {
+  const value = (gate ?? "").trim();
+  const references = [...value.matchAll(/`([^`]+)`/g)]
+    .map((match) => match[1].trim())
+    .filter(Boolean);
+  return references.length === 0 && value ? [value] : references;
+}
+
 export function lessonStructureFindings({ root }) {
   const file = path.join(root, "docs", "research", "workflow-lessons.md");
   let stat = null;
@@ -217,7 +233,7 @@ export function lessonStructureFindings({ root }) {
       try { compileGlob(glob); return false; } catch { return true; }
     });
     if (badGlob) { findings.push({ rule: "invalid-glob", message: `lesson "${row.lesson}": invalid trigger glob "${badGlob}"` }); continue; }
-    if (row.status && !RETIRE.exec(row.status)) findings.push({ rule: "invalid-status", message: `lesson "${row.lesson}": invalid Status "${row.status}"; use retired@<7-hex>[; superseded-by:<anchor>]` });
+    if (row.status && !RETIRE.exec(row.status)) findings.push({ rule: "invalid-status", message: `lesson "${row.lesson}": invalid Status "${row.status}"; use retired@<7-hex>[; superseded-by:<anchor>|enforced-by:<gate-ref>]` });
   }
   return { findings, rows, activeRows, budget, exists: isFile };
 }
@@ -249,6 +265,7 @@ export function checkLessons({ root, git = runGit }) {
         errors.push(`lesson "${row.lesson}": retirement commit ${sha} is not an ancestor of HEAD`);
       }
       const anchor = retirement[2];
+      const enforcedBy = retirement[3];
       if (anchor) {
         const target = activeRows.find((candidate) => {
           const tokens = [...candidate.gate.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
@@ -256,12 +273,19 @@ export function checkLessons({ root, git = runGit }) {
           return [...tokens, falsifierFile, candidate.lesson].filter(Boolean).some((value) => value === anchor);
         });
         if (!target) errors.push(`lesson "${row.lesson}": superseded-by "${anchor}" resolves to no active row`);
+      } else if (enforcedBy) {
+        const tokens = gateReferences(row.gate);
+        if (!tokens.includes(enforcedBy)) {
+          errors.push(`lesson "${row.lesson}": enforced-by "${enforcedBy}" is not declared in Enforced by`);
+        } else {
+          const result = resolveReference(root, scripts, enforcedBy);
+          if (!result.ok) errors.push(`lesson "${row.lesson}": enforced-by "${enforcedBy}" no longer resolves: ${result.reason}`);
+          else if (!isStructuralGate(result)) {
+            errors.push(`lesson "${row.lesson}": enforced-by "${enforcedBy}" must resolve to an executable script/test or GitHub workflow`);
+          }
+        }
       } else {
-        const gate = row.gate.trim();
-        const tokens = [...gate.matchAll(/`([^`]+)`/g)]
-          .map((match) => match[1].trim())
-          .filter(Boolean);
-        if (tokens.length === 0 && gate) tokens.push(gate);
+        const tokens = gateReferences(row.gate);
         const live = tokens
           .filter((reference) => resolveReference(root, scripts, reference).ok);
         if (live.length > 0) errors.push(`lesson "${row.lesson}": retired with a live gate (${live.join(", ")}); remove the enforcement or name superseded-by`);
@@ -279,9 +303,7 @@ export function checkLessons({ root, git = runGit }) {
       else errors.push(`lesson "${row.lesson}": ${result.reason}`);
     }
     if (resolved.length === 0) errors.push(`lesson "${row.lesson}": no resolvable gate reference`);
-    const structural = resolved.filter(
-      (entry) => entry.kind === "script" || (entry.kind === "path" && /^(scripts|test|\.github)\//.test(entry.path ?? entry.reference)),
-    );
+    const structural = resolved.filter(isStructuralGate);
     if (row.occurrences.length >= 2 && structural.length === 0) {
       errors.push(`lesson "${row.lesson}": recurring friction (${row.occurrences.length} occurrences) has no structural gate; consolidate it into a script or test, or supersede the row`);
     }

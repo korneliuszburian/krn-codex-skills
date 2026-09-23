@@ -295,6 +295,41 @@ test("retirement needs a supersession or a removed gate, and is excluded from re
   rmSync(root, { recursive: true, force: true });
 });
 
+test("gate-backed retirement keeps a live gate and names the exact resolved gate", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n";
+  const lesson = "| Old advice | probe | `test:state` | | | | retired@abcdef0; enforced-by:test:state |\n";
+  writeFileSync(file, `${header}${lesson}`);
+
+  const report = checkLessons({ root });
+  assert.deepEqual(report.errors, [], "an explicit gate-backed retirement preserves the resolved check");
+  assert.deepEqual(recallLessons({ root, files: ["src/a.mjs"], symbols: ["runGit"] }), [], "retired advice is excluded from recall");
+
+  writeFileSync(file, `${header}${lesson.replace("enforced-by:test:state", "enforced-by:test:bootstrap")}`);
+  const mismatched = checkLessons({ root });
+  assert.ok(mismatched.errors.some((error) => error.includes("enforced-by")), JSON.stringify(mismatched.errors));
+
+  const proseGate = join(root, "docs", "research", "orchestration.md");
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(proseGate, "A prose-only reference.\n");
+  writeFileSync(file, `${header}| Old advice | probe | \`docs/research/orchestration.md\` | | | | retired@abcdef0; enforced-by:docs/research/orchestration.md |\n`);
+  const proseOnly = checkLessons({ root });
+  assert.ok(proseOnly.errors.some((error) => error.includes("executable script/test")), JSON.stringify(proseOnly.errors));
+
+  for (const reference of ["scripts/README.md", "test/fixture.json", "test/support/state-fixtures.mjs", ".github/CODEOWNERS"]) {
+    const absolute = join(root, reference);
+    mkdirSync(join(absolute, ".."), { recursive: true });
+    writeFileSync(absolute, "Not an executable check.\n");
+    writeFileSync(file, `${header}| Old advice | probe | \`${reference}\` | | | | retired@abcdef0; enforced-by:${reference} |\n`);
+    const nonExecutable = checkLessons({ root });
+    assert.ok(nonExecutable.errors.some((error) => error.includes("executable script/test")), `${reference} => ${JSON.stringify(nonExecutable.errors)}`);
+  }
+  writeFileSync(file, `${header}| Old advice | probe | \`test/gate.test.mjs\` | | | | retired@abcdef0; enforced-by:test/gate.test.mjs |\n`);
+  assert.deepEqual(checkLessons({ root }).errors, [], "an executable test path is a structural gate");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("retirement is invalid without a commit and budgets count only active rows", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");
