@@ -26,6 +26,17 @@ export const REQUIRED = [
 ];
 export const DEFAULT_DIRS = [".scratch", ".krn/tickets"];
 
+const SIMPLE_CLAIM_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+export function claimLockPath(root, id) {
+  const stableId = String(id ?? "");
+  if (!stableId) throw new Error("ticket id is required for a claim lock");
+  const lockId = SIMPLE_CLAIM_ID.test(stableId)
+    ? stableId
+    : `~${Buffer.from(stableId, "utf8").toString("hex")}`;
+  return path.join(root, ".krn", "claims", `${lockId}.lock`);
+}
+
 export const DEFAULT_CLAIM_DURATION = 3600;
 export const MAX_ATTEMPTS = 3;
 export const ANCHOR_BYPASS = "allow-unanchored";
@@ -189,7 +200,7 @@ export function claimLease({ fields, root, id }) {
   let renew = claimField(claim, "renew");
   let duration = claimField(claim, "duration");
   if (renew === undefined || duration === undefined) {
-    const held = readClaimLock(path.join(root, ".krn", "claims", `${id}.lock`));
+    const held = readClaimLock(claimLockPath(root, id));
     if (held) {
       renew = renew ?? held.renew;
       duration = duration ?? held.duration;

@@ -19,6 +19,7 @@ import {
   attemptCount,
   attemptLine,
   blockerIds,
+  claimLockPath,
   costRecord,
   envFingerprint,
   hasEnvFingerprint,
@@ -89,7 +90,7 @@ function readClaimLockStrict(lockPath) {
 export function claimTicket({ file, root, id, worker, session = "", at = new Date().toISOString(), duration = DEFAULT_CLAIM_DURATION, observer } = {}) {
   const claimRoot = root ?? rootForTicket(file);
   const ticketId = id ?? readValidTicket(file, parseTicketText).fields.get("Id");
-  const lockPath = path.join(claimRoot, ".krn", "claims", `${ticketId}.lock`);
+  const lockPath = claimLockPath(claimRoot, ticketId);
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   const { text, fields } = readValidTicket(file, parseTicketText);
   assertClaimUnblocked({ file, root: claimRoot, fields });
