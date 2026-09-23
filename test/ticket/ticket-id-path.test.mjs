@@ -34,6 +34,7 @@ test("claim locks are contained and injective for stable IDs", () => {
       "sh-179",
       "owner/repo#7",
       "~6f776e65722f7265706f2337",
+      "/var/tmp/absolute",
       "../../escaped",
     ];
     const files = ids.map((id, index) => {
