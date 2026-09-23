@@ -213,6 +213,42 @@ the driver, schema and migration costs. Beads uses
 for versioned history and cross-clone sync; KRN should pay that cost only if
 those become required here.
 
+### H2 backend decision (2026-09-24, sh-175)
+
+**Disposition: adopt the private Git-ref snapshot as the canonical backend for
+the local task product.** The owner is the sh-175 maintainer; consumers are the
+existing ticket CLI, lane, state, hook and OpenCode readers. Keep the Markdown
+queue live until the lossless import, all-reader switch, rollback and restore
+checks pass. This decision selects the implementation direction; it does not
+authorize cutover or retirement by itself.
+
+**Evidence and rationale.** The H2 test-only comparison passed the same task,
+claim, completion and recovery falsifiers for the single JSON file, Git-ref and
+SQLite candidates on Node 26.2.0 and 22.14.0. The Git candidate uses Git's
+expected-old ref update to perform compare-and-swap, and KRN already requires
+Git for its core operations. That avoids adding a runtime library or a custom
+claim-lock recovery protocol. The file candidate passed the listed fault
+points, but the comparison did not measure a lower lifecycle, backup or
+recovery cost for it. The SQLite candidate passed on Node 22.14.0 with an
+experimental warning. Built-in `node:sqlite` was added in v22.5, is
+flag-gated and active development in the pinned v22.11 docs, and remains
+active development without the flag in v22.14. KRN advertises Node `>=22`, so
+the built-in module does not cover the full supported range without a floor
+change; an alternate driver would add an unmeasured install cost. The exact
+sources are [Node.js v22.11 SQLite](https://nodejs.org/download/release/v22.11.0/docs/api/sqlite.html),
+[Node.js v22.14 SQLite](https://nodejs.org/download/release/v22.14.0/docs/api/sqlite.html),
+and [Git `update-ref`](https://git-scm.com/docs/git-update-ref).
+
+**Falsifier and non-proof.** Reopen this selection before cutover if the
+production Git-ref path cannot preserve the current ticket path/ID set and
+unmapped fields, if linked-worktree contention, operation fencing or
+effect-readback fails in the public CLI, or if backup/restore/rollback costs
+more than the repaired-file baseline. Reconsider SQLite only if its supported
+driver and minimum-runtime cost are established at the advertised floor. The
+H2 adapters are test-only; they do not prove production import, rollback,
+installation cost, performance or cross-clone synchronization. No current
+queue data has been imported by this decision.
+
 The smallest product falsifier is two linked worktrees claiming the same ready
 ID: exactly one may succeed, and a reopened queue must have one claim and no
 sidecar lock. The Git-ref primitive race above does not satisfy this product
