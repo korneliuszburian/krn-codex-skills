@@ -64,6 +64,19 @@ test("cp target-directory into a protected path is denied", () => {
   assert.ok(decision("Bash", "cp --target-directory=.git ./src"), "cp --target-directory=.git must be denied");
 });
 
+test("a named skill entry accepts nondeleting updates while the index and removal stay guarded", () => {
+  const index = join(homedir(), ".agents", "skills");
+  for (const name of ["playwright-cli", "new-skill"]) {
+    const entry = join(index, name);
+    assert.equal(decision("Bash", `cp -a /tmp/skill/. ${entry}/`), null);
+    assert.equal(decision("Bash", `rsync -a /tmp/skill/ ${entry}/`), null);
+    assert.ok(decision("Bash", `rsync -a --delete /tmp/skill/ ${entry}/`));
+    assert.ok(decision("Bash", `rm -rf ${entry}`));
+  }
+  assert.ok(decision("Bash", `cp -a /tmp/skill/. ${index}/`));
+  assert.ok(decision("Bash", `cp --remove-destination /tmp/SKILL.md ${index}/new-skill/SKILL.md`));
+});
+
 test("attached short -t target-directory into a protected path is denied", () => {
   assert.ok(decision("Bash", "cp -t.git ./src"), "cp -t.git must be denied");
   assert.ok(decision("Bash", "install -t.git ./src"), "install -t.git must be denied");

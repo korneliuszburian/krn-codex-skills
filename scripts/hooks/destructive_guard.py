@@ -343,6 +343,19 @@ def _target_directory(rest: list[str]) -> str | None:
     return destination
 
 
+def is_scoped_skill_update_target(target: Path) -> bool:
+    """Admit one named skill entry, never the installed index or protected files."""
+    index = Path.home().resolve() / ".agents" / "skills"
+    if index not in target.parents:
+        return False
+    relative = target.relative_to(index)
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", relative.parts[0]):
+        return False
+    if any(part in {".git", ".beads"} for part in relative.parts):
+        return False
+    return not is_protected_file(target)
+
+
 def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
     if not words:
         return None
@@ -385,6 +398,14 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
         targets = arguments[1:]
     else:
         return None
+    # Copy/sync may update one skill without giving a shell command permission
+    # to remove that entry or replace the entire global index. The contract,
+    # not this lexical guard, decides whether the requested update is owned.
+    nondeleting_skill_update = executable in {"cp", "install", "rsync"} and not any(
+        word in {"--remove-destination", "--parents", "--remove-source-files"}
+        or word.startswith("--delete")
+        for word in words[1:]
+    )
     for raw_target in targets:
         target = resolve_target(raw_target, cwd)
         if target is None:
@@ -395,6 +416,8 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
         if is_exempt_device(target):
             continue
         reason = protected_path_reason(target, cwd, recursive=False)
+        if reason is not None and nondeleting_skill_update and is_scoped_skill_update_target(target):
+            continue
         if reason is not None:
             return f"overwrite of a protected path is blocked: {reason}"
     return None
