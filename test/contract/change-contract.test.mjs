@@ -547,7 +547,7 @@ test("a frozen observer that drops a previously existing case is rejected", () =
   rmSync(root, { recursive: true, force: true });
 });
 
-test("shared obligations execute the base check once", () => {
+test("shared obligations check each commit's parent", () => {
   const root = makeRoot();
   const git = fakeGit({
     commits: [
@@ -559,12 +559,40 @@ test("shared obligations execute the base check once", () => {
   });
   let calls = 0;
   const report = checkChangeContract({ root, base: "base", git, run: green, verifyBefore: true, runAtBase: () => { calls += 1; return { outcome: { ok: false, output: "not ok 1 - x\n# tests 1\n# fail 1\n" } }; } });
-  assert.equal(calls, 1, "the base check runs once for a shared resolved check");
+  assert.equal(calls, 2, "each commit has its own before-state");
   assert.equal(report.errors.length, 0, JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
 
-test("a shared frozen check executes each overlay once", () => {
+test("a commit's red before-state uses its parent, not the range base", () => {
+  const root = makeRoot();
+  const git = fakeGit({
+    commits: [
+      { sha: "a2", subject: "repair", body: "Change-contract: test:lessons:red->green" },
+      { sha: "a1", subject: "intermediate", body: "" },
+    ],
+    files: { a2: ["scripts/lib/x.mjs"], a1: ["docs/research/note.md"] },
+    baseScripts: { "test:lessons": "x" },
+  });
+  const checked = [];
+  const report = checkChangeContract({
+    root,
+    base: "base",
+    git,
+    run: green,
+    verifyBefore: true,
+    runAtBase: ({ base }) => {
+      checked.push(base);
+      const red = base === "a2^1";
+      return { outcome: { ok: !red, output: red ? "not ok 1 - regression\n# tests 1\n# fail 1\n" : "ok 1 - baseline\n# tests 1\n# fail 0\n" } };
+    },
+  });
+  assert.deepEqual(checked, ["a2^1"]);
+  assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a shared frozen check executes each parent overlay once", () => {
   const root = makeRoot();
   const git = fakeGit({
     commits: [
@@ -577,7 +605,7 @@ test("a shared frozen check executes each overlay once", () => {
   writeFileSync(join(root, "test", "x.test.mjs"), "// observer\n");
   let calls = 0;
   const report = checkChangeContract({ root, base: "base", git, run: () => ({ ok: true, status: 0, output: "ok 1 - x\n# tests 1\n# fail 0\n" }), verifyBefore: true, runAtBase: () => { calls += 1; return { outcome: { ok: false, output: "not ok 1 - x\n# tests 1\n# fail 1\n" } }; } });
-  assert.equal(calls, 2, "one overlay run plus one base-observer run, reused across the shared check");
+  assert.equal(calls, 4, "one overlay and one original-observer run per commit parent");
   assert.equal(report.errors.length, 0, JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });

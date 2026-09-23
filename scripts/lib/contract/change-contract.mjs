@@ -429,9 +429,10 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
     const headArgs = record.target.kind === "script" ? frozenNodeArgs(scriptCommand(root, record.target) ?? "") : [];
     const outcome = run({ root, target: record.target, frozenTests: headFrozen, frozenArgs: headArgs });
     const baseCache = new Map();
-    const baseOnce = (value) => {
-      const key = value && value.length ? value.join(",") : "\u0000";
-      if (!baseCache.has(key)) baseCache.set(key, baseRunner({ root, base, target: record.target, overlay: value }));
+    const baseOnce = (obligation, value) => {
+      const beforeRef = `${obligation.commit}^1`;
+      const key = `${beforeRef}:${value && value.length ? value.join(",") : "\u0000"}`;
+      if (!baseCache.has(key)) baseCache.set(key, baseRunner({ root, base: beforeRef, target: record.target, overlay: value }));
       return baseCache.get(key);
     };
     for (const obligation of record.obligations) {
@@ -441,7 +442,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         errors.push({ rule: obligation.label === "risk" ? "regressed-at-risk" : "unmet-prediction", commit: obligation.commit, ref: obligation.ref, detail: `predicted ${obligation.after}, observed ${outcome.ok ? "green" : "red"}${outputTail(outcome.output)}` });
       }
       if (verifyBefore && obligation.label === "contract" && obligation.before === "red" && obligation.after === "green" && outcome.ok) {
-        const baseRun = baseOnce(overlays.length ? overlays : null);
+        const baseRun = baseOnce(obligation, overlays.length ? overlays : null);
         const baseOutput = baseRun.outcome?.output ?? "";
         if (baseRun.unavailable || baseRun.outcome?.spawnFailed) {
           errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete; its before-state is unproven" });
@@ -456,7 +457,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
             const headPass = new Set(tapSummary(outcome.output).passing);
             const missing = tapSummary(baseOutput).failing.filter((name) => !headPass.has(name));
             if (missing.length > 0) errors.push({ rule: "frozen-observer-mismatch", commit: obligation.commit, ref: obligation.ref, detail: `cases failing at base do not pass at head: ${missing.join(", ")}` });
-            const baseObserver = baseOnce(null);
+            const baseObserver = baseOnce(obligation, null);
             if (!baseObserver.unavailable && !baseObserver.outcome?.spawnFailed) {
               const baseSummary = tapSummary(baseObserver.outcome.output);
               const baseCases = [...new Set([...baseSummary.passing, ...baseSummary.failing])].filter(Boolean);
@@ -470,7 +471,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       // trustworthy when the changed check was also green at base: otherwise an
       // unrelated pre-existing red rides along under a behavior-preserving claim.
       if (verifyBefore && obligation.before === "green" && obligation.after === "green" && obligation.frozenObserver && outcome.ok) {
-        const baseRun = baseOnce(overlays.length ? overlays : null);
+        const baseRun = baseOnce(obligation, overlays.length ? overlays : null);
         const baseOutput = baseRun.outcome?.output ?? "";
         if (baseRun.unavailable || baseRun.outcome?.spawnFailed) {
           errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete; its before-state is unproven" });
