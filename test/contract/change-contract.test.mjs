@@ -547,7 +547,9 @@ test("a frozen observer that drops a previously existing case is rejected", () =
   rmSync(root, { recursive: true, force: true });
 });
 
-test("shared obligations check each commit's parent", () => {
+// Keep the original observer name for frozen range checks. "Base" here now
+// means the direct parent of each obligated commit, not the whole range base.
+test("shared obligations execute the base check once", () => {
   const root = makeRoot();
   const git = fakeGit({
     commits: [
@@ -592,7 +594,8 @@ test("a commit's red before-state uses its parent, not the range base", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test("a shared frozen check executes each parent overlay once", () => {
+// Preserve the historical case identity while checking each distinct parent.
+test("a shared frozen check executes each overlay once", () => {
   const root = makeRoot();
   const git = fakeGit({
     commits: [
