@@ -1,7 +1,7 @@
 # Ticket protocol
 
 Status: `accepted`. Consumer: the maintainer, the lane runner, and any worker or
- integrator session. Owner: maintainer. Verified: 2026-09-24.
+integrator session. Owner: maintainer. Verified: 2026-09-24.
 
 ## Decision question
 
@@ -181,34 +181,28 @@ task still consumes the existing fixed-point proof; a general task can close
 with a non-placeholder reason. Claim recovery is an explicit audited release
 or takeover, rather than a second expiring lock file.
 
-SQLite is the preferred **engine to trial**, in one database under the resolved
-Git common directory so linked worktrees share task state without a daemon or
-per-ticket lock. Its [write transactions](https://www.sqlite.org/lang_transaction.html)
-serialize claims. Start the correctness trial with SQLite's default rollback
-journal; [WAL](https://www.sqlite.org/wal.html) needs a demonstrated concurrency
-benefit and a verified SQLite library version with the WAL-reset fix before it
-enters the design. This is a storage choice, not a decision to
-require a database service. The driver is still a release gate: KRN advertises
-Node `>=22`, while the built-in module at pinned Node 22.11 is
-[experimental and flag-gated](https://nodejs.org/download/release/v22.11.0/docs/api/sqlite.html).
-Either a supported pinned driver or an explicit Node-floor change must earn its
-install cost. A database in the Git common directory does **not** sync between
-separate clones; export/import remains explicit until a real sync consumer is
-established.
+SQLite was the preferred **engine to trial** before H2 compared it with the
+private ref and file candidates. Its [write transactions](https://www.sqlite.org/lang_transaction.html)
+serialize claims. The trial used SQLite's default rollback journal;
+[WAL](https://www.sqlite.org/wal.html) would need demonstrated concurrency
+benefit and a verified SQLite library version with the WAL-reset fix. H2 did
+not select SQLite: built-in `node:sqlite` does not cover KRN's advertised Node
+`>=22` floor without a floor change or alternate driver. A database in the Git
+common directory would **not** sync between separate clones; export/import
+would remain explicit until a real sync consumer exists.
 
-The lighter storage countercandidate is one private Git ref,
-`refs/krn/queue`, with a versioned snapshot and old-object compare-and-swap.
+The selected storage direction is one private Git ref, `refs/krn/queue`, with
+a versioned snapshot and expected-old compare-and-swap.
 Git [shares ordinary refs across linked worktrees](https://git-scm.com/docs/git-worktree)
 and [checks the expected old object](https://git-scm.com/docs/git-update-ref).
 A disposable 2026-09-23 two-worktree race from the same absent ref returned one
-successful update, one rejected update, and identical readback. That proves
-only the Git primitive; indexing, ambiguous retry, growth, backup and import
-remain untested. Reject the ref adapter if it needs more custom queue/storage
-code than SQLite saves in installation cost. A repaired file baseline is also
-live: place one canonical task set under Git common dir, use one short mutation
-mutex, and keep claim plus history in the same owned record. Reject SQLite if
-that complete operator flow and crash recovery are simpler to maintain without
-the driver, schema and migration costs. Beads uses
+successful update, one rejected update, and identical readback. The later H2
+test-only comparison also passes the listed claim and effect-recovery cases
+for the Git-ref adapter; it does not verify the production API. Backup, current
+queue import and rollback remain open. The repaired-file candidate also passed
+the listed fault points, but its total lock, export and recovery cost was not
+shown lower. Keep the existing acceptance rule that reopens this selection if
+an alternative meets the same guarantees at lower total cost. Beads uses
 [embedded or server Dolt](https://github.com/gastownhall/beads/blob/main/docs/architecture/dolt.md)
 for versioned history and cross-clone sync; KRN should pay that cost only if
 those become required here.
@@ -229,10 +223,10 @@ object before replacing a ref, and ordinary refs are shared across linked
 worktrees ([Git `update-ref`](https://git-scm.com/docs/git-update-ref),
 [Git worktrees](https://git-scm.com/docs/git-worktree)).
 
-**Source claims.** Node 22.11 added `node:sqlite` in v22.5, marked it active
-development, and required an experimental flag. Node 22.14 still marks the
-API active development, though the flag is no longer required ([Node.js v22.11
-SQLite](https://nodejs.org/download/release/v22.11.0/docs/api/sqlite.html),
+**Source claims.** The Node v22.11 docs say `node:sqlite` was added in v22.5,
+was active development, and required an experimental flag. The v22.14 docs
+still mark the API active development, though the flag is no longer required
+([Node.js v22.11 SQLite](https://nodejs.org/download/release/v22.11.0/docs/api/sqlite.html),
 [Node.js v22.14 SQLite](https://nodejs.org/download/release/v22.14.0/docs/api/sqlite.html)).
 
 **Local inference.** Git is already required by KRN, and its expected-old ref
@@ -252,25 +246,23 @@ synchronization. No current queue data has been imported.
 
 The smallest product falsifier is two linked worktrees claiming the same ready
 ID: exactly one may succeed, and a reopened queue must have one claim and no
-sidecar lock. The Git-ref primitive race above does not satisfy this product
-falsifier. Also verify `add → claim → comment → close →
-reopen`, crash before/after the ref update, duplicate retry after an ambiguous
-response, blocker cycles, and a lossless import of the current path/ID set.
-The import first reports unmapped fields and keeps old files read-only;
-cutover changes readers and writers together; deletion of `.scratch` tickets,
-`.krn/claims`, the old parser/reconcile code, and stale instructions follows
-only after readback and rollback export. A Git bundle or explicit export carries
-the queue to a different clone; no network write is implied by local commands.
-Reject the replacement if it does not remove duplicate state and public field
-ceremony. Compare SQLite, the Git-ref countercandidate, and the unchanged queue
-on actual code, install, import and recovery cost; reject SQLite if its driver
-or distribution burden outweighs the repaired file baseline. This trial
-does not claim a performance or cross-machine win.
+sidecar lock. The H2 adapter comparison exercised this case, but the production
+CLI remains untested. Before cutover, verify the full `add → ready → claim →
+comment → close → reopen` path, interruption before and after an effect,
+duplicate retry after an ambiguous response, blocker cycles, and a lossless
+import of the current path/ID set. The import first reports unmapped fields
+and keeps old files read-only; cutover changes readers and writers together;
+deletion of `.scratch` tickets, `.krn/claims`, the old parser/reconcile code,
+and stale instructions follows only after readback and rollback export. A Git
+bundle or explicit export carries the queue to a different clone; no network
+write is implied by local commands. Reject the replacement if it does not
+remove duplicate state and public field ceremony. The H2 choice is not a
+performance or cross-machine win.
 
 Reopen the operating ABI when a lane needs a field it cannot express, a tracker
 integration rewrites the block, cross-repository work is measured, or the
-replacement trial passes its cutover checks. The replacement candidate is
-superseded by the trial result, not by adding another live queue beside it.
+production Git-ref cutover acceptance below fails. H2 selects the ref store;
+do not add another live queue beside it.
 
 ### Architecture review: join work to memory without a new memory owner
 
@@ -286,17 +278,17 @@ ADR 0001/0005. A task may link to a capsule ID, a lesson anchor, a Git
 revision or a path, but the queue does not copy their contents or verdicts.
 `Compiled context` is a read view for a consumer, not a fourth memory store.
 
-**Candidate 1 — deepen the queue module (`lab-test`, sh-175).** Its small
-interface should make one transaction responsible for readiness, claim epoch,
-dependencies, comments and closure. CLI, lane, hook, OpenCode and state-check
-are callers; a public storage-adapter interface is premature while there is
-one product implementation. Compare a complete SQLite task loop with the
-unchanged file queue and the private Git-ref candidate, including driver,
-installation, import, recovery and code that can be deleted. Reject the
-replacement if a title-only human task still needs lane fields or if claim
-state remains duplicated. A human may close with actor and reason without a
-claim; a lane close needs the current claim epoch and the existing fixed-point
-proof. The queue must reference that proof rather than store another verdict.
+**Candidate 1 — deepen the queue module (`adopt`, sh-175).** H2 selects a
+versioned task snapshot in one private Git ref under the Git common directory.
+One expected-old ref update owns each transition across readiness, claim
+epoch, dependencies, comments, closure and operation receipt. CLI, lane, hook,
+OpenCode and state-check are callers; a public storage-adapter interface is
+premature while there is one product implementation. Reject the store if a
+title-only human task still needs lane fields or if claim state remains
+duplicated. A human may close with actor and reason without a claim; lane
+completion and recovery share the checked-candidate/operation-readback path.
+The queue references the existing fixed-point proof rather than storing a
+second verdict.
 
 **Candidate 2 — compose a provisional task brief (`lab-test`, delivery-loop
 consumer, conditional on sh-174).** At claim or continuation, resolve explicit context links and
@@ -311,10 +303,10 @@ brief if it adds irrelevant lessons, hides a relevant diff-triggered lesson,
 or fails to change a real task decision enough to justify maintenance. The
 brief cannot replace the final diff-based check or the capsule's sole writer.
 
-The two candidates solve different problems. The queue trial can succeed
-without the brief. The brief only earns a separate interface if it improves a
-real claim/continuation decision over the baseline; otherwise keep explicit
-links as ordinary task data and delete the extra view.
+The selected task store can ship without the brief. The brief remains a
+separate lab-test and only earns an interface if it improves a real
+claim/continuation decision over the baseline; otherwise keep explicit links
+as ordinary task data and delete the extra view.
 
 **Memory-link research disposition (2026-09-23): `lab-test`, not a new store.**
 Beads currently offers [`bd remember` and `bd prime`](https://github.com/gastownhall/beads/blob/main/docs/getting-started/ide-setup.md),
@@ -346,28 +338,31 @@ decision enough to pay for its resolver and host presentation. Do not add a
 durable context-use event or a new memory table until a named audit or
 retirement consumer needs one.
 
-**Cutover order and recovery.** After sh-174 decides the knowledge-reference
-contract or explicitly chooses no link, settle a supported Node `>=22` SQLite
-driver or change the advertised floor after a lowest-version smoke. Trial the
-daily task loop and two linked-worktree claims in a disposable store. Then
-import the current ID/path set with an unmapped-field report, run capsule
-candidate resolution and both host queue briefs against it, and exercise the
-delivery-loop archive/restore with a post-import task. Switch readers and
-writers together; only then remove old tickets, claim sidecars and parser.
-The present checker requires `integrated=<sha>` for every `done` ticket, so a
-new human close without a Git commit cannot be faithfully exported into the
-old CLI. Before cutover, rollback means restoring the preserved old snapshot;
-after cutover, recovery needs the new store plus an explicit export. A JSONL
-export alone is data preservation, not proof that the old CLI can operate it.
-Reject cutover if a post-cutover task is lost on restore or a capsule candidate
-goes dangling merely because a reader still uses the old paths.
+**Cutover order and recovery.** Sh-174 has settled the knowledge-reference
+boundary and H2 has selected Git-ref. Implement the production ref store with
+the expected-old CAS and one shared task API. Reopen SQLite only if a supported
+driver at the advertised Node floor is shown to cost less overall. Before
+switching callers, import the current ID/path set with an unmapped-field
+report, run capsule candidate resolution and both host queue briefs against
+the imported state, and exercise delivery-loop archive/restore with a
+post-import task. The H2 trial already exercised the task loop and two
+linked-worktree claims using test-only adapters; it did not exercise the
+production CLI. Cutover freezes writers, switches readers and writers
+together, verifies each public caller, and retains the old snapshot for
+rollback. The present checker requires `integrated=<sha>` for every `done`
+ticket, so a new human close without a Git commit cannot be faithfully
+exported into the old CLI. After new writes begin, rollback needs a reverse
+export from the new store, not only a binary switch. A JSONL export alone is
+data preservation, not proof that the old CLI can operate it. Reject cutover
+if a post-cutover task is lost on restore or a capsule candidate goes dangling
+because a reader still uses the old paths.
 
 The 2026-09-23 independent OpenCode advisory review identified the old
 `done` anchor requirement and the in-process/host reader set; the owner
 verified those at `ticket-check.mjs:147-159`, `state-check.mjs:106-120`,
 `config/opencode/plugins/krn.js` lines 146–153 and the delivery-loop archive
 instruction. The advisory did not execute a replacement-queue falsifier.
-SQLite's transaction guarantees support a local trial; its
-[documented WAL-reset version boundary](https://www.sqlite.org/wal.html) and KRN's
-Node floor remain costs. Supersede these candidates with the measured sh-170
-trial result, not with a second live queue.
+SQLite's transaction guarantees were considered in H2; its Node floor and
+driver remain costs. The H2 decision supersedes the backend candidate trial.
+The conditional task brief remains a separate lab-test, not a second live
+queue.
