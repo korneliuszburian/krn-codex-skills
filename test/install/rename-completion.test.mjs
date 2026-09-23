@@ -26,7 +26,7 @@ const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: 
 test("the managing-codex-capabilities skill names the krn CLI", () => {
   const skill = read("skills/meta/managing-codex-capabilities/SKILL.md");
   assert.match(skill, /`krn capability inventory`/, "the inventory command must name krn");
-  assert.match(skill, /`krn capability check PROFILE`/, "the check command must name krn");
+  assert.match(skill, /`krn capability check PROFILE --root REPO`/, "the check command must name krn and its repository root");
   assert.doesNotMatch(unflagged(skill), new RegExp(OLD), "the skill still names krn-codex");
 });
 
