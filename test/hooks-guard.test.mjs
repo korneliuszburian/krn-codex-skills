@@ -147,10 +147,11 @@ test("a mutating writer hidden in a pipeline still fails closed", () => {
   );
 });
 
+// Keep this observer identity across the host-output contract correction.
 test("PreCompact injects a continuing capsule and ignores a completed one", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-precompact-"));
   try {
-    assert.equal(precompactContext(dir), null, "no capsule means no injected context");
+    assert.equal(precompactContext(dir), null, "no capsule means no hook output");
     const make = (id, outcome, next) => {
       const capsule = join(dir, ".krn", "runs", "delivery-loop", id);
       mkdirSync(capsule, { recursive: true });
@@ -164,13 +165,12 @@ test("PreCompact injects a continuing capsule and ignores a completed one", () =
     };
     make("out-1", "ACTIVE", "update src/b.mjs and run npm test");
     const context = precompactContext(dir);
-    assert.match(context, /update src\/b\.mjs and run npm test/);
-    assert.match(context, /out-1/);
+    assert.equal(context, null, "PreCompact must not emit SessionStart-specific context");
     const boundary = readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-1", "boundary.md"), "utf8");
     assert.match(boundary, /next bounded action: update src\/b\.mjs and run npm test/);
     make("out-2", "COMPLETE", "do not continue this");
     const after = precompactContext(dir);
-    assert.doesNotMatch(after, /do not continue this/);
+    assert.equal(after, null, "PreCompact stays silent when completed capsules coexist");
     assert.throws(() => readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-2", "boundary.md")), "a completed capsule gets no boundary file");
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -240,4 +240,3 @@ test("SessionStart signals adoption from CLAUDE.md when AGENTS.md is absent", ()
     rmSync(dir, { recursive: true, force: true });
   }
 });
-

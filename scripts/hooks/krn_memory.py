@@ -273,6 +273,10 @@ def main() -> int:
                 f"  blockers: {blockers}"
             )
 
+        if event == "PreCompact":
+            # SessionStart after compaction owns model-visible continuation.
+            return 0
+
         if not notes:
             signal = queue_brief(cwd) if event == "SessionStart" else None
             if signal is None and event == "SessionStart":
