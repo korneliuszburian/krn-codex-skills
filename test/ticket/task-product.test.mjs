@@ -292,7 +292,7 @@ function completionAccepted(state, operation) {
   const { taskId, owner, epoch, intent, intentRevision } = operation;
   const task = state.tasks[taskId];
   return Boolean(task && task.status === "claimed" && task.owner === owner && task.epoch === epoch
-    && (intent === undefined || state.intents[intent] === intentRevision)
+    && typeof intent === "string" && intent.length > 0 && Number.isInteger(intentRevision) && state.intents[intent] === intentRevision
     && operation.candidateIdentity
     && operation.checkResult?.candidateIdentity === operation.candidateIdentity
     && operation.checkResult.exitCode === 0);
@@ -438,6 +438,10 @@ async function exerciseBackend(backend) {
       actor: "worker-a", reason: "accepted", epoch,
       proof: { ...laneProof, intentRevision: 0 },
     }), /acceptance predicate/, "normal close must reject a candidate checked against stale intent");
+    assert.throws(() => closeTask(structuredClone(beforeLaneClose.state), "lane-task", {
+      actor: "worker-a", reason: "accepted", epoch,
+      proof: { ...laneProof, intent: undefined, intentRevision: undefined },
+    }), /acceptance predicate/, "normal close must require an explicit current intent revision");
     await mutate(backend, fixture.second, key, (state) => closeTask(state, "lane-task", { actor: "worker-a", reason: "accepted", epoch, proof: laneProof }));
     await mutate(backend, fixture.second, key, (state) => closeTask(state, "human-task", { actor: "operator", reason: "handled manually" }));
     await mutate(backend, fixture.second, key, (state) => reopenTask(state, "human-task", { actor: "operator", reason: "scope changed" }));
