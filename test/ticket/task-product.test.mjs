@@ -280,11 +280,39 @@ function writeBlob(root, value) {
   return result.stdout.trim();
 }
 
+function normalizedOperationParams(operation) {
+  const supplied = operation.params ?? {};
+  if (!operation.id || supplied.target !== operation.effectObject || supplied.intentRevision !== operation.intentRevision) {
+    throw new Refused("operation parameters disagree with the effect or intent");
+  }
+  return {
+    ...supplied,
+    operationId: operation.id,
+    candidateIdentity: operation.candidateIdentity,
+    checkResult: operation.checkResult,
+    effectRef: operation.effectRef,
+    effectObject: operation.effectObject,
+    taskId: operation.taskId,
+    owner: operation.owner,
+    epoch: operation.epoch,
+    intent: operation.intent,
+    intentRevision: operation.intentRevision,
+  };
+}
+
+function operationParamsMatch(operation) {
+  try {
+    return JSON.stringify(operation.params) === JSON.stringify(normalizedOperationParams(operation));
+  } catch {
+    return false;
+  }
+}
+
 function completionDecision(state, operation, effectReadback) {
   const { taskId, owner, epoch, intent, intentRevision } = operation;
   const task = state.tasks[taskId];
   const stored = state.operations[operation.id];
-  if (!operation.id || operation.params?.operationId !== operation.id || stored?.id !== operation.id || stored?.status !== "prepared"
+  if (!operationParamsMatch(operation) || stored?.id !== operation.id || stored?.status !== "prepared"
     || !task || task.status !== "claimed" || task.owner !== owner || task.epoch !== epoch
     || typeof intent !== "string" || intent.length === 0 || !Number.isInteger(intentRevision) || state.intents[intent] !== intentRevision
     || !operation.candidateIdentity || operation.checkResult?.candidateIdentity !== operation.candidateIdentity || operation.checkResult.exitCode !== 0) {
@@ -312,21 +340,15 @@ async function mutate(backend, root, key, change) {
 }
 
 async function ensureOperation(backend, root, key, operation) {
-  const parameters = {
-    ...operation.params,
-    operationId: operation.id,
-    candidateIdentity: operation.candidateIdentity,
-    checkResult: operation.checkResult,
-    effectRef: operation.effectRef,
-    effectObject: operation.effectObject,
-    taskId: operation.taskId,
-    owner: operation.owner,
-    epoch: operation.epoch,
-    intent: operation.intent,
-    intentRevision: operation.intentRevision,
-  };
   const prior = await snapshot(backend, root, key);
   const current = prior.state.operations[operation.id];
+  let parameters;
+  try {
+    parameters = normalizedOperationParams(operation);
+  } catch (error) {
+    if (current) throw new Refused("operation id reused with different parameters");
+    throw error;
+  }
   if (current) {
     if (JSON.stringify(current.params) !== JSON.stringify(parameters)) throw new Refused("operation id reused with different parameters");
     return { state: prior.state, result: { idempotent: true, status: current.status } };
@@ -452,6 +474,10 @@ async function exerciseBackend(backend) {
       ...storedLaneOperation,
       params: { ...storedLaneOperation.params, operationId: "different-operation" },
     }, laneCandidate), "rejected", "normal completion binds its operation ID");
+    assert.equal(completionDecision(preparedLane.state, {
+      ...storedLaneOperation,
+      params: { ...storedLaneOperation.params, target: "different-effect" },
+    }, laneCandidate), "rejected", "normal completion binds substantive operation parameters");
     assert.equal(completionDecision(preparedLane.state, storedLaneOperation, "different-effect"), "ambiguous", "normal completion requires exact effect readback");
     const beforeEffect = await completeOperation(backend, fixture.first, key, laneOperation.id);
     assert.equal(beforeEffect.result.status, "ambiguous");
@@ -543,6 +569,24 @@ async function exerciseBackend(backend) {
         checkResult: { ...operation.checkResult, candidateIdentity: effectObject },
       }),
       /not bound to the candidate/,
+    );
+    await assert.rejects(
+      ensureOperation(backend, fixture.first, operationKey, {
+        ...operation,
+        id: `${backend}-wrong-target-binding`,
+        params: { ...operation.params, target: "different-effect" },
+      }),
+      /parameters disagree/,
+      "an operation cannot prepare params that target a different effect object",
+    );
+    await assert.rejects(
+      ensureOperation(backend, fixture.first, operationKey, {
+        ...operation,
+        id: `${backend}-wrong-intent-binding`,
+        params: { ...operation.params, intentRevision: 2 },
+      }),
+      /parameters disagree/,
+      "an operation cannot prepare params from a different intent revision",
     );
     const ambiguousObject = writeBlob(fixture.root, `ambiguous-${backend}`);
     const ambiguousOperation = {
