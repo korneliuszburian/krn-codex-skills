@@ -275,6 +275,36 @@ without the brief. The brief only earns a separate interface if it improves a
 real claim/continuation decision over the baseline; otherwise keep explicit
 links as ordinary task data and delete the extra view.
 
+**Memory-link research disposition (2026-09-23): `lab-test`, not a new store.**
+Beads currently offers [`bd remember` and `bd prime`](https://github.com/gastownhall/beads/blob/main/docs/getting-started/ide-setup.md),
+while its [task-to-versioned-memory graph](https://github.com/gastownhall/beads/issues/5877)
+is a proposal, not a shipped result. Its transferable question is whether a
+task can cite the exact knowledge state used without copying knowledge into the
+task. KRN already has Git revisions and lesson row anchors, so the first read
+view can resolve an explicit reference and show current or retired state with
+its source revision. This does not make the current lessons table permanent:
+at source HEAD `109193e23d2ec1399b155dfc3b7283b93bf72bf1` it has 25 rows,
+20 active and only four active triggers,
+and `memory usage` reports one triggered row never bound to a `Recall:` trailer.
+Those counters measure matching and binding, not a changed task outcome. Before
+fixing a task schema to this table, classify each active row by its distinct
+consumer and whether the enforcing code, test or instruction already owns its
+content. Retain, simplify or retire the table on that evidence; any task link
+must survive as a typed source reference with a revision, not a copy of lesson
+text. A completed task may suggest a reusable lesson, but promotion follows
+the then-current knowledge owner's proof and retirement rules. Do not inject
+every memory body at session start: ADR 0006
+retired automatic decision-point recall after its local cost and null result.
+The [ContextBench study](https://arxiv.org/abs/2602.05892) found only marginal
+retrieval gains from elaborate scaffolding; its benchmark does not decide this
+KRN task-view question. Trial one real task where a cited lesson changes a
+claim/continuation decision and one near-match or retired-lesson counterexample
+against task display plus manual recall. Reject the view if it adds stale or
+irrelevant guidance, fails to expose provenance, or does not improve the
+decision enough to pay for its resolver and host presentation. Do not add a
+durable context-use event or a new memory table until a named audit or
+retirement consumer needs one.
+
 **Cutover order and recovery.** First settle a supported Node `>=22` SQLite
 driver or change the advertised floor after a lowest-version smoke. Trial the
 daily task loop and two linked-worktree claims in a disposable store. Then
