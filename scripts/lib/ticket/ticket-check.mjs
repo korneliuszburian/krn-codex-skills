@@ -166,13 +166,12 @@ function anchorErrors({ root, git, ticket, base, head }) {
   return [{ path: anchor.path, rule: "evidence-anchor-missing", message: `${anchor.message} and its patch id is absent from the range` }];
 }
 
-export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD", now = new Date().toISOString(), reconcile = true, listFiles, parseTicket } = {}) {
+export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD", now = new Date().toISOString(), reconcile = false, listFiles, parseTicket } = {}) {
   const tickets = [];
   const errors = [];
   const warnings = [];
-  // `ticket next` reads the frontier through this report, so the repair runs
-  // first: a crashed merge-then-close heals before the frontier is computed
-  // and the merged ticket never re-enters the queue.
+  // Observation is read-only by default. A caller that owns the recovery
+  // transition must opt in here or invoke reconcileTickets explicitly.
   const reconciled = [];
   if (reconcile) {
     try {

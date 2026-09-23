@@ -212,7 +212,7 @@ test("reconcileTickets defers to an unexpired lease so a live worker keeps its c
   });
 });
 
-test("checkTickets reconciles before the frontier so ticket next self-heals", async () => {
+test("checkTickets observes without reconciling and explicit repair self-heals", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withRepo((dir) => {
@@ -220,21 +220,27 @@ test("checkTickets reconciles before the frontier so ticket next self-heals", as
     const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
     mergeLane(dir);
     const report = ticketLib.checkTickets({ root: dir, dirs: [".scratch"] });
-    assert.deepEqual(report.reconciled, ["sh-35"]);
+    assert.deepEqual(report.reconciled, []);
+    assert.equal(statusOf(file), "claimed");
     assert.deepEqual(report.frontier, []);
+    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"] }), ["sh-35"]);
     assert.equal(statusOf(file), "done");
   });
 });
 
-test("the ticket next CLI consumes the reconcile so a crashed loop restarts clean", () => {
+test("ticket next observes without reconciling and the repair command is explicit", () => {
   const dir = makeRepo();
   try {
     const lane = laneCommit(dir);
-    writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
+    const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
     mergeLane(dir);
     const result = spawnSync(process.execPath, [cli, "ticket", "next", "--root", dir, "--path", join(dir, ".scratch")], { encoding: "utf8" });
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
     assert.doesNotMatch(result.stdout, /sh-35/);
+    assert.equal(statusOf(file), "claimed");
+    const reconcile = spawnSync(process.execPath, [cli, "ticket", "reconcile", "--root", dir, "--path", join(dir, ".scratch"), "--json"], { encoding: "utf8" });
+    assert.equal(reconcile.status, 0, `${reconcile.stdout}${reconcile.stderr}`);
+    assert.deepEqual(JSON.parse(reconcile.stdout).reconciled, ["sh-35"]);
     assert.equal(statusOf(join(dir, ".scratch", "sh-35.md")), "done");
   } finally {
     rmSync(dir, { recursive: true, force: true });

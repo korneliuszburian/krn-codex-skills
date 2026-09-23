@@ -44,7 +44,7 @@ const usage = `Usage:
   krn changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
   krn conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
   krn memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
-  krn ticket <check|next> --root DIR [--path DIR] [--id ID --base REF [--head REF]] [--json]
+  krn ticket <check|next|reconcile> --root DIR [--path DIR] [--id ID --base REF [--head REF]] [--json]
   krn ticket show <path> [--json]
   krn ticket fields --file FILE [--json]
   krn ticket env --file FILE

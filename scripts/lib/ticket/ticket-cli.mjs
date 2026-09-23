@@ -3,9 +3,9 @@ import path from "node:path";
 
 import { parseCliArgs } from "../kernel/cli.mjs";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
-import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText, recordAttempt, ticketLaneBindings } from "./ticket.mjs";
+import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText, recordAttempt, reconcileTickets, ticketLaneBindings } from "./ticket.mjs";
 
-const COMMANDS = new Set(["check", "next", "claim", "close", "fail", "fields", "env"]);
+const COMMANDS = new Set(["check", "next", "reconcile", "claim", "close", "fail", "fields", "env"]);
 const VALUE_FLAGS = {
   "--root": "root",
   "--path": "path",
@@ -125,6 +125,15 @@ export function runTicketCommand(argv, { usage, requireDirectory }) {
           ? closeTicket({ file, root: options.root, evidence: options.evidence ?? "none", resolution: options.resolution ?? "none", base: options.base, head: options.head, wallSeconds: options.wallSeconds, tokens: options.tokens })
           : recordAttempt({ file, reason: options.reason ?? "unknown", signature: options.signature ?? "" });
       output(result, options.json);
+    } catch (error) {
+      fail(error.message, EXIT_CODES.USAGE);
+    }
+    return;
+  }
+  if (command === "reconcile") {
+    try {
+      const reconciled = reconcileTickets({ root: options.root, dirs, headRef: options.head ?? "HEAD" });
+      output({ root: options.root, reconciled }, options.json);
     } catch (error) {
       fail(error.message, EXIT_CODES.USAGE);
     }

@@ -106,7 +106,7 @@ function lessonAnchors(root) {
 function queueTicketIds(root) {
   const ids = new Set();
   try {
-    for (const ticket of checkTickets({ root }).tickets) if (ticket.id) ids.add(ticket.id);
+    for (const ticket of checkTickets({ root, reconcile: false }).tickets) if (ticket.id) ids.add(ticket.id);
   } catch {
     // No readable queue: candidates can only resolve to lesson-row anchors.
   }
