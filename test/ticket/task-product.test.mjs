@@ -149,9 +149,24 @@ function addTask(state, { id, title, sourcePath = "", legacyFields = {}, depende
 function markReady(state, id) {
   const task = state.tasks[id];
   if (!task || task.status !== "open") throw new Refused("task is not open");
+  if (hasDependencyCycle(state, id)) throw new Refused("task has a dependency cycle");
   if (!task.dependencies.every((dependency) => state.tasks[dependency]?.status === "done")) throw new Refused("task has unresolved dependencies");
   task.status = "ready";
   task.history.push({ type: "ready" });
+}
+
+function hasDependencyCycle(state, root, path = new Set(), visited = new Set()) {
+  if (path.has(root)) return true;
+  if (visited.has(root)) return false;
+  const task = state.tasks[root];
+  if (!task) return false;
+  path.add(root);
+  for (const dependency of task.dependencies) {
+    if (hasDependencyCycle(state, dependency, path, visited)) return true;
+  }
+  path.delete(root);
+  visited.add(root);
+  return false;
 }
 
 function claimTask(state, id, worker) {
@@ -174,12 +189,28 @@ function commentTask(state, id, worker, epoch, body) {
 function closeTask(state, id, { actor, reason, epoch, proof }) {
   const task = state.tasks[id];
   if (!task || task.status === "done") throw new Refused("task cannot close");
-  if (epoch !== undefined && (task.status !== "claimed" || task.owner !== actor || task.epoch !== epoch)) throw new Refused("stale claim generation");
   if (epoch === undefined && (!actor || !reason)) throw new Refused("human close requires actor and reason");
-  if (task.lane && (epoch === undefined || !proof?.candidateIdentity || proof.checkResult?.candidateIdentity !== proof.candidateIdentity || proof.checkResult.exitCode !== 0)) throw new Refused("lane close requires the current claim and candidate-bound proof");
+  if (task.lane && !completionAccepted(state, {
+    taskId: id,
+    owner: actor,
+    epoch,
+    intent: proof?.intent,
+    intentRevision: proof?.intentRevision,
+    candidateIdentity: proof?.candidateIdentity,
+    checkResult: proof?.checkResult,
+  })) throw new Refused("lane close acceptance predicate refused");
+  if (!task.lane && epoch !== undefined && (task.status !== "claimed" || task.owner !== actor || task.epoch !== epoch)) throw new Refused("stale claim generation");
   task.status = "done";
   task.result = { actor, reason, ...(proof ? { proof } : {}) };
   task.history.push({ type: "closed", actor, reason });
+}
+
+function reopenTask(state, id, { actor, reason }) {
+  const task = state.tasks[id];
+  if (!task || task.status !== "done" || !actor || !reason) throw new Refused("reopen requires a done task, actor, and reason");
+  task.status = "open";
+  task.owner = "";
+  task.history.push({ type: "reopened", actor, reason });
 }
 
 async function claimWorker({ backend, root, key, id, worker, ready, go }) {
@@ -385,20 +416,33 @@ async function exerciseBackend(backend) {
       addTask(state, { id: "human-task", title: "human-only work" });
       addTask(state, { id: "unrelated", title: "unrelated outcome" });
       addTask(state, { id: "dependent-task", title: "waits for human task", dependencies: ["human-task"] });
+      addTask(state, { id: "cycle-a", title: "cycle A", dependencies: ["cycle-b"] });
+      addTask(state, { id: "cycle-b", title: "cycle B", dependencies: ["cycle-a"] });
+      addTask(state, { id: "unknown-dependency", title: "unknown blocker", dependencies: ["missing-task"] });
       for (const id of ["lane-task", "human-task", "unrelated"]) markReady(state, id);
     });
     const ready = await snapshot(backend, fixture.second, key);
     assert.deepEqual(readyIds(ready.state), ["human-task", "lane-task", "unrelated"]);
     assert.throws(() => markReady(structuredClone(ready.state), "dependent-task"), /unresolved dependencies/);
+    assert.throws(() => markReady(structuredClone(ready.state), "cycle-a"), /dependency cycle/);
+    assert.throws(() => markReady(structuredClone(ready.state), "cycle-b"), /dependency cycle/);
+    assert.throws(() => markReady(structuredClone(ready.state), "unknown-dependency"), /unresolved dependencies/);
     const claimed = await mutate(backend, fixture.first, key, (state) => claimTask(state, "lane-task", "worker-a"));
     const epoch = claimed.result;
     await mutate(backend, fixture.second, key, (state) => commentTask(state, "lane-task", "worker-a", epoch, "checked candidate"));
     const laneCandidate = writeBlob(fixture.root, `${backend}-lane-candidate`);
-    const laneProof = { candidateIdentity: laneCandidate, checkResult: candidateEvidence(fixture.root, laneCandidate) };
+    const laneProof = { intent: "alpha", intentRevision: 1, candidateIdentity: laneCandidate, checkResult: candidateEvidence(fixture.root, laneCandidate) };
     const beforeLaneClose = await snapshot(backend, fixture.second, key);
-    assert.throws(() => closeTask(structuredClone(beforeLaneClose.state), "lane-task", { actor: "worker-a", reason: "accepted", epoch }), /candidate-bound proof/);
+    assert.throws(() => closeTask(structuredClone(beforeLaneClose.state), "lane-task", { actor: "worker-a", reason: "accepted", epoch }), /acceptance predicate/);
+    assert.throws(() => closeTask(structuredClone(beforeLaneClose.state), "lane-task", {
+      actor: "worker-a", reason: "accepted", epoch,
+      proof: { ...laneProof, intentRevision: 0 },
+    }), /acceptance predicate/, "normal close must reject a candidate checked against stale intent");
     await mutate(backend, fixture.second, key, (state) => closeTask(state, "lane-task", { actor: "worker-a", reason: "accepted", epoch, proof: laneProof }));
     await mutate(backend, fixture.second, key, (state) => closeTask(state, "human-task", { actor: "operator", reason: "handled manually" }));
+    await mutate(backend, fixture.second, key, (state) => reopenTask(state, "human-task", { actor: "operator", reason: "scope changed" }));
+    await assert.rejects(mutate(backend, fixture.first, key, (state) => markReady(state, "dependent-task")), /unresolved dependencies/);
+    await mutate(backend, fixture.first, key, (state) => closeTask(state, "human-task", { actor: "operator", reason: "handled after scope change" }));
     await mutate(backend, fixture.second, key, (state) => markReady(state, "dependent-task"));
     const promoted = await snapshot(backend, fixture.first, key);
     assert.deepEqual(readyIds(promoted.state), ["dependent-task", "unrelated"], "closing a dependency advances the ready frontier");
@@ -407,7 +451,7 @@ async function exerciseBackend(backend) {
     assert.equal(loop.state.tasks["lane-task"].status, "done");
     assert.equal(loop.state.tasks["human-task"].status, "done", "human close does not require a prior claim");
     assert.deepEqual(loop.state.tasks["lane-task"].comments, [{ author: "worker-a", body: "checked candidate" }]);
-    assert.deepEqual(loop.state.tasks["human-task"].history.map((entry) => entry.type), ["added", "ready", "closed"]);
+    assert.deepEqual(loop.state.tasks["human-task"].history.map((entry) => entry.type), ["added", "ready", "closed", "reopened", "closed"]);
     assert.equal(loop.state.tasks["lane-task"].legacyFields.CustomField, "retained");
     assert.deepEqual(loop.state.tasks["lane-task"].contextRef, { kind: "lesson", revision: "abc123", anchor: "row-18" });
 
