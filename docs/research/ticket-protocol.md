@@ -1,7 +1,7 @@
 # Ticket protocol
 
 Status: `accepted`. Consumer: the maintainer, the lane runner, and any worker or
-integrator session. Owner: maintainer. Verified: 2026-09-23.
+ integrator session. Owner: maintainer. Verified: 2026-09-24.
 
 ## Decision question
 
@@ -217,37 +217,38 @@ those become required here.
 
 **Disposition: adopt the private Git-ref snapshot as the canonical backend for
 the local task product.** The owner is the sh-175 maintainer; consumers are the
-existing ticket CLI, lane, state, hook and OpenCode readers. Keep the Markdown
-queue live until the lossless import, all-reader switch, rollback and restore
-checks pass. This decision selects the implementation direction; it does not
-authorize cutover or retirement by itself.
+existing ticket CLI, lane, state, hook and OpenCode readers. This selects the
+implementation direction only. The Markdown queue remains authoritative until
+the cutover contract below passes.
 
-**Evidence and rationale.** The H2 test-only comparison passed the same task,
-claim, completion and recovery falsifiers for the single JSON file, Git-ref and
-SQLite candidates on Node 26.2.0 and 22.14.0. The Git candidate uses Git's
-expected-old ref update to perform compare-and-swap, and KRN already requires
-Git for its core operations. That avoids adding a runtime library or a custom
-claim-lock recovery protocol. The file candidate passed the listed fault
-points, but the comparison did not measure a lower lifecycle, backup or
-recovery cost for it. The SQLite candidate passed on Node 22.14.0 with an
-experimental warning. Built-in `node:sqlite` was added in v22.5, is
-flag-gated and active development in the pinned v22.11 docs, and remains
-active development without the flag in v22.14. KRN advertises Node `>=22`, so
-the built-in module does not cover the full supported range without a floor
-change; an alternate driver would add an unmeasured install cost. The exact
-sources are [Node.js v22.11 SQLite](https://nodejs.org/download/release/v22.11.0/docs/api/sqlite.html),
-[Node.js v22.14 SQLite](https://nodejs.org/download/release/v22.14.0/docs/api/sqlite.html),
-and [Git `update-ref`](https://git-scm.com/docs/git-update-ref).
+**Observed trial.** The H2 test-only comparison passed the same task, claim,
+completion and recovery falsifiers for the single JSON file, Git-ref and SQLite
+candidates on Node 26.2.0 and 22.14.0; its executed cases are in
+`test/ticket/task-product.test.mjs`. Git's `update-ref` checks an expected old
+object before replacing a ref, and ordinary refs are shared across linked
+worktrees ([Git `update-ref`](https://git-scm.com/docs/git-update-ref),
+[Git worktrees](https://git-scm.com/docs/git-worktree)).
 
-**Falsifier and non-proof.** Reopen this selection before cutover if the
-production Git-ref path cannot preserve the current ticket path/ID set and
-unmapped fields, if linked-worktree contention, operation fencing or
-effect-readback fails in the public CLI, or if backup/restore/rollback costs
-more than the repaired-file baseline. Reconsider SQLite only if its supported
-driver and minimum-runtime cost are established at the advertised floor. The
-H2 adapters are test-only; they do not prove production import, rollback,
-installation cost, performance or cross-clone synchronization. No current
-queue data has been imported by this decision.
+**Source claims.** Node 22.11 added `node:sqlite` in v22.5, marked it active
+development, and required an experimental flag. Node 22.14 still marks the
+API active development, though the flag is no longer required ([Node.js v22.11
+SQLite](https://nodejs.org/download/release/v22.11.0/docs/api/sqlite.html),
+[Node.js v22.14 SQLite](https://nodejs.org/download/release/v22.14.0/docs/api/sqlite.html)).
+
+**Local inference.** Git is already required by KRN, and its expected-old ref
+update supplies compare-and-swap without a new runtime dependency or custom
+claim-lock recovery. The file candidate passed the listed cases, but this
+comparison did not establish a lower lifecycle, backup or recovery cost for
+it. Built-in SQLite does not cover KRN's advertised Node `>=22` range without
+a floor change; an alternate driver would add an unmeasured install cost. Those
+local trade-offs motivate the Git-ref selection; they are not measured
+performance results.
+
+**Falsifier and non-proof.** Reopen the selection if the full production
+acceptance below fails or if a supported file/SQLite implementation proves a
+lower total operating cost. The adapters are test-only; they do not prove
+production import, rollback, installation cost, performance or cross-clone
+synchronization. No current queue data has been imported.
 
 The smallest product falsifier is two linked worktrees claiming the same ready
 ID: exactly one may succeed, and a reopened queue must have one claim and no
