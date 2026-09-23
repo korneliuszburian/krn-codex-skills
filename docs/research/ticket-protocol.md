@@ -228,3 +228,68 @@ Reopen the operating ABI when a lane needs a field it cannot express, a tracker
 integration rewrites the block, cross-repository work is measured, or the
 replacement trial passes its cutover checks. The replacement candidate is
 superseded by the trial result, not by adding another live queue beside it.
+
+### Architecture review: join work to memory without a new memory owner
+
+The queue's **Work item** owns identity, dependencies, discussion and result;
+the **Claim** owns one executor turn. The outcome capsule still owns current
+outcome authority, and `workflow-lessons.md` still owns active and retired
+cross-run lessons. This follows the existing vocabulary in `CONTEXT.md` and
+ADR 0001/0005. A task may link to a capsule ID, a lesson anchor, a Git
+revision or a path, but the queue does not copy their contents or verdicts.
+`Compiled context` is a read view for a consumer, not a fourth memory store.
+
+**Candidate 1 — deepen the queue module (`lab-test`, sh-170).** Its small
+interface should make one transaction responsible for readiness, claim epoch,
+dependencies, comments and closure. CLI, lane, hook, OpenCode and state-check
+are callers; a public storage-adapter interface is premature while there is
+one product implementation. Compare a complete SQLite task loop with the
+unchanged file queue and the private Git-ref candidate, including driver,
+installation, import, recovery and code that can be deleted. Reject the
+replacement if a title-only human task still needs lane fields or if claim
+state remains duplicated. A human may close with actor and reason without a
+claim; a lane close needs the current claim epoch and the existing fixed-point
+proof. The queue must reference that proof rather than store another verdict.
+
+**Candidate 2 — compose a provisional task brief (`lab-test`, delivery-loop
+consumer).** At claim or continuation, resolve explicit context links and
+show active lesson matches with their match reason and source revision. For a
+lane, the pre-work match uses declared scope and is labelled provisional:
+`run-ticket.sh` currently recalls from `Scope`, whereas `changes check
+--strict-recall` checks the actual diff at the final fixed point. An explicit
+link to a retired lesson is shown as historical/unavailable, never as an
+applicable instruction. A title-only task creates no inferred lesson hit.
+Baseline: show the task and run current `memory recall` manually. Reject the
+brief if it adds irrelevant lessons, hides a relevant diff-triggered lesson,
+or fails to change a real task decision enough to justify maintenance. The
+brief cannot replace the final diff-based check or the capsule's sole writer.
+
+The two candidates solve different problems. The queue trial can succeed
+without the brief. The brief only earns a separate interface if it improves a
+real claim/continuation decision over the baseline; otherwise keep explicit
+links as ordinary task data and delete the extra view.
+
+**Cutover order and recovery.** First settle a supported Node `>=22` SQLite
+driver or change the advertised floor after a lowest-version smoke. Trial the
+daily task loop and two linked-worktree claims in a disposable store. Then
+import the current ID/path set with an unmapped-field report, run capsule
+candidate resolution and both host queue briefs against it, and exercise the
+delivery-loop archive/restore with a post-import task. Switch readers and
+writers together; only then remove old tickets, claim sidecars and parser.
+The present checker requires `integrated=<sha>` for every `done` ticket, so a
+new human close without a Git commit cannot be faithfully exported into the
+old CLI. Before cutover, rollback means restoring the preserved old snapshot;
+after cutover, recovery needs the new store plus an explicit export. A JSONL
+export alone is data preservation, not proof that the old CLI can operate it.
+Reject cutover if a post-cutover task is lost on restore or a capsule candidate
+goes dangling merely because a reader still uses the old paths.
+
+The 2026-09-23 independent OpenCode advisory review identified the old
+`done` anchor requirement and the in-process/host reader set; the owner
+verified those at `ticket-check.mjs:147-159`, `state-check.mjs:106-120`,
+`config/opencode/plugins/krn.js:146-153` and the delivery-loop archive
+instruction. The advisory did not execute a replacement-queue falsifier.
+SQLite's transaction and WAL guarantees support a local trial, while its
+[documented single-host WAL limit](https://www.sqlite.org/wal.html) and KRN's
+Node floor remain costs. Supersede these candidates with the measured sh-170
+trial result, not with a second live queue.

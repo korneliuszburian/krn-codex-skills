@@ -142,6 +142,18 @@ must pass before replacing the operating ABI. This is a separate queue
 architecture decision under sh-170's consumer audit, not part of the sh-166
 release or permission to build a second live store.
 
+The architecture review sharpened the sequence: prove a supported Node driver
+and complete human task loop first; then claim fencing and lane proof at one
+fixed point; then lossless import plus every queue reader (state candidate
+resolution, Codex hook, OpenCode plugin and delivery-loop archive); finally
+switch and delete old files/locks/parser. The optional task brief composes
+explicit capsule/lesson links and visibly provisional scope matches; it must
+beat task display plus manual recall on a real decision without copying memory
+or weakening the final diff-based check. The old CLI cannot faithfully read a
+human `done` without an integrated commit anchor, so post-cutover recovery
+cannot be described as rollback to the old CLI. These remain sh-170 trial
+conditions, not a new runtime lane in this release.
+
 ## Research and deletion discipline
 
 Use bounded read-only Astra tasks for independent questions; available slots
