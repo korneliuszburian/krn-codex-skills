@@ -12,6 +12,7 @@ const contract = "test/ticket/ticket-close-candidate.test.mjs:red->green";
 const git = (root, ...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const commit = (root, message) => git(root, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", message);
 const rev = (root, ref) => git(root, "rev-parse", ref);
+const patchId = (root, diff) => execFileSync("git", ["-C", root, "patch-id", "--stable"], { input: diff, encoding: "utf8" }).trim().split(/\s+/)[0];
 
 function makeRepo() {
   const root = mkdtempSync(join(tmpdir(), "krn-ticket-close-candidate-"));
@@ -59,6 +60,8 @@ test("close records the exact candidate head it validated", () => {
   const { root, file, base, candidate, checkoutHead } = makeRepo();
   try {
     assert.notEqual(candidate, checkoutHead, "the requested candidate and current checkout head must differ");
+    const candidateDiff = execFileSync("git", ["-C", root, "diff", `${base}..${candidate}`], { encoding: "utf8" });
+    const expectedPatch = patchId(root, candidateDiff);
     const result = spawnSync(process.execPath, [
       cli, "ticket", "close", "--root", root, "--id", "sh-177",
       "--base", base, "--head", candidate,
@@ -67,7 +70,8 @@ test("close records the exact candidate head it validated", () => {
 
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
     assert.equal(JSON.parse(result.stdout).anchor.sha, candidate);
-    assert.match(readFileSync(file, "utf8"), new RegExp(`^Evidence: candidate check passed; integrated=${candidate};`, "m"));
+    assert.equal(JSON.parse(result.stdout).anchor.patch, expectedPatch);
+    assert.match(readFileSync(file, "utf8"), new RegExp(`^Evidence: candidate check passed; integrated=${candidate}; patch=${expectedPatch}$`, "m"));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
