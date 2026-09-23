@@ -354,7 +354,9 @@ test("repository lesson retirements preserve their exact structural gates", () =
   const staleWording = rows.find((row) => row.lesson === "Memory artifacts must fail closed, not warn, once staleness or contradiction is measured.");
   assert.equal(staleWording?.status, "retired@3579c0e; superseded-by:npm run test:state");
   assert.ok(rows.some((row) => row.lesson.startsWith("Block stale COMPLETE capsules,") && !row.status && row.trigger === "path:scripts/lib/lessons/**"));
-  assert.deepEqual(checkLessons({ root: repositoryRoot }).errors, []);
+  const report = checkLessons({ root: repositoryRoot });
+  assert.deepEqual(report.errors, []);
+  assert.ok(!report.warnings.some((warning) => warning.includes("predates later changes to scripts/lib/lessons/lessons.mjs")), JSON.stringify(report.warnings));
 });
 
 test("retirement is invalid without a commit and budgets count only active rows", () => {
