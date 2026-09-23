@@ -11,8 +11,9 @@ import { digestTree, inspectInstall } from "../../scripts/lib/install/install-in
 import { applyInstall, createInstallPlan } from "../../scripts/lib/install/install-release.mjs";
 import { hostCapabilities } from "../../scripts/lib/install/host-capabilities.mjs";
 
-// The committed ledger is the only trust anchor: `config/release-digests.json`
-// ships empty, and `digestTree` excludes the ledger and metadata by design, so
+// The committed ledger is the only trust anchor: this fixture starts with an
+// empty `config/release-digests.json`. `digestTree` excludes the ledger and
+// metadata by design, so
 // a release that rewrites its bytes, its metadata, and its own ledger copy
 // would otherwise agree with itself. These cases pin the falsifiable minimum:
 // verification requires a committed entry for the exact release commit, and a
@@ -28,6 +29,10 @@ const cleanSource = (base) => {
   mkdirSync(copy);
   const archive = execFileSync("git", ["-C", sourceRoot, "archive", "HEAD"], { maxBuffer: 64 * 1024 * 1024 });
   execFileSync("tar", ["-x", "-C", copy], { input: archive });
+  writeFileSync(
+    join(copy, "config", "release-digests.json"),
+    `${JSON.stringify({ schema_version: 1, digests: {} }, null, 2)}\n`,
+  );
   execFileSync("git", ["-C", copy, "init", "-q"]);
   execFileSync("git", ["-C", copy, ...identity, "add", "-A"]);
   execFileSync("git", ["-C", copy, ...identity, "commit", "-q", "-m", "seed"]);

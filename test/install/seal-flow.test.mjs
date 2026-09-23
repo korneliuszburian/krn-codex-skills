@@ -22,6 +22,11 @@ const cleanSource = (base) => {
   mkdirSync(copy);
   const archive = execFileSync("git", ["-C", sourceRoot, "archive", "HEAD"], { maxBuffer: 64 * 1024 * 1024 });
   execFileSync("tar", ["-x", "-C", copy], { input: archive });
+  // This fixture models a day-one repository even after the source is sealed.
+  fs.writeFileSync(
+    path.join(copy, "config", "release-digests.json"),
+    `${JSON.stringify({ schema_version: 1, digests: {} }, null, 2)}\n`,
+  );
   execFileSync("git", ["-C", copy, "init", "-q"]);
   const identity = ["-c", "user.email=lab@krn.local", "-c", "user.name=lab"];
   execFileSync("git", ["-C", copy, ...identity, "add", "-A"]);

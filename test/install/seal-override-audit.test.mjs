@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -31,6 +31,10 @@ const cleanSource = (base) => {
   mkdirSync(copy);
   const archive = execFileSync("git", ["-C", sourceRoot, "archive", "HEAD"], { maxBuffer: 64 * 1024 * 1024 });
   execFileSync("tar", ["-x", "-C", copy], { input: archive });
+  writeFileSync(
+    path.join(copy, "config", "release-digests.json"),
+    `${JSON.stringify({ schema_version: 1, digests: {} }, null, 2)}\n`,
+  );
   execFileSync("git", ["-C", copy, "init", "-q"]);
   execFileSync("git", ["-C", copy, ...identity, "add", "-A"]);
   execFileSync("git", ["-C", copy, ...identity, "commit", "-q", "-m", "seed"]);
