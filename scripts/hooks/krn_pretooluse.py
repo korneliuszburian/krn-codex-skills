@@ -2,7 +2,7 @@
 """Global Codex PreToolUse policy for Bash commands.
 
 Best-effort heuristic policy, not a sandbox boundary. It models literal
-`rm`/`git clean`, shell redirection, a fixed writer set, and simple shell
+`rm`/`git clean`/`git restore`, shell redirection, a fixed writer set, and simple shell
 composition, but does not interpret arbitrary interpreters (`python -c`,
 `node -e`, `perl -e`) or track runtime filesystem state. Do not rely on it
 to make an untrusted-root destructive command safe.
@@ -403,7 +403,59 @@ def direct_destructive_kind(words: tuple[str, ...]) -> str | None:
         return "rm"
     if executable == "git" and len(remaining) > 1 and remaining[1] == "clean":
         return "git-clean"
+    if executable == "git" and len(remaining) > 1 and remaining[1] == "restore":
+        return "git-restore"
     return None
+
+
+def direct_restore_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
+    """Admit only named, existing repository files; reject expanding pathspecs."""
+
+    arguments = list(words[2:])
+    while arguments and arguments[0].startswith("-") and arguments[0] != "--":
+        option = arguments.pop(0)
+        if option in {"--source", "-s"}:
+            if not arguments or arguments.pop(0) != "HEAD":
+                return "git restore source must be HEAD"
+        elif option not in {"--source=HEAD", "--worktree", "-W", "--staged", "-S"}:
+            return "git restore option is outside the direct-file policy"
+    if arguments and arguments[0] == "--":
+        arguments.pop(0)
+    if not arguments or any(argument.startswith(("-", ":")) for argument in arguments):
+        return "git restore needs a direct list of concrete file paths"
+    root = find_repo_root(cwd)
+    if root is None:
+        return "git restore needs an inspectable repository root"
+    for raw_target in arguments:
+        target = resolve_target(raw_target, cwd)
+        if target is None or root not in target.parents or not target.is_file():
+            return f"git restore target is not one concrete repository file: {raw_target}"
+        reason = protected_path_reason(target, cwd, recursive=False)
+        if reason is not None:
+            return f"git restore of a protected path is blocked: {reason}"
+    return None
+
+
+def has_lexical_git_restore(command: str) -> bool:
+    """Catch restore forms whose glob or composition defeats the simple parser."""
+
+    for match in re.finditer(r"\$\(([^()]*)\)", command):
+        if has_lexical_git_restore(match.group(1)):
+            return True
+    for pipe in pipe_segments(command):
+        for segment in SUBCOMMAND_SPLIT.split(pipe):
+            try:
+                words = strip_wrappers(tuple(shlex.split(segment, posix=True)))
+            except ValueError:
+                continue
+            if (
+                words
+                and executable_name(words[0]) == "git"
+                and "restore" in words[1:]
+                and git_static_risk(words[1:])
+            ):
+                return True
+    return False
 
 
 def alias_is_risky(value: str) -> bool:
@@ -578,6 +630,7 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
     literal_risk = (
         DESTRUCTIVE_LITERAL.search(literal_text) is not None
         or SYSTEM_DESTRUCTIVE.search(literal_text) is not None
+        or (effective is None and has_lexical_git_restore(literal_text))
     )
     if effective and executable_name(effective[0]) == "git":
         # A commit message may contain words such as "clean" or "rm". The
@@ -602,7 +655,8 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
     if is_safe_inspection(effective):
         return None
 
-    if not effective or direct_destructive_kind(effective) is None:
+    kind = direct_destructive_kind(effective) if effective else None
+    if kind is None:
         if EXPANSION_OR_GLOB.search(literal_text):
             return (
                 "destructive command with an expansion or glob target is blocked; "
@@ -612,6 +666,8 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
             "literal destructive text appears in shell composition or an "
             "unsupported command; rewrite it as one reviewed direct command"
         )
+    if kind == "git-restore":
+        return direct_restore_denial_reason(effective, cwd)
     return direct_destructive_denial_reason(effective, cwd)
 
 
@@ -751,10 +807,7 @@ def main() -> int:
 
     denial_reason = bash_denial_reason(command, cwd)
     if denial_reason is not None:
-        return emit_denial(
-            f"{denial_reason}. Use a narrower concrete cleanup path or run the "
-            "reviewed destructive action manually outside Codex."
-        )
+        return emit_denial(denial_reason)
 
     return 0
 

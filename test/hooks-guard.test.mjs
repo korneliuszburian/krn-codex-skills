@@ -102,6 +102,16 @@ test("clustered sed -i, bare git checkout ., and rtk-prefixed writers are denied
   assert.ok(decision("Bash", "rtk proxy mv /tmp/x .env"), "rtk proxy mv must be denied");
 });
 
+test("concrete git restore is allowed while glob and root are denied", () => {
+  assert.equal(
+    decision("Bash", "git restore --source=HEAD -- scripts/hooks/krn_pretooluse.py scripts/hooks/destructive_guard.py test/hooks-guard.test.mjs README.md"),
+    null,
+    "a named list of existing files may be restored from HEAD",
+  );
+  assert.ok(decision("Bash", "git restore -- scripts/hooks/*.py"), "an expanding glob stays blocked");
+  assert.ok(decision("Bash", "git restore -- ."), "the whole worktree stays blocked");
+});
+
 test("a destructive glob or expansion target names the concrete-path rule", () => {
   const glob = decision("Bash", "rm -rf build/*");
   assert.ok(glob, "rm with a glob must stay blocked");
