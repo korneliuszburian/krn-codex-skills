@@ -189,17 +189,9 @@ function commentTask(state, id, worker, epoch, body) {
 function closeTask(state, id, { actor, reason, epoch, proof }) {
   const task = state.tasks[id];
   if (!task || task.status === "done") throw new Refused("task cannot close");
+  if (task.lane) throw new Refused("lane close requires operation readback");
   if (epoch === undefined && (!actor || !reason)) throw new Refused("human close requires actor and reason");
-  if (task.lane && !completionAccepted(state, {
-    taskId: id,
-    owner: actor,
-    epoch,
-    intent: proof?.intent,
-    intentRevision: proof?.intentRevision,
-    candidateIdentity: proof?.candidateIdentity,
-    checkResult: proof?.checkResult,
-  })) throw new Refused("lane close acceptance predicate refused");
-  if (!task.lane && epoch !== undefined && (task.status !== "claimed" || task.owner !== actor || task.epoch !== epoch)) throw new Refused("stale claim generation");
+  if (epoch !== undefined && (task.status !== "claimed" || task.owner !== actor || task.epoch !== epoch)) throw new Refused("stale claim generation");
   task.status = "done";
   task.result = { actor, reason, ...(proof ? { proof } : {}) };
   task.history.push({ type: "closed", actor, reason });
@@ -288,14 +280,18 @@ function writeBlob(root, value) {
   return result.stdout.trim();
 }
 
-function completionAccepted(state, operation) {
+function completionDecision(state, operation, effectReadback) {
   const { taskId, owner, epoch, intent, intentRevision } = operation;
   const task = state.tasks[taskId];
-  return Boolean(task && task.status === "claimed" && task.owner === owner && task.epoch === epoch
-    && typeof intent === "string" && intent.length > 0 && Number.isInteger(intentRevision) && state.intents[intent] === intentRevision
-    && operation.candidateIdentity
-    && operation.checkResult?.candidateIdentity === operation.candidateIdentity
-    && operation.checkResult.exitCode === 0);
+  const stored = state.operations[operation.id];
+  if (!operation.id || operation.params?.operationId !== operation.id || stored?.id !== operation.id || stored?.status !== "prepared"
+    || !task || task.status !== "claimed" || task.owner !== owner || task.epoch !== epoch
+    || typeof intent !== "string" || intent.length === 0 || !Number.isInteger(intentRevision) || state.intents[intent] !== intentRevision
+    || !operation.candidateIdentity || operation.checkResult?.candidateIdentity !== operation.candidateIdentity || operation.checkResult.exitCode !== 0) {
+    return "rejected";
+  }
+  if (!operation.effectRef || !operation.effectObject || effectReadback !== operation.effectObject) return "ambiguous";
+  return "accepted";
 }
 
 function candidateEvidence(root, candidateIdentity) {
@@ -318,6 +314,7 @@ async function mutate(backend, root, key, change) {
 async function ensureOperation(backend, root, key, operation) {
   const parameters = {
     ...operation.params,
+    operationId: operation.id,
     candidateIdentity: operation.candidateIdentity,
     checkResult: operation.checkResult,
     effectRef: operation.effectRef,
@@ -345,16 +342,19 @@ async function ensureOperation(backend, root, key, operation) {
   });
 }
 
-async function recoverOperation(backend, root, key, operationId) {
+async function completeOperation(backend, root, key, operationId) {
   const prior = await snapshot(backend, root, key);
   const operation = prior.state.operations[operationId];
   if (!operation) throw new Refused("operation does not exist");
   if (operation.status === "observed") return { state: prior.state, result: { idempotent: true, status: "observed" } };
-  if (!completionAccepted(prior.state, operation)) throw new Refused("operation generation or intent is stale");
-  if (readEffectRef(root, operation.effectRef) !== operation.effectObject) return { state: prior.state, result: { status: "ambiguous" } };
+  const initialReadback = operation.effectRef ? readEffectRef(root, operation.effectRef) : "";
+  const decision = completionDecision(prior.state, operation, initialReadback);
+  if (decision === "ambiguous") return { state: prior.state, result: { status: "ambiguous" } };
+  if (decision !== "accepted") throw new Refused("operation acceptance is stale or invalid");
   return update(backend, root, key, prior, (state) => {
     const current = state.operations[operationId];
-    if (!completionAccepted(state, current)) throw new Refused("operation generation or intent is stale");
+    const currentReadback = current.effectRef ? readEffectRef(root, current.effectRef) : "";
+    if (completionDecision(state, current, currentReadback) !== "accepted") throw new Refused("operation acceptance changed before completion");
     current.status = "observed";
     const task = state.tasks[current.taskId];
     task.status = "done";
@@ -431,18 +431,33 @@ async function exerciseBackend(backend) {
     const epoch = claimed.result;
     await mutate(backend, fixture.second, key, (state) => commentTask(state, "lane-task", "worker-a", epoch, "checked candidate"));
     const laneCandidate = writeBlob(fixture.root, `${backend}-lane-candidate`);
-    const laneProof = { intent: "alpha", intentRevision: 1, candidateIdentity: laneCandidate, checkResult: candidateEvidence(fixture.root, laneCandidate) };
-    const beforeLaneClose = await snapshot(backend, fixture.second, key);
-    assert.throws(() => closeTask(structuredClone(beforeLaneClose.state), "lane-task", { actor: "worker-a", reason: "accepted", epoch }), /acceptance predicate/);
-    assert.throws(() => closeTask(structuredClone(beforeLaneClose.state), "lane-task", {
-      actor: "worker-a", reason: "accepted", epoch,
-      proof: { ...laneProof, intentRevision: 0 },
-    }), /acceptance predicate/, "normal close must reject a candidate checked against stale intent");
-    assert.throws(() => closeTask(structuredClone(beforeLaneClose.state), "lane-task", {
-      actor: "worker-a", reason: "accepted", epoch,
-      proof: { ...laneProof, intent: undefined, intentRevision: undefined },
-    }), /acceptance predicate/, "normal close must require an explicit current intent revision");
-    await mutate(backend, fixture.second, key, (state) => closeTask(state, "lane-task", { actor: "worker-a", reason: "accepted", epoch, proof: laneProof }));
+    const laneEffectRef = `refs/krn/h2-effects/${backend}-normal-close`;
+    const laneOperation = {
+      id: `${backend}-normal-close`, taskId: "lane-task", owner: "worker-a", epoch,
+      intent: "alpha", intentRevision: 1, effectRef: laneEffectRef, effectObject: laneCandidate,
+      candidateIdentity: laneCandidate, checkResult: candidateEvidence(fixture.root, laneCandidate),
+      params: { target: laneCandidate, intentRevision: 1 },
+    };
+    assert.throws(() => closeTask(structuredClone(ready.state), "lane-task", { actor: "worker-a", reason: "accepted" }), /operation readback/);
+    await ensureOperation(backend, fixture.second, key, laneOperation);
+    const preparedLane = await snapshot(backend, fixture.first, key);
+    const storedLaneOperation = preparedLane.state.operations[laneOperation.id];
+    assert.equal(completionDecision(preparedLane.state, {
+      ...storedLaneOperation,
+      intent: undefined,
+      intentRevision: undefined,
+      params: { ...storedLaneOperation.params, intent: undefined, intentRevision: undefined },
+    }, laneCandidate), "rejected", "normal completion requires an explicit current intent revision");
+    assert.equal(completionDecision(preparedLane.state, {
+      ...storedLaneOperation,
+      params: { ...storedLaneOperation.params, operationId: "different-operation" },
+    }, laneCandidate), "rejected", "normal completion binds its operation ID");
+    assert.equal(completionDecision(preparedLane.state, storedLaneOperation, "different-effect"), "ambiguous", "normal completion requires exact effect readback");
+    const beforeEffect = await completeOperation(backend, fixture.first, key, laneOperation.id);
+    assert.equal(beforeEffect.result.status, "ambiguous");
+    assert.equal(beforeEffect.state.tasks["lane-task"].status, "claimed");
+    writeEffectRef(fixture.root, laneEffectRef, laneCandidate);
+    await completeOperation(backend, fixture.second, key, laneOperation.id); // ordinary completion path
     await mutate(backend, fixture.second, key, (state) => closeTask(state, "human-task", { actor: "operator", reason: "handled manually" }));
     await mutate(backend, fixture.second, key, (state) => reopenTask(state, "human-task", { actor: "operator", reason: "scope changed" }));
     await assert.rejects(mutate(backend, fixture.first, key, (state) => markReady(state, "dependent-task")), /unresolved dependencies/);
@@ -455,6 +470,7 @@ async function exerciseBackend(backend) {
     assert.equal(loop.state.tasks["lane-task"].status, "done");
     assert.equal(loop.state.tasks["human-task"].status, "done", "human close does not require a prior claim");
     assert.deepEqual(loop.state.tasks["lane-task"].comments, [{ author: "worker-a", body: "checked candidate" }]);
+    assert.deepEqual(loop.state.tasks["lane-task"].history.map((entry) => entry.type), ["added", "ready", "claimed", "comment", "operation-prepared", "operation-observed"]);
     assert.deepEqual(loop.state.tasks["human-task"].history.map((entry) => entry.type), ["added", "ready", "closed", "reopened", "closed"]);
     assert.equal(loop.state.tasks["lane-task"].legacyFields.CustomField, "retained");
     assert.deepEqual(loop.state.tasks["lane-task"].contextRef, { kind: "lesson", revision: "abc123", anchor: "row-18" });
@@ -537,7 +553,7 @@ async function exerciseBackend(backend) {
     };
     await ensureOperation(backend, fixture.first, operationKey, operation);
     await ensureOperation(backend, fixture.first, operationKey, ambiguousOperation);
-    const ambiguous = await recoverOperation(backend, fixture.first, operationKey, ambiguousOperation.id);
+    const ambiguous = await completeOperation(backend, fixture.first, operationKey, ambiguousOperation.id);
     assert.equal(ambiguous.result.status, "ambiguous");
     assert.equal(ambiguous.state.tasks["ambiguous-task"].status, "claimed", "unreadable effect does not become false success");
     assert.equal(ambiguous.state.operations[ambiguousOperation.id].status, "prepared");
@@ -562,11 +578,11 @@ async function exerciseBackend(backend) {
     const prepared = await snapshot(backend, fixture.first, operationKey);
     assert.equal(prepared.state.operations[operation.id].status, "prepared", "the effect can precede its stored receipt");
     assert.equal(readEffectRef(fixture.root, effectRef), effectObject);
-    await recoverOperation(backend, fixture.first, operationKey, operation.id);
+    await completeOperation(backend, fixture.first, operationKey, operation.id); // recovery uses the same completion path
     const observed = await snapshot(backend, fixture.second, operationKey);
     assert.equal(observed.state.operations[operation.id].status, "observed");
     assert.equal(observed.state.tasks["effect-task"].status, "done");
-    await recoverOperation(backend, fixture.second, operationKey, operation.id);
+    await completeOperation(backend, fixture.second, operationKey, operation.id);
     assert.equal(readEffectRef(fixture.root, effectRef), effectObject, "recovery does not repeat the external effect");
 
     const staleOperation = {
@@ -587,8 +603,8 @@ async function exerciseBackend(backend) {
     writeEffectRef(fixture.root, independentRef, independentEffect);
     await ensureOperation(backend, fixture.first, operationKey, staleOperation);
     await mutate(backend, fixture.second, operationKey, (state) => { state.intents.beta += 1; });
-    await assert.rejects(recoverOperation(backend, fixture.first, operationKey, staleOperation.id), /stale/);
-    await recoverOperation(backend, fixture.first, operationKey, independentOperation.id);
+    await assert.rejects(completeOperation(backend, fixture.first, operationKey, staleOperation.id), /stale/);
+    await completeOperation(backend, fixture.first, operationKey, independentOperation.id);
     const afterIntentChange = await snapshot(backend, fixture.second, operationKey);
     assert.equal(afterIntentChange.state.operations[staleOperation.id].status, "prepared");
     assert.equal(afterIntentChange.state.operations[independentOperation.id].status, "observed", "an unrelated intent and operation remain usable");
