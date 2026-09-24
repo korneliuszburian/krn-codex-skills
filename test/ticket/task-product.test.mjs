@@ -147,11 +147,20 @@ async function update(backend, root, key, previous, change) {
   throw new Error(`unknown backend ${backend}`);
 }
 
-function addTask(state, { id, title, sourcePath = "", legacyFields = {}, dependencies = [], contextRef = null, lane = false }) {
+function addTask(state, { id, title, sourcePath = "", legacyFields = {}, dependencies = [], contextRef = null, laneRecipe = null, lane = false }) {
   if (state.tasks[id]) throw new Refused("task already exists");
-  state.tasks[id] = { id, title, sourcePath, legacyFields, dependencies, contextRef, lane, status: "open", epoch: 0, owner: "", comments: [], history: [{ type: "added", title }] };
+  if (lane && !laneRecipe) throw new Refused("lane tasks require a complete lane recipe");
+  state.tasks[id] = { id, title, sourcePath, legacyFields, dependencies, contextRef, laneRecipe, lane, status: "open", epoch: 0, owner: "", comments: [], history: [{ type: "added", title }] };
   return id;
 }
+
+const TEST_LANE_RECIPE = {
+  base: "main",
+  scope: "scripts/**",
+  check: "node --test",
+  contract: "test/lane.test.mjs:red->green",
+  acceptance: "the lane task closes with readback",
+};
 
 function markReady(state, id) {
   const task = state.tasks[id];
@@ -494,7 +503,7 @@ async function exerciseBackend(backend) {
     const key = "daily";
     await initialize(backend, fixture.first, key);
     await mutate(backend, fixture.first, key, (state) => {
-      addTask(state, { id: "lane-task", title: "automated work", sourcePath: ".scratch/lane.md", legacyFields: { Integration: "branch=lane/x", CustomField: "retained" }, contextRef: { kind: "lesson", revision: "abc123", anchor: "row-18" }, lane: true });
+      addTask(state, { id: "lane-task", title: "automated work", sourcePath: ".scratch/lane.md", legacyFields: { Integration: "branch=lane/x", CustomField: "retained" }, contextRef: { kind: "lesson", revision: "abc123", anchor: "row-18" }, laneRecipe: TEST_LANE_RECIPE, lane: true });
       addTask(state, { id: "human-task", title: "human-only work" });
       addTask(state, { id: "unrelated", title: "unrelated outcome" });
       addTask(state, { id: "dependent-task", title: "waits for human task", dependencies: ["human-task"] });
@@ -730,13 +739,15 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreEffectCrashMode) {
         body: "retain this task description",
         sourcePath: ".scratch/tickets/human-follow-up.md",
         contextRef: { kind: "lesson", revision: "abc123", anchor: "row-18" },
-        lane: true,
       });
       const legacyPathId = await writer.add({ id: "legacy/path", title: "imported path ID" });
       const prototypeKey = await writer.add({ id: "__proto__", title: "imported prototype key" });
 
       assert.match(task.id, /^task-[0-9a-f-]+$/);
       assert.equal(task.status, "open");
+      assert.equal(task.type, "task");
+      assert.equal(task.lane, false);
+      assert.equal(task.laneRecipe, null, "plain tasks do not need a lane recipe");
       const state = await reader.read();
       assert.equal(state.tasks[task.id].title, "human follow-up");
       assert.equal(state.tasks[task.id].body, "retain this task description");
@@ -744,11 +755,36 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreEffectCrashMode) {
       assert.deepEqual(state.tasks[task.id].legacyFields, {});
       assert.deepEqual(state.tasks[task.id].dependencies, []);
       assert.deepEqual(state.tasks[task.id].contextRef, { kind: "lesson", revision: "abc123", anchor: "row-18" });
-      assert.equal(state.tasks[task.id].lane, true);
+      assert.equal(state.tasks[task.id].lane, false);
       assert.equal(state.tasks[legacyPathId.id].title, "imported path ID");
       assert.ok(Object.hasOwn(state.tasks, prototypeKey.id));
       assert.equal(state.tasks[prototypeKey.id].title, "imported prototype key");
       assert.equal(state.version, 3);
+      const laneTask = await writer.add({
+        id: "new-lane-task",
+        title: "Automated follow-up",
+        type: "bug",
+        lane: true,
+        laneRecipe: {
+          base: "0123456789012345678901234567890123456789",
+          scope: "scripts/lib/ticket/**",
+          check: "node --test test/ticket/task-product.test.mjs",
+          contract: "test/ticket/task-product.test.mjs:red->green",
+          acceptance: "preserve task state",
+        },
+      });
+      assert.equal(laneTask.type, "bug");
+      assert.deepEqual(laneTask.laneRecipe, {
+        base: "0123456789012345678901234567890123456789",
+        scope: "scripts/lib/ticket/**",
+        check: "node --test test/ticket/task-product.test.mjs",
+        contract: "test/ticket/task-product.test.mjs:red->green",
+        acceptance: "preserve task state",
+      });
+      await assert.rejects(writer.edit(laneTask.id, { laneRecipe: null }), /lane tasks require a complete lane recipe/);
+      assert.equal((await writer.check()).ok, true, "a refused edit leaves the lane task valid");
+      await assert.rejects(writer.add({ title: "Incomplete lane recipe", laneRecipe: { base: "main" } }), /requires base, scope, check, contract and acceptance/);
+      await assert.rejects(writer.add({ title: "Unspecified lane recipe", lane: true }), /lane tasks require a complete lane recipe/);
       await writer.markReady(task.id);
       assert.equal((await reader.read()).tasks[task.id].status, "ready");
     } finally {
@@ -856,7 +892,7 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreEffectCrashMode) {
     try {
       const store = openTaskStore(fixture.first);
       await store.setIntentRevision("outcome", 1);
-      const task = await store.add({ id: "lane-operation", title: "Integrate candidate", lane: true });
+      const task = await store.add({ id: "lane-operation", title: "Integrate candidate", laneRecipe: TEST_LANE_RECIPE, lane: true });
       await store.markReady(task.id);
       const claim = await store.claim(task.id, { worker: "lane-worker" });
       const candidate = writeBlob(fixture.root, "checked-candidate");
@@ -895,7 +931,7 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreEffectCrashMode) {
       assert.equal(state.tasks[task.id].result.operationId, operation.id);
       assert.equal(state.operations[operation.id].status, "observed");
 
-      const staleTask = await store.add({ id: "stale-intent", title: "Old intent operation", lane: true });
+      const staleTask = await store.add({ id: "stale-intent", title: "Old intent operation", laneRecipe: TEST_LANE_RECIPE, lane: true });
       await store.markReady(staleTask.id);
       const staleClaim = await store.claim(staleTask.id, { worker: "lane-worker" });
       const staleEffect = writeBlob(fixture.root, "stale-intent-effect");

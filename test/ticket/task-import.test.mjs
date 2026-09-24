@@ -89,16 +89,18 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
       { path: ".scratch/tickets/team/dependency.md", id: "team/dependency" },
       { path: ".scratch/tickets/team/ready.md", id: "team/ready" },
     ]);
+    assert.equal(prepared.state.tasks["team/ready"].type, "task");
+    assert.deepEqual(prepared.state.tasks["team/ready"].laneRecipe, {
+      base: "0123456789012345678901234567890123456789",
+      scope: "scripts/lib/ticket/**",
+      check: "node --test test/ticket/task-product.test.mjs",
+      contract: "test/ticket/task-product.test.mjs:red->green",
+      acceptance: "preserve task state",
+    });
     assert.equal(prepared.state.tasks["team/ready"].lane, false, "a required Contract does not imply automated lane membership");
     assert.equal(prepared.state.tasks["team/ready"].legacyCloseProofRequired, true, "legacy close preserves its required proof");
     assert.deepEqual(prepared.state.tasks["team/ready"].dependencies, ["team/dependency"]);
     assert.deepEqual(prepared.state.tasks["team/ready"].legacyFields, {
-      Type: "task",
-      "Repository-base": "0123456789012345678901234567890123456789",
-      Scope: "scripts/lib/ticket/**",
-      "Deciding check": "node --test test/ticket/task-product.test.mjs",
-      Contract: "test/ticket/task-product.test.mjs:red->green",
-      Acceptance: "preserve task state",
       Recall: "lesson:abc123#row-18",
       "Custom Field": "preserve me",
       Attempts: ["attempt-one", "attempt-two"],

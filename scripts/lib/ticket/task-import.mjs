@@ -7,7 +7,9 @@ import { walkFiles } from "../kernel/walk.mjs";
 import { blockerIds, claimLockPath, DEFAULT_DIRS } from "./ticket-abi.mjs";
 import { parseTicketFieldOccurrences, parseTicketText } from "./ticket.mjs";
 
-const MAPPED_FIELDS = new Set(["Id", "Title", "Status", "Blocked by", "Claim"]);
+const MAPPED_FIELDS = new Set([
+  "Id", "Title", "Status", "Blocked by", "Claim", "Type", "Repository-base", "Scope", "Deciding check", "Contract", "Acceptance",
+]);
 const CLAIM_FIELDS = new Set(["worker", "session", "at", "epoch", "renew", "duration"]);
 const TICKET_END = "</krn-ticket>";
 
@@ -302,11 +304,19 @@ export function prepareLegacyQueueImport(root, { ticketDirs = DEFAULT_DIRS } = {
     const task = {
       id,
       title: fields.get("Title") ?? "",
+      type: fields.get("Type") ?? "task",
       body,
       sourcePath: relativePath,
       legacyFields,
       dependencies,
       contextRef: null,
+      laneRecipe: {
+        base: fields.get("Repository-base") ?? "",
+        scope: fields.get("Scope") ?? "",
+        check: fields.get("Deciding check") ?? "",
+        contract: fields.get("Contract") ?? "",
+        acceptance: fields.get("Acceptance") ?? "",
+      },
       lane: fields.has("Integration"),
       // Legacy closeTicket consumed proof for every old envelope. Keep this
       // separate from actual automated-lane membership until the task is

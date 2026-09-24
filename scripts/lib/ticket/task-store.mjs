@@ -2,10 +2,11 @@ import { randomUUID } from "node:crypto";
 
 import { gitTopLevel, runGit, runGitInput } from "../kernel/git.mjs";
 import { sha256Hex } from "../kernel/digest.mjs";
-import { DEFAULT_CLAIM_DURATION, leaseExpired } from "./ticket-abi.mjs";
+import { DEFAULT_CLAIM_DURATION, leaseExpired, TYPES } from "./ticket-abi.mjs";
 import { verifyPreparedLegacyQueueImport } from "./task-import.mjs";
 
 const QUEUE_REF = "refs/krn/queue";
+const LANE_RECIPE_FIELDS = ["base", "scope", "check", "contract", "acceptance"];
 
 class StoreConflict extends Error {
   constructor(message = "task store changed during update") {
@@ -100,6 +101,17 @@ function typedContextReference(value) {
   return clone(value);
 }
 
+function normalizedLaneRecipe(value) {
+  if (value === null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("lane recipe must be an object");
+  const keys = Object.keys(value);
+  if (keys.some((key) => !LANE_RECIPE_FIELDS.includes(key))) throw new Error("lane recipe has an unsupported field");
+  if (LANE_RECIPE_FIELDS.some((key) => typeof value[key] !== "string" || value[key].trim() === "")) {
+    throw new Error("lane recipe requires base, scope, check, contract and acceptance");
+  }
+  return Object.fromEntries(LANE_RECIPE_FIELDS.map((key) => [key, value[key].trim()]));
+}
+
 function normalizedOperationParams(operation) {
   const supplied = operation.params ?? {};
   if (!operation.id || supplied.target !== operation.effectObject || supplied.intentRevision !== operation.intentRevision) {
@@ -164,6 +176,11 @@ function taskStoreErrors(state) {
       continue;
     }
     if (task.id !== id) errors.push(`task ${id} has a mismatched ID`);
+    if (task.type !== undefined && !TYPES.has(task.type)) errors.push(`task ${id} has an invalid type`);
+    if (task.laneRecipe !== undefined && task.laneRecipe !== null) {
+      try { normalizedLaneRecipe(task.laneRecipe); } catch { errors.push(`task ${id} has an invalid lane recipe`); }
+    }
+    if (task.lane === true && !task.laneRecipe) errors.push(`task ${id} lane tasks require a complete lane recipe`);
     if (!Array.isArray(task.dependencies)) {
       errors.push(`task ${id} dependencies are not an array`);
       continue;
@@ -284,11 +301,14 @@ export function openTaskStore(root) {
         .sort((left, right) => left.id.localeCompare(right.id)));
     },
 
-    async add({ id = `task-${randomUUID()}`, title, body = "", sourcePath = "", dependencies = [], contextRef = null, lane = false } = {}) {
+    async add({ id = `task-${randomUUID()}`, title, body = "", sourcePath = "", dependencies = [], contextRef = null, type = "task", laneRecipe = null, lane = false } = {}) {
       if (typeof id !== "string" || id.length === 0) throw new Error("task id must be a non-empty string");
       if (typeof title !== "string" || title.trim() === "") throw new Error("task title is required");
       if (typeof body !== "string" || typeof sourcePath !== "string") throw new Error("task body and source path must be strings");
+      if (!TYPES.has(type)) throw new Error("task type is invalid");
       if (typeof lane !== "boolean") throw new Error("lane must be boolean");
+      const normalizedRecipe = normalizedLaneRecipe(laneRecipe);
+      if (lane && !normalizedRecipe) throw new Error("lane tasks require a complete lane recipe");
       if (!Array.isArray(dependencies) || dependencies.some((dependency) => typeof dependency !== "string" || dependency === "")) {
         throw new Error("task dependencies must be non-empty ids");
       }
@@ -298,11 +318,13 @@ export function openTaskStore(root) {
       const task = {
         id,
         title: title.trim(),
+        type,
         body,
         sourcePath,
         legacyFields: {},
         dependencies: [...dependencies],
         contextRef: typedContextReference(contextRef),
+        laneRecipe: normalizedRecipe,
         lane,
         status: "open",
         epoch: 0,
@@ -331,20 +353,23 @@ export function openTaskStore(root) {
 
     async edit(id, patch = {}) {
       if (!patch || typeof patch !== "object" || Array.isArray(patch)) throw new Error("task edit must be an object");
-      const allowed = new Set(["title", "body", "dependencies", "contextRef"]);
+      const allowed = new Set(["title", "body", "dependencies", "contextRef", "type", "laneRecipe"]);
       const fields = Object.keys(patch);
       if (fields.length === 0 || fields.some((field) => !allowed.has(field))) throw new Error("task edit requires supported content or dependency fields");
       if (Object.hasOwn(patch, "title") && (typeof patch.title !== "string" || patch.title.trim() === "")) throw new Error("task title is required");
       if (Object.hasOwn(patch, "body") && typeof patch.body !== "string") throw new Error("task body must be a string");
+      if (Object.hasOwn(patch, "type") && !TYPES.has(patch.type)) throw new Error("task type is invalid");
       if (Object.hasOwn(patch, "dependencies") && (!Array.isArray(patch.dependencies)
         || patch.dependencies.some((dependency) => typeof dependency !== "string" || dependency === ""))) {
         throw new Error("task dependencies must be non-empty ids");
       }
       const changes = {
         ...(Object.hasOwn(patch, "title") ? { title: patch.title.trim() } : {}),
+        ...(Object.hasOwn(patch, "type") ? { type: patch.type } : {}),
         ...(Object.hasOwn(patch, "body") ? { body: patch.body } : {}),
         ...(Object.hasOwn(patch, "dependencies") ? { dependencies: [...patch.dependencies] } : {}),
         ...(Object.hasOwn(patch, "contextRef") ? { contextRef: typedContextReference(patch.contextRef) } : {}),
+        ...(Object.hasOwn(patch, "laneRecipe") ? { laneRecipe: normalizedLaneRecipe(patch.laneRecipe) } : {}),
       };
       const previous = readSnapshot(repo);
       const next = clone(previous.state);
@@ -352,6 +377,8 @@ export function openTaskStore(root) {
       if (!task || !["open", "ready"].includes(task.status)) throw new Error(`task ${id} cannot edit in its current state`);
       const changed = Object.keys(changes).filter((field) => JSON.stringify(task[field]) !== JSON.stringify(changes[field]));
       if (changed.length === 0) return clone(task);
+      const updatedTask = { ...task, ...changes };
+      if (updatedTask.lane === true && !updatedTask.laneRecipe) throw new Error("lane tasks require a complete lane recipe");
       Object.assign(task, changes);
       if (changed.includes("dependencies") && hasDependencyCycle(next, id)) throw new Error(`task ${id} has a dependency cycle`);
       const demoted = task.status === "ready" && !task.dependencies.every((dependency) => taskFor(next, dependency)?.status === "done");
