@@ -6,9 +6,16 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
+let openTaskStore;
+try {
+  ({ openTaskStore } = await import("../../scripts/lib/ticket/task-store.mjs"));
+} catch {
+  // Keep the observer loadable at the pre-store commit so absence is a red test, not a setup error.
+}
 import { writeAtomic } from "../../scripts/lib/support/write-atomic.mjs";
 
-// H2 comparison fixture only; this is not a production storage adapter.
+// The file and SQLite adapters below are H2 comparison fixtures only. The
+// production store is exercised separately through its public module API.
 const FILE = fileURLToPath(import.meta.url);
 const ZERO = "0".repeat(40);
 const git = (root, ...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
@@ -248,6 +255,9 @@ function readEffectRef(root, ref) {
 }
 
 const workerMode = process.argv[2] === "--h2-worker";
+const taskStoreWorkerMode = process.argv[2] === "--task-store-worker";
+const taskStoreClaimCrashMode = process.argv[2] === "--task-store-claim-crash";
+const taskStoreEffectCrashMode = process.argv[2] === "--task-store-effect-crash";
 if (workerMode) {
   const [, , , mode, backend, root, key, ...rest] = process.argv;
   if (mode === "claim-race") {
@@ -258,6 +268,26 @@ if (workerMode) {
     await crashAfterEffect({ root, ref: rest[0], object: rest[1] });
   } else {
     throw new Error(`unknown H2 worker mode ${mode}`);
+  }
+} else if (taskStoreEffectCrashMode) {
+  const [, , , root, ref, object] = process.argv;
+  writeEffectRef(root, ref, object);
+  process.exit(87);
+} else if (taskStoreClaimCrashMode) {
+  const [, , , root, id, worker, at, duration] = process.argv;
+  await openTaskStore(root).claim(id, { worker, at, duration: Number(duration) });
+  process.exit(86);
+} else if (taskStoreWorkerMode) {
+  const [, , , root, id, worker, ready, go] = process.argv;
+  const store = openTaskStore(root);
+  await store.read();
+  writeFileSync(ready, "ready");
+  await waitForFile(go);
+  try {
+    const task = await store.claim(id, { worker });
+    process.stdout.write(JSON.stringify({ won: true, epoch: task.epoch }));
+  } catch (error) {
+    process.stdout.write(JSON.stringify({ won: false, reason: error.message }));
   }
 }
 
@@ -400,6 +430,36 @@ function launchWorker(backend, mode, root, key, ...args) {
     child.stderr.on("data", (chunk) => { stderr += chunk; });
     child.on("error", rejectPromise);
     child.on("close", (code) => resolvePromise({ code, stdout, stderr }));
+  });
+}
+
+function launchTaskStoreWorker(root, id, worker, ready, go) {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const child = spawn(process.execPath, [FILE, "--task-store-worker", root, id, worker, ready, go], { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.on("error", rejectPromise);
+    child.on("close", (code) => resolvePromise({ code, stdout, stderr }));
+  });
+}
+
+function launchEffectCrashWorker(root, ref, object) {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const child = spawn(process.execPath, [FILE, "--task-store-effect-crash", root, ref, object], { stdio: "ignore" });
+    child.on("error", rejectPromise);
+    child.on("close", (code) => resolvePromise(code));
+  });
+}
+
+function launchClaimCrashWorker(root, id, worker, at, duration) {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const child = spawn(process.execPath, [FILE, "--task-store-claim-crash", root, id, worker, at, String(duration)], { stdio: "ignore" });
+    child.on("error", rejectPromise);
+    child.on("close", (code) => resolvePromise(code));
   });
 }
 
@@ -658,8 +718,266 @@ async function exerciseBackend(backend) {
   }
 }
 
-if (!workerMode) {
+if (!workerMode && !taskStoreWorkerMode && !taskStoreEffectCrashMode) {
   const sqliteReady = Boolean(await sqliteConstructor());
+  test("the production Git-ref store adds title-only work visible from linked worktrees", async () => {
+    const fixture = makeRepo();
+    try {
+      const writer = openTaskStore(fixture.first);
+      const reader = openTaskStore(fixture.second);
+      const task = await writer.add({
+        title: "human follow-up",
+        body: "retain this task description",
+        sourcePath: ".scratch/tickets/human-follow-up.md",
+        contextRef: { kind: "lesson", revision: "abc123", anchor: "row-18" },
+        lane: true,
+      });
+      const legacyPathId = await writer.add({ id: "legacy/path", title: "imported path ID" });
+      const prototypeKey = await writer.add({ id: "__proto__", title: "imported prototype key" });
+
+      assert.match(task.id, /^task-[0-9a-f-]+$/);
+      assert.equal(task.status, "open");
+      const state = await reader.read();
+      assert.equal(state.tasks[task.id].title, "human follow-up");
+      assert.equal(state.tasks[task.id].body, "retain this task description");
+      assert.equal(state.tasks[task.id].sourcePath, ".scratch/tickets/human-follow-up.md");
+      assert.deepEqual(state.tasks[task.id].legacyFields, {});
+      assert.deepEqual(state.tasks[task.id].dependencies, []);
+      assert.deepEqual(state.tasks[task.id].contextRef, { kind: "lesson", revision: "abc123", anchor: "row-18" });
+      assert.equal(state.tasks[task.id].lane, true);
+      assert.equal(state.tasks[legacyPathId.id].title, "imported path ID");
+      assert.ok(Object.hasOwn(state.tasks, prototypeKey.id));
+      assert.equal(state.tasks[prototypeKey.id].title, "imported prototype key");
+      assert.equal(state.version, 3);
+      await writer.markReady(task.id);
+      assert.equal((await reader.read()).tasks[task.id].status, "ready");
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  test("the production Git-ref store list, show and check views never mutate the queue", async () => {
+    const fixture = makeRepo();
+    try {
+      const store = openTaskStore(fixture.first);
+      const task = await store.add({ id: "read-view", title: "Read-only view" });
+      const before = await store.read();
+      assert.deepEqual((await store.list()).map((entry) => entry.id), [task.id]);
+      assert.deepEqual(await store.show(task.id), task);
+      assert.deepEqual(await store.check(), { ok: true, errors: [] });
+      assert.equal((await store.read()).version, before.version);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  test("the production Git-ref store preserves claim ownership, comments, human close and reopen history", async () => {
+    const fixture = makeRepo();
+    try {
+      const writer = openTaskStore(fixture.first);
+      const reader = openTaskStore(fixture.second);
+      const task = await writer.add({ id: "human-loop", title: "Finish task" });
+      await writer.markReady(task.id);
+      const claim = await writer.claim(task.id, { worker: "maintainer" });
+      assert.equal(claim.epoch, 1);
+      await writer.comment(task.id, { worker: "maintainer", epoch: 1, body: "Starting work" });
+      assert.equal((await reader.read()).tasks[task.id].comments[0].body, "Starting work");
+      await assert.rejects(writer.comment(task.id, { worker: "stale", epoch: 1, body: "stale" }), /stale claim generation/);
+      await assert.rejects(writer.close(task.id, { actor: "operator", reason: "bypass claim" }), /active claim requires its generation/);
+      await writer.close(task.id, { actor: "maintainer", reason: "accepted", epoch: 1, proof: "local-review" });
+      const done = (await reader.read()).tasks[task.id];
+      assert.equal(done.status, "done");
+      assert.deepEqual(done.result, { actor: "maintainer", reason: "accepted", proof: "local-review" });
+      await writer.reopen(task.id, { actor: "maintainer", reason: "follow-up found" });
+      const reopened = (await reader.read()).tasks[task.id];
+      assert.equal(reopened.status, "open");
+      assert.deepEqual(reopened.history.map((entry) => entry.type), ["added", "ready", "claimed", "comment", "closed", "reopened"]);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  test("the production Git-ref store derives a dependency-aware ready frontier", async () => {
+    const fixture = makeRepo();
+    try {
+      const store = openTaskStore(fixture.first);
+      const base = await store.add({ id: "base-task", title: "Base task" });
+      const dependent = await store.add({ id: "dependent-task", title: "Dependent task", dependencies: [base.id] });
+      await assert.rejects(store.markReady(dependent.id), /unresolved dependencies/);
+      await store.markReady(base.id);
+      assert.deepEqual((await store.ready()).map((task) => task.id), [base.id]);
+      await store.close(base.id, { actor: "operator", reason: "handled manually" });
+      await store.markReady(dependent.id);
+      assert.deepEqual((await store.ready()).map((task) => task.id), [dependent.id]);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  test("the production Git-ref store edits open content and dependencies without leaving stale readiness", async () => {
+    const fixture = makeRepo();
+    try {
+      const store = openTaskStore(fixture.first);
+      const blocker = await store.add({ id: "edit-blocker", title: "Blocker" });
+      const task = await store.add({ id: "editable", title: "Original title", body: "Original body" });
+      await store.edit(task.id, { title: "Revised title", body: "Revised body", dependencies: [blocker.id] });
+      const edited = (await store.read()).tasks[task.id];
+      assert.equal(edited.title, "Revised title");
+      assert.equal(edited.body, "Revised body");
+      assert.deepEqual(edited.dependencies, [blocker.id]);
+      await assert.rejects(store.markReady(task.id), /unresolved dependencies/);
+      await store.markReady(blocker.id);
+      await store.close(blocker.id, { actor: "operator", reason: "handled manually" });
+      await store.markReady(task.id);
+      await store.edit(task.id, { dependencies: ["unresolved"] });
+      assert.equal((await store.read()).tasks[task.id].status, "open");
+      assert.deepEqual(await store.ready(), []);
+      assert.deepEqual((await store.read()).tasks[task.id].history.at(-1).fields, ["dependencies"]);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  test("the production Git-ref store accepts only typed provenance references without copied lesson text", async () => {
+    const fixture = makeRepo();
+    try {
+      const store = openTaskStore(fixture.first);
+      await assert.rejects(store.add({ title: "Missing revision", contextRef: { kind: "lesson", anchor: "row-18" } }), /typed source reference/);
+      await assert.rejects(store.add({ title: "Copied lesson", contextRef: { kind: "lesson", revision: "abc123", anchor: "row-18", text: "lesson body" } }), /unsupported context reference field/);
+      const task = await store.add({ title: "Typed reference", contextRef: { kind: "lesson", revision: "abc123", anchor: "row-18" } });
+      assert.deepEqual((await store.read()).tasks[task.id].contextRef, { kind: "lesson", revision: "abc123", anchor: "row-18" });
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  test("normal operation completion and recovery share candidate-bound Git readback", async () => {
+    const fixture = makeRepo();
+    try {
+      const store = openTaskStore(fixture.first);
+      await store.setIntentRevision("outcome", 1);
+      const task = await store.add({ id: "lane-operation", title: "Integrate candidate", lane: true });
+      await store.markReady(task.id);
+      const claim = await store.claim(task.id, { worker: "lane-worker" });
+      const candidate = writeBlob(fixture.root, "checked-candidate");
+      const effect = writeBlob(fixture.root, "integrated-result");
+      const operation = {
+        id: "integrate-once",
+        taskId: task.id,
+        owner: "lane-worker",
+        epoch: claim.epoch,
+        intent: "outcome",
+        intentRevision: 1,
+        effectRef: "refs/krn/test-effects/integrated",
+        effectObject: effect,
+        candidateIdentity: candidate,
+        checkResult: candidateEvidence(fixture.root, candidate),
+        params: { target: effect, intentRevision: 1 },
+      };
+      await store.prepareOperation(operation);
+      const versionBeforeRetry = (await store.read()).version;
+      assert.deepEqual(await store.prepareOperation(operation), { idempotent: true, status: "prepared" });
+      assert.equal((await store.read()).version, versionBeforeRetry, "same operation ID and parameters are a read-only retry");
+      await assert.rejects(store.prepareOperation({
+        ...operation,
+        id: "wrong-check-binding",
+        checkResult: { ...operation.checkResult, candidateIdentity: effect },
+      }), /not bound to the existing candidate/);
+      await assert.rejects(store.prepareOperation({ ...operation, params: { ...operation.params, target: candidate } }), /parameters disagree/);
+      assert.equal((await store.completeOperation(operation.id)).status, "ambiguous");
+      assert.equal((await store.read()).tasks[task.id].status, "claimed");
+      assert.equal(await launchEffectCrashWorker(fixture.root, operation.effectRef, effect), 87, "worker crashed after Git effect but before its receipt");
+      const completed = await store.completeOperation(operation.id);
+      assert.equal(completed.status, "observed");
+      assert.equal((await store.completeOperation(operation.id)).idempotent, true);
+      const state = await store.read();
+      assert.equal(state.tasks[task.id].status, "done");
+      assert.equal(state.tasks[task.id].result.operationId, operation.id);
+      assert.equal(state.operations[operation.id].status, "observed");
+
+      const staleTask = await store.add({ id: "stale-intent", title: "Old intent operation", lane: true });
+      await store.markReady(staleTask.id);
+      const staleClaim = await store.claim(staleTask.id, { worker: "lane-worker" });
+      const staleEffect = writeBlob(fixture.root, "stale-intent-effect");
+      const staleOperation = {
+        id: "stale-intent-operation",
+        taskId: staleTask.id,
+        owner: "lane-worker",
+        epoch: staleClaim.epoch,
+        intent: "outcome",
+        intentRevision: 1,
+        effectRef: "refs/krn/test-effects/stale-intent",
+        effectObject: staleEffect,
+        candidateIdentity: candidate,
+        checkResult: candidateEvidence(fixture.root, candidate),
+        params: { target: staleEffect, intentRevision: 1 },
+      };
+      await store.prepareOperation(staleOperation);
+      writeEffectRef(fixture.root, staleOperation.effectRef, staleEffect);
+      await store.setIntentRevision("outcome", 2);
+      await assert.rejects(store.completeOperation(staleOperation.id), /stale or invalid/);
+      assert.equal((await store.read()).tasks[staleTask.id].status, "claimed");
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+test("the production Git-ref store recovers a lost claim response and fences the old worker", async () => {
+    const fixture = makeRepo();
+    try {
+      const store = openTaskStore(fixture.first);
+      const task = await store.add({ id: "takeover", title: "Recover interrupted work" });
+      await store.markReady(task.id);
+      assert.equal(await launchClaimCrashWorker(fixture.first, task.id, "worker-old", "2000-01-01T00:00:00Z", 10), 86, "claim persisted before worker response was lost");
+      const oldClaim = (await openTaskStore(fixture.second).read()).tasks[task.id];
+      assert.equal(oldClaim.status, "claimed");
+      assert.equal(oldClaim.owner, "worker-old");
+      assert.equal(oldClaim.epoch, 1);
+      await assert.rejects(store.takeover(task.id, { worker: "worker-early", expectedEpoch: oldClaim.epoch, at: "2000-01-01T00:00:01Z" }), /claim lease is still active/);
+      await store.renewClaim(task.id, { worker: "worker-old", epoch: oldClaim.epoch, at: "2000-01-01T00:00:05Z" });
+      await assert.rejects(store.takeover(task.id, { worker: "worker-early", expectedEpoch: oldClaim.epoch, at: "2000-01-01T00:00:11Z" }), /claim lease is still active/);
+      const newClaim = await store.takeover(task.id, { worker: "worker-new", expectedEpoch: oldClaim.epoch, at: "2000-01-01T00:00:16Z" });
+      assert.equal(newClaim.epoch, 2);
+      await assert.rejects(store.comment(task.id, { worker: "worker-old", epoch: oldClaim.epoch, body: "late write" }), /stale claim generation/);
+      await assert.rejects(store.close(task.id, { actor: "worker-old", reason: "late close", epoch: oldClaim.epoch }), /stale claim generation/);
+      await assert.rejects(store.takeover(task.id, { worker: "worker-third", expectedEpoch: oldClaim.epoch, reason: "stale takeover" }), /claim generation changed/);
+      await store.comment(task.id, { worker: "worker-new", epoch: newClaim.epoch, body: "resumed safely" });
+      const final = (await store.read()).tasks[task.id];
+      assert.equal(final.owner, "worker-new");
+      assert.equal(final.epoch, 2);
+      assert.deepEqual(final.comments, [{ author: "worker-new", body: "resumed safely" }]);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  test("the production Git-ref store admits one claimant across linked worktrees", async () => {
+    const fixture = makeRepo();
+    try {
+      const store = openTaskStore(fixture.first);
+      const task = await store.add({ id: "one-winner", title: "Single owner" });
+      await store.markReady(task.id);
+      const readyA = join(fixture.root, "store-worker-a.ready");
+      const readyB = join(fixture.root, "store-worker-b.ready");
+      const go = join(fixture.root, "store-workers.go");
+      const first = launchTaskStoreWorker(fixture.first, task.id, "worker-a", readyA, go);
+      const second = launchTaskStoreWorker(fixture.second, task.id, "worker-b", readyB, go);
+      await waitForFile(readyA);
+      await waitForFile(readyB);
+      writeFileSync(go, "go");
+      const outcomes = await Promise.all([first, second]);
+      for (const outcome of outcomes) assert.equal(outcome.code, 0, outcome.stderr);
+      const claims = outcomes.map((outcome) => JSON.parse(outcome.stdout));
+      assert.equal(claims.filter((claim) => claim.won).length, 1, JSON.stringify(claims));
+      const final = (await openTaskStore(fixture.second).read()).tasks[task.id];
+      assert.equal(final.status, "claimed");
+      assert.equal(final.epoch, 1);
+      assert.equal(final.history.filter((entry) => entry.type === "claimed").length, 1);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
   for (const backend of ["files", "git-ref", "sqlite"]) {
     test(`${backend} H2 candidate shares task, claim, operation and recovery semantics`, { skip: backend === "sqlite" && !sqliteReady ? "node:sqlite is unavailable in this runtime" : false }, async () => {
       await exerciseBackend(backend);
