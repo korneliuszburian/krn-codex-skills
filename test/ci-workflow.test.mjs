@@ -24,6 +24,14 @@ test("the workflow gives frozen observer fixtures a git identity", () => {
   }
 });
 
+test("the gate job allows the full fast suite to finish", () => {
+  // The fast job runs the frozen changes check over the whole pushed range and
+  // then test:lib; on a 75-commit range that exceeds a ten-minute budget.
+  const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
+  const minutes = Number(/timeout-minutes:\s*(\d+)/.exec(workflow)?.[1]);
+  assert.ok(minutes >= 20, `the gate job timeout must cover the frozen changes check plus test:lib, found ${minutes} minutes`);
+});
+
 test("the declared Node engine floor excludes the EOL Node 20 line", () => {
   const engines = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).engines?.node;
   assert.equal(String(engines).replace(/\s+/g, ""), ">=22", "engines.node must be exactly >=22");
