@@ -3,7 +3,9 @@ import path from "node:path";
 
 import { parseCliArgs } from "../kernel/cli.mjs";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
-import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText, recordAttempt, reconcileTickets, ticketLaneBindings } from "./ticket.mjs";
+import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText, recordAttempt, reconcileTickets, taskTicketView, ticketLaneBindings } from "./ticket.mjs";
+import { rootForTicket } from "./ticket-abi.mjs";
+import { readActiveTaskStoreSnapshot } from "./task-store.mjs";
 
 const COMMANDS = new Set(["check", "next", "reconcile", "claim", "close", "fail", "fields", "env"]);
 const VALUE_FLAGS = {
@@ -61,12 +63,51 @@ function showTicket(positional, options, usage) {
     fail(`cannot read ticket file: ${file}`, EXIT_CODES.USAGE);
   }
   const { fields, findings } = parseTicketText(text);
-  if (!fields || findings.length > 0) {
+  const view = fieldsFromTicketFile(file, fields);
+  const currentFields = view?.fields ?? fields;
+  if (!currentFields || (!view && findings.length > 0)) {
     for (const finding of findings) process.stderr.write(`error: ${finding.message}\n`);
     fail(`invalid ticket: ${file}`, EXIT_CODES.USAGE);
   }
-  if (options.json) output(Object.fromEntries(fields), true);
-  else for (const [key, value] of fields) process.stdout.write(`${key}: ${value}\n`);
+  if (options.json) {
+    output({
+      ...Object.fromEntries(currentFields),
+      ...(view ? { task: { body: view.body, comments: view.comments, history: view.history } } : {}),
+    }, true);
+    return;
+  }
+  for (const [key, value] of currentFields) process.stdout.write(`${key}: ${value}\n`);
+  if (view) {
+    process.stdout.write(`Body: ${view.body}\n`);
+    for (const comment of view.comments) process.stdout.write(`Comment (${comment.author}): ${comment.body}\n`);
+    for (const entry of view.history) process.stdout.write(`History: ${JSON.stringify(entry)}\n`);
+  }
+}
+
+function fieldsFromTicketFile(file, parsedFields) {
+  const root = rootForTicket(file);
+  let snapshot;
+  try {
+    snapshot = readActiveTaskStoreSnapshot(root);
+  } catch (error) {
+    fail(`cannot read active task store: ${error?.message ?? String(error)}`, EXIT_CODES.USAGE);
+  }
+  if (!snapshot) return null;
+  if (snapshot.errors.length > 0) fail(`active task store is invalid: ${snapshot.errors.join("; ")}`, EXIT_CODES.USAGE);
+  const absolute = path.resolve(file);
+  const sourcePath = path.relative(root, absolute).split(path.sep).join("/");
+  const id = parsedFields?.get("Id");
+  const pathTask = Object.values(snapshot.state.tasks).find((entry) => entry.sourcePath === sourcePath);
+  const idTask = id ? snapshot.state.tasks[id] : null;
+  if (pathTask && id && pathTask.id !== id) {
+    fail(`ticket path/ID mismatch: ${sourcePath} names ${pathTask.id}, but the file declares ${id}`, EXIT_CODES.USAGE);
+  }
+  if (idTask?.sourcePath && idTask.sourcePath !== sourcePath) {
+    fail(`ticket path/ID mismatch: ${id} belongs to ${idTask.sourcePath}, not ${sourcePath}`, EXIT_CODES.USAGE);
+  }
+  const task = pathTask ?? idTask;
+  if (!task) fail(`ticket ${id ?? sourcePath} is not present in the active Git-ref task store`, EXIT_CODES.USAGE);
+  return taskTicketView(task);
 }
 
 // Single-quote a value for `eval` in POSIX shells so a scope or contract field
@@ -85,11 +126,13 @@ function renderTicketFile(positional, options, usage) {
     fail(`cannot read ticket file: ${options.file}`, EXIT_CODES.USAGE);
   }
   const { fields } = parseTicketText(text);
+  const view = fieldsFromTicketFile(options.file, fields);
+  const currentFields = view?.fields ?? fields;
   if (positional[0] === "env") {
-    for (const [name, value] of ticketLaneBindings(fields)) process.stdout.write(`${name}=${shellQuote(value)}\n`);
+    for (const [name, value] of ticketLaneBindings(currentFields)) process.stdout.write(`${name}=${shellQuote(value)}\n`);
     return;
   }
-  const plain = fields ? Object.fromEntries(fields) : {};
+  const plain = currentFields ? Object.fromEntries(currentFields) : {};
   if (options.json) output(plain, true);
   else for (const [key, value] of Object.entries(plain)) process.stdout.write(`${key}: ${value}\n`);
 }

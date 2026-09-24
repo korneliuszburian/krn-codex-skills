@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
+
+import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
+import { activateTaskQueueFixture } from "./task-queue-fixture.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
@@ -76,6 +79,60 @@ test("a valid ticket passes and defines the frontier", async () => {
     assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
     assert.deepEqual(report.frontier, ["t-1"]);
   });
+});
+
+test("checkTickets selects the Git-ref task queue as its sole source when initialized", async () => {
+  const ticketLib = await loadTicket();
+  assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
+  const dir = mkdtempSync(join(tmpdir(), "krn-task-queue-view-"));
+  try {
+    execFileSync("git", ["-C", dir, "init", "-q"]);
+    execFileSync("git", ["-C", dir, "config", "user.email", "lab@krn.local"]);
+    execFileSync("git", ["-C", dir, "config", "user.name", "lab"]);
+    execFileSync("git", ["-C", dir, "commit", "-q", "--allow-empty", "-m", "seed"]);
+    mkdirSync(join(dir, ".scratch"), { recursive: true });
+    writeFileSync(join(dir, ".scratch", "legacy.md"), ticket(baseFields));
+
+    const store = openTaskStore(dir);
+    const task = await store.add({ id: "store-task", title: "store task" });
+    await store.markReady(task.id);
+    const humanTask = await store.add({ id: "human-task", title: "Close without code integration" });
+    await store.close(humanTask.id, { actor: "maintainer", reason: "the follow-up is complete" });
+
+    const beforeActivation = ticketLib.checkTickets({ root: dir });
+    assert.deepEqual(beforeActivation.tickets.map((entry) => entry.id), ["t-1"], "an unactivated task-store ref is only a prepared candidate");
+    assert.deepEqual(beforeActivation.frontier, ["t-1"], "Markdown remains authoritative until the explicit selector is written");
+    activateTaskQueueFixture(dir);
+
+    const before = readFileSync(join(dir, ".scratch", "legacy.md"), "utf8");
+    const versionBeforeQuery = (await store.read()).version;
+    const report = ticketLib.checkTickets({ root: dir });
+    assert.deepEqual(report.tickets.map((entry) => entry.id), ["human-task", "store-task"]);
+    assert.equal(report.tickets[0].status, "done");
+    assert.deepEqual(report.frontier, ["store-task"]);
+    assert.deepEqual(report.errors, []);
+    assert.equal(Object.hasOwn(report.tickets[0], "body"), false, "the compact queue check does not project task body or history");
+    assert.equal(Object.hasOwn(report.tickets[0], "comments"), false);
+    assert.equal(Object.hasOwn(report.tickets[0], "history"), false);
+    assert.equal(report.warnings.some((warning) => warning.rule === "evidence-anchor-missing"), false, "ordinary human close does not invent a Git integration anchor");
+    assert.equal((await store.read()).version, versionBeforeQuery, "queue checks are read-only against the active store");
+    assert.ok(ticketLib.checkTickets({ root: dir, reconcile: true }).errors.some((error) => error.rule === "task-store-reconcile-unavailable"));
+    assert.throws(() => ticketLib.claimTicket({ file: join(dir, ".scratch", "legacy.md"), root: dir, id: "t-1", worker: "runner" }), /Git-ref task queue is active/);
+    assert.throws(() => ticketLib.closeTicket({ file: join(dir, ".scratch", "legacy.md"), root: dir }), /Git-ref task queue is active/);
+    assert.throws(() => ticketLib.recordAttempt({ file: join(dir, ".scratch", "legacy.md") }), /Git-ref task queue is active/);
+    assert.throws(() => ticketLib.reconcileTickets({ root: dir }), /Git-ref task queue is active/);
+    assert.equal(readFileSync(join(dir, ".scratch", "legacy.md"), "utf8"), before, "legacy writer adapters refuse to mutate once the Git-ref store exists");
+    const malformed = execFileSync("git", ["-C", dir, "hash-object", "-w", "--stdin"], {
+      input: JSON.stringify({ version: 1, tasks: {} }), encoding: "utf8",
+    }).trim();
+    execFileSync("git", ["-C", dir, "update-ref", "refs/krn/queue", malformed]);
+    const failedRead = ticketLib.checkTickets({ root: dir });
+    assert.deepEqual(failedRead.tickets, []);
+    assert.deepEqual(failedRead.frontier, []);
+    assert.equal(failedRead.errors[0].rule, "task-store-read-failed", "a corrupt active ref never falls back to Markdown");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("statuses, required fields, duplicate ids, blockers, and cycles fail closed", async () => {

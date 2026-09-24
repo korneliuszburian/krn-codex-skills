@@ -34,6 +34,7 @@ import {
 } from "./ticket-abi.mjs";
 import { baseRefExists, checkTickets as checkTicketsImpl, contractErrors, namesTicket, scopeErrors } from "./ticket-check.mjs";
 import { findTicketFile as findTicketFileImpl, reconcileTickets as reconcileTicketsImpl } from "./ticket-reconcile.mjs";
+import { readActiveTaskStoreSnapshot } from "./task-store.mjs";
 
 export { envFingerprint, hasEnvFingerprint, ticketLaneBindings };
 
@@ -68,6 +69,62 @@ export function parseTicketFieldOccurrences(text) {
   return occurrences;
 }
 
+export function taskTicketView(task) {
+  const fields = new Map();
+  const occurrences = new Map();
+  for (const [name, supplied] of Object.entries(task.legacyFields ?? {})) {
+    const values = (Array.isArray(supplied) ? supplied : [supplied]).map((value) => String(value));
+    if (values.length === 0) continue;
+    fields.set(name, values[values.length - 1]);
+    occurrences.set(name, values);
+  }
+  const set = (name, value) => {
+    if (value === null || value === undefined) return;
+    const text = String(value);
+    fields.set(name, text);
+    occurrences.set(name, [text]);
+  };
+  set("Id", task.id);
+  set("Title", task.title);
+  set("Status", task.status);
+  set("Type", task.type ?? "task");
+  set("Blocked by", task.dependencies?.join(", ") || "none");
+  set("Repository-base", task.laneRecipe?.base);
+  set("Scope", task.laneRecipe?.scope);
+  set("Deciding check", task.laneRecipe?.check);
+  set("Contract", task.laneRecipe?.contract);
+  set("Acceptance", task.laneRecipe?.acceptance);
+  set("Integration", task.integration?.legacyRaw);
+  set("Gate", task.gate?.legacyRaw);
+  set("Execution", task.executionHint?.legacyRaw ?? (task.executionHint ? `agent=${task.executionHint.agentHint}` : null));
+  if (task.lease && !Object.hasOwn(task.legacyFields ?? {}, "Claim")) {
+    const { worker = "", session = "", at = "", epoch = "", renew = "", duration = "" } = task.lease;
+    set("Claim", `worker=${worker}; session=${session}; at=${at}; epoch=${epoch}; renew=${renew}; duration=${duration}`);
+  }
+  const lines = ["<krn-ticket>"];
+  for (const [name, value] of fields) {
+    for (const occurrence of occurrences.get(name) ?? [value]) lines.push(`${name}: ${occurrence}`);
+  }
+  lines.push("</krn-ticket>");
+  return {
+    id: task.id,
+    path: task.sourcePath || task.id,
+    status: task.status,
+    blockedBy: [...(task.dependencies ?? [])],
+    fields,
+    text: lines.join("\n"),
+    body: task.body ?? "",
+    comments: task.comments ?? [],
+    history: task.history ?? [],
+    taskStore: true,
+    lane: task.lane === true,
+    legacyCloseProofRequired: task.legacyCloseProofRequired === true,
+    gateKind: task.gate?.kind ?? null,
+    taskLease: task.lease ?? null,
+    taskResult: task.result ?? null,
+  };
+}
+
 function nextEpoch(fields) {
   const match = /(?:^|;\s*)epoch=(\d+)/.exec(fields.get("Claim") ?? "");
   return match ? Number(match[1]) + 1 : 1;
@@ -98,6 +155,7 @@ function readClaimLockStrict(lockPath) {
 
 export function claimTicket({ file, root, id, worker, session = "", at = new Date().toISOString(), duration = DEFAULT_CLAIM_DURATION, observer } = {}) {
   const claimRoot = root ?? rootForTicket(file);
+  ensureLegacyWriter(claimRoot, "claim");
   const ticketId = id ?? readValidTicket(file, parseTicketText).fields.get("Id");
   const lockPath = claimLockPath(claimRoot, ticketId);
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
@@ -145,6 +203,7 @@ export function claimTicket({ file, root, id, worker, session = "", at = new Dat
 }
 
 export function recordAttempt({ file, signature = "", reason = "unknown", at = new Date().toISOString() } = {}) {
+  ensureLegacyWriter(rootForTicket(file), "record an attempt");
   const { text, fields } = readValidTicket(file, parseTicketText);
   const id = fields.get("Id");
   const status = fields.get("Status");
@@ -169,6 +228,7 @@ export function recordAttempt({ file, signature = "", reason = "unknown", at = n
 }
 
 export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint(), wallSeconds, tokens, allowUnanchored = false }) {
+  ensureLegacyWriter(root ?? rootForTicket(file), "close");
   const { text, fields } = readValidTicket(file, parseTicketText);
   const status = fields.get("Status");
   if (TERMINAL_STATUSES.has(status)) throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
@@ -274,6 +334,7 @@ function assertClaimUnblocked({ file, root, fields }) {
 // ticket with no recorded integration, so it is a no-op for ordinary claims,
 // and a closed ticket drops out of the next run, so the repair is idempotent.
 export function reconcileTickets(options = {}) {
+  ensureLegacyWriter(options.root, "reconcile");
   return reconcileTicketsImpl({ listFiles: markdownFiles, parseTicket: parseTicketText, ...options });
 }
 
@@ -281,5 +342,33 @@ export function reconcileTickets(options = {}) {
 // not import the envelope parser (the sh-91 single-owner guard pins it here)
 // nor the walker, so the facade binds both into it.
 export function checkTickets(options = {}) {
+  let snapshot;
+  try {
+    snapshot = readActiveTaskStoreSnapshot(options.root);
+  } catch (error) {
+    return {
+      root: options.root,
+      tickets: [],
+      frontier: [],
+      reconciled: [],
+      errors: [{ rule: "task-store-read-failed", message: error?.message ?? String(error) }],
+      warnings: [],
+    };
+  }
+  if (snapshot) {
+    return checkTicketsImpl({
+      ...options,
+      sourceTickets: Object.values(snapshot.state.tasks)
+        .sort((left, right) => left.id.localeCompare(right.id))
+        .map(taskTicketView),
+      sourceErrors: snapshot.errors.map((message) => ({ rule: "task-store-invalid", message })),
+    });
+  }
   return checkTicketsImpl({ listFiles: markdownFiles, parseTicket: parseTicketText, ...options });
+}
+
+function ensureLegacyWriter(root, operation) {
+  if (readActiveTaskStoreSnapshot(root)) {
+    throw new Error(`Git-ref task queue is active; legacy Markdown writer cannot ${operation}`);
+  }
 }

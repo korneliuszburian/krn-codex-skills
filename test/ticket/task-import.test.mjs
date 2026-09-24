@@ -9,6 +9,8 @@ import test from "node:test";
 let prepareLegacyQueueImport;
 let restoreLegacyQueueArchive;
 let openTaskStore;
+let taskTicketView;
+let ticketLaneBindings;
 try {
   ({ prepareLegacyQueueImport, restoreLegacyQueueArchive } = await import("../../scripts/lib/ticket/task-import.mjs"));
 } catch {
@@ -19,7 +21,11 @@ try {
 } catch {
   // Keep the observer loadable before the task store exists so behavior fails as a test, not as setup.
 }
-import { ticketLaneBindings } from "../../scripts/lib/ticket/ticket.mjs";
+try {
+  ({ taskTicketView, ticketLaneBindings } = await import("../../scripts/lib/ticket/ticket.mjs"));
+} catch {
+  // Keep the observer loadable before the active task view exists.
+}
 
 const git = (root, ...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 
@@ -62,7 +68,7 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
     const claimedPath = ".krn/tickets/claimed.md";
     const dependencyPath = ".scratch/tickets/team/dependency.md";
     const claimAt = "2000-01-01T00:00:00Z";
-    const claim = `worker=worker-a; session=session-a; at=${claimAt}; epoch=2; renew=${claimAt}; duration=3600`;
+    const claim = `worker=worker-a; session=session-a; at=${claimAt}; epoch=2; renew=${claimAt}; duration=3600; future=retain-me`;
     const readyBytes = Buffer.from(ticket({
       id: "team/ready",
       status: "ready",
@@ -154,6 +160,9 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
       tasks: 3, version: 1, acknowledgedClaimSessionAmbiguities: 1,
     });
     assert.deepEqual((await store.read()).tasks.claimed.legacyFields.Claim, claim);
+    const claimedView = taskTicketView((await store.read()).tasks.claimed);
+    assert.equal(claimedView.fields.get("Claim"), claim, "the task projection leaves ambiguous Claim.session raw text visible");
+    assert.equal(claimedView.taskLease.session, "session-a", "the typed current lease is available separately from the preserved raw ambiguity");
     await restoreLegacyQueueArchive(restoreRoot, prepared.archive);
     assert.deepEqual(readFileSync(join(restoreRoot, readyPath)), readyBytes);
     assert.deepEqual(readFileSync(join(restoreRoot, claimedPath)), claimedBytes);

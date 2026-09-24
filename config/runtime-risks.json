@@ -98,6 +98,16 @@
       "class": "destructive",
       "authority": "Authority: overwrites only the caller-provided file through a sibling temp and rename; callers confine the target to repository ticket and lock state."
     },
+    {
+      "path": "scripts/lib/ticket/task-import.mjs",
+      "class": "destructive",
+      "authority": "Authority: restores verified ticket and claim-lock bytes only beneath the caller-supplied restore root; run only as an explicit migration/rollback step after checking the archive and destination; refuses traversal and differing targets and never activates the task store."
+    },
+    {
+      "path": "scripts/lib/ticket/task-store.mjs",
+      "class": "destructive",
+      "authority": "Authority: writes Git objects and refs/krn/queue in the local repository only; callers must use the task transition predicates and perform live activation only after the all-reader/writer cutover gate and rollback export pass. It never writes remote refs."
+    },
     { "path": "scripts/lib/ticket/ticket-abi.mjs", "class": "read-only" },
     { "path": "scripts/lib/ticket/ticket-check.mjs", "class": "read-only" },
     { "path": "scripts/lib/ticket/ticket-cli.mjs", "class": "additive" },

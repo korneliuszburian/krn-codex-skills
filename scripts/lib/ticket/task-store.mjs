@@ -2,10 +2,11 @@ import { randomUUID } from "node:crypto";
 
 import { gitTopLevel, runGit, runGitInput } from "../kernel/git.mjs";
 import { sha256Hex } from "../kernel/digest.mjs";
-import { DEFAULT_CLAIM_DURATION, leaseExpired, TYPES } from "./ticket-abi.mjs";
-import { verifyPreparedLegacyQueueImport } from "./task-import.mjs";
+import { DEFAULT_CLAIM_DURATION, leaseExpired, STATUSES, TYPES } from "./ticket-abi.mjs";
 
 const QUEUE_REF = "refs/krn/queue";
+const ACTIVE_QUEUE_REF = "refs/krn/queue-active";
+const ACTIVE_QUEUE_SELECTOR = { version: 1, queueRef: QUEUE_REF };
 const LANE_RECIPE_FIELDS = ["base", "scope", "check", "contract", "acceptance"];
 
 class StoreConflict extends Error {
@@ -215,6 +216,7 @@ function taskStoreErrors(state) {
       continue;
     }
     if (task.id !== id) errors.push(`task ${id} has a mismatched ID`);
+    if (task.status !== "open" && !STATUSES.has(task.status)) errors.push(`task ${id} has an invalid status`);
     if (task.type !== undefined && !TYPES.has(task.type)) errors.push(`task ${id} has an invalid type`);
     if (task.laneRecipe !== undefined && task.laneRecipe !== null) {
       try { normalizedLaneRecipe(task.laneRecipe); } catch { errors.push(`task ${id} has an invalid lane recipe`); }
@@ -230,6 +232,13 @@ function taskStoreErrors(state) {
     if (task.executionHint !== undefined && task.executionHint !== null) {
       try { normalizedExecutionHint(task.executionHint); } catch { errors.push(`task ${id} has an invalid execution hint`); }
     }
+    if (task.lane === true && task.status === "done" && task.legacyCloseProofRequired !== true) {
+      const operation = state.operations[task.result?.operationId];
+      if (!operation || operation.taskId !== id || operation.status !== "observed"
+        || operation.effectObject !== task.result?.effectObject) {
+        errors.push(`task ${id} is done without an observed lane operation`);
+      }
+    }
     if (!Array.isArray(task.dependencies)) {
       errors.push(`task ${id} dependencies are not an array`);
       continue;
@@ -244,6 +253,39 @@ function taskStoreErrors(state) {
     }
   }
   return [...new Set(errors)].sort();
+}
+
+function readTaskStoreSnapshot(root) {
+  const repo = gitTopLevel(root);
+  if (!repo) return null;
+  const snapshot = readSnapshot(repo);
+  if (!snapshot.oid) return null;
+  return {
+    oid: snapshot.oid,
+    state: clone(snapshot.state),
+    errors: taskStoreErrors(snapshot.state),
+  };
+}
+
+export function readActiveTaskStoreSnapshot(root) {
+  const repo = gitTopLevel(root);
+  if (!repo) return null;
+  const selector = runGit(repo, ["rev-parse", "--verify", "--quiet", ACTIVE_QUEUE_REF]);
+  if (!selector.ok) {
+    if (selector.status === 1) return null;
+    throw new Error(selector.stderr || "cannot read active task-queue selector");
+  }
+  const blob = runGit(repo, ["cat-file", "blob", selector.out]);
+  if (!blob.ok) throw new Error(blob.stderr || "cannot read active task-queue selector blob");
+  let activation;
+  try { activation = JSON.parse(blob.out); } catch { throw new Error("active task-queue selector is invalid JSON"); }
+  if (!activation || typeof activation !== "object" || Array.isArray(activation)
+    || activation.version !== ACTIVE_QUEUE_SELECTOR.version || activation.queueRef !== ACTIVE_QUEUE_SELECTOR.queueRef) {
+    throw new Error("active task-queue selector has an unsupported shape");
+  }
+  const snapshot = readTaskStoreSnapshot(repo);
+  if (!snapshot) throw new Error("active task-queue selector points at a missing task store");
+  return snapshot;
 }
 
 export function openTaskStore(root) {
@@ -264,7 +306,8 @@ export function openTaskStore(root) {
 
     async importSnapshot(prepared, { acceptClaimSessionAmbiguities = false } = {}) {
       if (typeof acceptClaimSessionAmbiguities !== "boolean") throw new Error("claim ambiguity acknowledgement must be boolean");
-      verifyPreparedLegacyQueueImport(prepared);
+      const taskImport = await import("./task-import.mjs");
+      taskImport.verifyPreparedLegacyQueueImport(prepared);
       const candidate = prepared?.state;
       const report = prepared?.report;
       if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)

@@ -797,6 +797,28 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreEffectCrashMode) {
     }
   });
 
+  test("the production Git-ref store refuses a lane task closed without an observed operation", async () => {
+    const fixture = makeRepo();
+    try {
+      const store = openTaskStore(fixture.first);
+      const task = await store.add({ id: "tampered-lane-close", title: "Unproven lane task", lane: true, laneRecipe: TEST_LANE_RECIPE });
+      const state = await store.read();
+      state.tasks[task.id].status = "done";
+      state.tasks[task.id].result = { actor: "maintainer", reason: "manual tamper" };
+      const previous = git(fixture.first, "rev-parse", "refs/krn/queue");
+      const blob = execFileSync("git", ["-C", fixture.first, "hash-object", "-w", "--stdin"], {
+        input: JSON.stringify(state), encoding: "utf8",
+      }).trim();
+      const updated = runGit(fixture.first, "update-ref", "refs/krn/queue", blob, previous);
+      assert.equal(updated.status, 0, updated.stderr);
+      const checked = await store.check();
+      assert.equal(checked.ok, false);
+      assert.ok(checked.errors.some((error) => error.includes("done without an observed lane operation")), JSON.stringify(checked.errors));
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
   test("the production Git-ref store list, show and check views never mutate the queue", async () => {
     const fixture = makeRepo();
     try {
@@ -935,6 +957,7 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreEffectCrashMode) {
       assert.equal(state.tasks[task.id].status, "done");
       assert.equal(state.tasks[task.id].result.operationId, operation.id);
       assert.equal(state.operations[operation.id].status, "observed");
+      assert.deepEqual(await store.check(), { ok: true, errors: [] }, "an observed lane operation passes store validation");
 
       const staleTask = await store.add({ id: "stale-intent", title: "Old intent operation", laneRecipe: TEST_LANE_RECIPE, lane: true });
       await store.markReady(staleTask.id);
