@@ -100,6 +100,9 @@ enforces both, with `test/state/friction-drain.test.mjs` as the observer.
   variables only for legacy tickets.
 - Worker: receives the envelope, must commit exactly once with
   `Ticket: <id>`, `Change-contract:`, and the resolved recall trailers.
+- Before-state: `changes check --before` runs each commit's declared observer
+  and the test helpers from that commit over its direct parent; a later test
+  edit cannot rewrite an earlier commit's falsifier.
 - Integrator: fills `Evidence`, `Non-proofs`, and `Resolution`, and closes the
   ticket with the merged fixed point.
 - Frontier loop: `krn-codex ticket next` picks the first unblocked ready

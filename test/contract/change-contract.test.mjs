@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -171,7 +171,7 @@ test("redefining the declared test file in the same range is self-authorized", (
   writeFileSync(join(root, "test", "gate.test.mjs"), "// gate\n");
   const git = fakeGit({
     commits: [{ sha: "a1", subject: "fix", body: "Change-contract: test/gate.test.mjs:red->green" }],
-    files: { a1: ["scripts/lib/x.mjs"] },
+    files: { a1: ["scripts/lib/x.mjs", "test/gate.test.mjs"] },
     baseFiles: ["test/gate.test.mjs"],
     blobs: { "base:test/gate.test.mjs": "aaa", "head:test/gate.test.mjs": "bbb" },
   });
@@ -467,6 +467,73 @@ test("runCheckAtBase executes the declared check in a base worktree", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("runCheckAtBase refuses an overlay through a symlink in the parent worktree", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-overlay-symlink-"));
+  try {
+  const repo = join(root, "repo");
+  const outside = join(root, "outside");
+  mkdirSync(repo, { recursive: true });
+  mkdirSync(outside, { recursive: true });
+  const victim = join(outside, "observer.test.mjs");
+  writeFileSync(victim, "preserve this external file\n");
+  const git = (...args) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8" });
+  const commit = (message) => {
+    git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A");
+    git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message);
+  };
+  mkdirSync(join(repo, "docs", "research"), { recursive: true });
+  writeFileSync(join(repo, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+    symlinkSync(outside, join(repo, "test"), "dir");
+  git("init", "-q");
+  commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+  unlinkSync(join(repo, "test"));
+  mkdirSync(join(repo, "test"), { recursive: true });
+    writeFileSync(join(repo, "test", "observer.test.mjs"), 'import test from "node:test";\ntest("overlay observer runs", () => {});\n');
+  commit("candidate");
+  const candidate = git("rev-parse", "HEAD").trim();
+
+  const result = runCheckAtBase({
+    root: repo,
+    base,
+    target: { kind: "test", name: "test/observer.test.mjs" },
+    overlay: ["test/observer.test.mjs"],
+    overlayRef: candidate,
+  });
+  assert.deepEqual(result, { unavailable: true });
+  assert.equal(readFileSync(victim, "utf8"), "preserve this external file\n");
+  git("worktree", "prune");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("frozen before overlays preserve each committed helper's executable mode", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-overlay-mode-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => {
+    git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A");
+    git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message);
+  };
+  try {
+    mkdirSync(join(root, "test"), { recursive: true });
+    mkdirSync(join(root, "docs", "research"), { recursive: true });
+    writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+    git("init", "-q");
+    commit("base");
+    const base = git("rev-parse", "HEAD").trim();
+    writeFileSync(join(root, "test", "helper.sh"), "#!/bin/sh\nprintf 'ok\\n'\n");
+    chmodSync(join(root, "test", "helper.sh"), 0o755);
+    writeFileSync(join(root, "test", "observer.test.mjs"), 'import assert from "node:assert/strict";\nimport { spawnSync } from "node:child_process";\nimport test from "node:test";\nconst result = spawnSync("./test/helper.sh", [], { encoding: "utf8" });\ntest("the committed helper executes", () => { assert.equal(result.status, 0); assert.equal(result.stdout.trim(), "ok"); });\n');
+    commit("add executable test helper\n\nChange-contract: test/observer.test.mjs:green->green");
+
+    const report = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+    assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a newly authored observer is admitted only when it is red at base and green at head", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-frozen-"));
   const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
@@ -507,6 +574,34 @@ test("a frozen observer that is green at base or fails to load is rejected", () 
   commit("broken observer\n\nChange-contract: test/broken.test.mjs:red->green");
   const broken = checkChangeContract({ root, base: base2, head: "HEAD", verifyBefore: true });
   assert.ok(broken.errors.some((error) => error.rule === "before-state-unverified"), JSON.stringify(broken.errors));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("frozen before checks use the observer version from each commit", () => {
+  const root = mkdtempSync(join(tmpdir(), "krn-commit-observer-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  const commit = (message) => {
+    git("-c", "user.email=l@x", "-c", "user.name=l", "add", "-A");
+    git("-c", "user.email=l@x", "-c", "user.name=l", "commit", "-q", "-m", message);
+  };
+  mkdirSync(join(root, "test"), { recursive: true });
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(join(root, "docs", "research", "workflow-lessons.md"), "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n");
+  writeFileSync(join(root, "lib.mjs"), "export const value = 0;\n");
+  git("init", "-q");
+  commit("base");
+  const base = git("rev-parse", "HEAD").trim();
+
+  writeFileSync(join(root, "lib.mjs"), "export const value = 1;\n");
+  writeFileSync(join(root, "test", "observer.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("commit observer", () => assert.equal(value, 1));\n');
+  commit("commit A\n\nChange-contract: test/observer.test.mjs:red->green");
+
+  writeFileSync(join(root, "lib.mjs"), "export const value = 0;\n");
+  writeFileSync(join(root, "test", "observer.test.mjs"), 'import assert from "node:assert/strict";\nimport test from "node:test";\nimport { value } from "../lib.mjs";\ntest("commit observer", () => assert.equal(value, 0));\n');
+  commit("commit B\n\nChange-contract: test/observer.test.mjs:red->green");
+
+  const report = checkChangeContract({ root, base, head: "HEAD", verifyBefore: true });
+  assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
   rmSync(root, { recursive: true, force: true });
 });
 

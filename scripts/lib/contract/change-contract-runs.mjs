@@ -4,11 +4,44 @@ import path from "node:path";
 import { posixRelative } from "../support/path-rules.mjs";
 import { readJson } from "../kernel/json.mjs";
 import { runProcess } from "../kernel/proc.mjs";
+import { runGit, runGitRaw } from "../kernel/git.mjs";
 import { tapName, tapSummary } from "../kernel/tap.mjs";
 import { walkFiles } from "../kernel/walk.mjs";
+import { withWorktree } from "../kernel/worktree.mjs";
 import { TEST_FILE_RE, CODE_EXT, SETUP_FLAGS, testFlagPresent } from "./command-analysis.mjs";
 
 const DENY = new Set(["changes:check"]);
+
+function writeOverlayFile(root, rel, contents, mode) {
+  const rootReal = fs.realpathSync(root);
+  const parts = rel.split(/[\\/]/);
+  let current = root;
+  for (const part of parts.slice(0, -1)) {
+    current = path.join(current, part);
+    let stat = fs.lstatSync(current, { throwIfNoEntry: false });
+    if (!stat) {
+      fs.mkdirSync(current);
+      stat = fs.lstatSync(current);
+    }
+    if (stat.isSymbolicLink() || !stat.isDirectory()) return false;
+    const resolved = fs.realpathSync(current);
+    const relative = path.relative(rootReal, resolved);
+    if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return false;
+  }
+  const destination = path.join(current, parts.at(-1));
+  const existing = fs.lstatSync(destination, { throwIfNoEntry: false });
+  if (existing && (existing.isSymbolicLink() || !existing.isFile())) return false;
+  const flags = fs.constants.O_WRONLY
+    | (existing ? fs.constants.O_TRUNC : fs.constants.O_CREAT | fs.constants.O_EXCL)
+    | (fs.constants.O_NOFOLLOW ?? 0);
+  const permissions = mode === "100755" ? 0o755 : 0o644;
+  const handle = fs.openSync(destination, flags, permissions);
+  try {
+    fs.fchmodSync(handle, permissions);
+    fs.writeFileSync(handle, contents);
+  } finally { fs.closeSync(handle); }
+  return true;
+}
 
 const BOOLEAN_TEST_FLAGS = new Set(["--test", "--test-only", "--test-force-exit", "--test-randomize", "--test-update-snapshots", "--test-coverage", "--test-watch"]);
 function normalizeRel(rel) {
@@ -93,7 +126,42 @@ export function runCheck({ root, target, frozenTests = null, frozenArgs = [] }) 
   return { ok: result.ok, status: result.status, spawnFailed: result.errorCode !== null || result.status === null, output: `${result.out}${result.err}` };
 }
 
-export function checkFileRedefined(root, base, git, rel) {
+export function runCheckAtBase({ root, base, target, git = runGit, overlay = null, overlayRef = null }) {
+  const result = withWorktree({ root, ref: base, git, prefix: "krn-base-" }, (dir) => {
+    const overlays = Array.isArray(overlay) ? overlay : overlay ? [overlay] : [];
+    for (const rel of overlays) {
+      if (path.isAbsolute(rel) || rel.split(/[\\/]/).some((part) => part === ".." || part === "")) return { unavailable: true };
+      try {
+        let contents;
+        if (overlayRef) {
+          const tree = git(root, ["ls-tree", "-z", overlayRef, "--", rel]);
+          const entry = tree.ok ? tree.out.split("\0").find(Boolean) : null;
+          const separator = entry?.indexOf("\t") ?? -1;
+          const metadata = separator < 0 ? "" : entry.slice(0, separator);
+          if (separator < 0 || entry.slice(separator + 1) !== rel || !/^(?:100644|100755) blob [0-9a-f]+$/.test(metadata)) return { unavailable: true };
+          const [mode, , object] = metadata.split(" ");
+          const blob = git === runGit ? runGitRaw(root, ["cat-file", "blob", object]) : git(root, ["show", `${overlayRef}:${rel}`]);
+          if (!blob.ok) return { unavailable: true };
+          contents = blob.out;
+          if (!writeOverlayFile(dir, rel, contents, mode)) return { unavailable: true };
+        } else {
+          const from = path.join(root, rel);
+          const rootReal = fs.realpathSync(root);
+          const real = fs.existsSync(from) && !fs.lstatSync(from).isSymbolicLink() ? path.relative(rootReal, fs.realpathSync(from)) : "..";
+          if (!fs.existsSync(from) || real.startsWith("..") || path.isAbsolute(real)) return { unavailable: true };
+          contents = fs.readFileSync(from);
+          if (!writeOverlayFile(dir, rel, contents, fs.statSync(from).mode & 0o111 ? "100755" : "100644")) return { unavailable: true };
+        }
+      } catch { return { unavailable: true }; }
+    }
+    const frozenTests = frozenTestsFor(root, target, () => listTestFilesIn(dir));
+    const frozenArgs = target.kind === "script" ? frozenNodeArgs(scriptCommand(root, target) ?? "") : [];
+    return { outcome: runCheck({ root: dir, target, frozenTests, frozenArgs }) };
+  });
+  return result ?? { unavailable: true };
+}
+
+function checkFileRedefined(root, base, git, rel) {
   const before = git(root, ["rev-parse", `${base}:${rel}`]);
   const now = git(root, ["hash-object", rel]);
   return before.ok && (!now.ok || before.out.trim() !== now.out.trim());
@@ -133,8 +201,11 @@ function literalCommandFiles(command) {
   return files;
 }
 
-export function changedFilesUnder(root, base, git, prefix) {
-  const result = git(root, ["-c", "core.quotePath=false", "diff", "-z", "--name-only", "--diff-filter=ACMR", base, "--", prefix]);
+export function changedFilesUnder(root, base, git, prefix, head = null) {
+  const args = ["-c", "core.quotePath=false", "diff", "-z", "--name-only", "--diff-filter=ACMR", base];
+  if (head) args.push(head);
+  args.push("--", prefix);
+  const result = git(root, args);
   if (!result.ok) return [];
   return result.out.split("\0").filter(Boolean);
 }
@@ -224,7 +295,7 @@ export function scriptCommand(root, target) {
   }
 }
 
-export function listTestFilesIn(dir) {
+function listTestFilesIn(dir) {
   return walkFiles(dir, { filter: (entry) => isTestFile(entry.relative) })
     .map((entry) => entry.relative)
     .sort();
