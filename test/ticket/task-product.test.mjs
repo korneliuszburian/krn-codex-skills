@@ -1207,14 +1207,14 @@ test("the production Git-ref store recovers a lost claim response and fences the
       assert.equal(prepared.status, 0, `${prepared.stdout}${prepared.stderr}`);
       assert.deepEqual(JSON.parse(prepared.stdout), { idempotent: false, status: "prepared" });
 
-      writeEffectRef(fixture.root, "refs/krn/test-effects/public-operation", effect);
       const completed = runKrn(
         fixture.root,
-        "ticket", "operation", "complete", "--root", fixture.root, "--id", operationId,
+        "ticket", "operation", "apply", "--root", fixture.root, "--id", operationId,
         "--worker", "lane-worker", "--expected-epoch", String(claim.epoch), "--json",
       );
       assert.equal(completed.status, 0, `${completed.stdout}${completed.stderr}`);
       assert.deepEqual(JSON.parse(completed.stdout), { idempotent: false, status: "observed" });
+      assert.equal(readEffectRef(fixture.root, "refs/krn/test-effects/public-operation"), candidate, "normal apply writes only the checked candidate");
       assert.equal((await store.show(task.id)).status, "done");
       assert.equal((await store.read()).operations[operationId].status, "observed");
     } finally {

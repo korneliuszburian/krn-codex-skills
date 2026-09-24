@@ -866,8 +866,8 @@ export function openTaskStore(root) {
       if (!operation) throw new Error(`operation ${operationId} does not exist`);
       if (operation.status === "observed") return { idempotent: true, status: "observed" };
       const identity = { worker: actor.worker ?? operation.owner, epoch: actor.epoch ?? operation.epoch };
-      if (!operationAuthorized(previous.state, operation, identity)) {
-        throw new Error("operation authority or claim generation is stale; effect was not applied");
+      if (completionDecision(previous.state, operation, operation.effectObject, identity) !== "accepted") {
+        throw new Error("operation acceptance is stale or invalid; effect was not applied");
       }
       if (readRef(repo, operation.effectRef) !== operation.expectedEffectValue) {
         return { idempotent: false, status: "ambiguous" };

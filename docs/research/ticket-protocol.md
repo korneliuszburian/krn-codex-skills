@@ -311,9 +311,11 @@ preparing the operation.
 the same Git ref transaction records the operation as observed and the task as
 done. A revoked intent, changed claim generation, or moved target ref therefore
 refuses the local effect before either ref changes. Recovery uses the same
-completion predicate with the explicitly assigned new claim generation for an
-effect performed outside that atomic path; missing readback stays `ambiguous`
-and does not trigger a retry.
+`completionDecision` predicate with the explicitly assigned new claim generation
+for an effect performed outside that atomic path. Normal apply passes the
+candidate object that it will write after the expected-old ref check; recovery
+passes the actual target-ref readback. Missing or different readback stays
+`ambiguous` and does not trigger a retry.
 The user or host supplies the outcome identity (`KRN_INTENT_ID`); its revision
 is read through `ticket intent get` and advanced with `ticket intent set` using
 an expected-revision CAS. The lane does not infer current authority from task
