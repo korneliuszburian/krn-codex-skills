@@ -363,7 +363,7 @@ test("check reports drift in any exported file and a harness_skills mismatch", (
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
-test("check fails when the exported upstream set disagrees with the pinned harness_paths", () => {
+test("check fails when the exported upstream set disagrees with the pinned project export paths", () => {
   const f = fixture();
   exportSkills({ source: f.source, upstream: f.upstream, root: f.source });
   const lockPath = path.join(f.source, "config", "upstream-sources.json");
@@ -372,7 +372,22 @@ test("check fails when the exported upstream set disagrees with the pinned harne
   lock.sources[0].harness_paths = ["skills/eng/one/SKILL.md", "skills/eng/two/SKILL.md"];
   fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
   const check = checkSkills({ root: f.source });
-  assert.ok(check.errors.some((e) => e.includes("pinned harness_paths")), JSON.stringify(check.errors));
+  assert.ok(check.errors.some((e) => e.includes("pinned project export paths")), JSON.stringify(check.errors));
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
+
+test("project_paths export upstream project skills without changing the harness baseline", () => {
+  const f = fixture();
+  const lockPath = path.join(f.source, "config", "upstream-sources.json");
+  const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+  lock.sources[0].project_paths = ["skills/eng/two/SKILL.md"];
+  fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.source });
+
+  assert.equal(fs.existsSync(path.join(f.source, ".agents", "skills", "one", "SKILL.md")), true);
+  assert.equal(fs.existsSync(path.join(f.source, ".agents", "skills", "two", "SKILL.md")), true);
+  assert.deepEqual(checkSkills({ root: f.source }).errors, []);
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 
@@ -412,7 +427,7 @@ test("check reports a malformed upstream lock instead of throwing", () => {
   fs.writeFileSync(path.join(f.source, "config", "upstream-sources.json"), "{\"sources\":[null]}\n");
   let check;
   assert.doesNotThrow(() => { check = checkSkills({ root: f.source }); });
-  assert.ok(check.errors.some((error) => error.includes("must equal the pinned harness_paths")), JSON.stringify(check.errors));
+  assert.ok(check.errors.some((error) => error.includes("must equal the pinned project export paths")), JSON.stringify(check.errors));
   fs.rmSync(f.base, { recursive: true, force: true });
 });
 

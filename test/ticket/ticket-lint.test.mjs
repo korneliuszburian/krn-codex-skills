@@ -46,8 +46,8 @@ const fakeGit = (baseFiles) => (_dir, args) => {
 
 const withRepo = (fields, body, { baseFiles = [] } = {}) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-lint-"));
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
-  writeFileSync(join(dir, ".scratch", "sh-31.md"), ticket(fields));
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
+  writeFileSync(join(dir, ".krn/tickets", "sh-31.md"), ticket(fields));
   try {
     body({ dir, git: fakeGit(new Set([`${BASE}:scripts/lib/ticket/ticket.mjs`, ...baseFiles.map((file) => `${BASE}:${file}`)])) });
   } finally {
@@ -67,7 +67,7 @@ test("a ready ticket with a new Contract ref missing package.json in Scope error
   withRepo(baseFields, ({ dir, git }) => {
     const report = ticketLib.checkTickets({ root: dir, git });
     assert.ok(rules(report).includes("scope-missing-package-json"), JSON.stringify(report.errors));
-    assert.equal(report.errors.find((entry) => entry.rule === "scope-missing-package-json").path, join(".scratch", "sh-31.md"));
+    assert.equal(report.errors.find((entry) => entry.rule === "scope-missing-package-json").path, join(".krn/tickets", "sh-31.md"));
   });
 });
 
@@ -117,7 +117,7 @@ test("a claimed lane is not blocked by the envelope lint", async () => {
 test("the queue lints only the offending ready ticket", async () => {
   const ticketLib = await loadTicket();
   withRepo(baseFields, ({ dir, git }) => {
-    writeFileSync(join(dir, ".scratch", "clean.md"), ticket({
+    writeFileSync(join(dir, ".krn/tickets", "clean.md"), ticket({
       ...baseFields,
       Id: "sh-32",
       Scope: "scripts/lib/ticket/ticket.mjs, package.json",
@@ -125,6 +125,6 @@ test("the queue lints only the offending ready ticket", async () => {
     }));
     const report = ticketLib.checkTickets({ root: dir, git });
     assert.equal(report.errors.length, 2, JSON.stringify(report.errors));
-    assert.ok(report.errors.every((entry) => entry.path === join(".scratch", "sh-31.md")), JSON.stringify(report.errors));
+    assert.ok(report.errors.every((entry) => entry.path === join(".krn/tickets", "sh-31.md")), JSON.stringify(report.errors));
   });
 });

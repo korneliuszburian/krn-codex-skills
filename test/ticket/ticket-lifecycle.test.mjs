@@ -36,7 +36,7 @@ const baseFields = {
 
 const withTickets = (body) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-life-"));
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   try {
     body(dir);
   } finally {
@@ -56,7 +56,7 @@ test("claim writes the claim before work and removes the ticket from the frontie
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t1.md");
+    const file = join(dir, ".krn/tickets", "t1.md");
     writeFileSync(file, ticket(baseFields));
     const result = ticketLib.claimTicket({ file, worker: "stub", session: "s-1" });
     assert.equal(result.status, "claimed");
@@ -72,8 +72,8 @@ test("close writes evidence and resolution and unblocks the next ticket", async 
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const first = join(dir, ".scratch", "t1.md");
-    const second = join(dir, ".scratch", "t2.md");
+    const first = join(dir, ".krn/tickets", "t1.md");
+    const second = join(dir, ".krn/tickets", "t2.md");
     writeFileSync(first, ticket(baseFields));
     writeFileSync(second, ticket({ ...baseFields, Id: "t-2", Title: "Second", "Blocked by": "t-1" }));
     assert.deepEqual(ticketLib.checkTickets({ root: dir }).frontier, ["t-1"]);
@@ -92,7 +92,7 @@ test("close writes evidence and resolution and unblocks the next ticket", async 
 test("the CLI drives the whole loop over an absolute ticket path", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-cli-"));
   try {
-    const tickets = join(dir, ".scratch", "tickets");
+    const tickets = join(dir, ".krn/tickets", "tickets");
     mkdirSync(tickets, { recursive: true });
     const first = join(tickets, "t1.md");
     writeFileSync(first, ticket(baseFields));
@@ -128,7 +128,7 @@ test("lookup resolves an id to its file and rejects unknown ids", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t1.md");
+    const file = join(dir, ".krn/tickets", "t1.md");
     writeFileSync(file, ticket(baseFields));
     assert.equal(ticketLib.findTicketFile({ root: dir, id: "t-1" }), file);
     assert.throws(() => ticketLib.findTicketFile({ root: dir, id: "nope" }), /no ticket with id/);

@@ -19,9 +19,9 @@ function makeRepo() {
   git(root, "init", "-q", "-b", "main");
   git(root, "config", "user.email", "lab@krn.local");
   git(root, "config", "user.name", "lab");
-  mkdirSync(join(root, ".scratch"), { recursive: true });
+  mkdirSync(join(root, ".krn/tickets"), { recursive: true });
   mkdirSync(join(root, "src"), { recursive: true });
-  const file = join(root, ".scratch", "sh-177.md");
+  const file = join(root, ".krn/tickets", "sh-177.md");
   writeFileSync(file, [
     "<krn-ticket>",
     "Id: sh-177",

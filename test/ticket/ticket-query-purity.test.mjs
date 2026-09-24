@@ -18,11 +18,11 @@ function makeRepo() {
   git(dir, "init", "-q", "-b", "main");
   git(dir, "config", "user.email", "lab@krn.local");
   git(dir, "config", "user.name", "lab");
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   mkdirSync(join(dir, ".krn", "runs"), { recursive: true });
   writeFileSync(join(dir, ".krn", "runs", ".gitignore"), "*\n!.gitignore\n");
 
-  const file = join(dir, ".scratch", "query-01.md");
+  const file = join(dir, ".krn/tickets", "query-01.md");
   writeFileSync(file, [
     "<krn-ticket>",
     "Id: query-01",
@@ -66,8 +66,8 @@ test("ticket check, next, and state check observe without reconciling; explicit 
   const { dir, file, original } = makeRepo();
   try {
     const queries = [
-      ["ticket", "check", "--root", dir, "--path", ".scratch", "--json"],
-      ["ticket", "next", "--root", dir, "--path", ".scratch", "--json"],
+      ["ticket", "check", "--root", dir, "--path", ".krn/tickets", "--json"],
+      ["ticket", "next", "--root", dir, "--path", ".krn/tickets", "--json"],
       ["state", "check", "--root", dir, "--json"],
     ];
     for (const args of queries) {
@@ -77,7 +77,7 @@ test("ticket check, next, and state check observe without reconciling; explicit 
       assert.equal(readFileSync(file, "utf8"), original, `${args.join(" ")} changed ticket bytes`);
     }
 
-    const repaired = run(dir, "ticket", "reconcile", "--root", dir, "--path", ".scratch", "--json");
+    const repaired = run(dir, "ticket", "reconcile", "--root", dir, "--path", ".krn/tickets", "--json");
     assert.equal(repaired.status, 0, repaired.stderr);
     assert.deepEqual(JSON.parse(repaired.stdout).reconciled, ["query-01"]);
     assert.match(readFileSync(file, "utf8"), /^Status: done$/m);

@@ -26,8 +26,9 @@ mechanics, not the product: no Dolt store, no daemon, and no second database.
 
 ## The KRN ticket ABI v1
 
-One fenced block at the top of a ticket file, in any tracker (a local
-`.scratch/` markdown file, a GitHub issue body, or a Beads description), parsed
+One fenced block at the top of a ticket file, in KRN's local
+`.krn/tickets/` queue or an external tracker such as a GitHub issue body or a
+Beads description, parsed
 deterministically as `Key: value` lines:
 
 ```text
@@ -74,7 +75,7 @@ detail, and evidence notes.
 `candidate: <token>` entry must resolve before the outcome closes. A token
 resolves when it names a `workflow-lessons.md` row anchor (the lesson text, a
 backticked gate reference, or the falsifier file), a ticket id present under the
-queue (`.scratch/` or `.krn/tickets`), or `deferred:<ticket>` for a ticket that
+queue (`.krn/tickets`), or `deferred:<ticket>` for a ticket that
 already exists there. A dangling token warns while the outcome is `ACTIVE` and
 becomes a blocking `dangling-candidate` error at `COMPLETE`; undispositioned
 free-text friction keeps `complete-with-friction` blocking. `state check`
@@ -253,7 +254,7 @@ comment → close → reopen` path, interruption before and after an effect,
 duplicate retry after an ambiguous response, blocker cycles, and a lossless
 import of the current path/ID set. The import first reports unmapped fields
 and keeps old files read-only; cutover changes readers and writers together;
-deletion of `.scratch` tickets, `.krn/claims`, the old parser/reconcile code,
+deletion of `.krn/tickets`, `.krn/claims`, the old parser/reconcile code,
 and stale instructions follows only after readback and rollback export. A Git
 bundle or explicit export carries the queue to a different clone; no network
 write is implied by local commands. Reject the replacement if it does not
@@ -290,6 +291,27 @@ duplicated. A human may close with actor and reason without a claim; lane
 completion and recovery share the checked-candidate/operation-readback path.
 The queue references the existing fixed-point proof rather than storing a
 second verdict.
+
+For the active Git-ref queue, `ticket next` and claim are task-ID views; the
+lane copies the selected queue and selector refs into its independent clone so
+its host checks see the same immutable task snapshot. `ticket operation prepare`
+accepts only a JSON file below `.krn/runs/`, derives the current claim owner and
+epoch from the task store, and requires the task's typed deciding check to
+match the receipt for the exact candidate. The integrator builds the merge
+commit object before moving the target branch, checks that object and prepares
+an operation with its expected old branch value. `ticket operation apply`
+atomically compares and updates both the target branch ref and task-store ref;
+the same Git ref transaction records the operation as observed and the task as
+done. A revoked intent, changed claim generation, or moved target ref therefore
+refuses the local effect before either ref changes. Recovery uses the same
+completion predicate with the explicitly assigned new claim generation for an
+effect performed outside that atomic path; missing readback stays `ambiguous`
+and does not trigger a retry.
+The user or host supplies the outcome identity (`KRN_INTENT_ID`); its revision
+is read through `ticket intent get` and advanced with `ticket intent set` using
+an expected-revision CAS. The lane does not infer current authority from task
+prose. These local gates coordinate cooperating writers; they are not
+isolation from a process with the same filesystem and Git permissions.
 
 **Candidate 2 — compose a provisional task brief (`lab-test`, delivery-loop
 consumer, conditional on sh-174).** At claim or continuation, resolve explicit context links and

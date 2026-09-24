@@ -55,16 +55,16 @@ test("ticket show, fields and env read the active Git-ref task view instead of M
     execFileSync("git", ["-C", dir, "config", "user.email", "lab@krn.local"]);
     execFileSync("git", ["-C", dir, "config", "user.name", "lab"]);
     execFileSync("git", ["-C", dir, "commit", "-q", "--allow-empty", "-m", "seed"]);
-    mkdirSync(join(dir, ".scratch", "tickets"), { recursive: true });
-    const file = join(dir, ".scratch", "tickets", "t-1.md");
+    mkdirSync(join(dir, ".krn", "tickets"), { recursive: true });
+    const file = join(dir, ".krn", "tickets", "t-1.md");
     writeFileSync(file, ticket(baseFields));
-    writeFileSync(join(dir, ".scratch", "tickets", "legacy-only.md"), ticket({ ...baseFields, Id: "legacy-only", Title: "old queue only" }));
+    writeFileSync(join(dir, ".krn", "tickets", "legacy-only.md"), ticket({ ...baseFields, Id: "legacy-only", Title: "old queue only" }));
     const store = openTaskStore(dir);
     await store.add({
       id: "t-1",
       title: "Current task-store title",
       body: "task-store body",
-      sourcePath: ".scratch/tickets/t-1.md",
+      sourcePath: ".krn/tickets/t-1.md",
       type: "task",
       lane: true,
       laneRecipe: {
@@ -104,10 +104,20 @@ test("ticket show, fields and env read the active Git-ref task view instead of M
     assert.equal(fields.status, 0, `${fields.stdout}${fields.stderr}`);
     assert.equal(JSON.parse(fields.stdout).Acceptance, "the new observer test/a.test.mjs verifies the task-store view");
 
+    const fieldsById = spawnSync(process.execPath, [cli, "ticket", "fields", "--root", dir, "--id", "t-1", "--json"], { encoding: "utf8" });
+    assert.equal(fieldsById.status, 0, `${fieldsById.stdout}${fieldsById.stderr}`);
+    assert.equal(JSON.parse(fieldsById.stdout).Acceptance, "the new observer test/a.test.mjs verifies the task-store view");
+
     const env = spawnSync(process.execPath, [cli, "ticket", "env", "--file", file], { encoding: "utf8" });
     assert.equal(env.status, 0, `${env.stdout}${env.stderr}`);
     assert.match(env.stdout, /^TICKET_AGENT='opencode'$/m);
     assert.match(env.stdout, /^BASE_REF='main'$/m);
+
+    const envById = spawnSync(process.execPath, [cli, "ticket", "env", "--root", dir, "--id", "t-1"], { encoding: "utf8" });
+    assert.equal(envById.status, 0, `${envById.stdout}${envById.stderr}`);
+    assert.match(envById.stdout, /^TICKET_AGENT='opencode'$/m);
+    assert.match(envById.stdout, /^BASE_REF='main'$/m);
+    assert.match(envById.stdout, /^TICKET_ID='t-1'$/m);
 
     writeFileSync(file, ticket({ ...baseFields, Id: "legacy-only", Title: "stale path content" }));
     const mismatch = spawnSync(process.execPath, [cli, "ticket", "show", file, "--json"], { encoding: "utf8" });

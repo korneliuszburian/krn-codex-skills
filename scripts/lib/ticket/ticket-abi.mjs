@@ -24,7 +24,7 @@ export const REQUIRED = [
   "Acceptance",
   "Blocked by",
 ];
-export const DEFAULT_DIRS = [".scratch", ".krn/tickets"];
+export const DEFAULT_DIRS = [".krn/tickets"];
 
 const SIMPLE_CLAIM_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 

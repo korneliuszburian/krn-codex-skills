@@ -40,7 +40,7 @@ delete readyFields.Claim;
 
 const withTickets = (body) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-signature-"));
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   try {
     body(dir);
   } finally {
@@ -60,7 +60,7 @@ function attemptRows(text) {
 }
 
 const claim = (ticketLib, dir) => {
-  const file = join(dir, ".scratch", "t-1.md");
+  const file = join(dir, ".krn/tickets", "t-1.md");
   writeFileSync(file, ticket(readyFields));
   ticketLib.claimTicket({ file, root: dir, id: "t-1", worker: "w", session: "s", at: "2026-09-17T00:00:00.000Z" });
   return file;
@@ -145,8 +145,8 @@ test("distinct signatures stay silent", async () => {
 test("the CLI fail command forwards a signature and check reports the stall", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-signature-cli-"));
   try {
-    mkdirSync(join(dir, ".scratch"), { recursive: true });
-    const file = join(dir, ".scratch", "t-1.md");
+    mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(readyFields));
     const run = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
     const claimed = run("ticket", "claim", "--root", dir, "--id", "t-1", "--worker", "w", "--json");

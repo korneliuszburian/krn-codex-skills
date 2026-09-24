@@ -94,12 +94,12 @@ hosts own their mechanics and policy.
 
    When the checkout is volatile or the outcome must move, a copy into another
    ignored path is not durable. At pause, export the capsule directory
-   `.krn/runs/delivery-loop/<outcome-id>/` and every discovered ticket under
-   the default `.scratch/` and `.krn/tickets/` roots into the documented
+   `.krn/runs/delivery-loop/<outcome-id>/` and every discovered KRN ticket under
+   `.krn/tickets/` into the documented
    durable host archive
    `${KRN_OUTCOME_ARCHIVE:-$HOME/.local/state/krn/outcomes}/<outcome-id>/`.
-   Include the common `.scratch/tickets/` directory and ticket files found
-   elsewhere under either root.
+   Include the complete `.krn/tickets/` directory. Other ignored directories
+   belong to their own consumers and are outside KRN task state.
    Preserve each ticket's path relative to the checkout. Restore those paths
    into the successor checkout before `krn state check`, `krn state resume`,
    and `krn ticket next`. The archive is an operational copy on the host,

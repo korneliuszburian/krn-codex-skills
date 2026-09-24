@@ -36,7 +36,7 @@ const baseFields = {
 
 const withRepo = (body) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-claims-"));
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   try {
     body(dir);
   } finally {
@@ -48,7 +48,7 @@ test("claim opens an exclusive lock carrying worker, session, at, and epoch befo
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withRepo((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(baseFields));
     const lockPath = join(dir, ".krn", "claims", "t-1.lock");
     const held = [];
@@ -77,7 +77,7 @@ test("the observer interleave rejects the second claim with already-claimed and 
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withRepo((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(baseFields));
     const initial = readFileSync(file, "utf8");
     const events = [];
@@ -113,7 +113,7 @@ test("the fencing epoch increments across successive claims", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withRepo((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket({ ...baseFields, Claim: "worker=old; session=; at=2026-01-01T00:00:00.000Z; epoch=4" }));
     const result = ticketLib.claimTicket({ file, root: dir, id: "t-1", worker: "worker-a", session: "session-a" });
     assert.equal(result.claim.epoch, 5);
@@ -124,7 +124,7 @@ test("the fencing epoch increments across successive claims", async () => {
 test("the CLI claims through the same lock and records the epoch", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-claim-cli-"));
   try {
-    const tickets = join(dir, ".scratch", "tickets");
+    const tickets = join(dir, ".krn/tickets", "tickets");
     mkdirSync(tickets, { recursive: true });
     const file = join(tickets, "t-1.md");
     writeFileSync(file, ticket(baseFields));

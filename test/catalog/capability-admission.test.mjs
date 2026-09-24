@@ -34,10 +34,68 @@ test("global exact-name exclusions never override preserved project or system sc
   assert.equal(result.desired.skills[skill("collision").path], false);
 });
 
+test("upstream Matt skills remain project-local across every global profile", () => {
+  const profiles = JSON.parse(fs.readFileSync(new URL("../../config/capability-profiles.json", import.meta.url), "utf8"));
+  const lock = JSON.parse(fs.readFileSync(new URL("../../config/upstream-sources.json", import.meta.url), "utf8"));
+  const source = lock.sources.find((entry) => entry.id === "mattpocock/skills");
+  const names = new Set();
+  const visit = (name) => {
+    if (names.has(name)) return;
+    names.add(name);
+    for (const companion of source.companions?.[name] ?? []) visit(companion);
+  };
+  for (const relative of [...source.harness_paths, ...(source.project_paths ?? [])]) {
+    visit(path.basename(path.dirname(relative)));
+  }
+  const upstreamNames = [...names].sort();
+  const inventory = {
+    skills: upstreamNames.flatMap((name) => [skill(name), skill(name, "project-local")]),
+    plugins: [],
+    hardQuarantine: [],
+  };
+
+  for (const profile of Object.values(profiles.profiles)) {
+    for (const name of upstreamNames) {
+      assert.ok(profile.skills.disable.includes(name), `${profile.description} must disable global ${name}`);
+    }
+    const result = resolveProfile(profile, inventory, {}, {}, { names: upstreamNames });
+    for (const name of upstreamNames) {
+      assert.equal(result.desired.skills[skill(name).path], false, `global ${name} should be disabled`);
+      assert.equal(result.desired.skills[skill(name, "project-local").path], undefined, `project ${name} should remain available`);
+    }
+    const disabled = openCode.skillPermissionProjection({ profile, inventory, admission: { names: upstreamNames } });
+    const project = openCode.skillPermissionProjection({
+      profile,
+      inventory,
+      admission: { names: upstreamNames },
+      projectNames: upstreamNames,
+      existing: Object.fromEntries(upstreamNames.map((name) => [name, "allow"])),
+    });
+    for (const name of upstreamNames) {
+      assert.equal(disabled[name], "deny", `OpenCode global ${name} should be denied`);
+      assert.equal(project[name], "allow", `OpenCode project ${name} should retain project permission`);
+    }
+  }
+});
+
+test("the upstream setup skill that prescribes .scratch is absent from active KRN and global profiles", () => {
+  const profiles = JSON.parse(fs.readFileSync(new URL("../../config/capability-profiles.json", import.meta.url), "utf8"));
+  const lock = JSON.parse(fs.readFileSync(new URL("../../config/upstream-sources.json", import.meta.url), "utf8"));
+  const source = lock.sources.find((entry) => entry.id === "mattpocock/skills");
+  const path = "skills/engineering/setup-matt-pocock-skills/SKILL.md";
+  assert.equal(source.required_paths.includes(path), false);
+  assert.equal(source.project_paths.includes(path), false);
+  assert.equal(Object.values(source.companions ?? {}).flat().includes("setup-matt-pocock-skills"), false);
+  for (const profile of Object.values(profiles.profiles)) {
+    assert.equal(profile.skills.enable.includes("setup-matt-pocock-skills"), false, `${profile.description} does not enable the displaced skill`);
+    assert.equal(profile.skills.disable.includes("setup-matt-pocock-skills"), false, `${profile.description} has no stale tombstone for the absent skill`);
+  }
+});
+
 test("manifest and pinned typed companions own admission; expanding the available catalog does not", () => {
   assert.equal(typeof admission.deriveSkillAdmission, "function");
   const manifest = { skills: [{ name: "delivery", path: "skills/engineering/delivery" }] };
-  const pin = { sources: [{ id: "upstream", commit: "a".repeat(40), required_paths: ["skills/work/implement/SKILL.md", "skills/work/proof/SKILL.md", "skills/work/unused/SKILL.md"], harness_paths: ["skills/work/implement/SKILL.md"], companions: { implement: ["proof"] } }] };
+  const pin = { sources: [{ id: "upstream", commit: "a".repeat(40), required_paths: ["skills/work/implement/SKILL.md", "skills/work/proof/SKILL.md", "skills/work/unused/SKILL.md"], harness_paths: ["skills/work/implement/SKILL.md"], project_paths: ["skills/work/unused/SKILL.md"], companions: { implement: ["proof"] } }] };
   const result = admission.deriveSkillAdmission(manifest, pin);
   assert.deepEqual(result.names, ["delivery", "implement", "proof"]);
   pin.sources[0].required_paths.push("skills/work/novel/SKILL.md");

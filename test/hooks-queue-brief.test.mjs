@@ -26,7 +26,7 @@ const writeInstructions = (dir, { managed = true } = {}) => {
   writeFileSync(join(dir, "AGENTS.md"), managed ? `# Demo\n${MANAGED_BLOCK}` : "# Demo\n");
 };
 
-const makeTicket = (dir, id, status, blockedBy = "none", sub = ".scratch") => {
+const makeTicket = (dir, id, status, blockedBy = "none", sub = ".krn/tickets") => {
   const file = join(dir, sub, `${id}.md`);
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(
@@ -119,7 +119,7 @@ test("the plugin does not advertise a queue that ticket check rejects", async ()
   await withDir(async (dir) => {
     writeInstructions(dir);
     makeTicket(dir, "sh-01", "ready");
-    const file = join(dir, ".scratch", "sh-01.md");
+    const file = join(dir, ".krn/tickets", "sh-01.md");
     writeFileSync(file, readFileSync(file, "utf8").replace("Title: sh-01", "Title: "));
     const result = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "ticket", "check", "--root", dir, "--json"], { encoding: "utf8" });
     assert.notEqual(result.status, 0);

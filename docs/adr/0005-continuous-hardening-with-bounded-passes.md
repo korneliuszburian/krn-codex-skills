@@ -86,7 +86,7 @@ read. Six holes were reproduced, not argued:
 8. **An active outcome's operational state survives a checkout move by an
    explicit handoff copy and a durable pause export.** The capsule
    (`.krn/runs/delivery-loop/<outcome>/`) and the local queue
-   (`.scratch/tickets/`) stay untracked ignored working state, per ADR 0001 and
+   (`.krn/tickets/`) stay untracked ignored working state, per ADR 0001 and
    ADR 0004; they are per-checkout by design, so a clone inherits neither. A
    copy into the successor checkout's same ignored paths is necessary but not
    sufficient: on a volatile checkout such as `/tmp`, that target is as

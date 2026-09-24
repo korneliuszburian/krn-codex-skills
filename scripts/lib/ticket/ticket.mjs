@@ -97,7 +97,19 @@ export function taskTicketView(task) {
   set("Integration", task.integration?.legacyRaw);
   set("Gate", task.gate?.legacyRaw);
   set("Execution", task.executionHint?.legacyRaw ?? (task.executionHint ? `agent=${task.executionHint.agentHint}` : null));
-  if (task.lease && !Object.hasOwn(task.legacyFields ?? {}, "Claim")) {
+  const attempts = task.attempts ?? [];
+  if (attempts.length > 0) {
+    const previousAttempts = occurrences.get("Attempts") ?? [];
+    const currentAttempts = attempts.map((attempt) => [
+      `count=${attempt.count}`,
+      ...(attempt.signature ? [`signature=${attempt.signature}`] : []),
+      `reason=${attempt.reason}`,
+      `at=${attempt.at}`,
+    ].join("; "));
+    occurrences.set("Attempts", [...previousAttempts, ...currentAttempts]);
+    fields.set("Attempts", currentAttempts[currentAttempts.length - 1]);
+  }
+  if (task.status === "claimed" && task.lease && !Object.hasOwn(task.legacyFields ?? {}, "Claim")) {
     const { worker = "", session = "", at = "", epoch = "", renew = "", duration = "" } = task.lease;
     set("Claim", `worker=${worker}; session=${session}; at=${at}; epoch=${epoch}; renew=${renew}; duration=${duration}`);
   }

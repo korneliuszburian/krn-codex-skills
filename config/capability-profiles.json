@@ -47,14 +47,25 @@
       "skills": {
         "enable": [
           "openai-docs",
-          "resolving-merge-conflicts",
-          "skill-creator",
-          "writing-for-agents"
+          "skill-creator"
         ],
         "enableFamilies": [],
         "disable": [
           "agent-browser",
-          "unslop"
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "unslop",
+          "wayfinder",
+          "writing-for-agents"
         ],
         "disableFamilies": [
           "gsap"
@@ -137,14 +148,25 @@
       "skills": {
         "enable": [
           "openai-docs",
-          "resolving-merge-conflicts",
-          "skill-creator",
-          "writing-for-agents"
+          "skill-creator"
         ],
         "enableFamilies": [],
         "disable": [
           "agent-browser",
-          "unslop"
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "unslop",
+          "wayfinder",
+          "writing-for-agents"
         ],
         "disableFamilies": [
           "gsap"
@@ -210,14 +232,26 @@
         "enable": [
           "omarchy",
           "openai-docs",
-          "resolving-merge-conflicts",
-          "skill-creator",
-          "writing-for-agents"
+          "skill-creator"
         ],
         "enableFamilies": [
           "gsap"
         ],
-        "disable": [],
+        "disable": [
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "wayfinder",
+          "writing-for-agents"
+        ],
         "disableFamilies": [],
         "preserveScopes": [
           "project-local",
@@ -277,12 +311,24 @@
         "enable": [
           "omarchy",
           "openai-docs",
-          "resolving-merge-conflicts",
-          "skill-creator",
-          "writing-for-agents"
+          "skill-creator"
         ],
         "enableFamilies": [],
-        "disable": [],
+        "disable": [
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "wayfinder",
+          "writing-for-agents"
+        ],
         "disableFamilies": [
           "gsap"
         ],
@@ -344,12 +390,24 @@
         "enable": [
           "omarchy",
           "openai-docs",
-          "resolving-merge-conflicts",
-          "skill-creator",
-          "writing-for-agents"
+          "skill-creator"
         ],
         "enableFamilies": [],
-        "disable": [],
+        "disable": [
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "wayfinder",
+          "writing-for-agents"
+        ],
         "disableFamilies": [
           "gsap"
         ],
@@ -411,14 +469,26 @@
           "agent-browser",
           "omarchy",
           "openai-docs",
-          "resolving-merge-conflicts",
-          "skill-creator",
-          "writing-for-agents"
+          "skill-creator"
         ],
         "enableFamilies": [
           "gsap"
         ],
-        "disable": [],
+        "disable": [
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "wayfinder",
+          "writing-for-agents"
+        ],
         "disableFamilies": [],
         "preserveScopes": [
           "project-local",

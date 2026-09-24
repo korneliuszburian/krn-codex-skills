@@ -1,13 +1,15 @@
 import { randomUUID } from "node:crypto";
+import path from "node:path";
 
 import { gitTopLevel, runGit, runGitInput } from "../kernel/git.mjs";
 import { sha256Hex } from "../kernel/digest.mjs";
-import { DEFAULT_CLAIM_DURATION, leaseExpired, STATUSES, TYPES } from "./ticket-abi.mjs";
+import { DEFAULT_CLAIM_DURATION, MAX_ATTEMPTS, leaseExpired, STATUSES, TYPES } from "./ticket-abi.mjs";
 
 const QUEUE_REF = "refs/krn/queue";
 const ACTIVE_QUEUE_REF = "refs/krn/queue-active";
 const ACTIVE_QUEUE_SELECTOR = { version: 1, queueRef: QUEUE_REF };
 const LANE_RECIPE_FIELDS = ["base", "scope", "check", "contract", "acceptance"];
+const PLACEHOLDER_REASONS = new Set(["none", "unknown", "n/a", "not applicable", "todo", "tbd", "placeholder"]);
 
 class StoreConflict extends Error {
   constructor(message = "task store changed during update") {
@@ -57,6 +59,27 @@ function writeSnapshot(root, previousOid, state) {
     ? runGit(root, ["update-ref", QUEUE_REF, objectId, previousOid])
     : runGitInput(root, ["update-ref", "--stdin"], `create ${QUEUE_REF} ${objectId}\n`);
   if (!updated.ok) throw new StoreConflict(updated.stderr || "task-store compare-and-swap refused");
+  return objectId;
+}
+
+function writeSnapshotAndRef(root, previous, state, ref, newObject, expectedObject) {
+  state.version = previous.state.version + 1;
+  const blob = runGitInput(root, ["hash-object", "-w", "--stdin"], JSON.stringify(state));
+  if (!blob.ok || !blob.out) throw new Error(blob.stderr || "cannot write task-store snapshot");
+  const objectId = blob.out.trim();
+  const effectUpdate = expectedObject
+    ? `update ${ref} ${newObject} ${expectedObject}`
+    : `create ${ref} ${newObject}`;
+  const transaction = [
+    "start",
+    `update ${QUEUE_REF} ${objectId} ${previous.oid}`,
+    effectUpdate,
+    "prepare",
+    "commit",
+    "",
+  ].join("\n");
+  const updated = runGitInput(root, ["update-ref", "--stdin"], transaction);
+  if (!updated.ok) throw new StoreConflict(updated.stderr || "atomic task/effect ref transaction refused");
   return objectId;
 }
 
@@ -152,9 +175,27 @@ function normalizedExecutionHint(value) {
   return { agentHint: value.agentHint, ...(value.legacyRaw !== undefined ? { legacyRaw: value.legacyRaw } : {}) };
 }
 
+function priorAttemptCount(task) {
+  const raw = task.legacyFields?.Attempts;
+  const values = (Array.isArray(raw) ? raw : raw === undefined ? [] : [raw]).map(String);
+  const legacyCount = values.reduce((count, value) => {
+    const match = /(?:^|;\s*)count=(\d+)\b/.exec(value);
+    return match ? Math.max(count, Number(match[1])) : count;
+  }, 0);
+  const typedCount = (task.attempts ?? []).reduce((count, attempt) => Math.max(count, Number(attempt.count) || 0), 0);
+  return Math.max(legacyCount, typedCount);
+}
+
+function hasActionableReason(reason) {
+  const normalized = String(reason ?? "").trim().toLowerCase();
+  return normalized !== "" && !PLACEHOLDER_REASONS.has(normalized);
+}
+
 function normalizedOperationParams(operation) {
   const supplied = operation.params ?? {};
-  if (!operation.id || supplied.target !== operation.effectObject || supplied.intentRevision !== operation.intentRevision) {
+  if (!operation.id || supplied.target !== operation.effectObject || supplied.intentRevision !== operation.intentRevision
+    || typeof operation.expectedEffectValue !== "string"
+    || supplied.expectedEffectValue !== operation.expectedEffectValue) {
     throw new Error("operation parameters disagree with effect or intent");
   }
   return {
@@ -164,6 +205,7 @@ function normalizedOperationParams(operation) {
     checkResult: operation.checkResult,
     effectRef: operation.effectRef,
     effectObject: operation.effectObject,
+    expectedEffectValue: operation.expectedEffectValue,
     taskId: operation.taskId,
     owner: operation.owner,
     epoch: operation.epoch,
@@ -180,18 +222,26 @@ function operationParamsMatch(operation) {
   }
 }
 
-function completionDecision(state, operation, effectReadback) {
+function operationAuthorized(state, operation, { worker, epoch } = {}) {
   const task = taskFor(state, operation.taskId);
   const stored = Object.hasOwn(state.operations, operation.id) ? state.operations[operation.id] : null;
+  const originalOwner = worker === operation.owner && epoch === operation.epoch;
+  const recoveredOwner = operation.recovery?.worker === worker && operation.recovery?.epoch === epoch;
   if (!operationParamsMatch(operation) || stored?.id !== operation.id || stored?.status !== "prepared"
-    || !task || task.status !== "claimed" || task.owner !== operation.owner || task.epoch !== operation.epoch
+    || !task || task.status !== "claimed" || task.owner !== worker || task.epoch !== epoch
+    || (!originalOwner && !recoveredOwner)
     || typeof operation.intent !== "string" || operation.intent.length === 0
     || !Number.isInteger(operation.intentRevision) || !Object.hasOwn(state.intents, operation.intent)
     || state.intents[operation.intent] !== operation.intentRevision
     || !operation.candidateIdentity || operation.checkResult?.candidateIdentity !== operation.candidateIdentity
     || operation.checkResult.exitCode !== 0) {
-    return "rejected";
+    return false;
   }
+  return true;
+}
+
+function completionDecision(state, operation, effectReadback, identity) {
+  if (!operationAuthorized(state, operation, identity)) return "rejected";
   if (!operation.effectRef || !operation.effectObject || effectReadback !== operation.effectObject) return "ambiguous";
   return "accepted";
 }
@@ -218,6 +268,9 @@ function taskStoreErrors(state) {
     if (task.id !== id) errors.push(`task ${id} has a mismatched ID`);
     if (task.status !== "open" && !STATUSES.has(task.status)) errors.push(`task ${id} has an invalid status`);
     if (task.type !== undefined && !TYPES.has(task.type)) errors.push(`task ${id} has an invalid type`);
+    if (!task.legacyFields || typeof task.legacyFields !== "object" || Array.isArray(task.legacyFields)) {
+      errors.push(`task ${id} legacy fields are not an object`);
+    }
     if (task.laneRecipe !== undefined && task.laneRecipe !== null) {
       try { normalizedLaneRecipe(task.laneRecipe); } catch { errors.push(`task ${id} has an invalid lane recipe`); }
     }
@@ -231,6 +284,11 @@ function taskStoreErrors(state) {
     }
     if (task.executionHint !== undefined && task.executionHint !== null) {
       try { normalizedExecutionHint(task.executionHint); } catch { errors.push(`task ${id} has an invalid execution hint`); }
+    }
+    if (task.attempts !== undefined && (!Array.isArray(task.attempts) || task.attempts.some((attempt) =>
+      !attempt || !Number.isInteger(attempt.count) || attempt.count < 1
+      || typeof attempt.signature !== "string" || typeof attempt.reason !== "string" || typeof attempt.at !== "string"))) {
+      errors.push(`task ${id} has invalid attempt records`);
     }
     if (task.lane === true && task.status === "done" && task.legacyCloseProofRequired !== true) {
       const operation = state.operations[task.result?.operationId];
@@ -286,6 +344,47 @@ export function readActiveTaskStoreSnapshot(root) {
   const snapshot = readTaskStoreSnapshot(repo);
   if (!snapshot) throw new Error("active task-queue selector points at a missing task store");
   return snapshot;
+}
+
+export function copyActiveTaskStoreSnapshot(sourceRoot, destinationRoot) {
+  const source = repositoryRoot(sourceRoot);
+  const destination = repositoryRoot(destinationRoot);
+  const sourceCommon = runGit(source, ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
+  const destinationCommon = runGit(destination, ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
+  if (!sourceCommon.ok || !destinationCommon.ok) throw new Error("task snapshot copy requires two readable Git repositories");
+  if (path.resolve(sourceCommon.out) === path.resolve(destinationCommon.out)) {
+    throw new Error("task snapshot copy requires an isolated Git clone, not a linked worktree");
+  }
+
+  const snapshot = readActiveTaskStoreSnapshot(source);
+  if (!snapshot) throw new Error("source Git-ref task queue is not active");
+  if (snapshot.errors.length > 0) throw new Error(`source Git-ref task queue is invalid: ${snapshot.errors.join("; ")}`);
+
+  const refs = [QUEUE_REF, ACTIVE_QUEUE_REF];
+  const updates = [];
+  let alreadyCopied = true;
+  for (const ref of refs) {
+    const sourceObject = runGit(source, ["rev-parse", "--verify", ref]);
+    if (!sourceObject.ok) throw new Error(sourceObject.stderr || `cannot read source task ref ${ref}`);
+    const destinationObject = runGit(destination, ["rev-parse", "--verify", "--quiet", ref]);
+    if (destinationObject.ok) {
+      if (destinationObject.out !== sourceObject.out) throw new Error(`destination task ref ${ref} already has different state`);
+      continue;
+    }
+    if (destinationObject.status !== 1) throw new Error(destinationObject.stderr || `cannot read destination task ref ${ref}`);
+    const content = runGit(source, ["cat-file", "blob", sourceObject.out]);
+    if (!content.ok) throw new Error(content.stderr || `cannot read task snapshot object for ${ref}`);
+    const copied = runGitInput(destination, ["hash-object", "-w", "--stdin"], content.out);
+    if (!copied.ok || copied.out.trim() !== sourceObject.out) throw new Error(copied.stderr || `task snapshot object changed while copying ${ref}`);
+    updates.push(`create ${ref} ${sourceObject.out}`);
+    alreadyCopied = false;
+  }
+
+  if (updates.length > 0) {
+    const applied = runGitInput(destination, ["update-ref", "--stdin"], `${updates.join("\n")}\n`);
+    if (!applied.ok) throw new Error(applied.stderr || "cannot atomically activate copied task snapshot refs");
+  }
+  return { copied: !alreadyCopied, refs };
 }
 
 export function openTaskStore(root) {
@@ -407,6 +506,8 @@ export function openTaskStore(root) {
       }
       const previous = readSnapshot(repo);
       if (Object.hasOwn(previous.state.tasks, id)) throw new Error(`task ${id} already exists`);
+      const unknownDependency = dependencies.find((dependency) => !Object.hasOwn(previous.state.tasks, dependency));
+      if (unknownDependency) throw new Error(`task ${id} has unknown dependency ${unknownDependency}`);
       const next = clone(previous.state);
       const task = {
         id,
@@ -424,6 +525,7 @@ export function openTaskStore(root) {
         epoch: 0,
         owner: "",
         comments: [],
+        attempts: [],
         history: [{ type: "added", title: title.trim() }],
       };
       Object.defineProperty(next.tasks, id, { value: task, enumerable: true, configurable: true, writable: true });
@@ -470,6 +572,8 @@ export function openTaskStore(root) {
       const next = clone(previous.state);
       const task = taskFor(next, id);
       if (!task || !["open", "ready"].includes(task.status)) throw new Error(`task ${id} cannot edit in its current state`);
+      const unknownDependency = changes.dependencies?.find((dependency) => !Object.hasOwn(next.tasks, dependency));
+      if (unknownDependency) throw new Error(`task ${id} has unknown dependency ${unknownDependency}`);
       const changed = Object.keys(changes).filter((field) => JSON.stringify(task[field]) !== JSON.stringify(changes[field]));
       if (changed.length === 0) return clone(task);
       const updatedTask = { ...task, ...changes };
@@ -501,6 +605,31 @@ export function openTaskStore(root) {
       });
     },
 
+    async claimReady({ worker, session = "", at = new Date().toISOString(), duration = DEFAULT_CLAIM_DURATION } = {}) {
+      if (typeof worker !== "string" || worker.trim() === "") throw new Error("claim worker is required");
+      if (!Number.isFinite(Date.parse(at)) || !Number.isFinite(duration) || duration <= 0) throw new Error("claim lease is invalid");
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const previous = readSnapshot(repo);
+        const next = clone(previous.state);
+        const task = Object.values(next.tasks)
+          .filter((entry) => entry.status === "ready" && entry.dependencies.every((dependency) => taskFor(next, dependency)?.status === "done"))
+          .sort((left, right) => left.id.localeCompare(right.id))[0];
+        if (!task) throw new Error("no unblocked ready task");
+        task.status = "claimed";
+        task.epoch += 1;
+        task.owner = worker;
+        task.lease = { worker, session, at, epoch: task.epoch, renew: at, duration };
+        task.history.push({ type: "claimed", worker, epoch: task.epoch });
+        try {
+          commitSnapshot(repo, previous, next);
+          return clone(task);
+        } catch (error) {
+          if (!(error instanceof StoreConflict) || attempt === 7) throw error;
+        }
+      }
+      throw new Error("task-store claim-ready contention exceeded retries");
+    },
+
     async renewClaim(id, { worker, epoch, at = new Date().toISOString(), duration } = {}) {
       if (typeof worker !== "string" || worker.trim() === "" || !Number.isInteger(epoch) || !Number.isFinite(Date.parse(at))) {
         throw new Error("claim owner, generation and renewal time are required");
@@ -518,9 +647,9 @@ export function openTaskStore(root) {
       });
     },
 
-    async takeover(id, { worker, session = "", expectedEpoch, at = new Date().toISOString(), duration = DEFAULT_CLAIM_DURATION } = {}) {
-      if (typeof worker !== "string" || worker.trim() === "" || !Number.isInteger(expectedEpoch)) {
-        throw new Error("takeover worker and expected claim generation are required");
+    async takeover(id, { worker, session = "", expectedEpoch, reason, at = new Date().toISOString(), duration = DEFAULT_CLAIM_DURATION } = {}) {
+      if (typeof worker !== "string" || worker.trim() === "" || !Number.isInteger(expectedEpoch) || !hasActionableReason(reason)) {
+        throw new Error("takeover requires worker, expected claim generation and a non-placeholder reason");
       }
       if (!Number.isFinite(Date.parse(at)) || !Number.isFinite(duration) || duration <= 0) throw new Error("claim lease is invalid");
       return transition((state) => {
@@ -529,12 +658,17 @@ export function openTaskStore(root) {
           throw new Error("claim generation changed");
         }
         if (!leaseExpired(task.lease, at)) throw new Error("claim lease is still active");
-        const previousOwner = task.owner;
-        task.epoch += 1;
-        task.owner = worker;
-        task.lease = { worker, session, at, epoch: task.epoch, renew: at, duration };
-        task.history.push({ type: "takeover", previousOwner, worker, previousEpoch: expectedEpoch, epoch: task.epoch });
-        return task;
+      const previousOwner = task.owner;
+      task.epoch += 1;
+      task.owner = worker;
+      task.lease = { worker, session, at, epoch: task.epoch, renew: at, duration };
+      task.history.push({ type: "takeover", previousOwner, worker, previousEpoch: expectedEpoch, epoch: task.epoch, reason: reason.trim() });
+      for (const operation of Object.values(state.operations)) {
+        if (operation?.taskId !== id || operation.status !== "prepared") continue;
+        operation.recovery = { worker, epoch: task.epoch, at };
+        task.history.push({ type: "operation-recovery-assigned", id: operation.id, worker, epoch: task.epoch });
+      }
+      return task;
       });
     },
 
@@ -553,16 +687,18 @@ export function openTaskStore(root) {
     },
 
     async close(id, { actor, reason, epoch, proof } = {}) {
+      if (!actor || !hasActionableReason(reason)) throw new Error("human close requires actor and a non-placeholder reason");
       return transition((state) => {
         const task = taskFor(state, id);
         if (!task || task.status === "done") throw new Error(`task ${id} cannot close`);
         if (task.lane || task.legacyCloseProofRequired) throw new Error("proof-gated close requires operation readback");
         if (epoch === undefined && task.status === "claimed") throw new Error("active claim requires its generation or an explicit takeover");
-        if (epoch === undefined && (!actor || !reason)) throw new Error("human close requires actor and reason");
         if (epoch !== undefined && (task.status !== "claimed" || task.owner !== actor || task.epoch !== epoch)) {
           throw new Error("stale claim generation");
         }
         task.status = "done";
+        task.owner = "";
+        delete task.lease;
         task.result = { actor, reason, ...(proof ? { proof } : {}) };
         task.history.push({ type: "closed", actor, reason });
         return task;
@@ -570,23 +706,81 @@ export function openTaskStore(root) {
     },
 
     async reopen(id, { actor, reason } = {}) {
-      if (!actor || !reason) throw new Error("reopen requires actor and reason");
+      if (!actor || !hasActionableReason(reason)) throw new Error("reopen requires actor and a non-placeholder reason");
       return transition((state) => {
         const task = taskFor(state, id);
         if (!task || task.status !== "done") throw new Error(`task ${id} cannot reopen`);
         task.status = "open";
         task.owner = "";
+        delete task.lease;
         task.history.push({ type: "reopened", actor, reason });
         return task;
       });
     },
 
-    async setIntentRevision(intent, revision) {
+    async release(id, { actor, reason, epoch } = {}) {
+      if (!actor || !hasActionableReason(reason) || !Number.isInteger(epoch)) {
+        throw new Error("release requires actor, a non-placeholder reason and claim generation");
+      }
+      return transition((state) => {
+        const task = taskFor(state, id);
+        if (!task || task.status !== "claimed" || task.owner !== actor || task.epoch !== epoch) {
+          throw new Error("stale claim generation");
+        }
+        task.status = "abandoned";
+        task.owner = "";
+        delete task.lease;
+        task.history.push({ type: "released", actor, reason, epoch });
+        return task;
+      });
+    },
+
+    async recordFailure(id, { worker, epoch, signature = "", reason = "unknown", at = new Date().toISOString() } = {}) {
+      if (typeof worker !== "string" || worker.trim() === "" || !Number.isInteger(epoch) || !Number.isFinite(Date.parse(at))) {
+        throw new Error("failure requires claim owner, generation and timestamp");
+      }
+      const cleanSignature = String(signature).replace(/[\r\n;]+/g, " ").trim();
+      const cleanReason = String(reason).replace(/[\r\n]+/g, " ").trim() || "unknown";
+      return transition((state) => {
+        const task = taskFor(state, id);
+        if (!task || task.status !== "claimed" || task.owner !== worker || task.epoch !== epoch) {
+          throw new Error("stale claim generation");
+        }
+        const count = priorAttemptCount(task) + 1;
+        const attempt = { count, signature: cleanSignature, reason: cleanReason, at };
+        if (!Array.isArray(task.attempts)) task.attempts = [];
+        task.attempts.push(attempt);
+        task.history.push({ type: "attempt-failed", ...attempt });
+        if (count >= MAX_ATTEMPTS) {
+          task.status = "blocked";
+          const priorGate = task.legacyFields.Gate;
+          const legacyGates = (Array.isArray(priorGate) ? priorGate : priorGate === undefined ? [] : [priorGate]).map(String);
+          if (task.gate?.legacyRaw && !legacyGates.includes(task.gate.legacyRaw)) legacyGates.push(task.gate.legacyRaw);
+          legacyGates.push("retries-exhausted");
+          task.legacyFields.Gate = legacyGates.length === 1 ? legacyGates[0] : legacyGates;
+          task.gate = null;
+          task.owner = "";
+          delete task.lease;
+        }
+        return {
+          id,
+          status: task.status,
+          attempts: count,
+          signature: cleanSignature || null,
+          gate: count >= MAX_ATTEMPTS ? "retries-exhausted" : null,
+        };
+      });
+    },
+
+    async setIntentRevision(intent, revision, { expectedRevision } = {}) {
       if (typeof intent !== "string" || intent.length === 0 || !Number.isInteger(revision) || revision < 1) {
         throw new Error("intent and positive revision are required");
       }
       const previous = readSnapshot(repo);
       const current = Object.hasOwn(previous.state.intents, intent) ? previous.state.intents[intent] : 0;
+      if (expectedRevision !== undefined && (!Number.isInteger(expectedRevision) || expectedRevision !== current)) {
+        throw new Error(`intent ${intent} revision changed (expected ${expectedRevision}, found ${current})`);
+      }
       if (revision < current) throw new Error(`intent ${intent} revision cannot move backwards`);
       if (revision === current) return { intent, revision, idempotent: true };
       const next = clone(previous.state);
@@ -596,10 +790,25 @@ export function openTaskStore(root) {
     },
 
     async prepareOperation(operation = {}) {
-      const params = normalizedOperationParams(operation);
       if (typeof operation.id !== "string" || operation.id.length === 0) throw new Error("operation id is required");
       if (typeof operation.effectRef !== "string" || !runGit(repo, ["check-ref-format", operation.effectRef]).ok) {
         throw new Error("operation effect ref is invalid");
+      }
+      const previous = readSnapshot(repo);
+      const current = Object.hasOwn(previous.state.operations, operation.id) ? previous.state.operations[operation.id] : null;
+      const currentEffectValue = current?.expectedEffectValue ?? readRef(repo, operation.effectRef);
+      const expectedEffectValue = operation.expectedEffectValue ?? currentEffectValue;
+      if (typeof expectedEffectValue !== "string" || (!current && expectedEffectValue !== currentEffectValue)) {
+        throw new Error("operation expected effect value does not match the current ref");
+      }
+      const boundOperation = {
+        ...operation,
+        expectedEffectValue,
+        params: { ...(operation.params ?? {}), expectedEffectValue },
+      };
+      const params = normalizedOperationParams(boundOperation);
+      if (operation.effectRef === QUEUE_REF || operation.effectRef === ACTIVE_QUEUE_REF) {
+        throw new Error("operation effect ref cannot replace KRN task-store refs");
       }
       if (typeof operation.effectObject !== "string" || !objectExists(repo, operation.effectObject)) {
         throw new Error("operation effect object does not exist");
@@ -608,10 +817,17 @@ export function openTaskStore(root) {
         || operation.checkResult?.candidateIdentity !== operation.candidateIdentity || operation.checkResult.exitCode !== 0) {
         throw new Error("check result is not bound to the existing candidate");
       }
-      const previous = readSnapshot(repo);
-      const current = Object.hasOwn(previous.state.operations, operation.id) ? previous.state.operations[operation.id] : null;
       if (current) {
         if (JSON.stringify(current.params) !== JSON.stringify(params)) throw new Error("operation id reused with different parameters");
+        if (current.status === "observed") return { idempotent: true, status: current.status };
+        const currentTask = taskFor(previous.state, operation.taskId);
+        if (!currentTask || currentTask.status !== "claimed" || currentTask.owner !== operation.owner || currentTask.epoch !== operation.epoch) {
+          throw new Error("operation has stale claim generation");
+        }
+        if (typeof operation.intent !== "string" || !Object.hasOwn(previous.state.intents, operation.intent)
+          || previous.state.intents[operation.intent] !== operation.intentRevision) {
+          throw new Error("operation has stale intent revision");
+        }
         return { idempotent: true, status: current.status };
       }
       const next = clone(previous.state);
@@ -623,32 +839,62 @@ export function openTaskStore(root) {
         || next.intents[operation.intent] !== operation.intentRevision) {
         throw new Error("operation has stale intent revision");
       }
-      const stored = { ...clone(operation), params, status: "prepared" };
+      const stored = { ...clone(boundOperation), params, status: "prepared" };
       Object.defineProperty(next.operations, operation.id, { value: stored, enumerable: true, configurable: true, writable: true });
       task.history.push({ type: "operation-prepared", id: operation.id });
       commitSnapshot(repo, previous, next);
       return { idempotent: false, status: "prepared" };
     },
 
-    async completeOperation(operationId) {
+    async applyOperation(operationId, actor = {}) {
       const previous = readSnapshot(repo);
       const operation = Object.hasOwn(previous.state.operations, operationId) ? previous.state.operations[operationId] : null;
       if (!operation) throw new Error(`operation ${operationId} does not exist`);
       if (operation.status === "observed") return { idempotent: true, status: "observed" };
-      const firstDecision = completionDecision(previous.state, operation, readRef(repo, operation.effectRef));
+      const identity = { worker: actor.worker ?? operation.owner, epoch: actor.epoch ?? operation.epoch };
+      if (!operationAuthorized(previous.state, operation, identity)) {
+        throw new Error("operation authority or claim generation is stale; effect was not applied");
+      }
+      if (readRef(repo, operation.effectRef) !== operation.expectedEffectValue) {
+        return { idempotent: false, status: "ambiguous" };
+      }
+      const next = clone(previous.state);
+      const current = next.operations[operationId];
+      current.status = "observed";
+      const task = taskFor(next, current.taskId);
+      task.status = "done";
+      task.owner = "";
+      delete task.lease;
+      task.result = { operationId, effectObject: current.effectObject };
+      task.history.push({ type: "operation-observed", id: operationId });
+      writeSnapshotAndRef(repo, previous, next, current.effectRef, current.effectObject, current.expectedEffectValue);
+      return { idempotent: false, status: "observed" };
+    },
+
+    async completeOperation(operationId, actor = {}) {
+      const previous = readSnapshot(repo);
+      const operation = Object.hasOwn(previous.state.operations, operationId) ? previous.state.operations[operationId] : null;
+      if (!operation) throw new Error(`operation ${operationId} does not exist`);
+      if (operation.status === "observed") return { idempotent: true, status: "observed" };
+      const worker = actor.worker ?? operation.owner;
+      const epoch = actor.epoch ?? operation.epoch;
+      const identity = { worker, epoch };
+      const firstDecision = completionDecision(previous.state, operation, readRef(repo, operation.effectRef), identity);
       if (firstDecision !== "accepted") {
         if (firstDecision === "ambiguous") return { idempotent: false, status: "ambiguous" };
-        throw new Error("operation acceptance is stale or invalid");
+        throw new Error("operation acceptance is stale or invalid for the current claim generation");
       }
       const next = clone(previous.state);
       const current = next.operations[operationId];
       const effectReadback = readRef(repo, current.effectRef);
-      if (completionDecision(next, current, effectReadback) !== "accepted") {
-        throw new Error("operation acceptance changed before completion");
+      if (completionDecision(next, current, effectReadback, identity) !== "accepted") {
+        throw new Error("operation acceptance changed before completion or claim generation is stale");
       }
       current.status = "observed";
       const task = taskFor(next, current.taskId);
       task.status = "done";
+      task.owner = "";
+      delete task.lease;
       task.result = { operationId, effectObject: current.effectObject };
       task.history.push({ type: "operation-observed", id: operationId });
       commitSnapshot(repo, previous, next);

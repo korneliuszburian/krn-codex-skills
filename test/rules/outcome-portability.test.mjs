@@ -42,7 +42,7 @@ test("ADR 0005 names the explicit handoff copy and both ignored directories", ()
     "the ADR must name the copied outcome capsule directory",
   );
   assert.ok(
-    text.includes(".scratch/tickets/"),
+    text.includes(".krn/tickets/"),
     "the ADR must name the copied local queue directory",
   );
   assert.match(

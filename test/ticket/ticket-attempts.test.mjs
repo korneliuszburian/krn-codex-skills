@@ -30,7 +30,7 @@ const baseFields = {
 
 const withTickets = (body) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-attempts-"));
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   try {
     body(dir);
   } finally {
@@ -59,7 +59,7 @@ test("each stalled attempt appends a durable token and only the third blocks the
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(baseFields));
     ticketLib.claimTicket({ file, root: dir, id: "t-1", worker: "w", session: "s", at: "2026-09-17T00:00:00.000Z" });
     const baseline = fieldMap(ticketLib, readFileSync(file, "utf8"));
@@ -110,7 +110,7 @@ test("recordAttempt refuses a ticket that is not claimed and leaves it untouched
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(baseFields));
     const initial = readFileSync(file, "utf8");
     assert.throws(

@@ -46,8 +46,8 @@ const fakeGit = (baseFiles) => (_dir, args) => {
 
 const withRepo = (fields, body, { baseFiles = [] } = {}) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-lint-existing-"));
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
-  writeFileSync(join(dir, ".scratch", "sh-45.md"), ticket(fields));
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
+  writeFileSync(join(dir, ".krn/tickets", "sh-45.md"), ticket(fields));
   try {
     body({ dir, git: fakeGit(new Set([`${BASE}:scripts/lib/ticket/ticket.mjs`, ...baseFiles.map((file) => `${BASE}:${file}`)])) });
   } finally {
@@ -68,7 +68,7 @@ test("a ready ticket flipping an existing observer errors existing-check-red-fli
     const report = ticketLib.checkTickets({ root: dir, git });
     const flip = report.errors.find((entry) => entry.rule === "existing-check-red-flip");
     assert.ok(flip, JSON.stringify(report.errors));
-    assert.equal(flip.path, join(".scratch", "sh-45.md"));
+    assert.equal(flip.path, join(".krn/tickets", "sh-45.md"));
   }, { baseFiles: [EXISTING_REF] });
 });
 
@@ -104,7 +104,7 @@ test("a claimed lane flipping an existing observer is exempt", async () => {
 test("the queue lints only the offending ready ticket", async () => {
   const ticketLib = await loadTicket();
   withRepo(baseFields, ({ dir, git }) => {
-    writeFileSync(join(dir, ".scratch", "clean.md"), ticket({
+    writeFileSync(join(dir, ".krn/tickets", "clean.md"), ticket({
       ...baseFields,
       Id: "sh-46",
       Contract: `${EXISTING_REF}:green->green`,
@@ -112,7 +112,7 @@ test("the queue lints only the offending ready ticket", async () => {
     }));
     const report = ticketLib.checkTickets({ root: dir, git });
     assert.equal(report.errors.length, 1, JSON.stringify(report.errors));
-    assert.equal(report.errors[0].path, join(".scratch", "sh-45.md"));
+    assert.equal(report.errors[0].path, join(".krn/tickets", "sh-45.md"));
     assert.equal(report.errors[0].rule, "existing-check-red-flip");
   }, { baseFiles: [EXISTING_REF] });
 });

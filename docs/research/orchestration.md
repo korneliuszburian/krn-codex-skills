@@ -1,7 +1,7 @@
 # Orchestration and compact context
 
 Status: `accepted`. Consumer: maintainer, `$delivery-loop`, and
-`$source-to-decision`. Owner: maintainer. Verified: 2026-09-23. Rework this page
+`$source-to-decision`. Owner: maintainer. Verified: 2026-09-24. Rework this page
 in place when a falsifier fires; do not append a parallel “v2” report.
 
 ## Decision question
@@ -473,7 +473,7 @@ remain the human catalog.
 |---|---|---|
 | Admission | `ask-matt`, `wayfinder`, `triage`, `grill-with-docs`, `grilling`, `wait-what` | select one unresolved owner or restore shared understanding; no production mutation |
 | Evidence and design | `research`, `source-to-decision`, `prototype`, `domain-modeling`, `codebase-design`, `improve-codebase-architecture`, `target-repo-work`, `typescript-engineering` | produce cited facts, a decision, a disposable artifact, or a selected seam |
-| Planning and execution | `to-spec`, `slice-work`, `to-tickets`, `implement`, `tdd`, `diagnosing-bugs`, `setup-repository-workflow`, `setup-matt-pocock-skills`, `resolving-merge-conflicts`, `wizard` | produce one authorized slice, setup operation, or resolved repository operation |
+| Planning and execution | `to-spec`, `slice-work`, `to-tickets`, `implement`, `tdd`, `diagnosing-bugs`, `setup-repository-workflow`, `resolving-merge-conflicts`, `wizard` | produce one authorized slice, setup operation, or resolved repository operation |
 | Proof and continuity | `code-review`, `opencode-second-opinion`, `handoff`, `delivery-loop`, `writing-for-agents`, `managing-codex-capabilities`, `unslop` | interpret evidence, preserve restart state, or reconcile explicitly owned capability/prose state |
 
 Other pinned upstream owners, including `grill-me`, `teach`, and
@@ -679,7 +679,7 @@ a field is empty, or a retired surface reappears.
 | `docs/research/` | maintainer session | sessions and operators through the index | a decision or falsifier needs durable synthesis | one page per topic, state and reopen condition in the index | `npm run test:durable-pages` | rework in place; a page with no reader is deleted | maintainer |
 | `docs/adr/` | maintainer session | instruction and skill owners, by link only | a rare, hard-to-reverse trade-off | one ADR per decision, no restatement elsewhere | each ADR supersession rule and `npm run test:durable-pages` | superseded by a successor that names the migrator | maintainer |
 | `CONTEXT.md` | maintainer session | every session and operator as the compact model | vocabulary or knowledge-map change | one index line per artifact | `test/rules/instruction-ownership.test.mjs` and `npm run test:durable-pages` | update in place in the change that moves the vocabulary | maintainer |
-| `.scratch/` and `.krn/tickets/` ticket files | `krn ticket` verbs and the maintainer | `krn ticket next` and `check`, the lane runner, and the session brief | claim, close, fail, or frontier read | ignored local queue, one ready item in flight | `krn ticket check`; delivery archive restores the same path and ID set | terminal status, superseded through typed links | maintainer |
+| `.krn/tickets/` files | `krn ticket` verbs and the maintainer | `krn ticket next` and `check`, the lane runner, and the session brief | claim, close, fail, or frontier read | ignored local queue, one ready item in flight | `krn ticket check`; delivery archive restores the same path and ID set | terminal status, superseded through typed links | maintainer |
 | `krn memory recall` | lesson triggers | the maintainer, manually, and the lane preflight through `changes check --strict-recall` | a manual advisory query, or a triggered change in a lane | advisory hit; `--strict-recall` blocks in lanes | `test/lessons/recall-hit-rate.test.mjs` and `test/lessons/lesson-trigger-hygiene.test.mjs` | trigger or lesson retired only after its consumer is gone, a structural gate supersedes it, or a bounded negative-use check supports retirement | maintainer |
 | `krn_memory.py` | maintainer session, installed by release | SessionStart; the registered PreCompact handler exits silently without reading or writing capsule data | session start in a managed tree; PreCompact is a no-op | one capsule note or queue line on SessionStart; zero PreCompact payload or artifact | `test/hooks-guard.test.mjs` and `test/hooks-queue-brief.test.mjs` | hook policy change; retired boundary write is not re-adopted without a named reader | maintainer |
 | `e2e-compare.mjs` | maintainer session | the frozen harness-vs-vanilla measurement with per-component ablation | baseline and paired runs at a fixed SHA | at least 3 paired trials with tokens and wall recorded | `test/harness/e2e-compare.test.mjs` | retire when the measurement lands or its window expires | maintainer |
@@ -1111,6 +1111,148 @@ Unknown admission, false source identity, hidden project fallback or a host
 readback contradicting a converged plan falsify the candidate. Cost is inventory,
 closure comparison and per-host readback. It is not filesystem isolation,
 account authorization or measured model-quality uplift.
+
+### Fresh Luna skill-routing probe (2026-09-24)
+
+Official Codex docs say repository skills are discovered from `.agents/skills`
+along the working path in addition to user, admin, and system scopes. Equal
+skill names do not merge; both may appear in selectors. The initial skill list
+is budgeted to 2% of context or 8,000 characters, descriptions are shortened
+first, and some entries can be omitted when the catalog is large. Full skill
+instructions load after selection. Codex also supports per-path
+`[[skills.config]] enabled = false` and restart. Project `AGENTS.md` files are
+concatenated from global to repository root and then toward the working
+directory; closer files appear later and are intended to override earlier
+guidance. These are documented controls, not proof that every embedding uses
+the same discovery layer. Sources: [Codex skills](https://learn.chatgpt.com/docs/build-skills),
+[Codex AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
+
+Before this patch, `krn capability check lean` returned `drift` / exit 3. The
+plan contained 22 missing disabled entries for cached Canva/Figma plugin
+skills. The global `diagnosing-bugs` path had no explicit setting (and was
+available); the project-export copy was disabled because it was equivalent to
+that global owner. The source profile explicitly enabled upstream Matt
+workflows globally, so project-only use was not the declared policy.
+
+The source policy now keeps the curated upstream closure in the KRN project
+export and disables those same names across all six global profiles. It removes
+`resolving-merge-conflicts` and `writing-for-agents` from global enable lists,
+but retains them in the project closure. A red-before-green profile-resolution
+test passes for every profile and verifies that global paths are false while
+same-name project paths remain preserved. The project export now contains 18
+skills and has no `skills check` errors; it carries a dirty-source warning until
+the source is committed and re-exported cleanly. `krn capability apply lean`
+was applied with its protected backup, and `krn capability check lean` now
+converges.
+
+In two fresh, ephemeral `codex exec` runs with `--model gpt-6-luna`, a neutral
+JSON-counting task read one file and selected no Matt skill (31,087 input
+tokens, 26,112 cached). A natural parser-error report selected and loaded the
+global `diagnosing-bugs` skill without naming skills in the request. It
+reproduced the null dereference and ran a small set of input variants (112,081
+input tokens, 102,912 cached). In a separate run, a project fallback instruction
+forbade execution and required static analysis; the same global skill loaded,
+but the model followed the local rule and labelled runtime behavior
+unverified (88,265 input tokens, 77,568 cached). The fallback was
+`TEAM_GUIDE.md` via a per-run Codex setting because the local pre-tool guard
+refused creation of a scratch `AGENTS.md`. The exact dispatched backend model
+was not independently read back; `gpt-6-luna` was the CLI model selector.
+
+After apply, a fresh `codex debug prompt-input` from `/tmp` exposed 11
+system/KRN entries and no upstream Matt skills; from the KRN repository it
+exposed the project export (22 total entries, including its upstream copies).
+Repeating the exact parser-error prompt in the same fixture with the same
+`gpt-6-luna` selector and project instruction did not load
+`diagnosing-bugs`; the model inspected three files and returned the same
+source-grounded diagnosis, with runtime unverified (61,060 input tokens,
+54,272 cached). The before run loaded the global skill and used 88,265 input
+tokens, 77,568 cached. This one paired result supports the configured scope
+change and shows lower observed turn cost; it does not establish a general
+quality or cost effect. Totals include repeated context across tool turns, not
+isolated skill cost. An earlier probe accidentally exposed its prompt-input
+dump as a fixture file and is excluded. The current long-running conversation
+still has its startup skill catalogue; only a new host session observes the
+withdrawn global entries.
+
+External results support measuring selection rather than maximizing skill
+count: the [AGENTS.md study](https://arxiv.org/abs/2602.11988) reports added
+exploration and over 20% higher inference cost in its tested settings, with
+developer-written instructions showing a small, statistically non-significant
+average success change. [SkillsBench](https://arxiv.org/abs/2602.12670) found
+curated skills helpful on average but harmful on a subset of tasks;
+[SWE-Skills-Bench](https://arxiv.org/abs/2603.15401) reports version-mismatched
+skill guidance can conflict with project context, but remains a preprint. These
+results motivate a KRN-specific comparison; they do not choose KRN's global
+profile.
+
+Codex's fresh-process readback succeeded. The active conversation's startup
+catalog is unchanged until that host session restarts. OpenCode remains
+unconverged: its installed KRN plugin reads the older profile in release
+`10fd088`, while the changed source projection has only focused test coverage.
+The delivery owner must publish a clean release and read back a new OpenCode
+process before claiming project-only scope there. The Luna runs show that
+natural task wording can select a skill; they do not measure task benefit. Keep
+the pinned upstream source cache needed to build the project export, and leave
+plugin-cache deletion to its owner; the KRN Codex profile now writes explicit
+disabled entries. This probe expires when OpenCode readback or a paired KRN
+task comparison supersedes it.
+
+### Pi as a comparison candidate (2026-09-24)
+
+Pi's official design is a small terminal agent loop: the request combines its
+base prompt, discovered context, session branch, tools, and model; skill
+descriptions are listed up front and full skill files load on demand. Pi
+supports the shared `~/.agents/skills` and repository `.agents/skills`
+locations. This host's 25 symlinks to the pinned Matt set have now been removed
+from the shared index, while the KRN project export remains available. Pi also loads user and ancestor context
+files; project overrides replace only same-directory files. Same-name skill
+collisions keep the first discovery and warn. Sources: [How Pi Works](https://pi.dev/docs/latest/how-pi-works),
+[Pi skills](https://pi.dev/docs/latest/skills),
+[Pi configuration](https://pi.dev/docs/latest/configuration).
+
+Pi is an interesting harness baseline, not a drop-in KRN replacement. Its
+extensions can add tools, lifecycle hooks, providers, and state, but run with
+the Pi process's full OS permissions; project trust is not a shell sandbox. A
+comparison must use the same external container or worktree boundary for both
+agents. Pi's CLI provides `--no-skills`, `--no-context-files`, `--no-extensions`,
+tool allowlists, ephemeral sessions, and JSON event output, which make the
+minimal lane easy to define. Sources: [Pi CLI](https://pi.dev/docs/latest/cli),
+[Pi extensions](https://pi.dev/docs/latest/extensions),
+[Pi security](https://pi.dev/docs/latest/security).
+
+Local preflight: Pi `0.87.1` is already installed. The built-in
+`openai-codex` provider uses Codex subscription OAuth (added experimentally in
+Pi 0.36; headless device-code login followed in 0.77), and Pi's hosted model
+catalog lists `gpt-6-luna` under that provider. Sources: [Pi 0.36 release](https://pi.dev/changelog/releases/0.36.0),
+[Pi 0.77 release](https://pi.dev/changelog/releases/0.77.0),
+[GPT-6 Luna in Pi's catalog](https://pi.dev/models/openai-codex/gpt-6-luna),
+[Pi provider authentication](https://pi.dev/docs/latest/providers).
+This host's `pi auth check --provider openai-codex --no-refresh --json` returns
+`not_ready`; its local `--list-models gpt-6-luna` therefore returns no match.
+No Pi task run or login was performed. The supported same-Luna comparison is
+feasible after `/login openai-codex`; Pi stores that OAuth credential in
+`~/.pi/agent/auth.json`, so login remains an explicit credential write.
+
+The user's Pi 0.87.1 startup report then showed four KRN-owned name collisions:
+`delivery-loop`, `source-to-decision`, `slice-work`, and
+`setup-repository-workflow`. Pi selected each repository copy and marked the
+global link skipped. This is a duplicate-registration warning, not evidence
+that both skill bodies were loaded. It also exposes the remaining KRN source /
+installed-release split: the project copy can differ from the installed global
+copy. The pinned Matt symlinks have since been removed from the global index;
+these four KRN-owned duplicates still need a manifest/install scope decision
+and a clean-release readback.
+
+Recommended screen after that gate: adapt one existing KRN deciding task to the
+current `krn harness compare` lane interface, but choose a real task where
+vanilla is not saturated. Freeze one checkout and acceptance check; run Codex
+and Pi with the same Luna model, tool rights, resource limits, and fresh state.
+First compare pure loops with skills/context disabled in both; then, only if
+that discriminates, compare the KRN project contract and selected project
+skills. Reuse LT-102's paired-trial and cost bounds rather than inventing a
+second benchmark. Record pass, diff quality, tool behavior, tokens, and wall
+time; do not infer a platform-wide winner from one task. Pi remains `lab-test`,
+and no extension or KRN port is justified yet.
 
 ### Advisory instruction authority (2026-09-23)
 

@@ -28,7 +28,7 @@ const ticket = (id) => [
 test("claim locks are contained and injective for stable IDs", () => {
   const root = mkdtempSync(join(tmpdir(), "krn-ticket-id-path-"));
   try {
-    const queue = join(root, ".scratch");
+    const queue = join(root, ".krn/tickets");
     mkdirSync(queue, { recursive: true });
     const ids = [
       "sh-179",
@@ -45,7 +45,7 @@ test("claim locks are contained and injective for stable IDs", () => {
 
     for (const id of ids) {
       const result = spawnSync(process.execPath, [
-        cli, "ticket", "claim", "--root", root, "--path", ".scratch", "--id", id, "--worker", "fixture", "--json",
+        cli, "ticket", "claim", "--root", root, "--path", ".krn/tickets", "--id", id, "--worker", "fixture", "--json",
       ], { encoding: "utf8" });
       assert.equal(result.status, 0, `${id}: ${result.stdout}${result.stderr}`);
       assert.equal(JSON.parse(result.stdout).status, "claimed");

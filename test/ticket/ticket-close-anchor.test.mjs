@@ -46,9 +46,9 @@ const outOfScope = (dir) => {
 function makeRepo({ repositoryBase = "main", change = inScope, trailerText = trailer } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-close-anchor-"));
   git(dir, ["init", "-q", "-b", "main"]);
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   mkdirSync(join(dir, "src"), { recursive: true });
-  writeFileSync(join(dir, ".scratch", "sh-61.md"), ticket({ ...baseFields, "Repository-base": repositoryBase }));
+  writeFileSync(join(dir, ".krn/tickets", "sh-61.md"), ticket({ ...baseFields, "Repository-base": repositoryBase }));
   writeFileSync(join(dir, "src", "allowed.mjs"), "export const allowed = 1;\n");
   git(dir, ["add", "-A"]);
   commit(dir, "seed");
@@ -58,7 +58,7 @@ function makeRepo({ repositoryBase = "main", change = inScope, trailerText = tra
   git(dir, ["add", "-A"]);
   commit(dir, trailerText ? `work\n\n${trailerText}` : "work");
   const head = rev(dir, "HEAD");
-  return { dir, base, head, file: join(dir, ".scratch", "sh-61.md") };
+  return { dir, base, head, file: join(dir, ".krn/tickets", "sh-61.md") };
 }
 
 const withRepo = (options, body) => {

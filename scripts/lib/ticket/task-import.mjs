@@ -356,7 +356,7 @@ export function prepareLegacyQueueImport(root, { ticketDirs = DEFAULT_DIRS } = {
   const initialTicketPaths = ticketFiles.map((absolute) => relativePosix(repo, absolute));
   const finalTicketPaths = discoverTicketFiles(repo, ticketDirs).map((absolute) => relativePosix(repo, absolute));
   if (JSON.stringify(initialTicketPaths) !== JSON.stringify(finalTicketPaths)) {
-    errors.push({ path: ".scratch/tickets", rule: "source-path-set-changed" });
+    errors.push({ path: ".krn/tickets", rule: "source-path-set-changed" });
   }
   const initialLockPaths = claimLockFiles.map((absolute) => relativePosix(repo, absolute));
   const finalLockPaths = discoverClaimLockFiles(repo).map((absolute) => relativePosix(repo, absolute));

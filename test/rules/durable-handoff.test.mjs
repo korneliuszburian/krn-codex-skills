@@ -58,7 +58,7 @@ for (const surface of SURFACES) {
       `${surface.name} must export the outcome capsule directory`,
     );
     assert.ok(
-      text.includes(".scratch/tickets/"),
+      text.includes(".krn/tickets/"),
       `${surface.name} must export the local queue directory`,
     );
   });

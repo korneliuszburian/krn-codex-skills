@@ -60,13 +60,30 @@ function ticket({ id, status, blockedBy = "none", claim = "", extra = "" }) {
   ].join("\n");
 }
 
+test("the default queue import excludes upstream scratch files and reads only the KRN ticket root", async () => {
+  const root = makeRepo();
+  try {
+    mkdirSync(join(root, ".scratch", "feature", "issues"), { recursive: true });
+    mkdirSync(join(root, ".krn", "tickets"), { recursive: true });
+    writeFileSync(join(root, ".scratch", "feature", "spec.md"), "# External scratch spec\n");
+    writeFileSync(join(root, ".scratch", "feature", "issues", "01-task.md"), "# 01: External issue\n\nStatus: ready-for-agent\n");
+    writeFileSync(join(root, ".krn", "tickets", "owned.md"), ticket({ id: "krn-task", status: "ready" }));
+
+    const prepared = await prepareLegacyQueueImport(root);
+    assert.deepEqual(prepared.report.errors, []);
+    assert.deepEqual(prepared.report.pathIds, [{ path: ".krn/tickets/owned.md", id: "krn-task" }]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("legacy import preserves path/ID pairs and exact archive bytes while reporting unmapped fields", async () => {
   const root = makeRepo();
   const restoreRoot = mkdtempSync(join(tmpdir(), "krn-task-restore-"));
   try {
-    const readyPath = ".scratch/tickets/team/ready.md";
+    const readyPath = ".krn/tickets/team/ready.md";
     const claimedPath = ".krn/tickets/claimed.md";
-    const dependencyPath = ".scratch/tickets/team/dependency.md";
+    const dependencyPath = ".krn/tickets/team/dependency.md";
     const claimAt = "2000-01-01T00:00:00Z";
     const claim = `worker=worker-a; session=session-a; at=${claimAt}; epoch=2; renew=${claimAt}; duration=3600; future=retain-me`;
     const readyBytes = Buffer.from(ticket({
@@ -88,7 +105,7 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
       status: "done",
       extra: `Integration: branch=lane/team-dependency; sha=${integratedSha}; patch=${integratedPatch}`,
     }));
-    mkdirSync(join(root, ".scratch/tickets/team"), { recursive: true });
+    mkdirSync(join(root, ".krn/tickets/team"), { recursive: true });
     mkdirSync(join(root, ".krn/tickets"), { recursive: true });
     mkdirSync(join(root, ".krn/claims"), { recursive: true });
     writeFileSync(join(root, readyPath), readyBytes);
@@ -104,8 +121,8 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
     assert.deepEqual(prepared.report.duplicateFields.map((entry) => [entry.field, entry.count, entry.identical]), [["Attempts", 2, false]]);
     assert.deepEqual(prepared.report.pathIds, [
       { path: ".krn/tickets/claimed.md", id: "claimed" },
-      { path: ".scratch/tickets/team/dependency.md", id: "team/dependency" },
-      { path: ".scratch/tickets/team/ready.md", id: "team/ready" },
+      { path: ".krn/tickets/team/dependency.md", id: "team/dependency" },
+      { path: ".krn/tickets/team/ready.md", id: "team/ready" },
     ]);
     assert.equal(prepared.state.tasks["team/ready"].type, "task");
     assert.deepEqual(prepared.state.tasks["team/ready"].laneRecipe, {
@@ -184,15 +201,15 @@ test("legacy archive restore rejects traversal and refuses to overwrite differen
     const stagedBytes = Buffer.from("staged");
     const stagedDigest = createHash("sha256").update(stagedBytes).digest("hex");
     assert.throws(() => restoreLegacyQueueArchive(root, { version: 1, entries: [
-      { path: ".scratch/tickets/staged.md", content: stagedBytes.toString("base64"), sha256: stagedDigest },
+      { path: ".krn/tickets/staged.md", content: stagedBytes.toString("base64"), sha256: stagedDigest },
       { path: "../unsafe.md", content: "eA==", sha256: "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881" },
     ] }), /unsafe archive path/);
-    assert.equal(existsSync(join(root, ".scratch/tickets/staged.md")), false, "preflight errors do not leave a partial restore");
-    mkdirSync(join(root, ".scratch/tickets"), { recursive: true });
-    writeFileSync(join(root, ".scratch/tickets/a.md"), "different");
+    assert.equal(existsSync(join(root, ".krn/tickets/staged.md")), false, "preflight errors do not leave a partial restore");
+    mkdirSync(join(root, ".krn/tickets"), { recursive: true });
+    writeFileSync(join(root, ".krn/tickets/a.md"), "different");
     const original = Buffer.from("original");
     const digest = createHash("sha256").update(original).digest("hex");
-    assert.throws(() => restoreLegacyQueueArchive(root, { version: 1, entries: [{ path: ".scratch/tickets/a.md", content: original.toString("base64"), sha256: digest }] }), /restore target already differs/);
+    assert.throws(() => restoreLegacyQueueArchive(root, { version: 1, entries: [{ path: ".krn/tickets/a.md", content: original.toString("base64"), sha256: digest }] }), /restore target already differs/);
     symlinkSync(outside, join(root, "linked"));
     assert.throws(() => restoreLegacyQueueArchive(root, { version: 1, entries: [{ path: "linked/escape.md", content: "eA==", sha256: "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881" }] }), /unsafe archive parent/);
   } finally {
@@ -204,9 +221,9 @@ test("legacy archive restore rejects traversal and refuses to overwrite differen
 test("an imported ready task with an unfinished blocker is omitted from the frontier and prepared state cannot be tampered", async () => {
   const root = makeRepo();
   try {
-    mkdirSync(join(root, ".scratch/tickets"), { recursive: true });
-    writeFileSync(join(root, ".scratch/tickets/blocker.md"), ticket({ id: "blocker", status: "ready" }));
-    writeFileSync(join(root, ".scratch/tickets/blocked.md"), ticket({ id: "blocked", status: "ready", blockedBy: "blocker" }));
+    mkdirSync(join(root, ".krn/tickets"), { recursive: true });
+    writeFileSync(join(root, ".krn/tickets/blocker.md"), ticket({ id: "blocker", status: "ready" }));
+    writeFileSync(join(root, ".krn/tickets/blocked.md"), ticket({ id: "blocked", status: "ready", blockedBy: "blocker" }));
     const prepared = await prepareLegacyQueueImport(root);
     const store = openTaskStore(root);
     const tamperedState = structuredClone(prepared);
@@ -236,9 +253,10 @@ test("legacy import refuses ticket roots that are symlinks outside the repositor
   const root = makeRepo();
   const outside = mkdtempSync(join(tmpdir(), "krn-task-import-outside-"));
   try {
-    mkdirSync(join(outside, "tickets"), { recursive: true });
-    writeFileSync(join(outside, "tickets/escape.md"), ticket({ id: "escape", status: "ready" }));
-    symlinkSync(join(outside, "tickets"), join(root, ".scratch"));
+    mkdirSync(join(outside, ".krn", "tickets"), { recursive: true });
+    mkdirSync(join(root, ".krn"), { recursive: true });
+    writeFileSync(join(outside, ".krn", "tickets", "escape.md"), ticket({ id: "escape", status: "ready" }));
+    symlinkSync(join(outside, ".krn", "tickets"), join(root, ".krn", "tickets"));
     assert.throws(() => prepareLegacyQueueImport(root), /ticket root path contains a symlink/);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -252,9 +270,9 @@ test("legacy import refuses a per-ticket claim lock symlink outside the reposito
   try {
     const claimAt = "2000-01-01T00:00:00Z";
     const claim = `worker=worker-a; session=session-a; at=${claimAt}; epoch=2; renew=${claimAt}; duration=3600`;
-    mkdirSync(join(root, ".scratch/tickets"), { recursive: true });
+    mkdirSync(join(root, ".krn/tickets"), { recursive: true });
     mkdirSync(join(root, ".krn/claims"), { recursive: true });
-    writeFileSync(join(root, ".scratch/tickets/claimed.md"), ticket({ id: "claimed", status: "claimed", claim }));
+    writeFileSync(join(root, ".krn/tickets/claimed.md"), ticket({ id: "claimed", status: "claimed", claim }));
     const outsideLock = join(outside, "claimed.lock");
     writeFileSync(outsideLock, JSON.stringify({ worker: "worker-a", session: "session-a", at: claimAt, epoch: 2, renew: claimAt, duration: 3600 }));
     symlinkSync(outsideLock, join(root, ".krn/claims/claimed.lock"));
@@ -279,10 +297,10 @@ test("legacy import rejects a symlinked .krn ancestor and nested symlink directo
 
   const nestedRoot = makeRepo();
   try {
-    mkdirSync(join(nestedRoot, ".scratch"), { recursive: true });
+    mkdirSync(join(nestedRoot, ".krn/tickets"), { recursive: true });
     mkdirSync(join(outside, "nested-tickets"), { recursive: true });
     writeFileSync(join(outside, "nested-tickets/hidden.md"), ticket({ id: "hidden", status: "ready" }));
-    symlinkSync(join(outside, "nested-tickets"), join(nestedRoot, ".scratch/nested"));
+    symlinkSync(join(outside, "nested-tickets"), join(nestedRoot, ".krn/tickets/nested"));
     assert.throws(() => prepareLegacyQueueImport(nestedRoot), /symlink entry under ticket root/);
   } finally {
     rmSync(nestedRoot, { recursive: true, force: true });

@@ -9,9 +9,9 @@ const END = "<!-- krn-agent-workflow:end -->";
 const TRACKERS = new Set(["none", "beads", "github", "gitlab", "local"]);
 const DOMAINS = new Set(["single", "multi"]);
 const DELIVERY = new Set(["local", "strict"]);
-const QUEUE_DIR = join(".scratch", "tickets");
+const QUEUE_DIR = join(".krn", "tickets");
 const QUEUE_README = join(QUEUE_DIR, "README.md");
-const EXCLUDE_ENTRY = ".scratch/";
+const EXCLUDE_ENTRY = ".krn/tickets/";
 
 function fail(message) {
   process.stderr.write(`repository-workflow: ${message}\n`);
@@ -157,7 +157,7 @@ function inspect(root) {
     managedContract,
     trackerSignals: {
       beads: existsSync(join(root, ".beads")),
-      localMarkdown: existsSync(join(root, ".scratch")),
+      localMarkdown: existsSync(join(root, QUEUE_DIR)),
     },
     domainSuggestion: monorepo ? "multi" : "single",
     managedRuns: existsSync(join(root, ".krn", "runs")),
@@ -182,7 +182,7 @@ function trackerSummary(tracker) {
   if (tracker === "gitlab") {
     return `GitLab issues own durable task state through \`glab issue create|update|view|list|close\` inside this clone. This thin setup is not a complete Wayfinder adapter: \`$wayfinder\` must stop unless closer repository instructions define ${requiredAdapter}. Resolve separate tracker-write authority before any mutation. Keep at most one implementation item active.`;
   }
-  return "The KRN local ticket queue under `.scratch/tickets/` owns durable task state: one `<krn-ticket>` ABI file per work item, ordered by dependency edges. Scaffold it with `krn repo apply --tracker local`, then operate it with `krn ticket check --root .` to validate envelopes, blockers, cycles, statuses, scope, and orphans, `krn ticket next --root .` to print the unblocked ready frontier, `krn ticket claim --root . --id <id>` to record `Claim:` and `Status: claimed` before any edit, `krn ticket close --root . --id <id>` to record `Evidence:` and `Resolution:` at the fixed point, and `krn ticket fail --root . --id <id> --reason <text>` to record a rejected attempt signature. Keep one writer and at most one implementation item in progress, and resolve separate tracker-write authority before any mutation.";
+  return "The KRN local ticket queue under `.krn/tickets/` owns durable task state: one `<krn-ticket>` ABI file per work item, ordered by dependency edges. Scaffold it with `krn repo apply --tracker local`, then operate it with `krn ticket check --root .` to validate envelopes, blockers, cycles, statuses, scope, and orphans, `krn ticket next --root .` to print the unblocked ready frontier, `krn ticket claim --root . --id <id>` to record `Claim:` and `Status: claimed` before any edit, `krn ticket close --root . --id <id>` to record `Evidence:` and `Resolution:` at the fixed point, and `krn ticket fail --root . --id <id> --reason <text>` to record a rejected attempt signature. Keep one writer and at most one implementation item in progress, and resolve separate tracker-write authority before any mutation.";
 }
 
 function domainSummary(domain) {
@@ -296,9 +296,9 @@ function bootstrapLessonsIfAbsent(root) {
   return [LESSONS_PATH];
 }
 
-// The local KRN queue is a scaffolded working tree, not a committed artifact:
-// seed the queue README only when absent, add the git-exclude entry only when
-// missing, and never rewrite a repository's own `.scratch` content.
+// The local KRN queue is a scaffolded working tree under .krn, not a committed
+// artifact: seed its README only when absent and add its exact exclude entry
+// only when missing. Unowned repository content is never inspected or rewritten.
 function queueReadmeTemplate() {
   return [
     "# Ticket queue",
@@ -326,7 +326,7 @@ function queueReadmeTemplate() {
 }
 
 function assertLocalQueueSafe(root) {
-  for (const path of [join(root, ".scratch"), join(root, QUEUE_DIR)]) {
+  for (const path of [join(root, ".krn"), join(root, QUEUE_DIR)]) {
     const stat = safeLstat(path);
     if (stat && !stat.isDirectory()) {
       fail(`local queue path is not a directory: ${relative(root, path)}`);

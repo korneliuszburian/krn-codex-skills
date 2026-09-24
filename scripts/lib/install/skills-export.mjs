@@ -92,12 +92,14 @@ export function exportSkills({ source, upstream, root }) {
   const harnessPaths = Array.isArray(upstreamPin.harness_paths) && upstreamPin.harness_paths.length > 0
     ? upstreamPin.harness_paths
     : upstreamPin.required_paths;
-  const harnessDirs = [...new Set(harnessPaths.map((required) => path.dirname(required)))];
-  for (const dir of harnessDirs) {
+  const projectPaths = Array.isArray(upstreamPin.project_paths) ? upstreamPin.project_paths : [];
+  const exportPaths = [...new Set([...harnessPaths, ...projectPaths])];
+  const exportDirs = [...new Set(exportPaths.map((required) => path.dirname(required)))];
+  for (const dir of exportDirs) {
     const tree = git(resolvedUpstream, ["ls-tree", "-r", upstreamPin.commit, "--", dir]);
     const unsafeEntry = tree.split("\n").find((line) => /^(120000|160000) /.test(line));
     if (unsafeEntry) {
-      throw new Error(`upstream harness path contains a symlink or gitlink (${unsafeEntry.split("\t")[1] ?? dir}); refusing to export`);
+      throw new Error(`upstream project export path contains a symlink or gitlink (${unsafeEntry.split("\t")[1] ?? dir}); refusing to export`);
     }
   }
   const upstreamStatusResult = runGitRaw(resolvedUpstream, ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored=matching"]);
@@ -109,9 +111,9 @@ export function exportSkills({ source, upstream, root }) {
     .split("\0")
     .filter((entry) => entry.startsWith("?? ") || entry.startsWith("!! "))
     .map((entry) => entry.slice(3));
-  const stray = untracked.find((file) => harnessDirs.some((dir) => file === dir || file.startsWith(`${dir}/`)));
+  const stray = untracked.find((file) => exportDirs.some((dir) => file === dir || file.startsWith(`${dir}/`)));
   if (stray) {
-    throw new Error(`upstream harness path contains an untracked file (${stray}); the pinned revision cannot reproduce exported bytes`);
+    throw new Error(`upstream project export path contains an untracked file (${stray}); the pinned revision cannot reproduce exported bytes`);
   }
   const krnCommit = harnessCommit(source);
   const harnessNames = Array.isArray(manifest.harness_skills) && manifest.harness_skills.length > 0 ? manifest.harness_skills : null;
@@ -171,14 +173,13 @@ export function exportSkills({ source, upstream, root }) {
     fs.cpSync(path.join(source, relative), path.join(skillsDir, skill.name), { recursive: true, dereference: true });
     skills.push({ name: skill.name, origin: "krn", description: skillMetadata(path.join(source, relative, "SKILL.md"))?.description ?? "" });
   }
-  const harnessPathsUsed = harnessPaths;
-  for (const required of harnessPathsUsed) {
+  for (const required of exportPaths) {
     const relative = path.dirname(required);
     const name = path.basename(relative);
     fs.cpSync(path.join(resolvedUpstream, relative), path.join(skillsDir, name), { recursive: true, dereference: true });
     skills.push({ name, origin: "upstream", description: skillMetadata(path.join(resolvedUpstream, relative, "SKILL.md"))?.description ?? "" });
   }
-  for (const dir of harnessDirs) {
+  for (const dir of exportDirs) {
     const exportedDir = path.join(skillsDir, path.basename(dir));
     const files = [];
     const collect = (current) => {
@@ -368,14 +369,17 @@ export function checkSkills({ root }) {
     const upstreamPin = sources.find((source) => source && (marker?.upstream?.id ? source.id === marker.upstream.id : source.id === "mattpocock/skills"))
       ?? sources[0] ?? null;
     const upstreamExpected = [...new Set(
-      (Array.isArray(upstreamPin?.harness_paths) && upstreamPin.harness_paths.length > 0 ? upstreamPin.harness_paths : Array.isArray(upstreamPin?.required_paths) ? upstreamPin.required_paths : [])
+      [
+        ...(Array.isArray(upstreamPin?.harness_paths) && upstreamPin.harness_paths.length > 0 ? upstreamPin.harness_paths : Array.isArray(upstreamPin?.required_paths) ? upstreamPin.required_paths : []),
+        ...(Array.isArray(upstreamPin?.project_paths) ? upstreamPin.project_paths : []),
+      ]
         .filter((requiredPath) => typeof requiredPath === "string")
         .map((requiredPath) => path.basename(path.dirname(requiredPath))),
     )].sort();
     upstreamNames = upstreamExpected;
     const upstreamExported = names.filter((name) => !sourceByName.has(name)).sort();
     if (JSON.stringify(upstreamExported) !== JSON.stringify(upstreamExpected)) {
-      errors.push(`exported upstream skills [${upstreamExported.join(", ")}] must equal the pinned harness_paths [${upstreamExpected.join(", ")}]; run \`krn skills export\``);
+      errors.push(`exported upstream skills [${upstreamExported.join(", ")}] must equal the pinned project export paths [${upstreamExpected.join(", ")}]; run \`krn skills export\``);
     }
   }
   const catalogFile = path.join(skillsDir, "README.md");

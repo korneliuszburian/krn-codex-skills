@@ -143,8 +143,8 @@ repointed the wrapper at shipped `krn.mjs`, corrected the hints, passed an
 installed-bin fixture red to green, and the sealed `10fd088` release passed
 installed CLI readback. External caller evidence still decides alias
 retirement. The delivery-loop
-archive instruction now covers every discovered ticket under `.scratch/` and
-`.krn/tickets/`; a disposable two-root restore preserved the path and ID set.
+archive instruction now covers every discovered ticket under `.krn/tickets/`;
+a disposable two-root restore preserved the path and ID set.
 `ask-gpt` instruction repair now conditions publication on the selected remote
 evidence and keeps ChatGPT Project as optional context, while a session load
 trace remains unobserved;

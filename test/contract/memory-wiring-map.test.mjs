@@ -18,7 +18,7 @@ const ARTIFACTS = [
   "docs/research/",
   "docs/adr/",
   "CONTEXT.md",
-  ".scratch/ and .krn/tickets/ ticket files",
+  ".krn/tickets/ files",
   "krn memory recall",
   "krn_memory.py",
   "e2e-compare.mjs",

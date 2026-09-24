@@ -17,7 +17,6 @@
         "skills/engineering/prototype/SKILL.md",
         "skills/engineering/research/SKILL.md",
         "skills/engineering/resolving-merge-conflicts/SKILL.md",
-        "skills/engineering/setup-matt-pocock-skills/SKILL.md",
         "skills/engineering/tdd/SKILL.md",
         "skills/engineering/to-spec/SKILL.md",
         "skills/engineering/to-tickets/SKILL.md",
@@ -43,19 +42,18 @@
         "skills/engineering/wayfinder/SKILL.md",
         "skills/productivity/grilling/SKILL.md"
       ],
+      "project_paths": [
+        "skills/engineering/research/SKILL.md",
+        "skills/engineering/resolving-merge-conflicts/SKILL.md",
+        "skills/engineering/tdd/SKILL.md",
+        "skills/productivity/writing-for-agents/SKILL.md"
+      ],
       "companions": {
         "implement": [
           "tdd"
         ],
         "wayfinder": [
-          "research",
-          "setup-matt-pocock-skills"
-        ],
-        "code-review": [
-          "setup-matt-pocock-skills"
-        ],
-        "to-spec": [
-          "setup-matt-pocock-skills"
+          "research"
         ]
       }
     }

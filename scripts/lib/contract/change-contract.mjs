@@ -92,7 +92,7 @@ function recallObligation({ strictRecall, hit, files, symbols }) {
 }
 
 const RECALL_NONE = /^none\s*\(\s*(.*?)\s*\)\s*$/i;
-const TICKET_DIRS = [".scratch", ".krn/tickets"];
+const TICKET_DIRS = [".krn/tickets"];
 const cleanAnchor = (value) => String(value ?? "").trim().replace(/`/g, "").replace(/^['"]|['"]$/g, "").trim();
 const triggerValues = (trigger) => (trigger ?? "").split(/[;,]/).map((entry) => cleanAnchor(entry.replace(/^(?:path|symbol|churn):/, ""))).filter(Boolean);
 const fieldValue = (text, name) => text.split("\n").map((line) => line.trim()).find((line) => line.startsWith(`${name}:`))?.slice(name.length + 1).trim();

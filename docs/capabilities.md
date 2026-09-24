@@ -6,7 +6,7 @@ reconciles named profiles into `config.toml` without rewriting unrelated
 configuration.
 
 Status: `accepted`. Consumer: operators selecting or auditing a KRN capability
-profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-23.
+profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-24.
 
 ## Trust model
 
@@ -74,14 +74,17 @@ explicit-only; enabling it does not start a model or a research run. The earlier
 exclusion was a profile choice, not retirement or evidence of disuse. Manual
 availability and automatic workflow invocation are separate decisions.
 
-Workflow admission is derived from `skills/manifest.json` and the pinned
+Workflow admission is derived from `skills/manifest.json` and pinned
 `harness_paths` plus explicit availability companions in
-`config/upstream-sources.json`. Companions make an upstream procedure available;
-they do not force its invocation. Profiles own optional extensions and explicit
-exclusions. Unknown global skills, plugins, and MCP servers default disabled,
-including plugin/MCP records found only in configuration. Project and system
-scopes are preserved before ordinary name selectors. Missing derived owners
-make `check` report an incomplete installation rather than convergence.
+`config/upstream-sources.json`. `harness_paths` name promoted workflow owners;
+`project_paths` adds pinned material needed only inside the KRN repository and
+does not expand the global workflow baseline. Both sets are exported into the
+KRN repository's `.agents/skills`. Every KRN profile disables those upstream
+names in the global index. Project and system scopes are preserved, so the KRN
+project copy remains available while the global copy is off. Unknown global
+skills, plugins, and MCP servers default disabled, including plugin/MCP records
+found only in configuration. Missing derived owners make `check` report an
+incomplete installation rather than convergence.
 
 ## Equivalent exports and host scope
 
@@ -94,6 +97,32 @@ missing owner, or lost equivalence makes `check` drift and `apply` withdraws its
 own override. Independent user overrides and authored project skills remain
 untouched. Run reconciliation after changing an export, checkout, release, or
 profile: Codex path overrides are not conditional on a content digest.
+
+On 2026-09-24, `lean` was applied after the upstream Matt workflow set moved to
+project scope. `krn capability check lean` converged. A fresh Codex
+`debug prompt-input` showed no upstream Matt skills outside a repository and
+showed the KRN export from inside this repository. The `.agents/skills` export
+was generated from a dirty source tree, so it needs a clean export after the
+source commit before it can certify a release. Physical upstream and plugin
+caches remain; profiles withdraw discovery/invocation but do not own cache
+deletion.
+
+The pinned `setup-matt-pocock-skills` source is no longer an active KRN project
+skill or companion: it prescribed a local `.scratch/` issue tracker that
+conflicted with KRN's sole local queue at `.krn/tickets/`. KRN's
+`setup-repository-workflow` owns local tracker setup; the Matt source remains
+research provenance only and is not exported into `.agents/skills/`.
+
+The 25 user-global symlinks to the pinned Matt checkout were also removed after
+their targets, origin, and commit were verified. The pinned source checkout
+remains available to regenerate project exports. Codex skill profiles apply to
+new processes; an already-running host keeps its startup catalogue until it is
+restarted.
+
+OpenCode is not yet at that state. Its installed KRN plugin still reads profile
+data from release `10fd088`; the project source has the updated profile and a
+focused permission-projection test, but no clean release or fresh OpenCode
+readback has been made. Do not infer Codex settings apply to OpenCode.
 
 These are user-layer rules rather than project TOML settings: Codex 0.155.1
 reads skill enablement from user and session layers. Fresh CLI discovery has
