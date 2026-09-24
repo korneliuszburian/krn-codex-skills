@@ -105,6 +105,7 @@ test("the CLI seals the repository ledger and never gates apply on the linked re
     const appliedCommit = git(source, ["rev-parse", "HEAD"]);
     assert.notEqual(appliedCommit, sealedCommit, "the sealing commit carries the ledger forward");
     assert.equal(readLedger()[sealedCommit], JSON.parse(sealedNext.stdout).digest);
+    assert.equal(Object.keys(readLedger()).length, 2, "sealing preserves the prior ledger entry");
     assert.equal(readLedger()[appliedCommit], undefined);
 
     // The target's bytes are sealed even though the linked release is not, so
