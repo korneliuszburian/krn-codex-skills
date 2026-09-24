@@ -5,7 +5,7 @@ archive, or chronological log. Each topic page is rewritten as evidence changes;
 Git history records the sequence.
 
 Status: `accepted`. Consumer: maintainer and `$source-to-decision` promotion.
-Owner: maintainer. Verified: 2026-09-16.
+Owner: maintainer. Verified: 2026-09-24.
 
 ## Curation contract
 
@@ -82,7 +82,7 @@ freshness, not permanence.
 
 | Topic | Current authority | One-line state | Reopen when |
 |---|---|---|---|
-| Agent orchestration and compact context | [orchestration.md](orchestration.md) | accepted lifecycle spine plus a mapped sh-174 memory decision boundary; capsule, durable knowledge, procedural lessons, recall proof and task references have distinct owners; memory database and automatic selection remain unearned; LT-107 forgetting claim is confounded | a real continuation or knowledge-use counterexample defeats the native/current baseline, or a surviving surface lacks a consumer |
+| Agent orchestration and compact context | [orchestration.md](orchestration.md) | accepted lifecycle spine and sh-174 boundary; run-only Astra owner with bounded Luna delegation is adopted for the next continuation; Ultra matches maximum-capability preference, but effort-tier and total-token optimum remain unmeasured | an Astra effort/token result on a representative KRN task, a real delegation failure, or a source/host change contradicts the mode or handoff recommendation |
 | Self-hardening roadmap | [self-hardening-roadmap.md](self-hardening-roadmap.md) | sh-166/sh-173 repairs passed the full gate and installed readback; the active product order is sh-174 memory architecture then sh-175 task product, while trajectory research keeps separate gates | the memory contract resolves, a task cutover trial fails, or the operator changes the accepted outcome |
 | Workflow lessons | [workflow-lessons.md](workflow-lessons.md) | bounded cross-run workflow memory ported from the Agents SDK `Memory()` pattern; rows have evidence/gates, triggers and retirement, but sh-174 must classify their distinct readers and benefit before assuming this table is permanent | a lesson survives without a gate or a recurring row without a reachable falsifier, a proof stops passing or is not re-verified, the page exceeds its row budget, or sh-174 supports simplification |
 | Ticket protocol | [ticket-protocol.md](ticket-protocol.md) | Git-ref is the selected local queue backend; active task-ID lanes copy refs only into independent clones and use prepared candidate-bound operations with target-ref CAS and readback | production path/ID import, isolated-clone lane, intent revoke, rollback or all-reader cutover falsifies acceptance |

@@ -1270,6 +1270,129 @@ false-positive load or an authorized source/Project divergence is the deciding
 falsifier. Installation or a manifest `implicit:false` declaration alone does
 not prove loading in a current session. No new memory owner is adopted.
 
+## GPT-6 Astra owner and run-only delegation (2026-09-24)
+
+**Decision question.** How should the next KRN continuation use Astra's strongest
+reasoning and optional Luna delegation without wasting tokens on duplicated
+context, redundant instructions, or unvalidated parallel work?
+
+**Consumer and owner.** The active native Goal owner (`$delivery-loop`) owns
+this recommendation and the handoff. The next Astra thread must reread the
+current capsule, ticket, branch, and process state before relying on this
+report; none of the old thread's Goal object or working context automatically
+moves with the prompt.
+
+**Disposition: adopt one Astra owner; delegate only bounded independent work.**
+For a new Codex UI thread where the user explicitly wants the strongest Astra
+mode and an orchestrator, choose **Ultra** if available: Codex describes Ultra
+as maximum reasoning with proactive delegation. Keep Astra as the sole
+decision maker, writer, integrator, and verifier. Prompt a cap of one Luna
+child at a time, read-only, only for an independent question with a concrete
+output contract. For tightly coupled implementation steps, let Astra work
+directly. **Max** is the alternative when the work needs the deepest single
+agent reasoning and there is no useful parallel branch. The UI labels are not
+API effort names: Astra API/CLI supports `low`, `medium`, `high`, `xhigh`, and
+`max`; there is no Astra API `ultra` value. A run-only `codex exec` can use
+repeatable `-c` overrides and `--ephemeral`; this does not create agent files
+or persistent defaults.
+
+Ultra is the best match to the stated *full Astra + orchestrator* preference,
+not a demonstrated token-minimizing setting. Codex's own guide says subagents
+perform extra model and tool work and therefore use more tokens than comparable
+single-agent runs. The most defensible token savings are workflow savings:
+give Astra the actual outcome and evidence boundary once; point it to the
+capsule and current repository owners; let it read only task-relevant sources;
+use concise, task-specific Luna briefs; and avoid repeated whole-branch
+reviews when one focused independent review plus deterministic gates answers
+the question. Do not ask Astra to print a long private reasoning transcript as
+a proxy for “full effort”; ask for decisions, evidence, uncertainty, and
+verification results.
+
+### What the evidence supports
+
+| Source and status | Stated result or mechanism | Local implication and limit |
+|---|---|---|
+| OpenAI, [GPT-6 Astra announcement](https://openai.com/index/gpt-6-astra/), 2026-09-03; vendor evaluations | On selected evaluations Astra achieves higher task scores while using fewer output tokens than GPT-5.6 Sol or other frontier models. OpenAI reports Terminal-Bench Science at 64.6%; a lower-cost setting scores 61.1% versus Sol's best 22.4% at an estimated 27% lower API cost. Agents' Last Exam's highest-scoring Astra setting uses about 65% fewer output tokens than Opus 5. | This supports the user's premise that using Astra can itself reduce tokens-to-result. These are selected vendor evaluations, not KRN or Astra effort-tier comparisons. They do not identify Ultra/Max as the token optimum. |
+| OpenAI, [Rethinking skills and prompts for GPT-6 Astra](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra), 2026-09-11; vendor practitioner guidance | Long/overbroad skill descriptions can be truncated, overlapping triggers load irrelevant skills, elaborate itineraries can hinder Astra, generic “read the entire repo before every edit” wastes context, and Astra may need an explicit completion condition and permission to persist through a safe local workflow. Use progressive disclosure and contextual source pointers. | Strongest model-specific prompting evidence. For KRN, retain authority, acceptance, ownership, and required checks, while keeping the next-window prompt short and relying on the repo's existing capsule/owners instead of repeating the whole review. |
+| OpenAI, [Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents), checked 2026-09-24; product documentation | Ultra can delegate proactively; other intelligence levels delegate when asked. Luna is for fast, narrow, repeatable work. Higher effort uses more tokens and time; explicit per-spawn model/effort overrides defaults. | Supports Astra root + Luna reader, not persistent config. Start with a single bounded child and report its evidence. |
+| OpenAI, [Using Goals in Codex](https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex), 2026-05-09; product cookbook | A strong Goal states outcome, verification surface, constraints, boundaries, iteration policy, and blocked stop condition. Goal state is attached to its thread, not global or repository instructions. | The next thread needs a new Goal that preserves the same full objective after it reads live repository state. A prompt recap alone does not transfer the old Goal identity. |
+| OpenAI Cookbooks: [Agent Improvement Loop](https://developers.openai.com/cookbook/examples/agents_sdk/agent_improvement_loop), 2026-05-12; [Codex repair loops](https://developers.openai.com/cookbook/examples/codex/build_iterative_repair_loops_with_codex), 2026-05-11 | The improvement loop turns traces and human/model feedback into evals and a ranked, reviewable Codex handoff. The repair loop carries findings and validation deltas into a bounded next pass and stops on success, max attempts, stalled delta, or human decision. | Use a handoff tied to actual repo artifacts, observed results, one next gate, and explicit stop conditions. These examples do not prescribe an Astra/Luna split or prove a token benefit. |
+| Anthropic, [multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system), 2025-06-13; first-party production account | Its Opus 4 lead + Sonnet 4 team beat the single Opus system by 90.2% on an internal breadth-first research evaluation, but the system used about 15x the tokens of chat. Authors say cross-dependent tasks and most coding are less suitable for parallel agents. | Direct support for delegating separate research questions; direct warning against equating delegation with economy or applying the research gain to KRN implementation. Internal result, not independently reproduced. |
+| Liu, [Can AI Models Direct Each Other?](https://arxiv.org/abs/2603.26458), 2026-03-27; arXiv preprint, not peer-reviewed | On 200 SWE-bench Lite instances, one structured strong-manager/weak-worker pipeline reports 62% versus 60% for the strong single-agent baseline, shifting most tokens to the cheap worker. A weak manager plus weak worker is worse than the weak direct baseline (42% vs 44%); a review-only loop adds little. The authors report planning/exploration structure as the main source of gain. | This is the closest paper to asymmetric coding orchestration, but it used Sonnet 4.6 as text-only manager and GPT-5-mini as worker, one benchmark, and a code pipeline different from Codex. It supports *conditional* delegation with capable direction, not Astra-specific quality or total KRN-token savings. |
+| Smit et al., [Should we be going MAD?](https://proceedings.mlr.press/v235/smit24a.html), ICML/PMLR 2024; peer-reviewed | Multi-agent debate did not reliably beat self-consistency or independent reasoning-path ensembles without tuning; debate was more sensitive to protocol settings. | More agents are not automatically more capability. Delegate distinct questions; do not add debate rounds by default. This studies debate, not manager-worker delegation. |
+| Lin et al., [Plan and Budget](https://proceedings.iclr.cc/paper_files/paper/2026/hash/ae8d4084f418bb51575c2ca6c658a05b-Abstract-Conference.html), ICLR 2026 | A model-agnostic test-time method decomposes tasks into subquestions and adapts compute to estimated uncertainty; paper reports gains in correctness-efficiency tradeoff across its benchmark suite. | General mechanism supports allocating more compute to uncertain subquestions, not fixing every Astra prompt at maximum effort. It is an external algorithm, not a Codex setting; do not claim its gains transfer to Astra. |
+| Wu et al., [Inference Scaling Laws](https://proceedings.iclr.cc/paper_files/paper/2025/hash/8c3caae2f725c8e2a55ecd600563d172-Abstract-Conference.html), ICLR 2025; peer-reviewed | On MATH/open models, test-time inference strategy and additional generation can be more cost-effective than scaling model size; best strategies vary with model and budget. | Supports measuring the complete system rather than token price or effort tier alone. It does not test proprietary Astra or long-running codebase work. |
+| OpenAI Developer Community, [Luna delegation and usage discussion](https://community.openai.com/t/gpt-5-6-sol-can-now-delegate-to-luna-plus-other-tips-to-save-credits/1390765), 2026-08-16; practitioner forum quoting an X skill post | Participants recommend task-specific prompts and matching the worker to bounded predictable work; one participant alleges that full-history child forks materially increased usage. Official support replies that usage depends on the whole workflow and more agents do not always reduce it. | Useful warning, not controlled evidence. X itself returned HTTP 403 during this research; no unattributed X claim is used as a fact. Confirm current fork/context behavior on the selected host instead of baking this anecdote into global configuration. |
+
+### Model effort and token boundary
+
+OpenAI's Codex subagent guide says to start Astra at `low` when setting explicit
+effort, Luna at `high`, and to raise effort for harder work. The API reasoning
+guide calls `medium` a balanced default, `high` appropriate for complex
+workflows, and `xhigh`/`max` options whose extra latency and cost should be
+justified. Astra's model page confirms `max` is supported; `ultra` is a UI
+intelligence mode, not an API effort. These recommendations differ by surface
+and workload, and no published result establishes the optimal effort for this
+KRN goal. Accordingly:
+
+- For the user's requested maximum-capability Codex UI run, use Astra **Ultra**
+  and explicitly cap delegation to at most one independent Luna `high`
+  read-only child at a time. Ultra may delegate proactively; the cap and task
+  boundary belong in the run prompt.
+- For a single tightly coupled step with no parallel read task, use Astra
+  **Max** or directly prompt one Luna review only where it can add independent
+  evidence. This is a mode choice, not a measured cheaper equivalent to Ultra.
+- In `codex exec`, select Astra `max` for the user-requested deepest run and
+  Luna `high` via per-run `-c` overrides; use `--ephemeral`. There is no
+  `ultra` API/CLI effort value.
+- Count what the selected client actually exposes: root and child usage,
+  retries, completion quality, rework, and wall time per accepted gate. UI
+  plan credits, API billable tokens, and displayed reasoning mode are distinct
+  measures. The local CLI probe confirmed that one Luna child ran with run-only
+  overrides; it captured no token usage or quality comparison.
+
+### Cross-thread Goal and handoff
+
+The new context should receive a **new Goal for the same full outcome**, not a
+shorter substitute. The old Goal is thread-scoped. The prompt starts by reading
+authoritative repository state and reconciling it with the capsule, then
+reinstates its complete acceptance, evidence rules, and authority. The
+Goal-oriented handoff should be compact and point to the existing sources:
+
+```text
+/goal Continue the full active KRN self-hardening outcome without narrowing
+its scope. First read .krn/runs/delivery-loop/self-hardening/state.md and
+.krn/tickets/sh-175.md, then inspect the actual branch, HEAD, dirty state, and
+running processes. Live repo/process state overrides stale capsule values.
+Preserve the full acceptance and sequencing in the capsule, including the
+already adopted variant-C architecture, sh-174 evidence limits, sh-175 live
+queue cutover requirements, and no install/push/PR/merge authority.
+You are sole decision owner and writer. For this Ultra run, delegate at most
+one independent read-only task to GPT-6 Luna/high at a time; give it a precise
+scope, relevant source paths, evidence format, and stop point. No child writes
+or further delegation. Independently verify every returned claim at the same
+SHA. Continue through the next unresolved acceptance gate, repair observed
+failures, and run the required final fixed-point checks and independent
+Standards/Spec review. After each gate record only actual commands, outputs,
+changed SHA, and remaining evidence in the existing capsule and ticket. Do not
+claim completion from intent or summaries; if no defensible next action exists,
+report the observed blocker and the exact state change needed.
+```
+
+This wording applies the Cookbook's six Goal fields while leaving the capsule
+as the long-form completion contract. The prompt itself is not a second source
+of truth. The Luna child is a bounded evidence collector; Astra remains the
+single owner for task order, local mutations, review dispositions, and final
+completion.
+
+**Non-proofs.** The literature does not establish an Astra/Luna token optimum,
+that Ultra costs fewer tokens than Max, that a delegated worker can preserve
+KRN authority without checking, or that the local one-child probe improves a
+real sh-175 task. Official Astra benchmark efficiency is relative to selected
+other models and evaluator setups, not an effort-tier ablation on KRN. H1
+memory-delivery benefit remains unproven. No pass-rate improvement or
+token-efficiency gain is claimed for KRN.
+
 ## Adoption ledger
 
 Every adopted mechanism, lesson, and instrument carries its owner, the evidence
