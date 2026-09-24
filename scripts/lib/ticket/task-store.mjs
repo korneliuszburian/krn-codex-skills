@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 
-import { gitTopLevel, runGit, runGitInput } from "../kernel/git.mjs";
+import { gitTopLevel, runGit, runGitInput, runGitRaw } from "../kernel/git.mjs";
 import { sha256Hex } from "../kernel/digest.mjs";
 import { DEFAULT_CLAIM_DURATION, MAX_ATTEMPTS, leaseExpired, STATUSES, TYPES } from "./ticket-abi.mjs";
 
 const QUEUE_REF = "refs/krn/queue";
 const ACTIVE_QUEUE_REF = "refs/krn/queue-active";
 const ACTIVE_QUEUE_SELECTOR = { version: 1, queueRef: QUEUE_REF };
+const QUEUE_REFS = [QUEUE_REF, ACTIVE_QUEUE_REF];
 const LANE_RECIPE_FIELDS = ["base", "scope", "check", "contract", "acceptance"];
 const PLACEHOLDER_REASONS = new Set(["none", "unknown", "n/a", "not applicable", "todo", "tbd", "placeholder"]);
 
@@ -36,19 +37,23 @@ function readSnapshot(root) {
   }
   const blob = runGit(root, ["cat-file", "blob", ref.out]);
   if (!blob.ok) throw new Error(blob.stderr || "cannot read task-store snapshot");
+  return { oid: ref.out, state: parseSnapshot(blob.out, ref.out) };
+}
+
+function parseSnapshot(content, identity) {
   let state;
   try {
-    state = JSON.parse(blob.out);
+    state = JSON.parse(content);
   } catch {
-    throw new Error(`task-store snapshot ${ref.out} is invalid JSON`);
+    throw new Error(`task-store snapshot ${identity} is invalid JSON`);
   }
   if (!state || typeof state !== "object" || Array.isArray(state)
     || !Number.isInteger(state.version) || state.version < 1 || !state.tasks || typeof state.tasks !== "object" || Array.isArray(state.tasks)
     || !state.operations || typeof state.operations !== "object" || Array.isArray(state.operations)
     || !state.intents || typeof state.intents !== "object" || Array.isArray(state.intents)) {
-    throw new Error(`task-store snapshot ${ref.out} has an unsupported shape`);
+    throw new Error(`task-store snapshot ${identity} has an unsupported shape`);
   }
-  return { oid: ref.out, state };
+  return state;
 }
 
 function writeSnapshot(root, previousOid, state) {
@@ -367,6 +372,15 @@ function readTaskStoreSnapshot(root) {
   };
 }
 
+function parseActiveSelector(content) {
+  let activation;
+  try { activation = JSON.parse(content); } catch { throw new Error("active task-queue selector is invalid JSON"); }
+  if (!activation || typeof activation !== "object" || Array.isArray(activation)
+    || activation.version !== ACTIVE_QUEUE_SELECTOR.version || activation.queueRef !== ACTIVE_QUEUE_SELECTOR.queueRef) {
+    throw new Error("active task-queue selector has an unsupported shape");
+  }
+}
+
 export function readActiveTaskStoreSnapshot(root) {
   const repo = gitTopLevel(root);
   if (!repo) return null;
@@ -377,15 +391,76 @@ export function readActiveTaskStoreSnapshot(root) {
   }
   const blob = runGit(repo, ["cat-file", "blob", selector.out]);
   if (!blob.ok) throw new Error(blob.stderr || "cannot read active task-queue selector blob");
-  let activation;
-  try { activation = JSON.parse(blob.out); } catch { throw new Error("active task-queue selector is invalid JSON"); }
-  if (!activation || typeof activation !== "object" || Array.isArray(activation)
-    || activation.version !== ACTIVE_QUEUE_SELECTOR.version || activation.queueRef !== ACTIVE_QUEUE_SELECTOR.queueRef) {
-    throw new Error("active task-queue selector has an unsupported shape");
-  }
+  parseActiveSelector(blob.out);
   const snapshot = readTaskStoreSnapshot(repo);
   if (!snapshot) throw new Error("active task-queue selector points at a missing task store");
-  return snapshot;
+  return { ...snapshot, selectorOid: selector.out };
+}
+
+export function exportTaskStoreSnapshot(root) {
+  const source = repositoryRoot(root);
+  const snapshot = readActiveTaskStoreSnapshot(source);
+  if (!snapshot) throw new Error("source Git-ref task queue is not active");
+  if (snapshot.errors.length > 0) throw new Error(`source Git-ref task queue is invalid: ${snapshot.errors.join("; ")}`);
+  const identities = [snapshot.oid, snapshot.selectorOid];
+  const refs = QUEUE_REFS.map((name, index) => {
+    const oid = identities[index];
+    const blob = runGitRaw(source, ["cat-file", "blob", oid]);
+    if (!blob.ok) throw new Error(blob.stderr || `cannot export task snapshot object for ${name}`);
+    return { name, oid, content: blob.out };
+  });
+  return { format: "krn-task-queue", version: 1, refs };
+}
+
+function validateTaskStoreArchive(root, archive) {
+  if (!archive || typeof archive !== "object" || Array.isArray(archive)
+    || Object.keys(archive).some((key) => !["format", "version", "refs"].includes(key))
+    || archive.format !== "krn-task-queue" || archive.version !== 1
+    || !Array.isArray(archive.refs) || archive.refs.length !== QUEUE_REFS.length) {
+    throw new Error("unsupported task queue archive");
+  }
+  for (const [index, entry] of archive.refs.entries()) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)
+      || Object.keys(entry).some((key) => !["name", "oid", "content"].includes(key))
+      || entry.name !== QUEUE_REFS[index] || typeof entry.oid !== "string" || typeof entry.content !== "string") {
+      throw new Error("unsupported task queue archive ref");
+    }
+    const digest = runGitInput(root, ["hash-object", "--stdin"], entry.content);
+    if (!digest.ok || digest.out.trim() !== entry.oid) throw new Error(`task queue archive identity mismatch: ${entry.name}`);
+  }
+  const state = parseSnapshot(archive.refs[0].content, archive.refs[0].oid);
+  const errors = taskStoreErrors(state);
+  if (errors.length > 0) throw new Error(`task queue archive is invalid: ${errors.join("; ")}`);
+  parseActiveSelector(archive.refs[1].content);
+}
+
+export function restoreTaskStoreSnapshot(root, archive) {
+  const destination = repositoryRoot(root);
+  validateTaskStoreArchive(destination, archive);
+  const updates = [];
+  let restored = false;
+  for (const { name, oid } of archive.refs) {
+    if (runGit(destination, ["symbolic-ref", "--quiet", name]).ok) throw new Error(`destination task ref ${name} is symbolic`);
+    const destinationObject = runGit(destination, ["rev-parse", "--verify", "--quiet", name]);
+    if (destinationObject.ok) {
+      if (destinationObject.out !== oid) throw new Error(`destination task ref ${name} already has different state`);
+      updates.push(`verify ${name} ${oid}`);
+      continue;
+    }
+    if (destinationObject.status !== 1) throw new Error(destinationObject.stderr || `cannot read destination task ref ${name}`);
+    updates.push(`create ${name} ${oid}`);
+    restored = true;
+  }
+  if (restored) {
+    for (const { name, oid, content } of archive.refs) {
+      const copied = runGitInput(destination, ["hash-object", "-w", "--stdin"], content);
+      if (!copied.ok || copied.out.trim() !== oid) throw new Error(copied.stderr || `cannot restore task snapshot object for ${name}`);
+    }
+  }
+  const transaction = ["start", ...updates, "prepare", "commit", ""].join("\n");
+  const applied = runGitInput(destination, ["update-ref", "--no-deref", "--stdin"], transaction);
+  if (!applied.ok) throw new StoreConflict(applied.stderr || "cannot atomically restore task snapshot refs");
+  return { restored, refs: [...QUEUE_REFS] };
 }
 
 export function copyActiveTaskStoreSnapshot(sourceRoot, destinationRoot) {
@@ -397,36 +472,8 @@ export function copyActiveTaskStoreSnapshot(sourceRoot, destinationRoot) {
   if (path.resolve(sourceCommon.out) === path.resolve(destinationCommon.out)) {
     throw new Error("task snapshot copy requires an isolated Git clone, not a linked worktree");
   }
-
-  const snapshot = readActiveTaskStoreSnapshot(source);
-  if (!snapshot) throw new Error("source Git-ref task queue is not active");
-  if (snapshot.errors.length > 0) throw new Error(`source Git-ref task queue is invalid: ${snapshot.errors.join("; ")}`);
-
-  const refs = [QUEUE_REF, ACTIVE_QUEUE_REF];
-  const updates = [];
-  let alreadyCopied = true;
-  for (const ref of refs) {
-    const sourceObject = runGit(source, ["rev-parse", "--verify", ref]);
-    if (!sourceObject.ok) throw new Error(sourceObject.stderr || `cannot read source task ref ${ref}`);
-    const destinationObject = runGit(destination, ["rev-parse", "--verify", "--quiet", ref]);
-    if (destinationObject.ok) {
-      if (destinationObject.out !== sourceObject.out) throw new Error(`destination task ref ${ref} already has different state`);
-      continue;
-    }
-    if (destinationObject.status !== 1) throw new Error(destinationObject.stderr || `cannot read destination task ref ${ref}`);
-    const content = runGit(source, ["cat-file", "blob", sourceObject.out]);
-    if (!content.ok) throw new Error(content.stderr || `cannot read task snapshot object for ${ref}`);
-    const copied = runGitInput(destination, ["hash-object", "-w", "--stdin"], content.out);
-    if (!copied.ok || copied.out.trim() !== sourceObject.out) throw new Error(copied.stderr || `task snapshot object changed while copying ${ref}`);
-    updates.push(`create ${ref} ${sourceObject.out}`);
-    alreadyCopied = false;
-  }
-
-  if (updates.length > 0) {
-    const applied = runGitInput(destination, ["update-ref", "--stdin"], `${updates.join("\n")}\n`);
-    if (!applied.ok) throw new Error(applied.stderr || "cannot atomically activate copied task snapshot refs");
-  }
-  return { copied: !alreadyCopied, refs };
+  const result = restoreTaskStoreSnapshot(destination, exportTaskStoreSnapshot(source));
+  return { copied: result.restored, refs: result.refs };
 }
 
 export function openTaskStore(root) {

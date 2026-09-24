@@ -1328,6 +1328,110 @@ test("the production Git-ref store recovers a lost claim response and fences the
     }
   });
 
+  test("the public queue archive restores post-import writes and refuses corruption or divergent refs", async () => {
+    const fixture = makeRepo();
+    try {
+      const { prepareLegacyQueueImport } = await import("../../scripts/lib/ticket/task-import.mjs");
+      const store = openTaskStore(fixture.root);
+      await store.importSnapshot(prepareLegacyQueueImport(fixture.root));
+      activateTaskQueueFixture(fixture.root);
+      const command = (root, ...args) => {
+        const result = runKrn(root, "ticket", ...args, "--root", root, "--json");
+        assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+        return JSON.parse(result.stdout);
+      };
+      const human = command(fixture.root, "add", "--title", "Created after legacy import");
+      command(fixture.root, "ready", "--id", human.id);
+      command(fixture.root, "claim", "--id", human.id, "--worker", "operator");
+      command(fixture.root, "comment", "--id", human.id, "--worker", "operator", "--body", "Keep this discussion on recovery");
+      command(fixture.root, "close", "--id", human.id, "--actor", "operator", "--reason", "Handled without a code commit");
+      const ready = command(fixture.root, "add", "--title", "Ready after restore");
+      command(fixture.root, "ready", "--id", ready.id);
+      command(fixture.root, "intent", "set", "--intent", "archive-outcome", "--revision", "1", "--expected-revision", "0");
+      const lane = await store.add({ id: "archived-operation", title: "Observed integration", lane: true, laneRecipe: TEST_LANE_RECIPE });
+      await store.markReady(lane.id);
+      const claim = await store.claim(lane.id, { worker: "integrator" });
+      const candidate = writeBlob(fixture.root, "checked effect kept in the code repository");
+      const effectRef = "refs/krn/test-effects/archive";
+      const operationPath = join(fixture.root, ".krn/runs/archive/operation.json");
+      mkdirSync(dirname(operationPath), { recursive: true });
+      writeFileSync(operationPath, JSON.stringify({
+        id: "archive-integration", taskId: lane.id, intent: "archive-outcome", intentRevision: 1,
+        effectRef, effectObject: candidate, candidateIdentity: candidate,
+        checkResult: { candidateIdentity: candidate, command: TEST_LANE_RECIPE.check, exitCode: 0 },
+        params: { target: candidate, intentRevision: 1 },
+      }));
+      command(fixture.root, "operation", "prepare", "--file", operationPath);
+      command(fixture.root, "operation", "apply", "--id", "archive-integration", "--worker", "integrator", "--expected-epoch", String(claim.epoch));
+      const pendingTask = await store.add({ id: "pending-archive", title: "Await effect readback", lane: true, laneRecipe: TEST_LANE_RECIPE });
+      await store.markReady(pendingTask.id);
+      const pendingClaim = await store.claim(pendingTask.id, { worker: "integrator" });
+      const pending = JSON.parse(readFileSync(operationPath, "utf8"));
+      pending.id = "pending-archive-operation";
+      pending.taskId = pendingTask.id;
+      pending.effectRef = "refs/krn/test-effects/pending-archive";
+      writeFileSync(operationPath, JSON.stringify(pending));
+      command(fixture.root, "operation", "prepare", "--file", operationPath);
+      const state = await store.read();
+      const refs = ["refs/krn/queue", "refs/krn/queue-active"];
+      const before = refs.map((ref) => git(fixture.root, "rev-parse", ref));
+      const archive = command(fixture.root, "store", "export");
+      assert.equal(archive.format, "krn-task-queue");
+      assert.equal(archive.version, 1);
+      assert.deepEqual(archive.refs.map((entry) => entry.name), refs);
+      assert.deepEqual(archive.refs.map((entry) => entry.oid), before);
+      assert.deepEqual(refs.map((ref) => git(fixture.root, "rev-parse", ref)), before, "export is read-only");
+      const archivePath = join(fixture.root, ".krn/runs/archive/queue.json");
+      writeFileSync(archivePath, JSON.stringify(archive));
+      const restored = join(fixture.root, "archive-restore");
+      const rejected = join(fixture.root, "archive-rejected");
+      for (const root of [restored, rejected]) execFileSync("git", ["clone", "--quiet", "--no-hardlinks", fixture.root, root]);
+      const corruptPath = join(fixture.root, ".krn/runs/archive/corrupt.json");
+      const corrupt = structuredClone(archive);
+      corrupt.refs[0].content += " ";
+      writeFileSync(corruptPath, JSON.stringify(corrupt));
+      const failed = runKrn(rejected, "ticket", "store", "restore", "--root", rejected, "--file", corruptPath, "--json");
+      assert.notEqual(failed.status, 0);
+      assert.match(failed.stderr, /digest|identity/);
+      for (const ref of refs) assert.notEqual(runGit(rejected, "rev-parse", "--verify", ref).status, 0);
+      const different = writeBlob(rejected, "different selector");
+      git(rejected, "update-ref", "refs/krn/queue-active", different);
+      const conflict = runKrn(rejected, "ticket", "store", "restore", "--root", rejected, "--file", archivePath, "--json");
+      assert.notEqual(conflict.status, 0);
+      assert.match(conflict.stderr, /different state/);
+      assert.equal(git(rejected, "rev-parse", "refs/krn/queue-active"), different);
+      assert.notEqual(runGit(rejected, "rev-parse", "--verify", "refs/krn/queue").status, 0, "a conflicting selector must not leave a partial queue ref");
+      const symbolic = join(fixture.root, "archive-symbolic");
+      execFileSync("git", ["init", "--quiet", symbolic]);
+      git(symbolic, "symbolic-ref", "refs/krn/queue-active", "refs/krn/unrelated");
+      const redirected = runKrn(symbolic, "ticket", "store", "restore", "--root", symbolic, "--file", archivePath, "--json");
+      assert.notEqual(redirected.status, 0, "restore must not follow a destination symbolic ref outside the two queue refs");
+      assert.notEqual(runGit(symbolic, "rev-parse", "--verify", "refs/krn/queue").status, 0);
+      assert.notEqual(runGit(symbolic, "rev-parse", "--verify", "refs/krn/unrelated").status, 0);
+      assert.equal(git(symbolic, "symbolic-ref", "refs/krn/queue-active"), "refs/krn/unrelated");
+      assert.deepEqual(command(restored, "store", "restore", "--file", archivePath), { restored: true, refs });
+      assert.deepEqual(command(restored, "store", "restore", "--file", archivePath), { restored: false, refs });
+      assert.deepEqual(await openTaskStore(restored).read(), state, "comments, history, intent revisions and operations must all survive");
+      assert.equal(command(restored, "show", "--id", human.id).Status, "done");
+      assert.deepEqual(command(restored, "next").frontier, [ready.id]);
+      assert.deepEqual(command(restored, "check").errors, []);
+      assert.deepEqual(refs.map((ref) => git(restored, "rev-parse", ref)), before);
+      assert.notEqual(runGit(restored, "rev-parse", "--verify", effectRef).status, 0, "restoring task history does not repeat its effects");
+      assert.deepEqual(command(restored, "operation", "complete", "--id", pending.id,
+        "--worker", "integrator", "--expected-epoch", String(pendingClaim.epoch)), { idempotent: false, status: "ambiguous" });
+      assert.equal(command(restored, "show", "--id", pendingTask.id).Status, "claimed", "restored pending work still needs real effect readback");
+      assert.equal(git(restored, "rev-parse", "refs/krn/queue"), before[0]);
+      command(restored, "reopen", "--id", human.id, "--actor", "operator", "--reason", "Follow-up after restore");
+      const advanced = git(restored, "rev-parse", "refs/krn/queue");
+      const stale = runKrn(restored, "ticket", "store", "restore", "--root", restored, "--file", archivePath, "--json");
+      assert.notEqual(stale.status, 0);
+      assert.match(stale.stderr, /different state/);
+      assert.equal(git(restored, "rev-parse", "refs/krn/queue"), advanced, "restore must not discard newer target work");
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
   test("the public CLI refuses operation input outside .krn/runs and check receipts that do not match the typed recipe", async () => {
     const fixture = makeRepo();
     try {

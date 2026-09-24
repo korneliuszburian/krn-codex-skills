@@ -5,7 +5,7 @@ import { parseCliArgs } from "../kernel/cli.mjs";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText, recordAttempt, reconcileTickets, taskTicketView, ticketLaneBindings } from "./ticket.mjs";
 import { rootForTicket } from "./ticket-abi.mjs";
-import { copyActiveTaskStoreSnapshot, openTaskStore, readActiveTaskStoreSnapshot } from "./task-store.mjs";
+import { copyActiveTaskStoreSnapshot, exportTaskStoreSnapshot, openTaskStore, readActiveTaskStoreSnapshot, restoreTaskStoreSnapshot } from "./task-store.mjs";
 
 const COMMANDS = new Set(["add", "check", "next", "ready", "reconcile", "claim", "comment", "close", "reopen", "release", "takeover", "list", "edit", "fail", "fields", "env"]);
 const VALUE_FLAGS = {
@@ -311,14 +311,25 @@ async function runTaskOperation(positional, options, usage, requireDirectory) {
 }
 
 function runTaskStoreTransfer(positional, options, usage, requireDirectory) {
-  if (positional.length !== 2 || positional[1] !== "copy" || !options.root || !options.to || options.source || options.yes) {
+  const command = positional[1];
+  if (positional.length !== 2 || !["copy", "export", "restore"].includes(command)
+    || !options.root || options.source || options.yes) {
     fail(usage, EXIT_CODES.USAGE);
   }
-  rejectOptions(options, ["root", "to"]);
+  rejectOptions(options, ["root", ...(command === "copy" ? ["to"] : command === "restore" ? ["file"] : [])]);
+  if (command === "copy" && !options.to) fail("ticket store copy requires --to", EXIT_CODES.USAGE);
+  if (command === "restore" && !options.file) fail("ticket store restore requires --file", EXIT_CODES.USAGE);
   requireDirectory(options.root);
-  requireDirectory(options.to);
   try {
-    output(copyActiveTaskStoreSnapshot(options.root, options.to), options.json);
+    if (command === "copy") {
+      requireDirectory(options.to);
+      output(copyActiveTaskStoreSnapshot(options.root, options.to), options.json);
+    } else if (command === "export") {
+      output(exportTaskStoreSnapshot(options.root), true);
+    } else {
+      const archive = JSON.parse(fs.readFileSync(options.file, "utf8"));
+      output(restoreTaskStoreSnapshot(options.root, archive), options.json);
+    }
   } catch (error) {
     fail(error?.message ?? String(error), EXIT_CODES.USAGE);
   }

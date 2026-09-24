@@ -51,6 +51,8 @@ const usage = `Usage:
   krn ticket intent get --root DIR --intent ID [--json]
   krn ticket intent set --root DIR --intent ID --revision N --expected-revision N [--json]
   krn ticket store copy --root SOURCE --to ISOLATED-CLONE [--json]
+  krn ticket store export --root DIR [--json]
+  krn ticket store restore --root DIR --file ARCHIVE.json [--json]
   krn ticket show <path> [--json] | show --root DIR --id ID [--json]
   krn ticket fields --file FILE [--json] | fields --root DIR --id ID [--json]
   krn ticket env --file FILE | env --root DIR --id ID

@@ -390,6 +390,31 @@ not proof that the old CLI can operate it. Reject cutover if a post-cutover
 task is lost on restore or a capsule candidate goes dangling because a reader
 still uses the old paths.
 
+**Queue recovery after new writes.** `krn ticket store export --root REPO
+--json` prints a version-1 `krn-task-queue` archive containing the exact blob
+contents and Git object IDs for `refs/krn/queue` and `refs/krn/queue-active`.
+Export reads a pinned snapshot and does not write refs. Save that output with
+the outcome archive; the legacy ticket-file backup alone cannot preserve work
+added after import.
+
+`krn ticket store restore --root REPO --file ARCHIVE.json --json` validates
+the complete archive and both object identities before writing. It atomically
+creates absent refs and verifies any identical existing refs. Repeating an
+identical restore is a no-op; a differing or symbolic destination ref is
+refused. A partially restored identical pair may gain its missing ref. Restore
+never overwrites newer target work. `store copy` uses the same transfer path
+and retains its separate-clone requirement for automated lanes.
+
+This restores task state into a compatible KRN checkout, including post-import
+human closures, comments, intent revisions and operation records. It does not
+convert those records to the old Markdown CLI. Code objects and effect refs
+belong to the code repository backup: restoring task history never replays an
+effect, and recovery of a pending operation still requires its actual effect
+readback. An already observed operation remains a historical receipt.
+Keep the original legacy-file archive for the separate pre-import byte
+restore. The delivery-loop archive and every caller must adopt this queue
+recovery path before live cutover.
+
 **Legacy claim reconciliation.** Import refuses a blanket acknowledgement of
 `Claim.session` conflicts. Each conflict needs an explicit `ticket` or `lock`
 source choice, actor and non-placeholder reason, bound to its task ID, ticket
