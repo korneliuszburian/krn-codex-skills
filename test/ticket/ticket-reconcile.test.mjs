@@ -212,23 +212,21 @@ test("reconcileTickets defers to an unexpired lease so a live worker keeps its c
   });
 });
 
-test("checkTickets observes without reconciling and explicit repair self-heals", async () => {
+test("checkTickets reconciles before the frontier so ticket next self-heals", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withRepo((dir) => {
     const lane = laneCommit(dir);
     const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
     mergeLane(dir);
-    const report = ticketLib.checkTickets({ root: dir, dirs: [".krn/tickets"] });
-    assert.deepEqual(report.reconciled, []);
-    assert.equal(statusOf(file), "claimed");
-    assert.deepEqual(report.frontier, []);
-    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"] }), ["sh-35"]);
+    const report = ticketLib.checkTickets({ root: dir, dirs: [".krn/tickets"], reconcile: true });
+    assert.deepEqual(report.reconciled, ["sh-35"]);
     assert.equal(statusOf(file), "done");
+    assert.deepEqual(report.frontier, []);
   });
 });
 
-test("ticket next observes without reconciling and the repair command is explicit", () => {
+test("the ticket next CLI consumes the reconcile so a crashed loop restarts clean", () => {
   const dir = makeRepo();
   try {
     const lane = laneCommit(dir);
@@ -242,6 +240,9 @@ test("ticket next observes without reconciling and the repair command is explici
     assert.equal(reconcile.status, 0, `${reconcile.stdout}${reconcile.stderr}`);
     assert.deepEqual(JSON.parse(reconcile.stdout).reconciled, ["sh-35"]);
     assert.equal(statusOf(join(dir, ".krn/tickets", "sh-35.md")), "done");
+    const recoveredNext = spawnSync(process.execPath, [cli, "ticket", "next", "--root", dir, "--path", join(dir, ".krn/tickets")], { encoding: "utf8" });
+    assert.equal(recoveredNext.status, 0, `${recoveredNext.stdout}${recoveredNext.stderr}`);
+    assert.doesNotMatch(recoveredNext.stdout, /sh-35/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
