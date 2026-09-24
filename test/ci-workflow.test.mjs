@@ -17,6 +17,21 @@ test("the validation workflow runs on every main push as well as pull requests",
   assert.match(workflow, /0000000000000000000000000000000000000000/, "a new branch has no before-commit and must fall back");
 });
 
+test("the workflow gives frozen observer fixtures a git identity", () => {
+  const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
+  for (const name of ["GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"]) {
+    assert.match(workflow, new RegExp(`^\\s{6}${name}:\\s*\\S+`, "m"), `the workflow must export ${name} so frozen observer fixtures can commit`);
+  }
+});
+
+test("the gate job allows the full fast suite to finish", () => {
+  // The fast job runs the frozen changes check over the whole pushed range and
+  // then test:lib; on a 75-commit range that exceeds a ten-minute budget.
+  const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
+  const minutes = Number(/timeout-minutes:\s*(\d+)/.exec(workflow)?.[1]);
+  assert.ok(minutes >= 20, `the gate job timeout must cover the frozen changes check plus test:lib, found ${minutes} minutes`);
+});
+
 test("the declared Node engine floor excludes the EOL Node 20 line", () => {
   const engines = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).engines?.node;
   assert.equal(String(engines).replace(/\s+/g, ""), ">=22", "engines.node must be exactly >=22");

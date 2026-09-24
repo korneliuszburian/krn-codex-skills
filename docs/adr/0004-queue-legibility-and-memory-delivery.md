@@ -72,6 +72,12 @@ selectively, KRN's divergence is explicit-only adoption plus decision-point
 memory delivery, and a session-start brief is a behavioral claim that needs a
 registered lab-test before promotion.
 
+This was the 2026-09-18 direction. The 2026-09-21 amendment to
+[ADR 0006](0006-keep-the-krn-surfaces.md) retired automatic decision-point
+`memory recall` prompting after LT-104; only the deterministic recall CLI and
+commit-time `changes check` consumer remain. The later memory architecture
+decision must evaluate those consumers separately from prompt delivery.
+
 ## Decision
 
 Adopt a sequenced, bounded evolution in three tiers, with no second store, no

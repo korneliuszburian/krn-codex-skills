@@ -57,6 +57,28 @@ export function upstreamSourceErrors(document) {
         }
       }
     }
+    if (source.project_paths !== undefined) {
+      if (!Array.isArray(source.project_paths)) {
+        errors.push(`${PREFIX}: project_paths must be an array for ${source.id}`);
+      } else {
+        const projectPaths = new Set();
+        for (const projectPath of source.project_paths) {
+          if (!isSafeRelativePath(projectPath) || !projectPath.startsWith("skills/")) {
+            errors.push(`${PREFIX}: unsafe project path ${projectPath}`);
+          }
+          if (!paths.has(projectPath)) {
+            errors.push(`${PREFIX}: project path ${projectPath} is not in required_paths`);
+          }
+          if (source.harness_paths?.includes(projectPath)) {
+            errors.push(`${PREFIX}: project path ${projectPath} is already a harness path`);
+          }
+          if (projectPaths.has(projectPath)) {
+            errors.push(`${PREFIX}: duplicate project path ${projectPath}`);
+          }
+          projectPaths.add(projectPath);
+        }
+      }
+    }
   }
   if (!sourceIds.has("mattpocock/skills")) {
     errors.push(`${PREFIX}: missing mattpocock/skills source`);

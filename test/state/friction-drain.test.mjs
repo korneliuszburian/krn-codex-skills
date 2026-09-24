@@ -52,9 +52,9 @@ function writeLessonAnchor(root) {
 }
 
 function writeQueueTicket(root, id) {
-  mkdirSync(join(root, ".scratch"), { recursive: true });
+  mkdirSync(join(root, ".krn/tickets"), { recursive: true });
   writeFileSync(
-    join(root, ".scratch", `${id}.md`),
+    join(root, ".krn/tickets", `${id}.md`),
     [
       "<krn-ticket>",
       `Id: ${id}`,

@@ -97,11 +97,6 @@ function presentAtBase({ root, git, base, file }) {
   return git(root, ["cat-file", "-e", `${base}:${file}`]).ok;
 }
 
-function contractDirection(value) {
-  const match = CONTRACT_DIRECTION.exec(String(value ?? "").trim());
-  return match ? { from: match[1].toLowerCase(), to: match[2].toLowerCase() } : null;
-}
-
 function namesNewObserver(acceptance, ref) {
   const text = String(acceptance ?? "");
   return /\bnew observer\b/i.test(text) || (ref !== "" && text.includes(ref));
@@ -112,19 +107,9 @@ function envelopeLintErrors({ root, git, ticket }) {
   const base = ticketBase(ticket.fields);
   const ref = contractRef(ticket.fields.get("Contract"));
   if (!base || !ref || !TEST_REF.test(ref)) return errors;
-  // An existing observer already passes at base, so `red->green` cannot be the
-  // closure's transition: the lane preflight refuses it as already-passing.
-  const direction = contractDirection(ticket.fields.get("Contract"));
-  if (presentAtBase({ root, git, base, file: ref })) {
-    if (direction?.from === "red" && direction?.to === "green") {
-      errors.push({
-        path: ticket.path,
-        rule: "existing-check-red-flip",
-        message: `ticket "${ticket.id}" Contract names existing test file "${ref}" with direction red->green; it already passes at ${base}, so the lane preflight refuses it`,
-      });
-    }
-    return errors;
-  }
+  // Presence proves only that the observer exists. The lane preflight executes
+  // it to distinguish a real red task from an already-green or broken check.
+  if (presentAtBase({ root, git, base, file: ref })) return errors;
   if (!absentAtBase({ root, git, base, file: ref })) return errors;
   const scope = scopeEntries(ticket.fields.get("Scope"));
   if (!scope.some((entry) => scopeDeclares(entry, "package.json"))) {
@@ -166,39 +151,47 @@ function anchorErrors({ root, git, ticket, base, head }) {
   return [{ path: anchor.path, rule: "evidence-anchor-missing", message: `${anchor.message} and its patch id is absent from the range` }];
 }
 
-export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD", now = new Date().toISOString(), listFiles, parseTicket } = {}) {
+export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base, head = "HEAD", now = new Date().toISOString(), reconcile = false, listFiles, parseTicket, sourceTickets, sourceErrors = [] } = {}) {
   const tickets = [];
-  const errors = [];
+  const errors = [...sourceErrors];
   const warnings = [];
-  // `ticket next` reads the frontier through this report, so the repair runs
-  // first: a crashed merge-then-close heals before the frontier is computed
-  // and the merged ticket never re-enters the queue.
+  // Observation is read-only by default. A caller that owns the recovery
+  // transition must opt in here or invoke reconcileTickets explicitly.
   const reconciled = [];
-  try {
-    reconciled.push(...reconcileTickets({ root, dirs, headRef: head, git, at: now, now, listFiles, parseTicket }));
-  } catch (error) {
-    errors.push({ rule: "reconcile-refused", message: error?.message ?? String(error) });
-  }
-  for (const file of listFiles(root, dirs)) {
-    let text;
-    try {
-      text = fs.readFileSync(file, "utf8");
-    } catch {
-      continue;
+  if (sourceTickets !== undefined) {
+    tickets.push(...sourceTickets);
+    if (reconcile) {
+      errors.push({ rule: "task-store-reconcile-unavailable", message: "task-store reads are active but recovery writes are not routed yet" });
     }
-    if (!text.includes("<krn-ticket>")) continue;
-    const relative = path.relative(root, file);
-    const { fields, findings } = parseTicket(text);
-    for (const finding of findings) errors.push({ path: relative, ...finding });
-    if (!fields) continue;
-    tickets.push({
-      id: fields.get("Id"),
-      path: relative,
-      status: fields.get("Status"),
-      blockedBy: blockerIds(fields.get("Blocked by")),
-      fields,
-      text,
-    });
+  } else {
+    if (reconcile) {
+      try {
+        reconciled.push(...reconcileTickets({ root, dirs, headRef: head, git, at: now, now, listFiles, parseTicket }));
+      } catch (error) {
+        errors.push({ rule: "reconcile-refused", message: error?.message ?? String(error) });
+      }
+    }
+    for (const file of listFiles(root, dirs)) {
+      let text;
+      try {
+        text = fs.readFileSync(file, "utf8");
+      } catch {
+        continue;
+      }
+      if (!text.includes("<krn-ticket>")) continue;
+      const relative = path.relative(root, file);
+      const { fields, findings } = parseTicket(text);
+      for (const finding of findings) errors.push({ path: relative, ...finding });
+      if (!fields) continue;
+      tickets.push({
+        id: fields.get("Id"),
+        path: relative,
+        status: fields.get("Status"),
+        blockedBy: blockerIds(fields.get("Blocked by")),
+        fields,
+        text,
+      });
+    }
   }
   const byId = new Map();
   for (const ticket of tickets) {
@@ -253,7 +246,9 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
       for (const match of log.out.matchAll(/^Ticket:\s*(\S+)\s*$/gim)) trailered.add(match[1]);
     }
     for (const ticket of tickets) {
-      if (ticket.status === "done") errors.push(...anchorErrors({ root, git, ticket, base, head }));
+      if (ticket.status === "done" && (!ticket.taskStore || ticket.legacyCloseProofRequired)) {
+        errors.push(...anchorErrors({ root, git, ticket, base, head }));
+      }
     }
   }
   for (const id of trailered) {
@@ -263,20 +258,23 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
   }
   for (const ticket of tickets) {
     if (!id && ticket.status === "ready") errors.push(...envelopeLintErrors({ root, git, ticket }));
-    if (ticket.status === "done" && !trailered.has(ticket.id)) {
+    const legacyClose = !ticket.taskStore || ticket.legacyCloseProofRequired;
+    const commitClose = legacyClose || ticket.lane;
+    if (ticket.status === "done" && commitClose && !trailered.has(ticket.id)) {
       warnings.push({ path: ticket.path, rule: "done-without-commit", message: `ticket "${ticket.id}" is done with no Ticket trailer in recent commits` });
     }
-    if (ticket.status === "done" && !hasEnvFingerprint(ticket.fields.get("Env"))) {
+    if (ticket.status === "done" && legacyClose && !hasEnvFingerprint(ticket.fields.get("Env"))) {
       warnings.push({ path: ticket.path, rule: "missing-env-fingerprint", message: `ticket "${ticket.id}" is done without an Env fingerprint` });
     }
-    if (ticket.status === "done" && !hasCostRecord(ticket.fields.get("Evidence"))) {
+    if (ticket.status === "done" && legacyClose && !hasCostRecord(ticket.fields.get("Evidence"))) {
       warnings.push({ path: ticket.path, rule: "missing-cost", message: `ticket "${ticket.id}" is done without a wall/token cost record` });
     }
-    if (ticket.status === "blocked" && String(ticket.fields.get("Gate") ?? "").trim() === "") {
+    if (ticket.status === "blocked" && (String(ticket.fields.get("Gate") ?? "").trim() === ""
+      || (ticket.taskStore && ticket.gateKind === "none"))) {
       errors.push({ path: ticket.path, rule: "blocked-without-gate", message: `ticket "${ticket.id}" is blocked without a Gate` });
     }
     if (ticket.status === "claimed") {
-      const lease = claimLease({ fields: ticket.fields, root, id: ticket.id });
+      const lease = ticket.taskStore ? ticket.taskLease : claimLease({ fields: ticket.fields, root, id: ticket.id });
       if (lease && leaseExpired(lease, now)) {
         warnings.push({
           path: ticket.path,
@@ -284,7 +282,13 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
           message: `ticket "${ticket.id}" lease expired (renew=${lease.renew}, duration=${lease.duration}s)`,
         });
       }
-      const stalled = stalledClaim(ticket.fields);
+      let claimFields = ticket.fields;
+      if (ticket.taskStore && ticket.taskLease) {
+        const { worker = "", session = "", at = "", epoch = "", renew = "", duration = "" } = ticket.taskLease;
+        claimFields = new Map(ticket.fields);
+        claimFields.set("Claim", `worker=${worker}; session=${session}; at=${at}; epoch=${epoch}; renew=${renew}; duration=${duration}`);
+      }
+      const stalled = stalledClaim(claimFields);
       if (stalled) {
         warnings.push({
           path: ticket.path,
@@ -308,5 +312,13 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
       });
     }
   }
-  return { root, tickets: tickets.map(({ fields, text, ...rest }) => rest), frontier, reconciled, errors, warnings };
+  return {
+    root,
+    tickets: tickets.map(({ fields, text, taskStore, legacyCloseProofRequired, lane, gateKind,
+      taskLease, taskResult, body, comments, history, ...rest }) => rest),
+    frontier: sourceErrors.length > 0 || (sourceTickets !== undefined && errors.length > 0) ? [] : frontier,
+    reconciled,
+    errors,
+    warnings,
+  };
 }

@@ -57,8 +57,8 @@ const anchorOf = (file) => {
 function makeRepo() {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-anchor-"));
   git(dir, ["init", "-q", "-b", "main"]);
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
-  writeFileSync(join(dir, ".scratch", "sh-12.md"), ticket(baseFields));
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
+  writeFileSync(join(dir, ".krn/tickets", "sh-12.md"), ticket(baseFields));
   writeFileSync(join(dir, "seed.txt"), "seed\n");
   git(dir, ["add", "seed.txt"]);
   commit(dir, "seed");
@@ -94,7 +94,7 @@ test("close records the integrated commit and the stable patch id over the ticke
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withRepo((dir) => {
-    const file = join(dir, ".scratch", "sh-12.md");
+    const file = join(dir, ".krn/tickets", "sh-12.md");
     const mainBefore = rev(dir, "main");
     const laneSha = laneCommit(dir);
     ticketLib.claimTicket({ file, root: dir, id: "sh-12", worker: "stub" });
@@ -110,7 +110,7 @@ test("a squashed closure survives because its patch id is present in the range",
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withRepo((dir) => {
-    const file = join(dir, ".scratch", "sh-12.md");
+    const file = join(dir, ".krn/tickets", "sh-12.md");
     const mainBefore = rev(dir, "main");
     const laneSha = laneCommit(dir);
     ticketLib.claimTicket({ file, root: dir, id: "sh-12", worker: "stub" });
@@ -128,12 +128,12 @@ test("check reports evidence-anchor-missing when neither the sha nor the patch i
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withRepo((dir) => {
-    const file = join(dir, ".scratch", "sh-12.md");
+    const file = join(dir, ".krn/tickets", "sh-12.md");
     writeFileSync(file, ticket({ ...baseFields, Status: "done", Evidence: `gate green; integrated=${"0".repeat(40)}; patch=${"f".repeat(40)}` }));
     const report = ticketLib.checkTickets({ root: dir, base: rev(dir, "main"), head: "HEAD" });
     const found = report.errors.filter((entry) => entry.rule === "evidence-anchor-missing");
     assert.equal(found.length, 1, JSON.stringify(report.errors));
-    assert.equal(found[0].path, join(".scratch", "sh-12.md"));
+    assert.equal(found[0].path, join(".krn/tickets", "sh-12.md"));
     assert.match(found[0].message, /not an ancestor/);
   });
 });
@@ -142,7 +142,7 @@ test("check keeps a closure whose integrated commit is still an ancestor", async
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withRepo((dir) => {
-    const file = join(dir, ".scratch", "sh-12.md");
+    const file = join(dir, ".krn/tickets", "sh-12.md");
     const seed = rev(dir, "main");
     writeFileSync(file, ticket({ ...baseFields, Status: "done", Evidence: `gate green; integrated=${seed}; patch=${"f".repeat(40)}` }));
     const report = ticketLib.checkTickets({ root: dir, base: seed, head: "HEAD" });
@@ -153,7 +153,7 @@ test("check keeps a closure whose integrated commit is still an ancestor", async
 test("the CLI closes with an anchor and flags the vanished one", () => {
   const dir = makeRepo();
   try {
-    const tickets = join(dir, ".scratch");
+    const tickets = join(dir, ".krn/tickets");
     const file = join(tickets, "sh-12.md");
     const mainBefore = rev(dir, "main");
     const laneSha = laneCommit(dir);

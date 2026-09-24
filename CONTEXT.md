@@ -8,14 +8,15 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [README.md](README.md) — operator entrypoint, main workflow, and skill catalog.
 - [docs/research/README.md](docs/research/README.md) — research index and curation contract.
 - [docs/research/orchestration.md](docs/research/orchestration.md) — current lifecycle spine, admission map, retrieval ladder, and falsifiers.
-- [docs/research/lab-tests.md](docs/research/lab-tests.md) — the LT lab-test registry (LT-1 through LT-101), protocols, and residuals.
+- [docs/research/self-hardening-roadmap.md](docs/research/self-hardening-roadmap.md) — bounded research and delivery dependencies; ticket status stays in the configured queue.
+- [docs/research/lab-tests.md](docs/research/lab-tests.md) — the LT lab-test registry through LT-107, protocols, and residuals.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
 - [docs/adr/0002-lifecycle-transition-table.md](docs/adr/0002-lifecycle-transition-table.md) — accepted condition → handler → return transition table.
 - [docs/adr/0003-finite-release-decision.md](docs/adr/0003-finite-release-decision.md) — accepted completion rule: a finite release decision ends an outcome; its default-stop is superseded by ADR 0005.
 - [docs/adr/0004-queue-legibility-and-memory-delivery.md](docs/adr/0004-queue-legibility-and-memory-delivery.md) — accepted plan for queue legibility, memory delivery, and lane-loop automation after the 2026-09-18 arc.
 - [docs/adr/0005-continuous-hardening-with-bounded-passes.md](docs/adr/0005-continuous-hardening-with-bounded-passes.md) — accepted posture: continuous hardening in bounded, triggered passes; first batch is the verified pipeline holes sh-60..sh-65.
 - [docs/adr/0006-keep-the-krn-surfaces.md](docs/adr/0006-keep-the-krn-surfaces.md) — accepted decision: keep the KRN surfaces as the default with the measured cost recorded, and reopen on a discriminative benchmark or an operator scope change.
-- [docs/research/workflow-lessons.md](docs/research/workflow-lessons.md) — bounded cross-run workflow memory read at `$delivery-loop` bind.
+- [docs/research/workflow-lessons.md](docs/research/workflow-lessons.md) — bounded cross-run workflow memory consumed by recall and changes check; agent-facing delivery remains retired.
 - The Matt Pocock skills audit and the unslop lab-test page are indexed under [docs/research/README.md](docs/research/README.md).
 - [scripts/quality-audit.mjs](scripts/quality-audit.mjs) — mechanical slop, dead-code, and credential/env-dump audit gated in `npm run test:lib`.
 - [config/conformance.json](config/conformance.json) — frozen public-seam acceptance cases run by `krn conformance check`; CI runs the base ref's copy against the candidate.
@@ -79,6 +80,11 @@ reader commands are owned by `config/AGENTS.md`; `$delivery-loop` owns its field
 ABI and lifecycle, and other artifacts link to it instead of restating its
 fields.
 
+**Repository memory** — information preserved for later work. Continuation
+state serves one active outcome; reusable knowledge can serve later outcomes.
+A work item's status, comments and history remain work records until a named
+knowledge owner deliberately promotes a reusable conclusion.
+
 **Working run** — private ignored state at
 `.krn/runs/<workflow>/<run-id>/`. It may carry that workflow's prompt, manifest,
 transient spec or slice list, job state, or review evidence while its goal is
@@ -98,6 +104,17 @@ exist. The durable destinations are `CONTEXT.md`, `docs/adr/`,
 the current thread's continuation authority, not shared repository knowledge.
 
 ## Engineering vocabulary
+
+**Work item** — one unit of planned work in the configured queue, with an
+identity, dependencies, discussion, and a result. It does not replace the
+current session's Goal or the outcome capsule.
+
+**Claim** — an exclusive assignment of a work item to one executor. It gives
+the executor a turn at the item, not authority to commit, publish, install, or
+change another repository.
+
+**Lane recipe** — optional implementation constraints and a deciding proof for
+a work item assigned to an automated lane. Ordinary work items need no recipe.
 
 **Vertical slice** — the smallest route from a real caller through a public seam
 to an observable result.

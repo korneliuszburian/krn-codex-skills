@@ -22,6 +22,11 @@ const cleanSource = (base) => {
   mkdirSync(copy);
   const archive = execFileSync("git", ["-C", sourceRoot, "archive", "HEAD"], { maxBuffer: 64 * 1024 * 1024 });
   execFileSync("tar", ["-x", "-C", copy], { input: archive });
+  // This fixture models a day-one repository even after the source is sealed.
+  fs.writeFileSync(
+    path.join(copy, "config", "release-digests.json"),
+    `${JSON.stringify({ schema_version: 1, digests: {} }, null, 2)}\n`,
+  );
   execFileSync("git", ["-C", copy, "init", "-q"]);
   const identity = ["-c", "user.email=lab@krn.local", "-c", "user.name=lab"];
   execFileSync("git", ["-C", copy, ...identity, "add", "-A"]);
@@ -30,6 +35,12 @@ const cleanSource = (base) => {
 };
 
 test("the CLI seals the repository ledger and never gates apply on the linked release", { skip: capabilitySkip(hostCapabilities(), FLOW_CAPABILITIES.seal) }, () => {
+  const committedLedger = JSON.parse(fs.readFileSync(path.join(sourceRoot, "config", "release-digests.json"), "utf8"));
+  assert.equal(committedLedger.schema_version, 1);
+  for (const [commit, digest] of Object.entries(committedLedger.digests)) {
+    assert.match(commit, /^[0-9a-f]{40}$/);
+    assert.match(digest, /^[0-9a-f]{64}$/);
+  }
   const base = fs.realpathSync(mkdtempSync(path.join(os.tmpdir(), "krn-seal-flow-")));
   const source = cleanSource(base);
   const home = path.join(base, "codex");
@@ -76,6 +87,7 @@ test("the CLI seals the repository ledger and never gates apply on the linked re
     const sealed = run("install", "seal", "--root", source, "--source", source, "--json");
     assert.equal(sealed.status, 0, sealed.stderr);
     const sealReport = JSON.parse(sealed.stdout);
+    assert.equal(sealReport.ledger, ledgerFile, "seal reports the repository ledger it wrote");
     assert.equal(readLedger()[commitA], sealReport.digest);
     assert.equal(
       fs.existsSync(path.join(release, "config", "release-digests.json")),
@@ -100,6 +112,8 @@ test("the CLI seals the repository ledger and never gates apply on the linked re
     const appliedCommit = git(source, ["rev-parse", "HEAD"]);
     assert.notEqual(appliedCommit, sealedCommit, "the sealing commit carries the ledger forward");
     assert.equal(readLedger()[sealedCommit], JSON.parse(sealedNext.stdout).digest);
+    assert.equal(Object.keys(readLedger()).length, 2, "sealing preserves the prior ledger entry");
+    assert.equal(readLedger()[commitA], JSON.parse(sealed.stdout).digest, "a later seal keeps the earlier entry byte-exact");
     assert.equal(readLedger()[appliedCommit], undefined);
 
     // The target's bytes are sealed even though the linked release is not, so

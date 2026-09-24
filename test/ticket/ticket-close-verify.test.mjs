@@ -45,8 +45,8 @@ const matchingTrailer = `Ticket: sh-16\nChange-contract: ${CONTRACT}`;
 function makeRepo({ scope = baseFields.Scope, change, trailer = matchingTrailer } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-close-"));
   git(dir, ["init", "-q"]);
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
-  writeFileSync(join(dir, ".scratch", "sh-16.md"), ticket({ ...baseFields, Scope: scope }));
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
+  writeFileSync(join(dir, ".krn/tickets", "sh-16.md"), ticket({ ...baseFields, Scope: scope }));
   writeFileSync(join(dir, "src-a.mjs"), "export const a = 1;\n");
   git(dir, ["add", "-A"]);
   commit(dir, "seed");
@@ -55,7 +55,7 @@ function makeRepo({ scope = baseFields.Scope, change, trailer = matchingTrailer 
   git(dir, ["add", "-A"]);
   commit(dir, trailer ? `work\n\n${trailer}` : "work");
   const head = rev(dir, "HEAD");
-  return { dir, base, head, file: join(dir, ".scratch", "sh-16.md") };
+  return { dir, base, head, file: join(dir, ".krn/tickets", "sh-16.md") };
 }
 
 const withRepo = (options, body) => {

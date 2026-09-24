@@ -69,7 +69,7 @@ harness adapters, so the `memory` component had no unique behavior. The
 recall enforcement stay, because their consumer is `changes check`, not the
 agent prompt. The skills, brief, and hook surfaces stay under the decision above.
 The measured deltas were taken under a harness whose deciding check the agent
-could read and modify (sh-142 fixed that), so the null results establish the
+could read and modify (sh-144 fixed that direct same-user file exposure after sh-142 left a readable /tmp stash), so the null results establish the
 overhead, not the absence of benefit; the honest disposition is that outcome
 benefit is unestablished and the recorded cost is the price of the discipline.
 

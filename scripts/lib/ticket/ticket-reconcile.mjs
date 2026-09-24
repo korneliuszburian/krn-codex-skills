@@ -3,13 +3,14 @@ import fs from "node:fs";
 
 import { runGit } from "../kernel/git.mjs";
 import { writeAtomic } from "../support/write-atomic.mjs";
+import { withLegacyQueueWrite } from "./task-store.mjs";
 
 import {
   DEFAULT_DIRS,
-  INTEGRATION_BRANCH,
   claimLease,
   integratedAnchor,
   leaseExpired,
+  parseIntegrationRecord,
   rangePatchIds,
   readValidTicket,
   setField,
@@ -18,18 +19,6 @@ import {
 // The reconcile writer needs the integration the lane intended before it
 // merged: the outbox record. It names the branch the worker committed to and,
 // when known, the tip sha and patch id so a deleted branch still reconciles.
-function integrationRecord(fields) {
-  const raw = (fields.get("Integration") ?? "").trim();
-  if (!raw) return null;
-  const branch = INTEGRATION_BRANCH.exec(raw)?.[1];
-  if (!branch) return null;
-  return {
-    branch,
-    sha: /(?:^|;\s*)sha=([0-9a-f]{40})/i.exec(raw)?.[1] ?? "",
-    patch: /(?:^|;\s*)patch=([0-9a-f]{40})/i.exec(raw)?.[1] ?? "",
-  };
-}
-
 // The merge and the close are two writes; a crash between them leaves a
 // claimed ticket whose work is already in headRef. Reconcile is that repair:
 // for a claimed ticket that recorded its integration outbox, it closes the
@@ -37,7 +26,11 @@ function integrationRecord(fields) {
 // id) and its lease no longer has a live worker. It reads nothing for a
 // ticket with no recorded integration, so it is a no-op for ordinary claims,
 // and a closed ticket drops out of the next run, so the repair is idempotent.
-export function reconcileTickets({ root, dirs = DEFAULT_DIRS, headRef = "HEAD", git = runGit, at = new Date().toISOString(), now = at, listFiles, parseTicket } = {}) {
+export function reconcileTickets(options = {}) {
+  return withLegacyQueueWrite(options.root, "reconcile", () => reconcileUnlocked(options));
+}
+
+function reconcileUnlocked({ root, dirs = DEFAULT_DIRS, headRef = "HEAD", git = runGit, at = new Date().toISOString(), now = at, listFiles, parseTicket } = {}) {
   const closed = [];
   if (!git(root, ["rev-parse", "--git-dir"]).ok) return closed;
   for (const file of listFiles(root, dirs)) {
@@ -49,7 +42,7 @@ export function reconcileTickets({ root, dirs = DEFAULT_DIRS, headRef = "HEAD", 
     }
     const { text, fields } = entry;
     if (fields.get("Status") !== "claimed") continue;
-    const integration = integrationRecord(fields);
+    const integration = parseIntegrationRecord(fields.get("Integration"));
     if (!integration) continue;
     // A live lease means another session may still own the close; only an
     // expired or absent one is a crashed lane this writer may repair.

@@ -44,7 +44,7 @@ const missingCost = (report) => report.warnings.filter((entry) => entry.rule ===
 
 const withTickets = (body) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-cost-"));
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   try {
     body(dir);
   } finally {
@@ -56,7 +56,7 @@ test("close appends the runner's wall seconds and tokens to the evidence line", 
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "sh-49.md");
+    const file = join(dir, ".krn/tickets", "sh-49.md");
     writeFileSync(file, ticket(baseFields));
     const result = ticketLib.closeTicket({ file, root: dir, evidence: "node --test green", resolution: "merged", wallSeconds: 254, tokens: 68000, allowUnanchored: true });
     assert.equal(result.status, "done");
@@ -70,7 +70,7 @@ test("close leaves the evidence free of cost when the runner measured none", asy
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "sh-49.md");
+    const file = join(dir, ".krn/tickets", "sh-49.md");
     writeFileSync(file, ticket(baseFields));
     ticketLib.closeTicket({ file, root: dir, evidence: "node --test green", resolution: "merged", allowUnanchored: true });
     const text = readFileSync(file, "utf8");
@@ -83,11 +83,11 @@ test("check warns missing-cost only on a done ticket without one", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "sh-49.md");
+    const file = join(dir, ".krn/tickets", "sh-49.md");
     writeFileSync(file, ticket({ ...baseFields, Status: "done", Evidence: "node --test green" }));
     const missing = missingCost(ticketLib.checkTickets({ root: dir }));
     assert.equal(missing.length, 1, JSON.stringify(missing));
-    assert.equal(missing[0].path, join(".scratch", "sh-49.md"));
+    assert.equal(missing[0].path, join(".krn/tickets", "sh-49.md"));
 
     writeFileSync(file, ticket({ ...baseFields, Status: "done", Evidence: "node --test green; Cost: wall=254s; tokens=68000" }));
     assert.deepEqual(missingCost(ticketLib.checkTickets({ root: dir })), []);
@@ -99,7 +99,7 @@ test("check warns missing-cost only on a done ticket without one", async () => {
 
 test("the CLI closes with cost and check surfaces it when stripped", () => {
   withTickets((dir) => {
-    const tickets = join(dir, ".scratch");
+    const tickets = join(dir, ".krn/tickets");
     const file = join(tickets, "sh-49.md");
     writeFileSync(file, ticket(baseFields));
     const run = (...args) => spawnSync(process.execPath, [cli, "ticket", ...args], { encoding: "utf8" });

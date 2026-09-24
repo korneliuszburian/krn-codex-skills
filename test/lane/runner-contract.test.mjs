@@ -6,6 +6,9 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
+import { activateTaskQueueFixture } from "../ticket/task-queue-fixture.mjs";
+
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const lane = (name) => join(root, "scripts", "lane", name);
 const BASH_SCRIPTS = ["run-ticket.sh", "run-frontier.sh", "integrate.sh", "publish.sh"];
@@ -146,6 +149,9 @@ test("the frontier, integrator, publication, and capsule tools still expose thei
     assert.ok(existsSync(lane(name)), `scripts/lane/${name} must be admitted`);
   }
   assert.match(readIf("run-frontier.sh"), /ROOT:?\?/, "run-frontier must require its repository root");
+  const runner = readIf("run-ticket.sh");
+  assert.match(runner, /ticket store copy --root "\$FIXTURE" --to "\$WT"/, "the isolated task clone receives its own snapshot of the active queue refs");
+  assert.ok(runner.indexOf("ticket store copy --root") < runner.indexOf("changes check --root \"$WT\""), "the cloned queue exists before host checks read task state");
   assert.match(readIf("integrate.sh"), /merge --no-ff/, "integrate must merge the worker branch");
   assert.match(readIf("publish.sh"), /PUBLISH_AUTHORITY/, "publish must gate on explicit authority");
   assert.match(readIf("capsule-writeback.py"), /def main/, "the capsule tool must expose a main entrypoint");
@@ -154,4 +160,55 @@ test("the frontier, integrator, publication, and capsule tools still expose thei
   assert.notEqual(publish.status, 0, "publish without authority must refuse");
   const capsule = spawnSync("python3", [lane("capsule-writeback.py")], { encoding: "utf8" });
   assert.equal(capsule.status, 64, "the capsule tool without arguments must report usage");
+});
+
+test("run-ticket resolves a claimed Git-ref task by ID and honors its executor hint", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "lane-task-adapter-"));
+  try {
+    const seed = (args) => {
+      const result = spawnSync("git", ["-C", dir, ...args], { encoding: "utf8" });
+      assert.equal(result.status, 0, `${args.join(" ")}: ${result.stdout}${result.stderr}`);
+    };
+    seed(["init", "-q", "-b", "main"]);
+    seed(["config", "user.email", "lane@krn.local"]);
+    seed(["config", "user.name", "lane"]);
+    seed(["commit", "-q", "--allow-empty", "-m", "seed"]);
+
+    const store = openTaskStore(dir);
+    await store.add({
+      id: "lane-id",
+      title: "Read the task from the Git-ref store",
+      body: "The lane input comes from the task record.",
+      lane: true,
+      laneRecipe: {
+        base: "main",
+        scope: "scripts/a.mjs",
+        check: "test/a.test.mjs",
+        contract: "test/a.test.mjs:red->green",
+        acceptance: "task-by-ID is consumed by the lane",
+      },
+      executionHint: { agentHint: "opencode" },
+    });
+    await store.markReady("lane-id");
+    await store.claim("lane-id", { worker: "lane-worker", session: "adapter-test" });
+    activateTaskQueueFixture(dir);
+
+    const env = {
+      ...process.env,
+      BASE: dir,
+      FIXTURE: dir,
+      KRN: join(root, "scripts", "krn.mjs"),
+      KRN_TASK_ID: "lane-id",
+      OPENCODE_HOME: join(dir, "no-opencode-install"),
+    };
+    delete env.TICKET;
+    delete env.WORKER;
+    delete env.WORKER_ENV;
+
+    const result = run("run-ticket.sh", ["run"], { cwd: root, env });
+    assert.equal(result.status, 65, `${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /opencode binary missing/, "the executor hint must come from the active task view");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

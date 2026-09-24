@@ -12,6 +12,7 @@ const dir = path.join(root, "scripts", "lib", "ticket");
 const PUBLIC_API = [
   "parseTicketText",
   "ticketLaneBindings",
+  "taskTicketView",
   "claimTicket",
   "closeTicket",
   "recordAttempt",

@@ -50,7 +50,7 @@ const statusOf = (file) => readFileSync(file, "utf8").match(/^Status: (.*)$/m)?.
 function makeRepo() {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-reconcile-"));
   git(dir, ["init", "-q", "-b", "main"]);
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   writeFileSync(join(dir, "seed.txt"), "seed\n");
   git(dir, ["add", "seed.txt"]);
   commit(dir, "seed");
@@ -89,7 +89,7 @@ const squashLane = (dir) => {
 };
 
 const writeTicket = (dir, overrides = {}, name = "sh-35.md") => {
-  const file = join(dir, ".scratch", name);
+  const file = join(dir, ".krn/tickets", name);
   writeFileSync(file, ticket({ ...baseFields, ...overrides }));
   return file;
 };
@@ -104,7 +104,11 @@ test("reconcileTickets closes a claimed ticket whose recorded branch is an ances
     const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}; patch=${patch}` });
     mergeLane(dir);
 
-    const closed = ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" });
+    const observed = ticketLib.checkTickets({ root: dir, dirs: [".krn/tickets"], reconcile: false });
+    assert.deepEqual(observed.reconciled, [], "a host observation must not reconcile the ticket");
+    assert.equal(statusOf(file), "claimed", "the observer must leave the ticket bytes alone");
+
+    const closed = ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" });
     assert.deepEqual(closed, ["sh-35"]);
     assert.equal(statusOf(file), "done");
     assert.match(readFileSync(file, "utf8"), new RegExp(`^Evidence: reconciled; integrated=${lane}; patch=[0-9a-f]{40}$`, "m"));
@@ -119,9 +123,9 @@ test("reconcileTickets leaves a second run a no-op", async () => {
     const lane = laneCommit(dir);
     const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
     mergeLane(dir);
-    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" }), ["sh-35"]);
+    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" }), ["sh-35"]);
     const closed = readFileSync(file, "utf8");
-    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" }), []);
+    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" }), []);
     assert.equal(readFileSync(file, "utf8"), closed, "the second run must not rewrite a closed ticket");
   });
 });
@@ -137,7 +141,7 @@ test("reconcileTickets closes a squashed integration by patch id when the sha is
     squashLane(dir);
     assert.equal(isAncestor(dir, lane), false, "a squash must discard the worker commit");
 
-    const closed = ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" });
+    const closed = ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" });
     assert.deepEqual(closed, ["sh-35"]);
     assert.equal(statusOf(file), "done");
   });
@@ -151,7 +155,7 @@ test("reconcileTickets refuses a recorded sha that does not match the branch tip
     const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${"0".repeat(40)}; patch=${"f".repeat(40)}` });
     mergeLane(dir);
     assert.throws(
-      () => ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" }),
+      () => ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" }),
       /reconcile-sha-mismatch/,
     );
     assert.equal(statusOf(file), "claimed", "a refused reconcile must not close the ticket");
@@ -173,7 +177,7 @@ test("reconcileTickets never touches blocked, abandoned, deferred, or terminal t
     };
     mergeLane(dir);
 
-    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" }), []);
+    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" }), []);
     for (const [name, file] of Object.entries(files)) {
       assert.equal(statusOf(file), name === "done" ? "done" : name, `${name} must stay untouched`);
     }
@@ -187,7 +191,7 @@ test("reconcileTickets ignores a claimed ticket with no recorded integration", a
     laneCommit(dir);
     const file = writeTicket(dir);
     mergeLane(dir);
-    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" }), []);
+    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" }), []);
     assert.equal(statusOf(file), "claimed");
   });
 });
@@ -203,7 +207,7 @@ test("reconcileTickets defers to an unexpired lease so a live worker keeps its c
       Claim: `worker=w-2; session=s-2; at=${renew}; epoch=2; renew=${renew}; duration=3600`,
     });
     mergeLane(dir);
-    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" }), []);
+    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" }), []);
     assert.equal(statusOf(file), "claimed");
   });
 });
@@ -215,10 +219,10 @@ test("checkTickets reconciles before the frontier so ticket next self-heals", as
     const lane = laneCommit(dir);
     const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
     mergeLane(dir);
-    const report = ticketLib.checkTickets({ root: dir, dirs: [".scratch"] });
+    const report = ticketLib.checkTickets({ root: dir, dirs: [".krn/tickets"], reconcile: true });
     assert.deepEqual(report.reconciled, ["sh-35"]);
-    assert.deepEqual(report.frontier, []);
     assert.equal(statusOf(file), "done");
+    assert.deepEqual(report.frontier, []);
   });
 });
 
@@ -226,12 +230,58 @@ test("the ticket next CLI consumes the reconcile so a crashed loop restarts clea
   const dir = makeRepo();
   try {
     const lane = laneCommit(dir);
-    writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
+    const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
     mergeLane(dir);
-    const result = spawnSync(process.execPath, [cli, "ticket", "next", "--root", dir, "--path", join(dir, ".scratch")], { encoding: "utf8" });
+    const result = spawnSync(process.execPath, [cli, "ticket", "next", "--root", dir, "--path", join(dir, ".krn/tickets")], { encoding: "utf8" });
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
     assert.doesNotMatch(result.stdout, /sh-35/);
-    assert.equal(statusOf(join(dir, ".scratch", "sh-35.md")), "done");
+    assert.equal(statusOf(file), "claimed");
+    const reconcile = spawnSync(process.execPath, [cli, "ticket", "reconcile", "--root", dir, "--path", join(dir, ".krn/tickets"), "--json"], { encoding: "utf8" });
+    assert.equal(reconcile.status, 0, `${reconcile.stdout}${reconcile.stderr}`);
+    assert.deepEqual(JSON.parse(reconcile.stdout).reconciled, ["sh-35"]);
+    assert.equal(statusOf(join(dir, ".krn/tickets", "sh-35.md")), "done");
+    const recoveredNext = spawnSync(process.execPath, [cli, "ticket", "next", "--root", dir, "--path", join(dir, ".krn/tickets")], { encoding: "utf8" });
+    assert.equal(recoveredNext.status, 0, `${recoveredNext.stdout}${recoveredNext.stderr}`);
+    assert.doesNotMatch(recoveredNext.stdout, /sh-35/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// The sh-176 observer used these identities before recovery was made explicit.
+test("checkTickets observes without reconciling and explicit repair self-heals", async () => {
+  const ticketLib = await loadTicket();
+  assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
+  withRepo((dir) => {
+    const lane = laneCommit(dir);
+    const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
+    mergeLane(dir);
+    const report = ticketLib.checkTickets({ root: dir, dirs: [".krn/tickets"] });
+    assert.deepEqual(report.reconciled, []);
+    assert.equal(statusOf(file), "claimed");
+    assert.deepEqual(report.frontier, []);
+    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"] }), ["sh-35"]);
+    assert.equal(statusOf(file), "done");
+  });
+});
+
+test("ticket next observes without reconciling and the repair command is explicit", () => {
+  const dir = makeRepo();
+  try {
+    const lane = laneCommit(dir);
+    const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
+    mergeLane(dir);
+    const result = spawnSync(process.execPath, [cli, "ticket", "next", "--root", dir, "--path", join(dir, ".krn/tickets")], { encoding: "utf8" });
+    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /sh-35/);
+    assert.equal(statusOf(file), "claimed");
+    const reconcile = spawnSync(process.execPath, [cli, "ticket", "reconcile", "--root", dir, "--path", join(dir, ".krn/tickets"), "--json"], { encoding: "utf8" });
+    assert.equal(reconcile.status, 0, `${reconcile.stdout}${reconcile.stderr}`);
+    assert.deepEqual(JSON.parse(reconcile.stdout).reconciled, ["sh-35"]);
+    assert.equal(statusOf(join(dir, ".krn/tickets", "sh-35.md")), "done");
+    const recoveredNext = spawnSync(process.execPath, [cli, "ticket", "next", "--root", dir, "--path", join(dir, ".krn/tickets")], { encoding: "utf8" });
+    assert.equal(recoveredNext.status, 0, `${recoveredNext.stdout}${recoveredNext.stderr}`);
+    assert.doesNotMatch(recoveredNext.stdout, /sh-35/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

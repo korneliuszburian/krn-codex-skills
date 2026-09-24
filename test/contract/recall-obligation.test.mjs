@@ -135,8 +135,8 @@ test("a waiver for one lesson does not waive an unrelated trigger", () => {
 
 test("a waiver naming a queued ticket resolves", () => {
   const root = makeRoot();
-  mkdirSync(join(root, ".scratch"), { recursive: true });
-  writeFileSync(join(root, ".scratch", "sh-99.md"), "<krn-ticket>\nId: sh-99\nScope: scripts/lib/x.mjs\n</krn-ticket>\n");
+  mkdirSync(join(root, ".krn/tickets"), { recursive: true });
+  writeFileSync(join(root, ".krn/tickets", "sh-99.md"), "<krn-ticket>\nId: sh-99\nScope: scripts/lib/x.mjs\n</krn-ticket>\n");
   writeLessons(root, "| Guards | probe | `test:lessons` | | | path:scripts/lib/x.mjs | |");
   const body = "Change-contract: test:lessons:red->green\nRecall: none (sh-99)";
   const result = report(root, body);

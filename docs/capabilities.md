@@ -6,7 +6,7 @@ reconciles named profiles into `config.toml` without rewriting unrelated
 configuration.
 
 Status: `accepted`. Consumer: operators selecting or auditing a KRN capability
-profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-13.
+profile. Owner: `managing-codex-capabilities`. Verified: 2026-09-24.
 
 ## Trust model
 
@@ -67,6 +67,101 @@ file cannot regrow through unwrapped prose.
 Profiles are complete policy documents rather than inheritance chains. A
 reader can see every intended state without mentally expanding a parent.
 
+Retained explicit-only skills can still be disabled by a profile. The user
+explicitly restored `ask-gpt` availability on 2026-09-22: `lean` and `minimal`
+now admit the installed owner from `skills/manifest.json`. It remains
+explicit-only; enabling it does not start a model or a research run. The earlier
+exclusion was a profile choice, not retirement or evidence of disuse. Manual
+availability and automatic workflow invocation are separate decisions.
+
+Workflow admission is derived from `skills/manifest.json` and pinned
+`harness_paths` plus explicit availability companions in
+`config/upstream-sources.json`. `harness_paths` name promoted workflow owners;
+`project_paths` adds pinned material needed only inside the KRN repository and
+does not expand the global workflow baseline. Both sets are exported into the
+KRN repository's `.agents/skills`. Every KRN profile disables those upstream
+names in the global index. Project and system scopes are preserved, so the KRN
+project copy remains available while the global copy is off. Unknown global
+skills, plugins, and MCP servers default disabled, including plugin/MCP records
+found only in configuration. Missing derived owners make `check` report an
+incomplete installation rather than convergence.
+
+## Equivalent exports and host scope
+
+`plan`, `apply`, and `check` reconcile the current repository, or the explicit
+`--root`, against installed owners. Only a generated KRN export with a matching
+marker, complete directory digest, authorized global source, and enabled global
+owner can defer to that installed owner. The writer marks its exact project-path
+overrides in Codex TOML; there is no additional registry. A changed reference,
+missing owner, or lost equivalence makes `check` drift and `apply` withdraws its
+own override. Independent user overrides and authored project skills remain
+untouched. Run reconciliation after changing an export, checkout, release, or
+profile: Codex path overrides are not conditional on a content digest.
+
+On 2026-09-24, `lean` was applied after the upstream Matt workflow set moved to
+project scope. `krn capability check lean` converged. A fresh Codex
+`debug prompt-input` showed no upstream Matt skills outside a repository and
+showed the KRN export from inside this repository. The `.agents/skills` export
+was generated from a dirty source tree, so it needs a clean export after the
+source commit before it can certify a release. Physical upstream and plugin
+caches remain; profiles withdraw discovery/invocation but do not own cache
+deletion.
+
+The pinned `setup-matt-pocock-skills` source is no longer an active KRN project
+skill or companion: it prescribed a local `.scratch/` issue tracker that
+conflicted with KRN's sole local queue at `.krn/tickets/`. KRN's
+`setup-repository-workflow` owns local tracker setup; the Matt source remains
+research provenance only and is not exported into `.agents/skills/`.
+
+The 25 user-global symlinks to the pinned Matt checkout were also removed after
+their targets, origin, and commit were verified. The pinned source checkout
+remains available to regenerate project exports. Codex skill profiles apply to
+new processes; an already-running host keeps its startup catalogue until it is
+restarted.
+
+OpenCode is not yet at that state. Its installed KRN plugin still reads profile
+data from release `10fd088`; the project source has the updated profile and a
+focused permission-projection test, but no clean release or fresh OpenCode
+readback has been made. Do not infer Codex settings apply to OpenCode.
+
+These are user-layer rules rather than project TOML settings: Codex 0.155.1
+reads skill enablement from user and session layers. Fresh CLI discovery has
+bounded local evidence; a current desktop session still needs its own readback.
+
+OpenCode has its own discovery and permission model. The sh-166 candidate extends
+the existing KRN adapter to project the profile at instance configuration, using
+`KRN_CAPABILITY_PROFILE` or `lean`. It disables unadmitted global skill names,
+preserves names owned by the current project, and leaves native system defaults
+with OpenCode. It does not infer OpenCode state from Codex TOML. These are name
+permissions for visibility and invocation, not a filesystem sandbox: OpenCode
+may parse a discovered skill before filtering it. Global agent prompts, goal
+plugins, and account connections retain their separate owners.
+
+The admission and composition rules above describe the source committed
+through `ad4b220`. Six reviewed edge cases passed focused source checks; the
+full clean release gate and fresh Codex/OpenCode process readback were pending
+at this 2026-09-23 pre-release review. The outcome capsule and configured
+sh-166 ticket own later installation evidence and remaining work.
+
+Read-only check earlier on 2026-09-23: the global OpenCode plugin symlink
+resolved to the installed `7acc1d4` release and its bytes matched that
+baseline, while the new capability projection existed only in sh-166 source.
+The available `opencode --version` returned `1.18.30`. These observations establish selected
+installed bytes and a CLI version; they do not show which plugin/config a
+running application process loaded. The report campaign established five
+known source repair targets and no additional behavioral defect. A later local
+review found that KRN origin admission still trusted a matching path suffix;
+a focused counterexample failed before the committed source
+repair and passed after checking the real installed owner under `krn/current`.
+After installation, a fresh process must read back effective permissions for
+admitted global, denied global and preserved
+project skills. A source or symlink check is insufficient for that claim.
+
+Falsifier: an unknown global option stays enabled, a preserved project skill is
+disabled by a global name collision, an unavailable owner hides its project
+fallback, or a changed export keeps a producer-owned exclusion after apply.
+Supersede these host rules when discovery or permission semantics change.
+
 ## Capability state vocabulary
 
 Catalog output uses four evidence-bounded states. They are separate dimensions,
@@ -110,8 +205,16 @@ krn capability apply lean
 krn capability check lean
 ```
 
-`krn-codex-catalog` remains a one-release compatibility entrypoint. Inside the
-source checkout, `npm run catalog -- COMMAND` is equivalent.
+`krn-codex-catalog` is declared as a compatibility entrypoint. At the
+2026-09-23 pre-release readback, installed release `9f18ab2` exited with
+`MODULE_NOT_FOUND`: its wrapper called the retired, unshipped
+`scripts/krn-codex.mjs`. The repair committed through `ad4b220` points the
+wrapper at shipped `krn.mjs` and passes an isolated installed-bin smoke. The
+outcome capsule owns the later installed-alias result. The source-checkout
+`npm run catalog -- COMMAND` alone does not prove the installed alias works.
+`scripts/catalog.mjs` is the
+capability implementation behind the public `krn capability` command;
+`scripts/krn-codex.mjs` remains in the checkout only for frozen conformance.
 
 `apply` is the only mutating command. Restart Codex after it succeeds: current
 sessions retain the capability index loaded at session start.

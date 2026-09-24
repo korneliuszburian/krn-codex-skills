@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -97,6 +97,10 @@ test("a real install retires a prior release's managed krn-codex link with a bac
     assert.ok(fs.lstatSync(krnLink).isSymbolicLink(), "the neutral entry is installed");
     assert.equal(fs.realpathSync(krnLink), path.join(current, "scripts", "krn.mjs"));
     assert.equal(fs.existsSync(codexLink), false, "a fresh install must not create the retired alias link");
+    const catalogLink = path.join(base, "bin", "krn-codex-catalog");
+    const catalog = spawnSync(process.execPath, [catalogLink, "profile", "list", "--json"], { encoding: "utf8" });
+    assert.equal(catalog.status, 0, catalog.stderr);
+    assert.ok(JSON.parse(catalog.stdout).some((profile) => profile.name === "minimal"));
 
     // The prior release installed this managed link; the retired manifest no
     // longer declares it, so the next apply must retire it with a backup.

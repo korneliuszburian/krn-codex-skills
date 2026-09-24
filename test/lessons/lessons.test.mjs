@@ -295,6 +295,70 @@ test("retirement needs a supersession or a removed gate, and is excluded from re
   rmSync(root, { recursive: true, force: true });
 });
 
+test("gate-backed retirement keeps a live gate and names the exact resolved gate", () => {
+  const root = makeRoot();
+  const file = join(root, "docs", "research", "workflow-lessons.md");
+  const header = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n";
+  const lesson = "| Old advice | probe | `test:state` | | | | retired@abcdef0; enforced-by:test:state |\n";
+  writeFileSync(file, `${header}${lesson}`);
+
+  const report = checkLessons({ root });
+  assert.deepEqual(report.errors, [], "an explicit gate-backed retirement preserves the resolved check");
+  assert.deepEqual(recallLessons({ root, files: ["src/a.mjs"], symbols: ["runGit"] }), [], "retired advice is excluded from recall");
+
+  writeFileSync(file, `${header}${lesson.replace("enforced-by:test:state", "enforced-by:test:bootstrap")}`);
+  const mismatched = checkLessons({ root });
+  assert.ok(mismatched.errors.some((error) => error.includes("enforced-by")), JSON.stringify(mismatched.errors));
+
+  const proseGate = join(root, "docs", "research", "orchestration.md");
+  mkdirSync(join(root, "docs", "research"), { recursive: true });
+  writeFileSync(proseGate, "A prose-only reference.\n");
+  writeFileSync(file, `${header}| Old advice | probe | \`docs/research/orchestration.md\` | | | | retired@abcdef0; enforced-by:docs/research/orchestration.md |\n`);
+  const proseOnly = checkLessons({ root });
+  assert.ok(proseOnly.errors.some((error) => error.includes("executable script/test")), JSON.stringify(proseOnly.errors));
+
+  for (const reference of ["scripts/README.md", "test/fixture.json", "test/support/state-fixtures.mjs", ".github/CODEOWNERS"]) {
+    const absolute = join(root, reference);
+    mkdirSync(join(absolute, ".."), { recursive: true });
+    writeFileSync(absolute, "Not an executable check.\n");
+    writeFileSync(file, `${header}| Old advice | probe | \`${reference}\` | | | | retired@abcdef0; enforced-by:${reference} |\n`);
+    const nonExecutable = checkLessons({ root });
+    assert.ok(nonExecutable.errors.some((error) => error.includes("executable script/test")), `${reference} => ${JSON.stringify(nonExecutable.errors)}`);
+  }
+  writeFileSync(file, `${header}| Old advice | probe | \`test/gate.test.mjs\` | | | | retired@abcdef0; enforced-by:test/gate.test.mjs |\n`);
+  assert.deepEqual(checkLessons({ root }).errors, [], "an executable test path is a structural gate");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("repository lesson retirements preserve their exact structural gates", () => {
+  const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
+  const file = join(repositoryRoot, "docs", "research", "workflow-lessons.md");
+  const rows = parseLessons(file).rows;
+  const retired = new Map([
+    ["Render CLI diagnostics as text, never raw objects.", "test/state/state-check.test.mjs"],
+    ["Blocking errors must be visible in human command output, not only in the exit code.", "test/state/state-brief.test.mjs"],
+    ["Hand-written capsule fixed points must use full commit tokens.", "test/state/state-check.test.mjs"],
+    ["A read-only review cannot prove runtime reachability; every extracted runtime module needs at least one executing test, and mechanical detection must back the class.", "test/audit/quality-audit.test.mjs"],
+    ["Broadening executing coverage can expose silently lost records that a green suite hides.", "test/catalog/catalog-inventory-quarantine.test.mjs"],
+    ["Duplicated low-level adapters drift; centralize once and alias at call sites.", "test/support/git-cli.test.mjs"],
+    ["A test that drives a guarded gate must clear the ambient recursion guard.", "test/contract/guard-inheritance.test.mjs"],
+    ["A test that archives the committed HEAD can pass before the commit and fail after it.", ".github/workflows/validate.yml"],
+  ]);
+
+  for (const [lesson, gate] of retired) {
+    const row = rows.find((candidate) => candidate.lesson === lesson);
+    assert.ok(row, `missing lesson row: ${lesson}`);
+    assert.equal(row.status, `retired@777837c; enforced-by:${gate}`, lesson);
+  }
+
+  const staleWording = rows.find((row) => row.lesson === "Memory artifacts must fail closed, not warn, once staleness or contradiction is measured.");
+  assert.equal(staleWording?.status, "retired@777837c; superseded-by:npm run test:state");
+  assert.ok(rows.some((row) => row.lesson.startsWith("Block stale COMPLETE capsules,") && !row.status && row.trigger === "path:scripts/lib/lessons/**"));
+  const report = checkLessons({ root: repositoryRoot });
+  assert.deepEqual(report.errors, []);
+  assert.ok(!report.warnings.some((warning) => warning.includes("predates later changes to scripts/lib/lessons/lessons.mjs")), JSON.stringify(report.warnings));
+});
+
 test("retirement is invalid without a commit and budgets count only active rows", () => {
   const root = makeRoot();
   const file = join(root, "docs", "research", "workflow-lessons.md");

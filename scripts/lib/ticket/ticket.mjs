@@ -19,6 +19,7 @@ import {
   attemptCount,
   attemptLine,
   blockerIds,
+  claimLockPath,
   costRecord,
   envFingerprint,
   hasEnvFingerprint,
@@ -33,20 +34,16 @@ import {
 } from "./ticket-abi.mjs";
 import { baseRefExists, checkTickets as checkTicketsImpl, contractErrors, namesTicket, scopeErrors } from "./ticket-check.mjs";
 import { findTicketFile as findTicketFileImpl, reconcileTickets as reconcileTicketsImpl } from "./ticket-reconcile.mjs";
+import { readActiveTaskStoreSnapshot, withLegacyQueueWrite } from "./task-store.mjs";
 
 export { envFingerprint, hasEnvFingerprint, ticketLaneBindings };
 
 export function parseTicketText(text) {
-  const start = text.indexOf("<krn-ticket>");
-  const end = text.indexOf("</krn-ticket>");
-  if (start === -1 || end === -1 || end < start) {
+  const occurrences = parseTicketFieldOccurrences(text);
+  if (!occurrences) {
     return { fields: null, findings: [{ rule: "missing-block", message: "no complete <krn-ticket> block" }] };
   }
-  const fields = new Map();
-  for (const line of text.slice(start + "<krn-ticket>".length, end).split("\n")) {
-    const match = /^([A-Za-z][A-Za-z ()-]*):\s*(.*)$/.exec(line.trim());
-    if (match) fields.set(match[1], match[2].trim());
-  }
+  const fields = new Map(occurrences);
   const findings = [];
   for (const name of REQUIRED) {
     if (!fields.has(name) || fields.get(name) === "") findings.push({ rule: "missing-field", message: `missing field: ${name}` });
@@ -56,6 +53,88 @@ export function parseTicketText(text) {
   const type = fields.get("Type");
   if (type && !TYPES.has(type)) findings.push({ rule: "invalid-type", message: `unknown Type "${type}"` });
   return { fields, findings };
+}
+
+export function parseTicketFieldOccurrences(text) {
+  const start = text.indexOf("<krn-ticket>");
+  const end = text.indexOf("</krn-ticket>");
+  if (start === -1 || end === -1 || end < start) {
+    return null;
+  }
+  const occurrences = [];
+  for (const line of text.slice(start + "<krn-ticket>".length, end).split("\n")) {
+    const match = /^([A-Za-z][A-Za-z ()-]*):\s*(.*)$/.exec(line.trim());
+    if (match) occurrences.push([match[1], match[2].trim()]);
+  }
+  return occurrences;
+}
+
+export function taskTicketView(task) {
+  const fields = new Map();
+  const occurrences = new Map();
+  for (const [name, supplied] of Object.entries(task.legacyFields ?? {})) {
+    const values = (Array.isArray(supplied) ? supplied : [supplied]).map((value) => String(value));
+    if (values.length === 0) continue;
+    fields.set(name, values[values.length - 1]);
+    occurrences.set(name, values);
+  }
+  const set = (name, value) => {
+    if (value === null || value === undefined) return;
+    const text = String(value);
+    fields.set(name, text);
+    occurrences.set(name, [text]);
+  };
+  set("Id", task.id);
+  set("Title", task.title);
+  set("Status", task.status);
+  set("Type", task.type ?? "task");
+  set("Blocked by", task.dependencies?.join(", ") || "none");
+  set("Repository-base", task.laneRecipe?.base);
+  set("Scope", task.laneRecipe?.scope);
+  set("Deciding check", task.laneRecipe?.check);
+  set("Contract", task.laneRecipe?.contract);
+  set("Acceptance", task.laneRecipe?.acceptance);
+  set("Integration", task.integration?.legacyRaw);
+  set("Gate", task.gate?.legacyRaw);
+  set("Execution", task.executionHint?.legacyRaw ?? (task.executionHint ? `agent=${task.executionHint.agentHint}` : null));
+  const attempts = task.attempts ?? [];
+  if (attempts.length > 0) {
+    const previousAttempts = occurrences.get("Attempts") ?? [];
+    const currentAttempts = attempts.map((attempt) => [
+      `count=${attempt.count}`,
+      ...(attempt.signature ? [`signature=${attempt.signature}`] : []),
+      `reason=${attempt.reason}`,
+      `at=${attempt.at}`,
+    ].join("; "));
+    occurrences.set("Attempts", [...previousAttempts, ...currentAttempts]);
+    fields.set("Attempts", currentAttempts[currentAttempts.length - 1]);
+  }
+  if (task.status === "claimed" && task.lease) {
+    const { worker = "", session = "", at = "", epoch = "", renew = "", duration = "" } = task.lease;
+    set("Claim", `worker=${worker}; session=${session}; at=${at}; epoch=${epoch}; renew=${renew}; duration=${duration}`);
+  }
+  const lines = ["<krn-ticket>"];
+  for (const [name, value] of fields) {
+    for (const occurrence of occurrences.get(name) ?? [value]) lines.push(`${name}: ${occurrence}`);
+  }
+  lines.push("</krn-ticket>");
+  return {
+    id: task.id,
+    path: task.sourcePath || task.id,
+    status: task.status,
+    blockedBy: [...(task.dependencies ?? [])],
+    fields,
+    text: lines.join("\n"),
+    body: task.body ?? "",
+    comments: task.comments ?? [],
+    history: task.history ?? [],
+    taskStore: true,
+    lane: task.lane === true,
+    legacyCloseProofRequired: task.legacyCloseProofRequired === true,
+    gateKind: task.gate?.kind ?? null,
+    taskLease: task.lease ?? null,
+    taskResult: task.result ?? null,
+  };
 }
 
 function nextEpoch(fields) {
@@ -86,10 +165,14 @@ function readClaimLockStrict(lockPath) {
   return { status: "held", value: parsed };
 }
 
-export function claimTicket({ file, root, id, worker, session = "", at = new Date().toISOString(), duration = DEFAULT_CLAIM_DURATION, observer } = {}) {
+export function claimTicket(options = {}) {
+  return withLegacyQueueWrite(options.root ?? rootForTicket(options.file), "claim", () => claimTicketUnlocked(options));
+}
+
+function claimTicketUnlocked({ file, root, id, worker, session = "", at = new Date().toISOString(), duration = DEFAULT_CLAIM_DURATION, observer } = {}) {
   const claimRoot = root ?? rootForTicket(file);
   const ticketId = id ?? readValidTicket(file, parseTicketText).fields.get("Id");
-  const lockPath = path.join(claimRoot, ".krn", "claims", `${ticketId}.lock`);
+  const lockPath = claimLockPath(claimRoot, ticketId);
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   const { text, fields } = readValidTicket(file, parseTicketText);
   assertClaimUnblocked({ file, root: claimRoot, fields });
@@ -134,7 +217,11 @@ export function claimTicket({ file, root, id, worker, session = "", at = new Dat
   }
 }
 
-export function recordAttempt({ file, signature = "", reason = "unknown", at = new Date().toISOString() } = {}) {
+export function recordAttempt(options = {}) {
+  return withLegacyQueueWrite(options.root ?? rootForTicket(options.file), "record an attempt", () => recordAttemptUnlocked(options));
+}
+
+function recordAttemptUnlocked({ file, signature = "", reason = "unknown", at = new Date().toISOString() } = {}) {
   const { text, fields } = readValidTicket(file, parseTicketText);
   const id = fields.get("Id");
   const status = fields.get("Status");
@@ -158,7 +245,11 @@ export function recordAttempt({ file, signature = "", reason = "unknown", at = n
   };
 }
 
-export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint(), wallSeconds, tokens, allowUnanchored = false }) {
+export function closeTicket(options) {
+  return withLegacyQueueWrite(options.root ?? rootForTicket(options.file), "close", () => closeTicketUnlocked(options));
+}
+
+function closeTicketUnlocked({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint(), wallSeconds, tokens, allowUnanchored = false }) {
   const { text, fields } = readValidTicket(file, parseTicketText);
   const status = fields.get("Status");
   if (TERMINAL_STATUSES.has(status)) throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
@@ -196,7 +287,7 @@ export function closeTicket({ file, root, git = runGit, evidence = "none", resol
       throw new Error(`ticket ${ticket.id} cannot close: ${violations.map((entry) => `${entry.rule}: ${entry.message}`).join("; ")}`);
     }
   }
-  const anchor = integratedAnchor({ root: anchorRoot, git, fields });
+  const anchor = integratedAnchor({ root: anchorRoot, git, fields, head });
   const cost = costRecord({ wallSeconds, tokens });
   let evidenceLine = anchor ? `${evidence}; integrated=${anchor.sha}; patch=${anchor.patch}` : evidence;
   if (cost) evidenceLine = `${evidenceLine}; ${cost}`;
@@ -271,5 +362,27 @@ export function reconcileTickets(options = {}) {
 // not import the envelope parser (the sh-91 single-owner guard pins it here)
 // nor the walker, so the facade binds both into it.
 export function checkTickets(options = {}) {
+  let snapshot;
+  try {
+    snapshot = readActiveTaskStoreSnapshot(options.root);
+  } catch (error) {
+    return {
+      root: options.root,
+      tickets: [],
+      frontier: [],
+      reconciled: [],
+      errors: [{ rule: "task-store-read-failed", message: error?.message ?? String(error) }],
+      warnings: [],
+    };
+  }
+  if (snapshot) {
+    return checkTicketsImpl({
+      ...options,
+      sourceTickets: Object.values(snapshot.state.tasks)
+        .sort((left, right) => left.id.localeCompare(right.id))
+        .map(taskTicketView),
+      sourceErrors: snapshot.errors.map((message) => ({ rule: "task-store-invalid", message })),
+    });
+  }
   return checkTicketsImpl({ listFiles: markdownFiles, parseTicket: parseTicketText, ...options });
 }

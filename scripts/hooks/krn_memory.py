@@ -5,15 +5,14 @@ SessionStart: a fresh session gets the continuing outcome capsule's brief as
 `additionalContext`, so it resumes the bounded action without being told to read
 the file. When no capsule continues, SessionStart may emit one advisory
 onboarding line for a work tree that carries agent instructions without the KRN
-managed contract. PreCompact: the host is about to summarize history, so the
-hook also writes a `boundary.md` next to each continuing capsule, materializing
-the memory layer on disk. It never blocks a session, never adopts anything, and
-never signals on PreCompact: any error exits 0.
+managed contract. PreCompact: the host is about to summarize history, and the
+following SessionStart reads the current capsule directly. PreCompact writes no
+duplicate brief and emits no model-visible context. It never blocks a session
+or adopts anything; any error exits 0.
 """
 
 from __future__ import annotations
 
-import datetime
 import json
 import os
 from pathlib import Path
@@ -221,27 +220,6 @@ def queue_brief(cwd: Path) -> str | None:
     return f"KRN ready queue: {', '.join(ids[:3])}. Claim one with `{CLAIM_COMMAND}`."
 
 
-def write_boundary(state: Path, outcome: str, acceptance: str, next_action: str, blockers: str) -> None:
-    """Materialize the continuation brief on disk at the boundary."""
-    try:
-        stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        (state.parent / "boundary.md").write_text(
-            "\n".join([
-                "# Boundary (auto, written by the PreCompact hook)",
-                f"compacted_at: {stamp}",
-                f"capsule: {state.name}",
-                f"outcome: {outcome}",
-                f"acceptance: {acceptance}",
-                f"next bounded action: {next_action}",
-                f"blockers: {blockers}",
-                "",
-            ]),
-            encoding="utf-8",
-        )
-    except OSError:
-        pass
-
-
 def main() -> int:
     try:
         raw = sys.stdin.read()
@@ -252,6 +230,10 @@ def main() -> int:
         cwd_value = payload.get("cwd")
         cwd = Path(cwd_value).expanduser() if isinstance(cwd_value, str) and cwd_value else Path.cwd()
         if not cwd.is_dir():
+            return 0
+        if event == "PreCompact":
+            # SessionStart after compaction reads the authoritative capsule.
+            # Do not persist a second, potentially stale copy of its fields.
             return 0
 
         root = worktree_root(cwd) or cwd
@@ -264,8 +246,6 @@ def main() -> int:
             next_action = fields.get("Next bounded owner and action") or "unspecified"
             blockers = fields.get("Open unknowns and blockers with owners") or "none"
             acceptance = fields.get("Outcome and observable acceptance") or "unspecified"
-            if event == "PreCompact":
-                write_boundary(state, outcome, acceptance, next_action, blockers)
             notes.append(
                 f"Capsule {state.relative_to(root)} [{outcome}]\n"
                 f"  acceptance: {acceptance}\n"

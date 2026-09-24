@@ -21,7 +21,7 @@
   },
   "profiles": {
     "minimal": {
-      "description": "Keep the global engineering core, built-in operational skills, and the Wakatime baseline; turn every other optional integration off.",
+      "description": "KRN engineering from the manifest and pinned companions plus Wakatime; optional global integrations stay disabled.",
       "plugins": {
         "enable": [
           "codex-cli-wakatime@wakatime"
@@ -41,26 +41,40 @@
           "google-calendar",
           "hugging-face",
           "openai-templates"
-        ]
+        ],
+        "default": "disabled"
       },
       "skills": {
         "enable": [
-          "omarchy",
           "openai-docs",
           "skill-creator"
         ],
         "enableFamilies": [],
         "disable": [
-          "agent-browser"
+          "agent-browser",
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "unslop",
+          "wayfinder",
+          "writing-for-agents"
         ],
         "disableFamilies": [
           "gsap"
         ],
         "preserveScopes": [
-          "krn-global",
           "project-local",
           "system"
-        ]
+        ],
+        "default": "disabled"
       },
       "mcps": {
         "enable": [],
@@ -73,7 +87,8 @@
           "krn_decision_packet",
           "node_repl",
           "openaiDeveloperDocs"
-        ]
+        ],
+        "default": "disabled"
       },
       "apps": {
         "enable": [],
@@ -90,7 +105,7 @@
       }
     },
     "lean": {
-      "description": "Production engineering with KRN, OpenAI docs, Omarchy, and one GitHub plugin/app owner; browser automation stays off unless web-qa is selected.",
+      "description": "Daily KRN engineering from the manifest and pinned companions, with GitHub; unadmitted global integrations stay disabled.",
       "plugins": {
         "enable": [
           "codex-cli-wakatime@wakatime",
@@ -127,26 +142,40 @@
           "google-calendar",
           "hugging-face",
           "openai-templates"
-        ]
+        ],
+        "default": "disabled"
       },
       "skills": {
         "enable": [
-          "omarchy",
           "openai-docs",
           "skill-creator"
         ],
         "enableFamilies": [],
         "disable": [
-          "agent-browser"
+          "agent-browser",
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "unslop",
+          "wayfinder",
+          "writing-for-agents"
         ],
         "disableFamilies": [
           "gsap"
         ],
         "preserveScopes": [
-          "krn-global",
           "project-local",
           "system"
-        ]
+        ],
+        "default": "disabled"
       },
       "mcps": {
         "enable": [],
@@ -159,7 +188,8 @@
           "krn_decision_packet",
           "node_repl",
           "openaiDeveloperDocs"
-        ]
+        ],
+        "default": "disabled"
       },
       "apps": {
         "enable": [
@@ -195,7 +225,8 @@
           "google-calendar",
           "hugging-face",
           "openai-templates"
-        ]
+        ],
+        "default": "disabled"
       },
       "skills": {
         "enable": [
@@ -206,15 +237,29 @@
         "enableFamilies": [
           "gsap"
         ],
-        "disable": [],
+        "disable": [
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "wayfinder",
+          "writing-for-agents"
+        ],
         "disableFamilies": [],
         "preserveScopes": [
-          "krn-global",
           "project-local",
           "system"
-        ]
+        ],
+        "default": "disabled"
       },
-        "mcps": {
+      "mcps": {
         "enable": [
           "figma"
         ],
@@ -222,7 +267,8 @@
           "agent_browser",
           "context7",
           "github"
-        ]
+        ],
+        "default": "disabled"
       },
       "apps": {
         "enable": [
@@ -258,7 +304,8 @@
           "google-calendar",
           "hugging-face",
           "openai-templates"
-        ]
+        ],
+        "default": "disabled"
       },
       "skills": {
         "enable": [
@@ -267,15 +314,29 @@
           "skill-creator"
         ],
         "enableFamilies": [],
-        "disable": [],
+        "disable": [
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "wayfinder",
+          "writing-for-agents"
+        ],
         "disableFamilies": [
           "gsap"
         ],
         "preserveScopes": [
-          "krn-global",
           "project-local",
           "system"
-        ]
+        ],
+        "default": "disabled"
       },
       "mcps": {
         "enable": [
@@ -285,7 +346,8 @@
         ],
         "disable": [
           "github"
-        ]
+        ],
+        "default": "disabled"
       },
       "apps": {
         "enable": [
@@ -321,7 +383,8 @@
           "figma",
           "hugging-face",
           "openai-templates"
-        ]
+        ],
+        "default": "disabled"
       },
       "skills": {
         "enable": [
@@ -330,15 +393,29 @@
           "skill-creator"
         ],
         "enableFamilies": [],
-        "disable": [],
+        "disable": [
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "wayfinder",
+          "writing-for-agents"
+        ],
         "disableFamilies": [
           "gsap"
         ],
         "preserveScopes": [
-          "krn-global",
           "project-local",
           "system"
-        ]
+        ],
+        "default": "disabled"
       },
       "mcps": {
         "enable": [],
@@ -347,7 +424,8 @@
           "context7",
           "figma",
           "github"
-        ]
+        ],
+        "default": "disabled"
       },
       "apps": {
         "enable": [
@@ -383,7 +461,8 @@
           "github@openai-curated-remote",
           "remember@claude-plugins-official"
         ],
-        "disableFamilies": []
+        "disableFamilies": [],
+        "default": "disabled"
       },
       "skills": {
         "enable": [
@@ -395,13 +474,27 @@
         "enableFamilies": [
           "gsap"
         ],
-        "disable": [],
+        "disable": [
+          "code-review",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "grilling",
+          "implement",
+          "prototype",
+          "research",
+          "resolving-merge-conflicts",
+          "tdd",
+          "to-spec",
+          "wayfinder",
+          "writing-for-agents"
+        ],
         "disableFamilies": [],
         "preserveScopes": [
-          "krn-global",
           "project-local",
           "system"
-        ]
+        ],
+        "default": "disabled"
       },
       "mcps": {
         "enable": [
@@ -411,7 +504,8 @@
         ],
         "disable": [
           "github"
-        ]
+        ],
+        "default": "disabled"
       },
       "apps": {
         "enable": [

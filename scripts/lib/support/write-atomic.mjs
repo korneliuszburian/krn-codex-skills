@@ -27,7 +27,16 @@ export function writeAtomic(file, text, {
   let handle = null;
   try {
     handle = open(temp, "wx", 0o600);
-    write(handle, text);
+    const bytes = Buffer.from(text);
+    let offset = 0;
+    while (offset < bytes.length) {
+      const remaining = bytes.length - offset;
+      const written = write(handle, bytes, offset, remaining, null);
+      if (!Number.isInteger(written) || written <= 0 || written > remaining) {
+        throw new Error(`writeAtomic stalled with invalid progress: ${written}`);
+      }
+      offset += written;
+    }
     sync(handle);
     close(handle);
     handle = null;

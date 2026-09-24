@@ -44,11 +44,29 @@ const usage = `Usage:
   krn changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
   krn conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
   krn memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
-  krn ticket <check|next> --root DIR [--path DIR] [--id ID --base REF [--head REF]] [--json]
-  krn ticket show <path> [--json]
-  krn ticket fields --file FILE [--json]
-  krn ticket env --file FILE
-  krn ticket <claim|close> --root DIR --id ID [--worker NAME] [--evidence TEXT] [--resolution TEXT] [--json]
+  krn ticket <add|list|check|next|ready|claim|renew|comment|close|reopen|release|takeover|edit|fail|reconcile> --root DIR [options]
+  krn ticket operation prepare --root DIR --file .krn/runs/FILE.json [--json]
+  krn ticket operation apply --root DIR --id ID --worker NAME --expected-epoch N [--json]
+  krn ticket operation complete --root DIR --id ID --worker NAME --expected-epoch N [--json]
+  krn ticket intent get --root DIR --intent ID [--json]
+  krn ticket intent set --root DIR --intent ID --revision N --expected-revision N [--json]
+  krn ticket store copy --root SOURCE --to ISOLATED-CLONE [--json]
+  krn ticket store export --root DIR [--json]
+  krn ticket store restore --root DIR --file ARCHIVE.json [--json]
+  krn ticket store migrate --root DIR [--file DECISIONS.json] [--yes --archive FILE --actor NAME --reason TEXT] [--json]
+  krn ticket store lock --root DIR [--json]
+  krn ticket store unlock --root DIR --token TOKEN --actor NAME --reason TEXT [--json]
+  krn ticket add --root DIR --title TEXT [--lane-recipe FILE.json] [--json]
+  krn ticket edit --root DIR --id ID [--lane-recipe FILE.json] [content options] [--json]
+  krn ticket show <path> [--json] | show --root DIR --id ID [--json]
+  krn ticket fields --file FILE [--json] | fields --root DIR --id ID [--json]
+  krn ticket env --file FILE | env --root DIR --id ID
+  krn ticket claim --root DIR (--id ID | --ready) --worker NAME [--session NAME] [--json]
+  krn ticket takeover --root DIR --id ID --worker NAME --expected-epoch N --reason TEXT [--json]
+  krn ticket renew --root DIR --id ID --worker NAME --expected-epoch N [--json]
+  krn ticket comment --root DIR --id ID --worker NAME --expected-epoch N --body TEXT [--json]
+  krn ticket <close|reopen|release> --root DIR --id ID --actor NAME --reason TEXT [--expected-epoch N] [--json]
+  krn ticket fail --root DIR --id ID --worker NAME --expected-epoch N --reason TEXT [--json]
   krn harness compare --task FILE --lanes NAME,NAME [--runs N] [--root DIR] [--json]`;
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
@@ -238,7 +256,7 @@ try {
       else for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
     }
   } else if (raw[0] === "ticket") {
-    runTicketCommand(raw.slice(1), { usage, requireDirectory });
+    await runTicketCommand(raw.slice(1), { usage, requireDirectory });
   } else if (raw[0] === "conformance") {
     const { positional, options } = parseOptions(raw.slice(1));
     rejectForeignOptions(options, ["root", "candidate", "filter", "frozen"]);

@@ -2,8 +2,9 @@
 
 - Status: accepted (operator direction 2026-09-18; amended after the independent
   quality review; amended 2026-09-19 to make the operational-state handoff
-  durable against a volatile checkout; ADR-0003's default stop is replaced)
-- Date: 2026-09-18 (durable-handoff amendment 2026-09-19)
+  durable against a volatile checkout; amended 2026-09-24 for the selected
+  Git-ref queue export; ADR-0003's default stop is replaced)
+- Date: 2026-09-18 (durable-handoff amendments 2026-09-19 and 2026-09-24)
 - Decision owner: KRN skill-system maintainer (operator review)
 - Evidence: the 2026-09-18 bounded swarm (four read-only framings) and its
   reproduced findings queued as sh-60..sh-65, the self-hardening arc
@@ -85,25 +86,31 @@ read. Six holes were reproduced, not argued:
    action, not a blocker for the sh-60..sh-65 proof-layer fixes.
 8. **An active outcome's operational state survives a checkout move by an
    explicit handoff copy and a durable pause export.** The capsule
-   (`.krn/runs/delivery-loop/<outcome>/`) and the local queue
-   (`.scratch/tickets/`) stay untracked ignored working state, per ADR 0001 and
-   ADR 0004; they are per-checkout by design, so a clone inherits neither. A
-   copy into the successor checkout's same ignored paths is necessary but not
-   sufficient: on a volatile checkout such as `/tmp`, that target is as
-   disposable as the source. To move an active outcome, at pause the delivery
-   loop **exports** both directories into the documented durable host archive
+   (`.krn/runs/delivery-loop/<outcome>/`) and the legacy file queue
+   (`.krn/tickets/`) remain ignored working state under ADR 0001 and ADR 0004.
+   The selected Git-ref queue is local operational state shared by linked
+   worktrees; an ordinary clone inherits neither that private ref nor the
+   ignored directories. A copy into another volatile checkout is insufficient.
+   The delivery loop **exports** the capsule and selected queue into the durable
+   host archive
    `${KRN_OUTCOME_ARCHIVE:-$HOME/.local/state/krn/outcomes}/<outcome>/`, then
-   **restores** them by explicit copy into the successor checkout's same ignored
-   paths. The archive is an operational copy on the host, never a tracked
-   artifact. The successor resumes with `krn state check`, `krn state resume`,
-   and `krn ticket next`. No tracked operational artifact is added, because that
-   would turn ignored working state into durable knowledge and contradict
-   ADR 0001 and ADR 0004. **Falsifier:** pause in checkout A, export to the
-   archive, wipe the checkout, restore into checkout B, and resume — the capsule
-   continues and `krn ticket next` reports a populated frontier. A bare clone
-   that skips the restore stays `not-applicable` at `krn state check` with an
-   empty frontier by design, so the archive plus the restore, not a copy into
-   another ignored path, are the load-bearing steps.
+   **restores** them into a compatible successor checkout.
+   [Delivery-loop](../../skills/engineering/delivery-loop/SKILL.md) owns the
+   archive location, backend-specific commands and readback sequence. Its Git-ref
+   branch preserves post-import tasks and human closures through queue export;
+   copying old ticket files alone cannot preserve those writes. Code objects and
+   effect refs remain the code repository's recovery responsibility.
+
+   The successor resumes with `krn state check`, `krn state resume` and
+   `krn ticket next`. No tracked operational artifact is added: the archive
+   remains an operational copy rather than promoted durable knowledge.
+   **Falsifier:** pause in checkout A, export, wipe the checkout, restore into
+   checkout B and resume. The capsule's task candidates resolve, including a
+   post-import task, and the complete task set and frontier match. A bare clone
+   that skips restoration stays `not-applicable` at `krn state check` with an
+   empty frontier; the archive and restore are load-bearing. Restoring only the
+   capsule must expose the omitted queue through a missing task candidate or
+   task-set/frontier mismatch.
 
 ## Consequences
 
@@ -115,10 +122,9 @@ read. Six holes were reproduced, not argued:
   capsule; a stalled hardening pass is itself an inconsistency.
 - More tickets accumulate; the completion discipline (one outcome, one writer,
   finite releases) is unchanged.
-- An outcome's operational state is portable by procedure, not by a tracked
-  artifact: the capsule and the queue stay ignored, and the documented durable
-  pause export plus the explicit handoff restore are what carry them across
-  checkouts and survive a volatile source wipe.
+- An outcome's operational state is portable by procedure: the capsule stays
+  ignored, the selected queue stays local operational state, and the durable
+  pause export plus explicit handoff restore carry them across checkouts.
 
 ## Rejected alternatives
 

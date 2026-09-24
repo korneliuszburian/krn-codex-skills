@@ -42,8 +42,8 @@ const commit = (dir, message) => git(dir, ["-c", "user.email=lab@krn.local", "-c
 function makeRepo(body) {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-contract-"));
   git(dir, ["init", "-q"]);
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
-  writeFileSync(join(dir, ".scratch", "sh-15.md"), ticket(baseFields));
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
+  writeFileSync(join(dir, ".krn/tickets", "sh-15.md"), ticket(baseFields));
   writeFileSync(join(dir, "src-a.mjs"), "export const a = 1;\n");
   git(dir, ["add", "-A"]);
   commit(dir, "seed");
@@ -84,7 +84,7 @@ test("checkTickets fails contract-mismatch when the trailer names another check"
     const found = contractErrors(report);
     assert.equal(found.length, 1, JSON.stringify(report.errors));
     assert.equal(found[0].rule, "contract-mismatch");
-    assert.equal(found[0].path, join(".scratch", "sh-15.md"));
+    assert.equal(found[0].path, join(".krn/tickets", "sh-15.md"));
     assert.match(found[0].message, /does not name/);
   });
 });
@@ -97,7 +97,7 @@ test("checkTickets fails contract-missing when the ticket's commit declares no C
     const found = contractErrors(report);
     assert.equal(found.length, 1, JSON.stringify(report.errors));
     assert.equal(found[0].rule, "contract-missing");
-    assert.equal(found[0].path, join(".scratch", "sh-15.md"));
+    assert.equal(found[0].path, join(".krn/tickets", "sh-15.md"));
   });
 });
 

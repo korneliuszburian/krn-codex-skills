@@ -35,6 +35,18 @@ test("the .node-version line agrees with the package.json engine floor", () => {
   );
 });
 
+// The task-product H2 observer imports node:sqlite for its comparison
+// candidate; on Node 22.11 that import needs --experimental-sqlite, and the
+// frozen-observer runner supplies no such flag, so the pinned runtime must not
+// fall below the first 22.x release where the import works unflagged.
+test("the pinned Node provides node:sqlite without an experimental flag", () => {
+  const [major, minor] = read(".node-version").trim().split(".").map(Number);
+  assert.ok(
+    major > 22 || (major === 22 && minor >= 14),
+    `.node-version must be at least 22.14 for unflagged node:sqlite, found ${major}.${minor}`,
+  );
+});
+
 test("dependabot cools down fresh github-actions releases for at least seven days", () => {
   const config = read(".github/dependabot.yml");
   assert.match(config, /^version:\s*2\s*$/m, "dependabot config must declare version 2");

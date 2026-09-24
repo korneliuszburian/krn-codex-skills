@@ -1,49 +1,29 @@
-# Setting up a ChatGPT project for a repository
+# Optional ChatGPT project context
 
-A ChatGPT project is the durable half of `ask-gpt`: it holds what is stable
-(instructions, knowledge, connector scope, model defaults) so the prompt only
-carries what changes (the fixed point and the question). This page is guidance,
-not a procedure the skill runs; there is no local script and no local index.
+A ChatGPT project can share chats, uploaded files, instructions, and connected
+sources across repeated questions. Use one when that shared context saves real
+work; a single bounded question can use a chat without a project. The repository
+remains the authority for its rules, vocabulary, code, and decisions.
 
-## Why a project
+## Before naming a project in a prompt
 
-- **Stable context stays in the project.** Instructions and attached knowledge
-  live once in the project instead of being restated in every prompt.
-- **The prompt stays small.** A short prompt plus a warm project context beats a
-  long prompt that re-explains the same background each time.
-- **The connector is scoped once.** Repository authorization is a project-level
-  setup, so the prompt can name the project rather than re-list repositories.
+1. Confirm the operator's chosen project and the GitHub connector's access to
+   the intended repository. Connector authorization is checked separately from
+   project membership.
+2. Keep project instructions about the advisory answer: scope, citation format,
+   uncertainty, and return to the local owner. Point to the repository's
+   published fixed point for current engineering rules instead of copying them
+   into a second maintained rule set.
+3. Attach a file only when the question needs context outside the connector.
+   Name its version and treat it as a snapshot; refresh or remove it when the
+   source changes.
+4. State in the prompt which sources the chat can actually read. A project
+   does not make a local working tree visible to the remote GitHub connector.
 
-## Intake, once per repository
+**Done when:** the project adds needed shared context, its connector scope is
+verified, and no project instruction or attachment is presented as newer than
+the repository source it describes.
 
-On the first invocation for a repository, settle three questions with the
-operator and record the answers in the project:
-
-1. **Create a project or reuse one?** Name the ChatGPT project the analysis
-   belongs to, and create it if it does not exist.
-2. **Are the project instructions written?** Record `existing` with where they
-   live, or `missing` so the first prompt asks for them.
-3. **Which files and standards belong to the project?** The paths, documents,
-   and standards the analysis should treat as project context.
-
-## What to put in the project
-
-- **Instructions.** The repository's decision rules and vocabulary in the
-  operator's own words, short enough to stay readable: what the project is, what
-  a good answer includes, and what it must never do (edit code, decide merges).
-- **Knowledge files.** The documents that are stable and worth attaching: the
-  glossary, the architecture decisions, the research synthesis. Remember an
-  attached file is a snapshot, not a live source, so prefer stable documents and
-  let the connector read the moving code.
-- **Connector scope.** Install the GitHub app and select the repositories the
-  project may read; access is per repository and can be changed in GitHub.
-- **Model defaults.** The model and reasoning effort the project should usually
-  run; a prompt can still override them for one question.
-
-## Project memory is append-only
-
-The ChatGPT project surface accepts additions only: an instruction or memory
-entry can be appended, never rewritten in place. Design every change as an
-append, and keep the newest statement the current one. A rewritten local copy
-would describe a project state the chat does not have, so there is no local
-mirror to maintain; the project itself is the record.
+The [OpenAI Projects documentation](https://learn.chatgpt.com/docs/projects)
+describes projects as shared context for related chats. It does not establish
+an append-only repository memory contract.

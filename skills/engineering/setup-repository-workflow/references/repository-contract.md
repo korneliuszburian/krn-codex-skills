@@ -25,7 +25,7 @@ condensed truth into the successor-owned run before cleanup. For a superseded
 or abandoned delivery run, transfer alone is not consumer completion; retain
 the original until its Goal's non-active state is read back.
 
-When the `krn-codex` CLI is installed, the capsule reader commands named in
+When the `krn` CLI is installed, the capsule reader commands named in
 `config/AGENTS.md` verify and resume a file-backed capsule structurally from the
 repository root; run them before resuming or completing.
 

@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { sha256Hex } from "../../scripts/lib/kernel/digest.mjs";
 
 const cli = fileURLToPath(new URL("../../scripts/catalog.mjs", import.meta.url));
 
@@ -58,6 +59,38 @@ test("catalog profile list reports the installed profiles as JSON", () => {
   }
 });
 
+test("catalog plan from a repo subdirectory uses the implicit git root but respects explicit --root", () => {
+  const { base, env, configPath } = makeHome();
+  try {
+    const repo = join(base, "repo");
+    const subdir = join(repo, "nested");
+    const skillName = "delivery-loop";
+    const relative = join("skills", "engineering", skillName);
+    const release = join(base, "codex", "krn", "releases", "fixture");
+    const global = join(base, "agents", "skills", skillName);
+    const project = join(repo, ".agents", "skills", skillName);
+    const body = "---\nname: delivery-loop\ndescription: fixture\n---\n";
+    for (const directory of [subdir, join(release, relative), project, join(base, "agents", "skills")]) mkdirSync(directory, { recursive: true });
+    writeFileSync(join(release, relative, "SKILL.md"), body);
+    writeFileSync(join(project, "SKILL.md"), body);
+    writeFileSync(join(repo, ".agents", "skills", ".krn-export.json"), JSON.stringify({ schemaVersion: 1, skills: [skillName], digests: { [skillName]: sha256Hex("SKILL.md", "\0", body, "\0") } }));
+    symlinkSync(release, join(base, "codex", "krn", "current"));
+    symlinkSync(join(release, relative), global);
+    writeFileSync(configPath, 'model = "fixture"\n');
+    const init = spawnSync("git", ["init", "-q", repo], { encoding: "utf8" });
+    assert.equal(init.status, 0, init.stderr);
+    const plan = (args) => spawnSync(process.execPath, [cli, "plan", "minimal", "--config", configPath, "--json", ...args], { encoding: "utf8", cwd: subdir, env: { ...process.env, ...env } });
+    const implicit = plan([]);
+    assert.equal(implicit.status, 0, implicit.stderr);
+    assert.deepEqual(JSON.parse(implicit.stdout).resolved.projectComposition.equivalent, [join(project, "SKILL.md")]);
+    const explicit = plan(["--root", subdir]);
+    assert.equal(explicit.status, 0, explicit.stderr);
+    assert.deepEqual(JSON.parse(explicit.stdout).resolved.projectComposition.equivalent, []);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
 test("catalog plan, check, and apply converge a managed config with a backup", () => {
   const { base, env, configPath } = makeHome();
   try {
@@ -69,10 +102,10 @@ test("catalog plan, check, and apply converge a managed config with a backup", (
 
     const drift = run(["check", "minimal", "--config", configPath, "--json"], env);
     assert.equal(drift.status, 3, drift.stderr);
-    assert.equal(JSON.parse(drift.stdout).status, "drift");
+    assert.equal(JSON.parse(drift.stdout).status, "missing-skills");
     assert.equal(JSON.parse(drift.stdout).converged, false);
     const driftText = run(["check", "minimal", "--config", configPath], env);
-    assert.match(driftText.stdout, /DRIFT:/);
+    assert.match(driftText.stdout, /missing required skills:/);
 
     const applied = run(["apply", "minimal", "--config", configPath, "--json"], env);
     assert.equal(applied.status, 0, applied.stderr);
@@ -85,10 +118,11 @@ test("catalog plan, check, and apply converge a managed config with a backup", (
     assert.match(config, /\[plugins\."remember@claude-plugins-official"\]\nenabled = false/);
     assert.match(config, /\[plugins\."codex-cli-wakatime@wakatime"\]\nenabled = true/);
 
-    const converged = run(["check", "minimal", "--config", configPath, "--json"], env);
-    assert.equal(converged.status, 0, converged.stderr);
-    assert.equal(JSON.parse(converged.stdout).status, "converged");
-    assert.equal(JSON.parse(converged.stdout).converged, true);
+    const incomplete = run(["check", "minimal", "--config", configPath, "--json"], env);
+    assert.equal(incomplete.status, 3, incomplete.stderr);
+    assert.equal(JSON.parse(incomplete.stdout).status, "missing-skills");
+    assert.equal(JSON.parse(incomplete.stdout).converged, false);
+    assert.equal(JSON.parse(incomplete.stdout).plan.changed, false, "config converges even when a required owner is absent");
 
     const replan = run(["plan", "minimal", "--config", configPath, "--json"], env);
     assert.equal(JSON.parse(replan.stdout).plan.changed, false);

@@ -18,6 +18,7 @@
       "class": "destructive",
       "authority": "Authority: install, retire, and rollback subcommands mutate the user's global capability index and require an explicit operator request."
     },
+    { "path": "scripts/lib/catalog/capability-admission.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-config.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-desired.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-document.mjs", "class": "read-only" },
@@ -34,6 +35,7 @@
     { "path": "scripts/lib/catalog/catalog-usage-literals.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-usage-normalize.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-usage.mjs", "class": "read-only" },
+    { "path": "scripts/lib/catalog/opencode-capabilities.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/plugin-identity.mjs", "class": "read-only" },
     { "path": "scripts/lib/conformance/conformance.mjs", "class": "additive" },
     { "path": "scripts/lib/contract/change-contract-runs.mjs", "class": "read-only" },
@@ -56,6 +58,7 @@
       "class": "destructive",
       "authority": "Authority: appends a commit digest to the release ledger inside the user's release store and the source checkout; run only under an explicit seal request."
     },
+    { "path": "scripts/lib/install/project-skill-composition.mjs", "class": "read-only" },
     { "path": "scripts/lib/install/skill-metadata.mjs", "class": "read-only" },
     {
       "path": "scripts/lib/install/skills-export.mjs",
@@ -94,6 +97,21 @@
       "path": "scripts/lib/support/write-atomic.mjs",
       "class": "destructive",
       "authority": "Authority: overwrites only the caller-provided file through a sibling temp and rename; callers confine the target to repository ticket and lock state."
+    },
+    {
+      "path": "scripts/lib/ticket/queue-write-lock.mjs",
+      "class": "destructive",
+      "authority": "Authority: serializes caller-authorized local queue writes, CAS-updates only refs/krn/queue-activation-fence to fence orphan activation helpers, removes only its own unpublished/released guard directories and moves an exact dead-owner token only through explicit recovery with actor and reason. Nonempty recovery tombstones remain until coordinated retirement of legacy writer support. It never removes task files or remote state."
+    },
+    {
+      "path": "scripts/lib/ticket/task-import.mjs",
+      "class": "destructive",
+      "authority": "Authority: restores verified ticket and claim-lock bytes only beneath the caller-supplied restore root; run only as an explicit migration/rollback step after checking the archive and destination; refuses traversal and differing targets and never activates the task store."
+    },
+    {
+      "path": "scripts/lib/ticket/task-store.mjs",
+      "class": "destructive",
+      "authority": "Authority: writes local queue/selector refs and explicitly prepared effect refs through task transition predicates. Explicit migration writes the caller's immutable legacy archive and activates only after all-reader/writer and rollback gates; restore refuses divergent targets. It never writes remote refs."
     },
     { "path": "scripts/lib/ticket/ticket-abi.mjs", "class": "read-only" },
     { "path": "scripts/lib/ticket/ticket-check.mjs", "class": "read-only" },

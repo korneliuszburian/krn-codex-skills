@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # In-repo AFK lane runner (admitted from the LT-7 lab by sh-62).
 # Modes: probe | run | classify | probe-verdict | bwrap-args.
+# Pass a Git-ref task as KRN_TASK_ID; TICKET remains the legacy file adapter.
 # One ticket, one fresh worker session, one isolated clone. The worker never
 # writes the capsule, the lessons page, or the tracker; the host-side
 # integrator (integrate.sh) merges and gates the merged fixed point.
@@ -14,6 +15,7 @@ BWRAP=${BWRAP:-$(command -v bwrap 2>/dev/null || echo bwrap)}
 WORKER_ENV=${WORKER:-}
 WORKER=${WORKER:-codex}
 TICKET=${TICKET:-}
+KRN_TASK_ID=${KRN_TASK_ID:-}
 CHANGED=${CHANGED:-}
 DECIDING_CHECK=${DECIDING_CHECK:-}
 WORK_ROOT=${WORK_ROOT:-$FIXTURE}
@@ -268,7 +270,7 @@ case "$mode" in
   recall-delivery) shift; recall_delivery; exit $? ;;
   recall-delivery-report) shift; recall_delivery_report "${1:-}" "${2:-}"; exit $? ;;
   bwrap-args)
-    RUN_DIR=${RUN_DIR:-$BASE/runs-live/print}
+    RUN_DIR=${RUN_DIR:-$BASE/.krn/runs/lane/print}
     WT=${WT:-$RUN_DIR/wt}
     compose_bwrap
     printf '%s\n' "${BWRAP_ARGS[@]}"
@@ -282,15 +284,30 @@ ticket_abi=no
 TICKET_ID=""
 CONTRACT_REF=""
 CONTRACT_DIR=""
-if [ -n "$TICKET" ] && [ -f "$TICKET" ] && grep -q "<krn-ticket>" "$TICKET" 2>/dev/null; then
+ticket_context=""
+if [ -n "$KRN_TASK_ID" ] && [ -n "$TICKET" ]; then
+  echo "provide KRN_TASK_ID or TICKET, not both" >&2
+  exit 64
+fi
+if [ -n "$KRN_TASK_ID" ]; then
+  ticket_context=$(node "$KRN" ticket show --root "$FIXTURE" --id "$KRN_TASK_ID")
+  parsed=$(node "$KRN" ticket env --root "$FIXTURE" --id "$KRN_TASK_ID")
+  eval "$parsed"
+  if [ "${TICKET_ID:-}" != "$KRN_TASK_ID" ]; then
+    echo "task identity mismatch: requested $KRN_TASK_ID, received ${TICKET_ID:-none}" >&2
+    exit 64
+  fi
+  ticket_abi=yes
+elif [ -n "$TICKET" ] && [ -f "$TICKET" ] && grep -q "<krn-ticket>" "$TICKET" 2>/dev/null; then
   ticket_abi=yes
   # The envelope has one parser (`scripts/lib/ticket/ticket.mjs`, exposed by
   # `krn ticket env`); the lane never carries a second copy.
   parsed=$(node "$KRN" ticket env --file "$TICKET" 2>/dev/null || true)
   eval "$parsed"
-  if [ -n "${TICKET_AGENT:-}" ] && [ -z "$WORKER_ENV" ]; then
-    WORKER=$TICKET_AGENT
-  fi
+  ticket_context=$(cat "$TICKET")
+fi
+if [ -n "${TICKET_AGENT:-}" ] && [ -z "$WORKER_ENV" ]; then
+  WORKER=$TICKET_AGENT
 fi
 contract_ref=${CONTRACT_REF:-$DECIDING_CHECK}
 contract_dir=${CONTRACT_DIR:-red->green}
@@ -361,7 +378,7 @@ fi
 nonce=$(openssl rand -hex 6)
 base=$(git -C "$FIXTURE" rev-parse "$BASE_REF")
 branch="ticket/live-$nonce"
-RUN_DIR=${RUN_DIR:-$BASE/runs-live/$nonce}
+RUN_DIR=${RUN_DIR:-$BASE/.krn/runs/lane/$nonce}
 WT=${WT:-$RUN_DIR/wt}
 mkdir -p "$RUN_DIR/home/.cache" "$RUN_DIR/home/.state" "$RUN_DIR/out"
 if [ "$WORKER" = "codex" ]; then
@@ -383,6 +400,12 @@ delivery_sentinel=$(openssl rand -hex 8)
 # common directory stay read-only; the host fetches the branch back below.
 git clone --quiet --no-hardlinks --no-checkout "$FIXTURE" "$WT"
 git -C "$WT" checkout --quiet -B "$branch" "$base"
+if [ -n "$KRN_TASK_ID" ]; then
+  # Git clone omits refs/krn by default. Copy the selected queue snapshot into
+  # this independent clone so host checks resolve the same task without sharing
+  # the canonical task-store refs or writing under the legacy Markdown path.
+  node "$KRN" ticket store copy --root "$FIXTURE" --to "$WT" --json >/dev/null
+fi
 
 # The lane requires a red task: if the deciding check already passes at the cut
 # base, a worker can only manufacture a diff to satisfy the commit rule. The
@@ -442,7 +465,7 @@ fi
 cat >"$RUN_DIR/PROMPT.txt" <<EOF
 You are one AFK worker on one ticket, working only inside the current directory (branch $branch).
 Ticket:
-$(cat "$TICKET")
+$ticket_context
 
 Harness-evaluated lesson recall for $CHANGED:
 $recall

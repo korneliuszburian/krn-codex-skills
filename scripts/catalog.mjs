@@ -15,6 +15,8 @@ import {
   loadCatalogConfigPlan,
 } from "./lib/catalog/catalog-config.mjs";
 import { resolveProfile } from "./lib/catalog/catalog-profile.mjs";
+import { loadSkillAdmission } from "./lib/catalog/capability-admission.mjs";
+import { planProjectSkillComposition } from "./lib/install/project-skill-composition.mjs";
 import { scanCatalogUsage } from "./lib/catalog/catalog-usage.mjs";
 import { canonicalSkillEntries } from "./lib/catalog/catalog-usage.mjs";
 import {
@@ -30,6 +32,7 @@ import {
 } from "./lib/catalog/catalog-report.mjs";
 
 import { parseCliArgs } from "./lib/kernel/cli.mjs";
+import { gitTopLevel } from "./lib/kernel/git.mjs";
 import { EXIT_CODES, fail } from "./lib/support/diagnostics.mjs";
 
 const EXIT_USAGE = EXIT_CODES.USAGE;
@@ -49,6 +52,7 @@ Usage:
 Options:
   --config PATH         Codex config (default: $CODEX_HOME/config.toml)
   --profiles PATH       capability profile document
+  --root PATH           reconcile this repository's equivalent generated export
   --sessions-root PATH  rollout root (default: $CODEX_HOME/sessions)
   --days N              usage window (default: 30)
   --json                machine-readable output
@@ -62,6 +66,7 @@ function parseArguments(argv) {
     values: {
       "--config": "configPath",
       "--profiles": "profilesPath",
+      "--root": "root",
       "--sessions-root": "sessionsRoot",
       "--days": "days",
     },
@@ -160,18 +165,26 @@ async function main() {
 
   const profileName = positional[1];
   const profile = getCapabilityProfile(profileDocument, profileName);
+  const admission = loadSkillAdmission();
   const resolved = resolveProfile(
     profile,
     inventory,
     profileDocument.hardQuarantine,
     profileDocument.pluginSkillAliases,
+    admission,
+    { codexHome },
   );
-  const plan = await loadCatalogConfigPlan({
+  const globalPlan = await loadCatalogConfigPlan({
     configPath,
     desired: resolved.desired,
     pluginSkillAliases: profileDocument.pluginSkillAliases,
     quarantineFamilies: HARD_QUARANTINE_FAMILIES,
   });
+  const projectRoot = options.root ?? (gitTopLevel(process.cwd()) || process.cwd());
+  const projectPlan = await planProjectSkillComposition({ root: projectRoot, codexHome, admission, inventory, desired: resolved.desired, source: globalPlan.nextSource });
+  const plan = { ...projectPlan, originalHash: globalPlan.originalHash, changed: globalPlan.changed || projectPlan.changed, actions: [...globalPlan.actions, ...projectPlan.actions] };
+  resolved.projectComposition = { equivalent: projectPlan.equivalent, restored: projectPlan.restored, unavailable: projectPlan.unavailable };
+  const incomplete = resolved.missingSkills.length > 0;
 
   if (command === "plan") {
     if (options.json) {
@@ -191,19 +204,19 @@ async function main() {
     if (options.json) {
       printJson({
         profile: profileName,
-        status: plan.changed ? "drift" : "converged",
-        converged: !plan.changed,
+        status: incomplete ? "missing-skills" : plan.changed ? "drift" : "converged",
+        converged: !plan.changed && !incomplete,
         capability_states: configurationStateContract(),
         resolved,
         plan: publicPlan(plan),
       });
     } else {
       printPlan(profileName, resolved, plan);
-      console.log(plan.changed
-        ? `DRIFT: ${profileName} differs from the desired state; run \`krn-codex capability apply ${profileName}\``
+      console.log(incomplete ? `missing required skills: ${resolved.missingSkills.join(", ")}` : plan.changed
+        ? `DRIFT: ${profileName} differs from the desired state; run \`krn capability apply ${profileName}\``
         : `converged: ${profileName} matches the desired state`);
     }
-    if (plan.changed) process.exitCode = EXIT_DRIFT;
+    if (plan.changed || incomplete) process.exitCode = EXIT_DRIFT;
     return;
   }
 

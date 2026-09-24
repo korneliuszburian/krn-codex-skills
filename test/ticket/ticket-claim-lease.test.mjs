@@ -39,7 +39,7 @@ const plus = (iso, seconds) => new Date(Date.parse(iso) + seconds * 1000).toISOS
 
 const withTickets = (body) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-lease-"));
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   try {
     body(dir);
   } finally {
@@ -53,7 +53,7 @@ test("a claim records renew and duration and keeps the lease lock", async () => 
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(baseFields));
     const lockPath = join(dir, ".krn", "claims", "t-1.lock");
     const seen = [];
@@ -82,7 +82,7 @@ test("check warns claim-expired only once renew plus duration is in the past", a
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(baseFields));
     ticketLib.claimTicket({ file, root: dir, id: "t-1", worker: "w", at: T0, duration: 60 });
     const early = ticketLib.checkTickets({ root: dir, now: plus(T0, 59) });
@@ -98,7 +98,7 @@ test("an expired lease is reclaimable with epoch+1 while an unexpired lease refu
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(baseFields));
     const first = ticketLib.claimTicket({ file, root: dir, id: "t-1", worker: "w-1", at: T0, duration: 60 });
     assert.equal(first.claim.epoch, 1);
@@ -121,8 +121,8 @@ test("an expired lease is reclaimable with epoch+1 while an unexpired lease refu
 test("the CLI surfaces claim-expired for a claimed lease past its deadline", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-lease-cli-"));
   try {
-    mkdirSync(join(dir, ".scratch"), { recursive: true });
-    const file = join(dir, ".scratch", "t-1.md");
+    mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket({
       ...baseFields,
       Status: "claimed",

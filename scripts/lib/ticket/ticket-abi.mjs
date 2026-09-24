@@ -24,10 +24,26 @@ export const REQUIRED = [
   "Acceptance",
   "Blocked by",
 ];
-export const DEFAULT_DIRS = [".scratch", ".krn/tickets"];
+export const DEFAULT_DIRS = [".krn/tickets"];
+
+const SIMPLE_CLAIM_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+export function claimLockPath(root, id) {
+  const stableId = String(id ?? "");
+  if (!stableId) throw new Error("ticket id is required for a claim lock");
+  const lockId = SIMPLE_CLAIM_ID.test(stableId)
+    ? stableId
+    : `~${Buffer.from(stableId, "utf8").toString("hex")}`;
+  return path.join(root, ".krn", "claims", `${lockId}.lock`);
+}
 
 export const DEFAULT_CLAIM_DURATION = 3600;
 export const MAX_ATTEMPTS = 3;
+const PLACEHOLDER_REASONS = new Set(["none", "unknown", "n/a", "not applicable", "todo", "tbd", "placeholder"]);
+export function hasActionableReason(reason) {
+  const normalized = String(reason ?? "").trim().toLowerCase();
+  return normalized !== "" && !PLACEHOLDER_REASONS.has(normalized);
+}
 export const ANCHOR_BYPASS = "allow-unanchored";
 
 // Infrastructure configuration swings agent evals as much as model choice does,
@@ -43,9 +59,39 @@ const PLACEHOLDER_RESOLUTIONS = new Set(["", "none", "n/a", "na", "tbd", "pendin
 
 export const INTEGRATED_ANCHOR = /(?:^|[;\s])integrated=([0-9a-f]{7,40})/i;
 export const PATCH_ANCHOR = /(?:^|[;\s])patch=([0-9a-f]{40})/i;
-export const INTEGRATION_BRANCH = /(?:^|;\s*)branch=([^\s;]+)/i;
+const INTEGRATION_BRANCH = /(?:^|;\s*)branch=([^\s;]+)/i;
 export const CONTRACT_DIRECTION = /:\s*(red|green)\s*->\s*(red|green)\s*$/i;
 export const TEST_REF = /(?:^|\/)test\/|\.test\.(?:mjs|cjs|js)$/;
+
+export function parseIntegrationRecord(value) {
+  const legacyRaw = String(value ?? "").trim();
+  if (!legacyRaw) return null;
+  const branch = INTEGRATION_BRANCH.exec(legacyRaw)?.[1];
+  if (!branch) return null;
+  return {
+    branch,
+    sha: /(?:^|;\s*)sha=([0-9a-f]{40})/i.exec(legacyRaw)?.[1] ?? "",
+    patch: /(?:^|;\s*)patch=([0-9a-f]{40})/i.exec(legacyRaw)?.[1] ?? "",
+    legacyRaw,
+  };
+}
+
+export function parseGate(value) {
+  const legacyRaw = String(value ?? "").trim();
+  if (!legacyRaw) return null;
+  if (/^none$/i.test(legacyRaw)) return { kind: "none", detail: "", legacyRaw };
+  const match = /^(human|ci|tracker):\s*(.+)$/i.exec(legacyRaw);
+  if (!match) return null;
+  return { kind: match[1].toLowerCase(), detail: match[2].trim(), legacyRaw };
+}
+
+export function parseExecutionHint(value) {
+  const legacyRaw = String(value ?? "").trim();
+  if (!legacyRaw) return null;
+  const agentHint = /(?:^|;\s*)agent=([A-Za-z]+)/.exec(legacyRaw)?.[1] ?? "";
+  if (!["codex", "opencode"].includes(agentHint)) return null;
+  return { agentHint, legacyRaw };
+}
 
 // The lane consumes the envelope through this binding map rather than its own
 // copy of the field parser: the owner decides which fields become which shell
@@ -66,8 +112,8 @@ export function ticketLaneBindings(fields) {
     add("CONTRACT_REF", contract.slice(0, separator).trim());
     add("CONTRACT_DIR", contract.slice(separator + 1).trim());
   }
-  const agent = /agent=([A-Za-z]+)/.exec(get("Execution"));
-  if (agent) add("TICKET_AGENT", agent[1]);
+  const executionHint = parseExecutionHint(get("Execution"));
+  if (executionHint) add("TICKET_AGENT", executionHint.agentHint);
   return bindings;
 }
 
@@ -189,7 +235,7 @@ export function claimLease({ fields, root, id }) {
   let renew = claimField(claim, "renew");
   let duration = claimField(claim, "duration");
   if (renew === undefined || duration === undefined) {
-    const held = readClaimLock(path.join(root, ".krn", "claims", `${id}.lock`));
+    const held = readClaimLock(claimLockPath(root, id));
     if (held) {
       renew = renew ?? held.renew;
       duration = duration ?? held.duration;

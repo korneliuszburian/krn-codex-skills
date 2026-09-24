@@ -46,7 +46,7 @@ const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const withTickets = (body) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-env-"));
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   try {
     body(dir);
   } finally {
@@ -64,7 +64,7 @@ test("close records a hash-only environment fingerprint beside the evidence", as
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "sh-23.md");
+    const file = join(dir, ".krn/tickets", "sh-23.md");
     writeFileSync(file, ticket(baseFields));
     ticketLib.closeTicket({ file, root: dir, evidence: "node --test green", resolution: "merged" });
     const text = readFileSync(file, "utf8");
@@ -85,12 +85,12 @@ test("check warns missing-env-fingerprint only on a done ticket without one", as
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "sh-23.md");
+    const file = join(dir, ".krn/tickets", "sh-23.md");
     writeFileSync(file, ticket({ ...baseFields, Status: "done", Evidence: "node --test green" }));
     const report = ticketLib.checkTickets({ root: dir });
     const missing = report.warnings.filter((entry) => entry.rule === "missing-env-fingerprint");
     assert.equal(missing.length, 1, JSON.stringify(report.warnings));
-    assert.equal(missing[0].path, join(".scratch", "sh-23.md"));
+    assert.equal(missing[0].path, join(".krn/tickets", "sh-23.md"));
 
     writeFileSync(file, ticket({ ...baseFields, Status: "done", Evidence: "node --test green", Env: ticketLib.envFingerprint() }));
     const present = ticketLib.checkTickets({ root: dir }).warnings.filter((entry) => entry.rule === "missing-env-fingerprint");
@@ -100,7 +100,7 @@ test("check warns missing-env-fingerprint only on a done ticket without one", as
 
 test("the CLI closes with the fingerprint and check surfaces it when stripped", () => {
   withTickets((dir) => {
-    const tickets = join(dir, ".scratch");
+    const tickets = join(dir, ".krn/tickets");
     const file = join(tickets, "sh-23.md");
     writeFileSync(file, ticket(baseFields));
     const run = (...args) => spawnSync(process.execPath, [cli, "ticket", ...args], { encoding: "utf8" });

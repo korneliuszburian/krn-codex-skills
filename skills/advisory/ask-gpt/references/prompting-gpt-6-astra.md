@@ -26,8 +26,8 @@ of findings.
 - **Tools and surfaces.** Turn on only the surface the question needs (see the
   capabilities reference). Extra tools dilute the evidence bar by inviting the
   model outside the repository.
-- **Project.** If the repository has a project, select it so its instructions and
-  knowledge apply; the prompt then names the project instead of restating it.
+- **Project.** Select one only when its shared sources help this question; name
+  the project and check its attached snapshots against the current source.
 
 ## The prompt contract
 
@@ -36,19 +36,19 @@ deliberate: the read-only contract first so it cannot be missed, the ask last so
 it is the most recent instruction.
 
 1. **Role and contract.** One sentence naming a read-only principal reviewer
-   with repository access, then the prohibitions: do not propose patches or
+   with the selected source access, then the prohibitions: do not propose patches or
    diffs, do not edit, do not run or claim to run commands, do not restate the
    repository's own documentation as a finding.
-2. **Fixed point.** Repository URL, branch, commit SHA, base ref, and the exact
-   file list in scope. Astra must analyze the named commit, not the default
-   branch at some later time; a finding about a file outside the list is out of
-   scope.
+2. **Fixed point.** For GitHub connector review, name the repository URL,
+   branch, published commit SHA, base ref, and exact files in scope. For a
+   public source or attached file, name its URL or version, date, and section.
+   A finding outside that fixed scope is out of scope.
 3. **The question.** One primary question, at most three secondary questions.
    State the decision it informs and the forbidden decisions (for example, "do
    not decide whether to merge").
-4. **Evidence bar.** Require `path:line` for every finding, a quoted fragment,
-   and an explicit split between observation (what the code shows) and inference
-   (what the reviewer concludes). A finding without a location is invalid.
+4. **Evidence bar.** Require `path:line` for repository findings or a primary
+   URL and section for public sources, a short quoted fragment, and an explicit
+   split between observation and inference. A finding without a location is invalid.
 5. **Output schema.** The exact headings and the severity vocabulary, so the
    answer is machine- and human-readable in the same shape every time.
 6. **Questions back.** Ask Astra to end with what it would need to answer more
@@ -66,13 +66,13 @@ One paragraph: the answer to the primary question, with the strongest evidence.
 ## Findings
 For each finding, in descending severity:
 - severity: blocker | major | minor | nit
-- path:line
+- source: path:line or primary URL and section
 - observation: what the code shows, quoted
 - inference: what it means for the question
 - recommendation: the smallest correct change, described, never a patch
 
 ## Open questions
-What the reviewer cannot decide from the repository, each with the missing input.
+What the reviewer cannot decide from the selected sources, each with the missing input.
 
 ## Non-proofs
 What this review did not verify (gates, live host, uncommitted state, tests).
@@ -98,9 +98,8 @@ rule is repeated in the closing ask.
 - **Ask for the missing input.** When the verdict is hedged, the fastest repair
   is the closing "questions back" block: supply one missing file or decision and
   re-ask, rather than restating the whole prompt.
-- **Keep the fixed point stable.** If the commit moved between turns, say so and
-  name the new commit; a multi-turn answer that silently spans two commits is
-  not reproducible from a single head.
+- **Keep the fixed point stable.** If the named commit or source version moved
+  between turns, say so and name the new fixed point.
 
 ## Failure modes to design against
 
@@ -108,16 +107,16 @@ rule is repeated in the closing ask.
   no locatable findings; the schema is what makes it usable.
 - **Patch-shaped answers.** Asking for "the fix" produces diffs that bypass the
   owning workflow's proof; ask for a described change instead.
-- **Stale refs.** A prompt that names a branch but not a commit invites analysis
-  of whatever the connector sees later; pin the commit.
+- **Stale refs.** A connector prompt that names a branch but not a commit
+  invites analysis of later state; pin the published commit.
 - **Documentation restatement.** Without the prohibition, the answer paraphrases
   the repository's own guidance; the value is what the code contradicts.
 - **Confidence without evidence.** Require the observation/inference split so a
   guess is visible as a guess.
 - **Silent scope drift.** The file list plus "out of scope" language keeps the
   answer inside the question.
-- **Hallucinated line numbers.** Require a quoted fragment beside every
-  `path:line` so a fabricated location is visible when checked locally.
+- **Hallucinated locations.** Require a quoted fragment beside every
+  `path:line` or source section so a fabricated location is visible on readback.
 - **Tool dilution.** Naming every surface invites the model outside the
   repository; name only the ones the question needs.
 

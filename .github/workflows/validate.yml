@@ -15,11 +15,18 @@ concurrency:
 jobs:
   gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         tier: [fast, deep]
+    env:
+      # Frozen observer fixtures create their own commits without configuring an
+      # author; a runner with no git identity must still satisfy `git commit`.
+      GIT_AUTHOR_NAME: krn-ci
+      GIT_AUTHOR_EMAIL: krn-ci@users.noreply.github.com
+      GIT_COMMITTER_NAME: krn-ci
+      GIT_COMMITTER_EMAIL: krn-ci@users.noreply.github.com
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

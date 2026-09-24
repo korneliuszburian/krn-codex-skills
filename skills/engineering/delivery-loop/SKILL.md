@@ -93,17 +93,34 @@ hosts own their mechanics and policy.
    credentials, or source corpora.
 
    When the checkout is volatile or the outcome must move, a copy into another
-   ignored path is not durable. At pause, export the capsule directory
-   `.krn/runs/delivery-loop/<outcome-id>/` and the queue directory
-   `.scratch/tickets/` into the documented durable host archive
-   `${KRN_OUTCOME_ARCHIVE:-$HOME/.local/state/krn/outcomes}/<outcome-id>/`, then
-   restore them by explicit copy into the successor checkout's same ignored
-   paths before resuming with `krn state check`, `krn state resume`, and
-   `krn ticket next`. The archive is an operational copy on the host, never a
-   tracked artifact. **Falsifier:** export, wipe the checkout, restore, and
-   resume — the capsule continues and `krn ticket next` reports a populated
-   frontier; a checkout that skips the restore stays `not-applicable` with an
-   empty frontier, so the archive and the restore are load-bearing.
+   ignored path is not durable. At pause, quiesce the outcome and queue writers,
+   then export the capsule directory `.krn/runs/delivery-loop/<outcome-id>/`
+   and the selected queue into the durable host archive
+   `${KRN_OUTCOME_ARCHIVE:-$HOME/.local/state/krn/outcomes}/<outcome-id>/`.
+
+   When `refs/krn/queue-active` exists, save successful output from
+   `krn ticket store export --root REPO --json` as `queue.json` in that archive.
+   An unreadable selected store blocks the archive; use the file-queue branch
+   only when the selector is absent. That branch copies the complete
+   `.krn/tickets/` directory with checkout-relative paths. Keep any pre-import
+   raw backup as historical data. Other ignored directories retain their own
+   consumers and are outside KRN task state.
+
+   Restore the capsule directory and the selected queue into a compatible
+   successor checkout. For `queue.json`, run `krn ticket store restore --root
+   SUCCESSOR --file ARCHIVE/queue.json`; for a file queue, restore its original
+   paths. Complete restoration before `krn state check`, `krn state resume`
+   and `krn ticket next`. Queue export preserves task records; the code
+   repository owns code objects and effect refs. The archive is an operational
+   copy on the host, never a tracked artifact.
+
+   **Falsifier:** compare the complete path/ID set from `krn ticket check
+   --root REPO --json` and the `krn ticket next` frontier before export and
+   after restore. Include a task created after import and a capsule candidate
+   that references it: it must resolve after restore. The negative control
+   restores the capsule but omits the queue, producing a missing candidate or
+   different task set/frontier. A fresh checkout that skips restore has an
+   empty frontier; archive and restore are load-bearing.
 
    When a composed workflow returns a run
    pointer, upsert one `Outstanding workflow-run cleanup` entry keyed by that

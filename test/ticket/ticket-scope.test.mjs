@@ -40,8 +40,8 @@ const commit = (dir, message) => git(dir, ["-c", "user.email=lab@krn.local", "-c
 function makeRepo(scope, change, { id = "sh-2" } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-scope-"));
   git(dir, ["init", "-q"]);
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
-  writeFileSync(join(dir, ".scratch", "sh-2.md"), ticket({ ...baseFields, Id: id, Scope: scope }));
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
+  writeFileSync(join(dir, ".krn/tickets", "sh-2.md"), ticket({ ...baseFields, Id: id, Scope: scope }));
   writeFileSync(join(dir, "src-a.mjs"), "export const a = 1;\n");
   git(dir, ["add", "-A"]);
   commit(dir, "seed");

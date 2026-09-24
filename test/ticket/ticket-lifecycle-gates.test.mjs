@@ -30,7 +30,7 @@ const baseFields = {
 
 const withTickets = (body) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-gates-"));
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   try {
     body(dir);
   } finally {
@@ -42,8 +42,8 @@ test("claim refuses while a declared blocker is not done", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const blocker = join(dir, ".scratch", "b-1.md");
-    const blocked = join(dir, ".scratch", "t-1.md");
+    const blocker = join(dir, ".krn/tickets", "b-1.md");
+    const blocked = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(blocker, ticket({ ...baseFields, Id: "b-1", Title: "Open blocker" }));
     writeFileSync(blocked, ticket({ ...baseFields, "Blocked by": "b-1" }));
     assert.throws(
@@ -58,7 +58,7 @@ test("close refuses a ticket that is still ready", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(baseFields));
     assert.throws(
       () => ticketLib.closeTicket({ file, root: dir, evidence: "gate green", resolution: "merged" }),
@@ -72,7 +72,7 @@ test("check reports a blocked ticket that carries no Gate", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket({ ...baseFields, Status: "blocked" }));
     const report = ticketLib.checkTickets({ root: dir });
     const hits = report.errors.filter((entry) => entry.rule === "blocked-without-gate");
@@ -84,7 +84,7 @@ test("an empty claim lock fails closed instead of granting a fresh epoch", async
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(baseFields));
     const claims = join(dir, ".krn", "claims");
     mkdirSync(claims, { recursive: true });

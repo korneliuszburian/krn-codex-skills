@@ -5,13 +5,12 @@ import { GIT_LOG_FORMAT, commitChangedFiles, parseGitLogRecords } from "../kerne
 import { readJson } from "../kernel/json.mjs";
 import { parseLessons, parseLessonText, recallLessons, recallLines, recallBindings, triggerEntries as lessonTriggerEntries } from "../lessons/lessons.mjs";
 import { globToRegex } from "../kernel/text.mjs";
-import { withWorktree } from "../kernel/worktree.mjs";
 import { churnHot } from "../support/churn.mjs";
 import { runGit } from "../kernel/git.mjs";
 import { maskLiterals, stripComments, touchedSymbolFiles } from "../kernel/js.mjs";
 import {
-  changedFilesUnder, checkFileRedefined, frozenNodeArgs, frozenRedOk, frozenTestsFor,
-  isTestFile, listTestFiles, listTestFilesIn, normalizeRef, outputTail, resolveCheck, runCheck,
+  changedFilesUnder, frozenNodeArgs, frozenRedOk, frozenTestsFor, runCheckAtBase,
+  isTestFile, listTestFiles, normalizeRef, outputTail, resolveCheck, runCheck,
   scriptChangedFiles, scriptCommand, scriptRedefinition, tapSummary,
 } from "./change-contract-runs.mjs";
 
@@ -92,7 +91,7 @@ function recallObligation({ strictRecall, hit, files, symbols }) {
 }
 
 const RECALL_NONE = /^none\s*\(\s*(.*?)\s*\)\s*$/i;
-const TICKET_DIRS = [".scratch", ".krn/tickets"];
+const TICKET_DIRS = [".krn/tickets"];
 const cleanAnchor = (value) => String(value ?? "").trim().replace(/`/g, "").replace(/^['"]|['"]$/g, "").trim();
 const triggerValues = (trigger) => (trigger ?? "").split(/[;,]/).map((entry) => cleanAnchor(entry.replace(/^(?:path|symbol|churn):/, ""))).filter(Boolean);
 const fieldValue = (text, name) => text.split("\n").map((line) => line.trim()).find((line) => line.startsWith(`${name}:`))?.slice(name.length + 1).trim();
@@ -154,25 +153,7 @@ function recallWaivers(root, lines) {
   return { waivers, errors };
 }
 
-export function runCheckAtBase({ root, base, target, git = runGit, overlay = null }) {
-  const result = withWorktree({ root, ref: base, git, prefix: "krn-base-" }, (dir) => {
-    const overlays = Array.isArray(overlay) ? overlay : overlay ? [overlay] : [];
-    const rootReal = fs.realpathSync(root);
-    for (const rel of overlays) {
-      const from = path.join(root, rel);
-      const real = fs.existsSync(from) && !fs.lstatSync(from).isSymbolicLink() ? path.relative(rootReal, fs.realpathSync(from)) : "..";
-      if (!fs.existsSync(from) || real.startsWith("..") || path.isAbsolute(real)) return { unavailable: true };
-      try {
-        fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
-        fs.copyFileSync(from, path.join(dir, rel));
-      } catch { return { unavailable: true }; }
-    }
-    const frozenTests = frozenTestsFor(root, target, () => listTestFilesIn(dir));
-    const frozenArgs = target.kind === "script" ? frozenNodeArgs(scriptCommand(root, target) ?? "") : [];
-    return { outcome: runCheck({ root: dir, target, frozenTests, frozenArgs }) };
-  });
-  return result ?? { unavailable: true };
-}
+export { runCheckAtBase };
 
 const isRuntimeModule = (rel) => rel.startsWith("scripts/") && rel.endsWith(".mjs") && !isTestFile(rel);
 
@@ -315,6 +296,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       continue;
     }
     const files = changed.files;
+    const parentRef = `${commit.sha}^1`;
     const contract = parseChangeContract(`${commit.subject}\n${commit.body}`);
     const surface = contractSurface(files);
     const changedModules = files.filter((file) => isRuntimeModule(file) && fs.existsSync(path.join(root, file)));
@@ -373,15 +355,15 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       }
       const authoredNow = target.kind === "script"
         ? (baseScripts !== null ? !Object.hasOwn(baseScripts, target.name) : git(root, ["rev-parse", "--git-dir"]).ok)
-        : !git(root, ["cat-file", "-e", `${base}:${target.name}`]).ok;
+        : !git(root, ["cat-file", "-e", `${parentRef}:${target.name}`]).ok;
       const commandChanged = target.kind === "script"
         && baseScripts !== null && Object.hasOwn(baseScripts, target.name) && baseScripts[target.name] !== scripts[target.name];
       const scriptState = target.kind === "script" ? scriptRedefinition(root, base, git, scripts[target.name] ?? "") : null;
-      const fileChanged = (target.kind === "test" || target.kind === "node") ? checkFileRedefined(root, base, git, target.name) : false;
+      const fileChanged = (target.kind === "test" || target.kind === "node") ? files.includes(target.name) : false;
       const changedScriptFiles = target.kind === "script" && scriptState !== "non-literal" ? scriptChangedFiles(root, base, git, scripts[target.name] ?? "") : [];
       const changedTests = changedScriptFiles.filter(isTestFile);
       const changedOther = changedScriptFiles.filter((rel) => !isTestFile(rel));
-      const changedUnderTest = changedFilesUnder(root, base, git, "test/").filter((rel) => fs.existsSync(path.join(root, rel)));
+      const changedUnderTest = changedFilesUnder(root, parentRef, git, "test/", commit.sha);
       let frozenObserver = false;
       let overlays = [];
       if (target.kind === "test" && verifyBefore && (authoredNow || fileChanged)) {
@@ -414,8 +396,16 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         errors.push({ rule: "conflicting-obligations", commit: commit.sha, ref: entry.ref, detail: `the same check (${key}) is predicted both ${seen.join(" and ")} across the range` });
         return;
       }
-      record.obligations.push({ commit: commit.sha, after, label, before: label === "risk" ? "green" : entry.before, ref: entry.ref, frozenObserver });
-      record.overlays = frozenObserver ? overlays : (record.overlays ?? []);
+      record.obligations.push({
+        commit: commit.sha,
+        after,
+        label,
+        before: label === "risk" ? "green" : entry.before,
+        ref: entry.ref,
+        frozenObserver,
+        overlays: frozenObserver ? overlays : null,
+        overlayRef: commit.sha,
+      });
       targets.set(key, record);
     };
     for (const entry of contract.contracts) admit(entry, "contract");
@@ -424,14 +414,14 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   const results = [];
   const baseRunner = runAtBase ?? ((args) => runCheckAtBase({ ...args, git }));
   for (const record of targets.values()) {
-    const overlays = record.overlays ?? [];
     const headFrozen = frozenTestsFor(root, record.target, () => listTestFiles(root, "HEAD", git));
     const headArgs = record.target.kind === "script" ? frozenNodeArgs(scriptCommand(root, record.target) ?? "") : [];
     const outcome = run({ root, target: record.target, frozenTests: headFrozen, frozenArgs: headArgs });
     const baseCache = new Map();
-    const baseOnce = (value) => {
-      const key = value && value.length ? value.join(",") : "\u0000";
-      if (!baseCache.has(key)) baseCache.set(key, baseRunner({ root, base, target: record.target, overlay: value }));
+    const baseOnce = (obligation, overlay = obligation.overlays, overlayRef = obligation.overlayRef) => {
+      const beforeRef = `${obligation.commit}^1`;
+      const key = `${beforeRef}:${overlayRef ?? ""}:${overlay && overlay.length ? overlay.join(",") : "\u0000"}`;
+      if (!baseCache.has(key)) baseCache.set(key, baseRunner({ root, base: beforeRef, target: record.target, overlay, overlayRef }));
       return baseCache.get(key);
     };
     for (const obligation of record.obligations) {
@@ -441,7 +431,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
         errors.push({ rule: obligation.label === "risk" ? "regressed-at-risk" : "unmet-prediction", commit: obligation.commit, ref: obligation.ref, detail: `predicted ${obligation.after}, observed ${outcome.ok ? "green" : "red"}${outputTail(outcome.output)}` });
       }
       if (verifyBefore && obligation.label === "contract" && obligation.before === "red" && obligation.after === "green" && outcome.ok) {
-        const baseRun = baseOnce(overlays.length ? overlays : null);
+        const baseRun = baseOnce(obligation);
         const baseOutput = baseRun.outcome?.output ?? "";
         if (baseRun.unavailable || baseRun.outcome?.spawnFailed) {
           errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete; its before-state is unproven" });
@@ -456,7 +446,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
             const headPass = new Set(tapSummary(outcome.output).passing);
             const missing = tapSummary(baseOutput).failing.filter((name) => !headPass.has(name));
             if (missing.length > 0) errors.push({ rule: "frozen-observer-mismatch", commit: obligation.commit, ref: obligation.ref, detail: `cases failing at base do not pass at head: ${missing.join(", ")}` });
-            const baseObserver = baseOnce(null);
+            const baseObserver = baseOnce(obligation, null, null);
             if (!baseObserver.unavailable && !baseObserver.outcome?.spawnFailed) {
               const baseSummary = tapSummary(baseObserver.outcome.output);
               const baseCases = [...new Set([...baseSummary.passing, ...baseSummary.failing])].filter(Boolean);
@@ -470,7 +460,7 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
       // trustworthy when the changed check was also green at base: otherwise an
       // unrelated pre-existing red rides along under a behavior-preserving claim.
       if (verifyBefore && obligation.before === "green" && obligation.after === "green" && obligation.frozenObserver && outcome.ok) {
-        const baseRun = baseOnce(overlays.length ? overlays : null);
+        const baseRun = baseOnce(obligation);
         const baseOutput = baseRun.outcome?.output ?? "";
         if (baseRun.unavailable || baseRun.outcome?.spawnFailed) {
           errors.push({ rule: "before-state-unverified", commit: obligation.commit, ref: obligation.ref, detail: "the base check did not complete; its before-state is unproven" });

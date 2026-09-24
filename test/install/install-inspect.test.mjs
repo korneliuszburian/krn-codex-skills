@@ -15,6 +15,11 @@ const cleanSource = (base) => {
   mkdirSync(copy);
   const archive = execFileSync("git", ["-C", sourceRoot, "archive", "HEAD"], { maxBuffer: 64 * 1024 * 1024 });
   execFileSync("tar", ["-x", "-C", copy], { input: archive });
+  // Each scenario starts with an unsealed source, independent of this repo's ledger.
+  writeFileSync(
+    join(copy, "config", "release-digests.json"),
+    `${JSON.stringify({ schema_version: 1, digests: {} }, null, 2)}\n`,
+  );
   execFileSync("git", ["-C", copy, "init", "-q"]);
   execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "add", "-A"]);
   execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", "seed"]);
@@ -68,7 +73,7 @@ test("applyInstall rolls back reconciled targets when a later step fails", () =>
     const source = cleanSource(base);
     const first = createInstallPlan({ source, cwd: source, codexHome: home });
     applyInstall(first);
-    const before = inspectInstall({ codexHome: home });
+    const before = inspectInstall({ codexHome: home, source });
     // A day-one apply has no repository seal, so it is an audited override
     // rather than a self-sealed release.
     assert.equal(before.filesystem.status, "digest_unsealed");
@@ -89,7 +94,7 @@ test("applyInstall rolls back reconciled targets when a later step fails", () =>
       delete process.env.KRN_TEST_FAIL_DURING_RECONCILE;
     }
 
-    const after = inspectInstall({ codexHome: home });
+    const after = inspectInstall({ codexHome: home, source });
     assert.equal(after.filesystem.status, "digest_unsealed");
     assert.equal(after.seal, "override_unsealed");
     assert.equal(after.commit, first.commit);
@@ -103,7 +108,7 @@ test("inspectInstall reports an audited override after a real apply", () => {
     const source = cleanSource(base);
     const plan = createInstallPlan({ source, cwd: source, codexHome: home });
     applyInstall(plan);
-    const report = inspectInstall({ codexHome: home });
+    const report = inspectInstall({ codexHome: home, source });
     assert.equal(report.filesystem.status, "digest_unsealed");
     assert.equal(report.seal, "override_unsealed");
     assert.ok(report.override, JSON.stringify(report));

@@ -1,6 +1,6 @@
 ---
 name: managing-codex-capabilities
-description: Audit, profile, enable, or disable global Codex skills, plugins, MCP servers, and app surfaces through the KRN capability catalog. Use for token-heavy integrations, stale overrides, usage evidence, or capability collisions; skip project-local skills and ordinary skill authoring.
+description: Audit and reconcile global Codex skills, token-heavy integrations, and OpenCode capability exposure through KRN profiles. Use for excessive integrations, stale overrides, missing owners, or duplicate generated exports; skip project skill authoring.
 ---
 
 # Managing Codex Capabilities
@@ -8,14 +8,17 @@ description: Audit, profile, enable, or disable global Codex skills, plugins, MC
 Treat global capabilities as a **reviewed surface**, not an accumulating pile of
 version-pinned overrides. Inventory discovers what can exist, usage supplies
 bounded evidence, a profile declares intent, and the reconciler owns the local
-Codex configuration change.
+Codex configuration change. The OpenCode adapter projects the same
+profile into native skill permissions for each repository.
 
 1. **Map the requested surface.** Run `krn capability inventory` for
    global skills and cached plugin candidates. Run
    `krn capability usage --days DAYS` only when actual-use evidence would
    change the decision.
 
-   Keep project-local skills with their repository. Treat app and connector
+   Keep authored project skills with their repository. A verified generated KRN
+   export may defer to its identical installed owner through a producer-marked
+   Codex override; `check` detects when that equivalence is lost. Treat app and connector
    state as report-only: local TOML does not own account connections.
 
    Preserve the catalog's evidence vocabulary: a profile is `declared`, an
@@ -30,8 +33,11 @@ Codex configuration change.
 
 2. **Choose one complete profile.** Inspect it with
    `krn capability profile show PROFILE`, then run
-   `krn capability plan PROFILE`. Use `lean` for daily engineering;
+   `krn capability plan PROFILE --root REPO`. Use `lean` for daily engineering;
    select `design`, `web-qa`, or `comms` only for that focused session.
+   Workflow admission comes from the manifest and pinned companions. Profiles
+   own optional additions and exclusions; an unknown global addition defaults
+   off. Missing required owners are an incomplete installation, not convergence.
 
    <capability-decision>
    Requested outcome:
@@ -48,7 +54,7 @@ Codex configuration change.
    project-local skills or inventing connector authority.
 
 3. **Apply only the reviewed mutation.** When the user requested configuration
-   changes, run `krn capability apply PROFILE` once. Do not hand-edit the
+   changes, run `krn capability apply PROFILE --root REPO` once. Do not hand-edit the
    generated blocks after a successful apply; change the profile policy and
    re-plan if the intended state is wrong.
 
@@ -57,11 +63,15 @@ Codex configuration change.
    explaining or repairing a refusal.
 
    **Done when:** apply reports its backup and the same profile immediately
-   passes `krn capability check PROFILE`.
+   passes `krn capability check PROFILE --root REPO`. Reconcile again after an
+   export, release, profile, or checkout changes an equivalent owner.
 
 4. **Verify in a new session.** Restart Codex, confirm the intended plugin,
    MCP, and skill surface, and report any app that still needs separate account
    disconnection. Current sessions retain their startup capability index.
+   Check OpenCode separately; its adapter uses `KRN_CAPABILITY_PROFILE` or
+   `lean`. Name permissions establish visibility and invocation policy, not
+   filesystem isolation; project skills and native system defaults stay local.
 
    **Done when:** the fresh session matches the profile, any connector gap is
    explicit, and no second apply is required.

@@ -18,6 +18,9 @@ const validSource = () => ({
 
 test("upstreamSourceErrors accepts a canonical document", () => {
   assert.deepEqual(upstreamSourceErrors(validSource()), []);
+  const projectOnly = validSource();
+  projectOnly.sources[0].project_paths = ["skills/grp/alpha/SKILL.md"];
+  assert.deepEqual(upstreamSourceErrors(projectOnly), []);
 });
 
 test("upstreamSourceErrors reports structural and policy violations", () => {
@@ -39,6 +42,18 @@ test("upstreamSourceErrors reports structural and policy violations", () => {
     [
       (doc) => (doc.sources[0].harness_paths = ["skills/grp/other/SKILL.md"]),
       /harness path .* is not in required_paths/,
+    ],
+    [
+      (doc) => (doc.sources[0].project_paths = ["skills/grp/other/SKILL.md"]),
+      /project path .* is not in required_paths/,
+    ],
+    [
+      (doc) => (doc.sources[0].project_paths = ["../escape"]),
+      /unsafe project path/,
+    ],
+    [
+      (doc) => { doc.sources[0].harness_paths = ["skills/grp/alpha/SKILL.md"]; doc.sources[0].project_paths = ["skills/grp/alpha/SKILL.md"]; },
+      /project path .* is already a harness path/,
     ],
     [(doc) => (doc.sources[0].id = "other/skills"), /missing mattpocock\/skills source/],
   ];

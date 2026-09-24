@@ -47,7 +47,7 @@ const statusOf = (file) => readFileSync(file, "utf8").match(/^Status: (.*)$/m)?.
 function makeRepo() {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-reconcile-fallback-"));
   git(dir, ["init", "-q", "-b", "main"]);
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   writeFileSync(join(dir, "seed.txt"), "seed\n");
   git(dir, ["add", "seed.txt"]);
   commit(dir, "seed");
@@ -92,7 +92,7 @@ const squashLane = (dir, branch = "ticket/lane") => {
 };
 
 const writeTicket = (dir, overrides = {}, name = "sh-82.md") => {
-  const file = join(dir, ".scratch", name);
+  const file = join(dir, ".krn/tickets", name);
   writeFileSync(file, ticket({ ...baseFields, ...overrides }));
   return file;
 };
@@ -107,7 +107,7 @@ test("reconcileTickets refuses an unresolvable branch whose recorded sha is outs
     assert.equal(isAncestor(dir, lane), false, "the discarded lane commit is not an ancestor of main");
 
     assert.throws(
-      () => ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" }),
+      () => ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" }),
       /reconcile-sha-unverifiable/,
     );
     assert.equal(statusOf(file), "claimed", "a refused reconcile must leave the ticket untouched");
@@ -124,7 +124,7 @@ test("reconcileTickets closes an unresolvable branch whose recorded sha is an an
     removeBranch(dir);
     assert.equal(isAncestor(dir, lane), true, "the merged lane commit is an ancestor of main");
 
-    const closed = ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" });
+    const closed = ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" });
     assert.deepEqual(closed, ["sh-82"]);
     assert.equal(statusOf(file), "done");
   });
@@ -142,7 +142,7 @@ test("reconcileTickets closes an unresolvable branch whose patch id is present i
     removeBranch(dir);
     assert.equal(isAncestor(dir, lane), false, "a squash discards the worker commit");
 
-    const closed = ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" });
+    const closed = ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" });
     assert.deepEqual(closed, ["sh-82"]);
     assert.equal(statusOf(file), "done");
   });
@@ -156,9 +156,9 @@ test("reconcileTickets leaves a second run over an unresolvable branch a no-op",
     const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
     mergeLane(dir);
     removeBranch(dir);
-    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" }), ["sh-82"]);
+    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" }), ["sh-82"]);
     const closed = readFileSync(file, "utf8");
-    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" }), []);
+    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" }), []);
     assert.equal(readFileSync(file, "utf8"), closed, "the second run must not rewrite a closed ticket");
   });
 });
@@ -176,7 +176,7 @@ test("reconcileTickets never touches blocked or terminal tickets with an unresol
     mergeLane(dir);
     removeBranch(dir);
 
-    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".scratch"], headRef: "HEAD" }), []);
+    assert.deepEqual(ticketLib.reconcileTickets({ root: dir, dirs: [".krn/tickets"], headRef: "HEAD" }), []);
     for (const [name, file] of Object.entries(files)) {
       assert.equal(statusOf(file), name, `${name} must stay untouched`);
     }

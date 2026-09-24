@@ -64,6 +64,19 @@ test("cp target-directory into a protected path is denied", () => {
   assert.ok(decision("Bash", "cp --target-directory=.git ./src"), "cp --target-directory=.git must be denied");
 });
 
+test("a named skill entry accepts nondeleting updates while the index and removal stay guarded", () => {
+  const index = join(homedir(), ".agents", "skills");
+  for (const name of ["playwright-cli", "new-skill"]) {
+    const entry = join(index, name);
+    assert.equal(decision("Bash", `cp -a /tmp/skill/. ${entry}/`), null);
+    assert.equal(decision("Bash", `rsync -a /tmp/skill/ ${entry}/`), null);
+    assert.ok(decision("Bash", `rsync -a --delete /tmp/skill/ ${entry}/`));
+    assert.ok(decision("Bash", `rm -rf ${entry}`));
+  }
+  assert.ok(decision("Bash", `cp -a /tmp/skill/. ${index}/`));
+  assert.ok(decision("Bash", `cp --remove-destination /tmp/SKILL.md ${index}/new-skill/SKILL.md`));
+});
+
 test("attached short -t target-directory into a protected path is denied", () => {
   assert.ok(decision("Bash", "cp -t.git ./src"), "cp -t.git must be denied");
   assert.ok(decision("Bash", "install -t.git ./src"), "install -t.git must be denied");
@@ -100,6 +113,16 @@ test("clustered sed -i, bare git checkout ., and rtk-prefixed writers are denied
   assert.ok(decision("Bash", "sed -Ei s/a/b/ .env"), "sed -Ei must be denied");
   assert.ok(decision("Bash", "git checkout ."), "git checkout . must be denied");
   assert.ok(decision("Bash", "rtk proxy mv /tmp/x .env"), "rtk proxy mv must be denied");
+});
+
+test("concrete git restore is allowed while glob and root are denied", () => {
+  assert.equal(
+    decision("Bash", "git restore --source=HEAD -- scripts/hooks/krn_pretooluse.py scripts/hooks/destructive_guard.py test/hooks-guard.test.mjs README.md"),
+    null,
+    "a named list of existing files may be restored from HEAD",
+  );
+  assert.ok(decision("Bash", "git restore -- scripts/hooks/*.py"), "an expanding glob stays blocked");
+  assert.ok(decision("Bash", "git restore -- ."), "the whole worktree stays blocked");
 });
 
 test("a destructive glob or expansion target names the concrete-path rule", () => {
@@ -147,10 +170,11 @@ test("a mutating writer hidden in a pipeline still fails closed", () => {
   );
 });
 
+// Preserve the frozen historical observer identity; its assertion now guards the no-copy contract.
 test("PreCompact injects a continuing capsule and ignores a completed one", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-precompact-"));
   try {
-    assert.equal(precompactContext(dir), null, "no capsule means no injected context");
+    assert.equal(precompactContext(dir), null, "no capsule means no hook output");
     const make = (id, outcome, next) => {
       const capsule = join(dir, ".krn", "runs", "delivery-loop", id);
       mkdirSync(capsule, { recursive: true });
@@ -164,13 +188,14 @@ test("PreCompact injects a continuing capsule and ignores a completed one", () =
     };
     make("out-1", "ACTIVE", "update src/b.mjs and run npm test");
     const context = precompactContext(dir);
-    assert.match(context, /update src\/b\.mjs and run npm test/);
-    assert.match(context, /out-1/);
-    const boundary = readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-1", "boundary.md"), "utf8");
-    assert.match(boundary, /next bounded action: update src\/b\.mjs and run npm test/);
+    assert.equal(context, null, "PreCompact must not emit SessionStart-specific context");
+    assert.throws(
+      () => readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-1", "boundary.md"), "utf8"),
+      "PreCompact must not write a second continuation brief",
+    );
     make("out-2", "COMPLETE", "do not continue this");
     const after = precompactContext(dir);
-    assert.doesNotMatch(after, /do not continue this/);
+    assert.equal(after, null, "PreCompact stays silent when completed capsules coexist");
     assert.throws(() => readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-2", "boundary.md")), "a completed capsule gets no boundary file");
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -240,4 +265,3 @@ test("SessionStart signals adoption from CLAUDE.md when AGENTS.md is absent", ()
     rmSync(dir, { recursive: true, force: true });
   }
 });
-

@@ -40,7 +40,7 @@ delete readyFields.Claim;
 
 const withTickets = (body) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-stalled-"));
-  mkdirSync(join(dir, ".scratch"), { recursive: true });
+  mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
   try {
     body(dir);
   } finally {
@@ -54,7 +54,7 @@ test("checkTickets warns stalled-claim when the last attempt predates the claim"
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(
       file,
       ticket({ ...baseFields, Attempts: "count=1; reason=no commit in 69s; at=2026-09-17T00:01:00.000Z" }),
@@ -71,7 +71,7 @@ test("checkTickets stays silent when the last attempt is newer than the claim", 
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(
       file,
       ticket({ ...baseFields, Attempts: "count=1; reason=no commit in 69s; at=2026-09-17T00:20:00.000Z" }),
@@ -84,7 +84,7 @@ test("checkTickets does not warn for a claimed ticket with no attempt yet", asyn
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
   withTickets((dir) => {
-    const file = join(dir, ".scratch", "t-1.md");
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(baseFields));
     assert.equal(stalled(ticketLib.checkTickets({ root: dir }).warnings).length, 0);
   });
@@ -93,8 +93,8 @@ test("checkTickets does not warn for a claimed ticket with no attempt yet", asyn
 test("the CLI records a failed attempt through the ledger and exits 0", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-fail-cli-"));
   try {
-    mkdirSync(join(dir, ".scratch"), { recursive: true });
-    const file = join(dir, ".scratch", "t-1.md");
+    mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(file, ticket(readyFields));
     const run = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
     const claim = run("ticket", "claim", "--root", dir, "--id", "t-1", "--worker", "w", "--json");
@@ -116,8 +116,8 @@ test("the CLI records a failed attempt through the ledger and exits 0", () => {
 test("the CLI check surfaces the stalled-claim warning", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-ticket-check-cli-"));
   try {
-    mkdirSync(join(dir, ".scratch"), { recursive: true });
-    const file = join(dir, ".scratch", "t-1.md");
+    mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
+    const file = join(dir, ".krn/tickets", "t-1.md");
     writeFileSync(
       file,
       ticket({ ...baseFields, Attempts: "count=1; reason=no commit in 69s; at=2026-09-17T00:01:00.000Z" }),

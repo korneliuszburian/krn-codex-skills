@@ -6,7 +6,7 @@ connector changes.
 
 | Surface | What it gives the analysis | Name it when | Limits to state |
 |---|---|---|---|
-| GitHub connector | Live, on-demand read of the permitted repositories: code, README, and other docs, retrieved when the prompt asks | the question needs cross-file or cross-history reasoning | it reads the pushed commit, not the working tree; it is read-only; it cannot run the repository's gates |
+| GitHub connector | On-demand read of permitted remote repositories: code, README, and other docs | the question needs cross-file or cross-history reasoning over published state | it cannot see the working tree, write GitHub, or run the repository's gates |
 | Projects and files | Persistent project context plus attached documents | the analysis needs a decision, a spec, or a corpus outside the repository | an attached file is a snapshot, not a live source |
 | Code interpreter | Executing a small snippet the model writes | a claim is cheap to falsify by running a snippet | it runs in the chat's sandbox, not on the repository host |
 | Web browsing | Current external facts and documentation | the question depends on a library version or an external contract | cite the source and date; browsing is not repository evidence |
@@ -38,9 +38,10 @@ honest about what the connector can and cannot do:
   GitHub app is installed and repositories are selected in GitHub; an
   organization owner can block or change that. An IP allow list on GitHub can
   also block the connector.
-- **The pushed commit is the only state.** The connector sees the remote, not a
-  local working tree, so an uncommitted or untracked change is invisible and the
-  analysis silently misses it. Pin the commit and publish before sending.
+- **Remote state only.** The connector cannot see a local working tree. Pin an
+  already published commit if it answers the question; publish a newer one only
+  when the question needs it and separate commit and push authority exists.
+  Name invisible local changes as a non-proof.
 
 ## The write path, and event triggers
 
