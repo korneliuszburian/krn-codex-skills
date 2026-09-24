@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 
 import { gitTopLevel, runGit, runGitInput } from "../kernel/git.mjs";
+import { sha256Hex } from "../kernel/digest.mjs";
 import { DEFAULT_CLAIM_DURATION, leaseExpired } from "./ticket-abi.mjs";
+import { verifyPreparedLegacyQueueImport } from "./task-import.mjs";
 
 const QUEUE_REF = "refs/krn/queue";
 
@@ -169,9 +171,6 @@ function taskStoreErrors(state) {
     for (const dependency of task.dependencies) {
       if (!taskFor(state, dependency)) errors.push(`task ${id} has unknown dependency ${dependency}`);
     }
-    if (task.status === "ready" && !task.dependencies.every((dependency) => taskFor(state, dependency)?.status === "done")) {
-      errors.push(`task ${id} is ready with unresolved dependencies`);
-    }
   }
   for (const [id, task] of entries) {
     if (task && typeof task === "object" && Array.isArray(task.dependencies) && hasDependencyCycle(state, id)) {
@@ -195,6 +194,69 @@ export function openTaskStore(root) {
   return Object.freeze({
     async read() {
       return clone(readSnapshot(repo).state);
+    },
+
+    async importSnapshot(prepared, { acceptClaimSessionAmbiguities = false } = {}) {
+      if (typeof acceptClaimSessionAmbiguities !== "boolean") throw new Error("claim ambiguity acknowledgement must be boolean");
+      verifyPreparedLegacyQueueImport(prepared);
+      const candidate = prepared?.state;
+      const report = prepared?.report;
+      if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)
+        || candidate.version !== 0 || !candidate.tasks || typeof candidate.tasks !== "object" || Array.isArray(candidate.tasks)
+        || !candidate.operations || typeof candidate.operations !== "object" || Array.isArray(candidate.operations)
+        || !candidate.intents || typeof candidate.intents !== "object" || Array.isArray(candidate.intents)
+        || !report || !Array.isArray(report.errors) || !Array.isArray(report.ambiguities)
+        || !Array.isArray(report.pathIds) || !Array.isArray(report.archivePaths) || !Array.isArray(report.unmappedFields)
+        || !prepared.archive || prepared.archive.version !== 1 || !Array.isArray(prepared.archive.entries)) {
+        throw new Error("legacy import snapshot has an unsupported shape");
+      }
+      if (report.errors.length > 0) throw new Error("legacy import snapshot has blocking errors");
+      if (report.ambiguities.length > 0 && !acceptClaimSessionAmbiguities) {
+        throw new Error("legacy import snapshot has unresolved claim ambiguities");
+      }
+      const archivePaths = new Set(report.archivePaths);
+      if (archivePaths.size !== report.archivePaths.length || archivePaths.size !== prepared.archive.entries.length) {
+        throw new Error("legacy import archive manifest is incomplete");
+      }
+      for (const entry of prepared.archive.entries) {
+        if (!entry || typeof entry.path !== "string" || !archivePaths.has(entry.path) || typeof entry.content !== "string") {
+          throw new Error("legacy import archive manifest does not match its files");
+        }
+        const bytes = Buffer.from(entry.content, "base64");
+        if (bytes.toString("base64") !== entry.content || sha256Hex(bytes) !== entry.sha256) {
+          throw new Error(`legacy import archive digest mismatch: ${entry.path}`);
+        }
+      }
+      if (report.pathIds.length !== Object.keys(candidate.tasks).length) throw new Error("legacy import path/ID set does not match its task records");
+      for (const { path: sourcePath, id } of report.pathIds) {
+        const task = taskFor(candidate, id);
+        if (!task || task.sourcePath !== sourcePath || !archivePaths.has(sourcePath)) throw new Error(`legacy import path/ID mapping is incomplete for ${id}`);
+      }
+      const stateErrors = taskStoreErrors(candidate);
+      if (stateErrors.length > 0) throw new Error(`legacy import candidate has task-state errors: ${stateErrors.join("; ")}`);
+      for (const ambiguity of report.ambiguities) {
+        const task = taskFor(candidate, ambiguity.id);
+        if (ambiguity.field !== "Claim.session" || !ambiguity.claimLockPath || !archivePaths.has(ambiguity.claimLockPath)
+          || typeof task?.legacyFields?.Claim !== "string") {
+          throw new Error(`legacy import cannot preserve claim ambiguity for ${ambiguity.id}`);
+        }
+      }
+      for (const { id, field, path: sourcePath } of report.unmappedFields) {
+        const task = taskFor(candidate, id);
+        if (!task || task.sourcePath !== sourcePath || !Object.hasOwn(task.legacyFields, field)) {
+          throw new Error(`legacy import lost unmapped field ${field} for ${id}`);
+        }
+      }
+      const previous = readSnapshot(repo);
+      if (previous.oid) throw new Error("task store is already initialized");
+      const next = clone(candidate);
+      next.version = 1;
+      writeSnapshot(repo, "", next);
+      return {
+        tasks: Object.keys(next.tasks).length,
+        version: next.version,
+        acknowledgedClaimSessionAmbiguities: report.ambiguities.length,
+      };
     },
 
     async list({ status } = {}) {
@@ -305,6 +367,9 @@ export function openTaskStore(root) {
       return transition((state) => {
         const task = taskFor(state, id);
         if (!task || task.status !== "ready") throw new Error(`task ${id} is not ready`);
+        if (!task.dependencies.every((dependency) => taskFor(state, dependency)?.status === "done")) {
+          throw new Error(`task ${id} has unresolved dependencies`);
+        }
         task.status = "claimed";
         task.epoch += 1;
         task.owner = worker;
