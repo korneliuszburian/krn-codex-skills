@@ -172,9 +172,11 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
     assert.equal(prepared.report.unmappedFields.some((entry) => entry.id === "team/ready" && entry.field === "Gate"), false);
     const store = openTaskStore(root);
     await assert.rejects(store.importSnapshot(prepared), /unresolved claim ambiguities/);
-    await assert.rejects(store.importSnapshot(prepared, { acceptClaimSessionAmbiguities: "yes" }), /acknowledgement must be boolean/);
-    assert.deepEqual(await store.importSnapshot(prepared, { acceptClaimSessionAmbiguities: true }), {
-      tasks: 3, version: 1, acknowledgedClaimSessionAmbiguities: 1,
+    const claimSessionResolutions = prepared.report.ambiguities.map((entry) => ({
+      ...entry, source: "ticket", actor: "operator", reason: "Retain the named historical session; the lock has an empty session.",
+    }));
+    assert.deepEqual(await store.importSnapshot(prepared, { claimSessionResolutions }), {
+      tasks: 3, version: 1, resolvedClaimSessionAmbiguities: 1,
     });
     assert.deepEqual((await store.read()).tasks.claimed.legacyFields.Claim, claim);
     const claimedView = taskTicketView((await store.read()).tasks.claimed);
@@ -190,6 +192,80 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(restoreRoot, { recursive: true, force: true });
+  }
+});
+
+test("legacy claim sessions require explicit decisions bound to each conflict without renewing leases", async () => {
+  const root = makeRepo();
+  const restored = mkdtempSync(join(tmpdir(), "krn-claim-resolution-restore-"));
+  try {
+    mkdirSync(join(root, ".krn/tickets"), { recursive: true });
+    mkdirSync(join(root, ".krn/claims"), { recursive: true });
+    const at = "2000-01-01T00:00:00Z";
+    for (const [id, status] of [["expired", "claimed"], ["terminal", "done"]]) {
+      const claimAt = status === "done" ? "2999-01-01T00:00:00Z" : at;
+      writeFileSync(join(root, `.krn/tickets/${id}.md`), ticket({
+        id, status, claim: `worker=maintainer; session=ticket-session; at=${claimAt}; epoch=2; renew=${claimAt}; duration=3600`,
+      }));
+      writeFileSync(join(root, `.krn/claims/${id}.lock`), JSON.stringify({
+        worker: "maintainer", session: "lock-session", at: claimAt, epoch: 2, renew: claimAt, duration: 3600,
+      }));
+    }
+    const prepared = prepareLegacyQueueImport(root);
+    const original = JSON.stringify(prepared);
+    const decisions = prepared.report.ambiguities.map((conflict) => ({
+      ...conflict,
+      source: conflict.id === "terminal" ? "lock" : "ticket",
+      actor: "operator",
+      reason: "Reviewed this historical session against its preserved source record.",
+    }));
+    const store = openTaskStore(root);
+    await assert.rejects(store.importSnapshot(prepared, { acceptClaimSessionAmbiguities: true }), /unsupported import option/);
+    await assert.rejects(store.importSnapshot(prepared), /unresolved claim ambiguities/);
+    for (const invalid of [null, decisions.slice(0, 1), [...decisions, decisions[0]], [decisions[0], decisions[0]]]) {
+      await assert.rejects(store.importSnapshot(prepared, { claimSessionResolutions: invalid }), /claim.session resolution/i);
+    }
+    for (const [key, value] of Object.entries({
+      id: "unknown", path: ".krn/tickets/other.md", claimLockPath: ".krn/claims/other.lock",
+      field: "Claim.worker", ticketDigest: "0".repeat(64), lockDigest: "0".repeat(64),
+      source: "new-session", actor: "", reason: "todo", extra: "unsupported",
+    })) {
+      const invalid = decisions.map((entry, index) => index === 0 ? { ...entry, [key]: value } : entry);
+      await assert.rejects(store.importSnapshot(prepared, { claimSessionResolutions: invalid }), /claim.session resolution/i, key);
+    }
+    assert.equal((await store.read()).version, 0, "rejected decisions leave no initialized store");
+    assert.deepEqual(await store.importSnapshot(prepared, { claimSessionResolutions: decisions }), {
+      tasks: 2, version: 1, resolvedClaimSessionAmbiguities: 2,
+    });
+    assert.equal(JSON.stringify(prepared), original, "decision application must not rewrite the prepared source or archive");
+    for (const decision of decisions) {
+      const task = await store.show(decision.id);
+      const session = decision.source === "ticket" ? "ticket-session" : "lock-session";
+      assert.equal(task.status, prepared.state.tasks[decision.id].status);
+      assert.equal(task.epoch, 2);
+      if (task.status === "claimed") {
+        assert.equal(task.owner, "maintainer");
+        assert.equal(task.lease.session, session);
+        assert.equal(task.lease.renew, at);
+        assert.equal(task.lease.duration, 3600);
+      } else {
+        assert.equal(task.owner, "");
+        assert.equal(task.lease, undefined, "terminal claims are historical even if the lock has not expired");
+        assert.equal(task.history[0].claim.session, "ticket-session");
+      }
+      assert.equal(task.legacyFields.Claim, prepared.state.tasks[decision.id].legacyFields.Claim);
+      assert.deepEqual(task.history.at(-1), { type: "claim-session-resolved", ...decision, session });
+    }
+    await assert.rejects(store.renewClaim("expired", { worker: "maintainer", epoch: 2 }), /expired/);
+    await assert.rejects(store.claim("terminal", { worker: "late-worker" }), /not ready/);
+    assert.deepEqual(await store.check(), { ok: true, errors: [] });
+    restoreLegacyQueueArchive(restored, prepared.archive);
+    for (const entry of prepared.archive.entries) {
+      assert.deepEqual(readFileSync(join(restored, entry.path)), Buffer.from(entry.content, "base64"));
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(restored, { recursive: true, force: true });
   }
 });
 

@@ -191,6 +191,37 @@ function hasActionableReason(reason) {
   return normalized !== "" && !PLACEHOLDER_REASONS.has(normalized);
 }
 
+function resolveImportedClaimSessions(prepared, resolutions) {
+  const conflicts = prepared.report.ambiguities;
+  if (!Array.isArray(resolutions)) throw new Error("Claim.session resolutions must be an array");
+  if (conflicts.length > 0 && resolutions.length === 0) throw new Error("legacy import snapshot has unresolved claim ambiguities");
+  if (resolutions.length !== conflicts.length) throw new Error("Claim.session resolutions must cover exactly the reported conflicts");
+  const identityFields = ["id", "path", "claimLockPath", "field", "ticketDigest", "lockDigest"];
+  const allowedFields = new Set([...identityFields, "source", "actor", "reason"]);
+  const seen = new Set();
+  const state = clone(prepared.state);
+  for (const resolution of resolutions) {
+    if (!resolution || typeof resolution !== "object" || Array.isArray(resolution)
+      || Object.keys(resolution).some((key) => !allowedFields.has(key))
+      || !["ticket", "lock"].includes(resolution.source)
+      || typeof resolution.actor !== "string" || !hasActionableReason(resolution.actor)
+      || typeof resolution.reason !== "string" || !hasActionableReason(resolution.reason)) {
+      throw new Error("Claim.session resolution requires a source, actor and non-placeholder reason");
+    }
+    const conflict = conflicts.find((entry) => identityFields.every((key) => entry[key] === resolution[key]));
+    if (!conflict || seen.has(conflict.id)) throw new Error("Claim.session resolution is stale, duplicated or does not match a reported conflict");
+    seen.add(conflict.id);
+    const task = taskFor(state, conflict.id);
+    const claim = task.lease ?? task.history[0].claim;
+    const lockEntry = prepared.archive.entries.find((entry) => entry.path === conflict.claimLockPath);
+    const lock = JSON.parse(Buffer.from(lockEntry.content, "base64").toString("utf8"));
+    const session = resolution.source === "ticket" ? claim.session : String(lock.session);
+    if (task.lease) task.lease.session = session;
+    task.history.push({ type: "claim-session-resolved", ...resolution, session });
+  }
+  return state;
+}
+
 function normalizedOperationParams(operation) {
   const supplied = operation.params ?? {};
   if (!operation.id || operation.candidateIdentity !== operation.effectObject
@@ -414,8 +445,9 @@ export function openTaskStore(root) {
       return clone(readSnapshot(repo).state);
     },
 
-    async importSnapshot(prepared, { acceptClaimSessionAmbiguities = false } = {}) {
-      if (typeof acceptClaimSessionAmbiguities !== "boolean") throw new Error("claim ambiguity acknowledgement must be boolean");
+    async importSnapshot(prepared, options = {}) {
+      if (!options || typeof options !== "object" || Array.isArray(options)
+        || Object.keys(options).some((key) => key !== "claimSessionResolutions")) throw new Error("unsupported import option");
       const taskImport = await import("./task-import.mjs");
       taskImport.verifyPreparedLegacyQueueImport(prepared);
       const candidate = prepared?.state;
@@ -430,9 +462,6 @@ export function openTaskStore(root) {
         throw new Error("legacy import snapshot has an unsupported shape");
       }
       if (report.errors.length > 0) throw new Error("legacy import snapshot has blocking errors");
-      if (report.ambiguities.length > 0 && !acceptClaimSessionAmbiguities) {
-        throw new Error("legacy import snapshot has unresolved claim ambiguities");
-      }
       const archivePaths = new Set(report.archivePaths);
       if (archivePaths.size !== report.archivePaths.length || archivePaths.size !== prepared.archive.entries.length) {
         throw new Error("legacy import archive manifest is incomplete");
@@ -466,15 +495,15 @@ export function openTaskStore(root) {
           throw new Error(`legacy import lost unmapped field ${field} for ${id}`);
         }
       }
+      const next = resolveImportedClaimSessions(prepared, options.claimSessionResolutions === undefined ? [] : options.claimSessionResolutions);
       const previous = readSnapshot(repo);
       if (previous.oid) throw new Error("task store is already initialized");
-      const next = clone(candidate);
       next.version = 1;
       writeSnapshot(repo, "", next);
       return {
         tasks: Object.keys(next.tasks).length,
         version: next.version,
-        acknowledgedClaimSessionAmbiguities: report.ambiguities.length,
+        resolvedClaimSessionAmbiguities: report.ambiguities.length,
       };
     },
 

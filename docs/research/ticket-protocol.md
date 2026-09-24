@@ -390,6 +390,21 @@ not proof that the old CLI can operate it. Reject cutover if a post-cutover
 task is lost on restore or a capsule candidate goes dangling because a reader
 still uses the old paths.
 
+**Legacy claim reconciliation.** Import refuses a blanket acknowledgement of
+`Claim.session` conflicts. Each conflict needs an explicit `ticket` or `lock`
+source choice, actor and non-placeholder reason, bound to its task ID, ticket
+path, lock path and both reported session digests. Missing, duplicate, stale
+or extra decisions fail before the task ref is written. The chosen session and
+decision are recorded in task history; both original files remain in the
+byte-preserving archive. The sh-175 ticket owns the current queue's individual
+decisions, which must be checked against the next import report.
+
+Only a task whose status is `claimed` imports a current owner and lease; an
+expired lease stays expired. Other task statuses retain their complete claim
+in import history and the raw `Claim` field, with no current owner or lease.
+Every task keeps its last epoch for subsequent fencing. Choosing a historical
+session neither renews a lease nor changes task status or grants authority.
+
 The 2026-09-23 independent OpenCode advisory review identified the old
 `done` anchor requirement and the in-process/host reader set; the owner
 verified those at `ticket-check.mjs:147-159`, `state-check.mjs:106-120`,

@@ -291,7 +291,8 @@ export function prepareLegacyQueueImport(root, { ticketDirs = DEFAULT_DIRS } = {
         sha256: sha256Hex(JSON.stringify(values)),
       });
     }
-    if ((claim.ambiguities?.length ?? 0) > 0) {
+    const activeClaim = fields.get("Status") === "claimed" ? claim.claim : null;
+    if ((claim.ambiguities?.length ?? 0) > 0 || (claim.claim && !activeClaim)) {
       const ticketClaim = fields.get("Claim") ?? "";
       Object.defineProperty(legacyFields, "Claim", { value: ticketClaim, enumerable: true, configurable: true, writable: true });
       unmappedFields.push({
@@ -332,10 +333,13 @@ export function prepareLegacyQueueImport(root, { ticketDirs = DEFAULT_DIRS } = {
       legacyCloseProofRequired: fields.has("Contract"),
       status: fields.get("Status") ?? "open",
       epoch: claim.claim?.epoch ?? 0,
-      owner: claim.claim?.worker ?? "",
-      ...(claim.claim ? { lease: claim.claim } : {}),
+      owner: activeClaim?.worker ?? "",
+      ...(activeClaim ? { lease: activeClaim } : {}),
       comments: [],
-      history: [{ type: "imported", sourcePath: relativePath, sourceStatus: fields.get("Status") ?? "open" }],
+      history: [{
+        type: "imported", sourcePath: relativePath, sourceStatus: fields.get("Status") ?? "open",
+        ...(claim.claim && !activeClaim ? { claim: claim.claim } : {}),
+      }],
     };
     try {
       addTask(state, task);
