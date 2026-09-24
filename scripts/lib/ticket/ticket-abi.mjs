@@ -80,6 +80,14 @@ export function parseGate(value) {
   return { kind: match[1].toLowerCase(), detail: match[2].trim(), legacyRaw };
 }
 
+export function parseExecutionHint(value) {
+  const legacyRaw = String(value ?? "").trim();
+  if (!legacyRaw) return null;
+  const agentHint = /(?:^|;\s*)agent=([A-Za-z]+)/.exec(legacyRaw)?.[1] ?? "";
+  if (!["codex", "opencode"].includes(agentHint)) return null;
+  return { agentHint, legacyRaw };
+}
+
 // The lane consumes the envelope through this binding map rather than its own
 // copy of the field parser: the owner decides which fields become which shell
 // variables, and `krn ticket env` renders the map for `eval`.
@@ -99,8 +107,8 @@ export function ticketLaneBindings(fields) {
     add("CONTRACT_REF", contract.slice(0, separator).trim());
     add("CONTRACT_DIR", contract.slice(separator + 1).trim());
   }
-  const agent = /agent=([A-Za-z]+)/.exec(get("Execution"));
-  if (agent) add("TICKET_AGENT", agent[1]);
+  const executionHint = parseExecutionHint(get("Execution"));
+  if (executionHint) add("TICKET_AGENT", executionHint.agentHint);
   return bindings;
 }
 

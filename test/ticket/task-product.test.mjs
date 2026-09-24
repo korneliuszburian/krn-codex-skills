@@ -739,6 +739,7 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreEffectCrashMode) {
         body: "retain this task description",
         sourcePath: ".scratch/tickets/human-follow-up.md",
         contextRef: { kind: "lesson", revision: "abc123", anchor: "row-18" },
+        executionHint: { agentHint: "opencode" },
       });
       const legacyPathId = await writer.add({ id: "legacy/path", title: "imported path ID" });
       const prototypeKey = await writer.add({ id: "__proto__", title: "imported prototype key" });
@@ -748,6 +749,7 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreEffectCrashMode) {
       assert.equal(task.type, "task");
       assert.equal(task.lane, false);
       assert.equal(task.laneRecipe, null, "plain tasks do not need a lane recipe");
+      assert.deepEqual(task.executionHint, { agentHint: "opencode" });
       const state = await reader.read();
       assert.equal(state.tasks[task.id].title, "human follow-up");
       assert.equal(state.tasks[task.id].body, "retain this task description");
@@ -755,6 +757,7 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreEffectCrashMode) {
       assert.deepEqual(state.tasks[task.id].legacyFields, {});
       assert.deepEqual(state.tasks[task.id].dependencies, []);
       assert.deepEqual(state.tasks[task.id].contextRef, { kind: "lesson", revision: "abc123", anchor: "row-18" });
+      assert.deepEqual(state.tasks[task.id].executionHint, { agentHint: "opencode" });
       assert.equal(state.tasks[task.id].lane, false);
       assert.equal(state.tasks[legacyPathId.id].title, "imported path ID");
       assert.ok(Object.hasOwn(state.tasks, prototypeKey.id));
@@ -785,6 +788,8 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreEffectCrashMode) {
       assert.equal((await writer.check()).ok, true, "a refused edit leaves the lane task valid");
       await assert.rejects(writer.add({ title: "Incomplete lane recipe", laneRecipe: { base: "main" } }), /requires base, scope, check, contract and acceptance/);
       await assert.rejects(writer.add({ title: "Unspecified lane recipe", lane: true }), /lane tasks require a complete lane recipe/);
+      await assert.rejects(writer.add({ title: "Unsupported executor hint", executionHint: { agentHint: "maintainer" } }), /codex or opencode/);
+      await assert.rejects(writer.edit(task.id, { executionHint: { agentHint: "maintainer" } }), /codex or opencode/);
       await writer.markReady(task.id);
       assert.equal((await reader.read()).tasks[task.id].status, "ready");
     } finally {

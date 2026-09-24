@@ -59,6 +59,14 @@ test("the ticket module parses the abi and exposes check and frontier", async ()
   assert.equal(typeof ticketLib.checkTickets, "function");
 });
 
+test("ticket lane binding uses only the documented worker transports", async () => {
+  const ticketLib = await loadTicket();
+  assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
+  assert.deepEqual(ticketLib.ticketLaneBindings(new Map([["Execution", "agent=maintainer; model=gpt-6-sol; effort=medium; parallel=none"]])), []);
+  assert.deepEqual(ticketLib.ticketLaneBindings(new Map([["Execution", "agent=codex; model=gpt-6-sol; effort=medium; parallel=none"]])), [["TICKET_AGENT", "codex"]]);
+  assert.deepEqual(ticketLib.ticketLaneBindings(new Map([["Execution", "agent=opencode; requested-model=gpt-6-sol; parallel=read-only"]])), [["TICKET_AGENT", "opencode"]]);
+});
+
 test("a valid ticket passes and defines the frontier", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");

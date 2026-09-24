@@ -139,6 +139,18 @@ function normalizedGate(value) {
   return { kind: value.kind, detail: value.detail, legacyRaw: value.legacyRaw };
 }
 
+function normalizedExecutionHint(value) {
+  if (value === null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("execution hint must be typed");
+  const keys = Object.keys(value);
+  if (keys.some((key) => !["agentHint", "legacyRaw"].includes(key))) throw new Error("execution hint has an unsupported field");
+  if (!["codex", "opencode"].includes(value.agentHint)) {
+    throw new Error("execution agentHint must be codex or opencode");
+  }
+  if (value.legacyRaw !== undefined && typeof value.legacyRaw !== "string") throw new Error("execution legacyRaw must be a string");
+  return { agentHint: value.agentHint, ...(value.legacyRaw !== undefined ? { legacyRaw: value.legacyRaw } : {}) };
+}
+
 function normalizedOperationParams(operation) {
   const supplied = operation.params ?? {};
   if (!operation.id || supplied.target !== operation.effectObject || supplied.intentRevision !== operation.intentRevision) {
@@ -214,6 +226,9 @@ function taskStoreErrors(state) {
     }
     if (task.gate !== undefined && task.gate !== null) {
       try { normalizedGate(task.gate); } catch { errors.push(`task ${id} has an invalid gate record`); }
+    }
+    if (task.executionHint !== undefined && task.executionHint !== null) {
+      try { normalizedExecutionHint(task.executionHint); } catch { errors.push(`task ${id} has an invalid execution hint`); }
     }
     if (!Array.isArray(task.dependencies)) {
       errors.push(`task ${id} dependencies are not an array`);
@@ -335,13 +350,14 @@ export function openTaskStore(root) {
         .sort((left, right) => left.id.localeCompare(right.id)));
     },
 
-    async add({ id = `task-${randomUUID()}`, title, body = "", sourcePath = "", dependencies = [], contextRef = null, type = "task", laneRecipe = null, lane = false } = {}) {
+    async add({ id = `task-${randomUUID()}`, title, body = "", sourcePath = "", dependencies = [], contextRef = null, type = "task", laneRecipe = null, executionHint = null, lane = false } = {}) {
       if (typeof id !== "string" || id.length === 0) throw new Error("task id must be a non-empty string");
       if (typeof title !== "string" || title.trim() === "") throw new Error("task title is required");
       if (typeof body !== "string" || typeof sourcePath !== "string") throw new Error("task body and source path must be strings");
       if (!TYPES.has(type)) throw new Error("task type is invalid");
       if (typeof lane !== "boolean") throw new Error("lane must be boolean");
       const normalizedRecipe = normalizedLaneRecipe(laneRecipe);
+      const normalizedExecution = normalizedExecutionHint(executionHint);
       if (lane && !normalizedRecipe) throw new Error("lane tasks require a complete lane recipe");
       if (!Array.isArray(dependencies) || dependencies.some((dependency) => typeof dependency !== "string" || dependency === "")) {
         throw new Error("task dependencies must be non-empty ids");
@@ -359,6 +375,7 @@ export function openTaskStore(root) {
         dependencies: [...dependencies],
         contextRef: typedContextReference(contextRef),
         laneRecipe: normalizedRecipe,
+        executionHint: normalizedExecution,
         lane,
         status: "open",
         epoch: 0,
@@ -387,7 +404,7 @@ export function openTaskStore(root) {
 
     async edit(id, patch = {}) {
       if (!patch || typeof patch !== "object" || Array.isArray(patch)) throw new Error("task edit must be an object");
-      const allowed = new Set(["title", "body", "dependencies", "contextRef", "type", "laneRecipe"]);
+      const allowed = new Set(["title", "body", "dependencies", "contextRef", "type", "laneRecipe", "executionHint"]);
       const fields = Object.keys(patch);
       if (fields.length === 0 || fields.some((field) => !allowed.has(field))) throw new Error("task edit requires supported content or dependency fields");
       if (Object.hasOwn(patch, "title") && (typeof patch.title !== "string" || patch.title.trim() === "")) throw new Error("task title is required");
@@ -404,6 +421,7 @@ export function openTaskStore(root) {
         ...(Object.hasOwn(patch, "dependencies") ? { dependencies: [...patch.dependencies] } : {}),
         ...(Object.hasOwn(patch, "contextRef") ? { contextRef: typedContextReference(patch.contextRef) } : {}),
         ...(Object.hasOwn(patch, "laneRecipe") ? { laneRecipe: normalizedLaneRecipe(patch.laneRecipe) } : {}),
+        ...(Object.hasOwn(patch, "executionHint") ? { executionHint: normalizedExecutionHint(patch.executionHint) } : {}),
       };
       const previous = readSnapshot(repo);
       const next = clone(previous.state);
