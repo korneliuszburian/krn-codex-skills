@@ -304,6 +304,10 @@ match the receipt for the exact candidate. The integrator builds the merge
 commit object before moving the target branch, checks that object and prepares
 an operation with its expected old branch value. `ticket operation apply`
 atomically compares and updates both the target branch ref and task-store ref;
+the operation's `effectObject` must equal `candidateIdentity`. A check receipt
+for a pre-merge object cannot authorize writing a distinct unchecked merge
+object; if integration produces a new commit, check that commit before
+preparing the operation.
 the same Git ref transaction records the operation as observed and the task as
 done. A revoked intent, changed claim generation, or moved target ref therefore
 refuses the local effect before either ref changes. Recovery uses the same

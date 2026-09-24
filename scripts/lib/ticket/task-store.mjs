@@ -193,7 +193,8 @@ function hasActionableReason(reason) {
 
 function normalizedOperationParams(operation) {
   const supplied = operation.params ?? {};
-  if (!operation.id || supplied.target !== operation.effectObject || supplied.intentRevision !== operation.intentRevision
+  if (!operation.id || operation.candidateIdentity !== operation.effectObject
+    || supplied.target !== operation.effectObject || supplied.intentRevision !== operation.intentRevision
     || typeof operation.expectedEffectValue !== "string"
     || supplied.expectedEffectValue !== operation.expectedEffectValue) {
     throw new Error("operation parameters disagree with effect or intent");
@@ -303,6 +304,16 @@ function taskStoreErrors(state) {
     }
     for (const dependency of task.dependencies) {
       if (!taskFor(state, dependency)) errors.push(`task ${id} has unknown dependency ${dependency}`);
+    }
+  }
+  for (const [id, operation] of Object.entries(state.operations)) {
+    if (!operation || typeof operation !== "object" || Array.isArray(operation)) {
+      errors.push(`operation ${id} is not an object`);
+      continue;
+    }
+    if (operation.id !== id || operation.candidateIdentity !== operation.effectObject
+      || operation.checkResult?.candidateIdentity !== operation.candidateIdentity || operation.checkResult?.exitCode !== 0) {
+      errors.push(`operation ${id} effect is not the checked candidate`);
     }
   }
   for (const [id, task] of entries) {
@@ -791,6 +802,9 @@ export function openTaskStore(root) {
 
     async prepareOperation(operation = {}) {
       if (typeof operation.id !== "string" || operation.id.length === 0) throw new Error("operation id is required");
+      if (operation.candidateIdentity !== operation.effectObject) {
+        throw new Error("effect object must be the checked candidate");
+      }
       if (typeof operation.effectRef !== "string" || !runGit(repo, ["check-ref-format", operation.effectRef]).ok) {
         throw new Error("operation effect ref is invalid");
       }

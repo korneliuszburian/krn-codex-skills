@@ -337,6 +337,9 @@ function writeBlob(root, value) {
 
 function normalizedOperationParams(operation) {
   const supplied = operation.params ?? {};
+  if (operation.candidateIdentity !== operation.effectObject) {
+    throw new Refused("effect object must be the checked candidate");
+  }
   if (!operation.id || supplied.target !== operation.effectObject || supplied.intentRevision !== operation.intentRevision) {
     throw new Refused("operation parameters disagree with the effect or intent");
   }
@@ -657,15 +660,26 @@ async function exerciseBackend(backend) {
     const operation = {
     id: `${backend}-merge-1`, taskId: "effect-task", owner: "worker-effect", epoch: 1,
     intent: "alpha", intentRevision: 1, effectRef, effectObject,
-      candidateIdentity: writeBlob(fixture.root, `candidate-${backend}`),
+      candidateIdentity: effectObject,
       params: { target: effectObject, intentRevision: 1 },
     };
     operation.checkResult = candidateEvidence(fixture.root, operation.candidateIdentity);
+    const uncheckedEffect = writeBlob(fixture.root, `unchecked-effect-${backend}`);
     await assert.rejects(
       ensureOperation(backend, fixture.first, operationKey, {
         ...operation,
-        id: `${backend}-wrong-check-binding`,
-        checkResult: { ...operation.checkResult, candidateIdentity: effectObject },
+        id: `${backend}-unchecked-effect`,
+        effectObject: uncheckedEffect,
+        params: { ...operation.params, target: uncheckedEffect },
+      }),
+      /effect object must be the checked candidate/,
+      "a passing check for one object cannot authorize a different effect object",
+    );
+    await assert.rejects(
+      ensureOperation(backend, fixture.first, operationKey, {
+      ...operation,
+      id: `${backend}-wrong-check-binding`,
+      checkResult: { ...operation.checkResult, candidateIdentity: uncheckedEffect },
       }),
       /not bound to the candidate/,
     );
@@ -706,6 +720,8 @@ async function exerciseBackend(backend) {
       ensureOperation(backend, fixture.first, operationKey, {
         ...operation,
         candidateIdentity: ambiguousObject,
+        effectObject: ambiguousObject,
+        params: { ...operation.params, target: ambiguousObject },
         checkResult: candidateEvidence(fixture.root, ambiguousObject),
       }),
       /different parameters/,
@@ -954,7 +970,8 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreReadyWorkerMode && !taskSto
       await store.markReady(task.id);
       const claim = await store.claim(task.id, { worker: "lane-worker" });
       const candidate = writeBlob(fixture.root, "checked-candidate");
-      const effect = writeBlob(fixture.root, "integrated-result");
+      const effect = candidate;
+      const unrelatedEffect = writeBlob(fixture.root, "unchecked-effect");
       const operation = {
         id: "integrate-once",
         taskId: task.id,
@@ -968,6 +985,12 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreReadyWorkerMode && !taskSto
         checkResult: candidateEvidence(fixture.root, candidate),
         params: { target: effect, intentRevision: 1 },
       };
+      await assert.rejects(store.prepareOperation({
+        ...operation,
+        id: "unchecked-effect-operation",
+        effectObject: unrelatedEffect,
+        params: { ...operation.params, target: unrelatedEffect },
+      }), /effect object must be the checked candidate/);
       await store.prepareOperation(operation);
       const versionBeforeRetry = (await store.read()).version;
       assert.deepEqual(await store.prepareOperation(operation), { idempotent: true, status: "prepared" });
@@ -975,9 +998,9 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreReadyWorkerMode && !taskSto
       await assert.rejects(store.prepareOperation({
         ...operation,
         id: "wrong-check-binding",
-        checkResult: { ...operation.checkResult, candidateIdentity: effect },
+        checkResult: { ...operation.checkResult, candidateIdentity: unrelatedEffect },
       }), /not bound to the existing candidate/);
-      await assert.rejects(store.prepareOperation({ ...operation, params: { ...operation.params, target: candidate } }), /parameters disagree/);
+      await assert.rejects(store.prepareOperation({ ...operation, params: { ...operation.params, target: unrelatedEffect } }), /parameters disagree/);
       assert.equal((await store.completeOperation(operation.id)).status, "ambiguous");
       assert.equal((await store.read()).tasks[task.id].status, "claimed");
       assert.equal(await launchEffectCrashWorker(fixture.root, operation.effectRef, effect), 87, "worker crashed after Git effect but before its receipt");
@@ -1003,8 +1026,8 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreReadyWorkerMode && !taskSto
         intentRevision: 1,
         effectRef: "refs/krn/test-effects/stale-intent",
         effectObject: staleEffect,
-        candidateIdentity: candidate,
-        checkResult: candidateEvidence(fixture.root, candidate),
+        candidateIdentity: staleEffect,
+        checkResult: candidateEvidence(fixture.root, staleEffect),
         params: { target: staleEffect, intentRevision: 1 },
       };
       await store.prepareOperation(staleOperation);
@@ -1083,7 +1106,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
       await store.markReady(task.id);
       const oldClaim = await store.claim(task.id, { worker: "worker-old", at: "2000-01-01T00:00:00Z", duration: 10 });
       const candidate = writeBlob(fixture.root, "checked-candidate-after-takeover");
-      const effect = writeBlob(fixture.root, "integrated-effect-after-takeover");
+      const effect = candidate;
       const operation = {
         id: "takeover-integrate-once",
         taskId: task.id,
@@ -1123,7 +1146,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
       await store.markReady(unapplied.id);
       const unappliedClaim = await store.claim(unapplied.id, { worker: "worker-old", at: "2000-01-01T00:00:00Z", duration: 10 });
       const unappliedCandidate = writeBlob(fixture.root, "candidate-without-effect");
-      const unappliedEffect = writeBlob(fixture.root, "expected-effect-not-written");
+      const unappliedEffect = unappliedCandidate;
       const unappliedOperation = {
         id: "takeover-do-not-replay",
         taskId: unapplied.id,
@@ -1164,7 +1187,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
       activateTaskQueueFixture(fixture.root);
 
       const candidate = writeBlob(fixture.root, "candidate-checked-through-public-cli");
-      const effect = writeBlob(fixture.root, "expected-integrated-object");
+      const effect = candidate;
       const operationId = "integrate-public-operation";
       const operationFile = join(fixture.root, ".krn", "runs", "lane", "operation.json");
       mkdirSync(dirname(operationFile), { recursive: true });
@@ -1236,7 +1259,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
       activateTaskQueueFixture(fixture.root);
 
       const candidate = writeBlob(fixture.root, "candidate-for-public-recovery");
-      const effect = writeBlob(fixture.root, "effect-for-public-recovery");
+      const effect = candidate;
       const operationFile = join(fixture.root, ".krn", "runs", "lane", "recovery-operation.json");
       mkdirSync(dirname(operationFile), { recursive: true });
       writeFileSync(operationFile, JSON.stringify({
@@ -1316,7 +1339,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
       activateTaskQueueFixture(fixture.root);
 
       const candidate = writeBlob(fixture.root, "candidate-for-input-boundary");
-      const effect = writeBlob(fixture.root, "effect-for-input-boundary");
+      const effect = candidate;
       const operation = {
         id: "input-boundary-operation",
         taskId: task.id,
@@ -1349,7 +1372,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
       const wrongCandidateFile = join(runsDirectory, "wrong-candidate.json");
       writeFileSync(wrongCandidateFile, JSON.stringify({
         ...operation,
-        checkResult: { ...operation.checkResult, candidateIdentity: effect },
+        checkResult: { ...operation.checkResult, candidateIdentity: writeBlob(fixture.root, "wrong-check-candidate") },
       }));
       const wrongCandidate = runKrn(fixture.root, "ticket", "operation", "prepare", "--root", fixture.root, "--file", wrongCandidateFile);
       assert.notEqual(wrongCandidate.status, 0);
