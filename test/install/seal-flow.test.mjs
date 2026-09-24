@@ -87,6 +87,7 @@ test("the CLI seals the repository ledger and never gates apply on the linked re
     const sealed = run("install", "seal", "--root", source, "--source", source, "--json");
     assert.equal(sealed.status, 0, sealed.stderr);
     const sealReport = JSON.parse(sealed.stdout);
+    assert.equal(sealReport.ledger, ledgerFile, "seal reports the repository ledger it wrote");
     assert.equal(readLedger()[commitA], sealReport.digest);
     assert.equal(
       fs.existsSync(path.join(release, "config", "release-digests.json")),
