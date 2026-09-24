@@ -348,11 +348,11 @@ test("repository lesson retirements preserve their exact structural gates", () =
   for (const [lesson, gate] of retired) {
     const row = rows.find((candidate) => candidate.lesson === lesson);
     assert.ok(row, `missing lesson row: ${lesson}`);
-    assert.equal(row.status, `retired@3579c0e; enforced-by:${gate}`, lesson);
+    assert.equal(row.status, `retired@777837c; enforced-by:${gate}`, lesson);
   }
 
   const staleWording = rows.find((row) => row.lesson === "Memory artifacts must fail closed, not warn, once staleness or contradiction is measured.");
-  assert.equal(staleWording?.status, "retired@3579c0e; superseded-by:npm run test:state");
+  assert.equal(staleWording?.status, "retired@777837c; superseded-by:npm run test:state");
   assert.ok(rows.some((row) => row.lesson.startsWith("Block stale COMPLETE capsules,") && !row.status && row.trigger === "path:scripts/lib/lessons/**"));
   const report = checkLessons({ root: repositoryRoot });
   assert.deepEqual(report.errors, []);
