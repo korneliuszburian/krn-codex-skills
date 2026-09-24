@@ -109,7 +109,7 @@ export function taskTicketView(task) {
     occurrences.set("Attempts", [...previousAttempts, ...currentAttempts]);
     fields.set("Attempts", currentAttempts[currentAttempts.length - 1]);
   }
-  if (task.status === "claimed" && task.lease && !Object.hasOwn(task.legacyFields ?? {}, "Claim")) {
+  if (task.status === "claimed" && task.lease) {
     const { worker = "", session = "", at = "", epoch = "", renew = "", duration = "" } = task.lease;
     set("Claim", `worker=${worker}; session=${session}; at=${at}; epoch=${epoch}; renew=${renew}; duration=${duration}`);
   }

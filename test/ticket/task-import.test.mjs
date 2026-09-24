@@ -180,8 +180,8 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
     });
     assert.deepEqual((await store.read()).tasks.claimed.legacyFields.Claim, claim);
     const claimedView = taskTicketView((await store.read()).tasks.claimed);
-    assert.equal(claimedView.fields.get("Claim"), claim, "the task projection leaves ambiguous Claim.session raw text visible");
-    assert.equal(claimedView.taskLease.session, "session-a", "the typed current lease is available separately from the preserved raw ambiguity");
+    assert.equal(claimedView.fields.get("Claim"), claim.replace("; future=retain-me", ""), "the current Claim is rendered from the typed lease");
+    assert.equal(claimedView.taskLease.session, "session-a", "the resolved current lease is distinct from the retained raw record");
     await restoreLegacyQueueArchive(restoreRoot, prepared.archive);
     assert.deepEqual(readFileSync(join(restoreRoot, readyPath)), readyBytes);
     assert.deepEqual(readFileSync(join(restoreRoot, claimedPath)), claimedBytes);

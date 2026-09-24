@@ -9,6 +9,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
+import { prepareLegacyQueueImport } from "../../scripts/lib/ticket/task-import.mjs";
 import { activateTaskQueueFixture } from "./task-queue-fixture.mjs";
 
 const cli = fileURLToPath(new URL("../../scripts/krn-codex.mjs", import.meta.url));
@@ -123,6 +124,48 @@ test("ticket show, fields and env read the active Git-ref task view instead of M
     const mismatch = spawnSync(process.execPath, [cli, "ticket", "show", file, "--json"], { encoding: "utf8" });
     assert.notEqual(mismatch.status, 0);
     assert.match(mismatch.stderr, /ticket path\/ID mismatch/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("public task views render the current claim after reopening an imported task", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-ticket-current-claim-"));
+  try {
+    execFileSync("git", ["-C", dir, "init", "-q", "-b", "main"]);
+    mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
+    const historicalClaim = "worker=old-worker; session=old-session; at=2000-01-01T00:00:00Z; epoch=1; renew=2000-01-01T00:00:00Z; duration=3600; future=retained";
+    writeFileSync(join(dir, ".krn/tickets/t-1.md"), ticket({ ...baseFields, Status: "done", Claim: historicalClaim }));
+    const prepared = prepareLegacyQueueImport(dir);
+    const store = openTaskStore(dir);
+    await store.importSnapshot(prepared);
+    activateTaskQueueFixture(dir);
+    const command = (verb, ...args) => {
+      const result = spawnSync(process.execPath, [cli, "ticket", verb, "--root", dir, "--id", "t-1", ...args, "--json"], { encoding: "utf8" });
+      assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+      return JSON.parse(result.stdout);
+    };
+    command("reopen", "--actor", "operator", "--reason", "Follow-up after import");
+    command("ready");
+    const current = command("claim", "--worker", "new-worker", "--session", "new-session");
+    assert.equal(current.epoch, 2);
+    rmSync(join(dir, ".krn/tickets"), { recursive: true });
+    for (const verb of ["show", "fields"]) {
+      const view = command(verb);
+      assert.equal(view.Status, "claimed");
+      assert.match(view.Claim, /(?:^|; )worker=new-worker(?:;|$)/);
+      assert.match(view.Claim, /(?:^|; )session=new-session(?:;|$)/);
+      assert.match(view.Claim, /(?:^|; )epoch=2(?:;|$)/);
+      assert.doesNotMatch(view.Claim, /old-worker|old-session|future=retained/);
+    }
+    const source = await store.show("t-1");
+    assert.equal(source.legacyFields.Claim, historicalClaim, "the current view must not overwrite the raw historical record");
+    assert.equal(source.history[0].claim.worker, "old-worker");
+    assert.equal(source.lease.worker, "new-worker");
+    const exported = spawnSync(process.execPath, [cli, "ticket", "store", "export", "--root", dir, "--json"], { encoding: "utf8" });
+    assert.equal(exported.status, 0, exported.stderr);
+    const archive = JSON.parse(exported.stdout);
+    assert.equal(JSON.parse(archive.refs[0].content).tasks["t-1"].legacyFields.Claim, historicalClaim);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

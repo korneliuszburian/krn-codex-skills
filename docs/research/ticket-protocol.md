@@ -429,6 +429,9 @@ expired lease stays expired. Other task statuses retain their complete claim
 in import history and the raw `Claim` field, with no current owner or lease.
 Every task keeps its last epoch for subsequent fencing. Choosing a historical
 session neither renews a lease nor changes task status or grants authority.
+For a claimed task, public `show` and `fields` render `Claim` from the current
+typed lease. The original `legacyFields.Claim` remains in task data and exports,
+including after a legacy task is reopened and assigned to a new worker.
 
 The 2026-09-23 independent OpenCode advisory review identified the old
 `done` anchor requirement and the in-process/host reader set; the owner
