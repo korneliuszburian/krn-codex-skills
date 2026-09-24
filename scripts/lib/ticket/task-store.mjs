@@ -434,7 +434,7 @@ export function openTaskStore(root) {
       return transition((state) => {
         const task = taskFor(state, id);
         if (!task || task.status === "done") throw new Error(`task ${id} cannot close`);
-        if (task.lane) throw new Error("lane close requires operation readback");
+        if (task.lane || task.legacyCloseProofRequired) throw new Error("proof-gated close requires operation readback");
         if (epoch === undefined && task.status === "claimed") throw new Error("active claim requires its generation or an explicit takeover");
         if (epoch === undefined && (!actor || !reason)) throw new Error("human close requires actor and reason");
         if (epoch !== undefined && (task.status !== "claimed" || task.owner !== actor || task.epoch !== epoch)) {

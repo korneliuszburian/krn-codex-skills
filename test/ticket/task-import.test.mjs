@@ -89,6 +89,8 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
       { path: ".scratch/tickets/team/dependency.md", id: "team/dependency" },
       { path: ".scratch/tickets/team/ready.md", id: "team/ready" },
     ]);
+    assert.equal(prepared.state.tasks["team/ready"].lane, false, "a required Contract does not imply automated lane membership");
+    assert.equal(prepared.state.tasks["team/ready"].legacyCloseProofRequired, true, "legacy close preserves its required proof");
     assert.deepEqual(prepared.state.tasks["team/ready"].dependencies, ["team/dependency"]);
     assert.deepEqual(prepared.state.tasks["team/ready"].legacyFields, {
       Type: "task",
@@ -172,6 +174,9 @@ test("an imported ready task with an unfinished blocker is omitted from the fron
     await assert.rejects(store.importSnapshot(tampered), /prepared import differs from its source snapshot/);
     await store.importSnapshot(prepared);
     assert.deepEqual(await store.check(), { ok: true, errors: [] });
+    assert.equal((await store.show("blocker")).lane, false);
+    assert.equal((await store.show("blocker")).legacyCloseProofRequired, true);
+    await assert.rejects(store.close("blocker", { actor: "operator", reason: "close through legacy path" }), /proof-gated close requires operation readback/);
     assert.deepEqual((await store.ready()).map((task) => task.id), ["blocker"]);
     await assert.rejects(store.claim("blocked", { worker: "worker" }), /unresolved dependencies/);
   } finally {

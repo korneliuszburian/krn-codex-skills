@@ -38,16 +38,11 @@ import { findTicketFile as findTicketFileImpl, reconcileTickets as reconcileTick
 export { envFingerprint, hasEnvFingerprint, ticketLaneBindings };
 
 export function parseTicketText(text) {
-  const start = text.indexOf("<krn-ticket>");
-  const end = text.indexOf("</krn-ticket>");
-  if (start === -1 || end === -1 || end < start) {
+  const occurrences = parseTicketFieldOccurrences(text);
+  if (!occurrences) {
     return { fields: null, findings: [{ rule: "missing-block", message: "no complete <krn-ticket> block" }] };
   }
-  const fields = new Map();
-  for (const line of text.slice(start + "<krn-ticket>".length, end).split("\n")) {
-    const match = /^([A-Za-z][A-Za-z ()-]*):\s*(.*)$/.exec(line.trim());
-    if (match) fields.set(match[1], match[2].trim());
-  }
+  const fields = new Map(occurrences);
   const findings = [];
   for (const name of REQUIRED) {
     if (!fields.has(name) || fields.get(name) === "") findings.push({ rule: "missing-field", message: `missing field: ${name}` });
@@ -57,6 +52,20 @@ export function parseTicketText(text) {
   const type = fields.get("Type");
   if (type && !TYPES.has(type)) findings.push({ rule: "invalid-type", message: `unknown Type "${type}"` });
   return { fields, findings };
+}
+
+export function parseTicketFieldOccurrences(text) {
+  const start = text.indexOf("<krn-ticket>");
+  const end = text.indexOf("</krn-ticket>");
+  if (start === -1 || end === -1 || end < start) {
+    return null;
+  }
+  const occurrences = [];
+  for (const line of text.slice(start + "<krn-ticket>".length, end).split("\n")) {
+    const match = /^([A-Za-z][A-Za-z ()-]*):\s*(.*)$/.exec(line.trim());
+    if (match) occurrences.push([match[1], match[2].trim()]);
+  }
+  return occurrences;
 }
 
 function nextEpoch(fields) {

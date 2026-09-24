@@ -5,7 +5,7 @@ import { sha256Hex } from "../kernel/digest.mjs";
 import { gitTopLevel } from "../kernel/git.mjs";
 import { walkFiles } from "../kernel/walk.mjs";
 import { blockerIds, claimLockPath, DEFAULT_DIRS } from "./ticket-abi.mjs";
-import { parseTicketText } from "./ticket.mjs";
+import { parseTicketFieldOccurrences, parseTicketText } from "./ticket.mjs";
 
 const MAPPED_FIELDS = new Set(["Id", "Title", "Status", "Blocked by", "Claim"]);
 const CLAIM_FIELDS = new Set(["worker", "session", "at", "epoch", "renew", "duration"]);
@@ -166,16 +166,10 @@ function addTask(state, task) {
 }
 
 function headerFieldOccurrences(text) {
-  const start = text.indexOf("<krn-ticket>");
-  const end = text.indexOf("</krn-ticket>");
-  if (start < 0 || end < start) return new Map();
   const occurrences = new Map();
-  for (const line of text.slice(start + "<krn-ticket>".length, end).split("\n")) {
-    const match = /^([A-Za-z][A-Za-z ()-]*):\s*(.*)$/.exec(line.trim());
-    if (match) {
-      if (!occurrences.has(match[1])) occurrences.set(match[1], []);
-      occurrences.get(match[1]).push(match[2].trim());
-    }
+  for (const [field, value] of parseTicketFieldOccurrences(text) ?? []) {
+    if (!occurrences.has(field)) occurrences.set(field, []);
+    occurrences.get(field).push(value);
   }
   return occurrences;
 }
@@ -314,6 +308,10 @@ export function prepareLegacyQueueImport(root, { ticketDirs = DEFAULT_DIRS } = {
       dependencies,
       contextRef: null,
       lane: fields.has("Integration"),
+      // Legacy closeTicket consumed proof for every old envelope. Keep this
+      // separate from actual automated-lane membership until the task is
+      // deliberately migrated to the plain human-task path.
+      legacyCloseProofRequired: fields.has("Contract"),
       status: fields.get("Status") ?? "open",
       epoch: claim.claim?.epoch ?? 0,
       owner: claim.claim?.worker ?? "",
