@@ -1,16 +1,17 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 
 import { gitTopLevel, runGit, runGitInput, runGitRaw } from "../kernel/git.mjs";
 import { sha256Hex } from "../kernel/digest.mjs";
-import { DEFAULT_CLAIM_DURATION, MAX_ATTEMPTS, leaseExpired, STATUSES, TYPES } from "./ticket-abi.mjs";
+import { DEFAULT_CLAIM_DURATION, MAX_ATTEMPTS, hasActionableReason, leaseExpired, STATUSES, TYPES } from "./ticket-abi.mjs";
+import { withQueueWriteLock } from "./queue-write-lock.mjs";
 
 const QUEUE_REF = "refs/krn/queue";
 const ACTIVE_QUEUE_REF = "refs/krn/queue-active";
 const ACTIVE_QUEUE_SELECTOR = { version: 1, queueRef: QUEUE_REF };
 const QUEUE_REFS = [QUEUE_REF, ACTIVE_QUEUE_REF];
 const LANE_RECIPE_FIELDS = ["base", "scope", "check", "contract", "acceptance"];
-const PLACEHOLDER_REASONS = new Set(["none", "unknown", "n/a", "not applicable", "todo", "tbd", "placeholder"]);
 
 class StoreConflict extends Error {
   constructor(message = "task store changed during update") {
@@ -189,11 +190,6 @@ function priorAttemptCount(task) {
   }, 0);
   const typedCount = (task.attempts ?? []).reduce((count, attempt) => Math.max(count, Number(attempt.count) || 0), 0);
   return Math.max(legacyCount, typedCount);
-}
-
-function hasActionableReason(reason) {
-  const normalized = String(reason ?? "").trim().toLowerCase();
-  return normalized !== "" && !PLACEHOLDER_REASONS.has(normalized);
 }
 
 function resolveImportedClaimSessions(prepared, resolutions) {
@@ -397,6 +393,13 @@ export function readActiveTaskStoreSnapshot(root) {
   return { ...snapshot, selectorOid: selector.out };
 }
 
+export function withLegacyQueueWrite(root, operation, action) {
+  return withQueueWriteLock(root, operation, () => {
+    if (readActiveTaskStoreSnapshot(root)) throw new Error(`Git-ref task queue is active; legacy Markdown writer cannot ${operation}`);
+    return action();
+  });
+}
+
 export function exportTaskStoreSnapshot(root) {
   const source = repositoryRoot(root);
   const snapshot = readActiveTaskStoreSnapshot(source);
@@ -436,6 +439,10 @@ function validateTaskStoreArchive(root, archive) {
 
 export function restoreTaskStoreSnapshot(root, archive) {
   const destination = repositoryRoot(root);
+  return withQueueWriteLock(destination, "restore queue", (fence) => restoreSnapshotUnlocked(destination, archive, fence), { fenceActivation: true });
+}
+
+function restoreSnapshotUnlocked(destination, archive, fence) {
   validateTaskStoreArchive(destination, archive);
   const updates = [];
   let restored = false;
@@ -457,7 +464,7 @@ export function restoreTaskStoreSnapshot(root, archive) {
       if (!copied.ok || copied.out.trim() !== oid) throw new Error(copied.stderr || `cannot restore task snapshot object for ${name}`);
     }
   }
-  const transaction = ["start", ...updates, "prepare", "commit", ""].join("\n");
+  const transaction = ["start", `verify ${fence.ref} ${fence.oid}`, ...updates, "prepare", "commit", ""].join("\n");
   const applied = runGitInput(destination, ["update-ref", "--no-deref", "--stdin"], transaction);
   if (!applied.ok) throw new StoreConflict(applied.stderr || "cannot atomically restore task snapshot refs");
   return { restored, refs: [...QUEUE_REFS] };
@@ -474,6 +481,99 @@ export function copyActiveTaskStoreSnapshot(sourceRoot, destinationRoot) {
   }
   const result = restoreTaskStoreSnapshot(destination, exportTaskStoreSnapshot(source));
   return { copied: result.restored, refs: result.refs };
+}
+
+function importedState(prepared, options, taskImport) {
+  taskImport.verifyPreparedLegacyQueueImport(prepared);
+  const candidate = prepared?.state;
+  const report = prepared?.report;
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)
+    || candidate.version !== 0 || !candidate.tasks || typeof candidate.tasks !== "object" || Array.isArray(candidate.tasks)
+    || !candidate.operations || typeof candidate.operations !== "object" || Array.isArray(candidate.operations)
+    || !candidate.intents || typeof candidate.intents !== "object" || Array.isArray(candidate.intents)
+    || !report || !Array.isArray(report.errors) || !Array.isArray(report.ambiguities)
+    || !Array.isArray(report.pathIds) || !Array.isArray(report.archivePaths) || !Array.isArray(report.unmappedFields)
+    || !prepared.archive || prepared.archive.version !== 1 || !Array.isArray(prepared.archive.entries)) {
+    throw new Error("legacy import snapshot has an unsupported shape");
+  }
+  if (report.errors.length > 0) throw new Error("legacy import snapshot has blocking errors");
+  const archivePaths = new Set(report.archivePaths);
+  if (archivePaths.size !== report.archivePaths.length || archivePaths.size !== prepared.archive.entries.length) {
+    throw new Error("legacy import archive manifest is incomplete");
+  }
+  for (const entry of prepared.archive.entries) {
+    if (!entry || typeof entry.path !== "string" || !archivePaths.has(entry.path) || typeof entry.content !== "string") {
+      throw new Error("legacy import archive manifest does not match its files");
+    }
+    const bytes = Buffer.from(entry.content, "base64");
+    if (bytes.toString("base64") !== entry.content || sha256Hex(bytes) !== entry.sha256) {
+      throw new Error(`legacy import archive digest mismatch: ${entry.path}`);
+    }
+  }
+  if (report.pathIds.length !== Object.keys(candidate.tasks).length) throw new Error("legacy import path/ID set does not match its task records");
+  for (const { path: sourcePath, id } of report.pathIds) {
+    const task = taskFor(candidate, id);
+    if (!task || task.sourcePath !== sourcePath || !archivePaths.has(sourcePath)) throw new Error(`legacy import path/ID mapping is incomplete for ${id}`);
+  }
+  const stateErrors = taskStoreErrors(candidate);
+  if (stateErrors.length > 0) throw new Error(`legacy import candidate has task-state errors: ${stateErrors.join("; ")}`);
+  for (const ambiguity of report.ambiguities) {
+    const task = taskFor(candidate, ambiguity.id);
+    if (ambiguity.field !== "Claim.session" || !ambiguity.claimLockPath || !archivePaths.has(ambiguity.claimLockPath)
+      || typeof task?.legacyFields?.Claim !== "string") {
+      throw new Error(`legacy import cannot preserve claim ambiguity for ${ambiguity.id}`);
+    }
+  }
+  for (const { id, field, path: sourcePath } of report.unmappedFields) {
+    const task = taskFor(candidate, id);
+    if (!task || task.sourcePath !== sourcePath || !Object.hasOwn(task.legacyFields, field)) {
+      throw new Error(`legacy import lost unmapped field ${field} for ${id}`);
+    }
+  }
+  const next = resolveImportedClaimSessions(prepared, options.claimSessionResolutions === undefined ? [] : options.claimSessionResolutions);
+  next.version = 1;
+  return next;
+}
+
+function migrationArchive(root, file, archive) {
+  const requested = path.resolve(root, file);
+  const target = path.join(fs.realpathSync(path.dirname(requested)), path.basename(requested));
+  const common = runGit(root, ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
+  if (!common.ok) throw new Error("cannot resolve migration archive exclusion");
+  for (const forbidden of [fs.realpathSync(common.out), path.join(root, ".krn/tickets"), path.join(root, ".krn/claims")]) {
+    const relative = path.relative(forbidden, target);
+    if (!relative || (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))) {
+      throw new Error("migration archive must be outside live ticket, claim and Git metadata paths");
+    }
+  }
+  const relative = path.relative(root, target);
+  if (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)
+    && !relative.startsWith(`.krn${path.sep}`)) throw new Error("a repository-local migration archive must be under .krn/");
+  const content = `${JSON.stringify(archive, null, 2)}\n`;
+  let exists = false;
+  try {
+    const stat = fs.lstatSync(target);
+    if (!stat.isFile() || stat.isSymbolicLink() || fs.readFileSync(target, "utf8") !== content) {
+      throw new Error("migration archive already exists with different bytes");
+    }
+    exists = true;
+  } catch (error) { if (error.code !== "ENOENT") throw error; }
+  if (!exists) {
+    const fd = fs.openSync(target, "wx", 0o600);
+    try { fs.writeFileSync(fd, content); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+  }
+  return { file: target, sha256: sha256Hex(content) };
+}
+
+function archiveForState(root, state) {
+  const contents = [JSON.stringify(state), JSON.stringify(ACTIVE_QUEUE_SELECTOR)];
+  const refs = QUEUE_REFS.map((name, index) => {
+    const content = contents[index];
+    const digest = runGitInput(root, ["hash-object", "--stdin"], content);
+    if (!digest.ok) throw new Error(digest.stderr || "cannot identify migration snapshot");
+    return { name, oid: digest.out.trim(), content };
+  });
+  return { format: "krn-task-queue", version: 1, refs };
 }
 
 export function openTaskStore(root) {
@@ -496,53 +596,7 @@ export function openTaskStore(root) {
       if (!options || typeof options !== "object" || Array.isArray(options)
         || Object.keys(options).some((key) => key !== "claimSessionResolutions")) throw new Error("unsupported import option");
       const taskImport = await import("./task-import.mjs");
-      taskImport.verifyPreparedLegacyQueueImport(prepared);
-      const candidate = prepared?.state;
-      const report = prepared?.report;
-      if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)
-        || candidate.version !== 0 || !candidate.tasks || typeof candidate.tasks !== "object" || Array.isArray(candidate.tasks)
-        || !candidate.operations || typeof candidate.operations !== "object" || Array.isArray(candidate.operations)
-        || !candidate.intents || typeof candidate.intents !== "object" || Array.isArray(candidate.intents)
-        || !report || !Array.isArray(report.errors) || !Array.isArray(report.ambiguities)
-        || !Array.isArray(report.pathIds) || !Array.isArray(report.archivePaths) || !Array.isArray(report.unmappedFields)
-        || !prepared.archive || prepared.archive.version !== 1 || !Array.isArray(prepared.archive.entries)) {
-        throw new Error("legacy import snapshot has an unsupported shape");
-      }
-      if (report.errors.length > 0) throw new Error("legacy import snapshot has blocking errors");
-      const archivePaths = new Set(report.archivePaths);
-      if (archivePaths.size !== report.archivePaths.length || archivePaths.size !== prepared.archive.entries.length) {
-        throw new Error("legacy import archive manifest is incomplete");
-      }
-      for (const entry of prepared.archive.entries) {
-        if (!entry || typeof entry.path !== "string" || !archivePaths.has(entry.path) || typeof entry.content !== "string") {
-          throw new Error("legacy import archive manifest does not match its files");
-        }
-        const bytes = Buffer.from(entry.content, "base64");
-        if (bytes.toString("base64") !== entry.content || sha256Hex(bytes) !== entry.sha256) {
-          throw new Error(`legacy import archive digest mismatch: ${entry.path}`);
-        }
-      }
-      if (report.pathIds.length !== Object.keys(candidate.tasks).length) throw new Error("legacy import path/ID set does not match its task records");
-      for (const { path: sourcePath, id } of report.pathIds) {
-        const task = taskFor(candidate, id);
-        if (!task || task.sourcePath !== sourcePath || !archivePaths.has(sourcePath)) throw new Error(`legacy import path/ID mapping is incomplete for ${id}`);
-      }
-      const stateErrors = taskStoreErrors(candidate);
-      if (stateErrors.length > 0) throw new Error(`legacy import candidate has task-state errors: ${stateErrors.join("; ")}`);
-      for (const ambiguity of report.ambiguities) {
-        const task = taskFor(candidate, ambiguity.id);
-        if (ambiguity.field !== "Claim.session" || !ambiguity.claimLockPath || !archivePaths.has(ambiguity.claimLockPath)
-          || typeof task?.legacyFields?.Claim !== "string") {
-          throw new Error(`legacy import cannot preserve claim ambiguity for ${ambiguity.id}`);
-        }
-      }
-      for (const { id, field, path: sourcePath } of report.unmappedFields) {
-        const task = taskFor(candidate, id);
-        if (!task || task.sourcePath !== sourcePath || !Object.hasOwn(task.legacyFields, field)) {
-          throw new Error(`legacy import lost unmapped field ${field} for ${id}`);
-        }
-      }
-      const next = resolveImportedClaimSessions(prepared, options.claimSessionResolutions === undefined ? [] : options.claimSessionResolutions);
+      const next = importedState(prepared, options, taskImport);
       const previous = readSnapshot(repo);
       if (previous.oid) throw new Error("task store is already initialized");
       next.version = 1;
@@ -550,8 +604,36 @@ export function openTaskStore(root) {
       return {
         tasks: Object.keys(next.tasks).length,
         version: next.version,
-        resolvedClaimSessionAmbiguities: report.ambiguities.length,
+        resolvedClaimSessionAmbiguities: prepared.report.ambiguities.length,
       };
+    },
+
+    async migrateLegacyQueue({ apply = false, archiveFile, actor, reason, claimSessionResolutions = [] } = {}) {
+      if (fs.realpathSync(root) !== fs.realpathSync(repo)) throw new Error("migration requires the Git worktree root, not a nested directory");
+      if (typeof apply !== "boolean") throw new Error("migration apply must be boolean");
+      if (apply && (typeof archiveFile !== "string" || !archiveFile.trim()
+        || typeof actor !== "string" || !hasActionableReason(actor)
+        || typeof reason !== "string" || !hasActionableReason(reason))) {
+        throw new Error("migration requires an archive file with an existing parent, actor and non-placeholder reason");
+      }
+      const taskImport = await import("./task-import.mjs");
+      const perform = (fence) => {
+        const active = readActiveTaskStoreSnapshot(repo);
+        if (active) {
+          if (active.errors.length > 0) throw new Error(`active task queue is invalid: ${active.errors.join("; ")}`);
+          return { status: "already-active", tasks: Object.keys(active.state.tasks).length, oid: active.oid };
+        }
+        if (readRef(repo, QUEUE_REF)) throw new Error("an unselected task store already exists; inspect it before migration");
+        const prepared = taskImport.prepareLegacyQueueImport(repo);
+        const tasks = Object.keys(prepared.state.tasks).length;
+        if (!apply) return { status: "planned", tasks, report: prepared.report };
+        const next = importedState(prepared, { claimSessionResolutions }, taskImport);
+        const backup = migrationArchive(repo, archiveFile, prepared.archive);
+        next.importReceipt = { actor, reason, archiveSha256: backup.sha256 };
+        const transfer = restoreSnapshotUnlocked(repo, archiveForState(repo, next), fence);
+        return { status: "migrated", tasks, archive: backup, refs: transfer.refs };
+      };
+      return apply ? withQueueWriteLock(repo, "migrate queue", perform, { fenceActivation: true }) : perform();
     },
 
     async list({ status } = {}) {
@@ -636,9 +718,10 @@ export function openTaskStore(root) {
 
     async edit(id, patch = {}) {
       if (!patch || typeof patch !== "object" || Array.isArray(patch)) throw new Error("task edit must be an object");
-      const allowed = new Set(["title", "body", "dependencies", "contextRef", "type", "laneRecipe", "executionHint"]);
+      const allowed = new Set(["title", "body", "dependencies", "contextRef", "type", "laneRecipe", "executionHint", "lane"]);
       const fields = Object.keys(patch);
       if (fields.length === 0 || fields.some((field) => !allowed.has(field))) throw new Error("task edit requires supported content or dependency fields");
+      if (Object.hasOwn(patch, "lane") && patch.lane !== true) throw new Error("lane admission cannot remove proof-gated closure");
       if (Object.hasOwn(patch, "title") && (typeof patch.title !== "string" || patch.title.trim() === "")) throw new Error("task title is required");
       if (Object.hasOwn(patch, "body") && typeof patch.body !== "string") throw new Error("task body must be a string");
       if (Object.hasOwn(patch, "type") && !TYPES.has(patch.type)) throw new Error("task type is invalid");
@@ -647,6 +730,7 @@ export function openTaskStore(root) {
         throw new Error("task dependencies must be non-empty ids");
       }
       const changes = {
+        ...(Object.hasOwn(patch, "lane") ? { lane: true } : {}),
         ...(Object.hasOwn(patch, "title") ? { title: patch.title.trim() } : {}),
         ...(Object.hasOwn(patch, "type") ? { type: patch.type } : {}),
         ...(Object.hasOwn(patch, "body") ? { body: patch.body } : {}),

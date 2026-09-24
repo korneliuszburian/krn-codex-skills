@@ -390,6 +390,68 @@ not proof that the old CLI can operate it. Reject cutover if a post-cutover
 task is lost on restore or a capsule candidate goes dangling because a reader
 still uses the old paths.
 
+**Production migration.** `krn ticket store migrate --root REPO --json` reports
+the legacy path/ID set, ambiguities and unmapped fields without writing queue
+state. After reviewing that report and completing the cutover gates, apply it
+with `--yes --archive FILE --actor NAME --reason TEXT`. The archive parent must
+already exist; a repository-local backup belongs under `.krn/` outside the live
+ticket and claim directories. `--file DECISIONS.json` supplies the explicit
+per-record session decisions described below. Empty repositories use the same
+command to initialize the selected queue.
+
+The queue owner holds one synchronous critical section across source readback,
+validation, exact legacy archive write and atomic creation of queue plus
+selector refs. Current legacy claim, fail, close and reconcile writers use that
+same exclusion from their admission check through their final file write.
+Restore and clone-copy activation also use it. No model, test suite or remote
+operation runs inside this section. Existing identical archive bytes admit a
+retry; different backup bytes or an unselected existing queue refuse it. An
+already selected valid queue returns `already-active` without replaying import.
+
+`krn ticket store lock --root REPO` shows the owner token and observed process
+liveness. `store unlock --root REPO --token TOKEN --actor NAME --reason TEXT`
+recovers only that exact token after the local kernel reports its PID absent.
+A live or reused PID, another host or unknown liveness refuses recovery; age
+alone grants nothing. Owner/proposal directories are published complete by
+rename. Recovery moves the old guard into a nonempty token tombstone, so a late
+retry cannot remove a newer owner. Matching retries read that tombstone first;
+different recovery parameters are rejected. The queue owner retains tombstones
+until all legacy writer support is quiesced and retired. Unpublished or released
+scratch directories left by a killed process are inert; they are cleaned with
+that owner at retirement, never treated as a live guard. Git repositories use
+the Git common directory; standalone legacy-file callers use their own `.krn`.
+
+Migration and restore also verify a unique `refs/krn/queue-activation-fence`
+object in the same Git transaction as the queue and selector. Recovery revokes
+that token before releasing the directory guard: a Git helper that survives
+its parent cannot activate the stale snapshot afterward. Acquisition and
+revocation compare the recorded previous/current objects, so a delayed helper
+cannot replace a successor's fence. If a Git transaction still holds the ref,
+recovery refuses and requires retry after readback. This local exclusion ref
+is not task authority and is not copied in queue archives; each destination
+creates its own fence. It remains with the guard's retirement owner.
+
+These are cooperative local-filesystem and process-namespace guarantees.
+Old installed binaries, loaded clients and in-flight integration effects must
+be quiesced separately before live migration; new source code cannot fence a
+client that does not implement this protocol. Process-crash checks do not prove
+power-loss durability or protection from a process with the same filesystem
+permissions.
+
+For selected queues, a claimed-task writer passes its own `--expected-epoch`
+from the claim response to `comment`, `fail`, `release`, `renew` and claimed
+`close`. The CLI does not replace a missing generation with the current one.
+`renew` extends only the matching unexpired lease. Ordinary unclaimed human
+close still uses actor and reason without requiring a claim.
+`add` and `edit` accept an optional `--lane-recipe FILE.json` containing base,
+scope, check, contract and acceptance. Supplying it explicitly admits the task
+to an automated lane and requires operation-based closure; incomplete recipes
+fail before writing. This admission cannot be undone through a plain content
+edit to bypass proof. Title-only human work still needs no recipe.
+An existing observer file establishes availability, not a passing result. Queue
+queries leave outcome classification to the lane's executing preflight, which
+still refuses an already-green check or a load/setup failure.
+
 **Queue recovery after new writes.** `krn ticket store export --root REPO
 --json` prints a version-1 `krn-task-queue` archive containing the exact blob
 contents and Git object IDs for `refs/krn/queue` and `refs/krn/queue-active`.

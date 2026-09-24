@@ -97,11 +97,6 @@ function presentAtBase({ root, git, base, file }) {
   return git(root, ["cat-file", "-e", `${base}:${file}`]).ok;
 }
 
-function contractDirection(value) {
-  const match = CONTRACT_DIRECTION.exec(String(value ?? "").trim());
-  return match ? { from: match[1].toLowerCase(), to: match[2].toLowerCase() } : null;
-}
-
 function namesNewObserver(acceptance, ref) {
   const text = String(acceptance ?? "");
   return /\bnew observer\b/i.test(text) || (ref !== "" && text.includes(ref));
@@ -112,19 +107,9 @@ function envelopeLintErrors({ root, git, ticket }) {
   const base = ticketBase(ticket.fields);
   const ref = contractRef(ticket.fields.get("Contract"));
   if (!base || !ref || !TEST_REF.test(ref)) return errors;
-  // An existing observer already passes at base, so `red->green` cannot be the
-  // closure's transition: the lane preflight refuses it as already-passing.
-  const direction = contractDirection(ticket.fields.get("Contract"));
-  if (presentAtBase({ root, git, base, file: ref })) {
-    if (direction?.from === "red" && direction?.to === "green") {
-      errors.push({
-        path: ticket.path,
-        rule: "existing-check-red-flip",
-        message: `ticket "${ticket.id}" Contract names existing test file "${ref}" with direction red->green; it already passes at ${base}, so the lane preflight refuses it`,
-      });
-    }
-    return errors;
-  }
+  // Presence proves only that the observer exists. The lane preflight executes
+  // it to distinguish a real red task from an already-green or broken check.
+  if (presentAtBase({ root, git, base, file: ref })) return errors;
   if (!absentAtBase({ root, git, base, file: ref })) return errors;
   const scope = scopeEntries(ticket.fields.get("Scope"));
   if (!scope.some((entry) => scopeDeclares(entry, "package.json"))) {

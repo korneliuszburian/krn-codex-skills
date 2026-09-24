@@ -39,6 +39,11 @@ export function claimLockPath(root, id) {
 
 export const DEFAULT_CLAIM_DURATION = 3600;
 export const MAX_ATTEMPTS = 3;
+const PLACEHOLDER_REASONS = new Set(["none", "unknown", "n/a", "not applicable", "todo", "tbd", "placeholder"]);
+export function hasActionableReason(reason) {
+  const normalized = String(reason ?? "").trim().toLowerCase();
+  return normalized !== "" && !PLACEHOLDER_REASONS.has(normalized);
+}
 export const ANCHOR_BYPASS = "allow-unanchored";
 
 // Infrastructure configuration swings agent evals as much as model choice does,

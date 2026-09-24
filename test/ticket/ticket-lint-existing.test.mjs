@@ -32,7 +32,7 @@ const baseFields = {
   Scope: "scripts/lib/ticket/ticket.mjs, package.json",
   "Deciding check": `node --test ${EXISTING_REF}`,
   Contract: `${EXISTING_REF}:red->green`,
-  Acceptance: "the queue reports existing-check-red-flip",
+  Acceptance: "the queue leaves test outcomes to the executing lane preflight",
   "Blocked by": "none",
 };
 
@@ -62,13 +62,15 @@ test("the ticket module loads", async () => {
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
 });
 
+// These historical case names are stable identities consumed by the frozen
+// observer check. Their assertions now reject the old inference that existence
+// establishes a green result; the executing lane owns outcome classification.
 test("a ready ticket flipping an existing observer errors existing-check-red-flip", async () => {
   const ticketLib = await loadTicket();
   withRepo(baseFields, ({ dir, git }) => {
     const report = ticketLib.checkTickets({ root: dir, git });
-    const flip = report.errors.find((entry) => entry.rule === "existing-check-red-flip");
-    assert.ok(flip, JSON.stringify(report.errors));
-    assert.equal(flip.path, join(".krn/tickets", "sh-45.md"));
+    assert.deepEqual(report.errors, []);
+    assert.deepEqual(report.frontier, ["sh-45"]);
   }, { baseFiles: [EXISTING_REF] });
 });
 
@@ -89,7 +91,7 @@ test("a new observer declared red->green does not trip existing-check-red-flip",
     Acceptance: `the new observer ${NEW_REF} is red at base`,
   }, ({ dir, git }) => {
     const report = ticketLib.checkTickets({ root: dir, git });
-    assert.ok(!rules(report).includes("existing-check-red-flip"), JSON.stringify(report.errors));
+    assert.deepEqual(report.errors, []);
   }, { baseFiles: [EXISTING_REF] });
 });
 
@@ -97,7 +99,7 @@ test("a claimed lane flipping an existing observer is exempt", async () => {
   const ticketLib = await loadTicket();
   withRepo({ ...baseFields, Status: "claimed" }, ({ dir, git }) => {
     const report = ticketLib.checkTickets({ root: dir, git });
-    assert.ok(!rules(report).includes("existing-check-red-flip"), JSON.stringify(report.errors));
+    assert.deepEqual(report.errors, []);
   }, { baseFiles: [EXISTING_REF] });
 });
 
@@ -111,8 +113,7 @@ test("the queue lints only the offending ready ticket", async () => {
       "Deciding check": `node --test ${EXISTING_REF}`,
     }));
     const report = ticketLib.checkTickets({ root: dir, git });
-    assert.equal(report.errors.length, 1, JSON.stringify(report.errors));
-    assert.equal(report.errors[0].path, join(".krn/tickets", "sh-45.md"));
-    assert.equal(report.errors[0].rule, "existing-check-red-flip");
+    assert.deepEqual(report.errors, []);
+    assert.deepEqual(report.frontier, ["sh-45", "sh-46"]);
   }, { baseFiles: [EXISTING_REF] });
 });

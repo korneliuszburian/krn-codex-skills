@@ -1342,9 +1342,9 @@ test("the production Git-ref store recovers a lost claim response and fences the
       };
       const human = command(fixture.root, "add", "--title", "Created after legacy import");
       command(fixture.root, "ready", "--id", human.id);
-      command(fixture.root, "claim", "--id", human.id, "--worker", "operator");
-      command(fixture.root, "comment", "--id", human.id, "--worker", "operator", "--body", "Keep this discussion on recovery");
-      command(fixture.root, "close", "--id", human.id, "--actor", "operator", "--reason", "Handled without a code commit");
+      const humanClaim = command(fixture.root, "claim", "--id", human.id, "--worker", "operator");
+      command(fixture.root, "comment", "--id", human.id, "--worker", "operator", "--expected-epoch", String(humanClaim.epoch), "--body", "Keep this discussion on recovery");
+      command(fixture.root, "close", "--id", human.id, "--actor", "operator", "--expected-epoch", String(humanClaim.epoch), "--reason", "Handled without a code commit");
       const ready = command(fixture.root, "add", "--title", "Ready after restore");
       command(fixture.root, "ready", "--id", ready.id);
       command(fixture.root, "intent", "set", "--intent", "archive-outcome", "--revision", "1", "--expected-revision", "0");

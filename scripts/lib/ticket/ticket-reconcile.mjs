@@ -3,6 +3,7 @@ import fs from "node:fs";
 
 import { runGit } from "../kernel/git.mjs";
 import { writeAtomic } from "../support/write-atomic.mjs";
+import { withLegacyQueueWrite } from "./task-store.mjs";
 
 import {
   DEFAULT_DIRS,
@@ -25,7 +26,11 @@ import {
 // id) and its lease no longer has a live worker. It reads nothing for a
 // ticket with no recorded integration, so it is a no-op for ordinary claims,
 // and a closed ticket drops out of the next run, so the repair is idempotent.
-export function reconcileTickets({ root, dirs = DEFAULT_DIRS, headRef = "HEAD", git = runGit, at = new Date().toISOString(), now = at, listFiles, parseTicket } = {}) {
+export function reconcileTickets(options = {}) {
+  return withLegacyQueueWrite(options.root, "reconcile", () => reconcileUnlocked(options));
+}
+
+function reconcileUnlocked({ root, dirs = DEFAULT_DIRS, headRef = "HEAD", git = runGit, at = new Date().toISOString(), now = at, listFiles, parseTicket } = {}) {
   const closed = [];
   if (!git(root, ["rev-parse", "--git-dir"]).ok) return closed;
   for (const file of listFiles(root, dirs)) {

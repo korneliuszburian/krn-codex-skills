@@ -178,8 +178,9 @@ test("public task CLI adds a title-only task, readies it and shows its history",
     const claim = run("claim", "--root", dir, "--ready", "--worker", "maintainer", "--session", "task-cli", "--json");
     assert.equal(claim.status, 0, `${claim.stdout}${claim.stderr}`);
     assert.equal(JSON.parse(claim.stdout).status, "claimed");
+    const epoch = String(JSON.parse(claim.stdout).epoch);
 
-    const comment = run("comment", "--root", dir, "--id", "new-task", "--worker", "maintainer", "--body", "checked the task intent", "--json");
+    const comment = run("comment", "--root", dir, "--id", "new-task", "--worker", "maintainer", "--expected-epoch", epoch, "--body", "checked the task intent", "--json");
     assert.equal(comment.status, 0, `${comment.stdout}${comment.stderr}`);
     assert.equal(JSON.parse(comment.stdout).body, "checked the task intent");
 
@@ -191,7 +192,7 @@ test("public task CLI adds a title-only task, readies it and shows its history",
     assert.equal(placeholderClose.status, 64);
     assert.match(placeholderClose.stderr, /non-placeholder reason/);
 
-    const close = run("close", "--root", dir, "--id", "new-task", "--actor", "maintainer", "--reason", "the requested task is complete", "--json");
+    const close = run("close", "--root", dir, "--id", "new-task", "--actor", "maintainer", "--expected-epoch", epoch, "--reason", "the requested task is complete", "--json");
     assert.equal(close.status, 0, `${close.stdout}${close.stderr}`);
     assert.equal(JSON.parse(close.stdout).status, "done");
     assert.equal(JSON.parse(close.stdout).result.actor, "maintainer");
@@ -248,11 +249,13 @@ test("public task CLI lists, edits and releases a claimed task as abandoned", as
     assert.equal(JSON.parse(edit.stdout).title, "Updated title");
 
     assert.equal(run("ready", "--root", dir, "--id", "editable-task").status, 0);
-    assert.equal(run("claim", "--root", dir, "--id", "editable-task", "--worker", "maintainer", "--json").status, 0);
+    const claim = run("claim", "--root", dir, "--id", "editable-task", "--worker", "maintainer", "--json");
+    assert.equal(claim.status, 0);
+    const epoch = String(JSON.parse(claim.stdout).epoch);
     const unattributedRelease = run("release", "--root", dir, "--id", "editable-task", "--reason", "operator stopped this attempt", "--json");
     assert.equal(unattributedRelease.status, 64);
     assert.match(unattributedRelease.stderr, /requires --actor/);
-    const release = run("release", "--root", dir, "--id", "editable-task", "--actor", "maintainer", "--reason", "operator stopped this attempt", "--json");
+    const release = run("release", "--root", dir, "--id", "editable-task", "--actor", "maintainer", "--expected-epoch", epoch, "--reason", "operator stopped this attempt", "--json");
     assert.equal(release.status, 0, `${release.stdout}${release.stderr}`);
     const task = JSON.parse(run("show", "--root", dir, "--id", "editable-task", "--json").stdout);
     assert.equal(task.Status, "abandoned");
@@ -276,10 +279,12 @@ test("public task CLI records typed failures and retains the retry gate", async 
     await store.add({ id: "failing-task", title: "Retry failure task" });
     await store.markReady("failing-task");
     activateTaskQueueFixture(dir);
-    assert.equal(run("claim", "--root", dir, "--id", "failing-task", "--worker", "worker-a").status, 0);
+    const claim = run("claim", "--root", dir, "--id", "failing-task", "--worker", "worker-a");
+    assert.equal(claim.status, 0);
+    const epoch = String(JSON.parse(claim.stdout).epoch);
 
     for (let index = 1; index <= 3; index += 1) {
-      const failed = run("fail", "--root", dir, "--id", "failing-task", "--worker", "worker-a", "--signature", "same-failure", "--reason", "no progress");
+      const failed = run("fail", "--root", dir, "--id", "failing-task", "--worker", "worker-a", "--expected-epoch", epoch, "--signature", "same-failure", "--reason", "no progress");
       assert.equal(failed.status, 0, `${failed.stdout}${failed.stderr}`);
       assert.equal(JSON.parse(failed.stdout).attempts, index);
       const task = await store.show("failing-task");

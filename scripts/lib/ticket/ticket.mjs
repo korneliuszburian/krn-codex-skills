@@ -34,7 +34,7 @@ import {
 } from "./ticket-abi.mjs";
 import { baseRefExists, checkTickets as checkTicketsImpl, contractErrors, namesTicket, scopeErrors } from "./ticket-check.mjs";
 import { findTicketFile as findTicketFileImpl, reconcileTickets as reconcileTicketsImpl } from "./ticket-reconcile.mjs";
-import { readActiveTaskStoreSnapshot } from "./task-store.mjs";
+import { readActiveTaskStoreSnapshot, withLegacyQueueWrite } from "./task-store.mjs";
 
 export { envFingerprint, hasEnvFingerprint, ticketLaneBindings };
 
@@ -165,9 +165,12 @@ function readClaimLockStrict(lockPath) {
   return { status: "held", value: parsed };
 }
 
-export function claimTicket({ file, root, id, worker, session = "", at = new Date().toISOString(), duration = DEFAULT_CLAIM_DURATION, observer } = {}) {
+export function claimTicket(options = {}) {
+  return withLegacyQueueWrite(options.root ?? rootForTicket(options.file), "claim", () => claimTicketUnlocked(options));
+}
+
+function claimTicketUnlocked({ file, root, id, worker, session = "", at = new Date().toISOString(), duration = DEFAULT_CLAIM_DURATION, observer } = {}) {
   const claimRoot = root ?? rootForTicket(file);
-  ensureLegacyWriter(claimRoot, "claim");
   const ticketId = id ?? readValidTicket(file, parseTicketText).fields.get("Id");
   const lockPath = claimLockPath(claimRoot, ticketId);
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
@@ -214,8 +217,11 @@ export function claimTicket({ file, root, id, worker, session = "", at = new Dat
   }
 }
 
-export function recordAttempt({ file, signature = "", reason = "unknown", at = new Date().toISOString() } = {}) {
-  ensureLegacyWriter(rootForTicket(file), "record an attempt");
+export function recordAttempt(options = {}) {
+  return withLegacyQueueWrite(options.root ?? rootForTicket(options.file), "record an attempt", () => recordAttemptUnlocked(options));
+}
+
+function recordAttemptUnlocked({ file, signature = "", reason = "unknown", at = new Date().toISOString() } = {}) {
   const { text, fields } = readValidTicket(file, parseTicketText);
   const id = fields.get("Id");
   const status = fields.get("Status");
@@ -239,8 +245,11 @@ export function recordAttempt({ file, signature = "", reason = "unknown", at = n
   };
 }
 
-export function closeTicket({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint(), wallSeconds, tokens, allowUnanchored = false }) {
-  ensureLegacyWriter(root ?? rootForTicket(file), "close");
+export function closeTicket(options) {
+  return withLegacyQueueWrite(options.root ?? rootForTicket(options.file), "close", () => closeTicketUnlocked(options));
+}
+
+function closeTicketUnlocked({ file, root, git = runGit, evidence = "none", resolution = "none", at = new Date().toISOString(), base, head = "HEAD", env = envFingerprint(), wallSeconds, tokens, allowUnanchored = false }) {
   const { text, fields } = readValidTicket(file, parseTicketText);
   const status = fields.get("Status");
   if (TERMINAL_STATUSES.has(status)) throw new Error(`ticket ${fields.get("Id")} is already terminal (Status: ${status})`);
@@ -346,7 +355,6 @@ function assertClaimUnblocked({ file, root, fields }) {
 // ticket with no recorded integration, so it is a no-op for ordinary claims,
 // and a closed ticket drops out of the next run, so the repair is idempotent.
 export function reconcileTickets(options = {}) {
-  ensureLegacyWriter(options.root, "reconcile");
   return reconcileTicketsImpl({ listFiles: markdownFiles, parseTicket: parseTicketText, ...options });
 }
 
@@ -377,10 +385,4 @@ export function checkTickets(options = {}) {
     });
   }
   return checkTicketsImpl({ listFiles: markdownFiles, parseTicket: parseTicketText, ...options });
-}
-
-function ensureLegacyWriter(root, operation) {
-  if (readActiveTaskStoreSnapshot(root)) {
-    throw new Error(`Git-ref task queue is active; legacy Markdown writer cannot ${operation}`);
-  }
 }

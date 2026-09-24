@@ -6,8 +6,9 @@ import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText, recordAttempt, reconcileTickets, taskTicketView, ticketLaneBindings } from "./ticket.mjs";
 import { rootForTicket } from "./ticket-abi.mjs";
 import { copyActiveTaskStoreSnapshot, exportTaskStoreSnapshot, openTaskStore, readActiveTaskStoreSnapshot, restoreTaskStoreSnapshot } from "./task-store.mjs";
+import { inspectQueueWriteLock, recoverQueueWriteLock } from "./queue-write-lock.mjs";
 
-const COMMANDS = new Set(["add", "check", "next", "ready", "reconcile", "claim", "comment", "close", "reopen", "release", "takeover", "list", "edit", "fail", "fields", "env"]);
+const COMMANDS = new Set(["add", "check", "next", "ready", "reconcile", "claim", "renew", "comment", "close", "reopen", "release", "takeover", "list", "edit", "fail", "fields", "env"]);
 const VALUE_FLAGS = {
   "--root": "root",
   "--path": "path",
@@ -25,12 +26,15 @@ const VALUE_FLAGS = {
   "--tokens": "tokens",
   "--title": "title",
   "--body": "body",
+  "--lane-recipe": "laneRecipeFile",
   "--type": "type",
   "--actor": "actor",
   "--status": "status",
   "--expected-epoch": "expectedEpoch",
   "--intent": "intent",
   "--to": "to",
+  "--archive": "archive",
+  "--token": "token",
   "--revision": "revision",
   "--expected-revision": "expectedRevision",
 };
@@ -116,17 +120,18 @@ function selectedTaskStore(root) {
 
 async function runTaskStoreCommand(command, positional, options, usage, requireDirectory) {
   const allowedByCommand = {
-    add: ["root", "id", "title", "body", "type", "dependencies"],
+    add: ["root", "id", "title", "body", "type", "dependencies", "laneRecipeFile"],
     ready: ["root", "id"],
     claim: ["root", "id", "worker", "session", "ready"],
-    comment: ["root", "id", "worker", "body"],
-    close: ["root", "id", "actor", "reason", "resolution"],
+    renew: ["root", "id", "worker", "expectedEpoch"],
+    comment: ["root", "id", "worker", "body", "expectedEpoch"],
+    close: ["root", "id", "actor", "reason", "resolution", "expectedEpoch"],
     reopen: ["root", "id", "actor", "reason"],
-    release: ["root", "id", "actor", "reason"],
+    release: ["root", "id", "actor", "reason", "expectedEpoch"],
     takeover: ["root", "id", "worker", "session", "expectedEpoch", "reason"],
-    fail: ["root", "id", "worker", "reason", "signature"],
+    fail: ["root", "id", "worker", "reason", "signature", "expectedEpoch"],
     list: ["root", "status"],
-    edit: ["root", "id", "title", "body", "type", "dependencies"],
+    edit: ["root", "id", "title", "body", "type", "dependencies", "laneRecipeFile"],
   };
   const allowed = allowedByCommand[command] ?? [];
   rejectOptions(options, allowed);
@@ -134,57 +139,59 @@ async function runTaskStoreCommand(command, positional, options, usage, requireD
   requireDirectory(options.root);
   if (command === "add" && !options.title) fail("ticket add requires --title", EXIT_CODES.USAGE);
   if (command === "ready" && !options.id) fail("ticket ready requires --id", EXIT_CODES.USAGE);
-  if (["claim", "comment", "close", "reopen", "fail", "takeover"].includes(command) && !options.id
+  if (["claim", "renew", "comment", "close", "reopen", "fail", "takeover"].includes(command) && !options.id
     && !(command === "claim" && options.ready)) fail(`ticket ${command} requires --id`, EXIT_CODES.USAGE);
   if (["edit", "release"].includes(command) && !options.id) fail(`ticket ${command} requires --id`, EXIT_CODES.USAGE);
-  if (command === "claim" && !options.worker) fail("ticket claim requires --worker", EXIT_CODES.USAGE);
+  if (["claim", "renew"].includes(command) && !options.worker) fail(`ticket ${command} requires --worker`, EXIT_CODES.USAGE);
   if (command === "claim" && options.ready && options.id) fail("ticket claim --ready does not accept --id", EXIT_CODES.USAGE);
   if (command === "fail" && (!options.worker || !options.reason)) fail("ticket fail requires --worker and --reason", EXIT_CODES.USAGE);
   if (command === "takeover" && (!options.worker || !options.expectedEpoch || !options.reason)) {
     fail("ticket takeover requires --worker, --expected-epoch and --reason", EXIT_CODES.USAGE);
   }
-  if (command === "takeover" && (!Number.isInteger(Number(options.expectedEpoch)) || Number(options.expectedEpoch) < 1)) {
-    fail("ticket takeover requires a positive --expected-epoch", EXIT_CODES.USAGE);
-  }
   if (command === "comment" && (!options.worker || !options.body)) fail("ticket comment requires --worker and --body", EXIT_CODES.USAGE);
   if (["close", "reopen"].includes(command) && !(options.reason ?? options.resolution)) fail(`ticket ${command} requires --reason`, EXIT_CODES.USAGE);
   if (["close", "reopen", "release"].includes(command) && !options.actor) fail(`ticket ${command} requires --actor`, EXIT_CODES.USAGE);
+  if (["comment", "renew", "release", "fail"].includes(command) && options.expectedEpoch === undefined) {
+    fail(`ticket ${command} requires --expected-epoch from the claim response`, EXIT_CODES.USAGE);
+  }
+  const epoch = options.expectedEpoch === undefined ? undefined : Number(options.expectedEpoch);
+  if (epoch !== undefined && (!Number.isSafeInteger(epoch) || epoch < 1)) {
+    fail(`ticket ${command} requires a positive --expected-epoch`, EXIT_CODES.USAGE);
+  }
   const store = selectedTaskStore(options.root);
   try {
     let result;
+    const laneAssignment = options.laneRecipeFile ? { lane: true, laneRecipe: JSON.parse(fs.readFileSync(options.laneRecipeFile, "utf8")) } : {};
     if (command === "add") {
-      result = await store.add({ id: options.id, title: options.title, body: options.body ?? "", type: options.type ?? "task", dependencies: options.dependencies ?? [] });
+      result = await store.add({ id: options.id, title: options.title, body: options.body ?? "", type: options.type ?? "task", dependencies: options.dependencies ?? [], ...laneAssignment });
     } else if (command === "ready") {
       result = await store.markReady(options.id);
     } else if (command === "claim") {
       const claim = { worker: options.worker, session: options.session ?? "" };
       result = options.ready ? await store.claimReady(claim) : await store.claim(options.id, claim);
+    } else if (command === "renew") {
+      result = await store.renewClaim(options.id, { worker: options.worker, epoch });
     } else if (command === "comment") {
-      const task = await store.show(options.id);
-      result = await store.comment(options.id, { worker: options.worker, epoch: task?.epoch, body: options.body });
+      result = await store.comment(options.id, { worker: options.worker, epoch, body: options.body });
     } else if (command === "close") {
       const actor = options.actor;
-      const task = await store.show(options.id);
-      const epoch = task?.status === "claimed" && task.owner === actor ? task.epoch : undefined;
       result = await store.close(options.id, { actor, reason: options.reason ?? options.resolution, epoch });
     } else if (command === "reopen") {
       result = await store.reopen(options.id, { actor: options.actor, reason: options.reason });
     } else if (command === "release") {
       const actor = options.actor;
-      const task = await store.show(options.id);
-      result = await store.release(options.id, { actor, reason: options.reason, epoch: task?.epoch });
+      result = await store.release(options.id, { actor, reason: options.reason, epoch });
     } else if (command === "takeover") {
       result = await store.takeover(options.id, {
         worker: options.worker,
         session: options.session ?? "",
-        expectedEpoch: Number(options.expectedEpoch),
+        expectedEpoch: epoch,
         reason: options.reason,
       });
     } else if (command === "fail") {
-      const task = await store.show(options.id);
       result = await store.recordFailure(options.id, {
         worker: options.worker,
-        epoch: task?.epoch,
+        epoch,
         signature: options.signature ?? "",
         reason: options.reason,
       });
@@ -192,6 +199,7 @@ async function runTaskStoreCommand(command, positional, options, usage, requireD
       result = await store.list({ status: options.status });
     } else {
       const patch = {
+        ...laneAssignment,
         ...(options.title !== undefined ? { title: options.title } : {}),
         ...(options.body !== undefined ? { body: options.body } : {}),
         ...(options.type !== undefined ? { type: options.type } : {}),
@@ -310,8 +318,28 @@ async function runTaskOperation(positional, options, usage, requireDirectory) {
   fail(usage, EXIT_CODES.USAGE);
 }
 
-function runTaskStoreTransfer(positional, options, usage, requireDirectory) {
+async function runTaskStoreTransfer(positional, options, usage, requireDirectory) {
   const command = positional[1];
+  if (["migrate", "lock", "unlock"].includes(command)) {
+    const allowed = { migrate: ["root", "yes", "archive", "actor", "reason", "file"], lock: ["root"], unlock: ["root", "token", "actor", "reason"] };
+    rejectOptions(options, allowed[command]);
+    if (positional.length !== 2 || !options.root) fail(usage, EXIT_CODES.USAGE);
+    requireDirectory(options.root);
+    try {
+      if (command === "lock") output(inspectQueueWriteLock(options.root), options.json);
+      else if (command === "unlock") output(recoverQueueWriteLock(options.root, options), options.json);
+      else {
+        const resolutions = options.file ? JSON.parse(fs.readFileSync(options.file, "utf8")) : [];
+        if (!Array.isArray(resolutions)) fail("migration decision file must contain an array", EXIT_CODES.USAGE);
+        const result = await openTaskStore(options.root).migrateLegacyQueue({
+          apply: options.yes, archiveFile: options.archive, actor: options.actor, reason: options.reason, claimSessionResolutions: resolutions,
+        });
+        output(result, options.json);
+        if (result.report?.errors.length > 0) process.exitCode = EXIT_CODES.SOURCE;
+      }
+    } catch (error) { fail(error.message, EXIT_CODES.USAGE); }
+    return;
+  }
   if (positional.length !== 2 || !["copy", "export", "restore"].includes(command)
     || !options.root || options.source || options.yes) {
     fail(usage, EXIT_CODES.USAGE);
@@ -443,7 +471,7 @@ export async function runTicketCommand(argv, { usage, requireDirectory }) {
     return;
   }
   if (command === "store") {
-    runTaskStoreTransfer(positional, options, usage, requireDirectory);
+    await runTaskStoreTransfer(positional, options, usage, requireDirectory);
     return;
   }
   if (command === "operation") {
@@ -458,7 +486,7 @@ export async function runTicketCommand(argv, { usage, requireDirectory }) {
     renderTicketFile(positional, options, usage);
     return;
   }
-  if (["add", "ready", "comment", "reopen", "release", "takeover", "list", "edit"].includes(command)
+  if (["add", "ready", "renew", "comment", "reopen", "release", "takeover", "list", "edit"].includes(command)
     || (command === "claim" && options.ready)) {
     await runTaskStoreCommand(command, positional, options, usage, requireDirectory);
     return;
@@ -493,7 +521,7 @@ export async function runTicketCommand(argv, { usage, requireDirectory }) {
         ? claimTicket({ file, root: options.root, id: options.id, worker: options.worker ?? "unknown", session: options.session ?? "" })
         : command === "close"
           ? closeTicket({ file, root: options.root, evidence: options.evidence ?? "none", resolution: options.resolution ?? "none", base: options.base, head: options.head, wallSeconds: options.wallSeconds, tokens: options.tokens })
-          : recordAttempt({ file, reason: options.reason ?? "unknown", signature: options.signature ?? "" });
+          : recordAttempt({ file, root: options.root, reason: options.reason ?? "unknown", signature: options.signature ?? "" });
       output(result, options.json);
     } catch (error) {
       fail(error.message, EXIT_CODES.USAGE);
