@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "krn": {
-    "commit": "e6c2c416390a4f4df8a653a70ad8782c45b6854b",
+    "commit": "b06228c9349b219ddbc9829684b2f265749afdfe",
     "dirty": false
   },
   "upstream": {
@@ -28,7 +28,7 @@
     "writing-for-agents"
   ],
   "digests": {
-    "delivery-loop": "c760ff1c1fba6d14acdd47325be521d62166a2f2ebd47c6ee819d79d3e8a169f",
+    "delivery-loop": "4cddd6bd196a87434556fc3e87c7686818b6210d7deff779ddd6dcdac7101ac4",
     "source-to-decision": "5bd95f3844e5f436d6e0658de98cd653d847c21653bbc89fc96eecedc102001f",
     "slice-work": "204cf02c807b8849ced029d8d1a64481e153df67b7c5bea231ef0a9cbb9ffeaa",
     "setup-repository-workflow": "cf61671b8f0ca749d69d9a64e0accae085a198c074143e7d2489363dec567803",
