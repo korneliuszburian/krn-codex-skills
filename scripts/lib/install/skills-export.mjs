@@ -21,6 +21,8 @@ function directoryDigest(directory) {
 }
 
 function harnessCommit(source) {
+  const skillsTip = git(source, ["rev-list", "-1", "HEAD", "--", "skills"]);
+  if (skillsTip) return skillsTip;
   const head = git(source, ["rev-parse", "HEAD"]);
   if (head) return head;
   const release = path.join(source, ".krn-release.json");
