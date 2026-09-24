@@ -94,10 +94,10 @@ plans remain ephemeral.
 
    When the KRN local queue is the selected tracker, `apply` scaffolds it
    directly rather than through a separate tool. `--tracker local` creates
-   `.scratch/tickets/` with a queue README that names the `<krn-ticket>` ABI and
-   the `krn ticket check|next|claim|close|fail` verbs, and appends `.scratch/`
-   to `.git/info/exclude` without rewriting existing entries or a repository's
-   own `.scratch/` tree; `--tracker none` stays scaffolding-free. Operate the
+   `.krn/tickets/` with a queue README that names the `<krn-ticket>` ABI and
+   the `krn ticket check|next|claim|close|fail` verbs, and appends
+   `.krn/tickets/` to `.git/info/exclude` without rewriting existing entries
+   or other unowned directories; `--tracker none` stays scaffolding-free. Operate the
    queue from the repository root: `ticket check` validates envelopes, blockers,
    cycles, statuses, scope, and orphans; `ticket next` prints the unblocked ready
    frontier; `ticket claim` records the worker and lease before any edit;

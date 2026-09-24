@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "krn": {
-    "commit": "c00f897d4368ada55fd550dda956020e1db5518b",
+    "commit": "32a71df243462be10956fa6f835ee57b61c065d2",
     "dirty": false
   },
   "upstream": {
@@ -17,17 +17,21 @@
     "grilling",
     "implement",
     "prototype",
+    "research",
+    "resolving-merge-conflicts",
     "setup-repository-workflow",
     "slice-work",
     "source-to-decision",
+    "tdd",
     "to-spec",
-    "wayfinder"
+    "wayfinder",
+    "writing-for-agents"
   ],
   "digests": {
-    "delivery-loop": "00850f0c5d9306eea83d1264a3a99135ed82a837b2f8f76e0a157779d187005a",
+    "delivery-loop": "c760ff1c1fba6d14acdd47325be521d62166a2f2ebd47c6ee819d79d3e8a169f",
     "source-to-decision": "5bd95f3844e5f436d6e0658de98cd653d847c21653bbc89fc96eecedc102001f",
     "slice-work": "204cf02c807b8849ced029d8d1a64481e153df67b7c5bea231ef0a9cbb9ffeaa",
-    "setup-repository-workflow": "51eff04bb0aa45bb80e674a902a8e6fc699808afa477661c94c1b47af4ad8a71",
+    "setup-repository-workflow": "cf61671b8f0ca749d69d9a64e0accae085a198c074143e7d2489363dec567803",
     "code-review": "12daafb9c4f77deb3c3303dc2e6f8a3c2a0ff7928fc004af959ba18b8bd38068",
     "codebase-design": "9f457cc65ef2d70eb5b8a44a4dae2b139840078b6596a67ee8c4e95f5a0e6f5c",
     "diagnosing-bugs": "bcdaec9e1033901c396437fcb102161d8ad3cd87632007aaf270b19e03e70117",
@@ -36,6 +40,10 @@
     "prototype": "492e4433fcd9cf88c0854aba063829ee248b208849e5827a45da8424199fd10f",
     "to-spec": "f8041146ec1678c32304f46c9de99b73a4b5dadf664e35a8124be47c4cfe3196",
     "wayfinder": "93d2a866764b048ad641e82e27e7a1940fc370e7933470bffeb937fa1fb3922b",
-    "grilling": "0ca4cfe5105d79c6ef6755491492e056c43e88b82666376d8ecd7fac695d96e6"
+    "grilling": "0ca4cfe5105d79c6ef6755491492e056c43e88b82666376d8ecd7fac695d96e6",
+    "research": "75b7f9bbd7ccff6755a006f8b25d319a46ecbf6bd4b4c3323965ed9cb65e78ff",
+    "resolving-merge-conflicts": "310fa72a34cddd1dd1a9790f9ebc17bf2c83caeae5cdf87e2485be8b1abec90e",
+    "tdd": "28b5e430968370f51b03b88b4b4a046286192733d2f45bd5b8049e16f45fd234",
+    "writing-for-agents": "0071124a923559493bc8924a90fb87bceb048d31ad2ce785fa4281d7c506bfa7"
   }
 }
