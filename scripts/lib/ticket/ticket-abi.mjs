@@ -54,9 +54,22 @@ const PLACEHOLDER_RESOLUTIONS = new Set(["", "none", "n/a", "na", "tbd", "pendin
 
 export const INTEGRATED_ANCHOR = /(?:^|[;\s])integrated=([0-9a-f]{7,40})/i;
 export const PATCH_ANCHOR = /(?:^|[;\s])patch=([0-9a-f]{40})/i;
-export const INTEGRATION_BRANCH = /(?:^|;\s*)branch=([^\s;]+)/i;
+const INTEGRATION_BRANCH = /(?:^|;\s*)branch=([^\s;]+)/i;
 export const CONTRACT_DIRECTION = /:\s*(red|green)\s*->\s*(red|green)\s*$/i;
 export const TEST_REF = /(?:^|\/)test\/|\.test\.(?:mjs|cjs|js)$/;
+
+export function parseIntegrationRecord(value) {
+  const legacyRaw = String(value ?? "").trim();
+  if (!legacyRaw) return null;
+  const branch = INTEGRATION_BRANCH.exec(legacyRaw)?.[1];
+  if (!branch) return null;
+  return {
+    branch,
+    sha: /(?:^|;\s*)sha=([0-9a-f]{40})/i.exec(legacyRaw)?.[1] ?? "",
+    patch: /(?:^|;\s*)patch=([0-9a-f]{40})/i.exec(legacyRaw)?.[1] ?? "",
+    legacyRaw,
+  };
+}
 
 // The lane consumes the envelope through this binding map rather than its own
 // copy of the field parser: the owner decides which fields become which shell

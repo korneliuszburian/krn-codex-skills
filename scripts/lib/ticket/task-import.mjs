@@ -4,11 +4,11 @@ import path from "node:path";
 import { sha256Hex } from "../kernel/digest.mjs";
 import { gitTopLevel } from "../kernel/git.mjs";
 import { walkFiles } from "../kernel/walk.mjs";
-import { blockerIds, claimLockPath, DEFAULT_DIRS } from "./ticket-abi.mjs";
+import { blockerIds, claimLockPath, DEFAULT_DIRS, parseIntegrationRecord } from "./ticket-abi.mjs";
 import { parseTicketFieldOccurrences, parseTicketText } from "./ticket.mjs";
 
 const MAPPED_FIELDS = new Set([
-  "Id", "Title", "Status", "Blocked by", "Claim", "Type", "Repository-base", "Scope", "Deciding check", "Contract", "Acceptance",
+  "Id", "Title", "Status", "Blocked by", "Claim", "Type", "Repository-base", "Scope", "Deciding check", "Contract", "Acceptance", "Integration",
 ]);
 const CLAIM_FIELDS = new Set(["worker", "session", "at", "epoch", "renew", "duration"]);
 const TICKET_END = "</krn-ticket>";
@@ -272,8 +272,9 @@ export function prepareLegacyQueueImport(root, { ticketDirs = DEFAULT_DIRS } = {
     if (fields.get("Status") === "claimed" && !claim.claim) errors.push({ path: relativePath, rule: "claimed-without-owner" });
 
     const legacyFields = {};
+    const integration = parseIntegrationRecord(fields.get("Integration"));
     for (const [field, value] of fields) {
-      if (MAPPED_FIELDS.has(field)) continue;
+      if (MAPPED_FIELDS.has(field) && !(field === "Integration" && !integration)) continue;
       const values = occurrences.get(field) ?? [value];
       const retainedValue = values.length > 1 ? values : value;
       Object.defineProperty(legacyFields, field, { value: retainedValue, enumerable: true, configurable: true, writable: true });
@@ -317,6 +318,7 @@ export function prepareLegacyQueueImport(root, { ticketDirs = DEFAULT_DIRS } = {
         contract: fields.get("Contract") ?? "",
         acceptance: fields.get("Acceptance") ?? "",
       },
+      integration,
       lane: fields.has("Integration"),
       // Legacy closeTicket consumed proof for every old envelope. Keep this
       // separate from actual automated-lane membership until the task is

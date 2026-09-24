@@ -69,7 +69,13 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
       extra: "Recall: lesson:abc123#row-18\nCustom Field: preserve me\nAttempts: attempt-one\nAttempts: attempt-two",
     }).replaceAll("\n", "\r\n"));
     const claimedBytes = Buffer.from(ticket({ id: "claimed", status: "claimed", claim }));
-    const dependencyBytes = Buffer.from(ticket({ id: "team/dependency", status: "done" }));
+    const integratedSha = "1234567890123456789012345678901234567890";
+    const integratedPatch = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    const dependencyBytes = Buffer.from(ticket({
+      id: "team/dependency",
+      status: "done",
+      extra: `Integration: branch=lane/team-dependency; sha=${integratedSha}; patch=${integratedPatch}`,
+    }));
     mkdirSync(join(root, ".scratch/tickets/team"), { recursive: true });
     mkdirSync(join(root, ".krn/tickets"), { recursive: true });
     mkdirSync(join(root, ".krn/claims"), { recursive: true });
@@ -99,6 +105,13 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
     });
     assert.equal(prepared.state.tasks["team/ready"].lane, false, "a required Contract does not imply automated lane membership");
     assert.equal(prepared.state.tasks["team/ready"].legacyCloseProofRequired, true, "legacy close preserves its required proof");
+    assert.deepEqual(prepared.state.tasks["team/dependency"].integration, {
+      branch: "lane/team-dependency",
+      sha: integratedSha,
+      patch: integratedPatch,
+      legacyRaw: `branch=lane/team-dependency; sha=${integratedSha}; patch=${integratedPatch}`,
+    });
+    assert.equal(prepared.state.tasks["team/dependency"].lane, true);
     assert.deepEqual(prepared.state.tasks["team/ready"].dependencies, ["team/dependency"]);
     assert.deepEqual(prepared.state.tasks["team/ready"].legacyFields, {
       Recall: "lesson:abc123#row-18",
@@ -110,6 +123,7 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
     });
     assert.equal(prepared.state.tasks.claimed.legacyFields.Claim, claim);
     assert.ok(prepared.report.unmappedFields.some((entry) => entry.id === "team/ready" && entry.field === "Recall"));
+    assert.equal(prepared.report.unmappedFields.some((entry) => entry.field === "Integration"), false);
     const store = openTaskStore(root);
     await assert.rejects(store.importSnapshot(prepared), /unresolved claim ambiguities/);
     await assert.rejects(store.importSnapshot(prepared, { acceptClaimSessionAmbiguities: "yes" }), /acknowledgement must be boolean/);

@@ -112,6 +112,20 @@ function normalizedLaneRecipe(value) {
   return Object.fromEntries(LANE_RECIPE_FIELDS.map((key) => [key, value[key].trim()]));
 }
 
+function normalizedIntegration(value) {
+  if (value === null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("integration must be a typed outbox record");
+  const keys = Object.keys(value);
+  if (keys.some((key) => !["branch", "sha", "patch", "legacyRaw"].includes(key))) {
+    throw new Error("integration has an unsupported field");
+  }
+  if (typeof value.branch !== "string" || value.branch.trim() === ""
+    || typeof value.sha !== "string" || typeof value.patch !== "string" || typeof value.legacyRaw !== "string") {
+    throw new Error("integration requires branch, sha, patch and legacyRaw strings");
+  }
+  return { branch: value.branch.trim(), sha: value.sha, patch: value.patch, legacyRaw: value.legacyRaw };
+}
+
 function normalizedOperationParams(operation) {
   const supplied = operation.params ?? {};
   if (!operation.id || supplied.target !== operation.effectObject || supplied.intentRevision !== operation.intentRevision) {
@@ -181,6 +195,10 @@ function taskStoreErrors(state) {
       try { normalizedLaneRecipe(task.laneRecipe); } catch { errors.push(`task ${id} has an invalid lane recipe`); }
     }
     if (task.lane === true && !task.laneRecipe) errors.push(`task ${id} lane tasks require a complete lane recipe`);
+    if (task.integration !== undefined && task.integration !== null) {
+      try { normalizedIntegration(task.integration); } catch { errors.push(`task ${id} has an invalid integration outbox`); }
+      if (task.lane !== true) errors.push(`task ${id} has an integration outbox but is not a lane task`);
+    }
     if (!Array.isArray(task.dependencies)) {
       errors.push(`task ${id} dependencies are not an array`);
       continue;
