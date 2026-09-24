@@ -126,6 +126,19 @@ function normalizedIntegration(value) {
   return { branch: value.branch.trim(), sha: value.sha, patch: value.patch, legacyRaw: value.legacyRaw };
 }
 
+function normalizedGate(value) {
+  if (value === null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("gate must be a typed legacy gate record");
+  const keys = Object.keys(value);
+  if (keys.some((key) => !["kind", "detail", "legacyRaw"].includes(key))) throw new Error("gate has an unsupported field");
+  if (!["none", "human", "ci", "tracker"].includes(value.kind)
+    || typeof value.detail !== "string" || typeof value.legacyRaw !== "string"
+    || (value.kind === "none" ? value.detail !== "" : value.detail.trim() === "")) {
+    throw new Error("gate requires a supported kind and its original text");
+  }
+  return { kind: value.kind, detail: value.detail, legacyRaw: value.legacyRaw };
+}
+
 function normalizedOperationParams(operation) {
   const supplied = operation.params ?? {};
   if (!operation.id || supplied.target !== operation.effectObject || supplied.intentRevision !== operation.intentRevision) {
@@ -198,6 +211,9 @@ function taskStoreErrors(state) {
     if (task.integration !== undefined && task.integration !== null) {
       try { normalizedIntegration(task.integration); } catch { errors.push(`task ${id} has an invalid integration outbox`); }
       if (task.lane !== true) errors.push(`task ${id} has an integration outbox but is not a lane task`);
+    }
+    if (task.gate !== undefined && task.gate !== null) {
+      try { normalizedGate(task.gate); } catch { errors.push(`task ${id} has an invalid gate record`); }
     }
     if (!Array.isArray(task.dependencies)) {
       errors.push(`task ${id} dependencies are not an array`);

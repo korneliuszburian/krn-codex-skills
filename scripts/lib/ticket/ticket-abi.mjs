@@ -71,6 +71,15 @@ export function parseIntegrationRecord(value) {
   };
 }
 
+export function parseGate(value) {
+  const legacyRaw = String(value ?? "").trim();
+  if (!legacyRaw) return null;
+  if (/^none$/i.test(legacyRaw)) return { kind: "none", detail: "", legacyRaw };
+  const match = /^(human|ci|tracker):\s*(.+)$/i.exec(legacyRaw);
+  if (!match) return null;
+  return { kind: match[1].toLowerCase(), detail: match[2].trim(), legacyRaw };
+}
+
 // The lane consumes the envelope through this binding map rather than its own
 // copy of the field parser: the owner decides which fields become which shell
 // variables, and `krn ticket env` renders the map for `eval`.
