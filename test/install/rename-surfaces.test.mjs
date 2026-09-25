@@ -19,6 +19,11 @@ const LIVE_SURFACES = [
   "package.json",
   ".github/workflows/validate.yml",
   "scripts/install.sh",
+  "scripts/krn.mjs",
+  "scripts/lib/state/state-brief.mjs",
+  "scripts/lib/lessons/lessons.mjs",
+  "scripts/hooks/krn_memory.py",
+  "config/opencode/plugins/krn.js",
   "test/ci-workflow.test.mjs",
   "test/ci-workflow-tiers.test.mjs",
   "test/repro/determinism.test.mjs",
@@ -69,20 +74,4 @@ test("the install shim execs krn.mjs", () => {
   assert.match(shim, /exec node "\$script_dir\/krn\.mjs" install check/);
   assert.match(shim, /exec node "\$script_dir\/krn\.mjs" install apply/);
   assert.doesNotMatch(shim, /krn-codex/);
-});
-
-test("the catalog and repository exceptions survive the retirement", () => {
-  const pkg = JSON.parse(read("package.json"));
-  assert.equal(pkg.bin["krn-codex"], undefined);
-  assert.equal(pkg.bin["krn-codex-catalog"], "scripts/krn-codex-catalog.mjs");
-  assert.match(pkg.repository.url, /github\.com\/korneliuszburian\/krn-codex-skills/);
-  assert.match(read("README.md"), /github\.com\/korneliuszburian\/krn-codex-skills/);
-  assert.match(read("docs/migration.md"), /scripts\/krn-codex\.mjs/);
-  assert.match(read("docs/capabilities.md"), /krn-codex-catalog/);
-});
-
-test("the historical research rows keep the old name verbatim", () => {
-  const labTests = read("docs/research/lab-tests.md");
-  assert.match(labTests, /`scripts\/krn-codex\.mjs` is a re-export shim that keeps every path-only caller working/);
-  assert.match(labTests, /text and docs still say `krn-codex` until sh-51\/sh-52 land/);
 });

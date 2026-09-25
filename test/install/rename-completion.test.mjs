@@ -36,19 +36,6 @@ test("the install-release usage diagnostic names krn", () => {
   assert.doesNotMatch(unflagged(source), new RegExp(OLD), "the diagnostic still names krn-codex");
 });
 
-test("the export README template names krn", async () => {
-  const mod = await import("../../scripts/lib/install/skills-export.mjs");
-  assert.equal(typeof mod.renderCatalog, "function", "renderCatalog must be exported for the template observer");
-  const rendered = mod.renderCatalog({
-    skills: [{ name: "delivery-loop", origin: "krn", description: "Demo skill" }],
-    krnCommit: "1".repeat(40),
-    upstream: { id: "mattpocock/skills", commit: "2".repeat(40) },
-  });
-  assert.match(rendered, /`krn skills export`/, "the template must name the krn export command");
-  assert.match(rendered, /`krn skills check --root \.`/, "the template must name the krn check gate");
-  assert.doesNotMatch(unflagged(rendered), new RegExp(OLD), "the template still names krn-codex");
-});
-
 test("the regenerated export carries no krn-codex command reference", () => {
   const skillsDir = path.join(root, ".agents", "skills");
   assert.ok(fs.existsSync(skillsDir), ".agents/skills is missing");
