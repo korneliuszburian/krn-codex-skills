@@ -41,7 +41,7 @@ const usage = `Usage:
   krn state fields --file FILE [--json]
   krn skills <export|check> --root DIR [--upstream PATH] [--json]
   krn lessons <check|verify|reanchor> --root DIR [--json]
-  krn changes check --base REF [--head REF] --root DIR [--before] [--strict-recall] [--json]
+  krn changes check --base REF [--head REF] --root DIR [--before] [--strict-recall | --recall-obligation] [--json]
   krn conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
   krn memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
   krn ticket <add|list|check|next|ready|claim|renew|comment|close|reopen|release|takeover|edit|fail|reconcile> --root DIR [options]
@@ -71,7 +71,7 @@ const usage = `Usage:
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
 
-const BOOLEAN_FLAGS = { "--json": "json", "--yes": "yes", "--before": "before", "--allow-unsealed": "allowUnsealed", "--strict-recall": "strictRecall", "--frozen": "frozen", "--write": "write", "--check": "check" };
+const BOOLEAN_FLAGS = { "--json": "json", "--yes": "yes", "--before": "before", "--allow-unsealed": "allowUnsealed", "--strict-recall": "strictRecall", "--recall-obligation": "recallObligation", "--frozen": "frozen", "--write": "write", "--check": "check" };
 const VALUE_FLAGS = {
   "--source": "source",
   "--root": "root",
@@ -106,6 +106,7 @@ function requireDirectory(root) {
 
 const OPTION_FLAG = {
   strictRecall: "--strict-recall",
+  recallObligation: "--recall-obligation",
   symbols: "--symbol",
   source: "--source",
   root: "--root",
@@ -216,11 +217,17 @@ try {
     }
   } else if (raw[0] === "changes") {
     const { positional, options } = parseOptions(raw.slice(1));
-    rejectForeignOptions(options, ["root", "base", "head", "before", "strictRecall"]);
+    rejectForeignOptions(options, ["root", "base", "head", "before", "strictRecall", "recallObligation"]);
     if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root || !options.base) fail(usage);
+    if (options.strictRecall === true && options.recallObligation === true) fail("--strict-recall and --recall-obligation are mutually exclusive");
+    // Three explicit recall modes: advisory (default), trigger-based obligation
+    // (path/symbol hits block and churn stays advisory), and strict (every hit
+    // blocks). The trigger-based mode leaves strictRecall undefined so the
+    // library evaluates the actual diff trigger.
+    const recallMode = options.strictRecall === true ? true : options.recallObligation === true ? undefined : false;
     const report = contractGuardActive()
       ? { root: options.root, commits: [], results: [], errors: [], warnings: [{ rule: "change-contract-skipped", detail: "KRN_CHANGE_CONTRACT=0" }], skipped: true }
-      : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD", verifyBefore: options.before === true, strictRecall: options.strictRecall === true, requireCleanHead: true });
+      : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD", verifyBefore: options.before === true, strictRecall: recallMode, requireCleanHead: true });
     print(report, options.json);
     if (!options.json) {
       for (const warning of report.warnings ?? []) process.stderr.write(`warning: ${warning.rule}${warning.ref ? ` ${warning.ref}` : ""}${warning.commit ? ` ${warning.commit}` : ""}${warning.detail ? `: ${warning.detail}` : ""}\n`);
@@ -274,10 +281,12 @@ try {
     }
     const selected = options.filter ? cases.filter((entry) => entry.id === options.filter) : cases;
     if (selected.length === 0) fail(`no conformance case matched: ${options.filter ?? ""}`, EXIT_CODES.USAGE);
-    // A frozen run applies the base case list through the candidate runner. A
-    // candidate that no longer declares a case has deliberately removed a
-    // surface, so that case is dropped (and reported), not failed: the frozen
-    // set is the intersection of the base list and the candidate manifest.
+    // A frozen run applies the approved base case list through the candidate
+    // runner. A case the candidate no longer declares is dropped and reported
+    // only when it is not required; a required case is part of the approved
+    // acceptance policy, and its omission fails the run. Retiring a required
+    // case is a visible edit to the approved base policy, never candidate
+    // self-authorization.
     const present = options.frozen === true ? caseIds(path.join(candidate, "config", "conformance.json")) : null;
     const runnable = present === null ? selected : selected.filter((entry) => present.has(entry.id));
     const results = runConformance({ candidate, cases: runnable });
@@ -285,7 +294,12 @@ try {
       results.unshift({ id: "candidate-manifest", ok: false, detail: "the candidate has no config/conformance.json; the frozen acceptance set cannot be applied", exit: -1 });
     } else if (options.frozen === true) {
       for (const entry of selected) {
-        if (!present.has(entry.id)) results.push({ id: entry.id, ok: true, detail: "dropped: the candidate manifest no longer declares this case" });
+        if (present.has(entry.id)) continue;
+        if (entry.required === true) {
+          results.push({ id: entry.id, ok: false, detail: "required case missing: the candidate manifest no longer declares this required case" });
+        } else {
+          results.push({ id: entry.id, ok: true, detail: "dropped: the candidate manifest no longer declares this case" });
+        }
       }
     }
     if (options.json) print({ root: options.root, candidate, frozen: options.frozen === true, results }, true);

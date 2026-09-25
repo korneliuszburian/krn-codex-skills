@@ -44,6 +44,7 @@ export function loadCases(file) {
     if (!entry.expect || typeof entry.expect.exit !== "number") throw new Error(`${file}: case ${entry.id} needs expect.exit`);
     if (entry.program !== undefined && (typeof entry.program !== "string" || !entry.program.trim())) throw new Error(`${file}: case ${entry.id} program must be a non-empty relative path`);
     if (entry.rootArg !== undefined && entry.rootArg !== null && (typeof entry.rootArg !== "string" || !entry.rootArg.trim())) throw new Error(`${file}: case ${entry.id} rootArg must be a flag string or null`);
+    if (entry.required !== undefined && typeof entry.required !== "boolean") throw new Error(`${file}: case ${entry.id} required must be a boolean`);
     if (ids.has(entry.id)) throw new Error(`${file}: duplicate case id ${entry.id}`);
     ids.add(entry.id);
   }
