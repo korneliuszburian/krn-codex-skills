@@ -39,17 +39,20 @@ export function tierWorkflowErrors(text, map = scripts()) {
   const byTier = { fast: new Set(), deep: new Set() };
   let fastRunsChanges = false;
   let deepRunsShellCheck = false;
+  let deepRunsDiffCheck = false;
   for (const chunk of chunks) {
     const tier = guardOf(chunk);
     if (!tier) continue;
     for (const match of chunk.matchAll(/npm run ([a-z:-]+)/g)) byTier[tier].add(match[1]);
     if (tier === "fast" && /krn\.mjs changes check/.test(chunk)) fastRunsChanges = true;
     if (tier === "deep" && /bash -n scripts\/install\.sh/.test(chunk)) deepRunsShellCheck = true;
+    if (tier === "deep" && /git diff --check/.test(chunk)) deepRunsDiffCheck = true;
   }
   if (!same(byTier.fast, fastTier(map))) errors.push(`the fast job steps do not match gate:fast: ${sorted(byTier.fast)}`);
   if (!same(byTier.deep, deepTier(map))) errors.push(`the deep job steps do not match gate:deep: ${sorted(byTier.deep)}`);
   if (!fastRunsChanges) errors.push("the fast job must run changes:check");
   if (!deepRunsShellCheck) errors.push("the deep job must run the shell syntax check");
+  if (!deepRunsDiffCheck) errors.push("the deep job must run the diff hygiene check");
   const reproAt = text.indexOf("npm run test:repro");
   const changesAt = text.indexOf("node scripts/krn.mjs changes check");
   if (!(reproAt !== -1 && changesAt !== -1 && reproAt < changesAt)) errors.push("the fast job must run test:repro before changes:check");

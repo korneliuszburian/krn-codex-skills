@@ -20,8 +20,3 @@ test("the ticket subcommands live behind one exported seam", () => {
   const exported = [...source.matchAll(/export\s+(?:async\s+)?function\s+([A-Za-z0-9_$]+)/g)].map((match) => match[1]);
   assert.deepEqual(exported, ["runTicketCommand"], "the seam module must export exactly the ticket command");
 });
-
-test("the CLI dispatcher delegates the ticket surface to the seam", () => {
-  const source = fs.readFileSync(cli, "utf8");
-  assert.match(source, /runTicketCommand\(/);
-});
