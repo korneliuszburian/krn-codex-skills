@@ -1331,7 +1331,13 @@ test("the production Git-ref store recovers a lost claim response and fences the
   test("the public queue archive restores post-import writes and refuses corruption or divergent refs", async () => {
     const fixture = makeRepo();
     try {
-      const { prepareLegacyQueueImport } = await import("../../scripts/lib/ticket/task-import.mjs");
+      let prepareLegacyQueueImport;
+      try {
+        ({ prepareLegacyQueueImport } = await import("../../scripts/lib/ticket/task-import.mjs"));
+      } catch {
+        prepareLegacyQueueImport = null;
+      }
+      assert.ok(prepareLegacyQueueImport, "the task import module is absent before the Git-ref store lands");
       const store = openTaskStore(fixture.root);
       await store.importSnapshot(prepareLegacyQueueImport(fixture.root));
       activateTaskQueueFixture(fixture.root);

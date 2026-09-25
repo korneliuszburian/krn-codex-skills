@@ -161,3 +161,17 @@ test("a restated capsule path with a different owner or command pair is rejected
 test("the repository contract table does not duplicate config/AGENTS.md rows", () => {
   assert.deepEqual(duplicationFindings(readSurface(OWNER), readSurface(REFERENCE)), []);
 });
+
+test("the onboarding owner scopes workflows through the repository contract", () => {
+  const skill = readSurface("skills/engineering/setup-repository-workflow/SKILL.md");
+  assert.match(
+    skill,
+    /repository contract[^.]*is the one owner of which workflows/,
+    "the onboarding skill must scope workflow ownership through the repository contract",
+  );
+  assert.match(
+    skill,
+    /source material selected by origin/,
+    "the upstream set must be named as source material, not KRN-owned procedure",
+  );
+});

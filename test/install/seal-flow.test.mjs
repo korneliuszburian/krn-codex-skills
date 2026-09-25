@@ -37,6 +37,10 @@ const cleanSource = (base) => {
 test("the CLI seals the repository ledger and never gates apply on the linked release", { skip: capabilitySkip(hostCapabilities(), FLOW_CAPABILITIES.seal) }, () => {
   const committedLedger = JSON.parse(fs.readFileSync(path.join(sourceRoot, "config", "release-digests.json"), "utf8"));
   assert.equal(committedLedger.schema_version, 1);
+  assert.ok(
+    Object.keys(committedLedger.digests).length >= 4,
+    "the append-only ledger keeps every prior sealed revision",
+  );
   for (const [commit, digest] of Object.entries(committedLedger.digests)) {
     assert.match(commit, /^[0-9a-f]{40}$/);
     assert.match(digest, /^[0-9a-f]{64}$/);

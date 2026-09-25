@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "krn": {
-    "commit": "fd09dd1b2e1d32f2a91603ccc9358110eceab0f2",
+    "commit": "da2182e633cdfba9f39aa17f83f88f09fd400f51",
     "dirty": false
   },
   "upstream": {
@@ -31,7 +31,7 @@
     "delivery-loop": "4cddd6bd196a87434556fc3e87c7686818b6210d7deff779ddd6dcdac7101ac4",
     "source-to-decision": "5bd95f3844e5f436d6e0658de98cd653d847c21653bbc89fc96eecedc102001f",
     "slice-work": "204cf02c807b8849ced029d8d1a64481e153df67b7c5bea231ef0a9cbb9ffeaa",
-    "setup-repository-workflow": "cf61671b8f0ca749d69d9a64e0accae085a198c074143e7d2489363dec567803",
+    "setup-repository-workflow": "25a47acbce744cacf0e37c376c90c22e32f8744d0ba19cd64d0654ad243fe55c",
     "code-review": "12daafb9c4f77deb3c3303dc2e6f8a3c2a0ff7928fc004af959ba18b8bd38068",
     "codebase-design": "9f457cc65ef2d70eb5b8a44a4dae2b139840078b6596a67ee8c4e95f5a0e6f5c",
     "diagnosing-bugs": "bcdaec9e1033901c396437fcb102161d8ad3cd87632007aaf270b19e03e70117",

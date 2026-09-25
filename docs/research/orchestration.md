@@ -480,6 +480,20 @@ Other pinned upstream owners, including `grill-me`, `teach`, and
 `to-questionnaire`, remain upstream-only and are selected from their installed
 descriptions rather than duplicated in this local map.
 
+### Ownership boundary after the queue cutover (2026-09-25)
+
+KRN owns its harness procedures; the pinned upstream set is composed source
+material referenced by origin and never vendored, and it owns no KRN procedure.
+Repository-scoped workflows and instructions are written by
+`$setup-repository-workflow` into the repository contract; the global contract
+stays universal. Overlap check: planning routes by scope to `$slice-work` or
+`wayfinder`, evidence questions by need to `$source-to-decision` or `research`,
+lifecycle transitions stay with `$delivery-loop`, capability composition with
+`$managing-codex-capabilities`, and repository setup with
+`$setup-repository-workflow`; no two owners claim the same sequence. The
+installed skill export keeps each entry's origin, so upstream material is never
+presented as KRN-owned.
+
 Every owner has one stop condition. A test pass, issue status, advisory answer,
 or successful install proves only its own boundary; it never grants authority
 for another workflow. `delivery-loop` owns lifecycle state and the single
