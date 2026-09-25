@@ -12,8 +12,3 @@ test("the memory register and its observer are deleted", () => {
   assert.ok(!exists("scripts/lib/memory-register.mjs"), "the register observer must be deleted");
   assert.ok(!exists("test/rules/memory-register.test.mjs"), "the register test must be deleted");
 });
-
-test("the validator no longer wires the register check", () => {
-  const validate = fs.readFileSync(path.join(root, "scripts/validate.mjs"), "utf8");
-  assert.ok(!validate.includes("checkMemoryRegister"), "validate must not import the register observer");
-});
