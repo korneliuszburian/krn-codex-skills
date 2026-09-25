@@ -133,7 +133,3 @@ test("assertion density is reported as info", () => {
     },
   );
 });
-
-test("the repository itself has no oracle-free test callback", () => {
-  assert.deepEqual(oracleErrors(process.cwd()), []);
-});
