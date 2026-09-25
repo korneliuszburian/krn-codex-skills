@@ -131,10 +131,6 @@ function focusedArgs(mutation) {
   return args;
 }
 
-function suiteArgs(suite) {
-  return ["--test", "--test-reporter=tap", suite];
-}
-
 function probeEnv() {
   const env = { ...process.env, KRN_CHANGE_CONTRACT: "0" };
   delete env.NODE_TEST_CONTEXT;
@@ -147,9 +143,11 @@ function parseTap(output) {
   return { tests, fail };
 }
 
-// A killed mutant requires observed failing tests. A nonzero exit without a
-// failing test (load error, timeout, runner failure) is unclassified, not a
-// kill; a baseline that is not green makes the whole suite's mutants invalid.
+// A killed mutant requires observed failing tests from the same focused
+// selection the baseline ran: only the declared mutation differs between the
+// two runs. A nonzero exit without a failing test (load error, timeout, runner
+// failure) is unclassified, not a kill; a baseline that is not green makes that
+// selection's mutants invalid.
 function classify(result) {
   const { tests, fail } = parseTap(`${result.out}${result.err}`);
   if (tests > 0 && fail > 0) return { state: result.ok ? "invalid" : "red", tests, fail };
@@ -157,13 +155,15 @@ function classify(result) {
   return { state: "invalid", tests, fail };
 }
 
-function baselineReport({ workspace, suites, run }) {
-  const baselines = new Map();
-  for (const suite of suites) {
-    const { state, tests, fail } = classify(run(process.execPath, suiteArgs(suite), { cwd: workspace, env: probeEnv() }));
-    baselines.set(suite, state === "green" ? { ok: true } : { ok: false, detail: `baseline not green: tests=${tests} fail=${fail}` });
-  }
-  return baselines;
+function baselineFor({ workspace, mutation, run, cache }) {
+  const key = `${mutation.suite}\u0000${mutation.focus ?? ""}`;
+  if (cache.has(key)) return cache.get(key);
+  const { state, tests, fail } = classify(run(process.execPath, focusedArgs(mutation), { cwd: workspace, env: probeEnv() }));
+  const baseline = state === "green"
+    ? { ok: true }
+    : { ok: false, detail: `baseline not green for the mutation's focused selection: tests=${tests} fail=${fail}` };
+  cache.set(key, baseline);
+  return baseline;
 }
 
 function runMutation({ workspace, mutation, baseline, run }) {
@@ -201,8 +201,13 @@ export function runMutationProbe({ root, mutations = MUTATIONS, run = runProcess
   const workspace = mkdtempSync(join(tmpdir(), "krn-mutation-"));
   try {
     copyTree(root, workspace);
-    const baselines = baselineReport({ workspace, suites: [...new Set(mutations.map((mutation) => mutation.suite))], run });
-    return mutations.map((mutation) => runMutation({ workspace, mutation, baseline: baselines.get(mutation.suite), run }));
+    const baselines = new Map();
+    return mutations.map((mutation) => runMutation({
+      workspace,
+      mutation,
+      baseline: baselineFor({ workspace, mutation, run, cache: baselines }),
+      run,
+    }));
   } finally {
     rmSync(workspace, { recursive: true, force: true });
   }
