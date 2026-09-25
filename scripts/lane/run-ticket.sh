@@ -262,6 +262,55 @@ else:
 PY
 }
 
+# One recall snapshot for the lane brief: the brief text and the trailer input
+# come from exactly one validated observation. A failed process or an invalid
+# response refuses the lane before the worker starts; a correctly read source
+# with zero hits prints an explicit zero, never a failure-shaped silence.
+snapshot_recall() {
+  local krn=$1 root=$2 changed=$3 out=$4
+  local tmp status text json
+  mkdir -p "$(dirname "$out")"
+  tmp=$(mktemp -d)
+  status=0
+  node "$krn" memory recall --root "$root" --changed "$changed" --json >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+  if [ "$status" -ne 0 ]; then
+    printf 'recall snapshot failed: exit=%s\n' "$status" >&2
+    sed 's/^/recall diagnostic: /' "$tmp/stderr" >&2 || :
+    rm -rf "$tmp"
+    return 73
+  fi
+  json=$(<"$tmp/stdout")
+  if ! text=$(python3 - "$json" <<'PY'
+import json, sys
+
+raw = sys.argv[1]
+try:
+    data = json.loads(raw)
+except Exception as error:
+    print(f"recall response is not valid JSON: {error}", file=sys.stderr)
+    sys.exit(74)
+if not isinstance(data, dict) or not isinstance(data.get("hits"), list):
+    print("recall response is invalid: hits must be a list", file=sys.stderr)
+    sys.exit(74)
+lines = []
+for hit in data["hits"]:
+    if not isinstance(hit, dict) or not isinstance(hit.get("lesson"), str) or not hit["lesson"].strip():
+        print("recall response is invalid: every hit needs a non-empty lesson", file=sys.stderr)
+        sys.exit(74)
+    matched = hit.get("matched") if isinstance(hit.get("matched"), list) else []
+    lines.append(f'{hit["lesson"]}\n  {hit.get("trigger", "")} matched {", ".join(str(entry) for entry in matched)}; gate {hit.get("gate", "")}')
+print("\n".join(lines) if lines else "no recalled lessons (the source was read; zero hits)")
+PY
+  ); then
+    printf 'recall snapshot invalid: stopping before the worker starts\n' >&2
+    rm -rf "$tmp"
+    return 74
+  fi
+  printf '%s' "$json" >"$out"
+  rm -rf "$tmp"
+  printf '%s' "$text"
+}
+
 mode=${1:-probe}
 case "$mode" in
   classify) shift; classify_check "${1:-}" || exit $?; exit 0 ;;
@@ -269,6 +318,7 @@ case "$mode" in
   probe-verdict) probe_verdict || exit $?; exit 0 ;;
   recall-delivery) shift; recall_delivery; exit $? ;;
   recall-delivery-report) shift; recall_delivery_report "${1:-}" "${2:-}"; exit $? ;;
+  recall-snapshot) shift; snapshot_recall "${1:-}" "${2:-}" "${3:-}" "${4:-}"; exit $? ;;
   bwrap-args)
     RUN_DIR=${RUN_DIR:-$BASE/.krn/runs/lane/print}
     WT=${WT:-$RUN_DIR/wt}
@@ -426,8 +476,11 @@ case "$class_code" in
 esac
 
 if [ -z "$CHANGED" ]; then CHANGED=$DECIDING_CHECK; fi
-recall=$(node "$KRN" memory recall --root "$FIXTURE" --changed "$CHANGED" 2>/dev/null || echo 'no recalled lessons')
-recall_json=$(node "$KRN" memory recall --root "$FIXTURE" --changed "$CHANGED" --json 2>/dev/null || echo '{"hits":[]}')
+if ! recall=$(snapshot_recall "$KRN" "$FIXTURE" "$CHANGED" "$RUN_DIR/out/recall.json"); then
+  echo "lane refused: rule=recall-snapshot-failed; the worker is not started" >&2
+  exit 72
+fi
+recall_json=$(<"$RUN_DIR/out/recall.json")
 recall_trailers=$(python3 - "$recall_json" "$CHANGED" <<'PY'
 import json, re, sys
 data = json.loads(sys.argv[1]); changed = sys.argv[2]
