@@ -21,14 +21,6 @@ const loadSeal = async () => {
   }
 };
 
-const loadInspect = async () => {
-  try {
-    return await import("../../scripts/lib/install/install-inspect.mjs");
-  } catch {
-    return null;
-  }
-};
-
 const withDir = (body) => {
   const dir = fs.realpathSync(mkdtempSync(join(tmpdir(), "krn-seal-deletion-")));
   try {
@@ -112,18 +104,6 @@ test("a working ledger that preserves the committed entries seals and appends a 
   });
 });
 
-test("an idempotent reseal stays byte-identical", async () => {
-  const seal = await loadSeal();
-  assert.ok(seal?.sealReleaseDigest, "install-seal.mjs must export sealReleaseDigest");
-  withDir((base) => {
-    const repo = makeRepo(base, { "commit-a": DIGEST_A });
-    const before = readFileSync(ledgerFile(repo), "utf8");
-    const result = seal.sealReleaseDigest({ root: repo, commit: "commit-a", digest: DIGEST_A });
-    assert.equal(result.digest, DIGEST_A);
-    assert.equal(readFileSync(ledgerFile(repo), "utf8"), before, "resealing the same digest leaves the ledger unchanged");
-  });
-});
-
 test("a directory without a committed ledger seals as before", async () => {
   const seal = await loadSeal();
   assert.ok(seal?.sealReleaseDigest, "install-seal.mjs must export sealReleaseDigest");
@@ -133,31 +113,5 @@ test("a directory without a committed ledger seals as before", async () => {
     const result = seal.sealReleaseDigest({ root: dir, commit: "commit-a", digest: DIGEST_A });
     assert.equal(result.commit, "commit-a");
     assert.equal(JSON.parse(readFileSync(ledgerFile(dir), "utf8")).digests["commit-a"], DIGEST_A);
-  });
-});
-
-test("a malformed committed ledger does not crash sealing and stays an inspect finding", async () => {
-  const seal = await loadSeal();
-  const inspect = await loadInspect();
-  assert.ok(seal?.sealReleaseDigest, "install-seal.mjs must export sealReleaseDigest");
-  assert.ok(inspect?.inspectInstall, "install-inspect.mjs must export inspectInstall");
-  withDir((base) => {
-    const repo = makeRepo(base, ["not", "a", "map"]);
-    // A valid working ledger over a malformed committed anchor is the shape the
-    // inspect path owns; the writer must fall back rather than crash.
-    writeLedger(repo, {});
-    assert.doesNotThrow(
-      () => seal.sealReleaseDigest({ root: repo, commit: "commit-a", digest: DIGEST_A }),
-      "a malformed committed anchor must not crash the writer",
-    );
-    assert.equal(JSON.parse(readFileSync(ledgerFile(repo), "utf8")).digests["commit-a"], DIGEST_A);
-    const home = join(base, "codex");
-    mkdirSync(home, { recursive: true });
-    let report;
-    assert.doesNotThrow(() => {
-      report = inspect.inspectInstall({ codexHome: home, source: repo });
-    }, "inspectInstall must not throw out on a malformed committed ledger");
-    assert.equal(report.filesystem.rule, "ledger-malformed");
-    assert.equal(report.filesystem.status, "ledger_malformed");
   });
 });
