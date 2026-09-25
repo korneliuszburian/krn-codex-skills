@@ -88,3 +88,8 @@ test("doctor reports an unsealed current release", () => {
     assert.equal(report.filesystem.rule, "digest-unsealed");
   });
 });
+
+test("the guarded DEV SFTP hook runtime remains anchored in the committed release ledger", () => {
+  const ledger = JSON.parse(fs.readFileSync(join(sourceRoot, "config", "release-digests.json"), "utf8"));
+  assert.equal(ledger.digests["f03c7a9a0e790cc2ea9be5395e5abd15479c39a6"], "258e4a0686fd228aa331cb038463957297cd69d99a7dbe538cf0bf0afc070dc2");
+});
