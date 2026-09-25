@@ -216,8 +216,9 @@ those become required here.
 **Disposition: adopt the private Git-ref snapshot as the canonical backend for
 the local task product.** The owner is the sh-175 maintainer; consumers are the
 existing ticket CLI, lane, state, hook and OpenCode readers. This selects the
-implementation direction only. The Markdown queue remains authoritative until
-the cutover contract below passes.
+implementation direction only. The cutover contract below passed on
+2026-09-25; `refs/krn/queue` is the operating queue and the Markdown queue is
+retired.
 
 **Observed trial.** The H2 test-only comparison passed the same task, claim,
 completion and recovery falsifiers for the single JSON file, Git-ref and SQLite
@@ -247,7 +248,17 @@ acceptance below fails or if a supported file/SQLite implementation proves a
 lower total operating cost and the operator explicitly accepts that backend.
 The adapters are test-only; they do not prove the
 production CLI, import, rollback, installation cost, performance or
-cross-clone synchronization. No current queue data has been imported.
+cross-clone synchronization. No queue data had been imported when this section
+was written; the cutover record below supersedes that state.
+
+**Cutover record (2026-09-25).** Executed at the integrated merge
+`4b1887607f3b0f66d50d47cd032b097f0d0dff72`: 99 tasks imported with the eight
+approved `Claim.session` decisions; the exact 176-file legacy byte archive and
+the post-import queue export are under `.krn/migrations/`; `refs/krn/queue` and
+`refs/krn/queue-active` serve the live store with a 100-task readback and a
+verified identical restore; `.krn/tickets` and `.krn/claims` were deleted after
+readback and rollback export. The legacy import parser remains the migration
+surface for un-migrated repositories; it is not an operating queue.
 
 The smallest product falsifier is two linked worktrees claiming the same ready
 ID: exactly one may succeed, and a reopened queue must have one claim and no

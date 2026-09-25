@@ -200,3 +200,17 @@ test("the durable surface cites no unrecorded stale reference", () => {
   );
   assert.deepEqual(unexpected.map(formatStaleReference), []);
 });
+
+test("the ticket protocol records the executed queue cutover", () => {
+  const protocol = readFileSync(join(process.cwd(), "docs", "research", "ticket-protocol.md"), "utf8");
+  assert.ok(
+    !protocol.includes("Markdown queue remains authoritative"),
+    "the protocol must not claim a retired Markdown authority",
+  );
+  assert.match(protocol, /Cutover record \(2026-09-25\)/, "the protocol must record the executed cutover");
+  assert.match(
+    protocol,
+    /4b1887607f3b0f66d50d47cd032b097f0d0dff72/,
+    "the cutover record must name the integrated merge",
+  );
+});
