@@ -57,11 +57,15 @@ test("doctor renders a human summary by default and JSON with --json", () => {
   const base = mkdtempSync(join(tmpdir(), "krn-doctor-"));
   const env = { ...process.env, CODEX_HOME: join(base, "codex"), KRN_SKILLS_DEST: join(base, "skills"), KRN_BIN_DEST: join(base, "bin"), KRN_OPENCODE_DEST: join(base, "opencode") };
   const text = spawnSync(process.execPath, [cli, "doctor"], { encoding: "utf8", env });
-  assert.equal(text.status, 0, text.stderr);
-  assert.match(text.stdout, /^filesystem: /);
+  assert.equal(text.status, 3, `doctor must fail closed on a missing release:\n${text.stdout}${text.stderr}`);
+  assert.match(text.stdout, /^filesystem: missing/);
+  assert.match(text.stdout, /^loaded: host_session_unobservable/m, "the loaded leg must be reported as host-unobservable, not a pseudo-status");
   const json = spawnSync(process.execPath, [cli, "doctor", "--json"], { encoding: "utf8", env });
-  assert.equal(json.status, 0, json.stderr);
-  assert.equal(typeof JSON.parse(json.stdout).filesystem.status, "string");
+  assert.equal(json.status, 3, `doctor --json must fail closed on a missing release:\n${json.stdout}${json.stderr}`);
+  const report = JSON.parse(json.stdout);
+  assert.equal(report.filesystem.status, "missing");
+  assert.equal(report.loaded.status, "host_session_unobservable");
+  assert.equal(report.session, undefined, "the hardcoded session pseudo-status must be gone");
   rmSync(base, { recursive: true, force: true });
 });
 

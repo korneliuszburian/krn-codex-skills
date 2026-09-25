@@ -643,8 +643,10 @@ export function inspectInstall({ codexHome = process.env.CODEX_HOME || path.join
     legacyHooks,
     anchor: ledger ? "committed" : "release",
     hookPolicy: managedHookPolicy({ requirementsPath }),
-    session: { status: "session_loaded_unknown" },
-    sessionAfterApply: { status: "stale_session_likely" },
+    loaded: {
+      status: "host_session_unobservable",
+      detail: "the release and its managed links are verified; what a running Codex session loaded is not observable from the filesystem, so restart the session after an install or rollback",
+    },
     ...(overrideAudit ? { override: overrideAudit } : {}),
   };
   // A corrupt ledger is a first-class finding, not a reason to throw the whole
