@@ -113,6 +113,15 @@ export function taskTicketView(task) {
     const { worker = "", session = "", at = "", epoch = "", renew = "", duration = "" } = task.lease;
     set("Claim", `worker=${worker}; session=${session}; at=${at}; epoch=${epoch}; renew=${renew}; duration=${duration}`);
   }
+  if (task.status === "done" && task.result?.operationId && task.result?.effectObject) {
+    const evidence = fields.get("Evidence") ?? "";
+    set(
+      "Evidence",
+      /integrated=[0-9a-f]{40}/.test(evidence)
+        ? evidence.replace(/integrated=[0-9a-f]{40}/, `integrated=${task.result.effectObject}`)
+        : `${evidence}${evidence ? "; " : ""}integrated=${task.result.effectObject}`,
+    );
+  }
   const lines = ["<krn-ticket>"];
   for (const [name, value] of fields) {
     for (const occurrence of occurrences.get(name) ?? [value]) lines.push(`${name}: ${occurrence}`);

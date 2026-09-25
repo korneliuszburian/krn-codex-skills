@@ -208,3 +208,36 @@ test("ticket show fails closed when the file is unreadable", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("an operation-closed legacy task renders its integrated anchor", async () => {
+  const { taskTicketView } = await import("../../scripts/lib/ticket/ticket.mjs");
+  const view = taskTicketView({
+    id: "t-1",
+    title: "Example",
+    status: "done",
+    type: "task",
+    dependencies: [],
+    legacyFields: { Evidence: "gate exit0", Contract: "test/a.test.mjs:red->green" },
+    result: { operationId: "op-1", effectObject: "1".repeat(40) },
+    legacyCloseProofRequired: true,
+  });
+  assert.match(view.fields.get("Evidence"), /integrated=1{40}/, view.fields.get("Evidence"));
+});
+
+test("an operation-closed legacy task replaces a stale integrated anchor", async () => {
+  const { taskTicketView } = await import("../../scripts/lib/ticket/ticket.mjs");
+  const stale = "0".repeat(40);
+  const fresh = "1".repeat(40);
+  const view = taskTicketView({
+    id: "t-2",
+    title: "Example",
+    status: "done",
+    type: "task",
+    dependencies: [],
+    legacyFields: { Evidence: `gate exit0; integrated=${stale}` },
+    result: { operationId: "op-2", effectObject: fresh },
+    legacyCloseProofRequired: true,
+  });
+  assert.match(view.fields.get("Evidence"), new RegExp(`integrated=${fresh}`));
+  assert.doesNotMatch(view.fields.get("Evidence"), new RegExp(`integrated=${stale}`));
+});
