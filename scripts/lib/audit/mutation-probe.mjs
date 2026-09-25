@@ -131,26 +131,67 @@ function focusedArgs(mutation) {
   return args;
 }
 
-function runMutation({ workspace, mutation, run }) {
+function suiteArgs(suite) {
+  return ["--test", "--test-reporter=tap", suite];
+}
+
+function probeEnv() {
+  const env = { ...process.env, KRN_CHANGE_CONTRACT: "0" };
+  delete env.NODE_TEST_CONTEXT;
+  return env;
+}
+
+function parseTap(output) {
+  const tests = Number((/^# tests (\d+)$/m.exec(output) ?? [])[1] ?? "0");
+  const fail = Number((/^# fail (\d+)$/m.exec(output) ?? [])[1] ?? "0");
+  return { tests, fail };
+}
+
+// A killed mutant requires observed failing tests. A nonzero exit without a
+// failing test (load error, timeout, runner failure) is unclassified, not a
+// kill; a baseline that is not green makes the whole suite's mutants invalid.
+function classify(result) {
+  const { tests, fail } = parseTap(`${result.out}${result.err}`);
+  if (tests > 0 && fail > 0) return { state: result.ok ? "invalid" : "red", tests, fail };
+  if (result.ok && tests > 0) return { state: "green", tests, fail };
+  return { state: "invalid", tests, fail };
+}
+
+function baselineReport({ workspace, suites, run }) {
+  const baselines = new Map();
+  for (const suite of suites) {
+    const { state, tests, fail } = classify(run(process.execPath, suiteArgs(suite), { cwd: workspace, env: probeEnv() }));
+    baselines.set(suite, state === "green" ? { ok: true } : { ok: false, detail: `baseline not green: tests=${tests} fail=${fail}` });
+  }
+  return baselines;
+}
+
+function runMutation({ workspace, mutation, baseline, run }) {
   const target = join(workspace, mutation.file);
   const original = readFileSync(target, "utf8");
   if (!original.includes(mutation.symbol)) {
-    return { id: mutation.id, file: mutation.file, killed: false, applied: false, detail: `symbol ${mutation.symbol} is missing from ${mutation.file}` };
+    return { id: mutation.id, file: mutation.file, killed: false, applied: false, invalid: true, detail: `symbol ${mutation.symbol} is missing from ${mutation.file}` };
   }
   const matches = occurrences(original, mutation.find);
   if (matches !== 1) {
-    return { id: mutation.id, file: mutation.file, killed: false, applied: false, detail: `anchor matched ${matches} time(s), expected exactly 1` };
+    return { id: mutation.id, file: mutation.file, killed: false, applied: false, invalid: true, detail: `anchor matched ${matches} time(s), expected exactly 1` };
+  }
+  if (!baseline.ok) {
+    return { id: mutation.id, file: mutation.file, killed: false, applied: false, invalid: true, detail: baseline.detail };
   }
   writeFileSync(target, original.replace(mutation.find, mutation.replace));
   try {
-    const env = { ...process.env, KRN_CHANGE_CONTRACT: "0" };
-    delete env.NODE_TEST_CONTEXT;
-    const result = run(process.execPath, focusedArgs(mutation), { cwd: workspace, env });
-    const output = `${result.out}${result.err}`;
-    const tests = Number((/^# tests (\d+)$/m.exec(output) ?? [])[1] ?? "0");
-    const killed = !result.ok;
-    const detail = killed ? "" : tests > 0 ? "the focused suite stayed green" : "the focused selector ran no tests";
-    return { id: mutation.id, file: mutation.file, killed, applied: true, tests, detail };
+    const { state, tests, fail } = classify(run(process.execPath, focusedArgs(mutation), { cwd: workspace, env: probeEnv() }));
+    const killed = state === "red";
+    const invalid = state === "invalid";
+    const detail = killed
+      ? ""
+      : state === "green"
+        ? "the focused suite stayed green"
+        : tests === 0
+          ? "the focused suite produced no test results"
+          : `the focused suite failed without a failing test (tests=${tests}, fail=${fail})`;
+    return { id: mutation.id, file: mutation.file, killed, applied: true, invalid, tests, detail };
   } finally {
     writeFileSync(target, original);
   }
@@ -160,7 +201,8 @@ export function runMutationProbe({ root, mutations = MUTATIONS, run = runProcess
   const workspace = mkdtempSync(join(tmpdir(), "krn-mutation-"));
   try {
     copyTree(root, workspace);
-    return mutations.map((mutation) => runMutation({ workspace, mutation, run }));
+    const baselines = baselineReport({ workspace, suites: [...new Set(mutations.map((mutation) => mutation.suite))], run });
+    return mutations.map((mutation) => runMutation({ workspace, mutation, baseline: baselines.get(mutation.suite), run }));
   } finally {
     rmSync(workspace, { recursive: true, force: true });
   }
