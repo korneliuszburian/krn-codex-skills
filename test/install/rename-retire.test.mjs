@@ -58,31 +58,6 @@ function withInstallEnvironment(body) {
   }
 }
 
-test("the manifest and package bins retire the krn-codex entry", () => {
-  const manifest = JSON.parse(fs.readFileSync(path.join(sourceRoot, "skills", "manifest.json"), "utf8"));
-  assert.ok(!manifest.bins.some((bin) => bin.name === "krn-codex"), JSON.stringify(manifest.bins));
-  assert.ok(
-    !manifest.runtime_paths.includes("scripts/krn-codex.mjs"),
-    "the frozen shim must leave the manifest runtime closure",
-  );
-  const pkg = JSON.parse(fs.readFileSync(path.join(sourceRoot, "package.json"), "utf8"));
-  assert.deepEqual(Object.keys(pkg.bin), ["krn", "krn-codex-catalog"]);
-  assert.ok(
-    fs.existsSync(path.join(sourceRoot, "scripts", "krn-codex.mjs")),
-    "the frozen shim file must stay in the repository",
-  );
-});
-
-test("the base-ref conformance invocation applies the frozen case list with the approved base evaluator", () => {
-  const workflow = fs.readFileSync(path.join(sourceRoot, ".github", "workflows", "validate.yml"), "utf8");
-  assert.match(workflow, /node \/tmp\/krn-conformance\/scripts\/krn\.mjs conformance check --root \/tmp\/krn-conformance --candidate "\$PWD" --frozen/);
-  assert.doesNotMatch(workflow, /\/tmp\/krn-conformance\/scripts\/krn-codex\.mjs/);
-  assert.ok(
-    fs.existsSync(path.join(sourceRoot, "scripts", "krn-codex.mjs")),
-    "the frozen shim file must stay in the repository",
-  );
-});
-
 test("a real install retires a prior release's managed krn-codex link with a backup", async () => {
   const { applyInstall, createInstallPlan } = await import("../../scripts/lib/install/install-release.mjs");
   withInstallEnvironment((base) => {

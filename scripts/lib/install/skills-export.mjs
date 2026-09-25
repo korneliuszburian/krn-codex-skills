@@ -42,7 +42,7 @@ function defaultUpstreamPath(lock, home = process.env.HOME) {
   return path.join(home, ".cache", "krn-upstream", source.id.replace("/", "-"));
 }
 
-export function renderCatalog({ skills, krnCommit, upstream }) {
+function renderCatalog({ skills, krnCommit, upstream }) {
   const rows = skills
     .map((skill) => `| \`${skill.name}\` | ${skill.origin} | ${skill.description.replace(/\|/g, "\\|")} |`)
     .join("\n");

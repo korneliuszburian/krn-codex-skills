@@ -48,6 +48,10 @@ test("the neutral entry point exists and the krn-codex alias is retired", () => 
     !manifest.bins.some((bin) => bin.name === "krn-codex"),
     "the retired krn-codex alias must leave the manifest bins",
   );
+  assert.ok(
+    !manifest.runtime_paths.includes("scripts/krn-codex.mjs"),
+    "the frozen shim must leave the manifest runtime closure",
+  );
   const pkg = JSON.parse(fs.readFileSync(path.join(sourceRoot, "package.json"), "utf8"));
   assert.deepEqual(Object.keys(pkg.bin), ["krn", "krn-codex-catalog"]);
   assert.equal(pkg.bin.krn, "scripts/krn.mjs");

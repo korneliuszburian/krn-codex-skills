@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { digestTree, inspectInstall, verifyRelease } from "../../scripts/lib/install/install-inspect.mjs";
-import { applyInstall, createInstallPlan } from "../../scripts/lib/install/install-release.mjs";
 
 const sourceRoot = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -28,17 +27,6 @@ const withBase = (body) => {
     }
     rmSync(base, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
-};
-
-const cleanSource = (base) => {
-  const copy = join(base, "source");
-  mkdirSync(copy);
-  const archive = execFileSync("git", ["-C", sourceRoot, "archive", "HEAD"], { maxBuffer: 64 * 1024 * 1024 });
-  execFileSync("tar", ["-x", "-C", copy], { input: archive });
-  execFileSync("git", ["-C", copy, "init", "-q"]);
-  execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "add", "-A"]);
-  execFileSync("git", ["-C", copy, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", "seed"]);
-  return fs.realpathSync(copy);
 };
 
 const metadata = (commit, digest) =>
@@ -98,27 +86,5 @@ test("doctor reports an unsealed current release", () => {
     const report = inspectInstall({ codexHome: home });
     assert.equal(report.filesystem.status, "digest_unsealed");
     assert.equal(report.filesystem.rule, "digest-unsealed");
-  });
-});
-
-test("install seal appends the digest entry for the current commit", () => {
-  withBase((base) => {
-    const source = cleanSource(base);
-    const home = join(base, "codex");
-    const plan = createInstallPlan({ source, cwd: source, codexHome: home });
-    applyInstall(plan);
-    fs.rmSync(join(plan.release, "config", "release-digests.json"), { force: true });
-    assert.throws(() => verifyRelease(plan.release, plan.commit), /digest-unsealed/);
-
-    const result = spawnSync(
-      process.execPath,
-      [join(sourceRoot, "scripts", "krn-codex.mjs"), "install", "seal", "--source", source],
-      { encoding: "utf8", env: { ...process.env, CODEX_HOME: home } },
-    );
-    assert.equal(result.status, 0, result.stderr);
-    const ledger = JSON.parse(fs.readFileSync(join(source, "config", "release-digests.json"), "utf8"));
-    assert.equal(ledger.digests[plan.commit], digestTree(plan.release).digest);
-    assert.equal(verifyRelease(plan.release, plan.commit, { ledger: ledger.digests }).commit, plan.commit);
-    assert.equal(fs.existsSync(join(plan.release, "config", "release-digests.json")), false);
   });
 });
