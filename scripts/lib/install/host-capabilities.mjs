@@ -5,8 +5,6 @@ const PROBES = {
   gitChild: () => probeCommand("git", ["--version"]),
 };
 
-const ALL_CAPABILITIES = Object.keys(PROBES);
-
 export const FLOW_CAPABILITIES = {
   seal: ["gitChild"],
 };
@@ -21,11 +19,11 @@ export function hostCapabilities(probes = PROBES) {
   );
 }
 
-export function missingCapabilities(capabilities, required = ALL_CAPABILITIES) {
+export function missingCapabilities(capabilities, required) {
   return required.filter((name) => capabilities?.[name] !== true);
 }
 
-export function capabilitySkip(capabilities = hostCapabilities(), required = ALL_CAPABILITIES) {
+export function capabilitySkip(capabilities, required) {
   const missing = missingCapabilities(capabilities, required);
   return missing.length > 0 ? `not-applicable: ${missing.join(", ")}` : false;
 }
