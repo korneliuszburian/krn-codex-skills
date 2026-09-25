@@ -24,8 +24,10 @@ test("every hand-listed mutation is killed by its focused suite", async () => {
   const probe = await loadProbe();
   assert.ok(probe, "scripts/lib/audit/mutation-probe.mjs must exist");
   const results = probe.runMutationProbe({ root });
-  const survivors = results.filter((result) => !result.killed).map((result) => `${result.id}: ${result.detail}`);
-  assert.deepEqual(survivors, [], `surviving mutants:\n${survivors.join("\n")}`);
+  const survivors = results
+    .filter((result) => !result.killed || result.invalid)
+    .map((result) => `${result.id}: ${result.detail}${result.invalid ? " (invalid)" : ""}`);
+  assert.deepEqual(survivors, [], `surviving or unclassified mutants:\n${survivors.join("\n")}`);
 });
 
 test("the probe reports a mutant as surviving when its suite stays green", async () => {
@@ -35,4 +37,37 @@ test("the probe reports a mutant as surviving when its suite stays green", async
   const results = probe.runMutationProbe({ root, run });
   assert.equal(results.length, probe.MUTATIONS.length);
   assert.ok(results.every((result) => result.killed === false), JSON.stringify(results));
+});
+
+test("the probe counts a failing focused suite as a kill", async () => {
+  const probe = await loadProbe();
+  assert.ok(probe, "scripts/lib/audit/mutation-probe.mjs must exist");
+  const run = (_bin, args) =>
+    args.some((arg) => arg.startsWith("--test-name-pattern"))
+      ? { ok: false, out: "# tests 1\n# pass 0\n# fail 1\n", err: "" }
+      : { ok: true, out: "# tests 1\n# pass 1\n# fail 0\n", err: "" };
+  const results = probe.runMutationProbe({ root, run });
+  assert.ok(results.every((result) => result.killed === true), JSON.stringify(results));
+});
+
+test("the probe refuses to read an infrastructure failure as a kill", async () => {
+  const probe = await loadProbe();
+  assert.ok(probe, "scripts/lib/audit/mutation-probe.mjs must exist");
+  const run = (_bin, args) =>
+    args.some((arg) => arg.startsWith("--test-name-pattern"))
+      ? { ok: false, out: "# tests 0\n# pass 0\n# fail 0\n", err: "cannot find module" }
+      : { ok: true, out: "# tests 1\n# pass 1\n# fail 0\n", err: "" };
+  const results = probe.runMutationProbe({ root, run });
+  assert.ok(results.every((result) => result.killed === false && result.invalid === true), JSON.stringify(results));
+});
+
+test("the probe refuses to score a mutant when its focused baseline is not green", async () => {
+  const probe = await loadProbe();
+  assert.ok(probe, "scripts/lib/audit/mutation-probe.mjs must exist");
+  const run = (_bin, args) =>
+    args.some((arg) => arg.startsWith("--test-name-pattern"))
+      ? { ok: false, out: "# tests 1\n# pass 0\n# fail 1\n", err: "" }
+      : { ok: false, out: "# tests 0\n# pass 0\n# fail 0\n", err: "boom" };
+  const results = probe.runMutationProbe({ root, run });
+  assert.ok(results.every((result) => result.killed === false && result.invalid === true), JSON.stringify(results));
 });
