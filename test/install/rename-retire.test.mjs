@@ -73,9 +73,9 @@ test("the manifest and package bins retire the krn-codex entry", () => {
   );
 });
 
-test("the base-ref conformance invocation applies the frozen case list with the candidate runner", () => {
+test("the base-ref conformance invocation applies the frozen case list with the approved base evaluator", () => {
   const workflow = fs.readFileSync(path.join(sourceRoot, ".github", "workflows", "validate.yml"), "utf8");
-  assert.match(workflow, /node scripts\/krn\.mjs conformance check --root \/tmp\/krn-conformance --candidate "\$PWD" --frozen/);
+  assert.match(workflow, /node \/tmp\/krn-conformance\/scripts\/krn\.mjs conformance check --root \/tmp\/krn-conformance --candidate "\$PWD" --frozen/);
   assert.doesNotMatch(workflow, /\/tmp\/krn-conformance\/scripts\/krn-codex\.mjs/);
   assert.ok(
     fs.existsSync(path.join(sourceRoot, "scripts", "krn-codex.mjs")),

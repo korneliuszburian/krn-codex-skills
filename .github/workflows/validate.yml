@@ -105,7 +105,7 @@ jobs:
           fi
           if git cat-file -e "$base:config/conformance.json" 2>/dev/null; then
             git worktree add --detach /tmp/krn-conformance "$base"
-            node scripts/krn.mjs conformance check --root /tmp/krn-conformance --candidate "$PWD" --frozen
+            node /tmp/krn-conformance/scripts/krn.mjs conformance check --root /tmp/krn-conformance --candidate "$PWD" --frozen
           else
             echo "base $base predates the conformance set; running the candidate copy"
             node scripts/krn.mjs conformance check --root . --frozen
