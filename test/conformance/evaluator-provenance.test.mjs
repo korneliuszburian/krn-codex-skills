@@ -90,7 +90,10 @@ test("a candidate that weakens its own evaluator cannot discharge the required c
 
 test("the frozen recipe runs the approved evaluator, not the candidate copy", () => {
   const packageJson = readFileSync(join(root, "package.json"), "utf8");
-  assert.ok(/node \\"\$dir\/scripts\/krn\.mjs\\" conformance check/.test(packageJson), "conformance:check must run the base worktree evaluator");
+  // Pin the whole recipe, not a prefix: a candidate can keep the program
+  // substring and repoint --root at itself, which makes the required-case
+  // check vacuous.
+  assert.ok(/node \\"\$dir\/scripts\/krn\.mjs\\" conformance check --root \\"\$dir\\" --candidate \\"\$PWD\\" --frozen/.test(packageJson), "conformance:check must run the approved base worktree evaluator with the candidate as the program under test");
   const workflow = readFileSync(join(root, ".github", "workflows", "validate.yml"), "utf8");
-  assert.ok(/node \/tmp\/krn-conformance\/scripts\/krn\.mjs conformance check/.test(workflow), "CI must run the base worktree evaluator");
+  assert.ok(/node \/tmp\/krn-conformance\/scripts\/krn\.mjs conformance check --root \/tmp\/krn-conformance --candidate "\$PWD" --frozen/.test(workflow), "CI must run the approved base worktree evaluator over the candidate");
 });
