@@ -9,7 +9,7 @@ import { spawnInherit } from "./lib/kernel/proc.mjs";
 import { applyInstall, createInstallPlan, inspectInstall, pruneReleases, sealCurrentRelease } from "./lib/install/install-release.mjs";
 import { runStateCommand } from "./lib/state/state-cli.mjs";
 import { checkSkills, exportSkills } from "./lib/install/skills-export.mjs";
-import { checkLessons, lessonUsage, recallLessons } from "./lib/lessons/lessons.mjs";
+import { checkLessons, lessonUsage, parseLessons, recallLessons } from "./lib/lessons/lessons.mjs";
 import { churnHot } from "./lib/support/churn.mjs";
 import { parseCliArgs } from "./lib/kernel/cli.mjs";
 import { runGit } from "./lib/kernel/git.mjs";
@@ -259,7 +259,10 @@ try {
       }
       const hot = changed.length > 0 ? churnHot({ root: options.root, git: runGit, sha: "HEAD", files: changed }) : [];
       const hits = recallLessons({ root: options.root, files: changed, symbols: options.symbols ?? [], hot });
-      if (options.json) print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits }, true);
+      const lessonsFile = path.join(options.root, "docs", "research", "workflow-lessons.md");
+      const parsed = parseLessons(lessonsFile);
+      const source = { present: fs.existsSync(lessonsFile), malformed: parsed.malformed.length, active: parsed.rows.filter((row) => !row.status).length };
+      if (options.json) print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits, source }, true);
       else for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
     }
   } else if (raw[0] === "ticket") {
