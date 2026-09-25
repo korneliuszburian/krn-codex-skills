@@ -275,6 +275,12 @@ try {
     const candidate = path.resolve(options.candidate ?? options.root);
     requireDirectory(casesRoot);
     requireDirectory(candidate);
+    // A frozen run must apply a base case list to a different program under
+    // test. Pointing both flags at one tree lets the candidate's own manifest
+    // authorize the required set, so that shape is refused before any case runs.
+    if (options.frozen === true && options.candidate && casesRoot === candidate) {
+      fail("--frozen must evaluate the candidate against a separate approved base; --root and --candidate resolve to the same tree", EXIT_CODES.USAGE);
+    }
     const casesFile = path.join(casesRoot, "config", "conformance.json");
     let cases;
     try {
@@ -282,8 +288,13 @@ try {
     } catch (error) {
       fail(error.message, EXIT_CODES.USAGE);
     }
-    const selected = options.filter ? cases.filter((entry) => entry.id === options.filter) : cases;
-    if (selected.length === 0) fail(`no conformance case matched: ${options.filter ?? ""}`, EXIT_CODES.USAGE);
+    const filtered = options.filter ? cases.filter((entry) => entry.id === options.filter) : cases;
+    if (options.filter && filtered.length === 0) fail(`no conformance case matched: ${options.filter}`, EXIT_CODES.USAGE);
+    // A frozen run always evaluates every required base case; --filter may
+    // narrow the advisory cases but can never hide a required one.
+    const selected = options.frozen === true && options.filter
+      ? cases.filter((entry) => entry.required === true || entry.id === options.filter)
+      : filtered;
     // A frozen run applies the approved base case list through the candidate
     // runner. A case the candidate no longer declares is dropped and reported
     // only when it is not required; a required case is part of the approved
