@@ -205,6 +205,11 @@ test("contractBudgetErrors reports over-long lines and words", () => {
   assert.ok(contractBudgetErrors({ label: "x", text: "abcdef", maxLineChars: 100, maxWords: 10, maxChars: 5 }).some((error) => error.includes("characters")), "the character cap fires");
 });
 
+test("the always-loaded contract stays within its information budget", () => {
+  const text = readFileSync(join("config", "AGENTS.md"), "utf8");
+  assert.deepEqual(contractBudgetErrors({ label: "config/AGENTS.md", text, maxLineChars: 320, maxWords: 620, maxChars: 5200 }), []);
+});
+
 test("referenceLinkErrors ignores ~~~ fenced mentions", () => {
   assert.deepEqual(
     referenceLinkErrors("~~~\n[n](references/a.md)\n~~~", { skillPath: "s", references: ["references/a.md"] }),
