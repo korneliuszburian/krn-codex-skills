@@ -59,7 +59,16 @@ jobs:
         run: npm run test:lib
       - name: Apply the frozen base acceptance set locally
         if: matrix.tier == 'fast'
-        run: npm run conformance:check
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE: ${{ github.event.before }}
+        run: |
+          base="${PR_BASE:-$PUSH_BASE}"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            base="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
+          fi
+          export KRN_CONFORMANCE_BASE="$base"
+          npm run conformance:check
       - name: Test installed-release bootstrap
         if: matrix.tier == 'deep'
         run: npm run test:bootstrap

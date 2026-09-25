@@ -50,6 +50,15 @@ test("the gate list does not duplicate a check that validate already runs", () =
   assert.doesNotMatch(workflow, /npm run lessons:check/, "lessons:check is subsumed by validate");
 });
 
+// The approved conformance base has one owner: CI names it once and the local
+// recipe consumes it, instead of CI and the recipe each deriving their own.
+test("the conformance base has one owner across the workflow and the npm recipe", () => {
+  const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
+  const recipe = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts["conformance:check"];
+  assert.match(workflow, /KRN_CONFORMANCE_BASE/, "CI must name the base env the local recipe consumes");
+  assert.match(recipe, /KRN_CONFORMANCE_BASE/, "the conformance:check recipe must honor the CI base env");
+});
+
 test("every discovered test file is run by a gate suite", () => {
   const scripts = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts;
   const steps = [...String(scripts.gate ?? "").matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]);
