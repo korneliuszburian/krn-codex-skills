@@ -301,3 +301,17 @@ test("the CLI refuses --strict-recall together with --recall-obligation", () => 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// An inherited guard skips the contract, so an explicit recall mode is inert;
+// name that instead of letting the flag look effective.
+test("the CLI names an explicit recall mode as inert under an inherited guard", () => {
+  const dir = makeCliRepo();
+  try {
+    const env = { ...process.env, KRN_CHANGE_CONTRACT: "0" };
+    const result = spawnSync(process.execPath, [CLI, "changes", "check", "--root", dir, "--base", "HEAD~1", "--head", "HEAD", "--recall-obligation"], { cwd: dir, encoding: "utf8", env });
+    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /warning: recall-mode-inert/, `the inert mode must be named:\n${result.stderr}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
