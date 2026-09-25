@@ -885,7 +885,9 @@ def dev_sftp_destination(
     if not known_path.is_absolute() or not known_path.is_file():
         return "the named known_hosts file must exist as one concrete path"
     configured = target.get("known_hosts", "")
-    if configured and Path(configured).is_absolute() and known_path.resolve() != Path(configured).resolve():
+    if not configured or DEV_PATH_ESCAPE.search(configured) or not Path(configured).is_absolute():
+        return "the DEV deployment requires an absolute DEPLOY_KNOWN_HOSTS host key file"
+    if known_path.resolve() != Path(configured).resolve():
         return "the sftp host key file is not the configured DEPLOY_KNOWN_HOSTS"
     identity = transport["identity"] or ""
     user, separator, host = identity.rpartition("@")

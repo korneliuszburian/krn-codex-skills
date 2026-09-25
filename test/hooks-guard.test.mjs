@@ -47,14 +47,6 @@ function devRepo() {
   const repo = join(top, "repo");
   mkdirSync(join(repo, ".git"), { recursive: true });
   mkdirSync(join(repo, "assets"), { recursive: true });
-  writeFileSync(join(repo, ".env"), [
-    "DEPLOY_HOST='dev.example.test'",
-    "DEPLOY_PORT='6022'",
-    "DEPLOY_USER='deploy-dev'",
-    "DEPLOY_PATH='/srv/dev/example'",
-    "",
-  ].join("\n"));
-  writeFileSync(join(repo, "assets", "app.css"), ".a {}\n");
   const knownHosts = join(top, "known_hosts");
   writeFileSync(knownHosts, [
     "[dev.example.test]:6022 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBfixturekey deploy@fixture",
@@ -62,6 +54,15 @@ function devRepo() {
     "[master.proudhost.eu]:6022 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBfixturekey deploy@fixture",
     "",
   ].join("\n"));
+  writeFileSync(join(repo, ".env"), [
+    "DEPLOY_HOST='dev.example.test'",
+    "DEPLOY_PORT='6022'",
+    "DEPLOY_USER='deploy-dev'",
+    "DEPLOY_PATH='/srv/dev/example'",
+    `DEPLOY_KNOWN_HOSTS='${knownHosts}'`,
+    "",
+  ].join("\n"));
+  writeFileSync(join(repo, "assets", "app.css"), ".a {}\n");
   return { top, repo, knownHosts };
 }
 
@@ -358,6 +359,29 @@ test("the DEV sftp policy rejects duplicate known-hosts options", () => {
       `-o UserKnownHostsFile=/dev/null -o UserKnownHostsFile=${fixture.knownHosts}`,
     );
     assert.ok(decisionAt("Bash", duplicateKnownHosts, fixture.repo), "duplicate host-key files must be denied");
+  } finally {
+    rmSync(fixture.top, { recursive: true, force: true });
+  }
+});
+
+// The DEV pin is only complete when the host-key file is the configured one;
+// any absolute file that happens to pin the host is not enough.
+test("the DEV sftp policy requires the configured host key file", () => {
+  const fixture = devRepo();
+  try {
+    const other = join(fixture.top, "other_known_hosts");
+    writeFileSync(other, readFileSync(fixture.knownHosts));
+    assert.ok(decisionAt("Bash", devUpload(fixture.repo, other), fixture.repo), "a host-key file other than DEPLOY_KNOWN_HOSTS must be denied");
+  } finally {
+    rmSync(fixture.top, { recursive: true, force: true });
+  }
+});
+
+test("the DEV sftp policy refuses when DEPLOY_KNOWN_HOSTS is absent", () => {
+  const fixture = devRepo();
+  try {
+    writeFileSync(join(fixture.repo, ".env"), "DEPLOY_HOST='dev.example.test'\nDEPLOY_PORT='6022'\nDEPLOY_USER='deploy-dev'\nDEPLOY_PATH='/srv/dev/example'\n");
+    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts), fixture.repo), "an absent configured host-key file must be denied");
   } finally {
     rmSync(fixture.top, { recursive: true, force: true });
   }
