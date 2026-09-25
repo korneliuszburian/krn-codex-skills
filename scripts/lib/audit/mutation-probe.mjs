@@ -33,7 +33,7 @@ export const MUTATIONS = [
     find: "const local = part.split(/\\s+as\\s+/).pop().trim();",
     replace: "const local = part.split(/\\s+as\\s+/)[0].trim();",
     suite: "test/audit/quality-audit.test.mjs",
-    focus: "aliased import",
+    focus: "the audit catches a cross-file call hidden by an aliased import",
   },
   {
     id: "quality-audit-consumed-source-binding",
@@ -87,7 +87,7 @@ export const MUTATIONS = [
     find: "return before.ok && (!now.ok || before.out.trim() !== now.out.trim());",
     replace: "return false;",
     suite: "test/contract/change-contract.test.mjs",
-    focus: "self-authorized",
+    focus: "gutting a test file a declared script runs is self-authorized",
   },
   {
     id: "change-contract-resolve-script",
@@ -96,7 +96,7 @@ export const MUTATIONS = [
     find: 'if (Object.hasOwn(scripts, name) && typeof scripts[name] === "string") return { kind: "script", name };',
     replace: 'if (Object.hasOwn(scripts, name) && typeof scripts[name] === "number") return { kind: "script", name };',
     suite: "test/contract/change-contract.test.mjs",
-    focus: "npm run",
+    focus: "an npm run chain that reaches a gutted test fails closed as non-literal",
   },
   {
     id: "change-contract-non-literal-guard",
@@ -105,7 +105,7 @@ export const MUTATIONS = [
     find: 'if (scriptNonLiteral(root, command)) return "non-literal";',
     replace: 'if (scriptNonLiteral(root, command)) return "clean";',
     suite: "test/contract/change-contract.test.mjs",
-    focus: "non-literal",
+    focus: "a node --run chain that reaches a gutted test fails closed as non-literal",
   },
 ];
 
@@ -141,29 +141,35 @@ function probeEnv() {
 // A killed mutant requires the focused observer itself to be observed failing
 // after the mutation. A file-level load error, a failing unrelated case, or a
 // process that exits zero without running the observer is unclassified, not a
-// kill; the same focused selection's baseline must be green first.
+// kill; the same focused selection's baseline must be green first. An
+// unclassified verdict is a repair obligation, never a survivor.
 function classify(result, focus) {
   const summary = tapSummary(`${result.out}${result.err}`);
   const pattern = new RegExp(focus || ".*");
-  const executed = [...summary.passing, ...summary.failing].some((name) => pattern.test(name));
+  const matched = [...new Set([...summary.passing, ...summary.failing].filter((name) => pattern.test(name)))];
+  const executed = matched.length > 0;
   const failed = summary.failing.some((name) => pattern.test(name));
-  if (result.ok && executed && !failed) return { state: "green", tests: summary.tests, fail: summary.fail };
-  if (!result.ok && executed && failed) return { state: "red", tests: summary.tests, fail: summary.fail };
+  if (result.ok && executed && !failed) return { state: "green", tests: summary.tests, fail: summary.fail, matched };
+  if (!result.ok && executed && failed) return { state: "red", tests: summary.tests, fail: summary.fail, matched };
   const detail = !executed
     ? `the focused observer did not run (tests=${summary.tests} fail=${summary.fail})`
     : failed
       ? `the focused observer failed while the process exited 0 (tests=${summary.tests} fail=${summary.fail})`
       : `the run failed without the focused observer failing (tests=${summary.tests} fail=${summary.fail})`;
-  return { state: "invalid", tests: summary.tests, fail: summary.fail, detail };
+  return { state: "invalid", tests: summary.tests, fail: summary.fail, detail, matched };
 }
 
 function baselineFor({ workspace, mutation, run, cache }) {
   const key = `${mutation.suite}\u0000${mutation.focus ?? ""}`;
   if (cache.has(key)) return cache.get(key);
   const outcome = classify(run(process.execPath, focusedArgs(mutation), { cwd: workspace, env: probeEnv() }), mutation.focus);
-  const baseline = outcome.state === "green"
-    ? { ok: true }
-    : { ok: false, detail: `baseline not green for the mutation's focused selection: ${outcome.detail ?? `tests=${outcome.tests} fail=${outcome.fail}`}` };
+  // A kill is attributable only when the focused selection names exactly one
+  // observer; otherwise a failing unrelated test could be scored as the kill.
+  const baseline = outcome.state !== "green"
+    ? { ok: false, detail: `baseline not green for the mutation's focused selection: ${outcome.detail ?? `tests=${outcome.tests} fail=${outcome.fail}`}` }
+    : outcome.matched.length === 1
+      ? { ok: true }
+      : { ok: false, detail: `baseline focus is ambiguous: matched ${outcome.matched.length} tests; bind the mutation to exactly one observer` };
   cache.set(key, baseline);
   return baseline;
 }

@@ -160,3 +160,14 @@ test("an interrupted run is invalid", async () => {
   const results = probe.runMutationProbe({ root, run: scriptedRun([green, interrupted]) });
   assert.ok(results.every((result) => result.killed === false && result.invalid === true), JSON.stringify(results));
 });
+
+// A kill is only attributable when the focus names exactly one observer; an
+// ambiguous focus could score an unrelated failing test as the kill.
+test("the probe refuses a mutation whose focus matches more than one test", async () => {
+  const probe = await loadProbe();
+  assert.ok(probe, "scripts/lib/audit/mutation-probe.mjs must exist");
+  const ambiguous = (focus) => ({ ok: true, out: `ok 1 - ${focus}: one\nok 2 - ${focus}: two\n# tests 2\n# pass 2\n# fail 0\n`, err: "" });
+  const results = probe.runMutationProbe({ root, run: scriptedRun([ambiguous]) });
+  assert.ok(results.every((result) => result.killed === false && result.invalid === true), JSON.stringify(results));
+  assert.ok(results.every((result) => /ambiguous/.test(result.detail)), JSON.stringify(results));
+});
