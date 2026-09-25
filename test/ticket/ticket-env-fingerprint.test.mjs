@@ -7,6 +7,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
 
+import { envFingerprint } from "../../scripts/lib/ticket/ticket-abi.mjs";
+
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
 const cli = join(root, "scripts", "krn-codex.mjs");
@@ -54,12 +56,6 @@ const withTickets = (body) => {
   }
 };
 
-test("the module exposes an environment fingerprint helper", async () => {
-  const ticketLib = await loadTicket();
-  assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
-  assert.equal(typeof ticketLib.envFingerprint, "function", "envFingerprint must be exported");
-});
-
 test("close records a hash-only environment fingerprint beside the evidence", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
@@ -92,7 +88,7 @@ test("check warns missing-env-fingerprint only on a done ticket without one", as
     assert.equal(missing.length, 1, JSON.stringify(report.warnings));
     assert.equal(missing[0].path, join(".krn/tickets", "sh-23.md"));
 
-    writeFileSync(file, ticket({ ...baseFields, Status: "done", Evidence: "node --test green", Env: ticketLib.envFingerprint() }));
+    writeFileSync(file, ticket({ ...baseFields, Status: "done", Evidence: "node --test green", Env: envFingerprint() }));
     const present = ticketLib.checkTickets({ root: dir }).warnings.filter((entry) => entry.rule === "missing-env-fingerprint");
     assert.deepEqual(present, []);
   });

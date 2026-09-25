@@ -44,14 +44,6 @@ const withTickets = (body) => {
   }
 };
 
-test("the lifecycle module exposes claim, close, and lookup", async () => {
-  const ticketLib = await loadTicket();
-  assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
-  assert.equal(typeof ticketLib.claimTicket, "function");
-  assert.equal(typeof ticketLib.closeTicket, "function");
-  assert.equal(typeof ticketLib.findTicketFile, "function");
-});
-
 test("claim writes the claim before work and removes the ticket from the frontier", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
