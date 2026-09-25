@@ -4,6 +4,7 @@
   "cases": [
     {
       "id": "changes-docs-only-accepted",
+      "required": true,
       "steps": [
         {
           "message": "chore: baseline",
@@ -34,6 +35,7 @@
     },
     {
       "id": "changes-surface-without-contract",
+      "required": true,
       "steps": [
         {
           "message": "chore: baseline",
@@ -173,6 +175,7 @@
     },
     {
       "id": "memory-delivers-a-triggered-lesson",
+      "required": true,
       "steps": [
         {
           "message": "chore: baseline",
@@ -220,6 +223,7 @@
     },
     {
       "id": "state-complete-without-evidence",
+      "required": true,
       "steps": [
         {
           "message": "chore: baseline",
@@ -292,6 +296,7 @@
     },
     {
       "id": "state-complete-evidence-unresolved",
+      "required": true,
       "steps": [
         {
           "message": "chore: baseline",
@@ -317,6 +322,7 @@
     },
     {
       "id": "memory-ignores-an-unrelated-change",
+      "required": true,
       "steps": [
         {
           "message": "chore: baseline",
@@ -341,6 +347,7 @@
     },
     {
       "id": "lessons-verify-runs-the-named-proof",
+      "required": true,
       "steps": [
         {
           "message": "chore: baseline",
@@ -366,6 +373,7 @@
     },
     {
       "id": "lessons-verify-detects-a-failing-proof",
+      "required": true,
       "steps": [
         {
           "message": "chore: baseline",

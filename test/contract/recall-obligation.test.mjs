@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { checkChangeContract } from "../../scripts/lib/contract/change-contract.mjs";
 
 const HEADER = "| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n";
+const CLI = join(fileURLToPath(new URL("../..", import.meta.url)), "scripts", "krn.mjs");
+const CLI_TRIGGER_ROW = "| Guards | probe | `test:lessons` | | | path:scripts/lib/x.mjs | |";
 
 function makeRoot(scripts = { "test:lessons": "x" }) {
   const root = mkdtempSync(join(tmpdir(), "krn-recall-"));
@@ -220,4 +224,77 @@ test("a churn-only trigger stays advisory unless strictRecall is set", () => {
   const strict = report(root, body, { git: gitFor(body), strictRecall: true });
   assert.ok(recallErrors(strict).length > 0, JSON.stringify(strict.errors));
   rmSync(root, { recursive: true, force: true });
+});
+
+function gitIn(cwd, args) {
+  const result = spawnSync("git", args, { cwd, encoding: "utf8" });
+  assert.equal(result.status, 0, `git ${args.join(" ")} failed: ${result.stderr}`);
+  return result;
+}
+
+function makeCliRepo({ trailer = "Change-contract: test:lessons:green->green" } = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "krn-recall-cli-"));
+  gitIn(dir, ["init", "-q"]);
+  gitIn(dir, ["config", "user.name", "krn-test"]);
+  gitIn(dir, ["config", "user.email", "krn-test@example.invalid"]);
+  writeFileSync(join(dir, "package.json"), `${JSON.stringify({ scripts: { "test:lessons": "node --test test/lessons.test.mjs" } }, null, 2)}\n`);
+  mkdirSync(join(dir, "test"), { recursive: true });
+  writeFileSync(join(dir, "test", "lessons.test.mjs"), "import test from \"node:test\";\ntest(\"green\", () => {});\n");
+  mkdirSync(join(dir, "docs", "research"), { recursive: true });
+  writeFileSync(join(dir, "docs", "research", "workflow-lessons.md"), `${HEADER}${CLI_TRIGGER_ROW}\n`);
+  mkdirSync(join(dir, "scripts", "lib"), { recursive: true });
+  writeFileSync(join(dir, "scripts", "lib", "x.mjs"), "export const x = 1;\n");
+  gitIn(dir, ["add", "-A"]);
+  gitIn(dir, ["commit", "-qm", "chore: baseline"]);
+  writeFileSync(join(dir, "scripts", "lib", "x.mjs"), "export const x = 2;\n");
+  gitIn(dir, ["add", "-A"]);
+  gitIn(dir, ["commit", "-qm", `fix: bump x\n\n${trailer}`]);
+  return dir;
+}
+
+function runCli(dir, extra = []) {
+  return spawnSync(process.execPath, [CLI, "changes", "check", "--root", dir, "--base", "HEAD~1", "--head", "HEAD", ...extra], { cwd: dir, encoding: "utf8" });
+}
+
+test("the CLI keeps recall advisory by default", () => {
+  const dir = makeCliRepo();
+  try {
+    const result = runCli(dir);
+    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /warning: unreconstructed-recall/, `${result.stdout}${result.stderr}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the CLI --recall-obligation blocks a path hit that is not reconstructed", () => {
+  const dir = makeCliRepo();
+  try {
+    const result = runCli(dir, ["--recall-obligation"]);
+    assert.equal(result.status, 1, `${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /error: unreconstructed-recall/, `${result.stdout}${result.stderr}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the CLI --recall-obligation accepts a reconstructing Recall trailer", () => {
+  const dir = makeCliRepo({ trailer: "Change-contract: test:lessons:green->green\nRecall: test:lessons => scripts/lib/x.mjs" });
+  try {
+    const result = runCli(dir, ["--recall-obligation"]);
+    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the CLI refuses --strict-recall together with --recall-obligation", () => {
+  const dir = makeCliRepo();
+  try {
+    const result = runCli(dir, ["--strict-recall", "--recall-obligation"]);
+    assert.notEqual(result.status, 0, `${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /mutually exclusive/, `${result.stdout}${result.stderr}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

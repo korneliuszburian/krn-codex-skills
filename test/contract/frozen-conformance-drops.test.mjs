@@ -34,3 +34,28 @@ test("a frozen run drops a case the candidate manifest no longer declares", () =
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+// A required case is part of the approved acceptance policy: the candidate
+// cannot retire it by omission, rename, or self-authorization. Retiring a
+// required case is a visible edit to the approved base policy.
+test("a frozen run fails when the candidate manifest drops a required case", () => {
+  const base = mkdtempSync(path.join(tmpdir(), "krn-frozen-required-"));
+  try {
+    mkdirSync(path.join(base, "config"), { recursive: true });
+    const manifest = {
+      version: 1,
+      program: "scripts/krn.mjs",
+      cases: [
+        { id: "required-surface-a", required: true, steps: [{ message: "chore: baseline", files: {} }], run: ["state", "check"], expect: { exit: 0 } },
+        { id: "removable-surface-b", steps: [{ message: "chore: baseline", files: {} }], run: ["state", "check"], expect: { exit: 0 } },
+      ],
+    };
+    writeFileSync(path.join(base, "config", "conformance.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+    const result = spawnSync(process.execPath, [CLI, "conformance", "check", "--root", base, "--candidate", root, "--frozen"], { encoding: "utf8", cwd: root });
+    assert.equal(result.status, 1, `a dropped required case must fail the frozen run:\n${result.stdout}${result.stderr}`);
+    assert.match(result.stdout, /not ok required-surface-a - required case missing/, "the dropped required case must be reported as a failure");
+    assert.match(result.stdout, /ok removable-surface-b - dropped/, "a non-required case keeps the dropped report");
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
