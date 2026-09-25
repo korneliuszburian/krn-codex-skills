@@ -263,13 +263,15 @@ surface for un-migrated repositories; it is not an operating queue.
 The smallest product falsifier is two linked worktrees claiming the same ready
 ID: exactly one may succeed, and a reopened queue must have one claim and no
 sidecar lock. The H2 adapter comparison exercised this case, but the production
-CLI remains untested. Before cutover, verify the full `add → ready → claim →
-comment → close → reopen` path, interruption before and after an effect,
-duplicate retry after an ambiguous response, blocker cycles, and a lossless
-import of the current path/ID set. The import first reports unmapped fields
-and keeps old files read-only; cutover changes readers and writers together;
-deletion of `.krn/tickets`, `.krn/claims`, the old parser/reconcile code,
-and stale instructions follows only after readback and rollback export. A Git
+CLI remains untested. The executed cutover verified the full `add → ready → claim → comment →
+close → reopen` path, interruption before and after an effect, duplicate retry
+after an ambiguous response, blocker cycles, and the lossless import of the
+current path/ID set. The import reported unmapped fields and kept old files
+read-only; readers and writers changed together; `.krn/tickets`, `.krn/claims`
+and the stale authority text were retired after readback and rollback export.
+The legacy import parser and reconcile code remain the migration surface for
+un-migrated repositories; the maintainer owns their deletion, triggered when no
+repository needs legacy import. A Git
 bundle or explicit export carries the queue to a different clone; no network
 write is implied by local commands. Reject the replacement if it does not
 remove duplicate state and public field ceremony. The H2 choice is not a
