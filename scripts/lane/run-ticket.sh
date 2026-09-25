@@ -299,16 +299,32 @@ for hit in data["hits"]:
         sys.exit(74)
     matched = hit.get("matched") if isinstance(hit.get("matched"), list) else []
     lines.append(f'{hit["lesson"]}\n  {hit.get("trigger", "")} matched {", ".join(str(entry) for entry in matched)}; gate {hit.get("gate", "")}')
-print("\n".join(lines) if lines else "no recalled lessons (the source was read; zero hits)")
+print("\n".join(lines) if lines else "no recalled lessons (recall completed; zero hits)")
 PY
   ); then
     printf 'recall snapshot invalid: stopping before the worker starts\n' >&2
     rm -rf "$tmp"
     return 74
   fi
-  printf '%s' "$json" >"$out"
+  if ! printf '%s' "$json" >"$out"; then
+    printf 'recall snapshot unwritable: the artifact was not published\n' >&2
+    rm -rf "$tmp"
+    return 75
+  fi
   rm -rf "$tmp"
   printf '%s' "$text"
+}
+
+# Production guard shared with the lane's test seam: a failed snapshot refuses
+# the lane before the worker starts. The guard lives here so the executable
+# test exercises the same `if !` context the lane uses.
+recall_snapshot_guarded() {
+  local recall
+  if ! recall=$(snapshot_recall "$1" "$2" "$3" "$4"); then
+    echo "lane refused: rule=recall-snapshot-failed; the worker is not started" >&2
+    return 72
+  fi
+  printf '%s' "$recall"
 }
 
 mode=${1:-probe}
@@ -319,6 +335,7 @@ case "$mode" in
   recall-delivery) shift; recall_delivery; exit $? ;;
   recall-delivery-report) shift; recall_delivery_report "${1:-}" "${2:-}"; exit $? ;;
   recall-snapshot) shift; snapshot_recall "${1:-}" "${2:-}" "${3:-}" "${4:-}"; exit $? ;;
+  recall-snapshot-guarded) shift; recall_snapshot_guarded "${1:-}" "${2:-}" "${3:-}" "${4:-}"; exit $? ;;
   bwrap-args)
     RUN_DIR=${RUN_DIR:-$BASE/.krn/runs/lane/print}
     WT=${WT:-$RUN_DIR/wt}
@@ -476,8 +493,7 @@ case "$class_code" in
 esac
 
 if [ -z "$CHANGED" ]; then CHANGED=$DECIDING_CHECK; fi
-if ! recall=$(snapshot_recall "$KRN" "$FIXTURE" "$CHANGED" "$RUN_DIR/out/recall.json"); then
-  echo "lane refused: rule=recall-snapshot-failed; the worker is not started" >&2
+if ! recall=$(recall_snapshot_guarded "$KRN" "$FIXTURE" "$CHANGED" "$RUN_DIR/out/recall.json"); then
   exit 72
 fi
 recall_json=$(<"$RUN_DIR/out/recall.json")

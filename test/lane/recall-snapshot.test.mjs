@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -30,11 +30,10 @@ function fixture() {
   return dir;
 }
 
-function runSnapshot(dir, scenario) {
+function runSnapshot(dir, scenario, mode = "recall-snapshot", out = join(dir, "out", "recall.json")) {
   const stub = join(dir, "stub.mjs");
-  const out = join(dir, "out", "recall.json");
   const counter = join(dir, "calls.txt");
-  const result = spawnSync("bash", [LANE, "recall-snapshot", stub, dir, "scripts/lib/x.mjs", out], {
+  const result = spawnSync("bash", [LANE, mode, stub, dir, "scripts/lib/x.mjs", out], {
     cwd: dir,
     encoding: "utf8",
     // Pin the lane inputs so a script without the snapshot dispatch fails on an
@@ -61,7 +60,7 @@ test("a read source with zero hits is an explicit zero from one observation", ()
   try {
     const result = runSnapshot(dir, "ok-empty");
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
-    assert.match(result.stdout, /no recalled lessons/, "the zero state must be explicit");
+    assert.match(result.stdout, /no recalled lessons \(recall completed; zero hits\)/, "the zero state must state what was observed");
     assert.deepEqual(result.json, { hits: [] });
     assert.equal(result.calls, 1, "the brief and the trailers must come from one recall observation");
   } finally {
@@ -132,12 +131,40 @@ test("a wrong recall response shape is a failure", () => {
 
 test("the lane wiring uses the snapshot, guards it, and keeps no fallback path", () => {
   const text = readFileSync(LANE, "utf8");
-  assert.ok(/recall-snapshot\)/.test(text), "the lane must expose the snapshot seam");
-  assert.ok(/if ! recall=\$\(snapshot_recall/.test(text), "the snapshot must be guarded before the worker");
+  assert.ok(/recall-snapshot-guarded\)/.test(text), "the lane must expose the guarded snapshot seam");
+  assert.ok(/if ! recall=\$\(recall_snapshot_guarded/.test(text), "the snapshot must be guarded before the worker");
   assert.ok(/lane refused: rule=recall-snapshot-failed/.test(text), "a failed snapshot must refuse the lane");
   assert.ok(!/\|\|\s*echo 'no recalled lessons'/.test(text), "the empty-success fallback must be gone");
   assert.ok(!/\|\|\s*echo '\{"hits":\[\]\}'/.test(text), "the empty-success fallback must be gone");
   const guard = text.indexOf("rule=recall-snapshot-failed");
   const worker = text.indexOf("invoke_worker");
   assert.ok(guard !== -1 && worker !== -1 && guard < worker, "the refusal must precede the worker invocation");
+});
+
+test("the guarded snapshot refuses the lane when the artifact write fails", () => {
+  const dir = fixture();
+  try {
+    const out = join(dir, "out", "recall.json");
+    mkdirSync(join(dir, "out"), { recursive: true });
+    writeFileSync(out, JSON.stringify({ hits: [{ lesson: "Stale" }] }));
+    chmodSync(out, 0o444);
+    const result = runSnapshot(dir, "ok-hit", "recall-snapshot-guarded", out);
+    assert.equal(result.status, 72, `a failed artifact write must refuse the lane:\n${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /lane refused: rule=recall-snapshot-failed/);
+    assert.doesNotMatch(result.stdout, /Guards/, "a failed write must not leak a fresh brief");
+    assert.match(readFileSync(out, "utf8"), /Stale/, "the previous artifact must stay untouched and unconsumed");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the guarded snapshot passes a successful observation through", () => {
+  const dir = fixture();
+  try {
+    const result = runSnapshot(dir, "ok-hit", "recall-snapshot-guarded");
+    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+    assert.match(result.stdout, /Guards/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
