@@ -232,7 +232,19 @@ try {
     // library evaluates the actual diff trigger.
     const recallMode = options.strictRecall === true ? true : options.recallObligation === true ? undefined : false;
     const report = contractGuardActive()
-      ? { root: options.root, commits: [], results: [], errors: [], warnings: [{ rule: "change-contract-skipped", detail: "KRN_CHANGE_CONTRACT=0" }], skipped: true }
+      ? {
+          root: options.root,
+          commits: [],
+          results: [],
+          errors: [],
+          warnings: [
+            { rule: "change-contract-skipped", detail: "KRN_CHANGE_CONTRACT=0" },
+            ...(options.strictRecall === true || options.recallObligation === true
+              ? [{ rule: "recall-mode-inert", detail: "KRN_CHANGE_CONTRACT=0 skips the change contract, so the requested recall mode is inert" }]
+              : []),
+          ],
+          skipped: true,
+        }
       : checkChangeContract({ root: options.root, base: options.base, head: options.head ?? "HEAD", verifyBefore: options.before === true, strictRecall: recallMode, requireCleanHead: true });
     print(report, options.json);
     if (!options.json) {
