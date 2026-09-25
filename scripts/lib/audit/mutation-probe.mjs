@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { runProcess } from "../kernel/proc.mjs";
+import { tapSummary } from "../kernel/tap.mjs";
 
 const IGNORED = new Set([".git", ".krn", "node_modules"]);
 
@@ -137,31 +138,32 @@ function probeEnv() {
   return env;
 }
 
-function parseTap(output) {
-  const tests = Number((/^# tests (\d+)$/m.exec(output) ?? [])[1] ?? "0");
-  const fail = Number((/^# fail (\d+)$/m.exec(output) ?? [])[1] ?? "0");
-  return { tests, fail };
-}
-
-// A killed mutant requires observed failing tests from the same focused
-// selection the baseline ran: only the declared mutation differs between the
-// two runs. A nonzero exit without a failing test (load error, timeout, runner
-// failure) is unclassified, not a kill; a baseline that is not green makes that
-// selection's mutants invalid.
-function classify(result) {
-  const { tests, fail } = parseTap(`${result.out}${result.err}`);
-  if (tests > 0 && fail > 0) return { state: result.ok ? "invalid" : "red", tests, fail };
-  if (result.ok && tests > 0) return { state: "green", tests, fail };
-  return { state: "invalid", tests, fail };
+// A killed mutant requires the focused observer itself to be observed failing
+// after the mutation. A file-level load error, a failing unrelated case, or a
+// process that exits zero without running the observer is unclassified, not a
+// kill; the same focused selection's baseline must be green first.
+function classify(result, focus) {
+  const summary = tapSummary(`${result.out}${result.err}`);
+  const pattern = new RegExp(focus || ".*");
+  const executed = [...summary.passing, ...summary.failing].some((name) => pattern.test(name));
+  const failed = summary.failing.some((name) => pattern.test(name));
+  if (result.ok && executed && !failed) return { state: "green", tests: summary.tests, fail: summary.fail };
+  if (!result.ok && executed && failed) return { state: "red", tests: summary.tests, fail: summary.fail };
+  const detail = !executed
+    ? `the focused observer did not run (tests=${summary.tests} fail=${summary.fail})`
+    : failed
+      ? `the focused observer failed while the process exited 0 (tests=${summary.tests} fail=${summary.fail})`
+      : `the run failed without the focused observer failing (tests=${summary.tests} fail=${summary.fail})`;
+  return { state: "invalid", tests: summary.tests, fail: summary.fail, detail };
 }
 
 function baselineFor({ workspace, mutation, run, cache }) {
   const key = `${mutation.suite}\u0000${mutation.focus ?? ""}`;
   if (cache.has(key)) return cache.get(key);
-  const { state, tests, fail } = classify(run(process.execPath, focusedArgs(mutation), { cwd: workspace, env: probeEnv() }));
-  const baseline = state === "green"
+  const outcome = classify(run(process.execPath, focusedArgs(mutation), { cwd: workspace, env: probeEnv() }), mutation.focus);
+  const baseline = outcome.state === "green"
     ? { ok: true }
-    : { ok: false, detail: `baseline not green for the mutation's focused selection: tests=${tests} fail=${fail}` };
+    : { ok: false, detail: `baseline not green for the mutation's focused selection: ${outcome.detail ?? `tests=${outcome.tests} fail=${outcome.fail}`}` };
   cache.set(key, baseline);
   return baseline;
 }
@@ -181,17 +183,11 @@ function runMutation({ workspace, mutation, baseline, run }) {
   }
   writeFileSync(target, original.replace(mutation.find, mutation.replace));
   try {
-    const { state, tests, fail } = classify(run(process.execPath, focusedArgs(mutation), { cwd: workspace, env: probeEnv() }));
-    const killed = state === "red";
-    const invalid = state === "invalid";
-    const detail = killed
-      ? ""
-      : state === "green"
-        ? "the focused suite stayed green"
-        : tests === 0
-          ? "the focused suite produced no test results"
-          : `the focused suite failed without a failing test (tests=${tests}, fail=${fail})`;
-    return { id: mutation.id, file: mutation.file, killed, applied: true, invalid, tests, detail };
+    const outcome = classify(run(process.execPath, focusedArgs(mutation), { cwd: workspace, env: probeEnv() }), mutation.focus);
+    const killed = outcome.state === "red";
+    const invalid = outcome.state === "invalid";
+    const detail = killed ? "" : outcome.state === "green" ? "the focused suite stayed green" : outcome.detail;
+    return { id: mutation.id, file: mutation.file, killed, applied: true, invalid, tests: outcome.tests, detail };
   } finally {
     writeFileSync(target, original);
   }
