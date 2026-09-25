@@ -1,0 +1,6 @@
+interface:
+  display_name: "Test Audit"
+  short_description: "Prune low-value tests with owner-boundary evidence"
+  default_prompt: "Use $test-audit only when explicitly asked to audit, sweep, or prune a test surface."
+policy:
+  allow_implicit_invocation: false

@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+import { readFrontmatter } from "../../scripts/lib/install/skill-metadata.mjs";
 
 import {
   contractBudgetErrors,
@@ -227,4 +230,20 @@ test("referenceLinkErrors accepts a single-quoted title and a reference definiti
   assert.deepEqual(referenceLinkErrors("[n](references/a.md 'usage')", { skillPath: "s", references: ["references/a.md"] }), []);
   assert.deepEqual(referenceLinkErrors("[d]: references/a.md\nSee [x][d].", { skillPath: "s", references: ["references/a.md"] }), []);
   assert.deepEqual(referenceLinkErrors("`(references/a.md)`", { skillPath: "s", references: ["references/a.md"] }), ["s: references/a.md is not linked directly from SKILL.md"]);
+});
+
+// The structural rules live in the validator; this test pins the adoption
+// decision itself: the audit runs only on request and declares the boundary it
+// skips, so it cannot collide with the composed test-first owner.
+test("the test-audit skill is adopted as an explicit-only owner with a declared skip boundary", () => {
+  const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
+  const manifest = JSON.parse(readFileSync(join(repositoryRoot, "skills", "manifest.json"), "utf8"));
+  const entry = manifest.skills.find((skill) => skill.name === "test-audit");
+  assert.ok(entry, "test-audit must be an installable skill");
+  assert.equal(entry.implicit, false, "the audit runs only on an explicit request");
+  const skillDir = join(repositoryRoot, entry.path);
+  const frontmatter = readFrontmatter(readFileSync(join(skillDir, "SKILL.md"), "utf8"));
+  assert.match(frontmatter.description, /skip test-first authoring/i, "the description must declare its skip boundary");
+  assert.ok(existsSync(join(skillDir, "references", "campaign.md")), "the campaign companion must exist");
+  assert.match(readFileSync(join(skillDir, "SKILL.md"), "utf8"), /references\/campaign\.md/, "the campaign companion must be linked");
 });
