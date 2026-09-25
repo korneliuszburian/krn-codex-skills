@@ -1431,6 +1431,18 @@ ledger is short, or a date has passed.
 | CI tier owner in `package.json` | maintainer | sh-112 and `test/ci-workflow-tiers.test.mjs` | 2026-12-31 | the workflow stops deriving from the gate scripts |
 | KRN surfaces (skills, brief, hooks, memory) as the default | maintainer | LT-102 through LT-105 and the 2026-09-20 operator decision recorded in ADR 0006 | 2027-06-30 | a discriminative benchmark shows a negative contribution, a measured failure traces to a surface, or the operator changes the scope |
 
+## Recall modes (operator-selectable)
+
+The three recall modes are operator choices, owned by the maintainer.
+`changes check` is advisory by default and the documented default is unchanged;
+`--strict-recall` makes every hit blocking and is what the lane integrators use
+(`scripts/lane/integrate.sh`, `run-ticket.sh`, `run-frontier.sh`);
+`--recall-obligation` blocks `path:`/`symbol:` hits while leaving `churn:`
+advisory. No lane or gate invokes `--recall-obligation`; it exists for an
+operator who wants the trigger-based obligation without the strict lane
+contract, and it is inert when an inherited `KRN_CHANGE_CONTRACT=0` skips the
+contract.
+
 ## Frontend authority extraction (2026-09-22)
 
 The frontend authority moved out of this repository: the `frontend-*` skills,
