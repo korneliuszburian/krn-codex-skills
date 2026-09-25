@@ -55,13 +55,13 @@ test("the npm candidate scripts run scripts/krn.mjs", () => {
   }
 });
 
-test("the CI runs the candidate scripts/krn.mjs against the frozen base case list", () => {
+test("the CI runs the approved base evaluator for the frozen case list and the candidate CLI elsewhere", () => {
   const workflow = read(".github/workflows/validate.yml");
   assert.match(workflow, /node scripts\/krn\.mjs changes check/, "the candidate changes check must run scripts/krn.mjs");
-  assert.match(workflow, /node scripts\/krn\.mjs conformance check --root \. --frozen/, "the candidate conformance run must run scripts/krn.mjs");
-  assert.match(workflow, /node scripts\/krn\.mjs conformance check --root \/tmp\/krn-conformance --candidate "\$PWD" --frozen/, "the frozen run must apply the base case list with the candidate runner");
+  assert.match(workflow, /node scripts\/krn\.mjs conformance check --root \. --frozen/, "the no-base bootstrap must run scripts/krn.mjs");
+  assert.match(workflow, /node \/tmp\/krn-conformance\/scripts\/krn\.mjs conformance check --root \/tmp\/krn-conformance --candidate "\$PWD" --frozen/, "the frozen run must apply the base case list with the approved base evaluator");
   assert.doesNotMatch(workflow, /node scripts\/krn-codex\.mjs/, "no CI step may run the frozen shim");
-  assert.doesNotMatch(workflow, /\/tmp\/krn-conformance\/scripts\/krn-codex\.mjs/, "the base worktree supplies only the frozen case list, not the runner");
+  assert.doesNotMatch(workflow, /\/tmp\/krn-conformance\/scripts\/krn-codex\.mjs/, "the base worktree must run the canonical entrypoint, never the frozen shim");
 });
 
 test("the install shim execs krn.mjs", () => {

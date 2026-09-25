@@ -19,7 +19,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [docs/research/workflow-lessons.md](docs/research/workflow-lessons.md) — bounded cross-run workflow memory consumed by recall and changes check; agent-facing delivery remains retired.
 - The Matt Pocock skills audit and the unslop lab-test page are indexed under [docs/research/README.md](docs/research/README.md).
 - [scripts/quality-audit.mjs](scripts/quality-audit.mjs) — mechanical slop, dead-code, and credential/env-dump audit gated in `npm run test:lib`.
-- [config/conformance.json](config/conformance.json) — frozen public-seam acceptance cases run by `krn conformance check`; CI runs the base ref's copy against the candidate.
+- [config/conformance.json](config/conformance.json) — frozen public-seam acceptance cases run by `krn conformance check`; CI runs the base ref's evaluator and case copy against the candidate.
 - [docs/capabilities.md](docs/capabilities.md) — global capability profiles and evidence states.
 - [docs/migration.md](docs/migration.md) — installation ownership, retirement, and rollback.
 - [skills/meta/unslop/SKILL.md](skills/meta/unslop/SKILL.md) — explicit prose audit/rewrite with protected factual and technical fragments; it does not own publication or fact-checking.
