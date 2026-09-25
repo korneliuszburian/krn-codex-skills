@@ -41,6 +41,11 @@ test("the CLI seals the repository ledger and never gates apply on the linked re
     Object.keys(committedLedger.digests).length >= 4,
     "the append-only ledger keeps every prior sealed revision",
   );
+  assert.equal(
+    new Set(Object.values(committedLedger.digests)).size,
+    Object.keys(committedLedger.digests).length,
+    "sealed digests are distinct",
+  );
   for (const [commit, digest] of Object.entries(committedLedger.digests)) {
     assert.match(commit, /^[0-9a-f]{40}$/);
     assert.match(digest, /^[0-9a-f]{64}$/);
