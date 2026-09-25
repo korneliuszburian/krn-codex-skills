@@ -121,6 +121,8 @@ const makeRelease = (inspect, release, commit) => {
 test("a malformed committed ledger carries ledger-malformed and is not thrown at the caller", async () => {
   const inspect = await loadInspect();
   assert.ok(inspect?.inspectInstall, "install-inspect.mjs must export inspectInstall");
+  const seal = await loadSeal();
+  assert.ok(seal?.sealReleaseDigest, "install-seal.mjs must export sealReleaseDigest");
   withDir((base) => {
     const home = join(base, "codex");
     mkdirSync(home, { recursive: true });
@@ -132,6 +134,16 @@ test("a malformed committed ledger carries ledger-malformed and is not thrown at
     assert.equal(report.filesystem.rule, "ledger-malformed");
     assert.equal(report.filesystem.status, "ledger_malformed");
     assert.notEqual(report.filesystem.status, "broken_link");
+    writeFileSync(join(repo, "config", "release-digests.json"), `${JSON.stringify({ schema_version: 1, digests: {} }, null, 2)}\n`);
+    assert.doesNotThrow(
+      () => seal.sealReleaseDigest({ root: repo, commit: "commit-a", digest: DIGEST_A }),
+      "a malformed committed anchor must not crash the writer",
+    );
+    assert.equal(
+      JSON.parse(readFileSync(join(repo, "config", "release-digests.json"), "utf8")).digests["commit-a"],
+      DIGEST_A,
+      "the writer falls back and appends over a malformed committed anchor",
+    );
   });
 });
 
