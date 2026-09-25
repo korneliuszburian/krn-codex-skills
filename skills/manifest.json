@@ -150,6 +150,11 @@
       "implicit": true
     },
     {
+      "name": "test-audit",
+      "path": "skills/engineering/test-audit",
+      "implicit": false
+    },
+    {
       "name": "opencode-second-opinion",
       "path": "skills/advisory/opencode-second-opinion",
       "implicit": false

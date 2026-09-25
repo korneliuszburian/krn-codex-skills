@@ -113,6 +113,7 @@ disagreement blocks the next transition until the owner records the resolution.
 | [`target-repo-work`](skills/engineering/target-repo-work/SKILL.md) | model or user | identity and authority when work crosses into another checkout |
 | [`setup-repository-workflow`](skills/engineering/setup-repository-workflow/SKILL.md) | explicit only | one-time adoption or repair of a thin local contract |
 | [`typescript-engineering`](skills/engineering/typescript-engineering/SKILL.md) | model or user | TypeScript inference, public APIs, compiler mechanics, and proof |
+| [`test-audit`](skills/engineering/test-audit/SKILL.md) | explicit only | junk-pattern audit and owner-boundary pruning of a test surface |
 | [`opencode-second-opinion`](skills/advisory/opencode-second-opinion/SKILL.md) | explicit only | bounded independent-model opinion on one explicit path, without diffs |
 | [`ask-gpt`](skills/advisory/ask-gpt/SKILL.md) | explicit only | shape an evidence-bound GPT-6 Astra prompt over the GitHub connector and disposition the answer locally |
 | [`managing-codex-capabilities`](skills/meta/managing-codex-capabilities/SKILL.md) | model or user | global skill, plugin, MCP, and profile control |
