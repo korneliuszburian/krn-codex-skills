@@ -292,6 +292,14 @@ except Exception as error:
 if not isinstance(data, dict) or not isinstance(data.get("hits"), list):
     print("recall response is invalid: hits must be a list", file=sys.stderr)
     sys.exit(74)
+source = data.get("source")
+if isinstance(source, dict):
+    if source.get("present") is False:
+        print("recall source is not adopted in this repository", file=sys.stderr)
+        sys.exit(74)
+    if isinstance(source.get("malformed"), int) and source["malformed"] > 0:
+        print(f"recall source has {source['malformed']} malformed rows", file=sys.stderr)
+        sys.exit(74)
 lines = []
 for hit in data["hits"]:
     if not isinstance(hit, dict) or not isinstance(hit.get("lesson"), str) or not hit["lesson"].strip():

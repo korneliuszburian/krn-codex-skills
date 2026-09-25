@@ -20,6 +20,8 @@ if (scenario === "fail-sentinel") { process.stderr.write("stub: recall backend u
 if (scenario === "fail-with-json") { process.stdout.write('{"hits":[]}'); process.stderr.write("stub: exploded\\n"); process.exit(73); }
 if (scenario === "malformed") { process.stdout.write("not json\\n"); process.exit(0); }
 if (scenario === "wrong-shape") { process.stdout.write('{"hits":{}}\\n'); process.exit(0); }
+if (scenario === "not-adopted") { process.stdout.write(JSON.stringify({ hits: [], source: { present: false } })); process.exit(0); }
+if (scenario === "malformed-source") { process.stdout.write(JSON.stringify({ hits: [], source: { present: true, malformed: 2 } })); process.exit(0); }
 process.exit(0);
 `;
 
@@ -164,6 +166,28 @@ test("the guarded snapshot passes a successful observation through", () => {
     const result = runSnapshot(dir, "ok-hit", "recall-snapshot-guarded");
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
     assert.match(result.stdout, /Guards/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a missing lessons source refuses the lane instead of reporting zero hits", () => {
+  const dir = fixture();
+  try {
+    const result = runSnapshot(dir, "not-adopted", "recall-snapshot-guarded");
+    assert.equal(result.status, 72, `a missing source must refuse the lane:\n${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /not adopted/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a malformed lessons source refuses the lane", () => {
+  const dir = fixture();
+  try {
+    const result = runSnapshot(dir, "malformed-source", "recall-snapshot-guarded");
+    assert.equal(result.status, 72, `a malformed source must refuse the lane:\n${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /malformed/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
