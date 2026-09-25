@@ -87,8 +87,12 @@ carries `scripts/krn-codex.mjs`); `install apply` migrates it. The last state
 means a
 present `$CODEX_HOME/AGENTS.override.md` would block `install apply`, even if
 the installed release and stable links themselves are intact.
-It reports session loading as `session_loaded_unknown` and post-install loading
-as `stale_session_likely` until a fresh Codex session provides stronger evidence.
+It reports the loaded leg as `loaded: host_session_unobservable`: the release and
+its managed links are verified, but what a running Codex session loaded cannot be
+observed from the filesystem, so restart the session after an install or
+rollback. The host owns that boundary; `doctor` does not claim it. `doctor` and
+`install check` fail closed together: either exits 3 when the filesystem is not
+`filesystem_installed` or the hook policy is not active.
 
 `doctor` also reports `hookPolicy` read from the managed requirements file
 (`/etc/codex/requirements.toml` on Unix, `%ProgramData%\OpenAI\Codex\requirements.toml`

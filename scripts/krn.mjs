@@ -148,11 +148,17 @@ function delegate(script, args) {
   process.exitCode = spawnInherit(process.execPath, [path.join(root, script), ...args]).status ?? 1;
 }
 
+function installUnhealthy(report) {
+  const hookPolicy = report.hookPolicy?.status;
+  return report.filesystem.status !== "filesystem_installed"
+    || (hookPolicy && hookPolicy !== "hooks_active" && hookPolicy !== "no_managed_requirements");
+}
+
 function renderInstallReport(report) {
   const lines = [`filesystem: ${report.filesystem.status}${report.filesystem.detail ? ` (${report.filesystem.detail})` : ""}`];
   if (report.hookPolicy) lines.push(`hook policy: ${report.hookPolicy.status}${report.hookPolicy.detail ? ` (${report.hookPolicy.detail})` : ""}`);
   if (report.commit) lines.push(`release: ${report.commit.slice(0, 12)}`);
-  if (report.session) lines.push(`session: ${report.session.status}`);
+  if (report.loaded) lines.push(`loaded: ${report.loaded.status}${report.loaded.detail ? ` (${report.loaded.detail})` : ""}`);
   if (report.legacyHooks?.length) lines.push(`legacy hooks: ${report.legacyHooks.join(", ")}`);
   for (const target of report.targets ?? []) lines.push(`  ${String(target.status).padEnd(22)} ${target.target}`);
   return lines.join("\n");
@@ -332,8 +338,7 @@ try {
       rejectForeignOptions(options, []);
       const report = inspectInstall();
       print(report, options.json);
-      const hookPolicy = report.hookPolicy?.status;
-      if (report.filesystem.status !== "filesystem_installed" || (hookPolicy && hookPolicy !== "hooks_active" && hookPolicy !== "no_managed_requirements")) process.exitCode = 3;
+      if (installUnhealthy(report)) process.exitCode = 3;
     } else if (command === "prune") {
       rejectForeignOptions(options, ["keep"]);
       const keep = options.keep ? Number(options.keep) : 3;
@@ -360,6 +365,7 @@ try {
     if (positional.length !== 1 || options.source || options.yes) fail(usage);
     const report = inspectInstall();
     print(options.json ? report : renderInstallReport(report), options.json);
+    if (installUnhealthy(report)) process.exitCode = 3;
   } else {
     print(usage, false);
     process.exitCode = EXIT_CODES.USAGE;
