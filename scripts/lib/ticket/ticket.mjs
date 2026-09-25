@@ -22,7 +22,6 @@ import {
   claimLockPath,
   costRecord,
   envFingerprint,
-  hasEnvFingerprint,
   integratedAnchor,
   leaseExpired,
   readValidTicket,
@@ -36,7 +35,7 @@ import { baseRefExists, checkTickets as checkTicketsImpl, contractErrors, namesT
 import { findTicketFile as findTicketFileImpl, reconcileTickets as reconcileTicketsImpl } from "./ticket-reconcile.mjs";
 import { readActiveTaskStoreSnapshot, withLegacyQueueWrite } from "./task-store.mjs";
 
-export { envFingerprint, hasEnvFingerprint, ticketLaneBindings };
+export { ticketLaneBindings };
 
 export function parseTicketText(text) {
   const occurrences = parseTicketFieldOccurrences(text);

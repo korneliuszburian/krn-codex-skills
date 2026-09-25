@@ -49,12 +49,6 @@ function parseAttempts(text) {
 
 const fieldMap = (ticketLib, text) => Object.fromEntries(ticketLib.parseTicketText(text).fields);
 
-test("the module exposes a recordAttempt ledger", async () => {
-  const ticketLib = await loadTicket();
-  assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
-  assert.equal(typeof ticketLib.recordAttempt, "function", "recordAttempt must be exported");
-});
-
 test("each stalled attempt appends a durable token and only the third blocks the ticket", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");

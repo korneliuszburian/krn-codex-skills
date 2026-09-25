@@ -57,11 +57,6 @@ const withRepo = (fields, body, { baseFiles = [] } = {}) => {
 
 const rules = (report) => report.errors.map((entry) => entry.rule);
 
-test("the ticket module loads", async () => {
-  const ticketLib = await loadTicket();
-  assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
-});
-
 test("a ready ticket with a new Contract ref missing package.json in Scope errors scope-missing-package-json", async () => {
   const ticketLib = await loadTicket();
   withRepo(baseFields, ({ dir, git }) => {
@@ -102,6 +97,7 @@ test("a Contract ref present at base is not a new observer", async () => {
   withRepo({ ...baseFields, Contract: `${OLD_REF}:green->green`, "Deciding check": `node --test ${OLD_REF}` }, ({ dir, git }) => {
     const report = ticketLib.checkTickets({ root: dir, git });
     assert.deepEqual(rules(report), [], JSON.stringify(report.errors));
+    assert.deepEqual(report.frontier, ["sh-31"], JSON.stringify(report));
   }, { baseFiles: [OLD_REF] });
 });
 

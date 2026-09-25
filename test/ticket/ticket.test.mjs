@@ -56,12 +56,6 @@ const withRepo = (body, { git = false } = {}) => {
   }
 };
 
-test("the ticket module parses the abi and exposes check and frontier", async () => {
-  const ticketLib = await loadTicket();
-  assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
-  assert.equal(typeof ticketLib.checkTickets, "function");
-});
-
 test("ticket lane binding uses only the documented worker transports", async () => {
   const ticketLib = await loadTicket();
   assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");

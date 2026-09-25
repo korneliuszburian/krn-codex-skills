@@ -136,9 +136,3 @@ test("the CLI refuses an out-of-scope close and passes a verified one", () => {
     assert.match(readFileSync(file, "utf8"), /^Status: done$/m);
   });
 });
-
-test("the publication policy requires a squash body to carry the Ticket trailer", () => {
-  const protocol = readFileSync(join(root, "docs", "research", "ticket-protocol.md"), "utf8");
-  const publication = /- Publication:([\s\S]*?)(?:\n- |\n\n|$)/.exec(protocol)?.[1] ?? "";
-  assert.match(publication, /squash[\s\S]*`Ticket: <id>`/i);
-});

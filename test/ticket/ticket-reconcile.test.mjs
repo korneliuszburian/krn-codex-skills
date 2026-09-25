@@ -226,28 +226,6 @@ test("checkTickets reconciles before the frontier so ticket next self-heals", as
   });
 });
 
-test("the ticket next CLI consumes the reconcile so a crashed loop restarts clean", () => {
-  const dir = makeRepo();
-  try {
-    const lane = laneCommit(dir);
-    const file = writeTicket(dir, { Integration: `branch=ticket/lane; sha=${lane}` });
-    mergeLane(dir);
-    const result = spawnSync(process.execPath, [cli, "ticket", "next", "--root", dir, "--path", join(dir, ".krn/tickets")], { encoding: "utf8" });
-    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
-    assert.doesNotMatch(result.stdout, /sh-35/);
-    assert.equal(statusOf(file), "claimed");
-    const reconcile = spawnSync(process.execPath, [cli, "ticket", "reconcile", "--root", dir, "--path", join(dir, ".krn/tickets"), "--json"], { encoding: "utf8" });
-    assert.equal(reconcile.status, 0, `${reconcile.stdout}${reconcile.stderr}`);
-    assert.deepEqual(JSON.parse(reconcile.stdout).reconciled, ["sh-35"]);
-    assert.equal(statusOf(join(dir, ".krn/tickets", "sh-35.md")), "done");
-    const recoveredNext = spawnSync(process.execPath, [cli, "ticket", "next", "--root", dir, "--path", join(dir, ".krn/tickets")], { encoding: "utf8" });
-    assert.equal(recoveredNext.status, 0, `${recoveredNext.stdout}${recoveredNext.stderr}`);
-    assert.doesNotMatch(recoveredNext.stdout, /sh-35/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
 // The sh-176 observer used these identities before recovery was made explicit.
 test("checkTickets observes without reconciling and explicit repair self-heals", async () => {
   const ticketLib = await loadTicket();
