@@ -37,6 +37,9 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
 7. A merge commit that resolves a harness-surface conflict is itself a surface
    commit: it carries a `Change-contract: <unchanged check>:green->green`
    trailer, and the integrator runs the full gate on the merged fixed point.
+8. A conflicted merge or rebase is continued, aborted, or committed only under
+   the operator's authority; the composed upstream `resolving-merge-conflicts`
+   procedure is guidance, not a mandate.
 
 ## Local gates
 
