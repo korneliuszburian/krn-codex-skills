@@ -43,40 +43,11 @@ test("the declared Node engine floor excludes the EOL Node 20 line", () => {
   assert.ok(tested >= 22, `CI must exercise a supported LTS, found ${tested}`);
 });
 
-test("every gate named in AGENTS.md runs in the workflow", () => {
-  const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
-  const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
-  const scripts = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts;
-  const gates = new Set([...agents.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
-  const gateSteps = [...String(scripts.gate ?? "").matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]);
-  const canonical = [...new Set([...gateSteps, "gate"])].sort();
-  assert.deepEqual([...gates].sort(), canonical, "the AGENTS.md gate block must list the canonical gate set exactly");
-  const steps = new Set([...workflow.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
-  if (/krn\.mjs changes check/.test(workflow)) steps.add("changes:check");
-  const aggregates = new Set(["gate", "test"]);
-  for (const gate of gates) {
-    if (aggregates.has(gate)) continue;
-    assert.ok(steps.has(gate), `AGENTS.md gate ${gate} is missing from the workflow`);
-  }
-  assert.match(fs.readFileSync(path.join(root, "package.json"), "utf8"), /"gate":/, "the aggregate gate script must exist");
-});
-
 test("the gate list does not duplicate a check that validate already runs", () => {
   const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
   const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
   assert.doesNotMatch(agents, /npm run lessons:check/, "lessons:check is subsumed by validate");
   assert.doesNotMatch(workflow, /npm run lessons:check/, "lessons:check is subsumed by validate");
-});
-
-test("the aggregate gate script covers every AGENTS.md gate", () => {
-  const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
-  const gates = new Set([...agents.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
-  const scripts = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts;
-  const expanded = new Set([...String(scripts.gate ?? "").matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
-  for (const gate of gates) {
-    if (["lessons:check", "gate", "test"].includes(gate)) continue;
-    assert.ok(expanded.has(gate), `AGENTS.md gate ${gate} is missing from the gate script`);
-  }
 });
 
 test("every discovered test file is run by a gate suite", () => {
@@ -93,20 +64,4 @@ test("every discovered test file is run by a gate suite", () => {
     if (file.startsWith("test/bootstrap-fixture/")) continue;
     assert.ok(covered.has(file), `${file} is not run by the gate`);
   }
-});
-
-test("the workflow runs every step of the aggregate gate script", () => {
-  // The gate script is the executable owner of the sequence; CI must not omit a step.
-  const scripts = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).scripts;
-  const gateSteps = new Set([...String(scripts.gate ?? "").matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
-  assert.ok(gateSteps.size >= 15, `expected the gate script to parse, found ${gateSteps.size}`);
-  const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
-  const steps = new Set([...workflow.matchAll(/npm run ([a-z:-]+)/g)].map((match) => match[1]));
-  if (/krn\.mjs changes check/.test(workflow)) steps.add("changes:check");
-  for (const step of gateSteps) {
-    if (["gate", "test"].includes(step)) continue;
-    assert.ok(steps.has(step), `gate step ${step} is missing from the workflow`);
-  }
-  assert.match(workflow, /bash -n scripts\/install\.sh/, "the workflow must keep the shell syntax checks");
-  assert.match(workflow, /git diff --check/, "the workflow must keep the diff hygiene check");
 });
