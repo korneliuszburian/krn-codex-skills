@@ -253,7 +253,10 @@ function makeCliRepo({ trailer = "Change-contract: test:lessons:green->green" } 
 }
 
 function runCli(dir, extra = []) {
-  return spawnSync(process.execPath, [CLI, "changes", "check", "--root", dir, "--base", "HEAD~1", "--head", "HEAD", ...extra], { cwd: dir, encoding: "utf8" });
+  // changes:check runs every declared check with KRN_CHANGE_CONTRACT=0 so the
+  // nested CLI must not inherit a disabled guard; pin the enabled value.
+  const env = { ...process.env, KRN_CHANGE_CONTRACT: "1" };
+  return spawnSync(process.execPath, [CLI, "changes", "check", "--root", dir, "--base", "HEAD~1", "--head", "HEAD", ...extra], { cwd: dir, encoding: "utf8", env });
 }
 
 test("the CLI keeps recall advisory by default", () => {
