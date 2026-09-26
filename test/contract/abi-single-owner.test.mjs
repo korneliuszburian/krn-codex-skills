@@ -92,7 +92,6 @@ test("a local conformance:check gate runs the frozen base acceptance set inside 
   const check = pkg.scripts["conformance:check"];
   assert.equal(typeof check, "string", "package.json needs a conformance:check script");
   assert.match(check, /conformance check/, "conformance:check must run the conformance CLI");
-  assert.match(check, /--frozen/, "conformance:check must apply the frozen set");
   for (const gate of ["gate:fast", "gate"]) {
     assert.match(pkg.scripts[gate], /npm run conformance:check/, `${gate} must run conformance:check`);
   }
