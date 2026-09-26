@@ -50,6 +50,15 @@ test("the gate list does not duplicate a check that validate already runs", () =
   assert.doesNotMatch(workflow, /npm run lessons:check/, "lessons:check is subsumed by validate");
 });
 
+// The workflow's shell-syntax step is CI-only, so a renamed script must not
+// leave a dangling `bash -n` path that fails only on the runner.
+test("every workflow bash -n path exists", () => {
+  const workflow = fs.readFileSync(path.join(root, ".github", "workflows", "validate.yml"), "utf8");
+  for (const match of workflow.matchAll(/bash -n (\S+)/g)) {
+    assert.ok(fs.existsSync(path.join(root, match[1])), `the workflow bash -n path must exist: ${match[1]}`);
+  }
+});
+
 // The approved conformance base has one owner: CI names it once and the local
 // recipe consumes it, instead of CI and the recipe each deriving their own.
 test("the conformance base has one owner across the workflow and the npm recipe", () => {
