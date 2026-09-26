@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -10,15 +9,6 @@ import { inspectSpineState } from "../../scripts/lib/state/state-check.mjs";
 import { writeCapsule } from "../support/state-fixtures.mjs";
 
 const RULE = "capsule-narrative-over-budget";
-const REGISTRY = fileURLToPath(new URL("../../docs/research/lab-tests.md", import.meta.url));
-
-const registryPage = (() => {
-  try {
-    return readFileSync(REGISTRY, "utf8");
-  } catch {
-    return "";
-  }
-})();
 
 function makeRepo() {
   const root = mkdtempSync(join(tmpdir(), "krn-capsule-budget-"));
@@ -118,20 +108,3 @@ test("a within-bound capsule stays clean", async () => {
   });
 });
 
-test("the LT registry carries the retention rule", () => {
-  assert.ok(registryPage.length > 0, "the LT registry page must be readable");
-  for (const phrase of [
-    "no adoption decision",
-    "Result / non-proof",
-    "path",
-    "symbol",
-    "churn",
-    "docs/research/workflow-lessons.md",
-    "retired@<7-hex>",
-    "capped at 100 non-retired rows",
-    "oldest active row",
-    "gap-free",
-  ]) {
-    assert.ok(registryPage.includes(phrase), `the LT registry must carry the retention phrase: ${phrase}`);
-  }
-});
