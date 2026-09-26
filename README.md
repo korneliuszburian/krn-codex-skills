@@ -64,7 +64,7 @@ table, and with it the repository-scoped harness baseline, is owned by
 this README keeps only the operator graph.
 
 `target-repo-work` wraps another checkout. `typescript-engineering` is a
-language companion. `opencode-second-opinion` is an explicit advisory side path.
+language companion. `second-opinion` is an explicit advisory side path.
 Setup, capability management, and skill authoring remain separate owners. The
 evidence, admission map, and lifecycle invariants live in
 [the orchestration synthesis](docs/research/orchestration.md).
@@ -114,8 +114,7 @@ disagreement blocks the next transition until the owner records the resolution.
 | [`setup-repository-workflow`](skills/engineering/setup-repository-workflow/SKILL.md) | explicit only | one-time adoption or repair of a thin local contract |
 | [`typescript-engineering`](skills/engineering/typescript-engineering/SKILL.md) | model or user | TypeScript inference, public APIs, compiler mechanics, and proof |
 | [`test-audit`](skills/engineering/test-audit/SKILL.md) | explicit only | junk-pattern audit and owner-boundary pruning of a test surface |
-| [`opencode-second-opinion`](skills/advisory/opencode-second-opinion/SKILL.md) | explicit only | bounded independent-model opinion on one explicit path, without diffs |
-| [`ask-gpt`](skills/advisory/ask-gpt/SKILL.md) | explicit only | shape an evidence-bound GPT-6 Astra prompt over the GitHub connector and disposition the answer locally |
+| [`second-opinion`](skills/advisory/second-opinion/SKILL.md) | explicit only | one bounded advisory opinion from an independent model family (Codex gpt-6-astra/sol or OpenCode), without diffs |
 | [`managing-codex-capabilities`](skills/meta/managing-codex-capabilities/SKILL.md) | model or user | global skill, plugin, MCP, and profile control |
 | [`unslop`](skills/meta/unslop/SKILL.md) | explicit only | audit or rewrite robotic prose without semantic drift |
 
@@ -193,7 +192,7 @@ foreign link (a legacy mutable-source link is reported as
 `legacy_mutable_source`; `install apply` migrates it), and
 unknown/stale session loading.
 Start a fresh Codex session after installation. Discovery is session-scoped.
-`setup-repository-workflow`, `opencode-second-opinion`, `ask-gpt`, and `unslop`
+`setup-repository-workflow`, `second-opinion`, and `unslop`
 require an explicit `$skill-name` attachment. Descriptions route the task;
 manifest invocation mode decides auto-attachment, and many composed upstream
 owners are explicit-only — including `ask-matt`, `implement`,
@@ -218,8 +217,8 @@ bootstraps a thin `AGENTS.md`, and reports the three managed paths. It names tra
 the context layout directly; `CONTEXT.md`, ADRs, and other research pages appear later
 only when a real decision earns them.
 
-`$opencode-second-opinion` stores its transient brief and response at
-`.krn/runs/opencode-second-opinion/<run-id>/`. It always receives the target
+`$second-opinion` stores its transient brief and response at
+`.krn/runs/second-opinion/<run-id>/`. It always receives the target
 directory as an absolute path; there is no implicit home fallback.
 
 ## Capability catalog
