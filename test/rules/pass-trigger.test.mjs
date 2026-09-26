@@ -23,19 +23,36 @@ function readAdr() {
   }
 }
 
-// Match prose across soft line wraps without weakening the assertions.
+// Collapse soft line wraps so an assertion matches prose that a Markdown
+// renderer reads as one sentence.
 function prose(content) {
   return content.replace(/\s+/g, " ");
 }
 
+// The obligations are anchored to the Decision section, so a stray mention in
+// another section cannot satisfy them.
+function section(content, heading) {
+  const lines = content.split("\n");
+  const start = lines.findIndex((line) => line.trim() === heading);
+  if (start === -1) return "";
+  const body = [];
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^##\s/.test(lines[index])) break;
+    body.push(lines[index]);
+  }
+  return body.join("\n");
+}
+
+const decision = (adr) => prose(section(adr, "## Decision"));
+
 test("ADR 0005 names the observer of record and its inputs", () => {
   const adr = readAdr();
   assert.ok(adr.length > 0, `${ADR_PATH} must exist and be readable`);
-  const text = prose(adr);
+  const text = decision(adr);
   assert.match(
     text,
-    /observer of record/i,
-    "the ADR must name an observer of record",
+    /\*\*observer of record\*\*/,
+    "the Decision must carry the observer-of-record anchor",
   );
   assert.match(
     text,
@@ -62,8 +79,8 @@ test("ADR 0005 names the observer of record and its inputs", () => {
 test("ADR 0005 names the producer and rules out a second sensor", () => {
   const adr = readAdr();
   assert.ok(adr.length > 0, `${ADR_PATH} must exist and be readable`);
-  const text = prose(adr);
-  assert.match(text, /producer/i, "the ADR must name a producer");
+  const text = decision(adr);
+  assert.match(text, /\*\*producer\*\*/, "the Decision must carry the producer anchor");
   assert.match(
     text,
     /maintainer session or the operator/i,
@@ -89,7 +106,7 @@ test("ADR 0005 names the producer and rules out a second sensor", () => {
 test("ADR 0005 names every tripwire that starts a pass", () => {
   const adr = readAdr();
   assert.ok(adr.length > 0, `${ADR_PATH} must exist and be readable`);
-  const text = prose(adr);
+  const text = decision(adr);
   for (const tripwire of [
     /red gate on the integrated branch/i,
     /reproduced bypass or failed falsifier/i,
@@ -112,7 +129,7 @@ test("ADR 0005 names every tripwire that starts a pass", () => {
 test("ADR 0005 states the numeric budget for a pass", () => {
   const adr = readAdr();
   assert.ok(adr.length > 0, `${ADR_PATH} must exist and be readable`);
-  const text = prose(adr);
+  const text = decision(adr);
   assert.ok(
     text.includes("wall-clock ≤ 4 hours"),
     "the ADR must cap a pass at 4 hours wall-clock",
@@ -130,11 +147,11 @@ test("ADR 0005 states the numeric budget for a pass", () => {
 test("ADR 0005 names the exhaustion handoff and its successor", () => {
   const adr = readAdr();
   assert.ok(adr.length > 0, `${ADR_PATH} must exist and be readable`);
-  const text = prose(adr);
+  const text = decision(adr);
   assert.match(
     text,
-    /exhaustion handoff/i,
-    "the ADR must name the exhaustion handoff",
+    /\*\*exhaustion handoff\*\*/,
+    "the Decision must carry the exhaustion-handoff anchor",
   );
   assert.match(
     text,
@@ -151,4 +168,30 @@ test("ADR 0005 names the exhaustion handoff and its successor", () => {
     /recorded in the capsule/i,
     "the handoff must be recorded in the capsule",
   );
+});
+
+// The durable-archive anchors moved here from durable-handoff.test.mjs so one
+// owner holds every ADR-0005 obligation.
+test("ADR 0005 names the durable archive, the resume commands, and the wipe falsifier", () => {
+  const adr = readAdr();
+  assert.ok(adr.length > 0, `${ADR_PATH} must exist and be readable`);
+  const text = decision(adr);
+  for (const anchor of [
+    "KRN_OUTCOME_ARCHIVE",
+    ".local/state/krn/outcomes",
+    ".krn/runs/delivery-loop/<outcome",
+    ".krn/tickets/",
+  ]) {
+    assert.ok(
+      text.includes(anchor),
+      `the Decision must name the durable anchor ${anchor}`,
+    );
+  }
+  for (const command of ["krn state check", "krn state resume", "krn ticket next"]) {
+    assert.ok(
+      text.includes(command),
+      `the Decision must record the resume command \`${command}\``,
+    );
+  }
+  assert.match(text, /falsifier/i, "the Decision must name the wipe/restore falsifier");
 });
