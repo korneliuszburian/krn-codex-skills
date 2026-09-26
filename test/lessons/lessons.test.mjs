@@ -783,3 +783,12 @@ test("a trigger with an empty scope is rejected", () => {
   assert.ok(errors.some((error) => /names no scope/.test(error)), JSON.stringify(errors));
   rmSync(root, { recursive: true, force: true });
 });
+
+// An active lesson is delivered by its trigger, so an active row without a
+// trigger is never recalled; the collapsed page keeps only trigger-backed rows.
+test("every active lesson row in the repository carries a trigger", () => {
+  const root = fileURLToPath(new URL("../..", import.meta.url));
+  const { rows } = parseLessons(join(root, "docs", "research", "workflow-lessons.md"));
+  const untriggered = rows.filter((row) => !row.status && !(row.trigger ?? "").trim());
+  assert.deepEqual(untriggered.map((row) => row.lesson), [], "an active row must carry a trigger");
+});
