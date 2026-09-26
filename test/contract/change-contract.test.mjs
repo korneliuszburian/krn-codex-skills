@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkChangeContract, contractGuardActive, contractSurface, frozenNodeArgs, parseChangeContract, runCheckAtBase } from "../../scripts/lib/contract/change-contract.mjs";
+import { checkChangeContract, contractGuardActive, contractSurface, parseChangeContract } from "../../scripts/lib/contract/change-contract.mjs";
+import { frozenNodeArgs, runCheckAtBase } from "../../scripts/lib/contract/change-contract-runs.mjs";
 
 function makeRoot(scripts = { "test:lessons": "x", "test:lib": "x" }) {
   const root = mkdtempSync(join(tmpdir(), "krn-contract-"));

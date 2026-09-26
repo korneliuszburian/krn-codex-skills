@@ -153,8 +153,6 @@ function recallWaivers(root, lines) {
   return { waivers, errors };
 }
 
-export { runCheckAtBase };
-
 const isRuntimeModule = (rel) => rel.startsWith("scripts/") && rel.endsWith(".mjs") && !isTestFile(rel);
 
 function importSpecifiers(source) {
@@ -476,5 +474,3 @@ export function checkChangeContract({ root, base, head = "HEAD", git = runGit, r
   }
   return { root, commits: commits.map((commit) => commit.sha), results, errors, warnings };
 }
-
-export { frozenNodeArgs };
