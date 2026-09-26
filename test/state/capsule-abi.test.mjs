@@ -32,6 +32,8 @@ test("parseCleanup parses well-formed entries and reports malformed ones", () =>
 
 test("stripMarkup removes markers", () => {
   assert.equal(stripMarkup("`value`"), "value");
+  assert.equal(stripMarkup("<value>"), "value");
+  assert.equal(stripMarkup("  `a<b>c`  "), "abc");
 });
 
 test("fixedPointAnchors accepts a 64-hex sha256 anchor", () => {

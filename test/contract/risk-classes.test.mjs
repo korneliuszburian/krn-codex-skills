@@ -21,13 +21,6 @@ const registry = (entries) => ({ schema_version: 1, entries });
 const authorityFor = (riskClass) =>
   `Authority: the ${riskClass} row is exercised by an explicit observer request.`;
 
-test("the risk-class validator loads and exposes its operations", async () => {
-  const risk = await loadRiskClasses();
-  assert.ok(risk, "scripts/lib/contract/risk-classes.mjs must load");
-  assert.equal(typeof risk.riskClassErrors, "function");
-  assert.equal(typeof risk.loadRuntimeRisks, "function");
-});
-
 test("the seeded registry covers every runtime path with a known class", async () => {
   const risk = await loadRiskClasses();
   assert.ok(risk, "scripts/lib/contract/risk-classes.mjs must load");
