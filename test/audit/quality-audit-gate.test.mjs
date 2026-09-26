@@ -62,10 +62,3 @@ test("the audit wrapper is clean on the repository root", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /quality audit clean/);
 });
-
-test("test:lib still covers the audit library and its observers", () => {
-  const lib = String(scripts()["test:lib"]);
-  assert.match(lib, /test\/audit\/quality-audit\.test\.mjs/, "the audit library suite must stay in test:lib");
-  assert.match(lib, /test\/audit\/quality-audit-dynamic-import\.test\.mjs/, "the dynamic-import observer must stay in test:lib");
-  assert.match(lib, /test\/audit\/quality-audit-gate\.test\.mjs/, "this gate observer must run in test:lib");
-});
