@@ -359,6 +359,10 @@ export function checkSkills({ root }) {
     if (JSON.stringify(krnExported) !== JSON.stringify(expected)) {
       errors.push(`exported krn skills [${krnExported.join(", ")}] must equal manifest.harness_skills [${expected.join(", ")}]; run \`krn skills export\``);
     }
+  } else if (rootManifest) {
+    // An absent or empty harness_skills cannot silently skip the export equality;
+    // the manifest must name the krn-owned skill set it is checked against.
+    errors.push("manifest.harness_skills must be a non-empty array; the exported krn skill set cannot be verified");
   }
   const lockFile = path.join(root, "config", "upstream-sources.json");
   const lock = (() => {

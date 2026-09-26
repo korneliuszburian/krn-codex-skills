@@ -122,3 +122,19 @@ test("marker-behind ignores commits outside the skills path", () => {
   assert.ok(!report.warnings.some((warning) => warning.includes("marker-behind")), JSON.stringify(report.warnings));
   fs.rmSync(f.base, { recursive: true, force: true });
 });
+
+// An absent harness_skills must not silently skip the export equality.
+test("checkSkills fails closed when the manifest omits harness_skills", () => {
+  const f = fixture();
+  exportSkills({ source: f.source, upstream: f.upstream, root: f.source });
+  const manifestPath = path.join(f.source, "skills", "manifest.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  delete manifest.harness_skills;
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  const report = checkSkills({ root: f.source });
+  assert.ok(
+    report.errors.some((error) => error.includes("harness_skills")),
+    `an absent harness_skills must fail closed: ${JSON.stringify(report.errors)}`,
+  );
+  fs.rmSync(f.base, { recursive: true, force: true });
+});
