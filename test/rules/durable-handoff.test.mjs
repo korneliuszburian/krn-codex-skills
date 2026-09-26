@@ -3,12 +3,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-const ADR_PATH = join(
-  process.cwd(),
-  "docs",
-  "adr",
-  "0005-continuous-hardening-with-bounded-passes.md",
-);
 const SKILL_PATH = join(
   process.cwd(),
   "skills",
@@ -35,8 +29,9 @@ function prose(content) {
   return content.replace(/\s+/g, " ");
 }
 
+// ADR 0005's own obligations are owned by pass-trigger.test.mjs; this observer
+// covers the delivery-loop skill's handoff narrative only.
 const SURFACES = [
-  { name: "ADR 0005", path: ADR_PATH },
   { name: "delivery-loop SKILL.md", path: SKILL_PATH },
 ];
 
