@@ -44,9 +44,15 @@ test("the generator emits a runnable task per row", async () => {
 });
 
 test("the generator refuses a missing rows file", () => {
-  const result = spawnSync(process.execPath, ["scripts/harness/memory-tasks.mjs", "--rows", "/nonexistent.json", "--out", "/tmp/opencode/none"], {
-    encoding: "utf8",
-    cwd: path.resolve(new URL("../..", import.meta.url).pathname),
-  });
-  assert.notEqual(result.status, 0);
+  const out = mkdtempSync(path.join(tmpdir(), "krn-memory-tasks-missing-"));
+  try {
+    const result = spawnSync(process.execPath, ["scripts/harness/memory-tasks.mjs", "--rows", "/nonexistent.json", "--out", path.join(out, "none")], {
+      encoding: "utf8",
+      cwd: path.resolve(new URL("../..", import.meta.url).pathname),
+    });
+    assert.notEqual(result.status, 0, "a missing rows file must refuse");
+    assert.match(result.stderr, /nonexistent\.json/, "the refusal must name the missing rows file");
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
 });
