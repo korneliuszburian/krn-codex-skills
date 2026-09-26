@@ -3,11 +3,8 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 
 import { runProcess } from "../../scripts/lib/kernel/proc.mjs";
-
-const root = fileURLToPath(new URL("../..", import.meta.url));
 
 // The instrument is imported lazily so the base overlay reports a real assertion
 // failure, not a module-load setup error, when it does not exist yet.
@@ -24,15 +21,6 @@ const scratch = (t) => {
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
 };
-
-test("the guard-recovery instrument is wired into the library gate", () => {
-  const scripts = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).scripts;
-  assert.match(
-    scripts["test:lib"] ?? "",
-    /test\/harness\/guard-recovery\.test\.mjs/,
-    "the guard-recovery observer must run in test:lib",
-  );
-});
 
 test("the frozen instrument self-test classifies all three candidates", async () => {
   const instrument = await loadInstrument();

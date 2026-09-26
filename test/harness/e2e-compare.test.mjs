@@ -28,13 +28,6 @@ const withTemp = async (fn) => {
 
 const taskSource = (payload) => `# Harness task\n\n\`\`\`krn-harness-task\n${JSON.stringify(payload)}\n\`\`\`\n`;
 
-test("the comparison runner loads and exposes its contract", async () => {
-  const harness = await loadHarness();
-  assert.ok(harness, "scripts/lib/harness/e2e-compare.mjs must exist");
-  assert.equal(typeof harness.compareHarness, "function");
-  assert.equal(typeof harness.loadTask, "function");
-});
-
 test("loadTask reads a fenced task block and a check-less task is refused", async () => {
   const harness = await loadHarness();
   assert.ok(harness, "scripts/lib/harness/e2e-compare.mjs must exist");

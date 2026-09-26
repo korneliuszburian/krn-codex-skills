@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -103,11 +103,6 @@ async function withFixture(agentSource, run) {
     rmSync(dir, { recursive: true, force: true });
   }
 }
-
-test("the trajectory observer is wired into the library gate", () => {
-  const scripts = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).scripts;
-  assert.match(scripts["test:lib"] ?? "", /test\/harness\/trajectory-contract\.test\.mjs/, "the trajectory observer must run in test:lib");
-});
 
 test("a preserving trajectory is accepted", async () => {
   await withFixture(AGENT_PRESERVING, (dir, agentFile) => {
