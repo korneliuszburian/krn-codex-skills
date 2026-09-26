@@ -3,16 +3,7 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-const cli = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
 const seam = fileURLToPath(new URL("../../scripts/lib/ticket/ticket-cli.mjs", import.meta.url));
-const LINE_BUDGET = 450;
-
-const lineCount = (file) => fs.readFileSync(file, "utf8").replace(/\n$/, "").split("\n").length;
-
-test("krn.mjs stays within the line budget", () => {
-  const count = lineCount(cli);
-  assert.ok(count <= LINE_BUDGET, `scripts/krn.mjs has ${count} lines; the budget is ${LINE_BUDGET}`);
-});
 
 test("the ticket subcommands live behind one exported seam", () => {
   assert.ok(fs.existsSync(seam), "scripts/lib/ticket/ticket-cli.mjs must exist");

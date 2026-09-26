@@ -3,6 +3,7 @@ import fs from "node:fs";
 import test from "node:test";
 
 const BUDGETS = [
+  { module: "scripts/krn.mjs", budget: 450 },
   { module: "scripts/catalog.mjs", budget: 500 },
   { module: "scripts/lib/catalog/catalog-inventory.mjs", budget: 450 },
   { module: "scripts/lib/catalog/catalog-usage-normalize.mjs", budget: 600 },
