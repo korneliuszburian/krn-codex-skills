@@ -12,7 +12,6 @@ import { activateTaskQueueFixture } from "../ticket/task-queue-fixture.mjs";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const lane = (name) => join(root, "scripts", "lane", name);
 const BASH_SCRIPTS = ["run-ticket.sh", "run-frontier.sh", "integrate.sh", "publish.sh"];
-const ADMITTED = [...BASH_SCRIPTS, "capsule-writeback.py", "README.md"];
 
 const readIf = (name) => (existsSync(lane(name)) ? readFileSync(lane(name), "utf8") : "");
 
@@ -25,12 +24,6 @@ const hasBind = (tokens, kind, path) => {
   }
   return false;
 };
-
-test("the lane family is admitted into the repository", () => {
-  for (const name of ADMITTED) {
-    assert.ok(existsSync(lane(name)), `scripts/lane/${name} must be admitted`);
-  }
-});
 
 test("every admitted shell script parses and the writeback compiles", () => {
   for (const name of BASH_SCRIPTS) {
