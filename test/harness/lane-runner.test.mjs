@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -187,5 +187,17 @@ test("the lane runner hides a declared check from the agent and restores it for 
     assert.equal(JSON.parse(line).pass, true, result.stderr);
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the harness adapters share one preamble owner", () => {
+  const support = readFileSync(path.join(root, "scripts", "harness", "runner-support.mjs"), "utf8");
+  for (const name of ["readStdin", "Refusal", "refusalFor", "lastJsonLine"]) {
+    assert.match(support, new RegExp(`export (?:function|class|const) ${name}\\b`), `runner-support must export ${name}`);
+  }
+  for (const runner of ["lane-runner.mjs", "trajectory-runner.mjs", "opencode-agent.mjs"]) {
+    const text = readFileSync(path.join(root, "scripts", "harness", runner), "utf8");
+    assert.match(text, /from "\.\/runner-support\.mjs"/, `${runner} must import the shared preamble`);
+    assert.doesNotMatch(text, /function readStdin\(\)/, `${runner} must not redefine readStdin`);
   }
 });

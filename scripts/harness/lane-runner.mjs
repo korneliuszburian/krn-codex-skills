@@ -10,39 +10,9 @@ import path from "node:path";
 import process from "node:process";
 
 import { runProcess } from "../lib/kernel/proc.mjs";
+import { Refusal, lastJsonLine, readStdin, refusalFor } from "./runner-support.mjs";
 
-function readStdin() {
-  try {
-    return readFileSync(0, "utf8");
-  } catch {
-    return "";
-  }
-}
-
-// A refusal is thrown, not exited, so the `finally` that removes the disposable
-// workspace and the held evaluator always runs.
-class Refusal extends Error {
-  constructor(rule, detail) {
-    super(`lane-runner refused: ${rule}${detail ? ` (${detail})` : ""}`);
-    this.name = "Refusal";
-    this.rule = rule;
-    this.detail = detail;
-  }
-}
-
-function refuse(rule, detail) {
-  throw new Refusal(rule, detail);
-}
-
-function lastJsonLine(text) {
-  const line = String(text ?? "").trim().split("\n").filter(Boolean).at(-1);
-  if (!line) return null;
-  try {
-    return JSON.parse(line);
-  } catch {
-    return null;
-  }
-}
+const refuse = refusalFor("lane-runner");
 
 function main() {
   let payload;
