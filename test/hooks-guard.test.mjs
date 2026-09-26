@@ -142,6 +142,7 @@ test("multi-operand permission commands check every protected operand", () => {
   assert.ok(decision("Bash", "chmod 000 .git/config /tmp/decoy"), "chmod must check every operand");
   assert.ok(decision("Bash", "chown root .git/config /tmp/decoy"), "chown must check every operand");
   assert.ok(decision("Bash", "truncate -s 0 .env /tmp/decoy"), "truncate must check every operand");
+  assert.equal(decision("Bash", "chmod 000 /tmp/decoy /tmp/decoy2"), null, "a command with only unprotected operands stays allowed");
 });
 
 test("mv/ln target-directory into a protected path is denied", () => {
@@ -172,7 +173,7 @@ test("clustered sed -i, bare git checkout ., and rtk-prefixed writers are denied
 
 test("concrete git restore is allowed while glob and root are denied", () => {
   assert.equal(
-    decision("Bash", "git restore --source=HEAD -- scripts/hooks/krn_pretooluse.py scripts/hooks/destructive_guard.py test/hooks-guard.test.mjs README.md"),
+    decision("Bash", "git restore --source=HEAD -- scripts/hooks/krn_pretooluse.py scripts/hooks/destructive_guard.py scripts/lib/kernel/proc.mjs README.md"),
     null,
     "a named list of existing files may be restored from HEAD",
   );
