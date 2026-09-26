@@ -13,9 +13,9 @@ if [[ "$run_dir" != /* || ! -d "$run_dir" ]]; then
 fi
 run_dir=$(readlink -f "$run_dir")
 case "$run_dir" in
-  */.krn/runs/opencode-second-opinion/*) ;;
+  */.krn/runs/second-opinion/*) ;;
   *)
-    echo "invalid: run directory must be under .krn/runs/opencode-second-opinion" >&2
+    echo "invalid: run directory must be under .krn/runs/second-opinion" >&2
     exit 64
     ;;
 esac

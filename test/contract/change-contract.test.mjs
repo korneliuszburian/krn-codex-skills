@@ -1570,8 +1570,8 @@ test("a bare node --test script does not report shrinkage for an untouched passi
 });
 
 test("skill scripts are part of the change-contract surface", () => {
-  assert.equal(contractSurface(["skills/advisory/opencode-second-opinion/scripts/run-opinion.sh"]), true);
-  assert.equal(contractSurface(["skills/advisory/opencode-second-opinion/SKILL.md"]), true);
+  assert.equal(contractSurface(["skills/advisory/second-opinion/scripts/run-opinion.sh"]), true);
+  assert.equal(contractSurface(["skills/advisory/second-opinion/SKILL.md"]), true);
   assert.equal(contractSurface(["skills/engineering/target-repo-work/references/write-capable-targets.md"]), true);
 });
 

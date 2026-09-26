@@ -30,7 +30,7 @@ lane.
 ## 3. Read-only ledger per lane
 
 Give each lane to its own read-only agent (an explore subagent, or a bounded
-`$opencode-second-opinion` pass when the operator asks for one). The agent reads
+`$second-opinion` pass when the operator asks for one). The agent reads
 every assigned test in full, including parameter tables, plus the production
 owners and their entry points, callers, history, and gate routing. Each test
 declaration goes into a written **ledger** with one mark. A table-driven

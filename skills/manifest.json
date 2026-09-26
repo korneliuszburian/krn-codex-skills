@@ -155,8 +155,8 @@
       "implicit": false
     },
     {
-      "name": "opencode-second-opinion",
-      "path": "skills/advisory/opencode-second-opinion",
+      "name": "second-opinion",
+      "path": "skills/advisory/second-opinion",
       "implicit": false
     },
     {
@@ -168,18 +168,21 @@
       "name": "unslop",
       "path": "skills/meta/unslop",
       "implicit": false
-    },
-    {
-      "name": "ask-gpt",
-      "path": "skills/advisory/ask-gpt",
-      "implicit": false
     }
   ],
   "source_only_skills": [],
   "retired_skills": [
     {
+      "name": "opencode-second-opinion",
+      "replacement": "second-opinion"
+    },
+    {
+      "name": "ask-gpt",
+      "replacement": "second-opinion"
+    },
+    {
       "name": "second-opinion-review",
-      "replacement": "opencode-second-opinion"
+      "replacement": "second-opinion"
     },
     {
       "name": "code-review",

@@ -1,10 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const [inputPath, outputPath, targetDirArg, outputMode = "prose"] = process.argv.slice(2);
+const [transport, inputPath, outputPath, targetDirArg, outputMode = "prose"] = process.argv.slice(2);
 
-if (!inputPath || !outputPath || !targetDirArg) {
-  throw new Error("usage: extract-final-opinion.mjs <raw-jsonl> <output-file> <target-dir>");
+if (!transport || !inputPath || !outputPath || !targetDirArg) {
+  throw new Error("usage: extract-opinion.mjs <transport> <raw-jsonl> <output-file> <target-dir>");
+}
+if (transport !== "codex" && transport !== "opencode") {
+  throw new Error("transport must be codex or opencode");
 }
 if (outputMode !== "prose" && outputMode !== "json") {
   throw new Error("output mode must be prose or json.");

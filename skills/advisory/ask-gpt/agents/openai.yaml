@@ -1,6 +1,0 @@
-interface:
-  display_name: "Ask GPT"
-  short_description: "Prompt GPT-6 Astra over the GitHub connector"
-  default_prompt: "Use $ask-gpt to shape a rigorous GPT-6 Astra analysis prompt over the GitHub connector and disposition the answer locally."
-policy:
-  allow_implicit_invocation: false
