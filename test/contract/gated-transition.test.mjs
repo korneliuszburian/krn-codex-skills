@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 // Imported lazily so the base overlay reports a real assertion failure, not a
 // module-load setup error, when the owner does not exist yet.
@@ -112,4 +117,40 @@ test("escalation is admitted only against a recorded failure", async () => {
   const admitted = gate.escalationGate({ current: "brief", proposed: "graph store", failure: { recorded: true, evidence: "LT-6 stage loss" } });
   assert.equal(admitted.admitted, true);
   assert.match(admitted.evidence, /brief -> graph store/);
+});
+
+// The end-to-end slice: the CLI observes the red base state by running the
+// falsifier in a detached base worktree, then admits the head transition.
+test("the CLI gate observes the red base and admits a real flip", () => {
+  const cli = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
+  const root = mkdtempSync(join(tmpdir(), "krn-gate-cli-"));
+  const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8" });
+  try {
+    git("init", "-q");
+    git("config", "user.email", "t@t.t");
+    git("config", "user.name", "t");
+    writeFileSync(join(root, "package.json"), '{"scripts":{}}\n');
+    writeFileSync(join(root, "t.mjs"), 'import test from "node:test";\ntest("x", () => { throw new Error("red"); });\n');
+    git("add", "-A");
+    git("commit", "-qm", "base");
+    writeFileSync(join(root, "t.mjs"), 'import test from "node:test";\ntest("x", () => {});\n');
+    git("add", "-A");
+    git("commit", "-qm", "head");
+
+    const runGate = (base) => {
+      const result = spawnSync(process.execPath, [cli, "gate", "check", "--root", root, "--kind", "commit", "--fixed-point", "HEAD", "--falsifier", "node --test t.mjs", "--base", base, "--json"], { encoding: "utf8" });
+      let parsed = null;
+      try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
+      assert.ok(parsed, `the gate must print a JSON verdict: ${result.stdout}${result.stderr}`);
+      return parsed;
+    };
+    const admitted = runGate("HEAD~1");
+    assert.equal(admitted.admitted, true, JSON.stringify(admitted));
+
+    const refused = runGate("HEAD");
+    assert.equal(refused.admitted, false, JSON.stringify(refused));
+    assert.match(refused.reason, /observed red base state/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

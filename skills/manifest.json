@@ -36,6 +36,7 @@
     "scripts/lib/contract/change-contract-runs.mjs",
     "scripts/lib/contract/change-contract.mjs",
     "scripts/lib/contract/command-analysis.mjs",
+    "scripts/lib/contract/gated-transition.mjs",
     "scripts/lib/harness/e2e-compare.mjs",
     "scripts/lib/install/host-capabilities.mjs",
     "scripts/lib/install/install-inspect.mjs",
