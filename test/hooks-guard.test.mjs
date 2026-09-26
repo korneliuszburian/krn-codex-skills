@@ -212,6 +212,22 @@ test("clustered sed -i, bare git checkout ., and rtk-prefixed writers are denied
   assert.ok(decision("Bash", "rtk proxy mv /tmp/x .env"), "rtk proxy mv must be denied");
 });
 
+// The sed script can arrive through -e/--expression, leaving the target as the
+// first positional; in-place sed is denied outright so no flag grammar slips.
+test("in-place sed is denied through every flag spelling", () => {
+  for (const command of [
+    "sed -i s/a/b/ .env",
+    "sed --in-place s/a/b/ .env",
+    "sed --in-place=.bak s/a/b/ .env",
+    "sed -e s/a/b/ -i .env",
+    "sed --expression=s/a/b/ --in-place .env",
+    "sed --expression=s/a/b/ --in-place notes.md",
+  ]) {
+    assert.ok(decision("Bash", command), `in-place sed must be denied: ${command}`);
+  }
+  assert.equal(decision("Bash", "sed -n s/a/b/ notes.md"), null, "a read-only sed stays allowed");
+});
+
 test("concrete git restore is allowed while glob and root are denied", () => {
   assert.equal(
     decision("Bash", "git restore --source=HEAD -- scripts/hooks/krn_pretooluse.py scripts/hooks/destructive_guard.py scripts/lib/kernel/proc.mjs README.md"),

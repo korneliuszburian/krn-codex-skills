@@ -398,7 +398,11 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
         or re.fullmatch(r"-[A-Za-z]*i[A-Za-z]*", word)
         for word in words[1:]
     ):
-        targets = arguments[1:]
+        # In-place sed writes through a flag grammar that keeps producing
+        # bypasses (the script can arrive via -e/--expression, leaving the
+        # target as the first positional), so it is denied outright; a reviewed
+        # direct edit is the supported path.
+        return "in-place sed is blocked; edit the file directly or use a reviewed change"
     else:
         return None
     # Copy/sync may update one skill without giving a shell command permission
