@@ -83,3 +83,15 @@ test("every lab-test row carries the seven-column shape", () => {
     .map((row) => describe(row));
   assert.deepEqual(malformed, [], `rows without the ${COLUMNS}-column shape: ${malformed.join(", ")}`);
 });
+
+const HEADER = ["Id", "Claim", "Form and lanes", "Metric", "Falsifier", "Status", "Result / non-proof"];
+
+// The header owns the column vocabulary: references live in the Result /
+// non-proof cell, so the registry must not grow a Trigger column.
+test("the registry header names the seven columns and no Trigger column", () => {
+  const line = readFileSync(REGISTRY, "utf8").split("\n").find((entry) => entry.startsWith("| ") && entry.includes("| Id |"));
+  assert.ok(line, "the registry must carry a header row");
+  const cells = splitRow(line).map((cell) => cell.trim()).slice(1, -1);
+  assert.deepEqual(cells, HEADER, "the header must name the seven registry columns");
+  assert.ok(!cells.includes("Trigger"), "references belong to the Result / non-proof cell, not a Trigger column");
+});

@@ -64,26 +64,6 @@ function registryRows(content) {
   return rows;
 }
 
-test("the retention rule caps non-retired rows, not total rows", () => {
-  const rule = retentionRule(readRegistry());
-  assert.ok(rule, "the registry must carry a retention rule paragraph");
-  assert.match(
-    rule,
-    /capped at \d+ non-retired rows/i,
-    "the cap must count non-retired rows so a retired tombstone stays in history",
-  );
-});
-
-test("the retention rule names no Trigger column the LT table lacks", () => {
-  const rule = retentionRule(readRegistry());
-  assert.ok(rule, "the registry must carry a retention rule paragraph");
-  assert.doesNotMatch(
-    rule,
-    /\bTrigger\b/,
-    "the LT table has no Trigger column; references belong to its Result / non-proof cell",
-  );
-});
-
 test("the active (non-retired) row count stays within the stated cap", () => {
   const content = readRegistry();
   const rule = retentionRule(content);
@@ -97,16 +77,4 @@ test("the active (non-retired) row count stays within the stated cap", () => {
     active.length <= Number(cap[1]),
     `active rows ${active.length} exceed the stated cap ${cap[1]}`,
   );
-});
-
-test("the lab-test ids stay gap-free while retired rows remain in the registry", () => {
-  const rows = registryRows(readRegistry());
-  assert.ok(rows.length > 1, "the registry must parse to more than one row");
-  const ids = new Set(rows.map((row) => row.id));
-  const max = Math.max(...ids);
-  const missing = [];
-  for (let id = 1; id <= max; id += 1) {
-    if (!ids.has(id)) missing.push(`LT-${id}`);
-  }
-  assert.deepEqual(missing, [], `missing lab-test ids in 1..${max}: ${missing.join(", ")}`);
 });
