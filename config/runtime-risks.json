@@ -40,6 +40,7 @@
     { "path": "scripts/lib/conformance/conformance.mjs", "class": "additive" },
     { "path": "scripts/lib/contract/change-contract-runs.mjs", "class": "read-only" },
     { "path": "scripts/lib/contract/change-contract.mjs", "class": "read-only" },
+    { "path": "scripts/lib/contract/gated-transition.mjs", "class": "read-only" },
     { "path": "scripts/lib/contract/command-analysis.mjs", "class": "read-only" },
     { "path": "scripts/lib/harness/e2e-compare.mjs", "class": "additive" },
     { "path": "scripts/lib/install/host-capabilities.mjs", "class": "read-only" },
