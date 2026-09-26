@@ -67,7 +67,7 @@ case "$output_file" in
 esac
 
 timeout_seconds=${SECOND_OPINION_TIMEOUT_SECONDS:-600}
-if [[ -z "$timeout_seconds" || "$timeout_seconds" == *[!0-9]* || "$timeout_seconds" == 0 ]]; then
+if [[ -z "$timeout_seconds" || "$timeout_seconds" == *[!0-9]* || "$timeout_seconds" =~ ^0+$ ]]; then
   echo "SECOND_OPINION_TIMEOUT_SECONDS must be a positive integer" >&2
   exit 64
 fi

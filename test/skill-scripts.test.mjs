@@ -73,6 +73,13 @@ test("run-opinion.sh rejects invalid inputs before invoking a transport", () => 
     const noCli = bash(runOpinion, ["opencode", target, prompt, output], { env: { PATH: "/bin", HOME: root } });
     assert.equal(noCli.status, 127, noCli.stderr || noCli.error?.message || "");
     assert.match(noCli.stderr, /opencode CLI not found/);
+
+    // A zero timeout disables GNU timeout, so every all-zero spelling is refused.
+    for (const zero of ["0", "00", "000"]) {
+      const result = bash(runOpinion, ["opencode", target, prompt, output], { env: { ...process.env, SECOND_OPINION_TIMEOUT_SECONDS: zero } });
+      assert.equal(result.status, 64, `SECOND_OPINION_TIMEOUT_SECONDS=${zero} must be refused`);
+      assert.match(result.stderr, /positive integer/);
+    }
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
