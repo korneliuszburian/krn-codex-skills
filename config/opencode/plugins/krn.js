@@ -143,7 +143,7 @@ function managedRoot(directory) {
   return null;
 }
 
-export function readyIds(root) {
+function readyIds(root) {
   try {
     const report = checkTickets({ root, reconcile: false });
     return report.errors.length === 0 ? report.frontier : [];

@@ -79,7 +79,6 @@ const hookContext = (dir, event = "SessionStart") => {
 test("the plugin exports the queue brief", async () => {
   const adapter = await import(pathToFileURL(pluginPath).href);
   assert.equal(typeof adapter.queueBrief, "function");
-  assert.equal(typeof adapter.readyIds, "function");
 });
 
 test("the plugin names the three smallest ready ids and the claim command on one line", async () => {
