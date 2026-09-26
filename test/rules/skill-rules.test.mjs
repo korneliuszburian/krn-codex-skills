@@ -256,4 +256,6 @@ test("the delivery-loop close-out retires a merged branch and its worktree", () 
   assert.match(skill, /merged head branch/i, "the close-out must name the merged head branch");
   assert.match(skill, /worktree remove/i, "the close-out must name the worktree removal");
   assert.match(skill, /--delete-branch|push origin --delete/, "the close-out must name the branch deletion");
+  assert.match(skill, /merge commit/i, "the close-out must name the merge-method rule");
+  assert.match(skill, /SHA-pinned/i, "the close-out must name the SHA-pinned artifact");
 });

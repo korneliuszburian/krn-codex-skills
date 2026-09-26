@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "krn": {
     "commit": "ac86bf1422ec9616550e57a34d96792c4b7acc35",
-    "dirty": false
+    "dirty": true
   },
   "upstream": {
     "id": "mattpocock/skills",
@@ -28,7 +28,7 @@
     "writing-for-agents"
   ],
   "digests": {
-    "delivery-loop": "ff36376a7f4b805f458c298569b8470d4fb1df2deddf3f39678a9aa986df49e7",
+    "delivery-loop": "88ff7f5135810d7006bab9857bacb280f5119b02978c99eaa51d0566555d3511",
     "source-to-decision": "5bd95f3844e5f436d6e0658de98cd653d847c21653bbc89fc96eecedc102001f",
     "slice-work": "204cf02c807b8849ced029d8d1a64481e153df67b7c5bea231ef0a9cbb9ffeaa",
     "setup-repository-workflow": "25a47acbce744cacf0e37c376c90c22e32f8744d0ba19cd64d0654ad243fe55c",
