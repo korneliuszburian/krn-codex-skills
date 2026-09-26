@@ -1258,6 +1258,16 @@ def patch_denial_reason(command: str, cwd: Path) -> str | None:
 
 def main() -> int:
     try:
+        return _run_policy()
+    except Exception as error:  # fail closed on any guard defect
+        try:
+            return emit_denial(f"global PreToolUse policy failed closed: {error}")
+        except Exception:
+            return 2
+
+
+def _run_policy() -> int:
+    try:
         payload = parse_payload(sys.stdin.read())
     except (json.JSONDecodeError, ValueError) as error:
         return emit_denial(f"global PreToolUse policy could not parse hook input: {error}")
