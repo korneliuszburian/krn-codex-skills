@@ -154,6 +154,21 @@ test("a glob writer target fails closed", () => {
   assert.ok(decision("Bash", "chmod -R 000 .git/*"), "a glob target must not be skipped");
 });
 
+// A disposable temporary tree is removable even when it carries a copied .git,
+// while the temporary root itself stays protected.
+test("a temporary directory with copied Git metadata is removable", () => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-temp-removal-"));
+  try {
+    mkdirSync(join(dir, "publisher", ".git"), { recursive: true });
+    writeFileSync(join(dir, "publisher", ".git", "HEAD"), "x\n");
+    assert.equal(decision("Bash", `rm -rf ${dir}`), null, "a disposable temp tree must be removable");
+    assert.ok(decision("Bash", "rm -rf /tmp"), "the temporary root itself stays protected");
+    assert.ok(decision("Bash", "rm -rf /tmp/../etc"), "a path resolving outside /tmp stays protected");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("leading assignments and wrapper option values do not hide a writer", () => {
   assert.ok(decision("Bash", "X=1 tee .env"), "X=1 tee .env must be denied");
   assert.ok(decision("Bash", "env -u FOO tee .env"), "env -u FOO tee .env must be denied");

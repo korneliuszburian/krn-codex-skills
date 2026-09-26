@@ -202,10 +202,13 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
         )
         protected_subtrees.update({repo_root / ".beads", repo_root / ".git"})
 
+    temporary = False
     for temporary_root in TEMPORARY_ROOTS:
-        if target == temporary_root:
+        root = temporary_root.resolve(strict=False)
+        if target == root:
             return f"target {target} is the temporary root"
-        if path_is_within(target, temporary_root):
+        if path_is_within(target, root):
+            temporary = True
             break
 
     for protected in protected_anchors | protected_exact:
@@ -224,7 +227,7 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
         return f"target {target} is a Git checkout root"
     if ".git" in target.parts:
         return f"target {target} touches Git metadata"
-    if recursive:
+    if recursive and not temporary:
         return protected_contents_reason(target)
     return None
 
