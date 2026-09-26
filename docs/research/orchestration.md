@@ -801,6 +801,21 @@ the capsule, transcript, current Goal, and repository/tracker controls against
 that record at observed cost. Until then, treat writing sufficiency and
 behavioral value as unverified.
 
+**Registered discriminator (2026-09-26): the preserve/replace/revoke
+continuation.** The cheapest instrument that can fail the vanilla lane is one
+frozen real outcome whose authoritative transition either preserves, replaces,
+or revokes an earlier obligation. Fork the frozen pre-change checkpoint into
+three continuations — P (preserve: the earlier obligation still applies), R
+(replace: a new obligation supersedes it), V (revoke: the obligation is
+withdrawn) — and score the frozen trajectory evaluator for whether the agent
+keeps applying a superseded obligation. The falsifier is LT-107's: an evaluator
+that accepts actual semantic loss or rejects an authorized replacement, or a
+qualified treatment that fails to beat ordinary regression at equal cost.
+Freeze the checkpoint identity, the three transitions, invalid/retry handling,
+and the cost meter before any model call; the first three continuations are a
+directional screen, not a confidence bound. Do not conflate this with the LT-5
+memory scale, which has no vanilla lane and is retired.
+
 The verifier accepts three retirement states: a resolved active successor, no
 remaining live gate, or a gate-backed retirement that preserves enforcement
 while removing duplicate advice. `retired@<sha>; enforced-by:<gate-ref>` must
