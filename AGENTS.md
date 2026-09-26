@@ -40,6 +40,10 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
 8. A conflicted merge or rebase is continued, aborted, or committed only under
    the operator's authority; the composed upstream `resolving-merge-conflicts`
    procedure is guidance, not a mandate.
+9. A merged branch is retired in the same close-out: delete it local and remote
+   and remove its worktree (`gh pr merge --delete-branch`, or `git branch -D
+   <branch>` + `git push origin --delete <branch>` + `git worktree remove
+   <dir>`). Never leave a merged lane branch or worktree behind.
 
 ## Local gates
 
