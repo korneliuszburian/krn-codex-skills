@@ -211,6 +211,12 @@ const normalizeToken = (token) => {
   return token;
 };
 
+// A duplicate block must carry code structure; a uniform data table normalizes
+// to identical tokens without any control flow, so it is not a duplicate block.
+const FLOW_TOKENS = new Set([
+  "if", "for", "while", "do", "return", "function", "class", "switch", "try", "catch", "throw", "await", "async", "yield", "=>",
+]);
+
 const tokenizeSource = (masked) => {
   const tokens = [];
   const lines = [];
@@ -246,9 +252,13 @@ const duplicateBlocks = (entries) => {
       const aEnd = prior.entry.lines[prior.pos + length - 1];
       const bStart = entry.lines[pos];
       const bEnd = entry.lines[pos + length - 1];
+      // Two windows of one file that overlap in line range are the same run
+      // seen twice, not a duplicate block.
+      if (prior.entry.file === entry.file && aStart <= bEnd && bStart <= aEnd) continue;
       const aLines = aEnd - aStart + 1;
       const bLines = bEnd - bStart + 1;
       if (aLines < DUPLICATE_MIN_LINES || bLines < DUPLICATE_MIN_LINES) continue;
+      if (!tokens.slice(pos, pos + length).some((token) => FLOW_TOKENS.has(token))) continue;
       blocks.push({
         lines: Math.max(aLines, bLines),
         tokens: length,

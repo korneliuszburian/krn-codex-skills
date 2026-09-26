@@ -135,4 +135,28 @@ test("the repository reports duplicate blocks as advisory info with a baseline",
     info.some((message) => /^duplicate-block baseline: \d+ block\(s\) \(>= 50 tokens, >= 5 lines\)$/.test(message)),
     JSON.stringify(info),
   );
+  // No reported block may overlap itself: a self-overlap is the same run seen
+  // twice, not a duplicate.
+  for (const block of info.filter((message) => message.startsWith("duplicate-block:"))) {
+    const match = /at (\S+):(\d+)-(\d+) <-> (\S+):(\d+)-(\d+)/.exec(block);
+    if (!match) continue;
+    const [, firstFile, firstStart, firstEnd, secondFile, secondStart, secondEnd] = match;
+    if (firstFile !== secondFile) continue;
+    assert.ok(
+      Number(firstEnd) < Number(secondStart) || Number(secondEnd) < Number(firstStart),
+      `a block must not overlap itself: ${block}`,
+    );
+  }
+});
+
+// A uniform data table (string literals masked, identifiers normalized) has no
+// control flow, so it is not a duplicate block.
+test("a uniform data table is not a duplicate block", () => {
+  const rows = Array.from(
+    { length: 20 },
+    (_, index) => `  { id: "row-${index}", find: "from-${index}", replace: "to-${index}" },`,
+  ).join("\n");
+  withRepo({ "scripts/lib/table.mjs": `export const MUTATIONS = [\n${rows}\n];\n` }, (root) => {
+    assert.deepEqual(duplicateBlocks(root), [], JSON.stringify(duplicateBlocks(root)));
+  });
 });
