@@ -32,7 +32,7 @@ function fixture() {
   return dir;
 }
 
-function runSnapshot(dir, scenario, mode = "recall-snapshot", out = join(dir, "out", "recall.json")) {
+function runSnapshot(dir, scenario, mode = "recall-snapshot-guarded", out = join(dir, "out", "recall.json")) {
   const stub = join(dir, "stub.mjs");
   const counter = join(dir, "calls.txt");
   const result = spawnSync("bash", [LANE, mode, stub, dir, "scripts/lib/x.mjs", out], {
