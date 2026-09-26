@@ -149,8 +149,9 @@ test("the frontier, integrator, publication, and capsule tools still expose thei
   assert.match(readIf("publish.sh"), /PUBLISH_AUTHORITY/, "publish must gate on explicit authority");
   assert.match(readIf("capsule-writeback.py"), /def main/, "the capsule tool must expose a main entrypoint");
 
-  const publish = run("publish.sh", []);
-  assert.notEqual(publish.status, 0, "publish without authority must refuse");
+  const publish = run("publish.sh", ["outcome-branch", "0000000000000000000000000000000000000000"], { env: { ...process.env, PUBLISH_AUTHORITY: "" } });
+  assert.equal(publish.status, 64, "publish without authority must refuse with the authority exit code, not a usage error");
+  assert.match(publish.stderr, /PUBLISH_AUTHORITY=push\+pr/, "the refusal must name the authority it needs");
   const capsule = spawnSync("python3", [lane("capsule-writeback.py")], { encoding: "utf8" });
   assert.equal(capsule.status, 64, "the capsule tool without arguments must report usage");
 });

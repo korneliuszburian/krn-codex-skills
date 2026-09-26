@@ -55,9 +55,9 @@ test("the guard normalizes a node --test operand and exempts a package script", 
 });
 
 test("the repository's own deciding check resolves in this worker tree", () => {
-  const result = guard(root, "node --test test/lane/deciding-check-guard.test.mjs");
+  const result = guard(root, "node --test test/lane/runner-contract.test.mjs");
   assert.equal(result.status, 0, `the admitted observer must exist: ${result.stdout}${result.stderr}`);
-  assert.match(result.stdout, /path=test\/lane\/deciding-check-guard\.test\.mjs/, "the verdict names the observer path");
+  assert.match(result.stdout, /path=test\/lane\/runner-contract\.test\.mjs/, "the verdict names the observer path");
 });
 
 test("the lane invokes the guard after the worker session and before the host gate", () => {
