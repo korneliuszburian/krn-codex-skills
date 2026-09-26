@@ -342,7 +342,6 @@ case "$mode" in
   probe-verdict) probe_verdict || exit $?; exit 0 ;;
   recall-delivery) shift; recall_delivery; exit $? ;;
   recall-delivery-report) shift; recall_delivery_report "${1:-}" "${2:-}"; exit $? ;;
-  recall-snapshot) shift; snapshot_recall "${1:-}" "${2:-}" "${3:-}" "${4:-}"; exit $? ;;
   recall-snapshot-guarded) shift; recall_snapshot_guarded "${1:-}" "${2:-}" "${3:-}" "${4:-}"; exit $? ;;
   bwrap-args)
     RUN_DIR=${RUN_DIR:-$BASE/.krn/runs/lane/print}
