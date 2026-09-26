@@ -169,6 +169,32 @@ test("a temporary directory with copied Git metadata is removable", () => {
   }
 });
 
+// The host treats a crashed hook as allow, so a guard defect must deny rather
+// than silently permit the call.
+test("the guard fails closed when its policy raises", () => {
+  const snippet = [
+    "import io, importlib.util, json, sys",
+    "sys.path.insert(0, 'scripts/hooks')",
+    "spec = importlib.util.spec_from_file_location('h', 'scripts/hooks/krn_pretooluse.py')",
+    "module = importlib.util.module_from_spec(spec)",
+    "spec.loader.exec_module(module)",
+    "def boom(command, cwd):",
+    "    raise RuntimeError('policy defect')",
+    "module.bash_denial_reason = boom",
+    "sys.stdin = io.StringIO(json.dumps({'hook_event_name': 'PreToolUse', 'tool_name': 'Bash', 'cwd': '/tmp', 'tool_input': {'command': 'rm -rf /tmp/krn-fail-closed'}}))",
+    "captured = io.StringIO()",
+    "sys.stdout = captured",
+    "module.main()",
+    "sys.stdout = sys.__stdout__",
+    "print(captured.getvalue())",
+  ].join("\n");
+  const result = spawnSync("python3", ["-c", snippet], { encoding: "utf8", cwd: root });
+  assert.equal(result.status, 0, result.stderr);
+  const decision = JSON.parse(result.stdout);
+  assert.equal(decision.hookSpecificOutput.permissionDecision, "deny", "a guard defect must deny");
+  assert.match(decision.hookSpecificOutput.permissionDecisionReason, /failed closed/);
+});
+
 test("leading assignments and wrapper option values do not hide a writer", () => {
   assert.ok(decision("Bash", "X=1 tee .env"), "X=1 tee .env must be denied");
   assert.ok(decision("Bash", "env -u FOO tee .env"), "env -u FOO tee .env must be denied");
