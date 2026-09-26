@@ -107,4 +107,3 @@ test("a within-bound capsule stays clean", async () => {
     assert.equal(report.status, "clean", JSON.stringify(report.errors));
   });
 });
-
