@@ -247,3 +247,13 @@ test("the test-audit skill is adopted as an explicit-only owner with a declared 
   assert.ok(existsSync(join(skillDir, "references", "campaign.md")), "the campaign companion must exist");
   assert.match(readFileSync(join(skillDir, "SKILL.md"), "utf8"), /references\/campaign\.md/, "the campaign companion must be linked");
 });
+
+// Publication hygiene is part of the close-out, not the operator's memory: the
+// delivery-loop skill must retire a merged branch and its worktree.
+test("the delivery-loop close-out retires a merged branch and its worktree", () => {
+  const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
+  const skill = readFileSync(join(repositoryRoot, "skills", "engineering", "delivery-loop", "SKILL.md"), "utf8");
+  assert.match(skill, /merged head branch/i, "the close-out must name the merged head branch");
+  assert.match(skill, /worktree remove/i, "the close-out must name the worktree removal");
+  assert.match(skill, /--delete-branch|push origin --delete/, "the close-out must name the branch deletion");
+});

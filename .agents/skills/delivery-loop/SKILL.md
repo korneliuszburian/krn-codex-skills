@@ -215,7 +215,11 @@ hosts own their mechanics and policy.
    lane-integration merge template in the merge commit body — `merge: integrate
    <branch>`, a blank line, `Ticket: <id>`, then
    `Change-contract: <ref>:<direction>` — because the merge commit keeps the
-   worker commits and so needs no other trailer. At each shared transition, update and
+   worker commits and so needs no other trailer. A `MERGED` transition retires
+   the merged head branch in the same step: delete it local and remote and
+   remove its worktree (`gh pr merge --delete-branch`, or `git branch -D
+   <branch>` + `git push origin --delete <branch>` + `git worktree remove
+   <dir>`). No merged lane branch or worktree outlives its merge. At each shared transition, update and
    read back the configured tracker when one exists, and confirm that any native
    Goal still owns the current outcome. For a queue, `krn ticket close` with
    evidence and resolution at the fixed point ends the item, and a refused
