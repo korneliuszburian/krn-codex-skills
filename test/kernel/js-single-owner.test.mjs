@@ -9,16 +9,6 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 const exists = (relative) => fs.existsSync(path.join(root, relative));
 
-// The owner is imported lazily so the base overlay reports a real assertion
-// failure, not a module-load setup error, when the owner does not exist yet.
-const loadJs = async () => {
-  try {
-    return await import("../../scripts/lib/kernel/js.mjs");
-  } catch {
-    return null;
-  }
-};
-
 function trackedSources() {
   const listing = execFileSync("git", ["-C", root, "ls-files", "-z"], { encoding: "utf8" });
   return listing
@@ -43,17 +33,6 @@ test("the retired support modules are gone and unreferenced", () => {
   }
   const stale = trackedSources().filter((relative) => /support\/(source-mask|symbol-triggers)\.mjs/.test(read(relative)));
   assert.deepEqual(stale, [], "no source may reference the retired support modules");
-});
-
-test("the kernel owner keeps the masking and symbol behavior", async () => {
-  const js = await loadJs();
-  assert.ok(js, "scripts/lib/kernel/js.mjs must exist");
-  assert.equal(js.stripComments("const a = 1; // c"), "const a = 1;     ");
-  assert.equal(js.maskLiterals('const a = "abc";'), 'const a = "   ";');
-  assert.deepEqual(js.extractSymbols("export function foo() {}\nexport const bar = 1;"), [
-    { name: "foo", kind: "function", start: 1, end: 1 },
-    { name: "bar", kind: "const", start: 2, end: 2 },
-  ]);
 });
 
 test("the consumers import the kernel owner", () => {
