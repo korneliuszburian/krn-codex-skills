@@ -23,8 +23,10 @@ not a second store and not a claim that the primitive lifts outcomes.
    *recorded, measured failure* of the current one survives bounded repair.
 
 One sentence: **verification is a precondition for a transition, not an
-artifact about it.** This is a fail-closed admission policy for the demonstrated
-CLI seam, not proof that all state changes or agent outcomes are protected.
+artifact about it.** Only the commit CLI implements the executed admission
+subset. World-state and different-family checks are evaluation criteria, not
+shipped verifier adapters. Failure-gated escalation and a subagent brief remain
+decision criteria, not helper APIs or evidence of agent benefit.
 
 ## What the grilling swarms refuted
 
@@ -46,7 +48,8 @@ both revisions are recorded here because the primitive is what survived them.
 - **Subagent benefit — qualified no.** A bounded read-only subagent cannot own
   the artifact; it needs the **brief** (fixed point + scope + one falsifier
   command + output contract), not the five facets. The claim is the
-  integrator's artifact; the brief is the subagent's.
+  integrator's artifact; the brief is the subagent's task packet, not a
+  `briefFor` function shipped by this module.
 
 ## Competitive boundary and current decision
 
@@ -92,27 +95,25 @@ not name an obligation or independently resolve an anchor, so neither the
 primitive nor the CLI may use them to excuse a failed head. The focused
 public-seam observer is assertion-RED against pinned `6cd50a5` and GREEN on
 the repaired candidate; installed runtime and benefit require their own
-readback. `claim.before.red`, the family verifier's family name, and
-`escalationGate`'s recorded flag remain caller-provided; this repair does not
-establish independence or measured failed repair for other engines. Reopen
-waivers only with a named obligation, an independent resolver, and a positive
+readback. The CLI constructs `claim.before.red` from its executed base check;
+other engines have no corresponding caller or independently checked family or
+escalation adapter. The readerless brief, family and escalation helpers were
+retired rather than promoted as evidence. Reopen waivers only with a named
+obligation, an independent resolver, and a positive
 and negative proof; run transfer, discrimination, real defect catch, and
 subagent-cost trials against unchanged/native controls before claiming lift.
 
 ## The seams
 
-- **Module**: `gated-transition` — its CLI-facing `checkGateCommand` owns Git
-  identity and command execution; the generic `gateTransition` still trusts its
-  injected verifier. Other engines do not inherit the CLI guarantees.
-- **Interface**: `checkGateCommand` returns a CLI admission verdict with pinned
-  IDs; direct `gateTransition({ transition, claim, verifier })` is only a
-  provisional policy for a caller that supplies its own evidence.
-- **Seam**: the **verifier** is injected; the deterministic command adapter
-  executes, while the different-family adapter still trusts its caller's label.
+- **Module**: `gated-transition` owns the Git-anchored CLI check and its
+  internal admission policy; no second generic governance layer is exported.
+- **Interface**: only `checkGateCommand` returns a CLI admission verdict with
+  executed base/head evidence and pinned IDs.
+- **Seam**: the command verifier is internal and observed through the CLI;
+  a model-family label was never an independent review verifier.
 - **Depth**: the CLI admits only `commit` and is the sole end-to-end consumer.
   Task close, review, and handoff have separate sources of truth; until their
   own proofs exist, even a passing command cannot admit those kinds.
-- **Brief**: a projection of the claim for a subagent, not a second artifact.
 
 ## The falsifier
 
@@ -126,6 +127,6 @@ The primitive is falsified if any of these hold:
   zero.
 - **Catch**: across a meaningful window on a real project it catches no defect
   that the vanilla lane would have shipped.
-- **Subagent cost**: a claim-wrapped dispatch does not reduce a subagent's
-  clarifying moves or the parent's verification cost relative to the plain
-  brief.
+- **Subagent cost**: an actual bounded dispatch shows no benefit over a plain
+  brief in clarification moves or parent verification cost. No claim-wrapper
+  adapter is shipped, so this remains a proposed experiment, not a result.
