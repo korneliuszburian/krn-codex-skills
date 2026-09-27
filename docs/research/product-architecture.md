@@ -105,13 +105,16 @@ Pi 0.87.1; `get_goal` works, but idle continuation requires its opt-in flag,
 version-compatibility and live TUI smoke before any unattended promise.
 Codex's non-managed `/hooks` trust requires genuine operator review.
 
-**Model and Herdr topology:** GPT-6 Sol MAX is this Goal's sole writing
-integrator. Astra receives pinned, read-only design or counterexample questions
-and may become owner only after an explicit writer handoff. Luna from
-`openai-codex` and DeepSeek v4.1 Flash are bounded read-only workers at first;
-writing requires separately verified whole-process isolation, distinct
+**Model and Herdr topology (operator scope for this Goal):** GPT-6 Sol is
+the sole writing integrator and direct control. GPT-6 Luna from `openai-codex`
+handles bounded read-only questions; GPT-6 Astra is reserved for rare genuinely
+complex design or counterexample questions with a stated reason and measured
+cost, not routine review. Do not dispatch GPT-5.6 or DeepSeek for new work in
+this Goal; their prior runs remain historical evidence with their limits.
+A writing worker requires separately verified whole-process isolation, distinct
 worktrees, restricted credentials/network, scope and cancellation, and an
-integrator-read-back diff. Dispatch an ephemeral `pi --mode json` child with an
+integrator-read-back diff; a writer handoff is a separate authorized action.
+Dispatch an ephemeral `pi --mode json` child with an
 exact model, thinking level, tool allowlist, SHA, deadline and output contract.
 Require terminal `message_end`, `agent_settled`, process exit, usage and error
 readback; `agent_end` or exit zero alone does not indicate success. Pi's
@@ -128,8 +131,9 @@ Herdr may host separately identified interactive worker panes and show their
 state, but queue claim, Goal, authorization, proof and costs remain with their
 canonical owners. The user's existing `pi` wrapper currently fails on an
 unrelated malformed mise config; the verified direct Pi 0.87.1 binary runs
-read-only workers. No Herdr worker pane or KRN Pi extension was installed by
-this research. Do not confuse a green pane icon with completed work.
+read-only workers. No persistent Herdr worker pane or KRN Pi extension is
+installed by this research; the temporary Luna pane noted by `sh-186` was
+closed. Do not confuse a green pane icon with completed work.
 
 ## Failure and scale contract
 

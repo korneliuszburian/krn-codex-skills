@@ -296,9 +296,10 @@ Wrappers and companions:
   owner crosses into another checkout.
 - `typescript-engineering` sharpens TypeScript work beside implementation,
   diagnosis, design, or review.
-- `opencode-second-opinion` is an explicit, non-interactive DeepSeek advisory
-  pass over one named path or artifact. It returns prose, never a patch or
-  approval; the initiating owner verifies and disposes its output.
+- `$second-opinion` is explicit read-only advice on one named artifact, never
+  a patch or approval; the initiating owner verifies and disposes its output.
+  This Goal's model routing follows the current [product topology](product-architecture.md#runtime-and-host-profile),
+  not the historical OpenCode transport experiment below.
 - `setup-repository-workflow` performs one explicit adoption/repair pass and
   then disappears from ordinary work.
 - `managing-codex-capabilities` remains the KRN capability owner; the system
@@ -1388,6 +1389,13 @@ falsifier. Installation or a manifest `implicit:false` declaration alone does
 not prove loading in a current session. No new memory owner is adopted.
 
 ## GPT-6 Astra owner and run-only delegation (2026-09-24)
+
+**Superseded for the current Goal (2026-09-27).** This run-specific Astra-root
+recommendation answered an earlier operator request. The current operator made
+GPT-6 Sol the writing integrator, GPT-6 Luna the bounded reader and GPT-6
+Astra a rare complex-question escalator; [product-architecture.md](product-architecture.md#runtime-and-host-profile)
+owns that current topology. Preserve the evidence and non-proofs below as
+history, not as a launch instruction for this Goal.
 
 **Decision question.** How should the next KRN continuation use Astra's strongest
 reasoning and optional Luna delegation without wasting tokens on duplicated

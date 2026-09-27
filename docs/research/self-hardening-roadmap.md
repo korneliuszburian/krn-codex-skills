@@ -121,43 +121,46 @@ Task resolution, not this paragraph, controls eligibility.
 
 ## Current target delivery graph
 
-At clean main `d260bcbd` (2026-09-27), PRs #246/#247 are merged and their
-branches retired; the installed sealed release remains `6f50e815`. The
-Git-ref queue readback has 101 tasks, 77 warnings, no errors: `sh-167` and
-`sh-180` are both `claimed` by the sole integrator, but only `sh-180` is
-being implemented. An executed public `sh-167` close exited 64 because an
-imported Contract requires an operation readback while `operation prepare`
-admits only lane tasks; its patch is integrated, its queue state is **not done**.
-`sh-169` is `ready`, yet its valid agent-authored/native-Goal/revoked-task
-pilot and authentic Codex hook trust are still missing. `sh-165` remains
-`deferred`; the live queue decides all published statuses. The earlier
-research branch's two uncommitted files remain untouched.
+At clean main `34ee7eb7` (2026-09-27), PR #250 is merged: `sh-180`,
+`sh-167` and `sh-181` are `done`, with `sh-167` still only fixture-scoped
+qualification, not authenticated user authority. The selected Git-ref queue
+has 107 tasks, 78 warnings, no errors; `sh-182` is `ready` behind the now-done
+`sh-181`, and `sh-183` is `open` behind `sh-182`. `sh-184` is `open` for a real
+Pi Goal/host readback; `sh-185` is `open` behind `sh-183` and `sh-184`; `sh-169`
+is `open` behind `sh-185`. `sh-186` is `open` behind `sh-184`, with its GPT-6
+policy corrected in the queue. `sh-165` remains `deferred`, blocking the
+`sh-168`/`sh-163` experiment despite their `ready` labels. The installed
+sealed release is still `6f50e815`: its older checker misreads the later
+`sh-167` close, and neither release equality nor host hook trust has been
+observed at main. The earlier research branch's two uncommitted files and
+other separately owned worktrees remain untouched. The queue, not this dated
+snapshot, decides live eligibility.
 
-The current Goal is one outcome and Sol is the sole writing integrator. The
-operator selected `krn task` as the final public name **without a `krn ticket`
-alias**. Astra handles bounded read-only architecture questions; Luna through
-`openai-codex` and DeepSeek v4.1 Flash handle pinned read-only work until a
-separate writing-worker isolation and cost trial earns any expansion. Herdr
-shows panes and host agent state, not authoritative queue or completion state.
-Publication of new task records is a separate, read-back transition. The
-staged units below do not assert that proposed commands, adapters or storage
-fields already exist. A research or experiment unit is not mislabelled as an
-implementation-ready ticket. Dependencies are load-bearing; a conditional
-unit stays deferred until its named failure is observed.
+The Goal is one outcome and has one writing integrator. The operator selected
+`krn task` without a final `krn ticket` alias; `sh-181` only expands the new
+CLI while the old name remains temporarily reachable. The current model/Herdr
+policy and its limits live in [product-architecture.md](product-architecture.md#runtime-and-host-profile):
+Sol owns implementation, GPT-6 Luna handles bounded read-only questions and
+GPT-6 Astra is rare and question-justified. The recorded operator delegation
+covers routine bounded publication without repeated prompts; install, seal and
+real hook trust retain separate authority. New task publication remains a
+separate read-back transition. Units below are stages, not claims that
+proposed mechanisms already shipped; conditional work requires its failure
+trigger and the active queue's eligibility.
 
 | Unit / type / owner | Prerequisite and result that can disagree |
 |---|---|
-| D0 — `sh-180`, repair, ticket CLI owner | Claimed and being worked now. An imported proof-gated non-lane task can close **after** a verified merged effect via the public command and queue/ref readback, while a forged receipt, wrong trailer/contract/scope, stale claim or moved target refuses without writing `done`. No bypass or second effect ref. Then resolve `sh-167` with its actual limited, fixture-scoped evidence; real-user authentication remains open. |
-| D1 — `krn task` public cutover, migration, task owner | D0. Expand only inside the candidate: one canonical Git-ref queue and current readers remain valid. Migrate live CLI, hooks, skills, scripts, tests, instructions, help, install links and change trailers with frozen positive/negative controls. Contract only after no live `ticket` caller remains: shipped `krn ticket` refuses as an old command, not an alias. Preserve historical commit trailers and stable task IDs; prove lossless export/restore and rollback before deleting the old command. |
-| D2 — Pi/host first-message readback, instrument, `$delivery-loop` | Read-only discovery can start before D1; production command/hook cutover waits for D1. A fresh supported Pi session reads its actual branch-local Pi-Agent-Goal state and project instructions; a fresh Codex session loads the trusted capsule hook; disabled treatment still works natively. Pi Goal 2026.7.18 peer range `<0.81` against host0.87 needs a live compatibility check. The operator, not `install check`, witnesses `/hooks` trust. |
-| D3 — user-authority ingress, decision then implementation, task/host owner | D1 plus one genuine host/operator source identified in D2. Record scoped preserve/replace/revoke against an expected intent revision by CAS, refuse forged/missing source and maintain omissions by default; no agent text approves itself. If the host cannot surface an authenticated event, use a deliberate operator confirmation, not an invented `source` label. |
-| D4 — `sh-169`, blinded *experiment*, `$delivery-loop` | D2 + D3, and one authentic post-checkpoint task authority transition. Compare native Goal/live task+repo, agent-written capsule and matched excerpt at one model/tool/window with frozen hidden independent scoring; count writing, reading, retries, regression and total cost. One case screens only. A saturated or invalid control stops promotion. |
+| D0 — `sh-180`, proof-close repair, task owner | **Done** via PR #249 and public CLI; `sh-167` was then closed with its actual fixture-scoped evidence. Forged receipt, wrong trailer/scope, stale claim or moved target refuse without writing `done`. Authentic user authority is still D3, not established by this close. |
+| D1 — `krn task` public cutover, task owner | `sh-181` **done** via PR #250: `task` reaches the selected Git-ref queue; `ticket` remains transitional. Next `sh-182` **ready** migrates live CLI, hooks, skills, scripts, tests, instructions and install callers. `sh-183` **open** retires `ticket` without an alias only when no live caller remains; preserve task IDs, old Git history, lossless export/restore and rollback. No intermediate source commit is an installed cutover. |
+| D2 — `sh-184`, Pi/host first-message readback, `$delivery-loop` | **Open**; read-only discovery can run while D1 proceeds, but production caller cutover waits for D1. A fresh supported Pi session reads its actual branch-local Pi-Agent-Goal state and project instructions; a fresh Codex session loads the trusted capsule hook; disabled treatment still works natively. Pi Goal 2026.7.18 peers `<0.81` against host0.87 need live compatibility, bounded idle continuation and restart checks. The operator, not `install check`, witnesses `/hooks` trust. |
+| D3 — `sh-185`, user-authority ingress, task/host owner | **Open**, blocked by `sh-183` and `sh-184`. Identify one genuine host/operator source, then bind scoped preserve/replace/revoke against expected task intent revision by CAS. Omitted obligations stay active and unverifiable source refuses; if host authentication cannot be observed, require deliberate operator confirmation rather than an invented source label. |
+| D4 — `sh-169`, blinded *experiment*, `$delivery-loop` | **Open**, blocked by `sh-185` and an authentic post-checkpoint authority transition. Compare native Goal/live task+repo, agent-written capsule and matched excerpt at one model/tool/window with a frozen independent scorer; count writing, reading, retries, regression and whole-workflow cost. One case screens only; saturated or invalid control stops promotion. |
 | D5 — next-decision frame, *conditional* prototype then implementation, state/task owner | Only a concrete native failure in D4. First manually construct and falsify the smallest bounded source/obligation/evidence view against direct live reading. Add a stateless read interface only if a current owner and second real caller use it and a paired downstream decision improves at counted cost. Otherwise reject this runtime mechanism; never create a second authoritative store. |
 | D6 — targeted recall/index, *conditional* experiment, maintainer | Repeated decision-relevant source misses after D4/D5 and link/lexical repair. Compare task-grounded complete evidence against live map+Git+grep; introduce only a rebuildable FTS index if accuracy and whole-workflow cost justify it. No automatic task-comment-to-lesson promotion, vector DB or graph by popularity. |
 | D7a — `sh-165`, deferred design/implementation decision, trajectory owner | Source `sh-161` is done but this task is deferred. Preserve its historical candidate evidence, qualify hidden inputs and exact proof reuse before changing its status; no automatic un-defer from a green unrelated gate. |
 | D7b — `sh-168`, preregistered causal experiment, trajectory owner | **Both** `sh-167` honestly resolved and D7a's sh-165 candidate valid. Identical ordinary-regression feedback for G and B; gold legal replacement and semantic mutants first; report false blocks, recovery, complete tokens and wall. Stop if G matches B at lower cost. |
 | D7c — `sh-163`, conditional scale experiment, maintainer | D7b informative. Keep its three-arm 24-matched-trajectory criterion, separate regression-only control, positive paired bounds and existing separate ≤1.25× token and wall gates; insufficient power remains inconclusive. |
-| D8 — Pi/Herdr worker transport, *read-only lab-test*, host owner | D2 for final UI, though disposable read-only probes may run now. Pin Sol owner; child Luna/DeepSeek model, SHA, narrow files, tools, deadline, cancellation and total usage; Herdr reports pane status only. Negative: 429, missing `agent_settled`, process-tree survivor or out-of-scope access fails. Writing workers need a separately passed OS-isolation and accepted-repair throughput trial. |
+| D8 — `sh-186`, Pi/Herdr worker transport, *read-only lab-test*, host owner | **Open**, blocked by `sh-184`; a disposable no-tools probe may run sooner but cannot approve the profile. Pin Sol owner and a GPT-6 Luna child to SHA, files, tools, deadline, cancellation and total usage; Astra is reserved for a justified rare complex question. Herdr reports pane state only. A historical DeepSeek timeout lacked `message_end`, `agent_settled` and billed usage: unavailable, not a passed worker. Negative 429, process-tree survivor, cross-scope read and secret leak must fail before any writing-worker OS-isolation/throughput trial. |
 | D9 — transfer, real catch and cost, outcome *measurement*, Goal integrator | Valid D4 or D5 intervention plus qualified oracle. One different-shaped repository, a native-failing case, a real defect native would ship, false blocks and child/integrator cost. A green gate or N=1 comparison does not establish product superiority. |
 | D10 — release and rollback, installer/host owner | Each landed slice gets focused/owning checks, validate, audit, diff, clean full gate, independent review, authorized merge and branch retirement. At a settled fixed point seal/install, exercise rollback to verified previous release, and observe fresh host loading; never infer hook trust or Pi continuation from filesystem equality. |
 | D11 — repository hygiene, audit owner | **After** the measurement decision. Test-audit one subsystem at a time with R/F/C/D, keeper and mutant; correct only receipt-backed warning classes, preserve the foreign WIP and defer F repairs without their transcript. Report null benefit and retire unearned surfaces rather than manufacture a breakthrough. |
@@ -230,9 +233,10 @@ conditions carried into sh-175, not a new runtime lane in this release.
 
 ## Research and deletion discipline
 
-Use bounded read-only Astra tasks for independent questions; available slots
-limit actual concurrency. Root synthesizes and implements only when execution
-is resumed. Each finding needs a path/line or primary-source reference, a
+Use Sol directly for the writing decision, bounded GPT-6 Luna for narrow
+read-only questions, and GPT-6 Astra rarely when a complex question merits its
+cost; the current operator policy is owned by the Goal and target topology.
+Each finding needs a path/line or primary-source reference, a
 counterexample, a falsifier, non-proofs and one sharp thesis. Do not assign
 implementation tickets to a research swarm or create one durable report per
 agent.

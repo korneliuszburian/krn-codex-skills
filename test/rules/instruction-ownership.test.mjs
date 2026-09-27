@@ -131,6 +131,15 @@ function pointerSurfaces() {
   return POINTER_SURFACES.map((name) => ({ name, text: readSurface(name) }));
 }
 
+test("global and repository instructions state standing publication scope and separate host grants", () => {
+  const global = readSurface(OWNER);
+  const repository = readSurface("AGENTS.md");
+  assert.match(global, /Recorded authority may cover commit\/push\/PR\/merge without repeat prompts/);
+  assert.match(global, /install\/seal, hook trust and irreversible actions need separate grants/);
+  assert.match(repository, /recorded publication authority without per-step prompts/);
+  assert.doesNotMatch(repository, /commit and publish only under explicit authority/);
+});
+
 test("config/AGENTS.md is the single owner of the capsule contract", () => {
   assert.deepEqual(ownerFindings(readSurface(OWNER)), []);
 });

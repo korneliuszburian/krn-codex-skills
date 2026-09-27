@@ -80,6 +80,6 @@ bash -n skills/advisory/second-opinion/scripts/run-opinion.sh
 git diff --check
 ```
 
-Work on a branch you own; commit and publish only under explicit authority.
+Work on a branch you own; reuse the current outcome's recorded publication authority without per-step prompts. Stop outside its scope.
 Installation, retirement, and rollback follow
 `scripts/lib/install/install-release.mjs` and `docs/migration.md`.
