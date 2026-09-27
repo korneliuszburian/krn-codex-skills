@@ -8,6 +8,12 @@ const run = (args) => spawnSync(process.execPath, [CLI, ...args], { encoding: "u
 
 // Agents reach for `--help` after any command; every form must print the usage
 // on stdout and exit 0 instead of failing on an undefined option.
+test("task help names the explicit legacy queue migration with its archive and owner", () => {
+  const result = run(["task", "--help"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /krn task store migrate --root DIR \[--yes --archive FILE --actor NAME --reason TEXT\]/);
+});
+
 test("task help advertises its existing list and reopen commands without legacy reconciliation", () => {
   const result = run(["task", "--help"]);
   assert.equal(result.status, 0, result.stderr);
