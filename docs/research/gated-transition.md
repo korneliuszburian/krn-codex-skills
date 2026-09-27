@@ -1,6 +1,6 @@
 # The gated transition
 
-Status: `accepted`. Consumer: the maintainer and `$delivery-loop`. Owner: maintainer. Verified: 2026-09-26.
+Status: `accepted`. Consumer: the maintainer and `$delivery-loop`. Owner: maintainer. Verified: 2026-09-27.
 
 This page owns one primitive and its evidence. [orchestration.md](orchestration.md)
 owns research mechanisms, [workflow-lessons.md](workflow-lessons.md) owns
@@ -17,14 +17,14 @@ not a second store and not a claim that the primitive lifts outcomes.
    evaluator, a world-state oracle, or a different model family;
 3. pinned to an **immutable fixed point** that **auto-invalidates** (a stale
    anchor fails the gate);
-4. any unpayable obligation recorded as an **explicit, resolvable waiver**,
-   never silent;
+4. any unpayable obligation is blocked until an **explicit, independently
+   resolvable waiver names that obligation**; unscoped waivers are unsupported;
 5. **failure-gated escalation** — no new mechanism, store, or agent until a
    *recorded, measured failure* of the current one survives bounded repair.
 
 One sentence: **verification is a precondition for a transition, not an
-artifact about it.** An agent framework lets a model *record* progress; this
-makes progress *unrepresentable* without independent proof.
+artifact about it.** This is a fail-closed admission policy for the demonstrated
+CLI seam, not proof that all state changes or agent outcomes are protected.
 
 ## What the grilling swarms refuted
 
@@ -48,34 +48,78 @@ both revisions are recorded here because the primitive is what survived them.
   command + output contract), not the five facets. The claim is the
   integrator's artifact; the brief is the subagent's.
 
-## Why the residual is the invention
+## Competitive boundary and current decision
 
-The strongest external read: this is *"better than all six agent frameworks on
-exactly one axis"* — the axis none of them treats as first-class. LangGraph,
-Mastra, Letta, LangSmith and the rest give an agent more capability; the gated
-transition removes the agent's ability to *misrepresent* progress. That
-inversion is the bet, and it is under-served rather than solved.
+The defensible bet is **admission conditioned on independently executed
+proof**, not superiority over other agent frameworks. [AHE v4
+(arXiv:2604.25850)](https://arxiv.org/html/2604.25850v4) already checks harness
+edit predictions against subsequent task outcomes. It reports Terminal-Bench 2
+improvement from 69.7% to 77.0% and transfer to one other task surface, but
+regression foresight is weak (11.8% precision, 11.1% recall) and its single
+evolution campaign does not establish a head-to-head KRN comparison. A check
+selected by the author cannot establish that the requirement matches user intent.
+The proposed distinction remains `lab-test`, not measured behavioral benefit.
+
+[ACE v3 (arXiv:2510.04618)](https://arxiv.org/html/2510.04618v3) supports
+incremental curation but degrades without grounded feedback. [Delivery, Not
+Storage v1 (arXiv:2607.20972)](https://arxiv.org/html/2607.20972v1) measures
+cue-time delivery, but its 12 graded feature runs all passed, its forced
+compaction probe had one run per arm, and its memory arm cost 36% more with a
+different read cap. [Total Recall v1
+(arXiv:2608.11879)](https://arxiv.org/html/2608.11879v1) finds no universal
+accuracy/cost winner across systems and backbones. These support a bounded
+outcome-scored test against unchanged/native controls, not another store or
+automatic injection. Broader mechanisms remain owned by
+[orchestration.md](orchestration.md).
+
+At `591bd8b2`, the CLI admitted an invalid fixed point and an unresolvable
+waiver: `krn gate check --root . --kind commit --fixed-point not-a-revision
+--base HEAD~1 --falsifier false --waiver-reason diagnostic-only
+--waiver-resolves docs/research/does-not-exist.md --json` returned
+`admitted: true`, exit 0. The same counterexample was executed again at
+`6cd50a5` before repair. Without the waiver, a failing head was refused, but
+a real base-RED/head-GREEN invocation with the invalid fixed point was also
+admitted. The repository gate passed 871/871 at `6cd50a5`; it did not test
+these claims.
+
+**Disposition: repair the existing CLI before expanding callers.** Resolve
+HEAD and base to commits, refuse invalid or stale anchors and a dirty head;
+classify executed failing Node TAP/spec cases separately from checkout, process,
+and supported reporter setup errors. Other command formats cannot certify that
+a nonzero exit was an assertion failure; a before/after status check is not an
+atomic snapshot against transient writes. The existing waiver flags are deliberately fail-closed: they do
+not name an obligation or independently resolve an anchor, so neither the
+primitive nor the CLI may use them to excuse a failed head. The focused
+public-seam observer is assertion-RED against pinned `6cd50a5` and GREEN on
+the repaired candidate; installed runtime and benefit require their own
+readback. `claim.before.red`, the family verifier's family name, and
+`escalationGate`'s recorded flag remain caller-provided; this repair does not
+establish independence or measured failed repair for other engines. Reopen
+waivers only with a named obligation, an independent resolver, and a positive
+and negative proof; run transfer, discrimination, real defect catch, and
+subagent-cost trials against unchanged/native controls before claiming lift.
 
 ## The seams
 
-- **Module**: `gated-transition` — one small interface over the whole
-  governance (red-state, base-pinning, independence, waiver, escalation).
-- **Interface**: `gateTransition({ transition, claim, verifier })` returns an
-  admission verdict. The caller learns one function and three shapes.
-- **Seam**: the **verifier** is injected. Two adapters make it a real seam — a
-  deterministic command verifier and a different-family review verifier.
-- **Depth**: the four surfaces (commit, task close, review, handoff) become
-  callers; the deletion test passes because the governance reappears in four
-  callers otherwise.
+- **Module**: `gated-transition` — its CLI-facing `checkGateCommand` owns Git
+  identity and command execution; the generic `gateTransition` still trusts its
+  injected verifier. Other engines do not inherit the CLI guarantees.
+- **Interface**: `checkGateCommand` returns a CLI admission verdict with pinned
+  IDs; direct `gateTransition({ transition, claim, verifier })` is only a
+  provisional policy for a caller that supplies its own evidence.
+- **Seam**: the **verifier** is injected; the deterministic command adapter
+  executes, while the different-family adapter still trusts its caller's label.
+- **Depth**: the CLI is the only end-to-end consumer. Commit, task close, review,
+  and handoff have separate sources of truth; do not wire them in speculatively.
 - **Brief**: a projection of the claim for a subagent, not a second artifact.
 
 ## The falsifier
 
 The primitive is falsified if any of these hold:
 
-- **Transfer**: it cannot be applied to a differently-shaped repository with
-  bounded effort (it needs only "a command that exits nonzero", never a Node
-  layout).
+- **Transfer**: it cannot be applied to a differently-shaped Git repository
+  with bounded effort; the present CLI needs Git commits and a shell command,
+  not a Node layout.
 - **Discrimination**: on a benchmark where the vanilla lane fails, the gated
   transition does not raise the pass rate with a confidence interval excluding
   zero.

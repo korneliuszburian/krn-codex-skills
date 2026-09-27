@@ -16,7 +16,7 @@
     {
       "path": "scripts/krn.mjs",
       "class": "destructive",
-      "authority": "Authority: install, retire, and rollback subcommands mutate the user's global capability index and require an explicit operator request."
+      "authority": "Authority: install, retire, and rollback mutate the user's global capability index and require an explicit operator request; gate check executes a caller-selected falsifier in the owned checkout and may mutate it before the clean readback."
     },
     { "path": "scripts/lib/catalog/capability-admission.mjs", "class": "read-only" },
     { "path": "scripts/lib/catalog/catalog-config.mjs", "class": "read-only" },
@@ -40,7 +40,11 @@
     { "path": "scripts/lib/conformance/conformance.mjs", "class": "additive" },
     { "path": "scripts/lib/contract/change-contract-runs.mjs", "class": "read-only" },
     { "path": "scripts/lib/contract/change-contract.mjs", "class": "read-only" },
-    { "path": "scripts/lib/contract/gated-transition.mjs", "class": "read-only" },
+    {
+      "path": "scripts/lib/contract/gated-transition.mjs",
+      "class": "destructive",
+      "authority": "Authority: gate check executes a caller-selected shell command in a detached base and the clean working HEAD; the working command can mutate before readback and requires explicit proof authority in an owned checkout."
+    },
     { "path": "scripts/lib/contract/command-analysis.mjs", "class": "read-only" },
     { "path": "scripts/lib/harness/e2e-compare.mjs", "class": "additive" },
     { "path": "scripts/lib/install/host-capabilities.mjs", "class": "read-only" },

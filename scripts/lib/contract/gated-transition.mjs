@@ -1,12 +1,19 @@
+import fs from "node:fs";
+
+import { gitTopLevel, runGit } from "../kernel/git.mjs";
+import { runProcess } from "../kernel/proc.mjs";
+import { tapSummary } from "../kernel/tap.mjs";
+import { withWorktree } from "../kernel/worktree.mjs";
+
 // One owner for the gated-transition primitive. A state change is admissible
 // only when it carries an executed falsifier whose base state was observed red,
-// checked by a verifier independent of the author, with an explicit resolvable
-// waiver for anything unpayable. The four decision surfaces (commit, task
-// close, review, handoff) are callers; the verifier is the seam.
+// checked by a verifier independent of the author. Waivers are refused until
+// a caller can name the waived obligation and independently resolve its anchor.
+// The four decision surfaces (commit, task close, review, handoff) are callers;
+// the verifier is the seam.
 //
-// The interface is deliberately small: one admission function, one brief
-// projection, and the verifier adapters. Everything a caller must know is the
-// three shapes below; the governance lives behind them.
+// The CLI-facing check owns Git identity and command evidence in this module;
+// the generic admission function still trusts its injected verifier and caller.
 
 export const TRANSITION_KINDS = Object.freeze(["commit", "task-close", "review", "handoff"]);
 
@@ -26,23 +33,12 @@ function validClaim(claim) {
   return null;
 }
 
-// A waiver is admissible only when it is reasoned and resolves to something the
-// repository already holds; a bare "none" is never a discharge.
-function waiverVerdict(waiver) {
-  if (!waiver || typeof waiver !== "object") return refuse("a waiver must be an object with a reason and a resolution");
-  if (typeof waiver.reason !== "string" || !waiver.reason.trim()) return refuse("a waiver requires a reason");
-  if (!Array.isArray(waiver.resolves) || waiver.resolves.length === 0 || waiver.resolves.some((entry) => typeof entry !== "string" || !entry.trim())) {
-    return refuse("a waiver must resolve to at least one repository anchor");
-  }
-  return { admitted: true, reason: "", waiver: true, evidence: `waived: ${waiver.reason.trim()}` };
-}
-
 export function gateTransition({ transition, claim, verifier } = {}) {
   const transitionError = validTransition(transition);
   if (transitionError) return refuse(transitionError);
   const claimError = validClaim(claim);
   if (claimError) return refuse(claimError);
-  if (claim.waiver !== undefined) return waiverVerdict(claim.waiver);
+  if (claim.waiver !== undefined) return refuse("waiver flags are unsupported without a named obligation and an independently resolved anchor");
   if (!verifier || typeof verifier.verify !== "function") return refuse("an injected verifier is required");
   let outcome;
   try {
@@ -80,9 +76,11 @@ export function commandVerifier({ run, cwd } = {}) {
     name: "command",
     verify({ claim }) {
       const result = run(claim.falsifier, { cwd });
-      return result?.ok === true
-        ? { ok: true, evidence: `executed: ${claim.falsifier}` }
-        : { ok: false, reason: `the falsifier did not pass at the head (exit ${result?.status ?? "unknown"})` };
+      return result?.setup === true
+        ? { ok: false, reason: `falsifier setup error at the head (exit ${result.status ?? "unknown"})` }
+        : result?.ok === true
+          ? { ok: true, evidence: `executed: ${claim.falsifier}` }
+          : { ok: false, reason: `the falsifier did not pass at the head (exit ${result?.status ?? "unknown"})` };
     },
   };
 }
@@ -113,4 +111,71 @@ export function escalationGate({ current, proposed, failure } = {}) {
     return refuse("escalation requires a recorded failure of the current mechanism");
   }
   return { admitted: true, reason: "", evidence: `escalate ${current} -> ${proposed}: ${failure.evidence}` };
+}
+
+// One CLI seam owns the whole observation. No other caller inherits Git or
+// executed-RED guarantees merely by invoking gateTransition directly.
+export function checkGateCommand({ root, kind, fixedPoint: requested, base: requestedBase, falsifier, waiverReason, waiverResolves, env }) {
+  const resolveCommit = (ref) => {
+    const found = runGit(root, ["rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`]);
+    return found.ok && /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/.test(found.out) ? found.out : null;
+  };
+  const head = resolveCommit("HEAD");
+  const fixedPoint = resolveCommit(requested);
+  const base = requestedBase ? resolveCommit(requestedBase) : null;
+  const top = gitTopLevel(root);
+  const clean = runGit(root, ["status", "--porcelain", "--untracked-files=all"]);
+  const refusal = !top || fs.realpathSync(top) !== fs.realpathSync(root)
+    ? "gate root must be a Git repository top level"
+    : !head || !fixedPoint || fixedPoint !== head
+      ? "fixed point must resolve to the current HEAD commit"
+      : requestedBase && !base
+        ? "base ref must resolve to a commit"
+        : !clean.ok || clean.out
+          ? "the evaluated working tree must be clean"
+          : null;
+  if (refusal) return refuse(refusal);
+
+  const falsifierRun = (cwd, command) => {
+    const result = runProcess("bash", ["-lc", command], { cwd, timeout: 600000, env });
+    const nodeTest = /\bnode\b[^;&|]*--test(?:\s|=|$)/.test(command);
+    const output = `${result.out}${result.err}`;
+    const tap = tapSummary(output);
+    const hasTap = /^TAP version \d+$/m.test(output);
+    const hasSpec = /^ℹ tests \d+$/m.test(output);
+    // A file-level load failure has exitCode, even for an extensionless file;
+    // a real test may be NAMED "SyntaxError" or "config.js".
+    const tapRed = tap.tests > 0 && tap.fail > 0 && /failureType: 'testCodeFailure'/.test(output)
+      && !/^\s*exitCode: /m.test(output);
+    const specNames = [...output.matchAll(/^✖ (.+?) \([0-9.]+ms\)$/gm)].map((entry) => entry[1]);
+    // A spec reporter may print ANY file-load error before its first ✖.
+    // Accept only known pass lines ahead of a named failure, not arbitrary
+    // output masquerading as a test case or a title resembling a filename.
+    const firstSpecFailure = output.search(/^✖ /m);
+    const specPrefix = output.slice(0, firstSpecFailure).split("\n").filter(Boolean);
+    const specRed = firstSpecFailure >= 0 && /^ℹ fail [1-9]\d*$/m.test(output) && specNames.length > 0
+      && specPrefix.every((line) => /^✔ .+ \([0-9.]+ms\)$/.test(line));
+    const setup = result.status === null || result.signal !== null || result.errorCode !== null
+      || result.status === 126 || result.status === 127
+      || (!result.ok && ((hasTap && !tapRed) || (hasSpec && !specRed) || (nodeTest && !hasTap && !hasSpec)));
+    return { ok: result.ok, status: result.status, setup, red: !result.ok && !setup };
+  };
+
+  // Base uses an immutable commit; the clean working HEAD is checked before
+  // and after execution, not an atomic snapshot of transient writes.
+  const baseOutcome = base ? withWorktree({ root, ref: base, git: runGit }, (dir) => falsifierRun(dir, falsifier)) : null;
+  const before = { red: baseOutcome?.red === true, evidence: baseOutcome ? `exit ${baseOutcome.status ?? "unknown"} at ${base}` : "no base was observed" };
+  const claim = { falsifier, before };
+  if (waiverReason !== undefined || waiverResolves !== undefined) claim.waiver = { reason: waiverReason, resolves: waiverResolves };
+  const verifier = commandVerifier({ run: (command, { cwd }) => falsifierRun(cwd, command), cwd: root });
+  let verdict = base && !baseOutcome
+    ? refuse("base checkout setup error")
+    : baseOutcome?.setup
+      ? refuse(`base falsifier setup error (exit ${baseOutcome.status ?? "unknown"})`)
+      : gateTransition({ transition: { kind, fixedPoint }, claim, verifier });
+  if (verdict.admitted) {
+    const stillClean = runGit(root, ["status", "--porcelain", "--untracked-files=all"]);
+    if (resolveCommit("HEAD") !== head || !stillClean.ok || stillClean.out) verdict = refuse("fixed point changed while checking");
+  }
+  return { ...verdict, fixedPoint, base, before };
 }
