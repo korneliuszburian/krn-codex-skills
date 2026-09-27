@@ -36,14 +36,14 @@ test("the .node-version line agrees with the package.json engine floor", () => {
 });
 
 // The task-product H2 observer imports node:sqlite for its comparison
-// candidate; on Node 22.11 that import needs --experimental-sqlite, and the
-// frozen-observer runner supplies no such flag, so the pinned runtime must not
-// fall below the first 22.x release where the import works unflagged.
+// candidate; on Node 22.12 that import still needs --experimental-sqlite, and
+// the frozen-observer runner supplies no such flag. The official 22.13 release
+// and a direct 22.12/22.13 binary control pin the unflagged import boundary.
 test("the pinned Node provides node:sqlite without an experimental flag", () => {
   const [major, minor] = read(".node-version").trim().split(".").map(Number);
   assert.ok(
-    major > 22 || (major === 22 && minor >= 14),
-    `.node-version must be at least 22.14 for unflagged node:sqlite, found ${major}.${minor}`,
+    major > 22 || (major === 22 && minor >= 13),
+    `.node-version must be at least 22.13 for unflagged node:sqlite, found ${major}.${minor}`,
   );
 });
 
