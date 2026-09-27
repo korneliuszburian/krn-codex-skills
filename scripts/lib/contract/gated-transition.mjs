@@ -5,17 +5,11 @@ import { runProcess } from "../kernel/proc.mjs";
 import { tapSummary } from "../kernel/tap.mjs";
 import { withWorktree } from "../kernel/worktree.mjs";
 
-// One owner for the gated-transition primitive. A state change is admissible
-// only when it carries an executed falsifier whose base state was observed red,
-// checked by a verifier independent of the author. Waivers are refused until
-// a caller can name the waived obligation and independently resolve its anchor.
-// The four decision surfaces (commit, task close, review, handoff) are callers;
-// the verifier is the seam.
-//
-// The CLI-facing check owns Git identity and command evidence in this module;
-// the generic admission function still trusts its injected verifier and caller.
+// One owner for CLI commit admission: resolve Git identity, execute the base
+// and head checks, and refuse unscoped waivers. Other transition engines have
+// different authorities and cannot borrow this command's verdict.
 
-export const TRANSITION_KINDS = Object.freeze(["commit", "task-close", "review", "handoff"]);
+const TRANSITION_KINDS = Object.freeze(["commit", "task-close", "review", "handoff"]);
 
 const refuse = (reason, extra = {}) => ({ admitted: false, reason, ...extra });
 
@@ -33,7 +27,7 @@ function validClaim(claim) {
   return null;
 }
 
-export function gateTransition({ transition, claim, verifier } = {}) {
+function gateTransition({ transition, claim, verifier } = {}) {
   const transitionError = validTransition(transition);
   if (transitionError) return refuse(transitionError);
   const claimError = validClaim(claim);
@@ -52,25 +46,9 @@ export function gateTransition({ transition, claim, verifier } = {}) {
   return { admitted: true, reason: "", evidence: outcome.evidence ?? "", verifier: verifier.name ?? "unnamed" };
 }
 
-// The subagent's whole contract is the brief, not the claim: fixed point, scope,
-// one falsifier command, and the output contract. The claim belongs to the
-// integrator that owns the artifact.
-export function briefFor({ claim, fixedPoint, scope, output }) {
-  if (!claim || typeof claim.falsifier !== "string" || !claim.falsifier.trim()) throw new Error("briefFor requires a claim with a concrete falsifier");
-  for (const [name, value] of [["fixedPoint", fixedPoint], ["scope", scope], ["output", output]]) {
-    if (typeof value !== "string" || !value.trim()) throw new Error(`briefFor requires ${name}`);
-  }
-  return [
-    `Fixed point: ${fixedPoint}`,
-    `Scope: ${scope}`,
-    `Falsifier: ${claim.falsifier}`,
-    `Output: ${output}`,
-  ].join("\n");
-}
-
-// Adapter one: a deterministic command verifier. The falsifier must pass at the
-// head; the base red is the claim's observed before-state.
-export function commandVerifier({ run, cwd } = {}) {
+// Internal command verifier: the falsifier must pass at the head; the base red
+// is the claim's observed before-state.
+function commandVerifier({ run, cwd } = {}) {
   if (typeof run !== "function") throw new Error("commandVerifier requires a run function");
   return {
     name: "command",
@@ -85,36 +63,8 @@ export function commandVerifier({ run, cwd } = {}) {
   };
 }
 
-// Adapter two: an independent-family review verifier. Two adapters make the
-// verifier a real seam rather than a hypothetical one.
-export function familyVerifier({ review, family } = {}) {
-  if (typeof review !== "function") throw new Error("familyVerifier requires a review function");
-  if (typeof family !== "string" || !family.trim()) throw new Error("familyVerifier requires a family name");
-  return {
-    name: `family:${family}`,
-    verify({ transition, claim }) {
-      const outcome = review({ transition, claim });
-      return outcome?.ok === true
-        ? { ok: true, evidence: `reviewed by ${family}` }
-        : { ok: false, reason: outcome?.reason || `the ${family} review did not admit the transition` };
-    },
-  };
-}
-
-// Failure-gated escalation: a new mechanism is admissible only against a
-// recorded failure of the current one. This is the inverse of a
-// batteries-included reflex.
-export function escalationGate({ current, proposed, failure } = {}) {
-  if (typeof current !== "string" || !current.trim()) return refuse("escalationGate requires the current mechanism");
-  if (typeof proposed !== "string" || !proposed.trim()) return refuse("escalationGate requires the proposed mechanism");
-  if (!failure || failure.recorded !== true || typeof failure.evidence !== "string" || !failure.evidence.trim()) {
-    return refuse("escalation requires a recorded failure of the current mechanism");
-  }
-  return { admitted: true, reason: "", evidence: `escalate ${current} -> ${proposed}: ${failure.evidence}` };
-}
-
-// One CLI seam owns the whole observation. No other caller inherits Git or
-// executed-RED guarantees merely by invoking gateTransition directly.
+// The only public seam is the CLI-facing command. Internal policy and verifier
+// helpers cannot serve as receipts for unrelated transitions.
 export function checkGateCommand({ root, kind, fixedPoint: requested, base: requestedBase, falsifier, waiverReason, waiverResolves, env }) {
   if (kind !== "commit") return refuse("gate check supports only commit transitions; other engines own their own proof");
   const resolveCommit = (ref) => {
