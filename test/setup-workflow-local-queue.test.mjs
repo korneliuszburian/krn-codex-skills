@@ -60,6 +60,28 @@ test("local setup selects one Git-ref queue that krn task can use and does not c
   });
 });
 
+test("selected Git-ref setup refuses later legacy Markdown material without changing either source", () => {
+  withRepo((root) => {
+    assert.equal(apply(root, "local").status, 0);
+    const created = spawnSync(process.execPath, [krn, "task", "add", "--root", root, "--id", "selected-only", "--title", "Selected task", "--json"], { encoding: "utf8" });
+    assert.equal(created.status, 0, created.stderr);
+    const queue = execFileSync("git", ["-C", root, "rev-parse", "refs/krn/queue"], { encoding: "utf8" });
+    const instructions = readFileSync(join(root, "AGENTS.md"));
+    const legacy = join(root, ".krn", "tickets", "foreign.md");
+    mkdirSync(join(root, ".krn", "tickets"), { recursive: true });
+    writeFileSync(legacy, "# different task source\n");
+    const result = apply(root, "local");
+    assert.equal(result.status, 64, "selected queue must not coexist silently with foreign legacy material");
+    assert.match(result.output, /selected Git-ref queue.*legacy Markdown material/);
+    assert.equal(execFileSync("git", ["-C", root, "rev-parse", "refs/krn/queue"], { encoding: "utf8" }), queue);
+    assert.deepEqual(readFileSync(join(root, "AGENTS.md")), instructions);
+    assert.equal(readFileSync(legacy, "utf8"), "# different task source\n");
+    const shown = spawnSync(process.execPath, [krn, "task", "show", "--root", root, "--id", "selected-only", "--json"], { encoding: "utf8" });
+    assert.equal(shown.status, 0, shown.stderr);
+    assert.equal(JSON.parse(shown.stdout).Status, "open");
+  });
+});
+
 test("local setup refuses a pre-existing Markdown queue without importing or editing it", () => {
   withRepo((root) => {
     const tickets = join(root, ".krn", "tickets");
