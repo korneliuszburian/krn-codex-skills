@@ -126,6 +126,11 @@
       "implicit": true
     },
     {
+      "name": "make-it-sexy",
+      "path": "skills/engineering/make-it-sexy",
+      "implicit": true
+    },
+    {
       "name": "source-to-decision",
       "path": "skills/engineering/source-to-decision",
       "implicit": true

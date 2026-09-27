@@ -63,8 +63,11 @@ table, and with it the repository-scoped harness baseline, is owned by
 [`delivery-loop/references/transitions.md`](skills/engineering/delivery-loop/references/transitions.md);
 this README keeps only the operator graph.
 
-`target-repo-work` wraps another checkout. `typescript-engineering` is a
-language companion. `second-opinion` is an explicit advisory side path.
+`make-it-sexy` is the user's shorthand for a scoped quality pass on an
+accepted outcome; it checks behavior, standards, proof, docs, simplification
+and real use, returning findings to the same owner rather than starting a new
+lifecycle. `target-repo-work` wraps another checkout. `typescript-engineering`
+is a language companion. `second-opinion` is an explicit advisory side path.
 Setup, capability management, and skill authoring remain separate owners. The
 evidence, admission map, and lifecycle invariants live in
 [the orchestration synthesis](docs/research/orchestration.md).
@@ -110,6 +113,7 @@ disagreement blocks the next transition until the owner records the resolution.
 | [`source-to-decision`](skills/engineering/source-to-decision/SKILL.md) | model or user | one source-backed disposition for a named local consumer |
 | [`slice-work`](skills/engineering/slice-work/SKILL.md) | model or user | vertical implementation slices or expand-contract migration stages |
 | [`delivery-loop`](skills/engineering/delivery-loop/SKILL.md) | model or user | lifecycle truth and handoffs for one agreed end-to-end outcome |
+| [`make-it-sexy`](skills/engineering/make-it-sexy/SKILL.md) | model or user | scoped quality disposition for an accepted outcome; no second owner |
 | [`target-repo-work`](skills/engineering/target-repo-work/SKILL.md) | model or user | identity and authority when work crosses into another checkout |
 | [`setup-repository-workflow`](skills/engineering/setup-repository-workflow/SKILL.md) | explicit only | one-time adoption or repair of a thin local contract |
 | [`typescript-engineering`](skills/engineering/typescript-engineering/SKILL.md) | model or user | TypeScript inference, public APIs, compiler mechanics, and proof |
