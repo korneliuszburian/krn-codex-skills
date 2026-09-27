@@ -57,9 +57,11 @@ The defensible bet is **admission conditioned on independently executed
 proof**, not superiority over other agent frameworks. [AHE v4
 (arXiv:2604.25850)](https://arxiv.org/html/2604.25850v4) already checks harness
 edit predictions against subsequent task outcomes. It reports Terminal-Bench 2
-improvement from 69.7% to 77.0% and transfer to one other task surface, but
-regression foresight is weak (11.8% precision, 11.1% recall) and its single
-evolution campaign does not establish a head-to-head KRN comparison. A check
+improvement from 69.7% to 77.0% and transfer to one other task surface
+(SWE-bench-verified) and alternate model families. Regression foresight is
+weak (11.8% precision, 11.1% recall), component benefits interfere, and its
+single evolution campaign with a fitted runtime budget does not establish a
+head-to-head KRN comparison. A check
 selected by the author cannot establish that the requirement matches user intent.
 The proposed distinction remains `lab-test`, not measured behavioral benefit.
 
@@ -68,11 +70,13 @@ incremental curation but degrades without grounded feedback. [Delivery, Not
 Storage v1 (arXiv:2607.20972)](https://arxiv.org/html/2607.20972v1) measures
 cue-time delivery, but its 12 graded feature runs all passed, its forced
 compaction probe had one run per arm, and its memory arm cost 36% more with a
-different read cap. [Total Recall v1
+different read cap; capture quality remains untested. [Total Recall v1
 (arXiv:2608.11879)](https://arxiv.org/html/2608.11879v1) finds no universal
-accuracy/cost winner across systems and backbones. These support a bounded
-outcome-scored test against unchanged/native controls, not another store or
-automatic injection. Broader mechanisms remain owned by
+joint cost–accuracy winner across its systems and backbones. Serving cost
+varies with synthetic dialogue workload; accuracy was measured on one LoCoMo
+conversational benchmark subset, not a coding-agent workload. These support a
+bounded outcome-scored test against unchanged/native controls, not another
+store or automatic injection. Broader mechanisms remain owned by
 [orchestration.md](orchestration.md).
 
 At `591bd8b2`, the CLI admitted an invalid fixed point and an unresolvable
@@ -99,9 +103,11 @@ readback. The CLI constructs `claim.before.red` from its executed base check;
 other engines have no corresponding caller or independently checked family or
 escalation adapter. The readerless brief, family and escalation helpers were
 retired rather than promoted as evidence. Reopen waivers only with a named
-obligation, an independent resolver, and a positive
-and negative proof; run transfer, discrimination, real defect catch, and
-subagent-cost trials against unchanged/native controls before claiming lift.
+obligation, a granting owner, an independent resolver, and positive and
+negative proof. This research finding grants neither publication authority nor
+a change to the active Goal's order. Run transfer, discrimination, real defect
+catch, and subagent-cost trials against unchanged/native controls before
+claiming lift.
 
 ## The seams
 
