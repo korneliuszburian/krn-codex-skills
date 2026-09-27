@@ -66,12 +66,13 @@ an injected always-loaded reference.
 
 ## Local queue init
 
-The KRN local queue has no separate initialization binary, so `--tracker local`
-is not its own commit-capable transition: `apply` scaffolds it directly. It
-creates `.krn/tickets/` with a queue README that names the `<krn-ticket>` ABI
-and the `krn ticket check|next|claim|close|fail` verbs, and appends
-`.krn/tickets/` to `.git/info/exclude` without rewriting existing entries or
-other unowned directories. The initializer never scans or overwrites foreign
-content, and `--tracker none` stays scaffolding-free. The ticket ABI and
-lifecycle stay owned by `docs/research/ticket-protocol.md` and `krn ticket`; the
-queue README only points at them.
+The KRN local queue has no second database or tracker initializer binary.
+`--tracker local` uses the task-store owner's fenced migration transaction only
+for an empty Git worktree root: it selects `refs/krn/queue`, retains an excluded
+empty initialization receipt under `.krn/migrations/`, and points the managed
+brief at `krn task`. It refuses existing Markdown files, claim state, or an
+unselected queue; those require an explicit reviewed import before setup may
+claim the new name. The initializer never overwrites foreign queue content;
+`--tracker none` remains queue-free. The task ABI and migration lifecycle stay
+with [ticket-protocol.md](../../../../docs/research/ticket-protocol.md), not
+with this instruction reference.
