@@ -87,8 +87,13 @@ def krn_command() -> list[str]:
 
 def krn_json(args: list[str]) -> object | None:
     try:
+        env = os.environ.copy()
+        # A hook spawned under node --test must run the CLI as a fresh process,
+        # not inherit the parent test runner's IPC/reporting context.
+        env.pop("NODE_TEST_CONTEXT", None)
         result = subprocess.run(
             [*krn_command(), *args, "--json"],
+            env=env,
             capture_output=True,
             text=True,
             timeout=20,
