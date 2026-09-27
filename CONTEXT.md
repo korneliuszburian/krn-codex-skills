@@ -8,6 +8,7 @@ a progress log. Update meanings and links in place; Git retains their history.
 - [README.md](README.md) — operator entrypoint, main workflow, and skill catalog.
 - [docs/research/README.md](docs/research/README.md) — research index and curation contract.
 - [docs/research/orchestration.md](docs/research/orchestration.md) — current lifecycle spine, admission map, retrieval ladder, and falsifiers.
+- [docs/research/product-architecture.md](docs/research/product-architecture.md) — proposed end-state runtime contracts (`lab-test`, not installed behavior); the delivery graph remains owned by the self-hardening roadmap.
 - [docs/research/self-hardening-roadmap.md](docs/research/self-hardening-roadmap.md) — bounded research and delivery dependencies; ticket status stays in the configured queue.
 - [docs/research/lab-tests.md](docs/research/lab-tests.md) — the LT lab-test registry through LT-107, protocols, and residuals.
 - [docs/adr/0001-compact-context-spine.md](docs/adr/0001-compact-context-spine.md) — accepted memory and artifact boundary.
