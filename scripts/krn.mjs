@@ -68,6 +68,7 @@ const usage = `Usage:
   krn ticket renew --root DIR --id ID --worker NAME --expected-epoch N [--json]
   krn ticket comment --root DIR --id ID --worker NAME --expected-epoch N --body TEXT [--json]
   krn ticket <close|reopen|release> --root DIR --id ID --actor NAME --reason TEXT [--expected-epoch N] [--json]
+  krn ticket close --root DIR --id ID --actor NAME --reason TEXT --expected-epoch N --base SHA --head SHA --integrated SHA [--json]  (imported proof-gated non-lane)
   krn ticket fail --root DIR --id ID --worker NAME --expected-epoch N --reason TEXT [--json]
   krn harness compare --task FILE --lanes NAME,NAME [--runs N] [--root DIR] [--json]`;
 

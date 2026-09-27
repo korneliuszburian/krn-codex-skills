@@ -112,6 +112,14 @@ export function taskTicketView(task) {
     const { worker = "", session = "", at = "", epoch = "", renew = "", duration = "" } = task.lease;
     set("Claim", `worker=${worker}; session=${session}; at=${at}; epoch=${epoch}; renew=${renew}; duration=${duration}`);
   }
+  if (task.status === "done" && task.result?.proof?.kind === "imported-checked") {
+    const { proof, reason } = task.result;
+    const evidence = fields.get("Evidence") ?? "";
+    set("Evidence", /integrated=[0-9a-f]{40}/.test(evidence)
+      ? evidence.replace(/integrated=[0-9a-f]{40}/, `integrated=${proof.integrated}`)
+      : `${evidence}${evidence ? "; " : ""}integrated=${proof.integrated}`);
+    set("Resolution", `${reason} (checked ${proof.head})`);
+  }
   if (task.status === "done" && task.result?.operationId && task.result?.effectObject) {
     const evidence = fields.get("Evidence") ?? "";
     set(

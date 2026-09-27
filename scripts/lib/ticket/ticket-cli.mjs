@@ -16,6 +16,7 @@ const VALUE_FLAGS = {
   "--id": "id",
   "--base": "base",
   "--head": "head",
+  "--integrated": "integrated",
   "--worker": "worker",
   "--session": "session",
   "--evidence": "evidence",
@@ -125,7 +126,7 @@ async function runTaskStoreCommand(command, positional, options, usage, requireD
     claim: ["root", "id", "worker", "session", "ready"],
     renew: ["root", "id", "worker", "expectedEpoch"],
     comment: ["root", "id", "worker", "body", "expectedEpoch"],
-    close: ["root", "id", "actor", "reason", "resolution", "expectedEpoch"],
+    close: ["root", "id", "actor", "reason", "resolution", "expectedEpoch", "base", "head", "integrated"],
     reopen: ["root", "id", "actor", "reason"],
     release: ["root", "id", "actor", "reason", "expectedEpoch"],
     takeover: ["root", "id", "worker", "session", "expectedEpoch", "reason"],
@@ -175,7 +176,14 @@ async function runTaskStoreCommand(command, positional, options, usage, requireD
       result = await store.comment(options.id, { worker: options.worker, epoch, body: options.body });
     } else if (command === "close") {
       const actor = options.actor;
-      result = await store.close(options.id, { actor, reason: options.reason ?? options.resolution, epoch });
+      const task = await store.show(options.id);
+      const hasProofFlags = options.base !== undefined || options.head !== undefined || options.integrated !== undefined;
+      if (hasProofFlags && (!task || task.lane || task.legacyCloseProofRequired !== true)) {
+        throw new Error("retrospective close is limited to imported non-lane proof tasks");
+      }
+      const proof = hasProofFlags ? { kind: "imported-checked", base: options.base,
+        head: options.head, integrated: options.integrated } : undefined;
+      result = await store.close(options.id, { actor, reason: options.reason ?? options.resolution, epoch, proof });
     } else if (command === "reopen") {
       result = await store.reopen(options.id, { actor: options.actor, reason: options.reason });
     } else if (command === "release") {
