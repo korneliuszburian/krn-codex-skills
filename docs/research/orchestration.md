@@ -15,7 +15,7 @@ or an oversized skill catalog?
 
 | Evidence family | What it establishes | KRN implication | Limit |
 |---|---|---|---|
-| Matt Pocock | small owners, precise leading words, shared language, progressive disclosure, fresh ticket contexts, and explicit router/research/architecture/ticket owners in upstream `6654f6b` | keep a sparse composable catalog; let one indexed map link full decision sources while each ticket names its exact KRN owner; refresh the composed set from upstream instead of maintaining a fork | his exact catalog, tracker, and spec-retention policy are not KRN policy |
+| Matt Pocock | the promoted set at upstream `6654f6b` has small owners, progressive disclosure, and fresh ticket contexts; at [`c55ee46`](https://github.com/mattpocock/skills/tree/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/in-progress), `implement-spec` treats tickets as a dependency frontier, `pr` is a body reference for before/after evidence, and `retro` separates mechanical checks from judgment rules | keep the sparse composed catalog; `lab-test` the frontier only against KRN's existing Git-ref queue, `adopt` concise evidence pairs in the next authorized PR without copying a skill, and `lab-test` a real retrospective against existing checks | these three skills are in-progress rather than the pinned promoted set; maximum parallelism, new checks, and another owner are not earned by Matt's procedure alone |
 | Karpathy compact knowledge | raw sources can feed one indexed synthesis that improves by integration, contradiction handling, and rewriting | continuously compile a few living topic pages; Git supplies chronology | a personal knowledge workflow does not prove a production agent runtime |
 | Rohit Goyal memory extension | useful memory needs provenance, recency, confidence, supersession, and forgetting | put those fields into source decisions; add search/graphs only after scale demands them | automated confidence and crystallization can become ungrounded ceremony |
 | Official Codex guidance | Goal carries one outcome in one chat; skills carry repeatable methods; subagents isolate bounded work; required team rules stay in checked-in authority | Goal/tracker is live state, not a replacement for the selected workflow or repository memory | runtime Goal state is not portable repository knowledge |
@@ -720,6 +720,36 @@ that retrieval or a database wins here. The ledger's other memory sources
 remain mechanisms or hypotheses until their exact version and local consumer
 are verified for a specific decision.
 
+[VibeMemBench v1](https://arxiv.org/abs/2609.23570v1) tests 111 targets
+selected after reference-solver uplift. Frozen experience moves four of five
+held-out solvers by +1.1 to +4.5 percentage points, but all five paired
+intervals for frozen-experience transfer cross zero (§4.2); 11 of 12
+memory-system/solver *point estimates* are at or below memory-off and no
+memory-system interval lies above zero. Memory-system construction costs are
+not included in
+solver-token totals. Record form, headroom, and the full write-to-use cost are
+candidate mechanisms, not a KRN result. **Disposition: `lab-test` at sh-169**
+under the maintainer and `$delivery-loop`: an agent-authored capsule must change
+a real decision after a revoked obligation compared with native Goal/live
+sources, at matched tools and full cost. A saturated native arm, failure to
+notice a revocation, or a cost-only gain does not promote it; no store is added.
+
+[Missing Complement v1](https://arxiv.org/abs/2609.20050v1) improves complete
+five-item evidence sets to 73.0% from 61.4% on frozen candidate pools, but
+full-source discovery leads by 5.0 points over all 500 states on its
+repository diagnostic, versus 7.51 on the 333 states where the shared BM25
+candidate pool contains a complete certificate. On Fresh23 the strict
+executed-repair count is 8/23 versus 6/23 for embedding
+plus reranking and every paired interval reaches zero. On AMA its smaller
+answer prompt costs 33.57K mean *online-total* tokens per question including
+controller calls versus 13.95K for AMA-Agent (Table 3), not fewer total tokens.
+**Disposition: `lab-test` set sufficiency within the existing lexical/link
+retrieval ladder** only when sh-169 or another named consumer shows a missing
+required source at a decision; maintainer owns the comparison against live
+reading with acquisition, retries, and outcome counted. **Defer** an LLM
+retrieval controller or new index unless that miss survives rung repair; better
+retrieval scores or shorter answer prompts alone do not earn infrastructure.
+
 | Plane | Current authority and handoff | Unresolved failure or duplication | sh-174 disposition gate |
 |---|---|---|---|
 | Current outcome | Native Goal/request holds live intent; the tracker owns work-item state; `$delivery-loop` alone rewrites one ignored `state.md` for the outcome; SessionStart and `state resume` present it | One session can contain many work-item transitions and workflow runs; SessionStart does not fire for each, and `state check` does not compare copied ticket state with the tracker | Read live Goal/tracker state at each relevant transition; test whether a compact outcome checkpoint improves a real fresh continuation enough to justify its cost; sh-169 supplies the writer evidence |
@@ -1007,6 +1037,20 @@ cases and reject the same candidate code when only retirement authority
 changes. This falsifier is designed, not run. A code diff alone cannot decide
 whether a change of requirement was authorized.
 
+[Impact Is Not Invalidation v1](https://arxiv.org/abs/2609.25130v1)
+corroborates asking whether a *specific claim* survives a change rather than
+whether the whole diff changes behavior: its held-out 25%-positive split
+reports 0.794 precision and 0.715 recall for the claim question, versus 0.291
+precision for diff-level semantic equivalence. At the natural 1.78% flip rate,
+claim precision is only 0.174 and 28% of flips would still be served stale;
+prose-rendered assertions are weaker than executable claims. **Disposition:
+`lab-test` at sh-167**, with the trajectory-oracle author as owner and sh-168
+as consumer: keep deterministic gold/semantic-mutant execution and compare
+claim-relative reading only for ambiguous authorized preserve/replace/revoke
+cases. Reject it as a standalone LLM retirement gate if identical code with
+different authority receives the same verdict or a legal replacement fails.
+The paper's mined Python test assertions cannot establish a user's revocation.
+
 [W3C PROV-Dictionary section 3.3](https://www.w3.org/TR/prov-dictionary/#dictionary-removal)
 (Note, 2013-04-30) models removal with a complete removed-key set, while
 [Specifying Systems section 5.8](https://lamport.azurewebsites.net/tla/book-02-08-08.pdf)
@@ -1089,6 +1133,18 @@ infra-invalid attempt still costs time and resources; a valid model failure is
 not retried as infrastructure. A missing cost component makes the cost result
 inconclusive. This design draws on paired binary inference, but it cannot
 identify the model's internal attention or forgetting mechanism.
+
+[RRSI v2](https://arxiv.org/abs/2609.24972v2) reports better held-out
+transfer for its *combined* proposal and selection constraints than for
+unregularized harness evolution; it does not isolate sparse edits as the
+cause. Its agentic-workspace harness still consumes 2.42M policy tokens per
+trial versus 1.56M for the unevolved baseline. **Disposition: `defer` any new
+RRSI selector/pruner**; the maintainer and `$delivery-loop` already ask for
+attributable, costed changes in existing contracts and lab tests. If sh-163
+finds a repeatable candidate that wins only on the tuning tasks or inflates
+cost, `lab-test` a bounded sparse proposal against the current process on an
+unseen task class with total cost; no new acceptance rule or evolution service
+is earned by the paper alone.
 
 sh-163 retains its three-arm acceptance: 24 matched trajectories per arm,
 at least +25 percentage points against both vanilla and current KRN, positive
@@ -1255,18 +1311,32 @@ minimal lane easy to define. Sources: [Pi CLI](https://pi.dev/docs/latest/cli),
 [Pi extensions](https://pi.dev/docs/latest/extensions),
 [Pi security](https://pi.dev/docs/latest/security).
 
-Local preflight: Pi `0.87.1` is already installed. The built-in
-`openai-codex` provider uses Codex subscription OAuth (added experimentally in
-Pi 0.36; headless device-code login followed in 0.77), and Pi's hosted model
-catalog lists `gpt-6-luna` under that provider. Sources: [Pi 0.36 release](https://pi.dev/changelog/releases/0.36.0),
-[Pi 0.77 release](https://pi.dev/changelog/releases/0.77.0),
-[GPT-6 Luna in Pi's catalog](https://pi.dev/models/openai-codex/gpt-6-luna),
-[Pi provider authentication](https://pi.dev/docs/latest/providers).
-This host's `pi auth check --provider openai-codex --no-refresh --json` returns
-`not_ready`; its local `--list-models gpt-6-luna` therefore returns no match.
-No Pi task run or login was performed. The supported same-Luna comparison is
-feasible after `/login openai-codex`; Pi stores that OAuth credential in
-`~/.pi/agent/auth.json`, so login remains an explicit credential write.
+Historical preflight on 2026-09-24: Pi `0.87.1` was installed but
+`pi auth check --provider openai-codex --no-refresh --json` returned
+`not_ready`, and no Pi task ran. The built-in provider uses subscription OAuth;
+see [Pi 0.36](https://pi.dev/changelog/releases/0.36.0),
+[Pi 0.77](https://pi.dev/changelog/releases/0.77.0), and
+[provider authentication](https://pi.dev/docs/latest/providers).
+This *availability* observation is superseded on this host: on 2026-09-27 an
+active Sol/Pi session read its Goal, and separate bounded read-only Pi children
+using Codex Astra and Luna returned source findings. `pi --help` exposes
+`--goal-continuation`. A separate read-only, fresh `--no-session` Pi process
+in this checkout exposed the checkout's `AGENTS.md` under its system
+`project_context` and KRN skill descriptions under `skills`. It carried no
+Goal state from the parent session; it showed neither the installed
+`config/AGENTS.md` as an injected file nor execution of a Codex hook.
+`~/.pi/agent/AGENTS.md` is absent. **Disposition: `lab-test` native Pi
+Goal-continuation and actual decision behavior** for `$delivery-loop` and the
+host instruction owner before adding an adapter: that readback proves project
+instructions and skill metadata at first message, not the installed global
+contract, full skill bodies, an automatic idle turn, or hook execution. The
+falsifier is one authentic changed-authority continuation at a fixed Goal
+branch, compared with unchanged Pi/Goal plus live repository and queue reads:
+a claimed Pi delivery failure must change a required decision, not merely
+omit a skill name. If native already decides correctly, the scoped adapter
+fails the same case, or the Goal branch cannot be verified, do not promote a
+delivery repair. Test idle continuation separately with one capped turn and
+stop on wrong-Goal or repeated action; a CLI flag alone is not a passing case.
 
 The user's Pi 0.87.1 startup report then showed four KRN-owned name collisions:
 `delivery-loop`, `source-to-decision`, `slice-work`, and
