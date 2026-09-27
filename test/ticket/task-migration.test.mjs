@@ -111,6 +111,25 @@ process.exit(result.status ?? 1);
   return { count, env: { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH}`, KRN_TEST_REPO: root, KRN_TEST_SELECTOR_COUNT: count } };
 }
 
+test("krn task store migrate plans and explicitly activates a legacy queue without a second store", () => {
+  const { root, archive, migrate } = fixture();
+  try {
+    const original = readFileSync(join(root, ".krn/tickets/ready-task.md"));
+    const plan = ok(task(root, "store", "migrate"));
+    assert.equal(plan.status, "planned");
+    assert.equal(plan.tasks, 2);
+    noRefs(root);
+    assert.equal(ok(task(root, "store", "lock")).status, "free", "recovery inspection must work before activation");
+    const applied = ok(task(root, ...migrate));
+    assert.equal(applied.status, "migrated");
+    assert.equal(applied.tasks, 2);
+    assert.ok(existsSync(archive), "explicit migration keeps the original bytes in an archive");
+    assert.deepEqual(readFileSync(join(root, ".krn/tickets/ready-task.md")), original);
+    assert.deepEqual(ok(task(root, "list")).map((entry) => entry.id), ok(run(root, "list")).map((entry) => entry.id));
+    assert.equal(ok(task(root, ...migrate)).status, "already-active");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("public migration plans without writes and atomically selects a lossless imported queue", () => {
   const { root, archive, migrate } = fixture();
   try {

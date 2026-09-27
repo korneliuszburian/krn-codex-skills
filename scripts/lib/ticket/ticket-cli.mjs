@@ -474,9 +474,13 @@ function activeTaskView(root, id) {
 export async function runTicketCommand(argv, { usage, requireDirectory, requireActiveStore = false }) {
   const { positional, options } = parseArgs(argv);
   if (requireActiveStore) {
-    if (!options.root) fail("task requires --root with an active Git-ref queue", EXIT_CODES.USAGE);
+    if (!options.root) fail("task requires --root", EXIT_CODES.USAGE);
     requireDirectory(options.root);
-    selectedTaskStore(options.root);
+    // Only the queue owner's explicit storage transition and recovery reads
+    // can run before activation. Every task operation still requires the one
+    // selected Git-ref queue, never a fallback to Markdown.
+    const storageTransition = positional[0] === "store" && ["migrate", "lock", "unlock"].includes(positional[1]);
+    if (!storageTransition) selectedTaskStore(options.root);
     if (positional[0] === "reconcile") fail("task reconcile is not available during the Git-ref CLI expansion", EXIT_CODES.USAGE);
   }
   const command = positional[0];
