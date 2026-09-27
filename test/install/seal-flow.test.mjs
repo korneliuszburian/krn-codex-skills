@@ -37,6 +37,14 @@ const cleanSource = (base) => {
 test("the CLI seals the repository ledger and never gates apply on the linked release", { skip: capabilitySkip(hostCapabilities(), FLOW_CAPABILITIES.seal) }, () => {
   const committedLedger = JSON.parse(fs.readFileSync(path.join(sourceRoot, "config", "release-digests.json"), "utf8"));
   assert.equal(committedLedger.schema_version, 1);
+  assert.equal(git(sourceRoot, ["rev-parse", "--is-shallow-repository"]), "false", "ledger history must be available");
+  const ledgerCommits = git(sourceRoot, ["log", "--first-parent", "--format=%H", "--", "config/release-digests.json"]).split("\n").filter(Boolean);
+  for (const sha of ledgerCommits) {
+    const historic = JSON.parse(git(sourceRoot, ["show", `${sha}:config/release-digests.json`])).digests;
+    for (const [commit, digest] of Object.entries(historic)) {
+      assert.equal(committedLedger.digests[commit], digest, `a seal must retain ${commit} from ${sha}`);
+    }
+  }
   assert.ok(
     Object.keys(committedLedger.digests).length >= 4,
     "the append-only ledger keeps every prior sealed revision",
