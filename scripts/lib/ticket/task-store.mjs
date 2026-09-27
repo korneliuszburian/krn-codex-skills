@@ -2,8 +2,12 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
+import { checkChangeContract, parseChangeContract } from "../contract/change-contract.mjs";
 import { gitTopLevel, runGit, runGitInput, runGitRaw } from "../kernel/git.mjs";
 import { sha256Hex } from "../kernel/digest.mjs";
+import { runProcess } from "../kernel/proc.mjs";
+import { globToRegex } from "../kernel/text.mjs";
+import { withWorktree } from "../kernel/worktree.mjs";
 import { DEFAULT_CLAIM_DURATION, MAX_ATTEMPTS, hasActionableReason, leaseExpired, STATUSES, TYPES } from "./ticket-abi.mjs";
 import { withQueueWriteLock } from "./queue-write-lock.mjs";
 
@@ -92,6 +96,100 @@ function writeSnapshotAndRef(root, previous, state, ref, newObject, expectedObje
 function commitSnapshot(root, previous, next) {
   next.version = previous.state.version + 1;
   return writeSnapshot(root, previous.oid, next);
+}
+
+// A retrospective close observes an effect already on the target branch.
+// Verify that ref in the same transaction as the queue CAS without moving it.
+function commitSnapshotWithRefVerify(root, previous, next, ref, expected) {
+  next.version = previous.state.version + 1;
+  const blob = runGitInput(root, ["hash-object", "-w", "--stdin"], JSON.stringify(next));
+  if (!blob.ok || !blob.out) throw new Error(blob.stderr || "cannot write task-store snapshot");
+  const transaction = [
+    "start",
+    `verify ${ref} ${expected}`,
+    `update ${QUEUE_REF} ${blob.out.trim()} ${previous.oid}`,
+    "prepare",
+    "commit",
+    "",
+  ].join("\n");
+  const updated = runGitInput(root, ["update-ref", "--stdin"], transaction);
+  if (!updated.ok) throw new StoreConflict(updated.stderr || "queue or target changed before retrospective close");
+}
+
+// The imported Contract is proof-gated but is not a lane operation. An
+// already-merged commit cannot be reapplied. Verify the author's exact change
+// and the current checkout before closing the task by a queue-only CAS.
+function verifyImportedCloseProof(root, task, proof) {
+  const oid = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+  if (!task?.legacyCloseProofRequired || task.lane || !task.laneRecipe
+    || !proof || proof.kind !== "imported-checked"
+    || Object.keys(proof).some((key) => !["kind", "base", "head", "integrated"].includes(key))
+    || ![proof.base, proof.head, proof.integrated].every((sha) => typeof sha === "string" && oid.test(sha))) {
+    throw new Error("proof-gated close requires immutable retrospective proof");
+  }
+  const { base, head, integrated } = proof;
+  for (const sha of [base, head, integrated]) {
+    const resolved = runGit(root, ["rev-parse", "--verify", `${sha}^{commit}`]);
+    if (!resolved.ok || resolved.out !== sha) throw new Error(`retrospective close cannot resolve commit ${sha}`);
+  }
+  const current = runGit(root, ["rev-parse", "--verify", "HEAD^{commit}"]);
+  const target = runGit(root, ["symbolic-ref", "--quiet", "HEAD"]);
+  if (!current.ok || current.out !== integrated || !target.ok || !target.out.startsWith("refs/heads/")
+    || readRef(root, target.out) !== integrated) {
+    throw new Error("retrospective close integrated head is not the current branch");
+  }
+  const parent = runGit(root, ["rev-parse", "--verify", `${head}^1`]);
+  if (!parent.ok || parent.out !== base || !runGit(root, ["merge-base", "--is-ancestor", head, integrated]).ok) {
+    throw new Error("retrospective close author/base/merge ancestry changed");
+  }
+  const message = runGit(root, ["show", "-s", "--format=%B", head]);
+  if (!message.ok || !message.out.split("\n").some((line) => /^Ticket:\s*(\S+)\s*$/.exec(line.trim())?.[1] === task.id)) {
+    throw new Error("retrospective close missing exact Ticket trailer");
+  }
+  const recipe = task.laneRecipe;
+  const declared = parseChangeContract(`Change-contract: ${recipe.contract}`).contracts;
+  const actual = parseChangeContract(message.out).contracts;
+  if (declared.length !== 1 || declared[0].after !== "green"
+    || !actual.some((entry) => entry.ref === declared[0].ref && entry.before === declared[0].before && entry.after === "green")) {
+    throw new Error("retrospective close contract-mismatch");
+  }
+  const changed = runGit(root, ["-c", "core.quotePath=false", "diff", "--name-only", "-z", `${base}..${head}`]);
+  if (!changed.ok) throw new Error("retrospective close scope-diff-unavailable");
+  const scope = recipe.scope.split(",").map((entry) => entry.trim().replace(/^\.\//, "")).filter(Boolean);
+  for (const file of changed.out.split("\0").filter(Boolean)) {
+    if (!scope.some((entry) => entry.endsWith("/") ? file.startsWith(entry)
+      : /[*?]/.test(entry) ? globToRegex(entry).test(file) : file === entry || file.startsWith(`${entry}/`))) {
+      throw new Error(`retrospective close scope-undeclared: ${file}`);
+    }
+  }
+  // A nested Node TAP check must run with the same Node binary as this CLI,
+  // not an unrelated or broken user-level shim in its inherited PATH.
+  const originalPath = process.env.PATH;
+  process.env.PATH = `${path.dirname(process.execPath)}${path.delimiter}${originalPath ?? ""}`;
+  try {
+    const checked = withWorktree({ root, ref: integrated, git: runGit, prefix: "krn-retrospective-proof-" }, (candidateRoot) => {
+      const report = checkChangeContract({ root: candidateRoot, base, head: "HEAD", verifyBefore: true,
+        strictRecall: false, requireCleanHead: true });
+      const hasHead = report.results.some((entry) => entry.commit === head && entry.ref === declared[0].ref
+        && entry.after === "green" && entry.status === "green");
+      const hasBase = declared[0].before !== "red" || report.results.some((entry) =>
+        entry.commit === head && entry.ref === declared[0].ref && entry.phase === "base"
+          && entry.after === "red" && entry.status === "red");
+      if (report.skipped || report.errors.length || !hasHead || !hasBase) {
+        throw new Error("retrospective close before-state/contract was not executed at the checked candidate");
+      }
+      if (!runProcess("sh", ["-c", recipe.check], { cwd: candidateRoot }).ok) {
+        throw new Error("retrospective close deciding check failed on integrated head");
+      }
+      return true;
+    });
+    if (checked !== true) throw new Error("retrospective close clean integrated checkout unavailable");
+  } finally {
+    if (originalPath === undefined) delete process.env.PATH;
+    else process.env.PATH = originalPath;
+  }
+  return { kind: "imported-checked", base, head, integrated, ref: target.out,
+    check: recipe.check, contract: recipe.contract };
 }
 
 function clone(value) {
@@ -579,11 +677,12 @@ function archiveForState(root, state) {
 export function openTaskStore(root) {
   const repo = repositoryRoot(root);
 
-  async function transition(change) {
+  async function transition(change, observedRef) {
     const previous = readSnapshot(repo);
     const next = clone(previous.state);
     const result = change(next);
-    commitSnapshot(repo, previous, next);
+    if (observedRef) commitSnapshotWithRefVerify(repo, previous, next, observedRef.ref, observedRef.oid);
+    else commitSnapshot(repo, previous, next);
     return clone(result);
   }
 
@@ -859,10 +958,24 @@ export function openTaskStore(root) {
 
     async close(id, { actor, reason, epoch, proof } = {}) {
       if (!actor || !hasActionableReason(reason)) throw new Error("human close requires actor and a non-placeholder reason");
+      const sourceTask = taskFor(readSnapshot(repo).state, id);
+      if (proof !== undefined && (!sourceTask || sourceTask.status !== "claimed"
+        || sourceTask.owner !== actor || sourceTask.epoch !== epoch)) {
+        throw new Error("stale claim generation");
+      }
+      const verified = sourceTask?.legacyCloseProofRequired && proof !== undefined
+        ? verifyImportedCloseProof(repo, sourceTask, proof) : undefined;
       return transition((state) => {
         const task = taskFor(state, id);
         if (!task || task.status === "done") throw new Error(`task ${id} cannot close`);
-        if (task.lane || task.legacyCloseProofRequired) throw new Error("proof-gated close requires operation readback");
+        if (task.lane) throw new Error("proof-gated close requires operation readback");
+        if (task.legacyCloseProofRequired) {
+          if (!verified || task.laneRecipe.check !== verified.check || task.laneRecipe.contract !== verified.contract) {
+            throw new Error("proof-gated close requires operation readback");
+          }
+        } else if (proof?.kind === "imported-checked") {
+          throw new Error("retrospective proof is only for imported Contract tasks");
+        }
         if (epoch === undefined && task.status === "claimed") throw new Error("active claim requires its generation or an explicit takeover");
         if (epoch !== undefined && (task.status !== "claimed" || task.owner !== actor || task.epoch !== epoch)) {
           throw new Error("stale claim generation");
@@ -870,10 +983,10 @@ export function openTaskStore(root) {
         task.status = "done";
         task.owner = "";
         delete task.lease;
-        task.result = { actor, reason, ...(proof ? { proof } : {}) };
+        task.result = { actor, reason, ...(verified ? { proof: verified } : proof !== undefined ? { proof } : {}) };
         task.history.push({ type: "closed", actor, reason });
         return task;
-      });
+      }, verified ? { ref: verified.ref, oid: verified.integrated } : undefined);
     },
 
     async reopen(id, { actor, reason } = {}) {

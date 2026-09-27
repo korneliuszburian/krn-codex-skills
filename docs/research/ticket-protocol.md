@@ -1,7 +1,7 @@
 # Ticket protocol
 
 Status: `accepted`. Consumer: the maintainer, the lane runner, and any worker or
-integrator session. Owner: maintainer. Verified: 2026-09-24.
+integrator session. Owner: maintainer. Verified: 2026-09-27.
 
 ## Decision question
 
@@ -276,6 +276,34 @@ bundle or explicit export carries the queue to a different clone; no network
 write is implied by local commands. Reject the replacement if it does not
 remove duplicate state and public field ceremony. The H2 choice is not a
 performance or cross-machine win.
+
+### Imported proof-bound close after an effect was merged
+
+An imported task with a historical `Contract:` can be `lane=false` yet keep
+`legacyCloseProofRequired=true`. Ordinary `ticket close --reason` remains
+refused, and lane `operation prepare/apply` is reserved for a checked effect
+that has not yet been applied. The retrospective route is restricted to a
+claimed imported non-lane task and full immutable `--base`, authored `--head`
+and currently integrated `--integrated` commit IDs. The existing task-store
+owner replays its declared change contract with the executed `--before` check,
+compares the exact authored `Ticket:` trailer and scope, and runs the deciding
+check in a fresh detached worktree at the integrated SHA. An untracked helper
+in the operator's checkout cannot turn a red committed tree green. Claim epoch
+must still match, then one Git transaction updates **only** the queue ref
+while verifying the current branch ref has not moved. It never re-applies the merged effect or grants a model
+new authority. `task show`/`check` read back the persisted proof and integrated
+anchor; missing historical Cost/Env receipts remain disclosed, not invented.
+
+The focused public CLI observer `test/ticket/imported-proof-close.test.mjs`
+includes an unchanged refusal for prose-only close, an executed candidate
+that closes without moving the target branch, and wrong trailer, contract,
+scope, before-state, epoch, or target negatives. This is proof of the finite
+cooperative task-close path, not adversarial protection from a process that
+can modify this user's Git refs directly, nor authentication of a user intent
+change. Untracked checkout inputs are excluded by the fresh worktree;
+undeclared ignored inputs, host tools and live network responses remain outside
+the input-closure guarantee and require explicit binding or a narrower claim. The final public command name is still governed by the separate
+`krn task` migration; no `krn ticket` alias survives that cutover.
 
 Reopen the operating ABI when a lane needs a field it cannot express, a tracker
 integration rewrites the block, cross-repository work is measured, or the
