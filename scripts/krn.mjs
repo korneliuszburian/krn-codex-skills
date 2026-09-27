@@ -193,6 +193,7 @@ try {
     process.stdout.write(`${usage}\n`);
     process.exit(0);
   }
+  const parsedMemory = raw[0] === "memory" ? parseOptions(raw.slice(1)) : null;
   if (raw[0] === "capability") {
     delegate("scripts/catalog.mjs", raw.slice(1));
   } else if (raw[0] === "repo") {
@@ -213,8 +214,8 @@ try {
     } catch (error) {
       fail(error.message, EXIT_CODES.USAGE);
     }
-  } else if (raw[0] === "lessons" || (raw[0] === "memory" && ["check", "verify", "reanchor"].includes(raw[1]))) {
-    const { positional, options } = parseOptions(raw.slice(1));
+  } else if (raw[0] === "lessons" || (parsedMemory && ["check", "verify", "reanchor"].includes(parsedMemory.positional[0]))) {
+    const { positional, options } = parsedMemory ?? parseOptions(raw.slice(1));
     rejectForeignOptions(options, ["root"]);
     if (!["check", "verify", "reanchor"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
     requireDirectory(options.root);
@@ -301,7 +302,7 @@ try {
     print(verdict, options.json);
     if (!verdict.admitted) process.exitCode = 1;
   } else if (raw[0] === "memory") {
-    const { positional, options } = parseOptions(raw.slice(1));
+    const { positional, options } = parsedMemory;
     if (!["recall", "usage"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);
     requireDirectory(options.root);
     if (positional[0] === "usage") {

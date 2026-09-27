@@ -556,6 +556,11 @@ test("memory owns lesson maintenance while lessons remains a compatible alias", 
       assert.match(readFileSync(page, "utf8"), new RegExp(`alias proof@${latest}`));
       git("restore", "--", "docs/research/workflow-lessons.md");
     }
+
+    // Options before the operation must route to the same public memory command.
+    const optionFirst = spawnSync(process.execPath, [cli, "memory", "--json", "check", "--root", root], { encoding: "utf8" });
+    assert.equal(optionFirst.status, 0, `memory --json check: ${optionFirst.stdout}${optionFirst.stderr}`);
+    assert.equal(JSON.parse(optionFirst.stdout).lessons[0].lesson, "Alias proof");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
