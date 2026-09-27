@@ -37,4 +37,5 @@ Cross-cutting, selected beside a transition; they never own one:
 
 - `target-repo-work` — identity and authority before crossing into another checkout.
 - `typescript-engineering` — sharpens TypeScript work beside implementation, diagnosis, design, or review.
-- `opencode-second-opinion` — explicit non-editing advisory pass over one path; returns prose, never a patch.
+- `make-it-sexy` — user-requested quality disposition beside the current owner; no separate lifecycle or publication authority.
+- `second-opinion` — explicit non-editing advisory pass over one artifact; returns advice, never approval or a patch.

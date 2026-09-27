@@ -1,0 +1,6 @@
+interface:
+  display_name: "Make It Sexy"
+  short_description: "Close scoped quality gaps in accepted work"
+  default_prompt: "Use $make-it-sexy to check this accepted outcome's behavior, standards, proof, docs, simplicity, and real use before calling it finished."
+policy:
+  allow_implicit_invocation: true
