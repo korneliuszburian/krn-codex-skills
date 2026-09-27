@@ -92,19 +92,17 @@ plans remain ephemeral.
    advances `HEAD` even with both skip flags. Do not run without local commit
    authority, and do not substitute `--stealth` for a shared durable tracker.
 
-   When the KRN local queue is the selected tracker, `apply` scaffolds it
-   directly rather than through a separate tool. `--tracker local` creates
-   `.krn/tickets/` with a queue README that names the `<krn-ticket>` ABI and
-   the `krn ticket check|next|claim|close|fail` verbs, and appends
-   `.krn/tickets/` to `.git/info/exclude` without rewriting existing entries
-   or other unowned directories; `--tracker none` stays scaffolding-free. Operate the
-   queue from the repository root: `ticket check` validates envelopes, blockers,
-   cycles, statuses, scope, and orphans; `ticket next` prints the unblocked ready
-   frontier; `ticket claim` records the worker and lease before any edit;
-   `ticket close` records evidence and resolution at the fixed point; and
-   `ticket fail` records a rejected attempt signature. Keep one writer and at
-   most one implementation item in progress, and resolve separate tracker-write
-   authority before the first mutation.
+   **Local Git-ref queue:** `krn repo apply --tracker local` initializes the
+   selected `refs/krn/queue` in a new, empty Git worktree root. It keeps the
+   initialization receipt under excluded `.krn/migrations/` and never creates a
+   second Markdown queue. An existing `.krn/tickets/` or claim directory,
+   unselected ref, invalid selector, or nongit root refuses before adopting the
+   tracker; import existing work only through the queue owner's explicit
+   reviewed migration. `--tracker none` stays queue-free. Operate the selected
+   queue with `krn task check|next|claim|close|fail --root .` and the required
+   worker, actor and claim-epoch fields; read back the Git-ref state. Keep one
+   writer and one implementation item at most; tracker-write authority is
+   separate from setup's own instruction edits.
 
    After any selected tracker initialization — or immediately when no tracker
    is configured or the existing tracker needs none — apply the resolved

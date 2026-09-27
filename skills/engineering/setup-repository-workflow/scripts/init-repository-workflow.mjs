@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
+import { openTaskStore, readActiveTaskStoreSnapshot } from "../../../../scripts/lib/ticket/task-store.mjs";
 
 const START = "<!-- krn-agent-workflow:start -->";
 const END = "<!-- krn-agent-workflow:end -->";
@@ -10,8 +11,9 @@ const TRACKERS = new Set(["none", "beads", "github", "gitlab", "local"]);
 const DOMAINS = new Set(["single", "multi"]);
 const DELIVERY = new Set(["local", "strict"]);
 const QUEUE_DIR = join(".krn", "tickets");
-const QUEUE_README = join(QUEUE_DIR, "README.md");
-const EXCLUDE_ENTRY = ".krn/tickets/";
+const ARCHIVE_DIR = join(".krn", "migrations");
+const ARCHIVE_FILE = join(ARCHIVE_DIR, "setup-empty.json");
+const EXCLUDE_ENTRY = ".krn/migrations/";
 
 function fail(message) {
   process.stderr.write(`repository-workflow: ${message}\n`);
@@ -147,6 +149,15 @@ function inspect(root) {
       managedContract = false;
     }
   }
+  let selectedQueue = false;
+  let selectedQueueError;
+  try {
+    const active = readActiveTaskStoreSnapshot(root);
+    selectedQueue = Boolean(active && active.errors.length === 0);
+    if (active?.errors.length) selectedQueueError = active.errors.join("; ");
+  } catch (error) {
+    selectedQueueError = error.message;
+  }
   return {
     root,
     head: git(root, ["rev-parse", "HEAD"]),
@@ -158,6 +169,8 @@ function inspect(root) {
     trackerSignals: {
       beads: existsSync(join(root, ".beads")),
       localMarkdown: existsSync(join(root, QUEUE_DIR)),
+      gitRef: selectedQueue,
+      ...(selectedQueueError ? { gitRefError: selectedQueueError } : {}),
     },
     domainSuggestion: monorepo ? "multi" : "single",
     managedRuns: existsSync(join(root, ".krn", "runs")),
@@ -182,7 +195,7 @@ function trackerSummary(tracker) {
   if (tracker === "gitlab") {
     return `GitLab issues own durable task state through \`glab issue create|update|view|list|close\` inside this clone. This thin setup is not a complete Wayfinder adapter: \`$wayfinder\` must stop unless closer repository instructions define ${requiredAdapter}. Resolve separate tracker-write authority before any mutation. Keep at most one implementation item active.`;
   }
-  return "The KRN local ticket queue under `.krn/tickets/` owns durable task state: one `<krn-ticket>` ABI file per work item, ordered by dependency edges. Scaffold it with `krn repo apply --tracker local`, then operate it with `krn ticket check --root .` to validate envelopes, blockers, cycles, statuses, scope, and orphans, `krn ticket next --root .` to print the unblocked ready frontier, `krn ticket claim --root . --id <id>` to record `Claim:` and `Status: claimed` before any edit, `krn ticket close --root . --id <id>` to record `Evidence:` and `Resolution:` at the fixed point, and `krn ticket fail --root . --id <id> --reason <text>` to record a rejected attempt signature. Keep one writer and at most one implementation item in progress, and resolve separate tracker-write authority before any mutation.";
+  return "The selected local Git-ref queue owns task state and dependencies. `krn repo apply --tracker local` initializes it only in a new empty Git worktree; an existing Markdown queue requires an explicit reviewed migration, never silent import. Use `krn task check --root .` for validation, `krn task next --root .` for the ready frontier, and `krn task claim|close|fail --root . --id <id>` with the required worker, actor and claim generation. Keep one writer and at most one implementation item active; resolve tracker-write authority before mutation.";
 }
 
 function domainSummary(domain) {
@@ -296,42 +309,26 @@ function bootstrapLessonsIfAbsent(root) {
   return [LESSONS_PATH];
 }
 
-// The local KRN queue is a scaffolded working tree under .krn, not a committed
-// artifact: seed its README only when absent and add its exact exclude entry
-// only when missing. Unowned repository content is never inspected or rewritten.
-function queueReadmeTemplate() {
-  return [
-    "# Ticket queue",
-    "",
-    "This directory is this repository's local KRN ticket queue: one `<krn-ticket>`",
-    "ABI envelope per file, ordered by dependency edges, never a combined backlog.",
-    "The block is parsed as `Key: value` lines (`Id:`, `Title:`, `Status:`, `Type:`,",
-    "`Repository-base:`, `Scope:`, `Deciding check:`, `Contract:`, `Acceptance:`,",
-    "`Blocked by:`, `Recall:`, `Execution:`, plus the `Claim:`, `Evidence:`,",
-    "`Non-proofs:`, and `Resolution:` lifecycle fields).",
-    "",
-    "Operate the queue with the `krn ticket` verbs from the repository root:",
-    "",
-    "- `krn ticket check --root .` validates envelopes, blockers, cycles, statuses, scope, and orphans.",
-    "- `krn ticket next --root .` prints the unblocked ready frontier.",
-    "- `krn ticket claim --root . --id <id>` records `Claim:` and `Status: claimed` before any work.",
-    "- `krn ticket close --root . --id <id>` records `Evidence:` and `Resolution:` at the fixed point.",
-    "- `krn ticket fail --root . --id <id> --reason <text>` records a rejected attempt signature.",
-    "",
-    "Keep one writer and at most one implementation item in progress; pick from the",
-    "frontier instead of re-reading every file. This directory is git-excluded",
-    "working state, so durable history stays in commits.",
-    "",
-  ].join("\n");
-}
-
+// Existing Markdown state is foreign until an operator explicitly imports it.
+// Fresh setup only activates the selected Git-ref queue through its owning
+// migration transaction; no second Markdown queue or private backup is tracked.
 function assertLocalQueueSafe(root) {
-  for (const path of [join(root, ".krn"), join(root, QUEUE_DIR)]) {
+  const top = git(root, ["rev-parse", "--show-toplevel"]);
+  if (!top || realpathSync(top) !== realpathSync(root)) fail("local task setup requires the Git worktree root");
+  for (const path of [join(root, ".krn"), join(root, QUEUE_DIR), join(root, ARCHIVE_DIR)]) {
     const stat = safeLstat(path);
-    if (stat && !stat.isDirectory()) {
-      fail(`local queue path is not a directory: ${relative(root, path)}`);
-    }
+    if (stat && !stat.isDirectory()) fail(`local queue path is not a directory: ${relative(root, path)}`);
   }
+  let active;
+  try { active = readActiveTaskStoreSnapshot(root); } catch (error) { fail(`cannot read selected Git-ref queue: ${error.message}`); }
+  if (active?.errors.length) fail(`selected Git-ref queue is invalid: ${active.errors.join("; ")}`);
+  if (!active && git(root, ["rev-parse", "--verify", "--quiet", "refs/krn/queue"])) {
+    fail("unselected Git-ref queue requires inspection before setup");
+  }
+  if (!active && (safeLstat(join(root, QUEUE_DIR)) || safeLstat(join(root, ".krn", "claims")))) {
+    fail("existing Markdown tasks require explicit reviewed migration before local setup");
+  }
+  return Boolean(active);
 }
 
 function gitExcludePath(root) {
@@ -352,18 +349,21 @@ function ensureGitExclude(root) {
   return target;
 }
 
-function scaffoldLocalQueue(root) {
-  const tickets = join(root, QUEUE_DIR);
-  mkdirSync(tickets, { recursive: true });
-  const created = [];
-  const readme = join(root, QUEUE_README);
-  if (!safeLstat(readme)) {
-    writeFileSync(readme, queueReadmeTemplate(), { flag: "wx" });
-    created.push(QUEUE_README);
-  }
+async function initializeLocalQueue(root, alreadySelected) {
   const excluded = ensureGitExclude(root);
-  if (excluded) created.push(relative(root, excluded));
-  return created;
+  if (alreadySelected) return excluded ? [relative(root, excluded)] : [];
+  mkdirSync(join(root, ARCHIVE_DIR), { recursive: true });
+  let result;
+  try {
+    result = await openTaskStore(root).migrateLegacyQueue({
+      apply: true, archiveFile: join(root, ARCHIVE_FILE), requireEmpty: true,
+      actor: "setup-repository-workflow", reason: "Initialize a new empty selected Git-ref queue",
+    });
+  } catch (error) { fail(error.message); }
+  return [
+    ...(excluded ? [relative(root, excluded)] : []),
+    ...(result.status === "migrated" ? [ARCHIVE_FILE, "refs/krn/queue", "refs/krn/queue-active"] : []),
+  ];
 }
 
 // The skill owns the repo brief: when no instruction owner exists, seed a thin
@@ -411,17 +411,17 @@ for (const [path, contents] of managedFiles) assertManagedFileSafe(root, path, c
 
 const lessonsTarget = join(root, LESSONS_PATH);
 if (!safeLstat(lessonsTarget)) assertManagedFileSafe(root, lessonsTarget, lessonsTemplate());
+const queueSelected = tracker === "local" ? assertLocalQueueSafe(root) : false;
 const bootstrapped = bootstrapInstructionIfAbsent(root);
 const lessonsBootstrapped = bootstrapLessonsIfAbsent(root);
 const instructionPath = chooseInstruction(root, options.instruction);
 assertInstructionSafe(root, instructionPath);
-if (tracker === "local") assertLocalQueueSafe(root);
 const current = readFileSync(instructionPath, "utf8");
 const next = replaceManagedBlock(current, managedBlock(tracker, domain, delivery));
+const queueScaffolded = tracker === "local" ? await initializeLocalQueue(root, queueSelected) : [];
 
 writeOwned(instructionPath, next);
 for (const [path, contents] of managedFiles) writeOwned(path, contents);
-const queueScaffolded = tracker === "local" ? scaffoldLocalQueue(root) : [];
 
 const written = [...new Set([
   ...bootstrapped,

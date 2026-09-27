@@ -707,9 +707,9 @@ export function openTaskStore(root) {
       };
     },
 
-    async migrateLegacyQueue({ apply = false, archiveFile, actor, reason, claimSessionResolutions = [] } = {}) {
+    async migrateLegacyQueue({ apply = false, archiveFile, actor, reason, claimSessionResolutions = [], requireEmpty = false } = {}) {
       if (fs.realpathSync(root) !== fs.realpathSync(repo)) throw new Error("migration requires the Git worktree root, not a nested directory");
-      if (typeof apply !== "boolean") throw new Error("migration apply must be boolean");
+      if (typeof apply !== "boolean" || typeof requireEmpty !== "boolean") throw new Error("migration apply and requireEmpty must be boolean");
       if (apply && (typeof archiveFile !== "string" || !archiveFile.trim()
         || typeof actor !== "string" || !hasActionableReason(actor)
         || typeof reason !== "string" || !hasActionableReason(reason))) {
@@ -725,6 +725,9 @@ export function openTaskStore(root) {
         if (readRef(repo, QUEUE_REF)) throw new Error("an unselected task store already exists; inspect it before migration");
         const prepared = taskImport.prepareLegacyQueueImport(repo);
         const tasks = Object.keys(prepared.state.tasks).length;
+        if (requireEmpty && (tasks > 0 || prepared.report.archivePaths.length > 0)) {
+          throw new Error("existing Markdown tasks require explicit reviewed migration");
+        }
         if (!apply) return { status: "planned", tasks, report: prepared.report };
         const next = importedState(prepared, { claimSessionResolutions }, taskImport);
         const backup = migrationArchive(repo, archiveFile, prepared.archive);
