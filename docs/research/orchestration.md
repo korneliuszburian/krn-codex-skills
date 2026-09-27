@@ -1032,10 +1032,22 @@ omitted obligation active unless an authorized, overlapping replace or revoke
 says otherwise; only a request format explicitly declared as a complete
 authoritative snapshot changes that default. At base `7acc1d4`,
 `scripts/harness/trajectory-runner.mjs` deactivates each ID in `step.retires`
-without checking authority. sh-167 must accept gold preserve/replace/revoke
-cases and reject the same candidate code when only retirement authority
-changes. This falsifier is designed, not run. A code diff alone cannot decide
-whether a change of requirement was authorized.
+without checking authority. On the later pinned `2bd5619` base, the frozen
+`test/harness/intent-transition-oracle.test.mjs` public observer executed five
+passing controls and nine **assertion** failures: unscoped, malformed,
+ambiguous or duplicate-identity retirement, two independent semantic mutants
+and a later loss after replacement. No setup/load error was counted as RED.
+On the local candidate the same 14 cases are GREEN:
+`step.retires` now needs a caller-curated, scoped `step.intent` delta with an
+explicit revoke or a replacement that keeps its executable mapping check live.
+Absent intent preserves old obligations; unsupported complete-snapshot
+semantics refuse scoring instead of guessing. The agent receives the step
+prompt/ID and workspace metadata, not held checks or the intent field. The
+source label comes from the *fixture writer*; neither its spelling nor a model verdict authenticates the real user.
+Gold and mutants qualify this finite instrument, not initial intent coverage,
+universal semantic implication, model uplift, or authority outside a curated
+fixture. A real authoritative request still needs an independent host/source
+readback before any sh-168 treatment comparison.
 
 [Impact Is Not Invalidation v1](https://arxiv.org/abs/2609.25130v1)
 corroborates asking whether a *specific claim* survives a change rather than
