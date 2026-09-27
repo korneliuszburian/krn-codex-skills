@@ -82,14 +82,9 @@ test("local tracker scaffolds the ticket queue, names the ABI, and git-excludes 
     const result = apply(root, "local");
     assert.equal(result.status, 0, result.output);
     const archive = join(root, ".krn", "migrations", "setup-empty.json");
-    assert.ok(existsSync(archive), "the queue owner retains its empty initialization receipt");
-    assert.deepEqual(JSON.parse(readFileSync(archive, "utf8")).entries, []);
+    assert.ok(existsSync(archive), "the queue owner retains its initialization receipt");
     assert.equal(spawnSync("git", ["-C", root, "check-ignore", "-q", archive]).status, 0, "the receipt is private host state");
     assert.ok(excludeLines(root).includes(".krn/migrations/"));
-    const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
-    assert.match(agents, /\*\*Tracker:\*\*[^\n]*selected local Git-ref queue/);
-    assert.match(agents, /\*\*Tracker:\*\*[^\n]*krn task check --root \./);
-    assert.doesNotMatch(agents, /krn ticket/);
     const created = spawnSync(process.execPath, [krn, "task", "add", "--root", root, "--title", "ABI readback", "--json"], { encoding: "utf8" });
     assert.equal(created.status, 0, created.stderr);
     const id = JSON.parse(created.stdout).id;
@@ -97,6 +92,19 @@ test("local tracker scaffolds the ticket queue, names the ABI, and git-excludes 
     assert.equal(fields.status, 0, fields.stderr);
     assert.equal(JSON.parse(fields.stdout).Id, id);
     assert.equal(JSON.parse(fields.stdout).Status, "open");
+  });
+});
+
+test("local setup retains an excluded migration receipt and advertises only selected task commands", () => {
+  withRepo((root) => {
+    const result = apply(root, "local");
+    assert.equal(result.status, 0, result.output);
+    const archive = join(root, ".krn", "migrations", "setup-empty.json");
+    assert.deepEqual(JSON.parse(readFileSync(archive, "utf8")).entries, [], "setup archives no pre-existing tasks");
+    const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
+    assert.match(agents, /\*\*Tracker:\*\*[^\n]*selected local Git-ref queue/);
+    assert.match(agents, /\*\*Tracker:\*\*[^\n]*krn task check --root \./);
+    assert.doesNotMatch(agents, /krn ticket/);
   });
 });
 
@@ -123,9 +131,21 @@ test("local apply preserves a foreign queue README", () => {
     writeFileSync(readme, "# operator queue\n");
     const result = apply(root, "local");
     assert.equal(result.status, 64, result.output);
-    assert.match(result.output, /explicit reviewed migration/);
     assert.equal(readFileSync(readme, "utf8"), "# operator queue\n");
     assert.notEqual(spawnSync("git", ["-C", root, "rev-parse", "--verify", "--quiet", "refs/krn/queue-active"]).status, 0);
+  });
+});
+
+test("local apply preserves a foreign queue README by refusing implicit import", () => {
+  withRepo((root) => {
+    mkdirSync(join(root, ".krn", "tickets"), { recursive: true });
+    writeFileSync(join(root, ".krn", "tickets", "README.md"), "# operator queue\n");
+    const original = readFileSync(join(root, "AGENTS.md"));
+    const result = apply(root, "local");
+    assert.equal(result.status, 64, result.output);
+    assert.match(result.output, /existing Markdown tasks require explicit reviewed migration/);
+    assert.deepEqual(readFileSync(join(root, "AGENTS.md")), original, "refusal must precede instruction writes");
+    assert.equal(existsSync(join(root, ".krn", "migrations", "setup-empty.json")), false);
   });
 });
 
