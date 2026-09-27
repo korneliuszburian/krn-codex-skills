@@ -109,8 +109,9 @@ subagent-cost trials against unchanged/native controls before claiming lift.
   provisional policy for a caller that supplies its own evidence.
 - **Seam**: the **verifier** is injected; the deterministic command adapter
   executes, while the different-family adapter still trusts its caller's label.
-- **Depth**: the CLI is the only end-to-end consumer. Commit, task close, review,
-  and handoff have separate sources of truth; do not wire them in speculatively.
+- **Depth**: the CLI admits only `commit` and is the sole end-to-end consumer.
+  Task close, review, and handoff have separate sources of truth; until their
+  own proofs exist, even a passing command cannot admit those kinds.
 - **Brief**: a projection of the claim for a subagent, not a second artifact.
 
 ## The falsifier

@@ -116,6 +116,7 @@ export function escalationGate({ current, proposed, failure } = {}) {
 // One CLI seam owns the whole observation. No other caller inherits Git or
 // executed-RED guarantees merely by invoking gateTransition directly.
 export function checkGateCommand({ root, kind, fixedPoint: requested, base: requestedBase, falsifier, waiverReason, waiverResolves, env }) {
+  if (kind !== "commit") return refuse("gate check supports only commit transitions; other engines own their own proof");
   const resolveCommit = (ref) => {
     const found = runGit(root, ["rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`]);
     return found.ok && /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/.test(found.out) ? found.out : null;
