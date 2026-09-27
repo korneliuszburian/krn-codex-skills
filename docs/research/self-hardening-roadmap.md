@@ -1,15 +1,19 @@
 # Self-hardening research and delivery roadmap
 
 Status: `accepted`. Consumer: the maintainer resuming self-hardening.
-Owner: maintainer. Verified: 2026-09-23.
+Owner: maintainer. Verified: 2026-09-27.
 
 This page owns the bounded plan and its decision dependencies. The configured
-local queue owns ticket status and claims; [orchestration.md](orchestration.md)
-owns research mechanisms, [capabilities](../capabilities.md) owns capability
-policy, and the outcome capsule owns current operational state. This is not a
-second queue or a claim that the planned mechanisms work.
+Git-ref queue owns task status and claims; [orchestration.md](orchestration.md)
+owns research mechanisms, [product-architecture.md](product-architecture.md)
+owns target interfaces and invariants, [capabilities](../capabilities.md)
+owns capability policy, and the outcome capsule owns current operational
+state. This is not a second queue or a claim that a planned mechanism works.
+Historical phases below retain their dated evidence; the
+[current target delivery graph](#current-target-delivery-graph) supersedes their
+old sequencing, not the result of a completed task.
 
-## Current decision and execution boundary
+## Historical 2026-09-23 decision and execution boundary
 
 The user resumed local stabilization on 2026-09-23 and explicitly requested
 read-only Luna workers. sh-171 repaired PreCompact's event output contract;
@@ -22,7 +26,7 @@ capability owner records availability, while
 prompts and source snapshots remain outside Git under the research curation
 contract.
 
-## Product completion order: memory, then tasks
+## Historical product completion order: sh-174, then sh-175
 
 The 2026-09-23 operator priority is sequential: finish the memory product
 before selecting or cutting over the replacement task store. These are two
@@ -108,16 +112,63 @@ capabilities; the raw reports remain outside Git.
 | sh-174 | Decide the smallest complete memory product and retire or justify each current surface | current ADR 0001/0006 boundaries and sh-170 coverage are input; no task backend dependency | owner/consumer/retirement map, current-versus-native baseline, one real continuation and one stale-knowledge counterexample, full context cost, and an explicit retained reference contract or no-link decision |
 | sh-175 | Deliver the human task product and replace the operating queue once | sh-174 must settle what a task may reference and which memory owner resolves it | full operator flow, shared-worktree claim and recovery, import/rollback and all-reader cutover; one live store and no duplicated claim or lesson state |
 
-The active product edge is sh-174 → sh-175, one phase at a time. The separate
-research edges are sh-167 + sh-165 → sh-168 → sh-163. sh-171 is done;
-sh-172 is integrated; sh-166 owns the installed release. sh-169's capsule
-writing question informs sh-174 without becoming a second memory writer.
+That sh-174 → sh-175 edge was the 2026-09-23 priority. Both task records now
+report `done`; their achieved import and retirement evidence stays in the queue
+and [ticket-protocol.md](ticket-protocol.md), not in a fresh planning claim.
+The research edges sh-167 + sh-165 → sh-168 → sh-163 remain. sh-160 keeps its
+operator gate; a measured Laya-guard loss did not earn another default model.
+Task resolution, not this paragraph, controls eligibility.
 
-Earlier queue work is preserved: sh-156 and sh-159 are done; sh-157 and sh-158
-were superseded by sh-161/162/163. sh-162 is preserved and sh-165 is its compliant
-publication successor. sh-160 keeps its operator gate; the measured Laya guard
-loss does not justify another model integration. Ticket resolution, not this
-paragraph, controls execution eligibility.
+## Current target delivery graph
+
+At clean main `d260bcbd` (2026-09-27), PRs #246/#247 are merged and their
+branches retired; the installed sealed release remains `6f50e815`. The
+Git-ref queue readback has 101 tasks, 77 warnings, no errors: `sh-167` and
+`sh-180` are both `claimed` by the sole integrator, but only `sh-180` is
+being implemented. An executed public `sh-167` close exited 64 because an
+imported Contract requires an operation readback while `operation prepare`
+admits only lane tasks; its patch is integrated, its queue state is **not done**.
+`sh-169` is `ready`, yet its valid agent-authored/native-Goal/revoked-task
+pilot and authentic Codex hook trust are still missing. `sh-165` remains
+`deferred`; the live queue decides all published statuses. The earlier
+research branch's two uncommitted files remain untouched.
+
+The current Goal is one outcome and Sol is the sole writing integrator. The
+operator selected `krn task` as the final public name **without a `krn ticket`
+alias**. Astra handles bounded read-only architecture questions; Luna through
+`openai-codex` and DeepSeek v4.1 Flash handle pinned read-only work until a
+separate writing-worker isolation and cost trial earns any expansion. Herdr
+shows panes and host agent state, not authoritative queue or completion state.
+Publication of new task records is a separate, read-back transition. The
+staged units below do not assert that proposed commands, adapters or storage
+fields already exist. A research or experiment unit is not mislabelled as an
+implementation-ready ticket. Dependencies are load-bearing; a conditional
+unit stays deferred until its named failure is observed.
+
+| Unit / type / owner | Prerequisite and result that can disagree |
+|---|---|
+| D0 — `sh-180`, repair, ticket CLI owner | Claimed and being worked now. An imported proof-gated non-lane task can close **after** a verified merged effect via the public command and queue/ref readback, while a forged receipt, wrong trailer/contract/scope, stale claim or moved target refuses without writing `done`. No bypass or second effect ref. Then resolve `sh-167` with its actual limited, fixture-scoped evidence; real-user authentication remains open. |
+| D1 — `krn task` public cutover, migration, task owner | D0. Expand only inside the candidate: one canonical Git-ref queue and current readers remain valid. Migrate live CLI, hooks, skills, scripts, tests, instructions, help, install links and change trailers with frozen positive/negative controls. Contract only after no live `ticket` caller remains: shipped `krn ticket` refuses as an old command, not an alias. Preserve historical commit trailers and stable task IDs; prove lossless export/restore and rollback before deleting the old command. |
+| D2 — Pi/host first-message readback, instrument, `$delivery-loop` | Read-only discovery can start before D1; production command/hook cutover waits for D1. A fresh supported Pi session reads its actual branch-local Pi-Agent-Goal state and project instructions; a fresh Codex session loads the trusted capsule hook; disabled treatment still works natively. Pi Goal 2026.7.18 peer range `<0.81` against host0.87 needs a live compatibility check. The operator, not `install check`, witnesses `/hooks` trust. |
+| D3 — user-authority ingress, decision then implementation, task/host owner | D1 plus one genuine host/operator source identified in D2. Record scoped preserve/replace/revoke against an expected intent revision by CAS, refuse forged/missing source and maintain omissions by default; no agent text approves itself. If the host cannot surface an authenticated event, use a deliberate operator confirmation, not an invented `source` label. |
+| D4 — `sh-169`, blinded *experiment*, `$delivery-loop` | D2 + D3, and one authentic post-checkpoint task authority transition. Compare native Goal/live task+repo, agent-written capsule and matched excerpt at one model/tool/window with frozen hidden independent scoring; count writing, reading, retries, regression and total cost. One case screens only. A saturated or invalid control stops promotion. |
+| D5 — next-decision frame, *conditional* prototype then implementation, state/task owner | Only a concrete native failure in D4. First manually construct and falsify the smallest bounded source/obligation/evidence view against direct live reading. Add a stateless read interface only if a current owner and second real caller use it and a paired downstream decision improves at counted cost. Otherwise reject this runtime mechanism; never create a second authoritative store. |
+| D6 — targeted recall/index, *conditional* experiment, maintainer | Repeated decision-relevant source misses after D4/D5 and link/lexical repair. Compare task-grounded complete evidence against live map+Git+grep; introduce only a rebuildable FTS index if accuracy and whole-workflow cost justify it. No automatic task-comment-to-lesson promotion, vector DB or graph by popularity. |
+| D7a — `sh-165`, deferred design/implementation decision, trajectory owner | Source `sh-161` is done but this task is deferred. Preserve its historical candidate evidence, qualify hidden inputs and exact proof reuse before changing its status; no automatic un-defer from a green unrelated gate. |
+| D7b — `sh-168`, preregistered causal experiment, trajectory owner | **Both** `sh-167` honestly resolved and D7a's sh-165 candidate valid. Identical ordinary-regression feedback for G and B; gold legal replacement and semantic mutants first; report false blocks, recovery, complete tokens and wall. Stop if G matches B at lower cost. |
+| D7c — `sh-163`, conditional scale experiment, maintainer | D7b informative. Keep its three-arm 24-matched-trajectory criterion, separate regression-only control, positive paired bounds and existing separate ≤1.25× token and wall gates; insufficient power remains inconclusive. |
+| D8 — Pi/Herdr worker transport, *read-only lab-test*, host owner | D2 for final UI, though disposable read-only probes may run now. Pin Sol owner; child Luna/DeepSeek model, SHA, narrow files, tools, deadline, cancellation and total usage; Herdr reports pane status only. Negative: 429, missing `agent_settled`, process-tree survivor or out-of-scope access fails. Writing workers need a separately passed OS-isolation and accepted-repair throughput trial. |
+| D9 — transfer, real catch and cost, outcome *measurement*, Goal integrator | Valid D4 or D5 intervention plus qualified oracle. One different-shaped repository, a native-failing case, a real defect native would ship, false blocks and child/integrator cost. A green gate or N=1 comparison does not establish product superiority. |
+| D10 — release and rollback, installer/host owner | Each landed slice gets focused/owning checks, validate, audit, diff, clean full gate, independent review, authorized merge and branch retirement. At a settled fixed point seal/install, exercise rollback to verified previous release, and observe fresh host loading; never infer hook trust or Pi continuation from filesystem equality. |
+| D11 — repository hygiene, audit owner | **After** the measurement decision. Test-audit one subsystem at a time with R/F/C/D, keeper and mutant; correct only receipt-backed warning classes, preserve the foreign WIP and defer F repairs without their transcript. Report null benefit and retire unearned surfaces rather than manufacture a breakthrough. |
+
+The source-backed target interfaces, memory planes, chosen local storage and
+failure/scale matrix live only in [product-architecture.md](product-architecture.md).
+An external source does not authorize an implementation; this graph is consumed
+one uncertainty at a time, and `$slice-work` publishes only settled units with
+a named falsifier and real status readback. If native controls saturate or win,
+D5/D6/D7c and writing-worker machinery remain unbuilt or are removed. No
+roadmap row can close the active Goal by itself.
 
 ## Coverage of the whole repository
 
