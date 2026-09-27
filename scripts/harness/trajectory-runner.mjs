@@ -8,8 +8,12 @@
 // only for scoring, so the agent can never read or rewrite its own evaluator.
 //
 // Payload on stdin (one JSON object), one JSON result line on stdout:
-//   { task: { id, workspace, hidden, steps: [{ id, prompt, check, retires }] },
-//     lane, enabled, root }
+//   { task: { id, workspace, hidden, steps: [{ id, prompt, check, retires,
+//       intent?: { source, mode: "delta", scope: [priorId],
+//         dispositions: [{ id: priorId, action: "revoke" | "replace",
+//           mappingCheck?: command }] } }] }, lane, enabled, root }
+// Intent is curated by the evaluator caller, not inferred from agent output.
+// Its source label does not authenticate the real user who issued a request.
 // The agent command comes from KRN_HARNESS_AGENT and receives the same JSON
 // envelope the lane runner uses, plus the current `step`.
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
@@ -85,6 +89,37 @@ function main() {
     const stepResults = [];
     for (const [index, step] of steps.entries()) {
       const started = Date.now();
+      const id = typeof step.id === "string" && step.id.trim() ? step.id.trim() : `step-${index + 1}`;
+      if (obligations.some((entry) => entry.id === id)) refuse("duplicate-step-id", id);
+      const retiredIds = stringList(step.retires);
+      if (step.retires !== undefined
+        && (!Array.isArray(step.retires) || step.retires.length !== retiredIds.length)) {
+        refuse("retirement-without-authority", "malformed retires");
+      }
+      const dispositions = step.intent?.dispositions;
+      let retirements = [];
+      if (retiredIds.length || step.intent !== undefined) {
+        const intent = step.intent;
+        if (!intent || typeof intent !== "object" || typeof intent.source !== "string" || !intent.source.trim()
+          || intent.mode !== "delta" || !Array.isArray(intent.scope)
+          || !Array.isArray(dispositions) || intent.scope.length !== stringList(intent.scope).length
+          || dispositions.length !== retiredIds.length || new Set(retiredIds).size !== retiredIds.length) {
+          refuse("retirement-without-authority", String(step.id ?? index + 1));
+        }
+        const scoped = new Set(intent.scope);
+        if (scoped.size !== intent.scope.length) refuse("retirement-without-authority", "duplicate scope");
+        retirements = retiredIds.map((id) => {
+          const target = obligations.find((entry) => entry.id === id && entry.active);
+          const grants = dispositions.filter((entry) => entry?.id === id);
+          if (!target || !scoped.has(id) || grants.length !== 1
+            || !["revoke", "replace"].includes(grants[0].action)
+            || (grants[0].action === "replace"
+              && (typeof grants[0].mappingCheck !== "string" || !grants[0].mappingCheck.trim()))) {
+            refuse("retirement-without-authority", id);
+          }
+          return { target, grant: grants[0] };
+        });
+      }
       const agentRun = runProcess("sh", ["-c", agent], {
         cwd: disposable,
         input: JSON.stringify({
@@ -102,13 +137,12 @@ function main() {
       const check = typeof step.check === "string" ? step.check.trim() : "";
       if (!check) refuse("missing-check", `${task.id ?? "task"}/${step.id ?? index + 1}`);
       const ownChecked = runProcess("sh", ["-c", check], { cwd: disposable });
-      const id = typeof step.id === "string" && step.id.trim() ? step.id.trim() : `step-${index + 1}`;
       const ownPass = invalid === null && ownChecked.ok;
-      // A step may legitimately retire an earlier obligation (a planned
-      // supersession); everything not retired keeps applying.
-      for (const retired of stringList(step.retires)) {
-        const target = obligations.find((entry) => entry.id === retired);
-        if (target) target.active = false;
+      // A scoped revocation removes an obligation; a replacement must keep a
+      // caller-authored executable mapping live for this and later steps.
+      for (const { target, grant } of retirements) {
+        if (grant.action === "revoke") target.active = false;
+        else target.check = grant.mappingCheck.trim();
       }
       const obligation = { id, check, active: ownPass };
       obligations.push(obligation);
