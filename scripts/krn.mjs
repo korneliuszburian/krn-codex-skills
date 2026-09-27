@@ -5,7 +5,7 @@ import path from "node:path";
 import { posixRelative } from "./lib/support/path-rules.mjs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { runProcess, spawnInherit } from "./lib/kernel/proc.mjs";
+import { spawnInherit } from "./lib/kernel/proc.mjs";
 import { applyInstall, createInstallPlan, inspectInstall, pruneReleases, sealCurrentRelease } from "./lib/install/install-release.mjs";
 import { runStateCommand } from "./lib/state/state-cli.mjs";
 import { checkSkills, exportSkills } from "./lib/install/skills-export.mjs";
@@ -15,8 +15,7 @@ import { parseCliArgs } from "./lib/kernel/cli.mjs";
 import { runGit } from "./lib/kernel/git.mjs";
 import { reanchorLessons, verifyLessons } from "./lib/lessons/lessons-verify.mjs";
 import { checkChangeContract, contractGuardActive } from "./lib/contract/change-contract.mjs";
-import { commandVerifier, gateTransition } from "./lib/contract/gated-transition.mjs";
-import { withWorktree } from "./lib/kernel/worktree.mjs";
+import { checkGateCommand } from "./lib/contract/gated-transition.mjs";
 import { caseIds, loadCases, runConformance } from "./lib/conformance/conformance.mjs";
 import { EXIT_CODES, fail as baseFail } from "./lib/support/diagnostics.mjs";
 import { runTicketCommand } from "./lib/ticket/ticket-cli.mjs";
@@ -44,7 +43,7 @@ const usage = `Usage:
   krn skills <export|check> --root DIR [--upstream PATH] [--json]
   krn lessons <check|verify|reanchor> --root DIR [--json]  (compatibility alias)
   krn changes check --base REF [--head REF] --root DIR [--before] [--strict-recall | --recall-obligation] [--json]
-  krn gate check --root DIR --kind KIND --fixed-point SHA --falsifier CMD [--base REF] [--waiver-reason TEXT --waiver-resolves ANCHOR[,ANCHOR]] [--json]
+  krn gate check --root DIR --kind KIND --fixed-point SHA --falsifier CMD [--base REF] [--json]  (waivers unsupported)
   krn conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
   krn memory <recall|usage|check|verify|reanchor> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
   krn ticket <add|list|check|next|ready|claim|renew|comment|close|reopen|release|takeover|edit|fail|reconcile> --root DIR [options]
@@ -280,25 +279,7 @@ try {
     rejectForeignOptions(options, ["root", "kind", "fixedPoint", "falsifier", "base", "waiverReason", "waiverResolves"]);
     if (positional[0] !== "check" || positional.length > 1 || options.source || options.yes || !options.root || !options.kind || !options.fixedPoint || !options.falsifier) fail(usage);
     requireDirectory(options.root);
-    const falsifierRun = (cwd) => {
-      const result = runProcess("bash", ["-lc", options.falsifier], { cwd, timeout: 600000, env: falsifierEnv() });
-      return { ok: result.ok, status: result.status ?? -1 };
-    };
-    // The red base state is observed, not asserted: the falsifier runs in a
-    // detached worktree at --base, then in the working tree as the head.
-    let before = { red: false, evidence: "no --base ref provided; the red base is unobserved" };
-    if (options.base) {
-      const baseOutcome = withWorktree({ root: options.root, ref: options.base, git: runGit }, (dir) => falsifierRun(dir));
-      before = baseOutcome && !baseOutcome.ok
-        ? { red: true, evidence: `exit ${baseOutcome.status} at ${options.base}` }
-        : { red: false, evidence: `exit ${baseOutcome?.status ?? "unknown"} at ${options.base}` };
-    }
-    const claim = { falsifier: options.falsifier, before };
-    if (options.waiverReason) {
-      claim.waiver = { reason: options.waiverReason, resolves: (options.waiverResolves ?? "").split(",").map((entry) => entry.trim()).filter(Boolean) };
-    }
-    const verifier = commandVerifier({ run: (command, { cwd }) => runProcess("bash", ["-lc", command], { cwd, timeout: 600000, env: falsifierEnv() }), cwd: options.root });
-    const verdict = gateTransition({ transition: { kind: options.kind, fixedPoint: options.fixedPoint }, claim, verifier });
+    const verdict = checkGateCommand({ ...options, env: falsifierEnv() });
     print(verdict, options.json);
     if (!verdict.admitted) process.exitCode = 1;
   } else if (raw[0] === "memory") {

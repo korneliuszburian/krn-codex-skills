@@ -69,13 +69,23 @@ test("a waiver is admissible only when reasoned and resolvable", async () => {
   const gate = await loadGate();
   assert.ok(gate, "scripts/lib/contract/gated-transition.mjs must exist");
   const bare = gate.gateTransition({ transition: transition(), claim: { falsifier: "x", before: red(), waiver: {} } });
-  assert.equal(bare.admitted, false);
+  assert.equal(bare.admitted, false, "an empty waiver never discharges an obligation");
   const unresolved = gate.gateTransition({ transition: transition(), claim: { falsifier: "x", before: red(), waiver: { reason: "not applicable" } } });
-  assert.equal(unresolved.admitted, false);
-  assert.match(unresolved.reason, /repository anchor/);
-  const resolved = gate.gateTransition({ transition: transition(), claim: { falsifier: "x", before: red(), waiver: { reason: "generated fixture", resolves: ["scripts/x.mjs"] } } });
-  assert.equal(resolved.admitted, true);
-  assert.equal(resolved.waiver, true);
+  assert.equal(unresolved.admitted, false, "a reason with no anchor is not a discharge");
+});
+
+test("a waiver cannot admit without a named obligation and independent resolution", async () => {
+  const gate = await loadGate();
+  assert.ok(gate, "scripts/lib/contract/gated-transition.mjs must exist");
+  // A plausible-looking path and reason are not evidence that the path exists,
+  // nor do they identify which obligation is being waived.
+  const verdict = gate.gateTransition({
+    transition: transition(),
+    claim: { falsifier: "x", before: red(), waiver: { reason: "generated fixture", resolves: ["scripts/x.mjs"] } },
+    verifier: passing,
+  });
+  assert.equal(verdict.admitted, false, JSON.stringify(verdict));
+  assert.match(verdict.reason, /waiver.*unsupported/i);
 });
 
 test("the brief is the subagent's contract, not the claim", async () => {
@@ -129,23 +139,83 @@ test("the CLI gate observes the red base and admits a real flip", () => {
     git("init", "-q");
     git("config", "user.email", "t@t.t");
     git("config", "user.name", "t");
-    writeFileSync(join(root, "package.json"), '{"scripts":{}}\n');
-    writeFileSync(join(root, "t.mjs"), 'import test from "node:test";\ntest("x", () => { throw new Error("red"); });\n');
+    writeFileSync(join(root, "package.json"), '{"type":"module","scripts":{"test":"node --test setup.test.mjs"}}\n');
+    // A test NAME that resembles a setup error or filename stays assertion RED.
+    writeFileSync(join(root, "t.mjs"), 'import test from "node:test";\ntest("stable", () => {});\ntest("SyntaxError", () => { throw new Error("red"); });\ntest("config.js", () => { throw new Error("red"); });\n');
+    writeFileSync(join(root, "setup.test.mjs"), 'import "./dependency.mjs"; import test from "node:test"; test("ready", () => {});\n');
+    writeFileSync(join(root, "fixture"), 'import test from "node:test"; const x = undefined.value; test("ready", () => {});\n');
     git("add", "-A");
     git("commit", "-qm", "base");
-    writeFileSync(join(root, "t.mjs"), 'import test from "node:test";\ntest("x", () => {});\n');
+    writeFileSync(join(root, "t.mjs"), 'import test from "node:test";\ntest("stable", () => {});\ntest("SyntaxError", () => {});\ntest("config.js", () => {});\n');
+    writeFileSync(join(root, "dependency.mjs"), "export const ready = true;\n");
+    writeFileSync(join(root, "fixture"), 'import test from "node:test"; const x = 1; test("ready", () => {});\n');
     git("add", "-A");
     git("commit", "-qm", "head");
 
-    const runGate = (base) => {
-      const result = spawnSync(process.execPath, [cli, "gate", "check", "--root", root, "--kind", "commit", "--fixed-point", "HEAD", "--falsifier", "node --test t.mjs", "--base", base, "--json"], { encoding: "utf8" });
+    const runGate = (base, { fixedPoint = "HEAD", falsifier = "node --test t.mjs", waiver = [] } = {}) => {
+      const args = [cli, "gate", "check", "--root", root, "--kind", "commit", "--fixed-point", fixedPoint, "--falsifier", falsifier, "--base", base, ...waiver, "--json"];
+      const result = spawnSync(process.execPath, args, { encoding: "utf8" });
       let parsed = null;
       try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
       assert.ok(parsed, `the gate must print a JSON verdict: ${result.stdout}${result.stderr}`);
-      return parsed;
+      return { ...parsed, exitCode: result.status };
     };
     const admitted = runGate("HEAD~1");
     assert.equal(admitted.admitted, true, JSON.stringify(admitted));
+    assert.equal(admitted.exitCode, 0);
+
+    const namedFileLike = runGate("HEAD~1", { falsifier: "node --test --test-name-pattern=config.js t.mjs" });
+    assert.equal(namedFileLike.admitted, true, JSON.stringify(namedFileLike));
+
+    const specReporter = runGate("HEAD~1", { falsifier: "node --test --test-reporter=spec t.mjs" });
+    assert.equal(specReporter.admitted, true, JSON.stringify(specReporter));
+    const specFileLike = runGate("HEAD~1", { falsifier: "node --test --test-reporter=spec --test-name-pattern=config.js t.mjs" });
+    assert.equal(specFileLike.admitted, true, JSON.stringify(specFileLike));
+
+    const wrappedSetup = runGate("HEAD~1", { falsifier: "npm test --silent" });
+    assert.equal(wrappedSetup.admitted, false, JSON.stringify(wrappedSetup));
+    assert.match(wrappedSetup.reason, /base.*setup error/i);
+
+    const extensionlessSetup = runGate("HEAD~1", { falsifier: "node --test ./fixture" });
+    assert.equal(extensionlessSetup.admitted, false, JSON.stringify(extensionlessSetup));
+    assert.match(extensionlessSetup.reason, /base.*setup error/i);
+    const specSetup = runGate("HEAD~1", { falsifier: "node --test --test-reporter=spec ./fixture" });
+    assert.equal(specSetup.admitted, false, JSON.stringify(specSetup));
+    assert.match(specSetup.reason, /base.*setup error/i);
+
+    const optionSetup = runGate("HEAD~1", { falsifier: "node --no-warnings --test setup.test.mjs" });
+    assert.equal(optionSetup.admitted, false, JSON.stringify(optionSetup));
+    assert.match(optionSetup.reason, /base.*setup error/i);
+
+    const invalid = runGate("HEAD~1", { fixedPoint: "not-a-revision" });
+    assert.equal(invalid.admitted, false, JSON.stringify(invalid));
+    assert.equal(invalid.exitCode, 1);
+    assert.match(invalid.reason, /fixed point/i);
+
+    const stale = runGate("HEAD~1", { fixedPoint: git("rev-parse", "HEAD~1").trim() });
+    assert.equal(stale.admitted, false, JSON.stringify(stale));
+    assert.match(stale.reason, /fixed point/i);
+
+    const waiver = ["--waiver-reason", "diagnostic-only", "--waiver-resolves", "t.mjs"];
+    const waivedFailure = runGate("HEAD~1", { falsifier: "false", waiver });
+    assert.equal(waivedFailure.admitted, false, JSON.stringify(waivedFailure));
+    assert.equal(waivedFailure.exitCode, 1);
+    assert.match(waivedFailure.reason, /waiver.*unsupported/i);
+
+    const unresolved = runGate("HEAD~1", { waiver: ["--waiver-reason", "diagnostic-only", "--waiver-resolves", "not-in-repo.md"] });
+    assert.equal(unresolved.admitted, false, JSON.stringify(unresolved));
+    assert.match(unresolved.reason, /waiver.*unsupported/i);
+
+    const setup = runGate("HEAD~1", { falsifier: "node --no-warnings --test missing.test.mjs" });
+    assert.equal(setup.admitted, false, JSON.stringify(setup));
+    assert.match(setup.reason, /base.*setup error/i);
+
+    const headSetup = runGate("HEAD~1", { falsifier: "node --test t.mjs && krn-missing-command" });
+    assert.equal(headSetup.admitted, false, JSON.stringify(headSetup));
+    assert.match(headSetup.reason, /setup error at the head/i);
+
+    assert.equal(admitted.fixedPoint, git("rev-parse", "HEAD").trim(), "the fixed point must be a resolved commit ID");
+    assert.equal(admitted.base, git("rev-parse", "HEAD~1").trim(), "the base must be a resolved commit ID");
 
     const refused = runGate("HEAD");
     assert.equal(refused.admitted, false, JSON.stringify(refused));
