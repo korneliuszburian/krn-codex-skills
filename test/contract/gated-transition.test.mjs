@@ -152,8 +152,8 @@ test("the CLI gate observes the red base and admits a real flip", () => {
     git("add", "-A");
     git("commit", "-qm", "head");
 
-    const runGate = (base, { fixedPoint = "HEAD", falsifier = "node --test t.mjs", waiver = [] } = {}) => {
-      const args = [cli, "gate", "check", "--root", root, "--kind", "commit", "--fixed-point", fixedPoint, "--falsifier", falsifier, "--base", base, ...waiver, "--json"];
+    const runGate = (base, { kind = "commit", fixedPoint = "HEAD", falsifier = "node --test t.mjs", waiver = [] } = {}) => {
+      const args = [cli, "gate", "check", "--root", root, "--kind", kind, "--fixed-point", fixedPoint, "--falsifier", falsifier, "--base", base, ...waiver, "--json"];
       const result = spawnSync(process.execPath, args, { encoding: "utf8" });
       let parsed = null;
       try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
@@ -163,6 +163,13 @@ test("the CLI gate observes the red base and admits a real flip", () => {
     const admitted = runGate("HEAD~1");
     assert.equal(admitted.admitted, true, JSON.stringify(admitted));
     assert.equal(admitted.exitCode, 0);
+
+    for (const kind of ["task-close", "review", "handoff"]) {
+      const unsupported = runGate("HEAD~1", { kind });
+      assert.equal(unsupported.admitted, false, `${kind}: ${JSON.stringify(unsupported)}`);
+      assert.equal(unsupported.exitCode, 1);
+      assert.match(unsupported.reason, /only commit transitions/i);
+    }
 
     const namedFileLike = runGate("HEAD~1", { falsifier: "node --test --test-name-pattern=config.js t.mjs" });
     assert.equal(namedFileLike.admitted, true, JSON.stringify(namedFileLike));
