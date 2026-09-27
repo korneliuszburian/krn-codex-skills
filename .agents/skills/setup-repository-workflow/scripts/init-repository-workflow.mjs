@@ -325,7 +325,8 @@ function assertLocalQueueSafe(root) {
   if (!active && git(root, ["rev-parse", "--verify", "--quiet", "refs/krn/queue"])) {
     fail("unselected Git-ref queue requires inspection before setup");
   }
-  if (!active && (safeLstat(join(root, QUEUE_DIR)) || safeLstat(join(root, ".krn", "claims")))) {
+  if (safeLstat(join(root, QUEUE_DIR)) || safeLstat(join(root, ".krn", "claims"))) {
+    if (active) fail("selected Git-ref queue has legacy Markdown material; disposition it with operator review before setup");
     fail("existing Markdown tasks require explicit reviewed migration before local setup");
   }
   return Boolean(active);
