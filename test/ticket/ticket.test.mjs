@@ -378,3 +378,27 @@ test("commit trailers surface orphan and open-ticket warnings", async () => {
     assert.ok(!parked.some((entry) => entry.rule === "open-ticket-committed" && entry.path.endsWith("a.md")), "a deferred ticket is not open");
   }, { git: true });
 });
+
+test("done commit evidence does not expire with the recent trailer window", async () => {
+  const ticketLib = await loadTicket();
+  assert.ok(ticketLib, "scripts/lib/ticket/ticket.mjs must load");
+  withRepo((dir) => {
+    const git = (...args) => execFileSync("git", ["-C", dir, ...args], { encoding: "utf8" }).trim();
+    const seed = git("rev-parse", "HEAD");
+    git("-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "--allow-empty", "-m", "work", "-m", "Ticket: t-1");
+    const earned = git("rev-parse", "HEAD");
+    const done = (id, integrated) => ticket({
+      ...baseFields, Id: id, Status: "done", Evidence: `integrated=${integrated}; Cost: wall=1s; tokens=1`,
+      Env: "host=deadbeefcafe; cpu=1; mem=1; node=22.23.3", Resolution: "merged",
+    });
+    writeFileSync(join(dir, ".krn/tickets", "t-1.md"), done("t-1", earned));
+    writeFileSync(join(dir, ".krn/tickets", "t-2.md"), done("t-2", seed));
+    const missing = (id) => ticketLib.checkTickets({ root: dir }).warnings.some((entry) => entry.rule === "done-without-commit" && entry.path.endsWith(`${id}.md`));
+    assert.equal(missing("t-1"), false, "a recent Ticket trailer resolves the done ticket");
+    for (let index = 0; index < 200; index += 1) {
+      git("-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "--allow-empty", "-m", `unrelated ${index}`);
+    }
+    assert.equal(missing("t-1"), false, "an older reachable Ticket trailer still resolves the done ticket");
+    assert.equal(missing("t-2"), true, "a done ticket with no reachable Ticket trailer still warns");
+  }, { git: true });
+});
