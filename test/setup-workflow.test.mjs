@@ -35,7 +35,7 @@ test("setup scaffolds a repository memory page and preserves an existing one", (
     assert.equal(first.status, 0, first.output);
     const page = join(root, "docs", "research", "workflow-lessons.md");
     assert.ok(existsSync(page), "the memory page is scaffolded");
-    const check = spawnSync(process.execPath, [krnCodex, "lessons", "check", "--root", root, "--json"], { encoding: "utf8" });
+    const check = spawnSync(process.execPath, [krnCodex, "memory", "check", "--root", root, "--json"], { encoding: "utf8" });
     const report = JSON.parse(check.stdout);
     assert.equal(report.skipped, undefined, "the scaffolded page is adopted memory");
     assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
@@ -52,11 +52,11 @@ test("the scaffolded memory commands pass --root .", () => {
   withRoot("# Repo\n", (root) => {
     assert.equal(apply(root).status, 0);
     const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
-    assert.match(agents, /`krn lessons check --root \.`/, "AGENTS.md lessons check needs --root .");
-    assert.match(agents, /`krn lessons verify --root \.`/, "AGENTS.md lessons verify needs --root .");
-    assert.match(agents, /`krn lessons reanchor --root \.`/, "AGENTS.md lessons reanchor needs --root .");
+    assert.match(agents, /`krn memory check --root \.`/, "AGENTS.md memory check needs --root .");
+    assert.match(agents, /`krn memory verify --root \.`/, "AGENTS.md memory verify needs --root .");
+    assert.match(agents, /`krn memory reanchor --root \.`/, "AGENTS.md memory reanchor needs --root .");
     const page = readFileSync(join(root, "docs", "research", "workflow-lessons.md"), "utf8");
-    assert.match(page, /`krn lessons verify --root \.`/, "the memory page lessons verify needs --root .");
+    assert.match(page, /`krn memory verify --root \.`/, "the memory page verify needs --root .");
   });
 });
 

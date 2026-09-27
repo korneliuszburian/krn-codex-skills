@@ -94,8 +94,8 @@
       "executable": false
     },
     {
-      "name": "krn_memory.py",
-      "path": "scripts/hooks/krn_memory.py",
+      "name": "krn_capsule.py",
+      "path": "scripts/hooks/krn_capsule.py",
       "executable": false
     }
   ],

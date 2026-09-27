@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Global Codex memory-boundary hook for SessionStart and PreCompact.
+"""Global Codex outcome-capsule hook for SessionStart and PreCompact.
 
 SessionStart: a fresh session gets the continuing outcome capsule's brief as
 `additionalContext`, so it resumes the bounded action without being told to read
@@ -267,7 +267,7 @@ def main() -> int:
             return 0
 
         context = (
-            "KRN memory layer. Read the outcome capsule(s) below and continue from "
+            "KRN outcome capsule. Read the outcome capsule(s) below and continue from "
             "the recorded next action; do not restart completed work.\n\n"
             + "\n\n".join(notes)
         )

@@ -42,11 +42,11 @@ const usage = `Usage:
   krn state <check|compile|resume> [PATH|--root PATH] [--json]
   krn state fields --file FILE [--json]
   krn skills <export|check> --root DIR [--upstream PATH] [--json]
-  krn lessons <check|verify|reanchor> --root DIR [--json]
+  krn lessons <check|verify|reanchor> --root DIR [--json]  (compatibility alias)
   krn changes check --base REF [--head REF] --root DIR [--before] [--strict-recall | --recall-obligation] [--json]
   krn gate check --root DIR --kind KIND --fixed-point SHA --falsifier CMD [--base REF] [--waiver-reason TEXT --waiver-resolves ANCHOR[,ANCHOR]] [--json]
   krn conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
-  krn memory <recall|usage> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
+  krn memory <recall|usage|check|verify|reanchor> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
   krn ticket <add|list|check|next|ready|claim|renew|comment|close|reopen|release|takeover|edit|fail|reconcile> --root DIR [options]
   krn ticket operation prepare --root DIR --file .krn/runs/FILE.json [--json]
   krn ticket operation apply --root DIR --id ID --worker NAME --expected-epoch N [--json]
@@ -213,7 +213,7 @@ try {
     } catch (error) {
       fail(error.message, EXIT_CODES.USAGE);
     }
-  } else if (raw[0] === "lessons") {
+  } else if (raw[0] === "lessons" || (raw[0] === "memory" && ["check", "verify", "reanchor"].includes(raw[1]))) {
     const { positional, options } = parseOptions(raw.slice(1));
     rejectForeignOptions(options, ["root"]);
     if (!["check", "verify", "reanchor"].includes(positional[0]) || positional.length > 1 || options.source || options.yes || !options.root) fail(usage);

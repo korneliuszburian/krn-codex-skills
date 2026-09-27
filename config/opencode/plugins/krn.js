@@ -24,6 +24,7 @@ const ONBOARDING_SIGNAL =
   "finished, run `krn repo inspect --root .` for a read-only report; " +
   "adoption stays explicit-only.";
 const CLAIM_COMMAND = "krn ticket claim --root . --id <id>";
+const CAPSULE_PREFIX = "KRN outcome capsule.";
 
 function isInside(parent, candidate) {
   const base = path.resolve(parent);
@@ -96,7 +97,7 @@ export function capsuleBrief(directory) {
   }
   if (notes.length === 0) return null;
   return (
-    "KRN memory layer. Read the outcome capsule(s) below and continue from the " +
+    CAPSULE_PREFIX + " Read the outcome capsule(s) below and continue from the " +
     "recorded next action; do not restart completed work.\n\n" +
     notes.join("\n\n")
   );
@@ -244,8 +245,9 @@ function disabled(name) {
 
 export const KrnAdapter = async ({ directory } = {}) => {
   const cwd = directory ?? process.cwd();
+  // A resumed session may still contain the prior prefix; do not inject twice.
   const marker = (text) =>
-    text.includes("KRN memory layer") || text.includes("KRN ready queue") || text.includes("KRN onboarding");
+    text.includes(CAPSULE_PREFIX) || text.includes("KRN memory layer") || text.includes("KRN ready queue") || text.includes("KRN onboarding");
   return {
     config: async (config) => configureOpenCodeCapabilities(config, { directory: cwd }),
     // The Codex SessionStart equivalent: the brief enters the system prompt,

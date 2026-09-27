@@ -9,6 +9,8 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 
 // The live surfaces sh-52 owns. The observer is the scanner, not a scan target,
 // and the historical research rows stay verbatim outside this list.
+const HOOK = fs.existsSync(path.join(root, "scripts/hooks/krn_capsule.py"))
+  ? "scripts/hooks/krn_capsule.py" : "scripts/hooks/krn_memory.py";
 const LIVE_SURFACES = [
   "README.md",
   "CONTEXT.md",
@@ -22,7 +24,7 @@ const LIVE_SURFACES = [
   "scripts/krn.mjs",
   "scripts/lib/state/state-brief.mjs",
   "scripts/lib/lessons/lessons.mjs",
-  "scripts/hooks/krn_memory.py",
+  HOOK,
   "config/opencode/plugins/krn.js",
   "test/ci-workflow.test.mjs",
   "test/ci-workflow-tiers.test.mjs",

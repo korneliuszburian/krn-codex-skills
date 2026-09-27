@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -9,7 +9,8 @@ import { fileURLToPath } from "node:url";
 import { runGit } from "../../scripts/lib/kernel/git.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const hook = join(root, "scripts", "hooks", "krn_memory.py");
+const capsuleHook = join(root, "scripts", "hooks", "krn_capsule.py");
+const hook = existsSync(capsuleHook) ? capsuleHook : join(root, "scripts", "hooks", "krn_memory.py");
 
 function makeRepo() {
   const dir = mkdtempSync(join(tmpdir(), "krn-capsule-delivery-"));

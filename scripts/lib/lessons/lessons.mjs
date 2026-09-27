@@ -135,7 +135,7 @@ function proofWarnings(root, sha, rel, gates, git = runGit) {
     const newer = git(root, ["log", "--oneline", `${sha}..HEAD`, "--", target]);
     if (newer.ok && newer.out) {
       const since = git(root, ["rev-list", "--count", `${sha}..HEAD`, "--", target]);
-      warnings.push(`proof ${sha} predates later changes to ${label} (${since.ok ? since.out : "?"} commits since); run \`krn lessons reanchor\``);
+      warnings.push(`proof ${sha} predates later changes to ${label} (${since.ok ? since.out : "?"} commits since); run \`krn memory reanchor\``);
     }
   }
   return warnings;

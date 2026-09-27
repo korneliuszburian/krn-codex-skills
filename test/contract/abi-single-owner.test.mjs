@@ -41,7 +41,8 @@ test("the capsule-field reader has exactly one in-repo owner", () => {
 
 test("the hook, plugin, and lane carry no fourth hand-rolled parser", () => {
   const consumer = {
-    hook: read("scripts/hooks/krn_memory.py"),
+    hook: read(fs.existsSync(path.join(root, "scripts/hooks/krn_capsule.py"))
+      ? "scripts/hooks/krn_capsule.py" : "scripts/hooks/krn_memory.py"),
     plugin: read("config/opencode/plugins/krn.js"),
     lane: read("scripts/lane/run-ticket.sh"),
   };

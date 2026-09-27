@@ -91,3 +91,38 @@ test("a real install retires a prior release's managed krn-codex link with a bac
     );
   });
 });
+
+test("a renamed capsule hook backs up the previous managed hook link", async () => {
+  const { applyInstall, createInstallPlan } = await import("../../scripts/lib/install/install-release.mjs");
+  withInstallEnvironment((base) => {
+    const home = path.join(base, "codex");
+    const previous = seedSourceCheckout(path.join(base, "previous"));
+    const renamed = path.join(previous, "scripts", "hooks", "krn_capsule.py");
+    if (fs.existsSync(renamed)) {
+      fs.renameSync(renamed, path.join(previous, "scripts", "hooks", "krn_memory.py"));
+      for (const relative of ["config/hooks.json", "skills/manifest.json"]) {
+        const file = path.join(previous, relative);
+        fs.writeFileSync(file, fs.readFileSync(file, "utf8").replaceAll("krn_capsule.py", "krn_memory.py"));
+      }
+      execFileSync("git", ["-C", previous, "add", "-A"]);
+      execFileSync("git", ["-C", previous, "-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", "previous hook name"]);
+    } else {
+      assert.ok(fs.existsSync(path.join(previous, "scripts", "hooks", "krn_memory.py")), "the base must contain the prior hook");
+    }
+    const oldPlan = createInstallPlan({ source: previous, cwd: previous, codexHome: home });
+    applyInstall(oldPlan);
+    const old = path.join(home, "hooks", "krn_memory.py");
+    assert.equal(fs.realpathSync(old), path.join(fs.realpathSync(oldPlan.current), "scripts", "hooks", "krn_memory.py"));
+
+    const source = seedSourceCheckout(path.join(base, "source"));
+    const plan = createInstallPlan({ source, cwd: source, codexHome: home });
+    const applied = applyInstall(plan);
+    const capsule = path.join(home, "hooks", "krn_capsule.py");
+    assert.equal(fs.realpathSync(capsule), path.join(fs.realpathSync(plan.current), "scripts", "hooks", "krn_capsule.py"));
+    assert.equal(fs.lstatSync(old, { throwIfNoEntry: false }), undefined, "the prior hook link is retired");
+    assert.ok(applied.backup, "the previous KRN hook link has a rollback backup");
+    const backup = fs.readdirSync(applied.backup).find((entry) => entry.endsWith("krn_memory.py"));
+    assert.ok(backup, `the old hook link must be backed up: ${fs.readdirSync(applied.backup)}`);
+    assert.equal(fs.readlinkSync(path.join(applied.backup, backup)), path.join(plan.current, "scripts", "hooks", "krn_memory.py"));
+  });
+});
