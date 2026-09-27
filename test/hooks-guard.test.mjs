@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
@@ -12,9 +12,9 @@ const hook = join(root, "scripts", "hooks", "krn_pretooluse.py");
 const capsuleHook = join(root, "scripts", "hooks", "krn_capsule.py");
 const precompact = existsSync(capsuleHook) ? capsuleHook : join(root, "scripts", "hooks", "krn_memory.py");
 
-function precompactContext(cwd, event = "PreCompact") {
+function precompactContext(cwd, event = "PreCompact", env = process.env) {
   const payload = JSON.stringify({ hook_event_name: event, cwd });
-  const result = spawnSync("python3", ["-B", precompact], { input: payload, encoding: "utf8" });
+  const result = spawnSync("python3", ["-B", precompact], { input: payload, encoding: "utf8", env });
   assert.equal(result.status, 0, result.stderr);
   if (!result.stdout.trim()) return null;
   const output = JSON.parse(result.stdout).hookSpecificOutput;
@@ -505,6 +505,32 @@ test("SessionStart loads a continuing capsule without writing a boundary", () =>
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("SessionStart reads capsule fields outside an inherited Node test context", () => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-sessionstart-context-"));
+  try {
+    const capsule = join(dir, ".krn", "runs", "delivery-loop", "out-1");
+    mkdirSync(capsule, { recursive: true });
+    writeFileSync(join(capsule, "state.md"), [
+      "Outcome state: ACTIVE",
+      "Next bounded owner and action: finish the verified slice",
+      "Open unknowns and blockers with owners: none",
+      "Outcome and observable acceptance: verify current state",
+      "",
+    ].join("\n"));
+    const bin = join(dir, "bin");
+    mkdirSync(bin);
+    writeFileSync(join(bin, "node"), `#!/usr/bin/env python3
+import os, sys
+if os.environ.get("NODE_TEST_CONTEXT"):
+    sys.exit(86)
+real = ${JSON.stringify(process.execPath)}
+os.execv(real, [real, *sys.argv[1:]])
+`, { mode: 0o700 });
+    const env = { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH}`, NODE_TEST_CONTEXT: "nested-test-context" };
+    assert.match(precompactContext(dir, "SessionStart", env), /finish the verified slice/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("SessionStart signals adoption only for an unmanaged work tree with agent instructions", () => {
