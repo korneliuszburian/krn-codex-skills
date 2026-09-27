@@ -1,7 +1,7 @@
 # Orchestration and compact context
 
 Status: `accepted`. Consumer: maintainer, `$delivery-loop`, and
-`$source-to-decision`. Owner: maintainer. Verified: 2026-09-24. Rework this page
+`$source-to-decision`. Owner: maintainer. Verified: 2026-09-26. Rework this page
 in place when a falsifier fires; do not append a parallel “v2” report.
 
 ## Decision question
@@ -233,7 +233,7 @@ transfer into a successor does not delete it before the original Goal's
 non-active transition is read back.
 
 The boundary is host-triggered. `config/hooks.json` wires
-`scripts/hooks/krn_memory.py` on **SessionStart**, which injects a continuing
+`scripts/hooks/krn_capsule.py` on **SessionStart**, which injects a continuing
 capsule's acceptance, next action, and blockers as `additionalContext`.
 PreCompact remains a silent event handler but writes no boundary copy; the
 following SessionStart reads `state.md` directly. The current [Codex Hooks
@@ -695,7 +695,7 @@ a field is empty, or a retired surface reappears.
 | `CONTEXT.md` | maintainer session | every session and operator as the compact model | vocabulary or knowledge-map change | one index line per artifact | `test/rules/instruction-ownership.test.mjs` and `npm run test:durable-pages` | update in place in the change that moves the vocabulary | maintainer |
 | `.krn/tickets/` files | `krn ticket` verbs and the maintainer | `krn ticket next` and `check`, the lane runner, and the session brief | claim, close, fail, or frontier read | ignored local queue, one ready item in flight | `krn ticket check`; delivery archive restores the same path and ID set | terminal status, superseded through typed links | maintainer |
 | `krn memory recall` | lesson triggers | the maintainer, manually, and the lane preflight through `changes check --strict-recall` | a manual advisory query, or a triggered change in a lane | advisory hit; `--strict-recall` blocks in lanes | `test/lessons/recall-hit-rate.test.mjs` and `test/lessons/lesson-trigger-hygiene.test.mjs` | trigger or lesson retired only after its consumer is gone, a structural gate supersedes it, or a bounded negative-use check supports retirement | maintainer |
-| `krn_memory.py` | maintainer session, installed by release | SessionStart; the registered PreCompact handler exits silently without reading or writing capsule data | session start in a managed tree; PreCompact is a no-op | one capsule note or queue line on SessionStart; zero PreCompact payload or artifact | `test/hooks-guard.test.mjs` and `test/hooks-queue-brief.test.mjs` | hook policy change; retired boundary write is not re-adopted without a named reader | maintainer |
+| `krn_capsule.py` | maintainer session, installed by release | SessionStart; the registered PreCompact handler exits silently without reading or writing capsule data | session start in a managed tree; PreCompact is a no-op | one capsule note or queue line on SessionStart; zero PreCompact payload or artifact | `test/hooks-guard.test.mjs` and `test/hooks-queue-brief.test.mjs` | hook policy change; retired boundary write is not re-adopted without a named reader | maintainer |
 | `e2e-compare.mjs` | maintainer session | the frozen harness-vs-vanilla measurement with per-component ablation | baseline and paired runs at a fixed SHA | at least 3 paired trials with tokens and wall recorded | `test/harness/e2e-compare.test.mjs` | retire when the measurement lands or its window expires | maintainer |
 | `lane-runner.mjs` | maintainer session | `krn harness compare` through `KRN_HARNESS_LANE_RUNNER` | an explicit paired measurement with `KRN_HARNESS_AGENT` set | one payload per lane run, no daemon | `test/harness/lane-runner.test.mjs` | retire with the harness adapter contract; it is a checkout-local tool, never a runtime path | maintainer |
 | `test/harness/tasks/` | maintainer session | `krn harness compare` under LT-102 | an explicit paired measurement | three small held-out tasks, one per failure mode | `test/harness/tasks.test.mjs` | retire a task whose check stops flipping red to green, or delete the set with the measurement | maintainer |

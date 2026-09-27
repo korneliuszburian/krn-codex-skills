@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -438,7 +438,7 @@ test("a triggered lesson with a stale proof fails closed as stale-anchor", () =>
   writeFileSync(file, header + body.replace("%TRIGGER%", "path:scripts/lib/x.mjs"));
   const stale = checkLessons({ root, git: gitFor(true) });
   assert.ok(stale.errors.some((error) => error.includes("stale-anchor")), JSON.stringify(stale.errors));
-  assert.ok(stale.errors.some((error) => error.includes("lessons reanchor")), JSON.stringify(stale.errors));
+  assert.ok(stale.errors.some((error) => error.includes("krn memory reanchor")), JSON.stringify(stale.errors));
   writeFileSync(file, header + body.replace("%TRIGGER%", ""));
   const untriggered = checkLessons({ root, git: gitFor(true) });
   assert.ok(!untriggered.errors.some((error) => error.includes("stale-anchor")), JSON.stringify(untriggered.errors));
@@ -512,6 +512,58 @@ test("lessonUsage credits a symbol-triggered lesson", () => {
   assert.equal(usage.usage.find((entry) => entry.lesson === "Symbolic").recalls, 1, JSON.stringify(usage));
   assert.deepEqual(usage.neverRecalled, []);
   rmSync(root, { recursive: true, force: true });
+});
+
+test("memory owns lesson maintenance while lessons remains a compatible alias", () => {
+  const root = makeRoot();
+  try {
+    const proof = join(root, "test", "gate.test.mjs");
+    const page = join(root, "docs", "research", "workflow-lessons.md");
+    const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+    const commit = (message) => {
+      git("add", "-A");
+      git("-c", "user.email=lab@krn.local", "-c", "user.name=lab", "commit", "-q", "-m", message);
+      return git("rev-parse", "HEAD").slice(0, 7);
+    };
+    const cli = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
+    const run = (surface, operation) => {
+      const result = spawnSync(process.execPath, [cli, surface, operation, "--root", root, "--json"], { encoding: "utf8" });
+      assert.equal(result.status, 0, `${surface} ${operation}: ${result.stdout}${result.stderr}`);
+      return JSON.parse(result.stdout);
+    };
+    git("init", "-q");
+    writeFileSync(proof, 'import assert from "node:assert/strict"; import test from "node:test"; test("alias proof", () => assert.equal(2 + 2, 4));\n');
+    const base = commit("add proof");
+    writeFileSync(page, `| Lesson | Evidence | Enforced by | Occurrences | Falsifier | Trigger | Status |\n|---|---|---|---|---|---|---|\n| Alias proof | fixture | \`test:state\` | | \`test/gate.test.mjs::alias proof@${base}\` | | |\n`);
+    commit("record lesson");
+    writeFileSync(proof, 'import assert from "node:assert/strict"; import test from "node:test"; test("alias proof", () => assert.equal(3 + 4, 7));\n');
+    const latest = commit("change proof");
+
+    for (const surface of ["lessons", "memory"]) {
+      const checked = run(surface, "check");
+      assert.deepEqual(checked.errors, [], `${surface} check must accept the earned lesson`);
+      assert.equal(checked.lessons[0].lesson, "Alias proof");
+
+      const verified = run(surface, "verify");
+      assert.deepEqual(verified.failures, []);
+      assert.equal(verified.results[0].case, "alias proof");
+      assert.equal(verified.results[0].status, "pass", `${surface} verify must execute the named proof`);
+
+      const reanchored = run(surface, "reanchor");
+      assert.deepEqual(reanchored.updated, [
+        { lesson: "Alias proof", file: "test/gate.test.mjs", from: base, to: latest },
+      ], `${surface} reanchor must point to the tested revision`);
+      assert.match(readFileSync(page, "utf8"), new RegExp(`alias proof@${latest}`));
+      git("restore", "--", "docs/research/workflow-lessons.md");
+    }
+
+    // Options before the operation must route to the same public memory command.
+    const optionFirst = spawnSync(process.execPath, [cli, "memory", "--json", "check", "--root", root], { encoding: "utf8" });
+    assert.equal(optionFirst.status, 0, `memory --json check: ${optionFirst.stdout}${optionFirst.stderr}`);
+    assert.equal(JSON.parse(optionFirst.stdout).lessons[0].lesson, "Alias proof");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("memory usage renders text without --json", () => {

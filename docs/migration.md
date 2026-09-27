@@ -5,7 +5,7 @@ checkout remains an authoring surface; it is never a stable discovery target.
 
 Status: `accepted`. Consumer: KRN operators applying, checking, or rolling back
 the installed runtime. Owner: the installer and release-maintenance workflow.
-Verified: 2026-09-13.
+Verified: 2026-09-26.
 
 ## Ownership
 
@@ -63,9 +63,11 @@ retired manifest no longer declares is backed up rather than left dangling.
 
 Codex runs the managed guard from `$CODEX_HOME/hooks.json`, which is a
 non-managed user hook: Codex marks a new or changed hook for review and skips
-it until the operator trusts the definition in `/hooks`. A fresh
-`install apply`, a prune, or a rollback therefore leaves the guard inert until
-that review; `install apply` and `doctor` do not record hook-trust state, so the
+it until the operator trusts the definition in `/hooks`. The `krn_memory.py` → `krn_capsule.py`
+rename moves the old KRN-managed hook link into migration backups as an orphan;
+new `hooks.json` calls only the capsule hook. A fresh `install apply`, a prune,
+or a rollback therefore leaves the guard or renamed hook inert until host
+review; `install apply` and `doctor` do not record hook-trust state, so the
 contract's interception guarantee holds only after the hook is trusted.
 
 ## Doctor evidence

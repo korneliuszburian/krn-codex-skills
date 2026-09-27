@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -8,7 +8,8 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pluginPath = join(root, "config", "opencode", "plugins", "krn.js");
-const hook = join(root, "scripts", "hooks", "krn_memory.py");
+const capsuleHook = join(root, "scripts", "hooks", "krn_capsule.py");
+const hook = existsSync(capsuleHook) ? capsuleHook : join(root, "scripts", "hooks", "krn_memory.py");
 const MANAGED_BLOCK = "<!-- krn-agent-workflow:start -->\nmanaged\n<!-- krn-agent-workflow:end -->\n";
 const CLAIM_COMMAND = /krn ticket claim --root \. --id <id>/;
 
@@ -38,7 +39,7 @@ const makeTicket = (dir, id, status, blockedBy = "none", sub = ".krn/tickets") =
       `Status: ${status}`,
       "Type: task",
       "Repository-base: main",
-      "Scope: scripts/hooks/krn_memory.py",
+      "Scope: scripts/hooks/krn_capsule.py",
       "Deciding check: true",
       "Contract: test/hooks-queue-brief.test.mjs:red->green",
       "Acceptance: the queue is named",

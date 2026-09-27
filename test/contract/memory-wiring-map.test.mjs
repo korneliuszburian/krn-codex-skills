@@ -20,7 +20,7 @@ const ARTIFACTS = [
   "CONTEXT.md",
   ".krn/tickets/ files",
   "krn memory recall",
-  "krn_memory.py",
+  "krn_capsule.py",
   "e2e-compare.mjs",
   "lane-runner.mjs",
   "test/harness/tasks/",

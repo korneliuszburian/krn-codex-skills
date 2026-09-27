@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +8,9 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const hook = join(root, "scripts", "hooks", "krn_pretooluse.py");
-const precompact = join(root, "scripts", "hooks", "krn_memory.py");
+// The base overlay keeps the old hook, so both trees can run the same observer.
+const capsuleHook = join(root, "scripts", "hooks", "krn_capsule.py");
+const precompact = existsSync(capsuleHook) ? capsuleHook : join(root, "scripts", "hooks", "krn_memory.py");
 
 function precompactContext(cwd, event = "PreCompact") {
   const payload = JSON.stringify({ hook_event_name: event, cwd });
@@ -474,6 +476,14 @@ test("PreCompact injects a continuing capsule and ignores a completed one", () =
     assert.throws(() => readFileSync(join(dir, ".krn", "runs", "delivery-loop", "out-2", "boundary.md")), "a completed capsule gets no boundary file");
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("configured lifecycle hooks invoke the capsule file for both events", () => {
+  const config = JSON.parse(readFileSync(join(root, "config", "hooks.json"), "utf8"));
+  for (const event of ["SessionStart", "PreCompact"]) {
+    const command = config.hooks[event][0].hooks[0].command;
+    assert.match(command, /\/hooks\/krn_capsule\.py"$/, `${event} must invoke the capsule hook`);
   }
 });
 

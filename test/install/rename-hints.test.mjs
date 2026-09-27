@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -37,7 +37,8 @@ test("the usage text and runtime diagnostics name krn", () => {
 
 test("the memory hook and the catalog plugin emit the krn adoption command", () => {
   withWorktree((dir) => {
-    const hook = path.join(root, "scripts", "hooks", "krn_memory.py");
+    const capsuleHook = path.join(root, "scripts", "hooks", "krn_capsule.py");
+    const hook = existsSync(capsuleHook) ? capsuleHook : path.join(root, "scripts", "hooks", "krn_memory.py");
     const result = spawnSync("python3", ["-B", hook], {
       input: JSON.stringify({ hook_event_name: "SessionStart", cwd: dir }),
       encoding: "utf8",
