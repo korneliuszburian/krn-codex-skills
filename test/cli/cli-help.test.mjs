@@ -8,6 +8,15 @@ const run = (args) => spawnSync(process.execPath, [CLI, ...args], { encoding: "u
 
 // Agents reach for `--help` after any command; every form must print the usage
 // on stdout and exit 0 instead of failing on an undefined option.
+test("task help advertises its existing list and reopen commands without legacy reconciliation", () => {
+  const result = run(["task", "--help"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /krn task <[^>]*\blist\b[^>]*\breopen\b/,
+    "the task command list must include its supported public list and reopen verbs");
+  assert.doesNotMatch(result.stdout, /krn task <[^>]*\breconcile\b/,
+    "the task name must not advertise the legacy Markdown reconciliation path");
+});
+
 test("help is answered on stdout with exit 0 in every position", () => {
   const forms = [
     ["--help"],

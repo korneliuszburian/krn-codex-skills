@@ -46,7 +46,8 @@ const usage = `Usage:
   krn gate check --root DIR --kind KIND --fixed-point SHA --falsifier CMD [--base REF] [--json]  (waivers unsupported)
   krn conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
   krn memory <recall|usage|check|verify|reanchor> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
-  krn task <add|show|next|ready|claim|comment|close|intent|store|operation> --root DIR [options]  (selected Git-ref queue)
+  krn task <add|list|check|next|ready|claim|renew|comment|close|reopen|release|takeover|edit|fail> --root DIR [options]  (selected Git-ref queue)
+  krn task <show|fields|env|intent|store|operation> --root DIR [options]  (selected Git-ref queue)
   krn ticket <add|list|check|next|ready|claim|renew|comment|close|reopen|release|takeover|edit|fail|reconcile> --root DIR [options]
   krn ticket operation prepare --root DIR --file .krn/runs/FILE.json [--json]
   krn ticket operation apply --root DIR --id ID --worker NAME --expected-epoch N [--json]
