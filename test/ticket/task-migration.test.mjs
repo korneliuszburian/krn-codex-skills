@@ -187,6 +187,22 @@ while(!fs.existsSync(${JSON.stringify(resume)})) Atomics.wait(new Int32Array(new
   }
 });
 
+test("empty-only setup cannot silently import a pre-existing Markdown task", async () => {
+  const { root, archive } = fixture();
+  try {
+    rmSync(join(root, ".krn/tickets/claimed-task.md"));
+    rmSync(join(root, ".krn/claims/claimed-task.lock"));
+    const original = readFileSync(join(root, ".krn/tickets/ready-task.md"));
+    await assert.rejects(openTaskStore(root).migrateLegacyQueue({
+      apply: true, archiveFile: archive, actor: "setup-repository-workflow",
+      reason: "Initialize an empty selected queue", requireEmpty: true,
+    }), /existing Markdown tasks require explicit reviewed migration/);
+    noRefs(root);
+    assert.equal(existsSync(archive), false, "a refused empty-only setup cannot archive or activate foreign work");
+    assert.deepEqual(readFileSync(join(root, ".krn/tickets/ready-task.md")), original);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("public migration initializes an empty repository without creating legacy ticket files", () => {
   const base = mkdtempSync(join(tmpdir(), "krn-empty-migrate-"));
   try {
