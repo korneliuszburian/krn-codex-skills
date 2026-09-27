@@ -1,7 +1,7 @@
 # Orchestration and compact context
 
 Status: `accepted`. Consumer: maintainer, `$delivery-loop`, and
-`$source-to-decision`. Owner: maintainer. Verified: 2026-09-26. Rework this page
+`$source-to-decision`. Owner: maintainer. Verified: 2026-09-27. Rework this page
 in place when a falsifier fires; do not append a parallel “v2” report.
 
 ## Decision question
@@ -799,7 +799,13 @@ or lack of benefit from its unchanged action. Reopen with a frozen real outcome
 that contains an authoritative preserve/replace/revoke transition, then score
 the capsule, transcript, current Goal, and repository/tracker controls against
 that record at observed cost. Until then, treat writing sufficiency and
-behavioral value as unverified.
+behavioral value as unverified. A 2026-09-27 agent-authored capsule screen at a
+real sealed-install boundary found two first-draft structural warnings, repaired
+them before the handoff, and compared three fresh read-only continuations. All
+rejected the superseded unsealed-install advice; see LT-6 for independent
+scoring and full continuation-only costs. This did not exercise an actually
+revoked task obligation, a branch-native Goal control, or a blinded isolated
+action. The `defer` disposition and no-new-store boundary remain unchanged.
 
 **Registered discriminator (2026-09-26): the preserve/replace/revoke
 continuation.** The cheapest instrument that can fail the vanilla lane is one
