@@ -46,6 +46,7 @@ const usage = `Usage:
   krn gate check --root DIR --kind KIND --fixed-point SHA --falsifier CMD [--base REF] [--json]  (waivers unsupported)
   krn conformance check --root DIR [--candidate DIR] [--filter ID] [--frozen] [--json]
   krn memory <recall|usage|check|verify|reanchor> --root DIR [--changed PATH[,PATH...] | --symbol NAME[,NAME...]] [--json]
+  krn task <add|show|next|ready|claim|comment|close|intent|store|operation> --root DIR [options]  (selected Git-ref queue)
   krn ticket <add|list|check|next|ready|claim|renew|comment|close|reopen|release|takeover|edit|fail|reconcile> --root DIR [options]
   krn ticket operation prepare --root DIR --file .krn/runs/FILE.json [--json]
   krn ticket operation apply --root DIR --id ID --worker NAME --expected-epoch N [--json]
@@ -313,8 +314,8 @@ try {
       if (options.json) print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits, source }, true);
       else for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
     }
-  } else if (raw[0] === "ticket") {
-    await runTicketCommand(raw.slice(1), { usage, requireDirectory });
+  } else if (raw[0] === "ticket" || raw[0] === "task") {
+    await runTicketCommand(raw.slice(1), { usage, requireDirectory, requireActiveStore: raw[0] === "task" });
   } else if (raw[0] === "conformance") {
     const { positional, options } = parseOptions(raw.slice(1));
     rejectForeignOptions(options, ["root", "candidate", "filter", "frozen"]);
