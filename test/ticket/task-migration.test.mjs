@@ -15,6 +15,9 @@ const refs = ["refs/krn/queue", "refs/krn/queue-active"];
 function run(root, ...args) {
   return spawnSync(process.execPath, [CLI, "ticket", ...args, "--root", root, "--json"], { encoding: "utf8" });
 }
+function task(root, ...args) {
+  return spawnSync(process.execPath, [CLI, "task", ...args, "--root", root, "--json"], { encoding: "utf8" });
+}
 function ok(result) {
   assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
   return JSON.parse(result.stdout);
@@ -81,6 +84,31 @@ process.stdout.write(result.stdout || ""); process.stderr.write(result.stderr ||
 process.exit(result.status ?? 1);
 `, { mode: 0o700 });
   return { barrier, env: { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH}`, KRN_TEST_BARRIER: barrier } };
+}
+function selectorDropper(root) {
+  const bin = join(root, "selector-bin");
+  mkdirSync(bin, { recursive: true });
+  const count = join(root, "selector-count");
+  writeFileSync(count, "0");
+  writeFileSync(join(bin, "git"), `#!/usr/bin/env node
+const fs = require("node:fs");
+const { spawnSync } = require("node:child_process");
+const args = process.argv.slice(2);
+const real = ${JSON.stringify(REAL_GIT)};
+if (args.includes("rev-parse") && args.includes("refs/krn/queue-active")) {
+  const hits = Number(fs.existsSync(process.env.KRN_TEST_SELECTOR_COUNT) ? fs.readFileSync(process.env.KRN_TEST_SELECTOR_COUNT, "utf8") : "0") + 1;
+  fs.writeFileSync(process.env.KRN_TEST_SELECTOR_COUNT, String(hits));
+  if (hits === 2) {
+    const drop = spawnSync(real, ["-C", process.env.KRN_TEST_REPO, "update-ref", "-d", "refs/krn/queue-active"], { encoding: "utf8" });
+    if (drop.status !== 0) { process.stderr.write(drop.stderr); process.exit(drop.status ?? 1); }
+  }
+}
+const input = args.includes("--stdin") ? fs.readFileSync(0) : undefined;
+const result = spawnSync(real, args, { input, encoding: "utf8" });
+process.stdout.write(result.stdout || ""); process.stderr.write(result.stderr || "");
+process.exit(result.status ?? 1);
+`, { mode: 0o700 });
+  return { count, env: { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH}`, KRN_TEST_REPO: root, KRN_TEST_SELECTOR_COUNT: count } };
 }
 
 test("public migration plans without writes and atomically selects a lossless imported queue", () => {
@@ -317,4 +345,103 @@ test("recovery fences a surviving Git helper before admitting a later legacy wri
     if (pending) await pending.done;
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("public task CLI and ticket read one selected queue and fence a reused worker generation", () => {
+  const { root, migrate } = fixture();
+  try {
+    ok(run(root, ...migrate));
+    const created = ok(task(root, "add", "--id", "new-task", "--title", "Use the task CLI"));
+    assert.equal(created.id, "new-task");
+    const child = ok(task(root, "add", "--id", "dependent", "--title", "Wait for new-task", "--depends-on", created.id));
+    assert.equal(child.status, "open");
+    assert.notEqual(task(root, "ready", "--id", child.id).status, 0, "dependency must still block readiness");
+    ok(task(root, "ready", "--id", created.id));
+    assert.equal(ok(task(root, "next")).frontier.includes(created.id), true);
+    const first = ok(task(root, "claim", "--id", created.id, "--worker", "same-worker"));
+    assert.equal(first.epoch, 1);
+    ok(task(root, "comment", "--id", created.id, "--worker", "same-worker", "--expected-epoch", "1", "--body", "First claim"));
+    ok(task(root, "close", "--id", created.id, "--actor", "same-worker", "--expected-epoch", "1", "--reason", "First pass complete"));
+    ok(task(root, "reopen", "--id", created.id, "--actor", "operator", "--reason", "Recheck worker generation"));
+    ok(task(root, "ready", "--id", created.id));
+    const second = ok(task(root, "claim", "--id", created.id, "--worker", "same-worker"));
+    assert.equal(second.epoch, 2);
+    const before = git(root, "rev-parse", refs[0]);
+    const stale = task(root, "comment", "--id", created.id, "--worker", "same-worker", "--expected-epoch", "1", "--body", "Stale claim");
+    assert.notEqual(stale.status, 0);
+    assert.match(stale.stderr, /stale claim generation/);
+    assert.equal(git(root, "rev-parse", refs[0]), before, "stale generation must not mutate the shared queue");
+    ok(task(root, "close", "--id", created.id, "--actor", "same-worker", "--expected-epoch", "2", "--reason", "Current pass complete"));
+    assert.equal(ok(run(root, "show", "--id", created.id)).Status, "done");
+    assert.equal(ok(task(root, "show", "--id", created.id)).task.comments[0].body, "First claim");
+    ok(task(root, "ready", "--id", child.id));
+    assert.ok(ok(run(root, "next")).frontier.includes(child.id));
+    assert.deepEqual(ok(task(root, "list")).map((item) => item.id).sort(), ok(run(root, "list")).map((item) => item.id).sort());
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("public task intent, store and operation commands share the selected queue and effect", () => {
+  const { root, migrate } = fixture();
+  try {
+    assert.notEqual(task(root, "next").status, 0, "task must not fall through to legacy Markdown when no Git-ref queue is selected");
+    noRefs(root);
+    ok(run(root, ...migrate));
+    const beforeLegacyReconcile = git(root, "rev-parse", refs[0]);
+    assert.notEqual(task(root, "reconcile").status, 0, "the new task name must not expose legacy reconciliation");
+    assert.equal(git(root, "rev-parse", refs[0]), beforeLegacyReconcile);
+    ok(task(root, "intent", "set", "--intent", "task-cutover", "--revision", "1", "--expected-revision", "0"));
+    assert.deepEqual(ok(task(root, "intent", "get", "--intent", "task-cutover")), ok(run(root, "intent", "get", "--intent", "task-cutover")));
+    const recipeFile = join(root, ".krn/runs/route/recipe.json");
+    mkdirSync(dirname(recipeFile), { recursive: true });
+    const check = "node --test test/example.test.mjs";
+    writeFileSync(recipeFile, JSON.stringify({ base: "main", scope: "test/**", check,
+      contract: "test/example.test.mjs:red->green", acceptance: "one checked lane effect" }));
+    const lane = ok(task(root, "add", "--id", "lane-route", "--title", "Checked lane effect", "--lane-recipe", recipeFile));
+    assert.equal(lane.lane, true);
+    ok(task(root, "ready", "--id", lane.id));
+    const claimed = ok(task(root, "claim", "--id", lane.id, "--worker", "lane-owner"));
+    writeFileSync(join(root, "candidate.txt"), "candidate for public task routing\n");
+    const candidate = git(root, "hash-object", "-w", "candidate.txt");
+    const input = join(root, ".krn/runs/route/operation.json");
+    writeFileSync(input, JSON.stringify({ id: "route-1", taskId: lane.id, intent: "task-cutover", intentRevision: 1,
+      effectRef: "refs/krn/effects/route-1", effectObject: candidate, candidateIdentity: candidate,
+      checkResult: { candidateIdentity: candidate, command: check, exitCode: 0 },
+      params: { target: candidate, intentRevision: 1 } }));
+    assert.equal(ok(task(root, "operation", "prepare", "--file", ".krn/runs/route/operation.json")).status, "prepared");
+    assert.equal(ok(task(root, "operation", "complete", "--id", "route-1", "--worker", "lane-owner", "--expected-epoch", String(claimed.epoch))).status, "ambiguous");
+    assert.equal(ok(task(root, "operation", "apply", "--id", "route-1", "--worker", "lane-owner", "--expected-epoch", String(claimed.epoch))).status, "observed");
+    assert.equal(git(root, "rev-parse", "refs/krn/effects/route-1"), candidate);
+    assert.equal(ok(run(root, "show", "--id", lane.id)).Status, "done");
+    assert.deepEqual(ok(task(root, "store", "export")), ok(run(root, "store", "export")));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("public task claim cannot fall through to the legacy writer if the selector disappears mid-command", () => {
+  const { root, migrate } = fixture();
+  try {
+    ok(run(root, ...migrate));
+    const file = join(root, ".krn/tickets/ready-task.md");
+    const original = readFileSync(file);
+    const queue = git(root, "rev-parse", refs[0]);
+    const { count, env } = selectorDropper(root);
+    const attempt = spawnSync(process.execPath, [CLI, "task", "claim", "--root", root, "--id", "ready-task", "--worker", "race-owner", "--json"], { encoding: "utf8", env });
+    assert.ok(Number(readFileSync(count, "utf8")) >= 2, "selector must disappear after preflight and before the public dispatch");
+    assert.notEqual(attempt.status, 0, "the task name must refuse after losing its selected Git-ref queue");
+    assert.deepEqual(readFileSync(file), original, "the legacy Markdown queue must remain untouched");
+    assert.equal(git(root, "rev-parse", refs[0]), queue, "the selected task snapshot must not move");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("public task reconcile refuses before it can enter the legacy writer", () => {
+  const { root, migrate } = fixture();
+  try {
+    ok(run(root, ...migrate));
+    const original = readFileSync(join(root, ".krn/tickets/claimed-task.md"));
+    const { count, env } = selectorDropper(root);
+    const attempt = spawnSync(process.execPath, [CLI, "task", "reconcile", "--root", root, "--json"], { encoding: "utf8", env });
+    assert.equal(readFileSync(count, "utf8"), "1", "unsupported reconciliation must stop at the selected queue preflight");
+    assert.notEqual(attempt.status, 0, "the new task name must not run Markdown reconciliation");
+    assert.deepEqual(readFileSync(join(root, ".krn/tickets/claimed-task.md")), original);
+    assert.equal(git(root, "rev-parse", refs[1]).length, 40, "the selector must remain active");
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

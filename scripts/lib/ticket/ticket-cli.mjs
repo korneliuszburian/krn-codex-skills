@@ -471,8 +471,14 @@ function activeTaskView(root, id) {
   return taskTicketView(snapshot.state.tasks[id]);
 }
 
-export async function runTicketCommand(argv, { usage, requireDirectory }) {
+export async function runTicketCommand(argv, { usage, requireDirectory, requireActiveStore = false }) {
   const { positional, options } = parseArgs(argv);
+  if (requireActiveStore) {
+    if (!options.root) fail("task requires --root with an active Git-ref queue", EXIT_CODES.USAGE);
+    requireDirectory(options.root);
+    selectedTaskStore(options.root);
+    if (positional[0] === "reconcile") fail("task reconcile is not available during the Git-ref CLI expansion", EXIT_CODES.USAGE);
+  }
   const command = positional[0];
   if (command === "intent") {
     await runTaskIntent(positional, options, usage, requireDirectory);
@@ -506,7 +512,7 @@ export async function runTicketCommand(argv, { usage, requireDirectory }) {
     } catch (error) {
       fail(`cannot read active task store: ${error?.message ?? String(error)}`, EXIT_CODES.USAGE);
     }
-    if (activeSnapshot) {
+    if (activeSnapshot || requireActiveStore) {
       await runTaskStoreCommand(command, positional, options, usage, requireDirectory);
       return;
     }
