@@ -76,7 +76,8 @@ test("local setup refuses a pre-existing Markdown queue without importing or edi
   });
 });
 
-test("local setup retains an excluded migration receipt and advertises only selected task commands", () => {
+// "ticket queue" is the work-item concept here, not a second Markdown store.
+test("local tracker scaffolds the ticket queue, names the ABI, and git-excludes it", () => {
   withRepo((root) => {
     const result = apply(root, "local");
     assert.equal(result.status, 0, result.output);
@@ -89,6 +90,13 @@ test("local setup retains an excluded migration receipt and advertises only sele
     assert.match(agents, /\*\*Tracker:\*\*[^\n]*selected local Git-ref queue/);
     assert.match(agents, /\*\*Tracker:\*\*[^\n]*krn task check --root \./);
     assert.doesNotMatch(agents, /krn ticket/);
+    const created = spawnSync(process.execPath, [krn, "task", "add", "--root", root, "--title", "ABI readback", "--json"], { encoding: "utf8" });
+    assert.equal(created.status, 0, created.stderr);
+    const id = JSON.parse(created.stdout).id;
+    const fields = spawnSync(process.execPath, [krn, "task", "fields", "--root", root, "--id", id, "--json"], { encoding: "utf8" });
+    assert.equal(fields.status, 0, fields.stderr);
+    assert.equal(JSON.parse(fields.stdout).Id, id);
+    assert.equal(JSON.parse(fields.stdout).Status, "open");
   });
 });
 
@@ -108,7 +116,7 @@ test("local apply is idempotent and preserves a foreign .scratch", () => {
   });
 });
 
-test("local apply preserves a foreign queue README by refusing implicit import", () => {
+test("local apply preserves a foreign queue README", () => {
   withRepo((root) => {
     mkdirSync(join(root, ".krn", "tickets"), { recursive: true });
     const readme = join(root, ".krn", "tickets", "README.md");
