@@ -251,6 +251,20 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
       }
     }
   }
+  // Recent commits still decide open/orphan warnings. An old done ticket keeps
+  // its proof: consult full reachable history only when the recent window misses.
+  const historical = new Set(trailered);
+  let checkedHistory = false;
+  const hasTicketCommit = (ticketId) => {
+    if (historical.has(ticketId)) return true;
+    if (!gitRepo) return false;
+    if (!checkedHistory) {
+      checkedHistory = true;
+      const log = git(root, ["log", "--format=%B", "--regexp-ignore-case", "--grep", "^Ticket:"]);
+      if (log.ok) for (const match of log.out.matchAll(/^Ticket:\s*(\S+)\s*$/gim)) historical.add(match[1]);
+    }
+    return historical.has(ticketId);
+  };
   for (const id of trailered) {
     const ticket = byId.get(id);
     if (!ticket) warnings.push({ rule: "orphan-commit-ticket", message: `commit names unknown ticket "${id}"` });
@@ -260,8 +274,8 @@ export function checkTickets({ root, dirs = DEFAULT_DIRS, git = runGit, id, base
     if (!id && ticket.status === "ready") errors.push(...envelopeLintErrors({ root, git, ticket }));
     const legacyClose = !ticket.taskStore || ticket.legacyCloseProofRequired;
     const commitClose = legacyClose || ticket.lane;
-    if (ticket.status === "done" && commitClose && !trailered.has(ticket.id)) {
-      warnings.push({ path: ticket.path, rule: "done-without-commit", message: `ticket "${ticket.id}" is done with no Ticket trailer in recent commits` });
+    if (ticket.status === "done" && commitClose && !hasTicketCommit(ticket.id)) {
+      warnings.push({ path: ticket.path, rule: "done-without-commit", message: `ticket "${ticket.id}" is done with no verified Ticket trailer in reachable commits` });
     }
     if (ticket.status === "done" && legacyClose && !hasEnvFingerprint(ticket.fields.get("Env"))) {
       warnings.push({ path: ticket.path, rule: "missing-env-fingerprint", message: `ticket "${ticket.id}" is done without an Env fingerprint` });
