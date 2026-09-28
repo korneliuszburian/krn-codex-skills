@@ -14,45 +14,58 @@ stores queue and claim state; the next outcome owner performs any later claim
 through its declared operation and separate authority. `$delivery-loop` selects
 the next unit and owns lifecycle coordination only when its envelope is active.
 
-## One ticket shape: the ABI
+## Selected Git-ref task queue
 
-Published tickets use the [ticket ABI v1](../../../../docs/research/ticket-protocol.md),
-not a skill-local template. Emit one `<krn-ticket>` envelope per unit and let the
-ABI own the fields; `scripts/lib/ticket/ticket.mjs` and `krn ticket check`
-parse and reject any other field set, so a parallel shape reads as `missing-field`.
+When the closest instructions select KRN's Git-ref queue, require its active
+selector before publication. An absent selector may mean selector loss: stop,
+not a fallback to Markdown. Create blockers first with `krn task add --root
+REPO --id ID --title TITLE --body BODY` and repeat `--depends-on BLOCKER`
+for already-created dependencies. Preserve each unit's repository base,
+scope, deciding check, contract, acceptance, and decision evidence in the task
+body; these are not separate public task fields or a `<krn-ticket>` envelope.
 
-Carry the unit's decision evidence into the envelope:
+New tasks are `open`. Blocked tasks remain open: `krn task ready --root REPO
+--id ID` succeeds only after all dependencies are `done`. Do not make blocked
+work ready merely to publish a plan. Read back each identity, body, and blocking
+edge with `krn task show --root REPO --id ID`, then run `krn task check --root
+REPO` for queue consistency. The check reads selected task records, not Markdown
+files; it cannot prove that an unpublished ticket envelope was transferred.
+`$slice-work` creates and reads back units but never claims or sequences them.
+
+## Explicit local-Markdown tracker
+
+Only when the closest instructions actually configure local Markdown may this
+branch publish files. For KRN's pre-activation migration it also requires
+explicit `KRN_QUEUE_MODE=legacy` and an absent Git-ref selector; do not infer
+legacy mode from a missing selector. Use the configured root, one file per
+unit in dependency order (blockers first), never a combined backlog file.
+
+This branch uses the [ticket ABI v1](../../../../docs/research/ticket-protocol.md):
+one `<krn-ticket>` envelope per unit, not a task-store record or a skill-local
+template. `scripts/lib/ticket/ticket.mjs` and `krn ticket check --root REPO
+--path DIR` parse the Markdown queue and reject another field set as
+`missing-field` only before activation. Carry the decision evidence into the
+envelope:
 
 - `Id`, `Title`, `Status`, `Type`, `Repository-base`, `Scope`, `Deciding check`,
-  `Contract`, `Acceptance`, and `Blocked by` are the required fields.
-- A new unpublished unit starts at `Status: ready`; `Blocked by` names the ids
-  that gate it, or `none`.
-- `Execution` records the agent, model, effort, and parallel group so the runner
-  needs no environment plumbing.
-- The prose below the block stays human-facing: the end-to-end behaviour, the
-  dependency reason, and acceptance detail.
+  `Contract`, `Acceptance`, and `Blocked by` are required.
+- A new unpublished file starts at `Status: ready`, even with blockers;
+  `Blocked by` names their ids or `none`.
+- `Execution` records agent, model, effort, and parallel group for the runner.
+- Prose below the block explains the behavior, dependency reason, and acceptance.
 
-Do not write a `Kind:`/`ready-for-agent` block or any other competing ticket
-shape; the ABI in [ticket-protocol.md](../../../../docs/research/ticket-protocol.md)
-is the single owner of the envelope.
+Do not write a `Kind:`/`ready-for-agent` block or another competing Markdown
+shape; the ABI owns the envelope. Read back the files and their blocking edges.
 
-## How blocking edges are expressed
+## Real tracker
 
-The slices are the same either way; only the shape of the blocking edges changes.
+For Beads, GitHub, GitLab, or another configured tracker, publish one issue
+per unit in dependency order so edges reference real identifiers. Use native
+blocking relationships where available; otherwise set each issue's `Blocked by`
+to its blocking issues. Mark agent-ready unless instructed otherwise.
 
-- **Configured local-markdown tracker** → use the exact root declared by the
-  closest repository instructions, one file per ticket, numbered in dependency order
-  (blockers first). Each ticket's `Blocked by` lists the ids it depends on.
-  One ticket per file, never a combined backlog file.
-- **A real tracker (Beads, GitHub, GitLab, …)** → publish one issue per ticket in
-  dependency order so each ticket's edges can reference real identifiers. Use the
-  platform's **native** dependency / blocking relationship where it has one (it renders
-  the frontier visually); otherwise set each ticket's `Blocked by` to the blocking
-  issues. Mark each agent-ready unless instructed otherwise — the tickets are
-  agent-grabbable by construction.
-
-Work the **frontier**: any ticket whose blockers are all done. For a linear chain
-that is top to bottom. Do not close or modify any parent issue.
+The next outcome owner works the **frontier** of unblocked units; `$slice-work`
+never claims a unit, closes a parent issue, or owns the execution order.
 
 Avoid specific file paths or code snippets — they go stale fast. Exception: a
 prototype snippet that encodes a decision more precisely than prose (state machine,
