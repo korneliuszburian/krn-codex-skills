@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { runGit } from "../../scripts/lib/kernel/git.mjs";
-import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+
+import { reconcileTickets } from "../../scripts/lib/ticket/ticket.mjs";
 
 const git = (root, args) => runGit(root, args).out;
 
@@ -51,6 +53,45 @@ test("compile, check, and resume compose into one usable restart path", () => {
   assert.match(resumed.stdout, /capsule composed/);
   assert.match(resumed.stdout, /Compose the restart path\./);
   rmSync(root, { recursive: true, force: true });
+});
+
+test("public state check observes an interrupted historical ticket without reconciling it", () => {
+  const root = makeRepo();
+  try {
+    const file = join(root, ".krn", "tickets", "query-01.md");
+    mkdirSync(join(root, ".krn", "tickets"), { recursive: true });
+    writeFileSync(file, [
+      "<krn-ticket>", "Id: query-01", "Title: Imported integration", "Status: claimed", "Type: task",
+      "Repository-base: main", "Scope: work.txt", "Deciding check: node --test test/check.test.mjs",
+      "Contract: test/check.test.mjs:red->green", "Acceptance: explicit recovery only", "Blocked by: none",
+      "Claim: worker=lane; session=fixture; at=2020-01-01T00:00:00.000Z; epoch=1; renew=2020-01-01T00:00:00.000Z; duration=1",
+      "</krn-ticket>", "",
+    ].join("\n"));
+    git(root, ["add", ".krn/tickets/query-01.md"]);
+    git(root, ["commit", "-q", "-m", "seed historical claim"]);
+    const base = git(root, ["rev-parse", "HEAD"]);
+    git(root, ["switch", "-q", "-c", "ticket/lane"]);
+    writeFileSync(join(root, "work.txt"), "integrated work\n");
+    git(root, ["add", "work.txt"]);
+    git(root, ["commit", "-q", "-m", "work", "-m", "Ticket: query-01"]);
+    const lane = git(root, ["rev-parse", "HEAD"]);
+    const diff = execFileSync("git", ["-C", root, "diff", `${base}..${lane}`], { encoding: "utf8" });
+    const patch = execFileSync("git", ["-C", root, "patch-id", "--stable"], { input: diff, encoding: "utf8" }).trim().split(/\s+/)[0];
+    git(root, ["switch", "-q", "main"]);
+    git(root, ["merge", "-q", "--no-ff", "ticket/lane", "-m", "merge historical lane"]);
+    const original = readFileSync(file, "utf8").replace("</krn-ticket>",
+      `Integration: branch=ticket/lane; sha=${lane}; patch=${patch}\n</krn-ticket>`);
+    writeFileSync(file, original);
+
+    const observed = spawnSync(process.execPath, [cli, "state", "check", "--root", root, "--json"], { encoding: "utf8" });
+    assert.equal(observed.status, 0, observed.stderr);
+    assert.equal(readFileSync(file, "utf8"), original, "state check must not perform implicit Markdown repair");
+    assert.deepEqual(reconcileTickets({ root, dirs: [".krn/tickets"] }), ["query-01"],
+      "the negative control is a ticket that explicit legacy recovery would close");
+    assert.match(readFileSync(file, "utf8"), /^Status: done$/m);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("doctor renders a human summary by default and JSON with --json", () => {

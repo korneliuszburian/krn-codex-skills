@@ -93,9 +93,9 @@ export function parseExecutionHint(value) {
   return { agentHint, legacyRaw };
 }
 
-// The lane consumes the envelope through this binding map rather than its own
-// copy of the field parser: the owner decides which fields become which shell
-// variables, and `krn ticket env` renders the map for `eval`.
+// The selected task lane consumes this retained binding map instead of a
+// second field parser. `krn task env --root REPO --id ID` renders it for `eval`;
+// historical Markdown fields remain import data, not another public command.
 export function ticketLaneBindings(fields) {
   const get = (name) => fields?.get(name) ?? "";
   const bindings = [];

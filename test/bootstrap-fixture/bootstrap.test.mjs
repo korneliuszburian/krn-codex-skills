@@ -349,6 +349,11 @@ test("frozen prior and sealed task-only releases preserve queue state across cut
     assert.equal(JSON.parse(shown.stdout).Status, "done");
     assert.deepEqual(JSON.parse(shown.stdout).task.history.map((entry) => entry.type),
       ["added", "ready", "claimed", "closed", "reopened", "ready", "claimed", "comment", "closed"]);
+    const postCutoverExport = invoke(installedCli, ["task", "store", "export", "--root", target, "--json"], root);
+    assert.equal(postCutoverExport.status, 0, postCutoverExport.stderr);
+    const postCutoverArchive = JSON.parse(postCutoverExport.stdout);
+    const archivePath = path.join(root, "post-cutover-queue.json");
+    fs.writeFileSync(archivePath, postCutoverExport.stdout);
 
     const current = path.join(root, "codex", "krn", "current");
     const replacement = `${current}.rollback-fixture`;
@@ -359,6 +364,24 @@ test("frozen prior and sealed task-only releases preserve queue state across cut
     assert.equal(rolledBack.status, 0, rolledBack.stderr);
     assert.deepEqual(JSON.parse(rolledBack.stdout).frontier, ["rollback-ready"], "old verified runtime still reads the unrevised Git-ref task state");
     assert.equal(execFileSync("git", ["-C", target, "rev-parse", "refs/krn/queue-active"], { encoding: "utf8" }).trim(), archive.refs[1].oid);
+
+    const restored = path.join(root, "restored-clone");
+    execFileSync("git", ["clone", "--quiet", "--no-hardlinks", target, restored]);
+    assert.notEqual(spawnSync("git", ["-C", restored, "rev-parse", "--verify", "refs/krn/queue"], { encoding: "utf8" }).status, 0);
+    const restore = invoke(installedCli, ["task", "store", "restore", "--root", restored, "--file", archivePath, "--json"], root);
+    assert.equal(restore.status, 0, `${restore.stdout}${restore.stderr}`);
+    assert.equal(JSON.parse(restore.stdout).restored, true);
+    assert.deepEqual(postCutoverArchive.refs.map((ref) =>
+      execFileSync("git", ["-C", restored, "rev-parse", ref.name], { encoding: "utf8" }).trim()),
+      postCutoverArchive.refs.map((ref) => ref.oid), "rollback restores the complete selected queue without rewriting its refs");
+    const restoredView = invoke(installedCli, ["task", "show", "--root", restored, "--id", "cutover-work", "--json"], root);
+    assert.equal(restoredView.status, 0, restoredView.stderr);
+    assert.deepEqual(JSON.parse(restoredView.stdout).task, JSON.parse(shown.stdout).task,
+      "restored IDs, comments and full history match the post-cutover archive");
+    assert.equal(JSON.parse(restoredView.stdout).Status, "done");
+    const restoredNext = invoke(installedCli, ["task", "next", "--root", restored, "--json"], root);
+    assert.equal(restoredNext.status, 0, restoredNext.stderr);
+    assert.deepEqual(JSON.parse(restoredNext.stdout).frontier, ["rollback-ready"]);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
