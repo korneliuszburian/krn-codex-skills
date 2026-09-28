@@ -11,11 +11,12 @@ writer ownership, handoffs, and selection and readback of authorized
 transitions. Specialist skills own stage procedures; configured trackers and
 hosts own their mechanics and policy.
 
-1. **Bind one outcome and one writer.** When the configured tracker is a
-   queue, read its frontier with `krn ticket check` and `krn ticket next`,
-   select one ready item, and record `krn ticket claim` before any
-   implementation; keep the frontier and item state in the capsule. Read the
-   closest repository instructions, current Git state, configured tracker item
+1. **Bind one outcome and one writer.** When the configured tracker is the
+   selected Git-ref queue, read its frontier with `krn task check` and
+   `krn task next`, select one ready item, and record `krn task claim` before
+   any implementation; keep the frontier and item state in the capsule. An
+   absent selector blocks task work rather than selecting Markdown implicitly.
+   Read the closest repository instructions, current Git state, configured tracker item
    when one exists, active native goal when one exists, and
    `docs/research/workflow-lessons.md` when it exists as the cross-run workflow
    memory. Create a native goal only when the user explicitly requested
@@ -99,28 +100,33 @@ hosts own their mechanics and policy.
    `${KRN_OUTCOME_ARCHIVE:-$HOME/.local/state/krn/outcomes}/<outcome-id>/`.
 
    When `refs/krn/queue-active` exists, save successful output from
-   `krn ticket store export --root REPO --json` as `queue.json` in that archive.
-   An unreadable selected store blocks the archive; use the file-queue branch
-   only when the selector is absent. That branch copies the complete
-   `.krn/tickets/` directory with checkout-relative paths. Keep any pre-import
-   raw backup as historical data. Other ignored directories retain their own
-   consumers and are outside KRN task state.
+   `krn task store export --root REPO --json` as `queue.json` in that archive.
+   An unreadable selected store blocks the archive. An absent selector may
+   mean selector loss: refuse by default rather than infer a file queue. Only
+   explicit pre-activation `KRN_QUEUE_MODE=legacy` permits copying the complete
+   `.krn/tickets/` directory with checkout-relative paths; never use it with
+   an active selector. Keep any pre-import raw backup as historical data. Other
+   ignored directories retain their own consumers and are outside KRN task state.
 
    Restore the capsule directory and the selected queue into a compatible
-   successor checkout. For `queue.json`, run `krn ticket store restore --root
-   SUCCESSOR --file ARCHIVE/queue.json`; for a file queue, restore its original
-   paths. Complete restoration before `krn state check`, `krn state resume`
-   and `krn ticket next`. Queue export preserves task records; the code
-   repository owns code objects and effect refs. The archive is an operational
-   copy on the host, never a tracked artifact.
+   successor checkout. For `queue.json`, run `krn task store restore --root
+   SUCCESSOR --file ARCHIVE/queue.json`; this validates and installs both refs
+   even before the successor has an active selector. For an explicit
+   pre-activation file queue, restore its original paths. Complete restoration
+   before `krn state check`, `krn state resume` and `krn task next`. Queue
+   export preserves task records; the code repository owns code objects and
+   effect refs. The archive is an operational copy on the host, never a
+   tracked artifact.
 
-   **Falsifier:** compare the complete path/ID set from `krn ticket check
-   --root REPO --json` and the `krn ticket next` frontier before export and
+   **Falsifier:** compare the complete path/ID set from `krn task check
+   --root REPO --json` and the `krn task next` frontier before export and
    after restore. Include a task created after import and a capsule candidate
    that references it: it must resolve after restore. The negative control
    restores the capsule but omits the queue, producing a missing candidate or
-   different task set/frontier. A fresh checkout that skips restore has an
-   empty frontier; archive and restore are load-bearing.
+   different task set/frontier. An unselected fresh checkout refuses
+   `krn task next`; only an explicit pre-activation legacy checkout without its
+   restored file queue has an empty frontier. Archive and restore are
+   load-bearing.
 
    When a composed workflow returns a run
    pointer, upsert one `Outstanding workflow-run cleanup` entry keyed by that
@@ -225,9 +231,9 @@ hosts own their mechanics and policy.
    promotion; a rebase-merge rewrites the SHAs those artifacts name and breaks
    them. At each shared transition, update and
    read back the configured tracker when one exists, and confirm that any native
-   Goal still owns the current outcome. For a queue, `krn ticket close` with
-   evidence and resolution at the fixed point ends the item, and a refused
-   attempt is `krn ticket fail`; both follow the queue's own write authority. At
+   Goal still owns the current outcome. For the selected queue, `krn task close`
+   with evidence and resolution at the fixed point ends the item, and a refused
+   attempt is `krn task fail`; both follow the queue's own write authority. At
    the accepted terminal outcome, first
    commission each creating workflow whose cleanup trigger has fired and verify
    its run absent; then close and read back the tracker when configured, remove
