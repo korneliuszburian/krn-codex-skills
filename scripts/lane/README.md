@@ -43,11 +43,18 @@ sandboxed worker:
   invoked as `"$PUBLISH_GATE" <branch>`. `run-frontier.sh` and `integrate.sh`
   refuse to merge, and the frontier refuses to close the ticket, when it is
   unset or exits non-zero.
+- `KRN_QUEUE_MODE` — `run-frontier.sh` defaults to `selected` and uses public
+  `krn task` calls. A missing Git-ref selector refuses; it never falls back to
+  Markdown. Set `legacy` explicitly only for a pre-activation Markdown run.
+  Legacy mode refuses while `refs/krn/queue-active` exists. This opt-in keeps
+  a migrated-but-unselected queue usable without treating selector loss as
+  permission to run a different task. The selector checks are not an atomic
+  lock: finish a legacy frontier run before activating the Git-ref queue.
 - `KRN_INTENT_ID` — required when the Git-ref queue is active. The host supplies
   the current outcome identity from its authority owner; the lane reads its
-  stored revision through `krn ticket intent get`. Optional `KRN_INTENT_REVISION`
+  stored revision through `krn task intent get`. Optional `KRN_INTENT_REVISION`
   asserts that the host's revision is still current when the frontier starts.
-  The outcome owner advances revisions with `krn ticket intent set` and an
+  The outcome owner advances revisions with `krn task intent set` and an
   expected-revision compare-and-swap when accepted intent changes. The lane
   never guesses outcome identity or revision from task prose.
 
@@ -63,8 +70,9 @@ prepares an operation under `.krn/runs/`, updates the target ref with expected-o
 CAS, then closes the task only after the same operation reads back the candidate.
 If recovery finds the target ref already at the candidate, a new claim
 generation can record that observed effect; it never retries an unknown effect.
-The file-based compatibility route still uses the configured `TICKETS` path and
-legacy close receipt until the queue cutover is complete.
+The explicit `KRN_QUEUE_MODE=legacy` compatibility route still uses the
+configured `TICKETS` path and legacy close receipt until the queue cutover is
+complete.
 
 ## Isolation and the red preflight
 

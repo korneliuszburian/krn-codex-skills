@@ -12,8 +12,21 @@ PUBLISH_GATE=${PUBLISH_GATE:-}
 WORKER_NAME=${WORKER_NAME:-krn-frontier}
 KRN_INTENT_ID=${KRN_INTENT_ID:-}
 KRN_INTENT_REVISION=${KRN_INTENT_REVISION:-}
+KRN_QUEUE_MODE=${KRN_QUEUE_MODE:-selected}
 LOG_DIR=${LOG_DIR:-$ROOT/.krn/runs/lane-frontier}
 mkdir -p "$LOG_DIR"
+
+case "$KRN_QUEUE_MODE" in
+  selected|legacy) ;;
+  *) echo "KRN_QUEUE_MODE must be selected or legacy" >&2; exit 64 ;;
+esac
+
+assert_legacy_queue() {
+  if git -C "$ROOT" show-ref --verify --quiet refs/krn/queue-active; then
+    echo "legacy mode refuses an active Git-ref task queue" >&2
+    return 1
+  fi
+}
 
 integrate_active_task() {
   local id=$1 branch=$2 worker_head=$3 worker=$4 epoch=$5
@@ -118,7 +131,12 @@ for iteration in $(seq 1 "$MAX_RUNS"); do
   claim_epoch=""
   claim_intent_id=""
   claim_intent_revision=""
-  next_json=$(node "$KRN" ticket next --root "$ROOT" --path "$TICKETS" --json)
+  if [ "$KRN_QUEUE_MODE" = selected ]; then
+    next_json=$(node "$KRN" task next --root "$ROOT" --json)
+  else
+    assert_legacy_queue
+    next_json=$(node "$KRN" ticket next --root "$ROOT" --path "$TICKETS" --json)
+  fi
   id=$(printf '%s' "$next_json" | python3 -c 'import json,sys;print((json.load(sys.stdin).get("frontier") or [""])[0])')
   if [ -z "$id" ]; then
     echo "iteration=$iteration frontier=empty"
@@ -126,8 +144,8 @@ for iteration in $(seq 1 "$MAX_RUNS"); do
   fi
   echo "iteration=$iteration pick=$id"
   lane_log="$LOG_DIR/${id}-${iteration}.log"
-  probe_error="$LOG_DIR/${id}-${iteration}.task-view.err"
-  if node "$KRN" ticket show --root "$ROOT" --id "$id" --json 2>"$probe_error" >/dev/null; then
+  if [ "$KRN_QUEUE_MODE" = selected ]; then
+    node "$KRN" task show --root "$ROOT" --id "$id" --json >/dev/null
     claim_intent_id=$KRN_INTENT_ID
     if [ -z "$claim_intent_id" ]; then
       echo "active task queue requires KRN_INTENT_ID from the current authority owner" >&2
@@ -153,10 +171,7 @@ for iteration in $(seq 1 "$MAX_RUNS"); do
     fi
     FIXTURE="$ROOT" KRN_TASK_ID="$id" KRN_CLAIM_WORKER="$claim_worker" KRN_CLAIM_EPOCH="$claim_epoch" "$LANE" run >"$lane_log" 2>&1
   else
-    if ! grep -Fq "Git-ref task queue is not active; Markdown remains authoritative" "$probe_error"; then
-      cat "$probe_error" >&2
-      exit 1
-    fi
+    assert_legacy_queue
     claim_json=$(node "$KRN" ticket claim --root "$ROOT" --path "$TICKETS" --id "$id" --worker "$WORKER_NAME" --json)
     file=$(printf '%s' "$claim_json" | python3 -c 'import json,sys;print(json.load(sys.stdin)["path"])')
     FIXTURE="$ROOT" TICKET="$file" "$LANE" run >"$lane_log" 2>&1
@@ -176,6 +191,7 @@ for iteration in $(seq 1 "$MAX_RUNS"); do
   if [ -n "$claim_worker" ]; then
     integrate_active_task "$id" "$branch" "$sha" "$claim_worker" "$claim_epoch" "$claim_intent_id" "$claim_intent_revision"
   else
+    assert_legacy_queue
     git -C "$ROOT" -c user.email=frontier@lab.invalid -c user.name=frontier merge --no-ff "$branch" -m "merge: integrate $id" >/dev/null
     node "$KRN" ticket close --root "$ROOT" --path "$TICKETS" --id "$id" --head "$sha" \
       --evidence "lane branch $branch merged as $sha; worker gate green" \
@@ -184,4 +200,9 @@ for iteration in $(seq 1 "$MAX_RUNS"); do
   fi
 done
 
-node "$KRN" ticket check --root "$ROOT" --path "$TICKETS"
+if [ "$KRN_QUEUE_MODE" = selected ]; then
+  node "$KRN" task check --root "$ROOT"
+else
+  assert_legacy_queue
+  node "$KRN" ticket check --root "$ROOT" --path "$TICKETS"
+fi

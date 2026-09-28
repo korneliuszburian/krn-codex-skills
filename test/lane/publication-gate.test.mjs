@@ -26,9 +26,6 @@ const closeLog = process.env.STUB_CLOSE_LOG;
 if (sub === "next") {
   if (process.argv.includes("--json")) process.stdout.write(JSON.stringify({root: process.cwd(), frontier: ["t-1"]}) + "\\n");
   else process.stdout.write("t-1\\n");
-} else if (sub === "show") {
-  process.stderr.write("krn: Git-ref task queue is not active; Markdown remains authoritative\\n");
-  process.exit(64);
 } else if (sub === "claim") {
   process.stdout.write(JSON.stringify({ path: ${JSON.stringify(ticketPath)} }) + "\\n");
 } else if (sub === "close" && closeLog) {
@@ -47,7 +44,12 @@ git -C "$FIXTURE" checkout -q main
 echo "branch=$branch"
 `;
 
-const TICKET_BODY = "<krn-ticket>\nId: t-1\nStatus: ready\n</krn-ticket>\n";
+const TICKET_BODY = [
+  "<krn-ticket>", "Id: t-1", "Title: Ready Markdown decoy", "Status: ready", "Type: task",
+  "Repository-base: main", "Scope: package.json,test/new.test.mjs",
+  "Deciding check: node --test test/new.test.mjs", "Contract: test/new.test.mjs:green->green",
+  "Acceptance: the Markdown task has a valid frontier", "Blocked by: none", "</krn-ticket>", "",
+].join("\n");
 
 function setup() {
   const dir = mkdtempSync(join(tmpdir(), "lane-publish-gate-"));
@@ -100,6 +102,7 @@ function envFor({ repo, tickets, krnPath, lanePath, logDir, closeLog }, gate) {
   };
   if (gate === undefined) delete env.PUBLISH_GATE;
   else env.PUBLISH_GATE = gate;
+  delete env.KRN_QUEUE_MODE;
   return env;
 }
 
@@ -111,7 +114,7 @@ const publicTaskCli = (fixture, rejected) => {
   writeFileSync(path, `import { spawnSync } from "node:child_process";
 const args = process.argv.slice(2);
 const call = args.slice(0, ["intent", "operation"].includes(args[1]) ? 3 : 2).join(" ");
-if (!args.includes("--path") && ${JSON.stringify(rejected)}.includes(call)) {
+if (${JSON.stringify(rejected)}.includes(call) && (["ticket next", "ticket check"].includes(call) || !args.includes("--path"))) {
   process.stderr.write("selected Git-ref tasks must use public krn task: " + call + "\\n");
   process.exit(64);
 }
@@ -126,7 +129,7 @@ const subjects = (repo) => git(repo, ["log", "--format=%s"]);
 test("the frontier refuses to merge and close when PUBLISH_GATE is unset", () => {
   const fixture = setup();
   try {
-    const result = runFrontier(envFor(fixture, undefined));
+    const result = runFrontier({ ...envFor(fixture, undefined), KRN_QUEUE_MODE: "legacy" });
     assert.notEqual(result.status, 0, `an unset gate must refuse: ${result.stdout}${result.stderr}`);
     assert.match(result.stderr, /publication gate required/, "the refusal must name the missing gate");
     assert.ok(!subjects(fixture.repo).includes(LANE_SUBJECT), "the lane commit must not be merged");
@@ -139,7 +142,7 @@ test("the frontier refuses to merge and close when PUBLISH_GATE is unset", () =>
 test("the frontier refuses to merge and close when PUBLISH_GATE fails", () => {
   const fixture = setup();
   try {
-    const result = runFrontier(envFor(fixture, "false"));
+    const result = runFrontier({ ...envFor(fixture, "false"), KRN_QUEUE_MODE: "legacy" });
     assert.notEqual(result.status, 0, `a failing gate must refuse: ${result.stdout}${result.stderr}`);
     assert.match(result.stderr, /publication gate failed/, "the refusal must name the failed gate");
     assert.ok(!subjects(fixture.repo).includes(LANE_SUBJECT), "the lane commit must not be merged");
@@ -151,7 +154,7 @@ test("the frontier refuses to merge and close when PUBLISH_GATE fails", () => {
 test("the frontier merges and closes only when PUBLISH_GATE passes", () => {
   const fixture = setup();
   try {
-    const result = runFrontier(envFor(fixture, "true"));
+    const result = runFrontier({ ...envFor(fixture, "true"), KRN_QUEUE_MODE: "legacy" });
     assert.equal(result.status, 0, `a passing gate must merge: ${result.stdout}${result.stderr}`);
     assert.ok(subjects(fixture.repo).includes(LANE_SUBJECT), "the lane commit must be present after the merge");
     assert.equal(git(fixture.repo, ["rev-parse", "--verify", "HEAD^2"]).trim().length, 40, "the merge must be a real merge commit");
@@ -197,7 +200,7 @@ echo "branch=$branch"
     chmodSync(activeLane, 0o755);
 
     const env = envFor(fixture, undefined);
-    env.KRN = publicTaskCli(fixture, ["ticket claim", "ticket intent get"]);
+    env.KRN = publicTaskCli(fixture, ["ticket next", "ticket show", "ticket intent get", "ticket claim"]);
     env.LANE = activeLane;
     env.LANE_RECEIPT = receiptPath;
     env.WORKER_NAME = "frontier-active-worker";
@@ -210,6 +213,75 @@ echo "branch=$branch"
     const claimed = await store.show(task.id);
     assert.equal(claimed.status, "claimed");
     assert.equal(claimed.owner, "frontier-active-worker");
+  } finally {
+    rmSync(fixture.dir, { recursive: true, force: true });
+  }
+});
+
+test("lost Git-ref selector refuses instead of picking a healthy Markdown frontier", async () => {
+  const fixture = setup();
+  try {
+    const store = openTaskStore(fixture.repo);
+    const task = await store.add({ id: "selected-t-1", title: "Selected task, not Markdown", lane: true,
+      laneRecipe: { base: "main", scope: "package.json,test/new.test.mjs", check: "node --test test/new.test.mjs",
+        contract: "test/new.test.mjs:green->green", acceptance: "route only the selected task" } });
+    await store.markReady(task.id);
+    activateTaskQueueFixture(fixture.repo);
+    const selectedSnapshot = git(fixture.repo, ["rev-parse", "refs/krn/queue"]).trim();
+    const markdown = join(fixture.tickets, "t-1.md");
+    const original = readFileSync(markdown);
+    git(fixture.repo, ["update-ref", "-d", "refs/krn/queue-active"]);
+    const cli = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
+    const legacy = spawnSync(process.execPath, [cli, "ticket", "check", "--root", fixture.repo,
+      "--path", fixture.tickets, "--json"], { encoding: "utf8" });
+    assert.equal(legacy.status, 0, `the Markdown queue must be healthy: ${legacy.stderr}`);
+    assert.deepEqual(JSON.parse(legacy.stdout).errors, []);
+    assert.deepEqual(JSON.parse(legacy.stdout).frontier, ["t-1"]);
+
+    const env = envFor(fixture, undefined);
+    env.KRN = cli;
+    const result = runFrontier(env);
+    assert.notEqual(result.status, 0, "a missing selector must refuse even with a ready Markdown ticket");
+    assert.doesNotMatch(result.stdout, /pick=t-1/, "the Markdown decoy must never be selected");
+    assert.match(result.stderr, /Git-ref task queue is not active/);
+    assert.deepEqual(readFileSync(markdown), original, "the legacy queue must stay untouched");
+    assert.equal(git(fixture.repo, ["rev-parse", "refs/krn/queue"]).trim(), selectedSnapshot);
+    assert.equal((await store.show(task.id)).status, "ready", "the selected task must not be claimed");
+  } finally {
+    rmSync(fixture.dir, { recursive: true, force: true });
+  }
+});
+
+test("explicit legacy mode refuses while a Git-ref selector is active", async () => {
+  const fixture = setup();
+  try {
+    const store = openTaskStore(fixture.repo);
+    await store.add({ id: "selected-t-1", title: "Active selected queue" });
+    activateTaskQueueFixture(fixture.repo);
+    const env = { ...envFor(fixture, undefined), KRN_QUEUE_MODE: "legacy" };
+    const result = runFrontier(env);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /legacy mode refuses an active Git-ref task queue/);
+    assert.doesNotMatch(result.stdout, /pick=/);
+    assert.deepEqual(readFileSync(join(fixture.tickets, "t-1.md")), Buffer.from(TICKET_BODY));
+  } finally {
+    rmSync(fixture.dir, { recursive: true, force: true });
+  }
+});
+
+test("explicit legacy mode keeps Markdown authoritative before Git-ref activation", async () => {
+  const fixture = setup();
+  try {
+    const store = openTaskStore(fixture.repo);
+    await store.add({ id: "staged-t-1", title: "Migrated but not selected" });
+    const stagedSnapshot = git(fixture.repo, ["rev-parse", "refs/krn/queue"]).trim();
+    const env = { ...envFor(fixture, undefined), KRN_QUEUE_MODE: "legacy" };
+    const result = runFrontier(env);
+    assert.notEqual(result.status, 0, "publication still requires its gate");
+    assert.match(result.stdout, /pick=t-1/, "explicit legacy mode selects the Markdown task");
+    assert.match(result.stderr, /publication gate required/);
+    assert.equal(git(fixture.repo, ["rev-parse", "refs/krn/queue"]).trim(), stagedSnapshot,
+      "the unselected Git-ref snapshot must remain untouched");
   } finally {
     rmSync(fixture.dir, { recursive: true, force: true });
   }
@@ -263,7 +335,7 @@ echo "branch=$branch"
     chmodSync(activeLane, 0o755);
 
     const env = envFor(fixture, "true");
-    env.KRN = publicTaskCli(fixture, ["ticket env", "ticket fields", "ticket operation prepare", "ticket operation apply"]);
+    env.KRN = publicTaskCli(fixture, ["ticket next", "ticket show", "ticket env", "ticket fields", "ticket operation prepare", "ticket operation apply", "ticket check"]);
     env.LANE = activeLane;
     env.LANE_CLASSIFIER = fileURLToPath(new URL("../../scripts/lane/run-ticket.sh", import.meta.url));
     env.WORKER_NAME = "frontier-active-integrator";
