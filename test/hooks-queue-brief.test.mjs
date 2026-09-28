@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
 
-import { openTaskStore } from "../scripts/lib/ticket/task-store.mjs";
+import { openTaskStore } from "../scripts/lib/task/task-store.mjs";
 import { checkTickets } from "../scripts/lib/ticket/ticket.mjs";
 import { activateTaskQueueFixture } from "./task/task-queue-fixture.mjs";
 

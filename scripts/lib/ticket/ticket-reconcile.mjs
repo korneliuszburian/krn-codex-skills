@@ -3,7 +3,7 @@ import fs from "node:fs";
 
 import { runGit } from "../kernel/git.mjs";
 import { writeAtomic } from "../support/write-atomic.mjs";
-import { withLegacyQueueWrite } from "./task-store.mjs";
+import { withLegacyQueueWrite } from "../task/task-store.mjs";
 
 import {
   DEFAULT_DIRS,

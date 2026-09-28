@@ -12,12 +12,12 @@ let openTaskStore;
 let taskTicketView;
 let ticketLaneBindings;
 try {
-  ({ prepareLegacyQueueImport, restoreLegacyQueueArchive } = await import("../../scripts/lib/ticket/task-import.mjs"));
+  ({ prepareLegacyQueueImport, restoreLegacyQueueArchive } = await import("../../scripts/lib/task/task-import.mjs"));
 } catch {
   // Keep the observer loadable before the importer exists so behavior fails as a test, not as setup.
 }
 try {
-  ({ openTaskStore } = await import("../../scripts/lib/ticket/task-store.mjs"));
+  ({ openTaskStore } = await import("../../scripts/lib/task/task-store.mjs"));
 } catch {
   // Keep the observer loadable before the task store exists so behavior fails as a test, not as setup.
 }

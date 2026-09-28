@@ -8,7 +8,7 @@ import test from "node:test";
 
 let openTaskStore;
 try {
-  ({ openTaskStore } = await import("../../scripts/lib/ticket/task-store.mjs"));
+  ({ openTaskStore } = await import("../../scripts/lib/task/task-store.mjs"));
 } catch {
   // Keep the observer loadable at the pre-store commit so absence is a red test, not a setup error.
 }
@@ -1336,7 +1336,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
     try {
       let prepareLegacyQueueImport;
       try {
-        ({ prepareLegacyQueueImport } = await import("../../scripts/lib/ticket/task-import.mjs"));
+        ({ prepareLegacyQueueImport } = await import("../../scripts/lib/task/task-import.mjs"));
       } catch {
         prepareLegacyQueueImport = null;
       }

@@ -8,8 +8,8 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
-import { prepareLegacyQueueImport } from "../../scripts/lib/ticket/task-import.mjs";
+import { openTaskStore } from "../../scripts/lib/task/task-store.mjs";
+import { prepareLegacyQueueImport } from "../../scripts/lib/task/task-import.mjs";
 import { activateTaskQueueFixture } from "../task/task-queue-fixture.mjs";
 
 const cli = fileURLToPath(new URL("../../scripts/krn-codex.mjs", import.meta.url));

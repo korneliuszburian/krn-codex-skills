@@ -104,21 +104,21 @@
       "authority": "Authority: overwrites only the caller-provided file through a sibling temp and rename; callers confine the target to repository ticket and lock state."
     },
     {
-      "path": "scripts/lib/ticket/queue-write-lock.mjs",
+      "path": "scripts/lib/task/queue-write-lock.mjs",
       "class": "destructive",
       "authority": "Authority: serializes caller-authorized local queue writes, CAS-updates only refs/krn/queue-activation-fence to fence orphan activation helpers, removes only its own unpublished/released guard directories and moves an exact dead-owner token only through explicit recovery with actor and reason. Nonempty recovery tombstones remain until coordinated retirement of legacy writer support. It never removes task files or remote state."
     },
+    { "path": "scripts/lib/task/task-cli.mjs", "class": "additive" },
     {
-      "path": "scripts/lib/ticket/task-import.mjs",
+      "path": "scripts/lib/task/task-import.mjs",
       "class": "destructive",
       "authority": "Authority: restores verified ticket and claim-lock bytes only beneath the caller-supplied restore root; run only as an explicit migration/rollback step after checking the archive and destination; refuses traversal and differing targets and never activates the task store."
     },
     {
-      "path": "scripts/lib/ticket/task-store.mjs",
+      "path": "scripts/lib/task/task-store.mjs",
       "class": "destructive",
       "authority": "Authority: writes local queue/selector refs and explicitly prepared effect refs through task transition predicates. Explicit migration writes the caller's immutable legacy archive and activates only after all-reader/writer and rollback gates; restore refuses divergent targets. It never writes remote refs."
     },
-    { "path": "scripts/lib/task/task-cli.mjs", "class": "additive" },
     { "path": "scripts/lib/ticket/ticket-abi.mjs", "class": "read-only" },
     { "path": "scripts/lib/ticket/ticket-check.mjs", "class": "read-only" },
     { "path": "scripts/lib/ticket/ticket-cli.mjs", "class": "additive" },

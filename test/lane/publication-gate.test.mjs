@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
+import { openTaskStore } from "../../scripts/lib/task/task-store.mjs";
 import { checkTickets } from "../../scripts/lib/ticket/ticket.mjs";
 import { activateTaskQueueFixture } from "../task/task-queue-fixture.mjs";
 
@@ -495,7 +495,7 @@ echo "branch=$branch"
     const realGit = execFileSync("which", ["git"], { encoding: "utf8" }).trim();
     const marker = join(fixture.dir, "intent-revoked");
     const mutator = join(fixture.dir, "revoke-intent.mjs");
-    writeFileSync(mutator, `import { openTaskStore } from ${JSON.stringify(fileURLToPath(new URL("../../scripts/lib/ticket/task-store.mjs", import.meta.url)))};
+    writeFileSync(mutator, `import { openTaskStore } from ${JSON.stringify(fileURLToPath(new URL("../../scripts/lib/task/task-store.mjs", import.meta.url)))};
 await openTaskStore(process.env.REVOKE_ROOT).setIntentRevision("revocable-outcome", 2, { expectedRevision: 1 });
 `);
     const bin = join(fixture.dir, "bin");

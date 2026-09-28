@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 
 import { gitTopLevel, runGit, runGitInput } from "../kernel/git.mjs";
 import { sha256Hex } from "../kernel/digest.mjs";
-import { hasActionableReason } from "./ticket-abi.mjs";
+import { hasActionableReason } from "../ticket/ticket-abi.mjs";
 
 const TOKEN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const HOST = sha256Hex(os.hostname());

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
-import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
+import { openTaskStore } from "../../scripts/lib/task/task-store.mjs";
 import { claimTicket, closeTicket, recordAttempt, reconcileTickets } from "../../scripts/lib/ticket/ticket.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));

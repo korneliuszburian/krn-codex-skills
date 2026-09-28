@@ -45,8 +45,8 @@ async function fixture(run, { trailerId = "legacy-proof", contract = "test/check
     git(root, "commit", "-q", "-m", "test: preserve imported task before work");
     const base = git(root, "rev-parse", "HEAD");
 
-    const { prepareLegacyQueueImport } = await import("../../scripts/lib/ticket/task-import.mjs");
-    const { openTaskStore } = await import("../../scripts/lib/ticket/task-store.mjs");
+    const { prepareLegacyQueueImport } = await import("../../scripts/lib/task/task-import.mjs");
+    const { openTaskStore } = await import("../../scripts/lib/task/task-store.mjs");
     const { activateTaskQueueFixture } = await import("./task-queue-fixture.mjs");
     const store = openTaskStore(root);
     const prepared = await prepareLegacyQueueImport(root);
