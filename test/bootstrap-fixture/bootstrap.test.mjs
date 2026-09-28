@@ -270,3 +270,96 @@ test("frozen installed CLI and host adapters use the selected public task queue"
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("frozen prior and sealed task-only releases preserve queue state across cutover and rollback", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "krn-task-cutover-"));
+  try {
+    const oldSource = path.join(root, "old-source");
+    execFileSync("git", ["clone", "--quiet", "--no-hardlinks", REPO, oldSource]);
+    execFileSync("git", ["-C", oldSource, "checkout", "--quiet", "--detach", "0aa0945adaded7de2af507de36b23cbaa4fb7a0f"]);
+    const oldInstall = invoke(CLI, ["install", "apply", "--source", oldSource, "--yes", "--json"], root);
+    assert.equal(oldInstall.status, 0, `${oldInstall.stdout}${oldInstall.stderr}`);
+    const oldCommit = JSON.parse(oldInstall.stdout).commit;
+    const installedCli = path.join(root, "bin", "krn");
+    const target = initTarget(root);
+    const apply = invoke(installedCli, ["repo", "apply", "--root", target, "--tracker", "local", "--domain", "single", "--delivery", "local"], root);
+    assert.equal(apply.status, 0, apply.stderr);
+    for (const id of ["cutover-work", "rollback-ready"]) {
+      const added = invoke(installedCli, ["task", "add", "--root", target, "--id", id, "--title", id, "--json"], root);
+      assert.equal(added.status, 0, added.stderr);
+      const ready = invoke(installedCli, ["task", "ready", "--root", target, "--id", id, "--json"], root);
+      assert.equal(ready.status, 0, ready.stderr);
+    }
+    const oldAlias = invoke(installedCli, ["ticket", "next", "--root", target, "--json"], root);
+    assert.equal(oldAlias.status, 0, oldAlias.stderr);
+    assert.deepEqual(JSON.parse(oldAlias.stdout).frontier, ["cutover-work", "rollback-ready"]);
+    const exportBefore = invoke(installedCli, ["task", "store", "export", "--root", target, "--json"], root);
+    assert.equal(exportBefore.status, 0, exportBefore.stderr);
+    const archive = JSON.parse(exportBefore.stdout);
+    assert.deepEqual(archive.refs.map((ref) => ref.name), ["refs/krn/queue", "refs/krn/queue-active"]);
+
+    const nextSource = sourceFixture(root);
+    const seal = invoke(CLI, ["install", "seal", "--source", nextSource, "--root", nextSource, "--json"], root);
+    assert.equal(seal.status, 0, `${seal.stdout}${seal.stderr}`);
+    execFileSync("git", ["-C", nextSource, "add", "config/release-digests.json"]);
+    execFileSync("git", ["-C", nextSource, "commit", "-q", "-m", "seal fixture task cutover"]);
+    const nextInstall = invoke(CLI, ["install", "apply", "--source", nextSource, "--yes", "--json"], root);
+    assert.equal(nextInstall.status, 0, `${nextInstall.stdout}${nextInstall.stderr}`);
+    const nextCommit = JSON.parse(nextInstall.stdout).commit;
+    assert.notEqual(nextCommit, oldCommit);
+    assert.equal(fs.realpathSync(installedCli), path.join(root, "codex", "krn", "releases", nextCommit, "scripts", "krn.mjs"));
+    const retired = invoke(installedCli, ["ticket", "next", "--root", target, "--json"], root);
+    assert.equal(retired.status, 64);
+    assert.match(retired.stderr, /krn ticket retired; use krn task/);
+    assert.equal(retired.stdout, "");
+    const taskNext = invoke(installedCli, ["task", "next", "--root", target, "--json"], root);
+    assert.equal(taskNext.status, 0, taskNext.stderr);
+    assert.deepEqual(JSON.parse(taskNext.stdout).frontier, ["cutover-work", "rollback-ready"]);
+    const exportAfter = invoke(installedCli, ["task", "store", "export", "--root", target, "--json"], root);
+    assert.equal(exportAfter.status, 0, exportAfter.stderr);
+    assert.deepEqual(JSON.parse(exportAfter.stdout).refs, archive.refs, "install does not rewrite task IDs, history, or selector refs");
+
+    const firstClaim = invoke(installedCli, ["task", "claim", "--root", target, "--id", "cutover-work", "--worker", "operator", "--json"], root);
+    assert.equal(firstClaim.status, 0, firstClaim.stderr);
+    const firstEpoch = JSON.parse(firstClaim.stdout).epoch;
+    const firstClose = invoke(installedCli, ["task", "close", "--root", target, "--id", "cutover-work", "--actor", "operator", "--expected-epoch", String(firstEpoch), "--reason", "first observed result", "--json"], root);
+    assert.equal(firstClose.status, 0, firstClose.stderr);
+    const reopen = invoke(installedCli, ["task", "reopen", "--root", target, "--id", "cutover-work", "--actor", "operator", "--reason", "verify renewed generation", "--json"], root);
+    assert.equal(reopen.status, 0, reopen.stderr);
+    const readyAgain = invoke(installedCli, ["task", "ready", "--root", target, "--id", "cutover-work", "--json"], root);
+    assert.equal(readyAgain.status, 0, readyAgain.stderr);
+    const claimed = invoke(installedCli, ["task", "claim", "--root", target, "--id", "cutover-work", "--worker", "operator", "--json"], root);
+    assert.equal(claimed.status, 0, claimed.stderr);
+    const epoch = JSON.parse(claimed.stdout).epoch;
+    assert.equal(epoch, firstEpoch + 1);
+    const linked = path.join(root, "linked");
+    execFileSync("git", ["-C", target, "worktree", "add", "--detach", "--quiet", linked]);
+    const beforeStale = execFileSync("git", ["-C", target, "rev-parse", "refs/krn/queue"], { encoding: "utf8" }).trim();
+    const stale = invoke(installedCli, ["task", "comment", "--root", linked, "--id", "cutover-work", "--worker", "operator", "--expected-epoch", String(epoch - 1), "--body", "stale linked writer", "--json"], root);
+    assert.notEqual(stale.status, 0);
+    assert.match(stale.stderr, /stale claim generation/, "a reused worker name cannot write with an old claim epoch");
+    assert.equal(execFileSync("git", ["-C", target, "rev-parse", "refs/krn/queue"], { encoding: "utf8" }).trim(), beforeStale,
+      "a stale linked worktree cannot move the shared queue ref");
+    const comment = invoke(installedCli, ["task", "comment", "--root", linked, "--id", "cutover-work", "--worker", "operator", "--expected-epoch", String(epoch), "--body", "same shared queue", "--json"], root);
+    assert.equal(comment.status, 0, comment.stderr);
+    const closed = invoke(installedCli, ["task", "close", "--root", target, "--id", "cutover-work", "--actor", "operator", "--expected-epoch", String(epoch), "--reason", "operator read back the result", "--json"], root);
+    assert.equal(closed.status, 0, closed.stderr);
+    const shown = invoke(installedCli, ["task", "show", "--root", linked, "--id", "cutover-work", "--json"], root);
+    assert.equal(shown.status, 0, shown.stderr);
+    assert.equal(JSON.parse(shown.stdout).Status, "done");
+    assert.deepEqual(JSON.parse(shown.stdout).task.history.map((entry) => entry.type),
+      ["added", "ready", "claimed", "closed", "reopened", "ready", "claimed", "comment", "closed"]);
+
+    const current = path.join(root, "codex", "krn", "current");
+    const replacement = `${current}.rollback-fixture`;
+    fs.symlinkSync(`releases/${oldCommit}`, replacement);
+    fs.renameSync(replacement, current);
+    assert.equal(fs.realpathSync(installedCli), path.join(root, "codex", "krn", "releases", oldCommit, "scripts", "krn.mjs"));
+    const rolledBack = invoke(installedCli, ["task", "next", "--root", target, "--json"], root);
+    assert.equal(rolledBack.status, 0, rolledBack.stderr);
+    assert.deepEqual(JSON.parse(rolledBack.stdout).frontier, ["rollback-ready"], "old verified runtime still reads the unrevised Git-ref task state");
+    assert.equal(execFileSync("git", ["-C", target, "rev-parse", "refs/krn/queue-active"], { encoding: "utf8" }).trim(), archive.refs[1].oid);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
