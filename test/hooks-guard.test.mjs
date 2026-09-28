@@ -507,6 +507,85 @@ test("SessionStart loads a continuing capsule without writing a boundary", () =>
   }
 });
 
+test("SessionStart ignores an invalid ancestor Git marker when loading a child capsule", () => {
+  const outer = mkdtempSync(join(tmpdir(), "krn-invalid-root-"));
+  try {
+    mkdirSync(join(outer, ".git")); // An unrelated empty directory is not a Git worktree.
+    const child = join(outer, "child");
+    const capsule = join(child, ".krn", "runs", "delivery-loop", "out-1");
+    mkdirSync(capsule, { recursive: true });
+    writeFileSync(join(capsule, "state.md"), [
+      "Outcome state: ACTIVE",
+      "Next bounded owner and action: resume the child capsule",
+      "Open unknowns and blockers with owners: none",
+      "Outcome and observable acceptance: verify current state",
+      "",
+    ].join("\n"));
+    assert.match(precompactContext(child, "SessionStart"), /resume the child capsule/);
+  } finally {
+    rmSync(outer, { recursive: true, force: true });
+  }
+});
+
+test("SessionStart rejects Git-shaped but invalid ancestor markers", () => {
+  for (const kind of ["fake-head", "bad-gitdir", "invalid-utf8"]) {
+    const outer = mkdtempSync(join(tmpdir(), `krn-invalid-${kind}-`));
+    try {
+      const marker = join(outer, ".git");
+      if (kind === "fake-head") {
+        mkdirSync(marker);
+        writeFileSync(join(marker, "HEAD"), "not a Git ref\n");
+      } else if (kind === "bad-gitdir") {
+        writeFileSync(marker, "gitdir: /nonexistent-krn-gitdir\n");
+      } else {
+        writeFileSync(marker, Buffer.from([0xff, 0xfe]));
+      }
+      const child = join(outer, "child");
+      const capsule = join(child, ".krn", "runs", "delivery-loop", "out-1");
+      mkdirSync(capsule, { recursive: true });
+      writeFileSync(join(capsule, "state.md"), [
+        "Outcome state: ACTIVE",
+        `Next bounded owner and action: recover ${kind} capsule`,
+        "Open unknowns and blockers with owners: none",
+        "Outcome and observable acceptance: verify current state",
+        "",
+      ].join("\n"));
+      assert.match(precompactContext(child, "SessionStart"), new RegExp(`recover ${kind} capsule`));
+    } finally {
+      rmSync(outer, { recursive: true, force: true });
+    }
+  }
+});
+
+test("SessionStart loads a capsule from a linked-worktree ancestor with trailing space", () => {
+  const outer = mkdtempSync(join(tmpdir(), "krn-linked-root-"));
+  try {
+    const source = join(outer, "source ");
+    const linked = join(outer, "linked ");
+    const git = (...args) => {
+      const result = spawnSync("git", args, { encoding: "utf8" });
+      assert.equal(result.status, 0, result.stderr);
+    };
+    git("init", "--quiet", source);
+    git("-C", source, "-c", "user.name=KRN", "-c", "user.email=krn@example.invalid", "commit", "--quiet", "--allow-empty", "-m", "fixture");
+    git("-C", source, "worktree", "add", "--detach", "--quiet", linked);
+    const nested = join(linked, "nested");
+    const capsule = join(linked, ".krn", "runs", "delivery-loop", "out-1");
+    mkdirSync(nested);
+    mkdirSync(capsule, { recursive: true });
+    writeFileSync(join(capsule, "state.md"), [
+      "Outcome state: ACTIVE",
+      "Next bounded owner and action: resume the linked capsule",
+      "Open unknowns and blockers with owners: none",
+      "Outcome and observable acceptance: verify current state",
+      "",
+    ].join("\n"));
+    assert.match(precompactContext(nested, "SessionStart"), /resume the linked capsule/);
+  } finally {
+    rmSync(outer, { recursive: true, force: true });
+  }
+});
+
 test("SessionStart reads capsule fields outside an inherited Node test context", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-sessionstart-context-"));
   try {
