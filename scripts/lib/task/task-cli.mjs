@@ -4,8 +4,8 @@ import path from "node:path";
 import { parseCliArgs } from "../kernel/cli.mjs";
 import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { checkTickets, taskTicketView, ticketLaneBindings } from "../ticket/ticket.mjs";
-import { copyActiveTaskStoreSnapshot, exportTaskStoreSnapshot, openTaskStore, readActiveTaskStoreSnapshot, restoreTaskStoreSnapshot } from "../ticket/task-store.mjs";
-import { inspectQueueWriteLock, recoverQueueWriteLock } from "../ticket/queue-write-lock.mjs";
+import { copyActiveTaskStoreSnapshot, exportTaskStoreSnapshot, openTaskStore, readActiveTaskStoreSnapshot, restoreTaskStoreSnapshot } from "./task-store.mjs";
+import { inspectQueueWriteLock, recoverQueueWriteLock } from "./queue-write-lock.mjs";
 const VALUE_FLAGS = {
   "--root": "root",
   "--path": "path",

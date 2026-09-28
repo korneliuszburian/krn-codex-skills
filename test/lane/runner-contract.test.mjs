@@ -6,7 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
+import { openTaskStore } from "../../scripts/lib/task/task-store.mjs";
 import { activateTaskQueueFixture } from "../task/task-queue-fixture.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));

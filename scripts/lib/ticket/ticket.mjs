@@ -33,7 +33,7 @@ import {
 } from "./ticket-abi.mjs";
 import { baseRefExists, checkTickets as checkTicketsImpl, contractErrors, namesTicket, scopeErrors } from "./ticket-check.mjs";
 import { findTicketFile as findTicketFileImpl, reconcileTickets as reconcileTicketsImpl } from "./ticket-reconcile.mjs";
-import { readActiveTaskStoreSnapshot, withLegacyQueueWrite } from "./task-store.mjs";
+import { readActiveTaskStoreSnapshot, withLegacyQueueWrite } from "../task/task-store.mjs";
 
 export { ticketLaneBindings };
 

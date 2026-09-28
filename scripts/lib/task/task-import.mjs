@@ -4,8 +4,8 @@ import path from "node:path";
 import { sha256Hex } from "../kernel/digest.mjs";
 import { gitTopLevel } from "../kernel/git.mjs";
 import { walkFiles } from "../kernel/walk.mjs";
-import { blockerIds, claimLockPath, DEFAULT_DIRS, parseExecutionHint, parseGate, parseIntegrationRecord } from "./ticket-abi.mjs";
-import { parseTicketFieldOccurrences, parseTicketText } from "./ticket.mjs";
+import { blockerIds, claimLockPath, DEFAULT_DIRS, parseExecutionHint, parseGate, parseIntegrationRecord } from "../ticket/ticket-abi.mjs";
+import { parseTicketFieldOccurrences, parseTicketText } from "../ticket/ticket.mjs";
 
 const MAPPED_FIELDS = new Set([
   "Id", "Title", "Status", "Blocked by", "Claim", "Type", "Repository-base", "Scope", "Deciding check", "Contract", "Acceptance", "Integration", "Gate", "Execution",

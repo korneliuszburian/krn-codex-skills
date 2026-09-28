@@ -8,7 +8,7 @@ import { sha256Hex } from "../kernel/digest.mjs";
 import { runProcess } from "../kernel/proc.mjs";
 import { globToRegex } from "../kernel/text.mjs";
 import { withWorktree } from "../kernel/worktree.mjs";
-import { DEFAULT_CLAIM_DURATION, MAX_ATTEMPTS, hasActionableReason, leaseExpired, STATUSES, TYPES } from "./ticket-abi.mjs";
+import { DEFAULT_CLAIM_DURATION, MAX_ATTEMPTS, hasActionableReason, leaseExpired, STATUSES, TYPES } from "../ticket/ticket-abi.mjs";
 import { withQueueWriteLock } from "./queue-write-lock.mjs";
 
 const QUEUE_REF = "refs/krn/queue";

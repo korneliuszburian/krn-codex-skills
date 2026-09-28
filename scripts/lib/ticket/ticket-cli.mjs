@@ -6,7 +6,7 @@ import { EXIT_CODES, fail } from "../support/diagnostics.mjs";
 import { runTaskCommand } from "../task/task-cli.mjs";
 import { checkTickets, claimTicket, closeTicket, findTicketFile, parseTicketText, recordAttempt, reconcileTickets, taskTicketView, ticketLaneBindings } from "./ticket.mjs";
 import { rootForTicket } from "./ticket-abi.mjs";
-import { readActiveTaskStoreSnapshot } from "./task-store.mjs";
+import { readActiveTaskStoreSnapshot } from "../task/task-store.mjs";
 
 // Compatibility only: selected Git-ref operations are owned by task-cli.mjs;
 // this file retains the pre-activation Markdown and file-based ticket ABI.

@@ -88,6 +88,16 @@ test("active task product proof is registered under its task owner", () => {
   assert.ok(!script.includes("test/ticket/task-product.test.mjs"), "the gate must not retain the obsolete path");
 });
 
+test("one live task store, import and queue lock live under the task owner", () => {
+  const manifest = JSON.parse(readFileSync(join(root, "skills/manifest.json"), "utf8"));
+  for (const name of ["task-store.mjs", "task-import.mjs", "queue-write-lock.mjs"]) {
+    const taskPath = `scripts/lib/task/${name}`;
+    assert.ok(existsSync(join(root, taskPath)), `${taskPath} is the live module`);
+    assert.ok(manifest.runtime_paths.includes(taskPath), `${taskPath} is installed`);
+    assert.ok(!existsSync(join(root, `scripts/lib/ticket/${name}`)), `${name} must not have a second legacy owner`);
+  }
+});
+
 test("AGENTS.md and README.md inventories name every lib owner and test group", () => {
   const names = [...directoryNames("scripts/lib"), ...directoryNames("test")];
   for (const label of ["AGENTS.md", "README.md"]) {
