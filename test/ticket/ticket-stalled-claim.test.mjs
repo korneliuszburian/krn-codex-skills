@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -8,7 +7,6 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
-const cli = join(root, "scripts", "krn-codex.mjs");
 
 async function loadTicket() {
   try {
@@ -88,44 +86,4 @@ test("checkTickets does not warn for a claimed ticket with no attempt yet", asyn
     writeFileSync(file, ticket(baseFields));
     assert.equal(stalled(ticketLib.checkTickets({ root: dir }).warnings).length, 0);
   });
-});
-
-test("the CLI records a failed attempt through the ledger and exits 0", () => {
-  const dir = mkdtempSync(join(tmpdir(), "krn-ticket-fail-cli-"));
-  try {
-    mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
-    const file = join(dir, ".krn/tickets", "t-1.md");
-    writeFileSync(file, ticket(readyFields));
-    const run = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
-    const claim = run("ticket", "claim", "--root", dir, "--id", "t-1", "--worker", "w", "--json");
-    assert.equal(claim.status, 0, claim.stderr);
-
-    const result = run("ticket", "fail", "--root", dir, "--id", "t-1", "--reason", "no commit in 69s", "--json");
-    assert.equal(result.status, 0, result.stderr);
-    const parsed = JSON.parse(result.stdout);
-    assert.equal(parsed.attempts, 1);
-    assert.equal(parsed.status, "claimed");
-
-    const text = readFileSync(file, "utf8");
-    assert.match(text, /^Attempts: count=1; reason=no commit in 69s; at=\d{4}-/m);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("the CLI check surfaces the stalled-claim warning", () => {
-  const dir = mkdtempSync(join(tmpdir(), "krn-ticket-check-cli-"));
-  try {
-    mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
-    const file = join(dir, ".krn/tickets", "t-1.md");
-    writeFileSync(
-      file,
-      ticket({ ...baseFields, Attempts: "count=1; reason=no commit in 69s; at=2026-09-17T00:01:00.000Z" }),
-    );
-    const result = spawnSync(process.execPath, [cli, "ticket", "check", "--root", dir], { encoding: "utf8" });
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stderr, /stalled-claim/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
 });

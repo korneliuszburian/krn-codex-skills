@@ -19,7 +19,6 @@ import { checkGateCommand } from "./lib/contract/gated-transition.mjs";
 import { caseIds, loadCases, runConformance } from "./lib/conformance/conformance.mjs";
 import { EXIT_CODES, fail as baseFail } from "./lib/support/diagnostics.mjs";
 import { runTaskCommand } from "./lib/task/task-cli.mjs";
-import { runTicketCommand } from "./lib/ticket/ticket-cli.mjs";
 import { runHarnessCommand } from "./lib/harness/e2e-compare.mjs";
 
 process.stdout.on("error", (error) => {
@@ -55,30 +54,6 @@ const usage = `Usage:
   krn task store restore --root DIR --file ARCHIVE.json [--json]
   krn task store lock --root DIR [--json]
   krn task store unlock --root DIR --token TOKEN --actor NAME --reason TEXT [--json]
-  krn ticket <add|list|check|next|ready|claim|renew|comment|close|reopen|release|takeover|edit|fail|reconcile> --root DIR [options]
-  krn ticket operation prepare --root DIR --file .krn/runs/FILE.json [--json]
-  krn ticket operation apply --root DIR --id ID --worker NAME --expected-epoch N [--json]
-  krn ticket operation complete --root DIR --id ID --worker NAME --expected-epoch N [--json]
-  krn ticket intent get --root DIR --intent ID [--json]
-  krn ticket intent set --root DIR --intent ID --revision N --expected-revision N [--json]
-  krn ticket store copy --root SOURCE --to ISOLATED-CLONE [--json]
-  krn ticket store export --root DIR [--json]
-  krn ticket store restore --root DIR --file ARCHIVE.json [--json]
-  krn ticket store migrate --root DIR [--file DECISIONS.json] [--yes --archive FILE --actor NAME --reason TEXT] [--json]
-  krn ticket store lock --root DIR [--json]
-  krn ticket store unlock --root DIR --token TOKEN --actor NAME --reason TEXT [--json]
-  krn ticket add --root DIR --title TEXT [--lane-recipe FILE.json] [--json]
-  krn ticket edit --root DIR --id ID [--lane-recipe FILE.json] [content options] [--json]
-  krn ticket show <path> [--json] | show --root DIR --id ID [--json]
-  krn ticket fields --file FILE [--json] | fields --root DIR --id ID [--json]
-  krn ticket env --file FILE | env --root DIR --id ID
-  krn ticket claim --root DIR (--id ID | --ready) --worker NAME [--session NAME] [--json]
-  krn ticket takeover --root DIR --id ID --worker NAME --expected-epoch N --reason TEXT [--json]
-  krn ticket renew --root DIR --id ID --worker NAME --expected-epoch N [--json]
-  krn ticket comment --root DIR --id ID --worker NAME --expected-epoch N --body TEXT [--json]
-  krn ticket <close|reopen|release> --root DIR --id ID --actor NAME --reason TEXT [--expected-epoch N] [--json]
-  krn ticket close --root DIR --id ID --actor NAME --reason TEXT --expected-epoch N --base SHA --head SHA --integrated SHA [--json]  (imported proof-gated non-lane)
-  krn ticket fail --root DIR --id ID --worker NAME --expected-epoch N --reason TEXT [--json]
   krn harness compare --task FILE --lanes NAME,NAME [--runs N] [--root DIR] [--json]`;
 
 const fail = (message, code = EXIT_CODES.USAGE) => baseFail(message, code);
@@ -196,6 +171,9 @@ function renderInstallReport(report) {
 
 try {
   const raw = process.argv.slice(2);
+  if (raw[0] === "ticket") {
+    fail("krn ticket retired; use krn task --root DIR. Import an unpublished Markdown queue with krn task store migrate --root DIR", EXIT_CODES.USAGE);
+  }
   // Help is answered wherever it appears, so `krn <command> --help` prints the
   // usage instead of failing on an option the command does not define.
   if (raw.includes("-h") || raw.includes("--help") || raw[0] === "help") {
@@ -324,8 +302,6 @@ try {
     }
   } else if (raw[0] === "task") {
     await runTaskCommand(raw.slice(1), { usage, requireDirectory });
-  } else if (raw[0] === "ticket") {
-    await runTicketCommand(raw.slice(1), { usage, requireDirectory });
   } else if (raw[0] === "conformance") {
     const { positional, options } = parseOptions(raw.slice(1));
     rejectForeignOptions(options, ["root", "candidate", "filter", "frozen"]);

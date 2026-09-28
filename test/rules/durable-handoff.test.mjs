@@ -52,10 +52,8 @@ for (const surface of SURFACES) {
       text.includes(".krn/runs/delivery-loop/<outcome"),
       `${surface.name} must export the outcome capsule directory`,
     );
-    assert.ok(
-      text.includes(".krn/tickets/"),
-      `${surface.name} must export the local queue directory`,
-    );
+    assert.ok(text.includes("queue.json"), `${surface.name} must archive the selected Git-ref queue`);
+    assert.ok(text.includes(".krn/tickets/"), `${surface.name} must classify old Markdown as historical data`);
   });
 
   test(`${surface.name} names the pause export and the successor restore`, () => {
@@ -78,9 +76,9 @@ for (const surface of SURFACES) {
         `${surface.name} must record the resume command \`${command}\``,
       );
     }
-    assert.match(text, /absent selector[^.]*selector loss[^.]*refuse by default/i);
-    assert.match(text, /explicit pre-activation `KRN_QUEUE_MODE=legacy`/);
-    assert.match(text, /never use it with an active selector/i);
+    assert.match(text, /absent selector[^.]*selector loss[^.]*refuse/i);
+    assert.match(text, /krn task store migrate/);
+    assert.doesNotMatch(text, /KRN_QUEUE_MODE=legacy/, "the retired legacy runner is not a recovery operation");
   });
 
   test(`${surface.name} records the wipe/restore falsifier`, () => {
@@ -90,8 +88,8 @@ for (const surface of SURFACES) {
     assert.match(text, /falsifier/i, `${surface.name} must name a falsifier`);
     assert.match(
       text,
-      /empty frontier/i,
-      `${surface.name} must state that a skipped restore leaves an empty frontier`,
+      /unselected fresh checkout refuses/i,
+      `${surface.name} must state that skipped restore refuses task lookup`,
     );
     assert.match(
       text,

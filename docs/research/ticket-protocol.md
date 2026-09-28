@@ -152,7 +152,7 @@ enforces both, with `test/state/friction-drain.test.mjs` as the observer.
 ## 2026-09-23 correction: the operator loop is incomplete
 
 The current ABI is an operating compatibility contract, not the intended final
-task product. At source `ad4b220`, `scripts/lib/ticket/ticket-cli.mjs` exposes
+task product. At source `ad4b220`, the since-retired ticket CLI module exposed
 `check`, `next`, `claim`, `close`, `fail`, `fields`, and `env`; `show` is separate.
 It cannot create a task or add a comment. A simple file needs nine required
 fields before it enters the frontier, while claim state is written both into

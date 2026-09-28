@@ -102,17 +102,16 @@ hosts own their mechanics and policy.
    When `refs/krn/queue-active` exists, save successful output from
    `krn task store export --root REPO --json` as `queue.json` in that archive.
    An unreadable selected store blocks the archive. An absent selector may
-   mean selector loss: refuse by default rather than infer a file queue. Only
-   explicit pre-activation `KRN_QUEUE_MODE=legacy` permits copying the complete
-   `.krn/tickets/` directory with checkout-relative paths; never use it with
-   an active selector. Keep any pre-import raw backup as historical data. Other
-   ignored directories retain their own consumers and are outside KRN task state.
+   mean selector loss: refuse rather than infer a file queue. A pre-import
+   `.krn/tickets/` backup is historical data, not a second operating queue;
+   importing it requires the separately authorized `krn task store migrate`
+   transition. Other ignored directories retain their own consumers and are
+   outside KRN task state.
 
    Restore the capsule directory and the selected queue into a compatible
    successor checkout. For `queue.json`, run `krn task store restore --root
    SUCCESSOR --file ARCHIVE/queue.json`; this validates and installs both refs
-   even before the successor has an active selector. For an explicit
-   pre-activation file queue, restore its original paths. Complete restoration
+   even before the successor has an active selector. Complete restoration
    before `krn state check`, `krn state resume` and `krn task next`. Queue
    export preserves task records; the code repository owns code objects and
    effect refs. The archive is an operational copy on the host, never a
@@ -124,9 +123,8 @@ hosts own their mechanics and policy.
    that references it: it must resolve after restore. The negative control
    restores the capsule but omits the queue, producing a missing candidate or
    different task set/frontier. An unselected fresh checkout refuses
-   `krn task next`; only an explicit pre-activation legacy checkout without its
-   restored file queue has an empty frontier. Archive and restore are
-   load-bearing.
+   `krn task next` rather than silently presenting an empty frontier or old
+   Markdown work. Archive and restore are load-bearing.
 
    When a composed workflow returns a run
    pointer, upsert one `Outstanding workflow-run cleanup` entry keyed by that

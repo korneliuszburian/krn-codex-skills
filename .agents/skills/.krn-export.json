@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "krn": {
-    "commit": "e2398861f3f72d10bf01afb548ff0bb44117992e",
+    "commit": "570c6ef9caf299bf5eaa7ec54d84640c267c1822",
     "dirty": false
   },
   "upstream": {
@@ -28,9 +28,9 @@
     "writing-for-agents"
   ],
   "digests": {
-    "delivery-loop": "87e9743c67907aa269b64744827309cf7cf7ad8cb1a61eb3be5816e4cbf7341d",
+    "delivery-loop": "a9eb63a67d5ec0efdd34507aba8783091ad47080e5833370836679279c1d7b56",
     "source-to-decision": "5bd95f3844e5f436d6e0658de98cd653d847c21653bbc89fc96eecedc102001f",
-    "slice-work": "9e77d72ff0b808bde46ac8d1756b75584693637f7b901d49ee9adb2f455d407c",
+    "slice-work": "9551a37eca9a71d245763bcfc67d9baf6ad16faa0dd1aeaf2424d33ad5581d49",
     "setup-repository-workflow": "1ac27c38bb9a78a070c7e0bbdacb1d369af8b5cc3f4ded639ce020834a9f5c6a",
     "code-review": "12daafb9c4f77deb3c3303dc2e6f8a3c2a0ff7928fc004af959ba18b8bd38068",
     "codebase-design": "9f457cc65ef2d70eb5b8a44a4dae2b139840078b6596a67ee8c4e95f5a0e6f5c",
