@@ -105,6 +105,22 @@ function envFor({ repo, tickets, krnPath, lanePath, logDir, closeLog }, gate) {
 
 const runFrontier = (env) => spawnSync("bash", [frontier], { encoding: "utf8", cwd: env.ROOT, env });
 
+const publicTaskCli = (fixture, rejected) => {
+  const path = join(fixture.dir, "public-task-cli.mjs");
+  const krn = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
+  writeFileSync(path, `import { spawnSync } from "node:child_process";
+const args = process.argv.slice(2);
+const call = args.slice(0, args[1] === "operation" ? 3 : 2).join(" ");
+if (!args.includes("--path") && ${JSON.stringify(rejected)}.includes(call)) {
+  process.stderr.write("selected Git-ref tasks must use public krn task: " + call + "\\n");
+  process.exit(64);
+}
+const result = spawnSync(process.execPath, [${JSON.stringify(krn)}, ...args], { stdio: "inherit" });
+process.exit(result.status ?? 1);
+`);
+  return path;
+};
+
 const subjects = (repo) => git(repo, ["log", "--format=%s"]);
 
 test("the frontier refuses to merge and close when PUBLISH_GATE is unset", () => {
@@ -180,19 +196,8 @@ echo "branch=$branch"
 `);
     chmodSync(activeLane, 0o755);
 
-    const publicCli = join(fixture.dir, "public-task-cli.mjs");
-    const krn = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
-    writeFileSync(publicCli, `import { spawnSync } from "node:child_process";
-const args = process.argv.slice(2);
-if (args[0] === "ticket" && args[1] === "claim" && !args.includes("--path")) {
-  process.stderr.write("selected Git-ref tasks must use public krn task claim\\n");
-  process.exit(64);
-}
-const result = spawnSync(process.execPath, [${JSON.stringify(krn)}, ...args], { stdio: "inherit" });
-process.exit(result.status ?? 1);
-`);
     const env = envFor(fixture, undefined);
-    env.KRN = publicCli;
+    env.KRN = publicTaskCli(fixture, ["ticket claim"]);
     env.LANE = activeLane;
     env.LANE_RECEIPT = receiptPath;
     env.WORKER_NAME = "frontier-active-worker";
@@ -258,7 +263,7 @@ echo "branch=$branch"
     chmodSync(activeLane, 0o755);
 
     const env = envFor(fixture, "true");
-    env.KRN = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
+    env.KRN = publicTaskCli(fixture, ["ticket env", "ticket fields", "ticket operation prepare", "ticket operation apply"]);
     env.LANE = activeLane;
     env.LANE_CLASSIFIER = fileURLToPath(new URL("../../scripts/lane/run-ticket.sh", import.meta.url));
     env.WORKER_NAME = "frontier-active-integrator";
