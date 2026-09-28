@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -35,11 +35,17 @@ if (sub === "next") {
 
 const laneStub = () => `#!/usr/bin/env bash
 set -euo pipefail
+if [ "\${1:-}" = classify ]; then
+  WORK_ROOT="\${WORK_ROOT}" bash "$LANE_CLASSIFIER" classify "$2"
+  exit $?
+fi
 branch=${LANE_BRANCH}
 git -C "$FIXTURE" checkout -q -b "$branch"
 printf 'lane work\\n' > "$FIXTURE/lane-artifact.txt"
+printf '\\n// selected lane change\\n' >> "$FIXTURE/test/new.test.mjs"
 git -C "$FIXTURE" add -A
-git -C "$FIXTURE" -c user.email=lane@lab.invalid -c user.name=lane commit -q -m "${LANE_SUBJECT}"
+git -C "$FIXTURE" -c user.email=lane@lab.invalid -c user.name=lane commit -q \\
+  -m "${LANE_SUBJECT}" -m 'Ticket: t-1' -m 'Change-contract: test/new.test.mjs:green->green'
 git -C "$FIXTURE" checkout -q main
 echo "branch=$branch"
 `;
@@ -126,38 +132,59 @@ process.exit(result.status ?? 1);
 
 const subjects = (repo) => git(repo, ["log", "--format=%s"]);
 
-test("the frontier refuses to merge and close when PUBLISH_GATE is unset", () => {
+async function selectedGateFixture(fixture, gate) {
+  const store = openTaskStore(fixture.repo);
+  await store.setIntentRevision("active-outcome", 1);
+  await store.add({ id: "t-1", title: "Selected task for the publication gate", lane: true,
+    laneRecipe: { base: "main", scope: "test/new.test.mjs,lane-artifact.txt", check: "node --test test/new.test.mjs",
+      contract: "test/new.test.mjs:green->green", acceptance: "integrate only after the authorized publication gate" } });
+  await store.markReady("t-1");
+  activateTaskQueueFixture(fixture.repo);
+  const env = envFor(fixture, gate);
+  env.KRN = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
+  env.KRN_INTENT_ID = "active-outcome";
+  env.LANE_CLASSIFIER = fileURLToPath(new URL("../../scripts/lane/run-ticket.sh", import.meta.url));
+  return { store, env };
+}
+
+test("the frontier refuses to merge and close when PUBLISH_GATE is unset", async () => {
   const fixture = setup();
   try {
-    const result = runFrontier({ ...envFor(fixture, undefined), KRN_QUEUE_MODE: "legacy" });
+    const { store, env } = await selectedGateFixture(fixture, undefined);
+    const result = runFrontier(env);
     assert.notEqual(result.status, 0, `an unset gate must refuse: ${result.stdout}${result.stderr}`);
     assert.match(result.stderr, /publication gate required/, "the refusal must name the missing gate");
     assert.ok(!subjects(fixture.repo).includes(LANE_SUBJECT), "the lane commit must not be merged");
     assert.equal(git(fixture.repo, ["rev-parse", "--verify", LANE_BRANCH]).trim().length, 40, "the lane branch must still exist unmerged");
+    assert.equal((await store.show("t-1")).status, "claimed", "a rejected publication must not close the task");
   } finally {
     rmSync(fixture.dir, { recursive: true, force: true });
   }
 });
 
-test("the frontier refuses to merge and close when PUBLISH_GATE fails", () => {
+test("the frontier refuses to merge and close when PUBLISH_GATE fails", async () => {
   const fixture = setup();
   try {
-    const result = runFrontier({ ...envFor(fixture, "false"), KRN_QUEUE_MODE: "legacy" });
+    const { store, env } = await selectedGateFixture(fixture, "false");
+    const result = runFrontier(env);
     assert.notEqual(result.status, 0, `a failing gate must refuse: ${result.stdout}${result.stderr}`);
     assert.match(result.stderr, /publication gate failed/, "the refusal must name the failed gate");
     assert.ok(!subjects(fixture.repo).includes(LANE_SUBJECT), "the lane commit must not be merged");
+    assert.equal((await store.show("t-1")).status, "claimed");
   } finally {
     rmSync(fixture.dir, { recursive: true, force: true });
   }
 });
 
-test("the frontier merges and closes only when PUBLISH_GATE passes", () => {
+test("the frontier merges and closes only when PUBLISH_GATE passes", async () => {
   const fixture = setup();
   try {
-    const result = runFrontier({ ...envFor(fixture, "true"), KRN_QUEUE_MODE: "legacy" });
+    const { store, env } = await selectedGateFixture(fixture, "true");
+    const result = runFrontier(env);
     assert.equal(result.status, 0, `a passing gate must merge: ${result.stdout}${result.stderr}`);
     assert.ok(subjects(fixture.repo).includes(LANE_SUBJECT), "the lane commit must be present after the merge");
     assert.equal(git(fixture.repo, ["rev-parse", "--verify", "HEAD^2"]).trim().length, 40, "the merge must be a real merge commit");
+    assert.equal((await store.show("t-1")).status, "done", "only the observed selected task operation closes work");
   } finally {
     rmSync(fixture.dir, { recursive: true, force: true });
   }
@@ -260,26 +287,30 @@ test("explicit legacy mode refuses while a Git-ref selector is active", async ()
     activateTaskQueueFixture(fixture.repo);
     const env = { ...envFor(fixture, undefined), KRN_QUEUE_MODE: "legacy" };
     const result = runFrontier(env);
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /legacy mode refuses an active Git-ref task queue/);
+    assert.equal(result.status, 64, `${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /KRN_QUEUE_MODE=legacy retired; use the selected krn task queue/);
     assert.doesNotMatch(result.stdout, /pick=/);
     assert.deepEqual(readFileSync(join(fixture.tickets, "t-1.md")), Buffer.from(TICKET_BODY));
+    assert.equal((await store.show("selected-t-1")).status, "open");
   } finally {
     rmSync(fixture.dir, { recursive: true, force: true });
   }
 });
 
-test("explicit legacy mode keeps Markdown authoritative before Git-ref activation", async () => {
+test("retired legacy frontier refuses before reading a healthy Markdown queue", async () => {
   const fixture = setup();
   try {
     const store = openTaskStore(fixture.repo);
     await store.add({ id: "staged-t-1", title: "Migrated but not selected" });
     const stagedSnapshot = git(fixture.repo, ["rev-parse", "refs/krn/queue"]).trim();
+    const original = readFileSync(join(fixture.tickets, "t-1.md"));
     const env = { ...envFor(fixture, undefined), KRN_QUEUE_MODE: "legacy" };
     const result = runFrontier(env);
-    assert.notEqual(result.status, 0, "publication still requires its gate");
-    assert.match(result.stdout, /pick=t-1/, "explicit legacy mode selects the Markdown task");
-    assert.match(result.stderr, /publication gate required/);
+    assert.equal(result.status, 64, `${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /KRN_QUEUE_MODE=legacy retired; use the selected krn task queue/);
+    assert.doesNotMatch(result.stdout, /pick=t-1/);
+    assert.deepEqual(readFileSync(join(fixture.tickets, "t-1.md")), original);
+    assert.equal(existsSync(fixture.closeLog), false);
     assert.equal(git(fixture.repo, ["rev-parse", "refs/krn/queue"]).trim(), stagedSnapshot,
       "the unselected Git-ref snapshot must remain untouched");
   } finally {

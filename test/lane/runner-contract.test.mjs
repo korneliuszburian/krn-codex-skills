@@ -157,6 +157,27 @@ test("the frontier, integrator, publication, and capsule tools still expose thei
   assert.equal(capsule.status, 64, "the capsule tool without arguments must report usage");
 });
 
+test("run-ticket refuses legacy file input before consulting the old CLI", () => {
+  const dir = mkdtempSync(join(tmpdir(), "lane-retired-file-"));
+  try {
+    const file = join(dir, "legacy.md");
+    const original = "<krn-ticket>\nId: legacy-file\n</krn-ticket>\n";
+    writeFileSync(file, original);
+    const called = join(dir, "old-cli-called");
+    const cli = join(dir, "old-cli.sh");
+    writeFileSync(cli, `#!/usr/bin/env bash\nprintf 'called\\n' > ${JSON.stringify(called)}\nexit 64\n`);
+    const result = run("run-ticket.sh", ["run"], {
+      env: { ...process.env, BASE: dir, FIXTURE: dir, KRN: cli, TICKET: file, KRN_TASK_ID: "" },
+    });
+    assert.equal(result.status, 64, `${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /TICKET file input retired; use KRN_TASK_ID/);
+    assert.equal(existsSync(called), false, "a file task must be refused before the old CLI is consulted");
+    assert.equal(readFileSync(file, "utf8"), original);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("run-ticket resolves a claimed Git-ref task by ID and honors its executor hint", async () => {
   const dir = mkdtempSync(join(tmpdir(), "lane-task-adapter-"));
   try {

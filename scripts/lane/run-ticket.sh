@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # In-repo AFK lane runner (admitted from the LT-7 lab by sh-62).
 # Modes: probe | run | classify | probe-verdict | bwrap-args.
-# Pass a Git-ref task as KRN_TASK_ID; TICKET remains the legacy file adapter.
-# One ticket, one fresh worker session, one isolated clone. The worker never
+# Pass a selected Git-ref task as KRN_TASK_ID; file input is retired.
+# One task, one fresh worker session, one isolated clone. The worker never
 # writes the capsule, the lessons page, or the tracker; the host-side
 # integrator (integrate.sh) merges and gates the merged fixed point.
 set -euo pipefail
@@ -352,15 +352,14 @@ case "$mode" in
     ;;
 esac
 
-# Ticket ABI: when the ticket carries a <krn-ticket> block, its fields drive the
-# lane and the environment variables become fallbacks for legacy tickets.
+# Selected task fields own the lane environment and retained Ticket: trailer.
 ticket_abi=no
 TICKET_ID=""
 CONTRACT_REF=""
 CONTRACT_DIR=""
 ticket_context=""
-if [ -n "$KRN_TASK_ID" ] && [ -n "$TICKET" ]; then
-  echo "provide KRN_TASK_ID or TICKET, not both" >&2
+if [ -n "$TICKET" ]; then
+  echo "TICKET file input retired; use KRN_TASK_ID with the selected krn task queue" >&2
   exit 64
 fi
 if [ -n "$KRN_TASK_ID" ]; then
@@ -372,13 +371,6 @@ if [ -n "$KRN_TASK_ID" ]; then
     exit 64
   fi
   ticket_abi=yes
-elif [ -n "$TICKET" ] && [ -f "$TICKET" ] && grep -q "<krn-ticket>" "$TICKET" 2>/dev/null; then
-  ticket_abi=yes
-  # The envelope has one parser (`scripts/lib/ticket/ticket.mjs`, exposed by
-  # `krn ticket env`); the lane never carries a second copy.
-  parsed=$(node "$KRN" ticket env --file "$TICKET" 2>/dev/null || true)
-  eval "$parsed"
-  ticket_context=$(cat "$TICKET")
 fi
 if [ -n "${TICKET_AGENT:-}" ] && [ -z "$WORKER_ENV" ]; then
   WORKER=$TICKET_AGENT

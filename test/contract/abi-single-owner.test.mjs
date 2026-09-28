@@ -57,7 +57,8 @@ test("the hook, plugin, and lane carry no fourth hand-rolled parser", () => {
   assert.ok(!/function ticketFields\(/.test(consumer.plugin), "the plugin must not hand-roll ticket parsing");
   assert.match(consumer.plugin, /capsule-abi\.mjs/, "the plugin re-uses the capsule-field owner");
   assert.match(consumer.plugin, /CLI,\s*"task",\s*"next"/, "the plugin reads the selected frontier through the public task CLI");
-  assert.match(consumer.lane, /ticket env/, "the lane reads the envelope through the CLI");
+  assert.match(consumer.lane, /task env --root/, "the lane reads selected task fields through the public CLI");
+  assert.equal(consumer.lane.includes("ticket env --file"), false, "the lane no longer executes a Markdown-file CLI adapter");
 });
 
 test("the CLI exposes the ticket-envelope owner", () => {
