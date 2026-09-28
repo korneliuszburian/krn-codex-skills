@@ -18,6 +18,7 @@ import { checkChangeContract, contractGuardActive } from "./lib/contract/change-
 import { checkGateCommand } from "./lib/contract/gated-transition.mjs";
 import { caseIds, loadCases, runConformance } from "./lib/conformance/conformance.mjs";
 import { EXIT_CODES, fail as baseFail } from "./lib/support/diagnostics.mjs";
+import { runTaskCommand } from "./lib/task/task-cli.mjs";
 import { runTicketCommand } from "./lib/ticket/ticket-cli.mjs";
 import { runHarnessCommand } from "./lib/harness/e2e-compare.mjs";
 
@@ -49,6 +50,9 @@ const usage = `Usage:
   krn task <add|list|check|next|ready|claim|renew|comment|close|reopen|release|takeover|edit|fail> --root DIR [options]  (selected Git-ref queue)
   krn task <show|fields|env|intent|store|operation> --root DIR [options]  (selected Git-ref queue)
   krn task store migrate --root DIR [--yes --archive FILE --actor NAME --reason TEXT] [--json]
+  krn task store copy --root SOURCE --to ISOLATED-CLONE [--json]
+  krn task store export --root DIR [--json]
+  krn task store restore --root DIR --file ARCHIVE.json [--json]
   krn task store lock --root DIR [--json]
   krn task store unlock --root DIR --token TOKEN --actor NAME --reason TEXT [--json]
   krn ticket <add|list|check|next|ready|claim|renew|comment|close|reopen|release|takeover|edit|fail|reconcile> --root DIR [options]
@@ -318,8 +322,10 @@ try {
       if (options.json) print({ root: options.root, changed, symbols: options.symbols ?? [], hot, hits, source }, true);
       else for (const hit of hits) process.stdout.write(`${hit.lesson}\n  ${hit.trigger} matched ${hit.matched.join(", ")}; gate ${hit.gate}\n`);
     }
-  } else if (raw[0] === "ticket" || raw[0] === "task") {
-    await runTicketCommand(raw.slice(1), { usage, requireDirectory, requireActiveStore: raw[0] === "task" });
+  } else if (raw[0] === "task") {
+    await runTaskCommand(raw.slice(1), { usage, requireDirectory });
+  } else if (raw[0] === "ticket") {
+    await runTicketCommand(raw.slice(1), { usage, requireDirectory });
   } else if (raw[0] === "conformance") {
     const { positional, options } = parseOptions(raw.slice(1));
     rejectForeignOptions(options, ["root", "candidate", "filter", "frozen"]);
