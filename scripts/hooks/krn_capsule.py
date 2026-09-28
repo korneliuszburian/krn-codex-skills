@@ -33,15 +33,25 @@ CLAIM_COMMAND = "krn task claim --root . --id <id>"
 
 
 def worktree_root(cwd: Path) -> Path | None:
-    """Return the work-tree root for cwd, or None outside a repository."""
+    """Find the closest work-tree root without trusting stray ancestor markers."""
     current = cwd
     while True:
         marker = current / ".git"
         try:
             if marker.is_dir() or marker.is_file():
-                return current
-        except OSError:
-            return None
+                # The cwd's marker also admits an uninitialized onboarding
+                # tree. An ancestor's marker must describe a real work tree;
+                # an unrelated /tmp/.git must not hide a child's capsule.
+                if current == cwd:
+                    return current
+                probe = subprocess.run(
+                    ["git", "-C", str(current), "rev-parse", "--is-inside-work-tree"],
+                    capture_output=True, text=True, timeout=5,
+                )
+                if probe.returncode == 0 and probe.stdout == "true\n":
+                    return current
+        except (OSError, subprocess.SubprocessError):
+            pass  # An invalid marker does not end the ancestor search.
         parent = current.parent
         if parent == current:
             return None
