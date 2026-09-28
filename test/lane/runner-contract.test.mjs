@@ -187,11 +187,22 @@ test("run-ticket resolves a claimed Git-ref task by ID and honors its executor h
     await store.claim("lane-id", { worker: "lane-worker", session: "adapter-test" });
     activateTaskQueueFixture(dir);
 
+    const publicCli = join(dir, "selected-task-cli.mjs");
+    const krn = join(root, "scripts", "krn.mjs");
+    writeFileSync(publicCli, `import { spawnSync } from "node:child_process";
+const args = process.argv.slice(2);
+if (args[0] === "ticket" && ["show", "env"].includes(args[1]) && args.includes("--id")) {
+  process.stderr.write("selected lane must use public krn task view\\n");
+  process.exit(64);
+}
+const result = spawnSync(process.execPath, [${JSON.stringify(krn)}, ...args], { stdio: "inherit" });
+process.exit(result.status ?? 1);
+`);
     const env = {
       ...process.env,
       BASE: dir,
       FIXTURE: dir,
-      KRN: join(root, "scripts", "krn.mjs"),
+      KRN: publicCli,
       KRN_TASK_ID: "lane-id",
       OPENCODE_HOME: join(dir, "no-opencode-install"),
     };

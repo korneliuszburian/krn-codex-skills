@@ -364,8 +364,8 @@ if [ -n "$KRN_TASK_ID" ] && [ -n "$TICKET" ]; then
   exit 64
 fi
 if [ -n "$KRN_TASK_ID" ]; then
-  ticket_context=$(node "$KRN" ticket show --root "$FIXTURE" --id "$KRN_TASK_ID")
-  parsed=$(node "$KRN" ticket env --root "$FIXTURE" --id "$KRN_TASK_ID")
+  ticket_context=$(node "$KRN" task show --root "$FIXTURE" --id "$KRN_TASK_ID")
+  parsed=$(node "$KRN" task env --root "$FIXTURE" --id "$KRN_TASK_ID")
   eval "$parsed"
   if [ "${TICKET_ID:-}" != "$KRN_TASK_ID" ]; then
     echo "task identity mismatch: requested $KRN_TASK_ID, received ${TICKET_ID:-none}" >&2
