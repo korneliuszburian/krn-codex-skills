@@ -29,7 +29,7 @@ ONBOARDING_SIGNAL = (
     "report; adoption stays explicit-only."
 )
 
-CLAIM_COMMAND = "krn ticket claim --root . --id <id>"
+CLAIM_COMMAND = "krn task claim --root . --id <id>"
 
 
 def worktree_root(cwd: Path) -> Path | None:
@@ -195,8 +195,8 @@ def managed_root(cwd: Path) -> Path | None:
 
 
 def ready_ids(root: Path) -> list[str]:
-    """The frontier, delegated to the ticket owner via `krn ticket next`."""
-    data = krn_json(["ticket", "next", "--root", str(root)])
+    """The frontier, delegated to the selected queue via `krn task next`."""
+    data = krn_json(["task", "next", "--root", str(root)])
     frontier = data.get("frontier") if isinstance(data, dict) else None
     if not isinstance(frontier, list):
         return []

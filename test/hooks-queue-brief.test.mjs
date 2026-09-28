@@ -14,8 +14,7 @@ const pluginPath = join(root, "config", "opencode", "plugins", "krn.js");
 const capsuleHook = join(root, "scripts", "hooks", "krn_capsule.py");
 const hook = existsSync(capsuleHook) ? capsuleHook : join(root, "scripts", "hooks", "krn_memory.py");
 const MANAGED_BLOCK = "<!-- krn-agent-workflow:start -->\nmanaged\n<!-- krn-agent-workflow:end -->\n";
-const PLUGIN_CLAIM_COMMAND = /krn task claim --root \. --id <id>/;
-const HOOK_CLAIM_COMMAND = /krn ticket claim --root \. --id <id>/;
+const TASK_CLAIM_COMMAND = /krn task claim --root \. --id <id>/;
 
 const withDir = async (body) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-queue-"));
@@ -113,7 +112,7 @@ test("the plugin names the three smallest ready ids and the claim command on one
     assert.match(brief, /KRN ready queue/);
     assert.match(brief, /sh-01, sh-02, sh-03/);
     assert.doesNotMatch(brief, /sh-04/);
-    assert.match(brief, PLUGIN_CLAIM_COMMAND);
+    assert.match(brief, TASK_CLAIM_COMMAND);
   }, async (store) => {
     for (let index = 1; index <= 12; index += 1) {
       const id = `sh-${String(index).padStart(2, "0")}`;
@@ -235,45 +234,68 @@ test("OpenCode refuses a legacy queue brief when the selected Git-ref selector d
   });
 });
 
+test("Codex SessionStart briefs the selected Git-ref task and public task claim", async () => {
+  await withSelectedQueue(async ({ dir }) => {
+    const context = hookContext(dir, "SessionStart");
+    assert.equal(typeof context, "string");
+    assert.equal(context.split("\n").length, 1);
+    assert.match(context, /KRN ready queue: selected-ready\./);
+    assert.doesNotMatch(context, /legacy-decoy/);
+    assert.match(context, TASK_CLAIM_COMMAND);
+    assert.equal(hookContext(dir, "PreCompact"), null, "PreCompact has no duplicate queue context");
+  });
+});
+
+test("Codex SessionStart refuses legacy work when the selected Git-ref selector disappears", async () => {
+  await withSelectedQueue(async ({ dir, git }) => {
+    assert.match(hookContext(dir, "SessionStart"), /selected-ready/);
+    git("update-ref", "-d", "refs/krn/queue-active");
+    const oldNext = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "ticket", "next", "--root", dir, "--json"], { encoding: "utf8" });
+    assert.equal(oldNext.status, 0, oldNext.stderr);
+    assert.deepEqual(JSON.parse(oldNext.stdout).frontier, ["legacy-decoy"], "the legacy queue remains healthy");
+    assert.equal(hookContext(dir, "SessionStart"), null, "a lost selector cannot revive legacy advice");
+  });
+});
+
 test("the SessionStart hook emits the ready-frontier line in a managed repo", async () => {
-  await withDir(async (dir) => {
-    writeInstructions(dir);
-    for (let index = 1; index <= 12; index += 1) makeTicket(dir, `sh-${String(index).padStart(2, "0")}`, "ready");
+  await withSelectedQueue(async ({ dir }) => {
     const context = hookContext(dir, "SessionStart");
     assert.equal(typeof context, "string");
     assert.equal(context.split("\n").length, 1, "the brief is exactly one line");
     assert.match(context, /KRN ready queue/);
     assert.match(context, /sh-01, sh-02, sh-03/);
     assert.doesNotMatch(context, /sh-04/);
-    assert.match(context, HOOK_CLAIM_COMMAND);
+    assert.match(context, TASK_CLAIM_COMMAND);
     assert.doesNotMatch(context, /KRN onboarding/);
+  }, async (store) => {
+    for (let index = 1; index <= 12; index += 1) {
+      const id = `sh-${String(index).padStart(2, "0")}`;
+      await store.add({ id, title: id });
+      await store.markReady(id);
+    }
   });
 });
 
 test("the hook stays silent with a continuing capsule, an empty queue, no managed block, or PreCompact", async () => {
-  await withDir(async (dir) => {
-    writeInstructions(dir);
-    makeTicket(dir, "sh-01", "ready");
+  await withSelectedQueue(async ({ dir }) => {
     makeCapsule(dir, "out-1", "ACTIVE");
     const context = hookContext(dir, "SessionStart");
     assert.match(context, /finish the capsule slice/);
     assert.doesNotMatch(context, /KRN ready queue/);
   });
-  await withDir(async (dir) => {
-    writeInstructions(dir);
-    assert.equal(hookContext(dir, "SessionStart"), null, "an empty queue emits nothing");
+  await withSelectedQueue(async ({ dir }) => {
+    assert.equal(hookContext(dir, "SessionStart"), null, "an empty selected frontier emits nothing");
+  }, async (store) => {
+    await store.add({ id: "done-only", title: "Completed work" });
+    await store.close("done-only", { actor: "operator", reason: "Finished in fixture" });
   });
-  await withDir(async (dir) => {
+  await withSelectedQueue(async ({ dir }) => {
     writeInstructions(dir, { managed: false });
-    makeTicket(dir, "sh-01", "ready");
     const context = hookContext(dir, "SessionStart");
     assert.match(context, /KRN onboarding/);
     assert.doesNotMatch(context, /KRN ready queue/);
   });
-  await withDir(async (dir) => {
-    writeInstructions(dir);
-    makeTicket(dir, "sh-01", "ready");
-    const context = hookContext(dir, "PreCompact");
-    assert.doesNotMatch(String(context), /KRN ready queue/);
+  await withSelectedQueue(async ({ dir }) => {
+    assert.equal(hookContext(dir, "PreCompact"), null, "PreCompact stays silent with ready selected work");
   });
 });
