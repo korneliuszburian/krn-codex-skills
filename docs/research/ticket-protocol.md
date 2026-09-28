@@ -223,7 +223,7 @@ retired.
 **Observed trial.** The H2 test-only comparison passed the same task, claim,
 completion and recovery falsifiers for the single JSON file, Git-ref and SQLite
 candidates on Node 26.2.0 and 22.14.0; its executed cases are in
-`test/ticket/task-product.test.mjs`. Git's `update-ref` checks an expected old
+`test/task/task-product.test.mjs`. Git's `update-ref` checks an expected old
 object before replacing a ref, and ordinary refs are shared across linked
 worktrees ([Git `update-ref`](https://git-scm.com/docs/git-update-ref),
 [Git worktrees](https://git-scm.com/docs/git-worktree)).
@@ -294,7 +294,7 @@ while verifying the current branch ref has not moved. It never re-applies the me
 new authority. `task show`/`check` read back the persisted proof and integrated
 anchor; missing historical Cost/Env receipts remain disclosed, not invented.
 
-The focused public CLI observer `test/ticket/imported-proof-close.test.mjs`
+The focused public CLI observer `test/task/imported-proof-close.test.mjs`
 includes an unchanged refusal for prose-only close, an executed candidate
 that closes without moving the target branch, and wrong trailer, contract,
 scope, before-state, epoch, or target negatives. This is proof of the finite

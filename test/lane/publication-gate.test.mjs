@@ -8,7 +8,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
 import { checkTickets } from "../../scripts/lib/ticket/ticket.mjs";
-import { activateTaskQueueFixture } from "../ticket/task-queue-fixture.mjs";
+import { activateTaskQueueFixture } from "../task/task-queue-fixture.mjs";
 
 const frontier = fileURLToPath(new URL("../../scripts/lane/run-frontier.sh", import.meta.url));
 const LANE_BRANCH = "ticket/lane-t-1";

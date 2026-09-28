@@ -47,8 +47,8 @@ function ticket({ id, status, blockedBy = "none", claim = "", extra = "" }) {
     "Type: task",
     "Repository-base: 0123456789012345678901234567890123456789",
     "Scope: scripts/lib/ticket/**",
-    "Deciding check: node --test test/ticket/task-product.test.mjs",
-    "Contract: test/ticket/task-product.test.mjs:red->green",
+    "Deciding check: node --test test/task/task-product.test.mjs",
+    "Contract: test/task/task-product.test.mjs:red->green",
     "Acceptance: preserve task state",
     `Blocked by: ${blockedBy}`,
     ...(claim ? [`Claim: ${claim}`] : []),
@@ -128,8 +128,8 @@ test("legacy import preserves path/ID pairs and exact archive bytes while report
     assert.deepEqual(prepared.state.tasks["team/ready"].laneRecipe, {
       base: "0123456789012345678901234567890123456789",
       scope: "scripts/lib/ticket/**",
-      check: "node --test test/ticket/task-product.test.mjs",
-      contract: "test/ticket/task-product.test.mjs:red->green",
+      check: "node --test test/task/task-product.test.mjs",
+      contract: "test/task/task-product.test.mjs:red->green",
       acceptance: "preserve task state",
     });
     assert.deepEqual(prepared.state.tasks["team/ready"].gate, { kind: "human", detail: "approval required", legacyRaw: "human:approval required" });

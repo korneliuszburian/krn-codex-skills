@@ -7,7 +7,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
-import { activateTaskQueueFixture } from "../ticket/task-queue-fixture.mjs";
+import { activateTaskQueueFixture } from "../task/task-queue-fixture.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const lane = (name) => join(root, "scripts", "lane", name);
