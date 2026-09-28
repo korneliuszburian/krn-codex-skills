@@ -22,7 +22,10 @@ const CLI = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
 const ZERO = "0".repeat(40);
 const git = (root, ...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const runGit = (root, ...args) => spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
-const runKrn = (root, ...args) => spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8" });
+const runKrn = (root, ...args) => {
+  assert.equal(args[0], "task", "product CLI probes must exercise the public task command, not its retiring alias");
+  return spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8" });
+};
 class Refused extends Error {}
 
 function commonDir(root) {
@@ -1203,13 +1206,13 @@ test("the production Git-ref store recovers a lost claim response and fences the
         params: { target: effect, intentRevision: 1 },
       }));
 
-      const prepared = runKrn(fixture.root, "ticket", "operation", "prepare", "--root", fixture.root, "--file", operationFile, "--json");
+      const prepared = runKrn(fixture.root, "task", "operation", "prepare", "--root", fixture.root, "--file", operationFile, "--json");
       assert.equal(prepared.status, 0, `${prepared.stdout}${prepared.stderr}`);
       assert.deepEqual(JSON.parse(prepared.stdout), { idempotent: false, status: "prepared" });
 
       const completed = runKrn(
         fixture.root,
-        "ticket", "operation", "apply", "--root", fixture.root, "--id", operationId,
+        "task", "operation", "apply", "--root", fixture.root, "--id", operationId,
         "--worker", "lane-worker", "--expected-epoch", String(claim.epoch), "--json",
       );
       assert.equal(completed.status, 0, `${completed.stdout}${completed.stderr}`);
@@ -1229,16 +1232,16 @@ test("the production Git-ref store recovers a lost claim response and fences the
       await store.add({ id: "intent-reader", title: "Expose the active outcome revision" });
       activateTaskQueueFixture(fixture.root);
 
-      const initial = runKrn(fixture.root, "ticket", "intent", "get", "--root", fixture.root, "--intent", "self-hardening", "--json");
+      const initial = runKrn(fixture.root, "task", "intent", "get", "--root", fixture.root, "--intent", "self-hardening", "--json");
       assert.equal(initial.status, 0, `${initial.stdout}${initial.stderr}`);
       assert.deepEqual(JSON.parse(initial.stdout), { intent: "self-hardening", revision: 0 });
 
-      const advanced = runKrn(fixture.root, "ticket", "intent", "set", "--root", fixture.root, "--intent", "self-hardening",
+      const advanced = runKrn(fixture.root, "task", "intent", "set", "--root", fixture.root, "--intent", "self-hardening",
         "--revision", "1", "--expected-revision", "0", "--json");
       assert.equal(advanced.status, 0, `${advanced.stdout}${advanced.stderr}`);
       assert.deepEqual(JSON.parse(advanced.stdout), { intent: "self-hardening", revision: 1, idempotent: false });
 
-      const stale = runKrn(fixture.root, "ticket", "intent", "set", "--root", fixture.root, "--intent", "self-hardening",
+      const stale = runKrn(fixture.root, "task", "intent", "set", "--root", fixture.root, "--intent", "self-hardening",
         "--revision", "2", "--expected-revision", "0", "--json");
       assert.notEqual(stale.status, 0);
       assert.match(stale.stderr, /revision changed/);
@@ -1273,20 +1276,20 @@ test("the production Git-ref store recovers a lost claim response and fences the
         checkResult: { candidateIdentity: candidate, command: TEST_LANE_RECIPE.check, exitCode: 0 },
         params: { target: effect, intentRevision: 1 },
       }));
-      const prepared = runKrn(fixture.root, "ticket", "operation", "prepare", "--root", fixture.root, "--file", operationFile, "--json");
+      const prepared = runKrn(fixture.root, "task", "operation", "prepare", "--root", fixture.root, "--file", operationFile, "--json");
       assert.equal(prepared.status, 0, `${prepared.stdout}${prepared.stderr}`);
       writeEffectRef(fixture.root, "refs/krn/test-effects/public-recovery", effect);
 
-      const takeover = runKrn(fixture.root, "ticket", "takeover", "--root", fixture.root, "--id", task.id,
+      const takeover = runKrn(fixture.root, "task", "takeover", "--root", fixture.root, "--id", task.id,
         "--worker", "worker-new", "--expected-epoch", String(firstClaim.epoch), "--reason", "recover the observed operation", "--json");
       assert.equal(takeover.status, 0, `${takeover.stdout}${takeover.stderr}`);
       const recoveryClaim = JSON.parse(takeover.stdout);
 
-      const stale = runKrn(fixture.root, "ticket", "operation", "complete", "--root", fixture.root,
+      const stale = runKrn(fixture.root, "task", "operation", "complete", "--root", fixture.root,
         "--id", "integrate-public-recovery", "--worker", "worker-old", "--expected-epoch", String(firstClaim.epoch), "--json");
       assert.notEqual(stale.status, 0);
       assert.match(stale.stderr, /stale|invalid/);
-      const completed = runKrn(fixture.root, "ticket", "operation", "complete", "--root", fixture.root,
+      const completed = runKrn(fixture.root, "task", "operation", "complete", "--root", fixture.root,
         "--id", "integrate-public-recovery", "--worker", "worker-new", "--expected-epoch", String(recoveryClaim.epoch), "--json");
       assert.equal(completed.status, 0, `${completed.stdout}${completed.stderr}`);
       assert.deepEqual(JSON.parse(completed.stdout), { idempotent: false, status: "observed" });
@@ -1306,17 +1309,17 @@ test("the production Git-ref store recovers a lost claim response and fences the
       activateTaskQueueFixture(fixture.root);
       execFileSync("git", ["clone", "--quiet", "--no-hardlinks", fixture.root, clone]);
 
-      const copied = runKrn(fixture.root, "ticket", "store", "copy", "--root", fixture.first, "--to", clone, "--json");
+      const copied = runKrn(fixture.root, "task", "store", "copy", "--root", fixture.first, "--to", clone, "--json");
       assert.equal(copied.status, 0, `${copied.stdout}${copied.stderr}`);
       assert.deepEqual(JSON.parse(copied.stdout), { copied: true, refs: ["refs/krn/queue", "refs/krn/queue-active"] });
-      const view = runKrn(clone, "ticket", "show", "--root", clone, "--id", task.id, "--json");
+      const view = runKrn(clone, "task", "show", "--root", clone, "--id", task.id, "--json");
       assert.equal(view.status, 0, `${view.stdout}${view.stderr}`);
       assert.equal(JSON.parse(view.stdout).Id, task.id);
 
-      const repeated = runKrn(fixture.root, "ticket", "store", "copy", "--root", fixture.first, "--to", clone, "--json");
+      const repeated = runKrn(fixture.root, "task", "store", "copy", "--root", fixture.first, "--to", clone, "--json");
       assert.equal(repeated.status, 0, `${repeated.stdout}${repeated.stderr}`);
       assert.equal(JSON.parse(repeated.stdout).copied, false);
-      const linked = runKrn(fixture.root, "ticket", "store", "copy", "--root", fixture.first, "--to", fixture.second, "--json");
+      const linked = runKrn(fixture.root, "task", "store", "copy", "--root", fixture.first, "--to", fixture.second, "--json");
       assert.notEqual(linked.status, 0);
       assert.match(linked.stderr, /isolated Git clone/);
 
@@ -1342,7 +1345,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
       await store.importSnapshot(prepareLegacyQueueImport(fixture.root));
       activateTaskQueueFixture(fixture.root);
       const command = (root, ...args) => {
-        const result = runKrn(root, "ticket", ...args, "--root", root, "--json");
+        const result = runKrn(root, "task", ...args, "--root", root, "--json");
         assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
         return JSON.parse(result.stdout);
       };
@@ -1407,7 +1410,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
       for (const ref of refs) assert.notEqual(runGit(rejected, "rev-parse", "--verify", ref).status, 0);
       const different = writeBlob(rejected, "different selector");
       git(rejected, "update-ref", "refs/krn/queue-active", different);
-      const conflict = runKrn(rejected, "ticket", "store", "restore", "--root", rejected, "--file", archivePath, "--json");
+      const conflict = runKrn(rejected, "task", "store", "restore", "--root", rejected, "--file", archivePath, "--json");
       assert.notEqual(conflict.status, 0);
       assert.match(conflict.stderr, /different state/);
       assert.equal(git(rejected, "rev-parse", "refs/krn/queue-active"), different);
@@ -1415,7 +1418,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
       const symbolic = join(fixture.root, "archive-symbolic");
       execFileSync("git", ["init", "--quiet", symbolic]);
       git(symbolic, "symbolic-ref", "refs/krn/queue-active", "refs/krn/unrelated");
-      const redirected = runKrn(symbolic, "ticket", "store", "restore", "--root", symbolic, "--file", archivePath, "--json");
+      const redirected = runKrn(symbolic, "task", "store", "restore", "--root", symbolic, "--file", archivePath, "--json");
       assert.notEqual(redirected.status, 0, "restore must not follow a destination symbolic ref outside the two queue refs");
       assert.notEqual(runGit(symbolic, "rev-parse", "--verify", "refs/krn/queue").status, 0);
       assert.notEqual(runGit(symbolic, "rev-parse", "--verify", "refs/krn/unrelated").status, 0);
@@ -1434,7 +1437,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
       assert.equal(git(restored, "rev-parse", "refs/krn/queue"), before[0]);
       command(restored, "reopen", "--id", human.id, "--actor", "operator", "--reason", "Follow-up after restore");
       const advanced = git(restored, "rev-parse", "refs/krn/queue");
-      const stale = runKrn(restored, "ticket", "store", "restore", "--root", restored, "--file", archivePath, "--json");
+      const stale = runKrn(restored, "task", "store", "restore", "--root", restored, "--file", archivePath, "--json");
       assert.notEqual(stale.status, 0);
       assert.match(stale.stderr, /different state/);
       assert.equal(git(restored, "rev-parse", "refs/krn/queue"), advanced, "restore must not discard newer target work");
@@ -1471,7 +1474,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
 
       const outsideFile = join(fixture.root, ".krn", "operation.json");
       writeFileSync(outsideFile, JSON.stringify(operation));
-      const outside = runKrn(fixture.root, "ticket", "operation", "prepare", "--root", fixture.root, "--file", outsideFile);
+      const outside = runKrn(fixture.root, "task", "operation", "prepare", "--root", fixture.root, "--file", outsideFile);
       assert.notEqual(outside.status, 0);
       assert.match(outside.stderr, /under \.krn\/runs/);
 
@@ -1480,7 +1483,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
         ...operation,
         checkResult: { ...operation.checkResult, command: "npm test -- unrelated" },
       }));
-      const wrongCheck = runKrn(fixture.root, "ticket", "operation", "prepare", "--root", fixture.root, "--file", wrongCheckFile);
+      const wrongCheck = runKrn(fixture.root, "task", "operation", "prepare", "--root", fixture.root, "--file", wrongCheckFile);
       assert.notEqual(wrongCheck.status, 0);
       assert.match(wrongCheck.stderr, /check result does not prove the task recipe/);
 
@@ -1489,13 +1492,13 @@ test("the production Git-ref store recovers a lost claim response and fences the
         ...operation,
         checkResult: { ...operation.checkResult, candidateIdentity: writeBlob(fixture.root, "wrong-check-candidate") },
       }));
-      const wrongCandidate = runKrn(fixture.root, "ticket", "operation", "prepare", "--root", fixture.root, "--file", wrongCandidateFile);
+      const wrongCandidate = runKrn(fixture.root, "task", "operation", "prepare", "--root", fixture.root, "--file", wrongCandidateFile);
       assert.notEqual(wrongCandidate.status, 0);
       assert.match(wrongCandidate.stderr, /check result does not prove the task recipe/);
 
       const linkedFile = join(runsDirectory, "linked.json");
       symlinkSync(wrongCheckFile, linkedFile);
-      const symlink = runKrn(fixture.root, "ticket", "operation", "prepare", "--root", fixture.root, "--file", linkedFile);
+      const symlink = runKrn(fixture.root, "task", "operation", "prepare", "--root", fixture.root, "--file", linkedFile);
       assert.notEqual(symlink.status, 0);
       assert.match(symlink.stderr, /contains a symlink/);
 
@@ -1506,10 +1509,10 @@ test("the production Git-ref store recovers a lost claim response and fences the
         effectRef: "refs/krn/test-effects/stale-intent",
       };
       writeFileSync(staleIntentFile, JSON.stringify(staleIntentOperation));
-      const firstPrepare = runKrn(fixture.root, "ticket", "operation", "prepare", "--root", fixture.root, "--file", staleIntentFile);
+      const firstPrepare = runKrn(fixture.root, "task", "operation", "prepare", "--root", fixture.root, "--file", staleIntentFile);
       assert.equal(firstPrepare.status, 0, `${firstPrepare.stdout}${firstPrepare.stderr}`);
       await store.setIntentRevision("outcome", 2);
-      const staleRetry = runKrn(fixture.root, "ticket", "operation", "prepare", "--root", fixture.root, "--file", staleIntentFile);
+      const staleRetry = runKrn(fixture.root, "task", "operation", "prepare", "--root", fixture.root, "--file", staleIntentFile);
       assert.notEqual(staleRetry.status, 0);
       assert.match(staleRetry.stderr, /stale intent revision/);
       const finalState = await store.read();
