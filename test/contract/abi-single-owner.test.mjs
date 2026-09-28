@@ -56,7 +56,7 @@ test("the hook, plugin, and lane carry no fourth hand-rolled parser", () => {
   assert.ok(!/function field\(/.test(consumer.plugin), "the plugin must not hand-roll capsule field parsing");
   assert.ok(!/function ticketFields\(/.test(consumer.plugin), "the plugin must not hand-roll ticket parsing");
   assert.match(consumer.plugin, /capsule-abi\.mjs/, "the plugin re-uses the capsule-field owner");
-  assert.match(consumer.plugin, /ticket\/ticket\.mjs/, "the plugin re-uses the ticket-envelope owner");
+  assert.match(consumer.plugin, /CLI,\s*"task",\s*"next"/, "the plugin reads the selected frontier through the public task CLI");
   assert.match(consumer.lane, /ticket env/, "the lane reads the envelope through the CLI");
 });
 

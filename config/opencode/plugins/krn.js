@@ -10,11 +10,11 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { checkTickets } from "../../../scripts/lib/ticket/ticket.mjs";
 import { fieldLine } from "../../../scripts/lib/state/capsule-abi.mjs";
 import { configureOpenCodeCapabilities } from "../../../scripts/lib/catalog/opencode-capabilities.mjs";
 
 const GUARD = fileURLToPath(new URL("../../../scripts/hooks/krn_pretooluse.py", import.meta.url));
+const CLI = fileURLToPath(new URL("../../../scripts/krn.mjs", import.meta.url));
 const CONTINUING = new Set(["ACTIVE", "BLOCKED", "DEFERRED", "NEEDS_REVIEW"]);
 const MANAGED_START = "<!-- krn-agent-workflow:start -->";
 const INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"];
@@ -23,7 +23,7 @@ const ONBOARDING_SIGNAL =
   "instructions without the KRN managed contract. When your current task is " +
   "finished, run `krn repo inspect --root .` for a read-only report; " +
   "adoption stays explicit-only.";
-const CLAIM_COMMAND = "krn ticket claim --root . --id <id>";
+const CLAIM_COMMAND = "krn task claim --root . --id <id>";
 const CAPSULE_PREFIX = "KRN outcome capsule.";
 
 function isInside(parent, candidate) {
@@ -145,9 +145,17 @@ function managedRoot(directory) {
 }
 
 function readyIds(root) {
+  // The public task command requires the selected Git-ref queue. A missing
+  // selector or unreadable store is not a healthy empty queue and must not
+  // revive an older Markdown frontier as current work.
+  const result = spawnSync("node", [CLI, "task", "next", "--root", root, "--json"], {
+    encoding: "utf8",
+    timeout: 20_000,
+  });
+  if (result.status !== 0) return [];
   try {
-    const report = checkTickets({ root, reconcile: false });
-    return report.errors.length === 0 ? report.frontier : [];
+    const { frontier } = JSON.parse(result.stdout);
+    return Array.isArray(frontier) && frontier.every((id) => typeof id === "string") ? frontier : [];
   } catch {
     return [];
   }

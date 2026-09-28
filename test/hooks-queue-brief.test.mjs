@@ -1,17 +1,21 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
+
+import { openTaskStore } from "../scripts/lib/ticket/task-store.mjs";
+import { activateTaskQueueFixture } from "./ticket/task-queue-fixture.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pluginPath = join(root, "config", "opencode", "plugins", "krn.js");
 const capsuleHook = join(root, "scripts", "hooks", "krn_capsule.py");
 const hook = existsSync(capsuleHook) ? capsuleHook : join(root, "scripts", "hooks", "krn_memory.py");
 const MANAGED_BLOCK = "<!-- krn-agent-workflow:start -->\nmanaged\n<!-- krn-agent-workflow:end -->\n";
-const CLAIM_COMMAND = /krn ticket claim --root \. --id <id>/;
+const PLUGIN_CLAIM_COMMAND = /krn task claim --root \. --id <id>/;
+const HOOK_CLAIM_COMMAND = /krn ticket claim --root \. --id <id>/;
 
 const withDir = async (body) => {
   const dir = mkdtempSync(join(tmpdir(), "krn-queue-"));
@@ -50,6 +54,24 @@ const makeTicket = (dir, id, status, blockedBy = "none", sub = ".krn/tickets") =
   );
 };
 
+const withSelectedQueue = (body, populate = async (store) => {
+  await store.add({ id: "selected-ready", title: "Selected Git-ref work" });
+  await store.markReady("selected-ready");
+}) => withDir(async (dir) => {
+  const git = (...args) => execFileSync("git", ["-C", dir, ...args], { encoding: "utf8" });
+  git("init", "-q", "-b", "main");
+  mkdirSync(join(dir, "test"), { recursive: true });
+  writeFileSync(join(dir, "test", "hooks-queue-brief.test.mjs"), "// existing deciding check\n");
+  git("add", "test/hooks-queue-brief.test.mjs");
+  git("-c", "user.name=fixture", "-c", "user.email=fixture@krn.local", "commit", "-q", "-m", "seed deciding check");
+  writeInstructions(dir);
+  makeTicket(dir, "legacy-decoy", "ready");
+  const store = openTaskStore(dir);
+  await populate(store);
+  activateTaskQueueFixture(dir);
+  await body({ dir, git, store });
+});
+
 const makeCapsule = (dir, id, outcome) => {
   const capsule = join(dir, ".krn", "runs", "delivery-loop", id);
   mkdirSync(capsule, { recursive: true });
@@ -84,66 +106,77 @@ test("the plugin exports the queue brief", async () => {
 
 test("the plugin names the three smallest ready ids and the claim command on one line", async () => {
   const adapter = await import(pathToFileURL(pluginPath).href);
-  await withDir(async (dir) => {
-    writeInstructions(dir);
-    for (let index = 1; index <= 12; index += 1) makeTicket(dir, `sh-${String(index).padStart(2, "0")}`, "ready");
+  await withSelectedQueue(async ({ dir }) => {
     const brief = adapter.queueBrief(dir);
     assert.equal(typeof brief, "string");
     assert.equal(brief.split("\n").length, 1, "the brief is exactly one line");
     assert.match(brief, /KRN ready queue/);
     assert.match(brief, /sh-01, sh-02, sh-03/);
     assert.doesNotMatch(brief, /sh-04/);
-    assert.match(brief, CLAIM_COMMAND);
+    assert.match(brief, PLUGIN_CLAIM_COMMAND);
+  }, async (store) => {
+    for (let index = 1; index <= 12; index += 1) {
+      const id = `sh-${String(index).padStart(2, "0")}`;
+      await store.add({ id, title: id });
+      await store.markReady(id);
+    }
   });
 });
 
 test("the plugin names only the frontier, resolving Blocked by against done ids", async () => {
   const adapter = await import(pathToFileURL(pluginPath).href);
-  await withDir(async (dir) => {
-    writeInstructions(dir);
-    makeTicket(dir, "t-done", "done");
-    makeTicket(dir, "t-next", "ready", "t-done");
-    makeTicket(dir, "t-wait", "ready", "t-other");
-    makeTicket(dir, "t-other", "ready");
-    makeTicket(dir, "t-tickets", "ready", "none", ".krn/tickets");
+  await withSelectedQueue(async ({ dir }) => {
     const brief = adapter.queueBrief(dir);
     assert.match(brief, /t-next/);
     assert.match(brief, /t-other/);
     assert.match(brief, /t-tickets/);
     assert.doesNotMatch(brief, /t-wait/);
+  }, async (store) => {
+    await store.add({ id: "t-done", title: "Finished prerequisite" });
+    await store.close("t-done", { actor: "operator", reason: "Finished the prerequisite" });
+    await store.add({ id: "t-next", title: "Next after dependency", dependencies: ["t-done"] });
+    await store.markReady("t-next");
+    await store.add({ id: "t-other", title: "Still open" });
+    await store.markReady("t-other");
+    await store.add({ id: "t-wait", title: "Wait for other task", dependencies: ["t-other"] });
+    await store.add({ id: "t-tickets", title: "Unrelated ready work" });
+    await store.markReady("t-tickets");
   });
 });
 
 test("the plugin does not advertise a queue that ticket check rejects", async () => {
   const adapter = await import(pathToFileURL(pluginPath).href);
-  await withDir(async (dir) => {
-    writeInstructions(dir);
-    makeTicket(dir, "sh-01", "ready");
-    const file = join(dir, ".krn/tickets", "sh-01.md");
-    writeFileSync(file, readFileSync(file, "utf8").replace("Title: sh-01", "Title: "));
-    const result = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "ticket", "check", "--root", dir, "--json"], { encoding: "utf8" });
-    assert.notEqual(result.status, 0);
-    assert.ok(JSON.parse(result.stdout).errors.some((error) => error.rule === "missing-field"));
+  await withSelectedQueue(async ({ dir, git }) => {
+    const previous = git("rev-parse", "refs/krn/queue").trim();
+    const snapshot = JSON.parse(git("cat-file", "blob", previous));
+    snapshot.tasks["selected-ready"].status = "invalid-status";
+    const invalid = execFileSync("git", ["-C", dir, "hash-object", "-w", "--stdin"], {
+      input: JSON.stringify(snapshot), encoding: "utf8",
+    }).trim();
+    git("update-ref", "refs/krn/queue", invalid, previous);
+    const checked = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "ticket", "check", "--root", dir, "--json"], { encoding: "utf8" });
+    assert.notEqual(checked.status, 0, "ticket check rejects the same selected queue during migration");
+    const result = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "task", "next", "--root", dir, "--json"], { encoding: "utf8" });
+    assert.notEqual(result.status, 0, "the selected store is invalid");
     assert.equal(adapter.queueBrief(dir), null);
   });
 });
 
 test("the plugin stays silent with a continuing capsule, an empty queue, or no managed block", async () => {
   const adapter = await import(pathToFileURL(pluginPath).href);
-  await withDir(async (dir) => {
-    writeInstructions(dir);
-    makeTicket(dir, "sh-01", "ready");
+  await withSelectedQueue(async ({ dir }) => {
     assert.match(adapter.queueBrief(dir), /KRN ready queue/);
     makeCapsule(dir, "out-1", "ACTIVE");
     assert.equal(adapter.queueBrief(dir), null, "a continuing capsule suppresses the queue brief");
   });
-  await withDir(async (dir) => {
-    writeInstructions(dir);
-    assert.equal(adapter.queueBrief(dir), null, "an empty queue emits nothing");
+  await withSelectedQueue(async ({ dir }) => {
+    assert.equal(adapter.queueBrief(dir), null, "a selected queue without ready work emits nothing");
+  }, async (store) => {
+    await store.add({ id: "done-only", title: "Completed work" });
+    await store.close("done-only", { actor: "operator", reason: "Finished in fixture" });
   });
-  await withDir(async (dir) => {
+  await withSelectedQueue(async ({ dir }) => {
     writeInstructions(dir, { managed: false });
-    makeTicket(dir, "sh-01", "ready");
     assert.equal(adapter.queueBrief(dir), null, "an unmanaged tree emits no queue brief");
     assert.match(adapter.adoptionSignal(dir), /KRN onboarding/);
   });
@@ -151,9 +184,7 @@ test("the plugin stays silent with a continuing capsule, an empty queue, or no m
 
 test("the adapter injects the ready queue and keeps compaction silent", async () => {
   const adapter = await import(pathToFileURL(pluginPath).href);
-  await withDir(async (dir) => {
-    writeInstructions(dir);
-    makeTicket(dir, "sh-07", "ready");
+  await withSelectedQueue(async ({ dir }) => {
     const hooks = await adapter.KrnAdapter({ directory: dir });
     const system = [];
     await hooks["experimental.chat.system.transform"]({ sessionID: "s1" }, { system });
@@ -166,6 +197,41 @@ test("the adapter injects the ready queue and keeps compaction silent", async ()
     const context = [];
     await hooks["experimental.session.compacting"]({}, { context });
     assert.equal(context.length, 0, "compaction never emits the ready queue");
+  }, async (store) => {
+    await store.add({ id: "sh-07", title: "Ready work" });
+    await store.markReady("sh-07");
+  });
+});
+
+test("OpenCode SessionStart briefs only the selected Git-ref frontier with the public task claim", async () => {
+  const adapter = await import(pathToFileURL(pluginPath).href);
+  await withSelectedQueue(async ({ dir }) => {
+    const hooks = await adapter.KrnAdapter({ directory: dir });
+    const system = [];
+    await hooks["experimental.chat.system.transform"]({ sessionID: "selected" }, { system });
+    assert.equal(system.length, 1);
+    assert.match(system[0], /KRN ready queue: selected-ready\./);
+    assert.doesNotMatch(system[0], /legacy-decoy/);
+    assert.match(system[0], /Claim one with `krn task claim --root \. --id <id>`/);
+    await hooks["experimental.chat.system.transform"]({ sessionID: "selected" }, { system });
+    assert.equal(system.length, 1, "the selected brief is not duplicated");
+    const context = [];
+    await hooks["experimental.session.compacting"]({}, { context });
+    assert.deepEqual(context, [], "compaction does not repeat the queue brief");
+  });
+});
+
+test("OpenCode refuses a legacy queue brief when the selected Git-ref selector disappears", async () => {
+  const adapter = await import(pathToFileURL(pluginPath).href);
+  await withSelectedQueue(async ({ dir, git }) => {
+    assert.match(adapter.queueBrief(dir), /selected-ready/);
+    git("update-ref", "-d", "refs/krn/queue-active");
+    const oldCheck = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "ticket", "check", "--root", dir, "--json"], { encoding: "utf8" });
+    assert.equal(oldCheck.status, 0, oldCheck.stderr || oldCheck.stdout);
+    assert.deepEqual(JSON.parse(oldCheck.stdout).frontier, ["legacy-decoy"], "a healthy legacy queue is the negative control");
+    const refused = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "task", "next", "--root", dir, "--json"], { encoding: "utf8" });
+    assert.notEqual(refused.status, 0, "the public task command refuses an unselected queue");
+    assert.equal(adapter.queueBrief(dir), null, "the host must not revive legacy-decoy as current work");
   });
 });
 
@@ -179,7 +245,7 @@ test("the SessionStart hook emits the ready-frontier line in a managed repo", as
     assert.match(context, /KRN ready queue/);
     assert.match(context, /sh-01, sh-02, sh-03/);
     assert.doesNotMatch(context, /sh-04/);
-    assert.match(context, CLAIM_COMMAND);
+    assert.match(context, HOOK_CLAIM_COMMAND);
     assert.doesNotMatch(context, /KRN onboarding/);
   });
 });
