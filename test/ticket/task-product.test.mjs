@@ -1389,6 +1389,11 @@ test("the production Git-ref store recovers a lost claim response and fences the
       assert.deepEqual(refs.map((ref) => git(fixture.root, "rev-parse", ref)), before, "export is read-only");
       const archivePath = join(fixture.root, ".krn/runs/archive/queue.json");
       writeFileSync(archivePath, JSON.stringify(archive));
+      const restoreWithTask = (root) => {
+        const result = runKrn(root, "task", "store", "restore", "--root", root, "--file", archivePath, "--json");
+        assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+        return JSON.parse(result.stdout);
+      };
       const restored = join(fixture.root, "archive-restore");
       const rejected = join(fixture.root, "archive-rejected");
       for (const root of [restored, rejected]) execFileSync("git", ["clone", "--quiet", "--no-hardlinks", fixture.root, root]);
@@ -1396,7 +1401,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
       const corrupt = structuredClone(archive);
       corrupt.refs[0].content += " ";
       writeFileSync(corruptPath, JSON.stringify(corrupt));
-      const failed = runKrn(rejected, "ticket", "store", "restore", "--root", rejected, "--file", corruptPath, "--json");
+      const failed = runKrn(rejected, "task", "store", "restore", "--root", rejected, "--file", corruptPath, "--json");
       assert.notEqual(failed.status, 0);
       assert.match(failed.stderr, /digest|identity/);
       for (const ref of refs) assert.notEqual(runGit(rejected, "rev-parse", "--verify", ref).status, 0);
@@ -1415,8 +1420,8 @@ test("the production Git-ref store recovers a lost claim response and fences the
       assert.notEqual(runGit(symbolic, "rev-parse", "--verify", "refs/krn/queue").status, 0);
       assert.notEqual(runGit(symbolic, "rev-parse", "--verify", "refs/krn/unrelated").status, 0);
       assert.equal(git(symbolic, "symbolic-ref", "refs/krn/queue-active"), "refs/krn/unrelated");
-      assert.deepEqual(command(restored, "store", "restore", "--file", archivePath), { restored: true, refs });
-      assert.deepEqual(command(restored, "store", "restore", "--file", archivePath), { restored: false, refs });
+      assert.deepEqual(restoreWithTask(restored), { restored: true, refs });
+      assert.deepEqual(restoreWithTask(restored), { restored: false, refs });
       assert.deepEqual(await openTaskStore(restored).read(), state, "comments, history, intent revisions and operations must all survive");
       assert.equal(command(restored, "show", "--id", human.id).Status, "done");
       assert.deepEqual(command(restored, "next").frontier, [ready.id]);
