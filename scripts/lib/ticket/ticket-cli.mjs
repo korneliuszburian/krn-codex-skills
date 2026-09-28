@@ -476,10 +476,10 @@ export async function runTicketCommand(argv, { usage, requireDirectory, requireA
   if (requireActiveStore) {
     if (!options.root) fail("task requires --root", EXIT_CODES.USAGE);
     requireDirectory(options.root);
-    // Only the queue owner's explicit storage transition and recovery reads
-    // can run before activation. Every task operation still requires the one
-    // selected Git-ref queue, never a fallback to Markdown.
-    const storageTransition = positional[0] === "store" && ["migrate", "lock", "unlock"].includes(positional[1]);
+    // Queue-owner transitions and archive restore into a clean successor can
+    // run before activation. Restore validates the archive and uses a locked
+    // ref transaction; ordinary task operations still require selection.
+    const storageTransition = positional[0] === "store" && ["migrate", "lock", "unlock", "restore"].includes(positional[1]);
     if (!storageTransition) selectedTaskStore(options.root);
     if (positional[0] === "reconcile") fail("task reconcile is not available during the Git-ref CLI expansion", EXIT_CODES.USAGE);
   }
