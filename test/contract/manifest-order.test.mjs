@@ -17,6 +17,25 @@ export function ticketReferenceErrors(text) {
   return String(text).includes(ABI) ? [] : [`tickets reference must link the ticket ABI at ${ABI}`];
 }
 
+export function slicePublicationErrors(text) {
+  const selected = String(text).split("## Selected Git-ref task queue\n")[1]?.split("## Explicit local-Markdown tracker\n")[0] ?? "";
+  const legacy = String(text).split("## Explicit local-Markdown tracker\n")[1]?.split("## Real tracker\n")[0] ?? "";
+  const errors = [];
+  for (const command of ["krn task add", "krn task ready", "krn task show", "krn task check", "--depends-on"]) {
+    if (!selected.includes(command)) errors.push(`selected task publication omits ${command}`);
+  }
+  if (!/blocked[^.]*open|open[^.]*block/i.test(selected) || !/done/i.test(selected)) {
+    errors.push("selected task publication must not mark blocked work ready");
+  }
+  if (!/selector/i.test(selected) || selected.includes("krn ticket check")) {
+    errors.push("selected task publication must not fall back to Markdown validation");
+  }
+  if (!legacy.includes("KRN_QUEUE_MODE=legacy") || !legacy.includes("krn ticket check") || !legacy.includes("<krn-ticket>")) {
+    errors.push("explicit legacy publication must retain its own Markdown ABI validation");
+  }
+  return errors;
+}
+
 export function inventoryErrors(label, text, names) {
   const body = String(text);
   return names
@@ -47,6 +66,11 @@ test("the observer fails on an unsorted runtime_paths list", () => {
 test("the slice-work tickets reference links the ticket ABI", () => {
   const reference = readFileSync(join(root, "skills/engineering/slice-work/references/tickets.md"), "utf8");
   assert.deepEqual(ticketReferenceErrors(reference), []);
+});
+
+test("slice-work publishes selected tasks without treating Markdown ABI files as task state", () => {
+  const reference = readFileSync(join(root, "skills/engineering/slice-work/references/tickets.md"), "utf8");
+  assert.deepEqual(slicePublicationErrors(reference), []);
 });
 
 test("the observer fails on a tickets reference that does not link the ABI", () => {
