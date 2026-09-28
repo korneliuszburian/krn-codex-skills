@@ -35,7 +35,7 @@ end-to-end **vertical slices** and explicit **expand–migrate–contract stages
    can become observable independently. Use expand–migrate–contract only when
    an existing compatibility boundary or wide mechanical blast radius makes a
    direct vertical change unsafe or impossible to keep green. Read
-   [tickets.md](references/tickets.md) for the migration-stage invariants and
+   [tasks.md](references/tasks.md) for the migration-stage invariants and
    ticket publication branch.
 
    **Done when:** one shape is selected for a concrete reason; a vague large
@@ -116,7 +116,7 @@ end-to-end **vertical slices** and explicit **expand–migrate–contract stages
    closest repository `AGENTS.md` or other closest instructions, plus publication
    authority. Those instructions describe how; they do not authorize the
    mutation. When authorized, publish one ticket per unit and read back its
-   identity and blocking edges per [tickets.md](references/tickets.md). This
+   identity and blocking edges per [tasks.md](references/tasks.md). This
    skill creates tickets but never claims or sequences them.
 
    Use one truthful **ticket-publication state**. This is scoped to tracker
