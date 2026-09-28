@@ -7,6 +7,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
+import { checkTickets } from "../../scripts/lib/ticket/ticket.mjs";
 import { activateTaskQueueFixture } from "../ticket/task-queue-fixture.mjs";
 
 const frontier = fileURLToPath(new URL("../../scripts/lane/run-frontier.sh", import.meta.url));
@@ -259,11 +260,9 @@ test("lost Git-ref selector refuses instead of picking a healthy Markdown fronti
     const original = readFileSync(markdown);
     git(fixture.repo, ["update-ref", "-d", "refs/krn/queue-active"]);
     const cli = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
-    const legacy = spawnSync(process.execPath, [cli, "ticket", "check", "--root", fixture.repo,
-      "--path", fixture.tickets, "--json"], { encoding: "utf8" });
-    assert.equal(legacy.status, 0, `the Markdown queue must be healthy: ${legacy.stderr}`);
-    assert.deepEqual(JSON.parse(legacy.stdout).errors, []);
-    assert.deepEqual(JSON.parse(legacy.stdout).frontier, ["t-1"]);
+    const legacy = checkTickets({ root: fixture.repo });
+    assert.deepEqual(legacy.errors, [], "the Markdown negative control must be healthy");
+    assert.deepEqual(legacy.frontier, ["t-1"]);
 
     const env = envFor(fixture, undefined);
     env.KRN = cli;
