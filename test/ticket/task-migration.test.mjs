@@ -125,7 +125,8 @@ test("krn task store migrate plans and explicitly activates a legacy queue witho
     assert.equal(applied.tasks, 2);
     assert.ok(existsSync(archive), "explicit migration keeps the original bytes in an archive");
     assert.deepEqual(readFileSync(join(root, ".krn/tickets/ready-task.md")), original);
-    assert.deepEqual(ok(task(root, "list")).map((entry) => entry.id), ok(run(root, "list")).map((entry) => entry.id));
+    assert.deepEqual(ok(task(root, "list")).map((entry) => entry.id).sort(), ["claimed-task", "ready-task"]);
+    assert.equal(ok(task(root, "show", "--id", "claimed-task")).Id, "claimed-task");
     assert.equal(ok(task(root, ...migrate)).status, "already-active");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -136,14 +137,14 @@ test("public migration plans without writes and atomically selects a lossless im
     const claimedFile = join(root, ".krn/tickets/claimed-task.md");
     writeFileSync(claimedFile, readFileSync(claimedFile, "utf8").replace("session=;", "session=ticket-session;"));
     const before = readFileSync(join(root, ".krn/tickets/ready-task.md"));
-    const plan = ok(run(root, "store", "migrate"));
+    const plan = ok(task(root, "store", "migrate"));
     assert.equal(plan.status, "planned");
     assert.equal(plan.tasks, 2);
     assert.deepEqual(plan.report.errors, []);
     assert.equal(plan.report.ambiguities.length, 1);
     noRefs(root);
     assert.equal(existsSync(archive), false);
-    const unresolved = run(root, ...migrate);
+    const unresolved = task(root, ...migrate);
     assert.notEqual(unresolved.status, 0);
     assert.match(unresolved.stderr, /unresolved claim ambiguities/);
     noRefs(root);
@@ -152,7 +153,7 @@ test("public migration plans without writes and atomically selects a lossless im
     writeFileSync(decisionsFile, JSON.stringify(plan.report.ambiguities.map((entry) => ({
       ...entry, source: "ticket", actor: "operator", reason: "Retain the named session after inspecting both sources",
     }))));
-    const applied = ok(run(root, ...migrate, "--file", decisionsFile));
+    const applied = ok(task(root, ...migrate, "--file", decisionsFile));
     assert.equal(applied.status, "migrated");
     assert.equal(applied.tasks, 2);
     const backup = JSON.parse(readFileSync(archive, "utf8"));
@@ -161,16 +162,17 @@ test("public migration plans without writes and atomically selects a lossless im
     const state = JSON.parse(git(root, "cat-file", "blob", refs[0]));
     assert.equal(state.tasks["ready-task"].legacyFields["Custom Field"], "preserve exactly");
     assert.equal(state.tasks["claimed-task"].owner, "old-worker");
+    assert.equal(state.tasks["claimed-task"].epoch, 1, "the legacy claim generation must survive import");
     assert.equal(state.tasks["claimed-task"].lease.session, "ticket-session");
     assert.equal(state.importReceipt.actor, "operator");
     assert.equal(state.importReceipt.reason, "Adopt the selected task store");
-    assert.equal(ok(run(root, ...migrate)).status, "already-active");
-    const created = ok(run(root, "add", "--title", "New work after migration"));
-    ok(run(root, "close", "--id", created.id, "--actor", "operator", "--reason", "Handled manually"));
+    assert.equal(ok(task(root, ...migrate)).status, "already-active");
+    const created = ok(task(root, "add", "--title", "New work after migration"));
+    ok(task(root, "close", "--id", created.id, "--actor", "operator", "--reason", "Handled manually"));
     rmSync(join(root, ".krn/tickets"), { recursive: true });
     rmSync(join(root, ".krn/claims"), { recursive: true });
-    assert.deepEqual(ok(run(root, "check")).errors, []);
-    assert.deepEqual(ok(run(root, "next")).frontier, ["ready-task"]);
+    assert.deepEqual(ok(task(root, "check")).errors, []);
+    assert.deepEqual(ok(task(root, "next")).frontier, ["ready-task"]);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -187,7 +189,7 @@ while(!fs.existsSync(${JSON.stringify(resume)})) Atomics.wait(new Int32Array(new
 }});`;
     writer = startNode(["--input-type=module", "-e", code]);
     await waitFor(ready);
-    const refused = run(root, ...migrate);
+    const refused = task(root, ...migrate);
     assert.notEqual(refused.status, 0);
     assert.match(refused.stderr, /queue-write-busy/);
     assert.equal(existsSync(archive), false);
@@ -196,7 +198,7 @@ while(!fs.existsSync(${JSON.stringify(resume)})) Atomics.wait(new Int32Array(new
     const finished = await writer.done;
     assert.equal(finished.status, 0, finished.stderr);
     writer = null;
-    assert.equal(ok(run(root, ...migrate)).status, "migrated");
+    assert.equal(ok(task(root, ...migrate)).status, "migrated");
     const state = JSON.parse(git(root, "cat-file", "blob", refs[0]));
     assert.equal(state.tasks["ready-task"].owner, "earlier-worker");
     assert.equal(state.tasks["ready-task"].epoch, 1);
@@ -228,22 +230,22 @@ test("public migration initializes an empty repository without creating legacy t
     const root = join(base, "repository");
     mkdirSync(root);
     git(root, "init", "-q");
-    const result = ok(run(root, "store", "migrate", "--yes", "--archive", join(base, "empty.json"), "--actor", "operator", "--reason", "Initialize the local queue"));
+    const result = ok(task(root, "store", "migrate", "--yes", "--archive", join(base, "empty.json"), "--actor", "operator", "--reason", "Initialize the local queue"));
     assert.equal(result.tasks, 0);
     assert.equal(existsSync(join(root, ".krn/tickets")), false);
-    const task = ok(run(root, "add", "--title", "First ordinary task"));
-    assert.equal(task.status, "open");
+    const created = ok(task(root, "add", "--title", "First ordinary task"));
+    assert.equal(created.status, "open");
   } finally { rmSync(base, { recursive: true, force: true }); }
 });
 
 test("public claimed-task writes fence the caller epoch even when the worker name is reused", async () => {
   const { root, migrate } = fixture();
   try {
-    ok(run(root, ...migrate));
-    const task = ok(run(root, "add", "--title", "Generation-bound human work"));
-    ok(run(root, "ready", "--id", task.id));
-    const first = await openTaskStore(root).claim(task.id, { worker: "same-worker", session: "old-session", at: "2000-01-01T00:00:00Z" });
-    const current = ok(run(root, "takeover", "--id", task.id, "--worker", "same-worker", "--session", "new-session", "--expected-epoch", String(first.epoch), "--reason", "Resume in a new session"));
+    ok(task(root, ...migrate));
+    const created = ok(task(root, "add", "--title", "Generation-bound human work"));
+    ok(task(root, "ready", "--id", created.id));
+    const first = await openTaskStore(root).claim(created.id, { worker: "same-worker", session: "old-session", at: "2000-01-01T00:00:00Z" });
+    const current = ok(task(root, "takeover", "--id", created.id, "--worker", "same-worker", "--session", "new-session", "--expected-epoch", String(first.epoch), "--reason", "Resume in a new session"));
     assert.equal(current.epoch, first.epoch + 1);
     const before = git(root, "rev-parse", refs[0]);
     for (const args of [
@@ -254,38 +256,38 @@ test("public claimed-task writes fence the caller epoch even when the worker nam
       ["renew", "--worker", "same-worker"],
     ]) {
       for (const epochArgs of [[], ["--expected-epoch", String(first.epoch)]]) {
-        const refused = run(root, ...args, "--id", task.id, ...epochArgs);
+        const refused = task(root, ...args, "--id", created.id, ...epochArgs);
         assert.notEqual(refused.status, 0, args[0]);
         assert.equal(git(root, "rev-parse", refs[0]), before, "missing/stale generation must not write the current task");
       }
     }
-    ok(run(root, "comment", "--id", task.id, "--worker", "same-worker", "--expected-epoch", String(current.epoch), "--body", "Current session comment"));
-    ok(run(root, "renew", "--id", task.id, "--worker", "same-worker", "--expected-epoch", String(current.epoch)));
-    assert.equal(ok(run(root, "close", "--id", task.id, "--actor", "same-worker", "--expected-epoch", String(current.epoch), "--reason", "Accepted by the current executor")).status, "done");
+    ok(task(root, "comment", "--id", created.id, "--worker", "same-worker", "--expected-epoch", String(current.epoch), "--body", "Current session comment"));
+    ok(task(root, "renew", "--id", created.id, "--worker", "same-worker", "--expected-epoch", String(current.epoch)));
+    assert.equal(ok(task(root, "close", "--id", created.id, "--actor", "same-worker", "--expected-epoch", String(current.epoch), "--reason", "Accepted by the current executor")).status, "done");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
 test("public task creation and lane admission require a complete recipe and keep proof-gated closure", () => {
   const { root, migrate, archive } = fixture();
   try {
-    ok(run(root, ...migrate));
-    const task = ok(run(root, "add", "--title", "Assign this task to a lane"));
+    ok(task(root, ...migrate));
+    const created = ok(task(root, "add", "--title", "Assign this task to a lane"));
     const file = join(dirname(archive), "recipe.json");
     writeFileSync(file, JSON.stringify({ base: "main" }));
     const before = git(root, "rev-parse", refs[0]);
-    assert.notEqual(run(root, "edit", "--id", task.id, "--lane-recipe", file).status, 0);
+    assert.notEqual(task(root, "edit", "--id", created.id, "--lane-recipe", file).status, 0);
     assert.equal(git(root, "rev-parse", refs[0]), before);
     const recipe = { base: "main", scope: "test/**,package.json", check: "node --test test/example.test.mjs", contract: "test/example.test.mjs:red->green", acceptance: "test/example.test.mjs verifies the candidate" };
     writeFileSync(file, JSON.stringify(recipe));
-    const assigned = ok(run(root, "edit", "--id", task.id, "--lane-recipe", file));
+    const assigned = ok(task(root, "edit", "--id", created.id, "--lane-recipe", file));
     assert.equal(assigned.lane, true);
     assert.deepEqual(assigned.laneRecipe, recipe);
-    const closed = run(root, "close", "--id", task.id, "--actor", "operator", "--reason", "Attempt a plain close");
+    const closed = task(root, "close", "--id", created.id, "--actor", "operator", "--reason", "Attempt a plain close");
     assert.notEqual(closed.status, 0);
     assert.match(closed.stderr, /proof-gated close/);
-    const created = ok(run(root, "add", "--title", "Created with a lane recipe", "--lane-recipe", file));
-    assert.equal(created.lane, true);
-    assert.deepEqual(created.laneRecipe, recipe);
+    const newLane = ok(task(root, "add", "--title", "Created with a lane recipe", "--lane-recipe", file));
+    assert.equal(newLane.lane, true);
+    assert.deepEqual(newLane.laneRecipe, recipe);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
