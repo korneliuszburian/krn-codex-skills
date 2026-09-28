@@ -143,7 +143,7 @@ for iteration in $(seq 1 "$MAX_RUNS"); do
       echo "provided intent revision is stale: expected $KRN_INTENT_REVISION, found $claim_intent_revision" >&2
       exit 1
     fi
-    claim_json=$(node "$KRN" ticket claim --root "$ROOT" --id "$id" --worker "$WORKER_NAME" --json)
+    claim_json=$(node "$KRN" task claim --root "$ROOT" --id "$id" --worker "$WORKER_NAME" --json)
     claim_identity=$(printf '%s' "$claim_json" | python3 -c 'import json,sys;x=json.load(sys.stdin);print(x.get("owner","")+"\t"+str(x.get("epoch", "")))')
     claim_worker=${claim_identity%%$'\t'*}
     claim_epoch=${claim_identity#*$'\t'}
