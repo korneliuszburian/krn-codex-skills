@@ -3,7 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import { openTaskStore, readActiveTaskStoreSnapshot } from "../../../../scripts/lib/ticket/task-store.mjs";
+import { openTaskStore, readActiveTaskStoreSnapshot } from "../../../../scripts/lib/task/task-store.mjs";
 
 const START = "<!-- krn-agent-workflow:start -->";
 const END = "<!-- krn-agent-workflow:end -->";
