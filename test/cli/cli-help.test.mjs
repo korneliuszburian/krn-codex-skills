@@ -26,6 +26,15 @@ test("task help advertises its existing list and reopen commands without legacy 
     "the task name must not advertise the legacy Markdown reconciliation path");
 });
 
+test("retired ticket command refuses with a public task migration hint even with --help", () => {
+  for (const args of [["ticket"], ["ticket", "--help"], ["ticket", "next", "--root", ".", "--json"]]) {
+    const result = run(args);
+    assert.equal(result.status, 64, `krn ${args.join(" ")} must be a refusal`);
+    assert.match(result.stderr, /krn ticket retired; use krn task/);
+    assert.equal(result.stdout, "", "retired ticket cannot return a queue or help text");
+  }
+});
+
 test("help is answered on stdout with exit 0 in every position", () => {
   const forms = [
     ["--help"],
@@ -33,7 +42,6 @@ test("help is answered on stdout with exit 0 in every position", () => {
     ["help"],
     ["repo", "--help"],
     ["repo", "apply", "--help"],
-    ["ticket", "--help"],
     ["install", "--help"],
     ["state", "--help"],
     ["changes", "--help"],
@@ -44,5 +52,6 @@ test("help is answered on stdout with exit 0 in every position", () => {
     assert.equal(result.status, 0, `krn ${args.join(" ")} must exit 0, got ${result.status}: ${result.stderr}`);
     assert.match(result.stdout, /Usage:/, `krn ${args.join(" ")} must print the usage on stdout`);
     assert.equal(result.stderr, "", `krn ${args.join(" ")} must not write to stderr`);
+    assert.doesNotMatch(result.stdout, /krn ticket/, "public help advertises only krn task");
   }
 });

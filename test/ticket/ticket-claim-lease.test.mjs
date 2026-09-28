@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -8,7 +7,6 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
-const cli = join(root, "scripts", "krn-codex.mjs");
 
 async function loadTicket() {
   try {
@@ -116,22 +114,4 @@ test("an expired lease is reclaimable with epoch+1 while an unexpired lease refu
       /already-claimed/,
     );
   });
-});
-
-test("the CLI surfaces claim-expired for a claimed lease past its deadline", () => {
-  const dir = mkdtempSync(join(tmpdir(), "krn-ticket-lease-cli-"));
-  try {
-    mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
-    const file = join(dir, ".krn/tickets", "t-1.md");
-    writeFileSync(file, ticket({
-      ...baseFields,
-      Status: "claimed",
-      Claim: `worker=w; session=; at=${T0}; epoch=1; renew=${T0}; duration=1`,
-    }));
-    const result = spawnSync(process.execPath, [cli, "ticket", "check", "--root", dir], { encoding: "utf8" });
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stderr, /claim-expired/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
 });

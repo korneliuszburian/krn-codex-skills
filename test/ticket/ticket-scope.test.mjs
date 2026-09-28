@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -8,7 +8,6 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
-const cli = join(root, "scripts", "krn-codex.mjs");
 
 async function loadTicket() {
   try {
@@ -98,29 +97,5 @@ test("checkTickets without --id and --base ignores Scope and behaves as before",
   }, ({ dir, base, head }) => {
     const report = ticketLib.checkTickets({ root: dir, base, head });
     assert.deepEqual(report.errors, [], JSON.stringify(report.errors));
-  });
-});
-
-test("the CLI fails with rule scope-undeclared when a changed file is outside Scope", () => {
-  withRepo("src-a.mjs", (dir) => {
-    mkdirSync(join(dir, "skills"), { recursive: true });
-    writeFileSync(join(dir, "skills", "manifest.json"), "{}\n");
-  }, ({ dir, base, head }) => {
-    const result = spawnSync(process.execPath, [cli, "ticket", "check", "--root", dir, "--id", "sh-2", "--base", base, "--head", head], { encoding: "utf8" });
-    assert.notEqual(result.status, 0, `${result.stdout}${result.stderr}`);
-    assert.match(result.stderr, /scope-undeclared/);
-    assert.match(result.stderr, /skills\/manifest\.json/);
-  });
-});
-
-test("the CLI passes when every changed file matches Scope", () => {
-  withRepo("src-a.mjs, docs/*.md", (dir) => {
-    writeFileSync(join(dir, "src-a.mjs"), "export const a = 2;\n");
-    mkdirSync(join(dir, "docs"), { recursive: true });
-    writeFileSync(join(dir, "docs", "guide.md"), "# guide\n");
-  }, ({ dir, base, head }) => {
-    const result = spawnSync(process.execPath, [cli, "ticket", "check", "--root", dir, "--id", "sh-2", "--base", base, "--head", head], { encoding: "utf8" });
-    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
-    assert.doesNotMatch(result.stderr, /scope-undeclared/);
   });
 });

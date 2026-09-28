@@ -61,17 +61,11 @@ test("the hook, plugin, and lane carry no fourth hand-rolled parser", () => {
   assert.equal(consumer.lane.includes("ticket env --file"), false, "the lane no longer executes a Markdown-file CLI adapter");
 });
 
-test("the CLI exposes the ticket-envelope owner", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "krn-abi-ticket-"));
-  try {
-    const text = ["<krn-ticket>", "Id: sh-99", "Status: ready", "Scope: scripts/x.mjs", "</krn-ticket>", ""].join("\n");
-    const file = path.join(dir, "ticket.md");
-    writeFileSync(file, text);
-    const out = execFileSync(process.execPath, [path.join(root, "scripts", "krn.mjs"), "ticket", "fields", "--file", file, "--json"], { encoding: "utf8" });
-    assert.deepEqual(JSON.parse(out), Object.fromEntries(parseTicketText(text).fields));
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+test("the legacy importer retains the historical ticket-envelope parser", () => {
+  const text = ["<krn-ticket>", "Id: sh-99", "Status: ready", "Scope: scripts/x.mjs", "</krn-ticket>", ""].join("\n");
+  assert.deepEqual(Object.fromEntries(parseTicketText(text).fields), {
+    Id: "sh-99", Status: "ready", Scope: "scripts/x.mjs",
+  });
 });
 
 test("the CLI exposes the capsule-field owner", () => {

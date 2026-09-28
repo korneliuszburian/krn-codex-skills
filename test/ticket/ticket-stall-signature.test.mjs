@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -8,7 +7,6 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
-const cli = join(root, "scripts", "krn-codex.mjs");
 
 async function loadTicket() {
   try {
@@ -140,26 +138,4 @@ test("distinct signatures stay silent", async () => {
     assert.equal(verdicts(report, "repeated-attempt-signature").warnings.length, 0, JSON.stringify(report.warnings));
     assert.equal(verdicts(report, "stalled-signature").errors.length, 0, JSON.stringify(report.errors));
   });
-});
-
-test("the CLI fail command forwards a signature and check reports the stall", () => {
-  const dir = mkdtempSync(join(tmpdir(), "krn-ticket-signature-cli-"));
-  try {
-    mkdirSync(join(dir, ".krn/tickets"), { recursive: true });
-    const file = join(dir, ".krn/tickets", "t-1.md");
-    writeFileSync(file, ticket(readyFields));
-    const run = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
-    const claimed = run("ticket", "claim", "--root", dir, "--id", "t-1", "--worker", "w", "--json");
-    assert.equal(claimed.status, 0, claimed.stderr);
-    for (const reason of ["no commit in 69s", "no commit in 97s", "no commit again"]) {
-      const failed = run("ticket", "fail", "--root", dir, "--id", "t-1", "--reason", reason, "--signature", "sig-cli", "--json");
-      assert.equal(failed.status, 0, failed.stderr);
-    }
-    assert.match(readFileSync(file, "utf8"), /^Attempts: count=3; signature=sig-cli; reason=no commit again; at=\d{4}-/m);
-    const checked = run("ticket", "check", "--root", dir);
-    assert.equal(checked.status, 1, checked.stderr);
-    assert.match(checked.stderr, /stalled-signature/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
 });

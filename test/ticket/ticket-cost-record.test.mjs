@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -8,7 +7,6 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
-const cli = join(root, "scripts", "krn-codex.mjs");
 
 async function loadTicket() {
   try {
@@ -94,26 +92,5 @@ test("check warns missing-cost only on a done ticket without one", async () => {
 
     writeFileSync(file, ticket(baseFields));
     assert.deepEqual(missingCost(ticketLib.checkTickets({ root: dir })), [], "only done tickets are warned");
-  });
-});
-
-test("the CLI closes with cost and check surfaces it when stripped", () => {
-  withTickets((dir) => {
-    const tickets = join(dir, ".krn/tickets");
-    const file = join(tickets, "sh-49.md");
-    writeFileSync(file, ticket(baseFields));
-    const run = (...args) => spawnSync(process.execPath, [cli, "ticket", ...args], { encoding: "utf8" });
-
-    const close = run("close", "--root", dir, "--path", tickets, "--id", "sh-49", "--evidence", "node --test green", "--resolution", "merged", "--wall-seconds", "254", "--tokens", "68000");
-    assert.equal(close.status, 0, `${close.stdout}${close.stderr}`);
-    assert.deepEqual(costOf(readFileSync(file, "utf8")), { wall: 254, tokens: 68000 });
-
-    const green = run("check", "--root", dir);
-    assert.equal(green.status, 0, `${green.stdout}${green.stderr}`);
-    assert.doesNotMatch(green.stderr, /missing-cost/);
-
-    writeFileSync(file, readFileSync(file, "utf8").replace(/; Cost: wall=.*$/m, ""));
-    const red = run("check", "--root", dir);
-    assert.match(red.stderr, /missing-cost/);
   });
 });

@@ -257,8 +257,14 @@ test("frozen installed CLI and host adapters use the selected public task queue"
     const lostSelectorSystem = [];
     await adapter["experimental.chat.system.transform"]({ sessionID: "lost-selector" }, { system: lostSelectorSystem });
     assert.deepEqual(lostSelectorSystem, [], "the installed OpenCode callback does not revive the legacy queue");
-    assert.deepEqual(command("ticket", "next", "--root", target, "--path", ".krn/tickets").frontier, ["legacy-decoy"],
-      "the healthy Markdown decoy is only a negative control, never selected host work");
+    const { checkTickets } = await import(pathToFileURL(path.join(release, "scripts", "lib", "ticket", "ticket.mjs")).href);
+    const decoy = checkTickets({ root: target });
+    assert.deepEqual(decoy.errors, []);
+    assert.deepEqual(decoy.frontier, ["legacy-decoy"], "historical Markdown remains a readable negative control");
+    const retired = invoke(installedCli, ["ticket", "next", "--root", target, "--path", ".krn/tickets", "--json"], root);
+    assert.equal(retired.status, 64);
+    assert.match(retired.stderr, /krn ticket retired; use krn task/);
+    assert.equal(retired.stdout, "", "the installed CLI must not return an executable legacy frontier");
     assert.match(fs.readFileSync(legacy, "utf8"), /Status: ready/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

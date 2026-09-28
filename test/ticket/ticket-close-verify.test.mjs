@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -8,7 +8,6 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
-const cli = join(root, "scripts", "krn-codex.mjs");
 
 async function loadTicket() {
   try {
@@ -113,26 +112,5 @@ test("close records evidence once scope and contract both verify", async () => {
     const text = readFileSync(file, "utf8");
     assert.match(text, /^Status: done$/m);
     assert.match(text, /^Evidence: gate green; integrated=[0-9a-f]{40}; patch=[0-9a-f]{40}$/m);
-  });
-});
-
-test("the CLI refuses an out-of-scope close and passes a verified one", () => {
-  const run = (dir, base, head) =>
-    spawnSync(
-      process.execPath,
-      [cli, "ticket", "close", "--root", dir, "--id", "sh-16", "--base", base, "--head", head, "--evidence", "gate green", "--resolution", "merged"],
-      { encoding: "utf8" },
-    );
-  withRepo({ change: outOfScope }, ({ dir, base, head, file }) => {
-    const refused = run(dir, base, head);
-    assert.notEqual(refused.status, 0, `${refused.stdout}${refused.stderr}`);
-    assert.match(refused.stderr, /scope-undeclared/);
-    assert.match(refused.stderr, /other\.mjs/);
-    assert.match(readFileSync(file, "utf8"), /^Status: claimed$/m);
-  });
-  withRepo({ change: inScope }, ({ dir, base, head, file }) => {
-    const closed = run(dir, base, head);
-    assert.equal(closed.status, 0, `${closed.stdout}${closed.stderr}`);
-    assert.match(readFileSync(file, "utf8"), /^Status: done$/m);
   });
 });

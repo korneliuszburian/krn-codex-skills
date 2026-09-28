@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -8,7 +8,6 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
-const cli = join(root, "scripts", "krn-codex.mjs");
 
 async function loadTicket() {
   try {
@@ -107,19 +106,5 @@ test("checkTickets ignores a head commit that does not reference the ticket", as
   withRepo("unrelated work", ({ dir, base, head }) => {
     const report = ticketLib.checkTickets({ root: dir, id: "sh-15", base, head });
     assert.deepEqual(contractErrors(report), [], JSON.stringify(report.errors));
-  });
-});
-
-test("the CLI fails contract-mismatch and passes a matching trailer", () => {
-  const run = (dir, base, head) =>
-    spawnSync(process.execPath, [cli, "ticket", "check", "--root", dir, "--id", "sh-15", "--base", base, "--head", head], { encoding: "utf8" });
-  withRepo("Ticket: sh-15\nChange-contract: test/ticket/renamed.test.mjs:red->green", ({ dir, base, head }) => {
-    const result = run(dir, base, head);
-    assert.notEqual(result.status, 0, `${result.stdout}${result.stderr}`);
-    assert.match(result.stderr, /contract-mismatch/);
-  });
-  withRepo(`Ticket: sh-15\nChange-contract: ${CONTRACT}`, ({ dir, base, head }) => {
-    const result = run(dir, base, head);
-    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
   });
 });

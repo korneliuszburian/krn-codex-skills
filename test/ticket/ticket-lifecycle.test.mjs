@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -8,7 +7,6 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
-const cli = join(root, "scripts", "krn-codex.mjs");
 
 async function loadTicket() {
   try {
@@ -79,41 +77,6 @@ test("close writes evidence and resolution and unblocks the next ticket", async 
     assert.deepEqual(ticketLib.checkTickets({ root: dir }).frontier, ["t-2"]);
     assert.throws(() => ticketLib.closeTicket({ file: first }), /already terminal/);
   });
-});
-
-test("the CLI drives the whole loop over an absolute ticket path", () => {
-  const dir = mkdtempSync(join(tmpdir(), "krn-ticket-cli-"));
-  try {
-    const tickets = join(dir, ".krn/tickets", "tickets");
-    mkdirSync(tickets, { recursive: true });
-    const first = join(tickets, "t1.md");
-    writeFileSync(first, ticket(baseFields));
-    writeFileSync(join(tickets, "t2.md"), ticket({ ...baseFields, Id: "t-2", Title: "Second", "Blocked by": "t-1" }));
-    const run = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8" });
-    const next = run("ticket", "next", "--root", dir, "--path", tickets, "--json");
-    assert.equal(next.status, 0, next.stderr);
-    assert.deepEqual(JSON.parse(next.stdout).frontier, ["t-1"]);
-
-    const claim = run("ticket", "claim", "--root", dir, "--path", tickets, "--id", "t-1", "--worker", "stub", "--json");
-    assert.equal(claim.status, 0, claim.stderr);
-    assert.equal(JSON.parse(claim.stdout).status, "claimed");
-    assert.match(readFileSync(first, "utf8"), /^Claim: worker=stub; session=; at=\d{4}-/m);
-    assert.deepEqual(JSON.parse(run("ticket", "next", "--root", dir, "--path", tickets, "--json").stdout).frontier, []);
-
-    const close = run("ticket", "close", "--root", dir, "--path", tickets, "--id", "t-1", "--evidence", "gate green", "--resolution", "merged", "--json");
-    assert.equal(close.status, 0, close.stderr);
-    assert.equal(JSON.parse(close.stdout).status, "done");
-    const text = readFileSync(first, "utf8");
-    assert.match(text, /^Evidence: gate green$/m);
-    assert.match(text, /^Resolution: merged \(closed /m);
-    assert.deepEqual(JSON.parse(run("ticket", "next", "--root", dir, "--path", tickets, "--json").stdout).frontier, ["t-2"]);
-
-    const refused = run("ticket", "claim", "--root", dir, "--path", tickets, "--id", "t-1", "--worker", "stub");
-    assert.equal(refused.status, 64);
-    assert.match(refused.stderr, /not ready/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
 });
 
 test("lookup resolves an id to its file and rejects unknown ids", async () => {

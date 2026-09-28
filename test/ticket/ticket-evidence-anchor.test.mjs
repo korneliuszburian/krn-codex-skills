@@ -8,7 +8,6 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
-const cli = join(root, "scripts", "krn-codex.mjs");
 
 async function loadTicket() {
   try {
@@ -148,34 +147,4 @@ test("check keeps a closure whose integrated commit is still an ancestor", async
     const report = ticketLib.checkTickets({ root: dir, base: seed, head: "HEAD" });
     assert.deepEqual(report.errors.filter((entry) => entry.rule === "evidence-anchor-missing"), [], JSON.stringify(report.errors));
   });
-});
-
-test("the CLI closes with an anchor and flags the vanished one", () => {
-  const dir = makeRepo();
-  try {
-    const tickets = join(dir, ".krn/tickets");
-    const file = join(tickets, "sh-12.md");
-    const mainBefore = rev(dir, "main");
-    const laneSha = laneCommit(dir);
-    const run = (...args) => spawnSync(process.execPath, [cli, "ticket", ...args], { encoding: "utf8" });
-
-    const claim = run("claim", "--root", dir, "--path", tickets, "--id", "sh-12", "--worker", "stub", "--json");
-    assert.equal(claim.status, 0, `${claim.stdout}${claim.stderr}`);
-
-    const close = run("close", "--root", dir, "--path", tickets, "--id", "sh-12", "--evidence", "gate green", "--resolution", "merged", "--json");
-    assert.equal(close.status, 0, `${close.stdout}${close.stderr}`);
-    assert.equal(JSON.parse(close.stdout).anchor.sha, laneSha);
-    assert.match(evidenceOf(file), /integrated=[0-9a-f]{40}; patch=[0-9a-f]{40}$/);
-
-    squashIntoMain(dir);
-    const green = run("check", "--root", dir, "--base", mainBefore, "--head", "HEAD");
-    assert.equal(green.status, 0, `${green.stdout}${green.stderr}`);
-
-    writeFileSync(file, readFileSync(file, "utf8").replace(/integrated=[0-9a-f]{40}/, `integrated=${"0".repeat(40)}`).replace(/patch=[0-9a-f]{40}/, `patch=${"f".repeat(40)}`));
-    const red = run("check", "--root", dir, "--base", mainBefore, "--head", "HEAD");
-    assert.notEqual(red.status, 0, `${red.stdout}${red.stderr}`);
-    assert.match(red.stderr, /evidence-anchor-missing/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
 });

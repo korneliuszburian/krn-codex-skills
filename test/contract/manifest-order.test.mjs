@@ -13,13 +13,13 @@ export function runtimePathOrderErrors(paths) {
   return firstOutOfOrder === undefined ? [] : [`manifest: runtime_paths is not sorted at ${firstOutOfOrder}`];
 }
 
-export function ticketReferenceErrors(text) {
-  return String(text).includes(ABI) ? [] : [`tickets reference must link the ticket ABI at ${ABI}`];
+export function taskReferenceErrors(text) {
+  return String(text).includes(ABI) ? [] : [`tasks reference must link the historical ticket ABI at ${ABI}`];
 }
 
 export function slicePublicationErrors(text) {
-  const selected = String(text).split("## Selected Git-ref task queue\n")[1]?.split("## Explicit local-Markdown tracker\n")[0] ?? "";
-  const legacy = String(text).split("## Explicit local-Markdown tracker\n")[1]?.split("## Real tracker\n")[0] ?? "";
+  const selected = String(text).split("## Selected Git-ref task queue\n")[1]?.split("## Externally configured Markdown tracker\n")[0] ?? "";
+  const markdown = String(text).split("## Externally configured Markdown tracker\n")[1]?.split("## Real tracker\n")[0] ?? "";
   const errors = [];
   for (const command of ["krn task add", "krn task ready", "krn task show", "krn task check", "--depends-on"]) {
     if (!selected.includes(command)) errors.push(`selected task publication omits ${command}`);
@@ -30,8 +30,9 @@ export function slicePublicationErrors(text) {
   if (!/selector/i.test(selected) || selected.includes("krn ticket check")) {
     errors.push("selected task publication must not fall back to Markdown validation");
   }
-  if (!legacy.includes("KRN_QUEUE_MODE=legacy") || !legacy.includes("krn ticket check") || !legacy.includes("<krn-ticket>")) {
-    errors.push("explicit legacy publication must retain its own Markdown ABI validation");
+  if (!markdown.includes("krn task store migrate") || !markdown.includes("<krn-ticket>")
+    || markdown.includes("krn ticket check") || markdown.includes("KRN_QUEUE_MODE=legacy")) {
+    errors.push("historical Markdown import must not revive the retired public ticket CLI");
   }
   return errors;
 }
@@ -63,21 +64,21 @@ test("the observer fails on an unsorted runtime_paths list", () => {
   assert.deepEqual(runtimePathOrderErrors([]), ["manifest: runtime_paths must be a non-empty array"]);
 });
 
-test("the slice-work tickets reference links the ticket ABI", () => {
-  const reference = readFileSync(join(root, "skills/engineering/slice-work/references/tickets.md"), "utf8");
-  assert.deepEqual(ticketReferenceErrors(reference), []);
+test("the slice-work tasks reference links the historical ticket ABI", () => {
+  const reference = readFileSync(join(root, "skills/engineering/slice-work/references/tasks.md"), "utf8");
+  assert.deepEqual(taskReferenceErrors(reference), []);
 });
 
 test("slice-work publishes selected tasks without treating Markdown ABI files as task state", () => {
-  const reference = readFileSync(join(root, "skills/engineering/slice-work/references/tickets.md"), "utf8");
+  const reference = readFileSync(join(root, "skills/engineering/slice-work/references/tasks.md"), "utf8");
   assert.deepEqual(slicePublicationErrors(reference), []);
 });
 
-test("the observer fails on a tickets reference that does not link the ABI", () => {
-  assert.deepEqual(ticketReferenceErrors("# tickets\n\n**Kind:** vertical-slice\n**Status:** ready-for-agent\n"), [
-    `tickets reference must link the ticket ABI at ${ABI}`,
+test("the observer fails on a tasks reference that does not link the historical ABI", () => {
+  assert.deepEqual(taskReferenceErrors("# tasks\n\n**Kind:** vertical-slice\n**Status:** ready-for-agent\n"), [
+    `tasks reference must link the historical ticket ABI at ${ABI}`,
   ]);
-  assert.deepEqual(ticketReferenceErrors(`See ${ABI} for the envelope.`), []);
+  assert.deepEqual(taskReferenceErrors(`See ${ABI} for the envelope.`), []);
 });
 
 test("active task product proof is registered under its task owner", () => {

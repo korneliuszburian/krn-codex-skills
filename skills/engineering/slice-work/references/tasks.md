@@ -1,4 +1,4 @@
-# Publishing slices as tickets
+# Publishing slices as work items
 
 `$slice-work` always returns the complete work-unit list. Ticket publication is a
 separate mutation: perform it only when the request supplies publication authority
@@ -32,20 +32,21 @@ REPO` for queue consistency. The check reads selected task records, not Markdown
 files; it cannot prove that an unpublished ticket envelope was transferred.
 `$slice-work` creates and reads back units but never claims or sequences them.
 
-## Explicit local-Markdown tracker
+## Externally configured Markdown tracker
 
-Only when the closest instructions actually configure local Markdown may this
-branch publish files. For KRN's pre-activation migration it also requires
-explicit `KRN_QUEUE_MODE=legacy` and an absent Git-ref selector; do not infer
-legacy mode from a missing selector. Use the configured root, one file per
-unit in dependency order (blockers first), never a combined backlog file.
+Only a separate tracker expressly configured by the closest instructions may
+publish local Markdown, using that tracker's declared validator and dependency
+operations. KRN's old `.krn/tickets/` files are historical input to
+`krn task store migrate --root REPO`, not a runnable second queue or a reason
+to fall back when the Git-ref selector is missing. For a separately configured
+Markdown tracker, use its declared root and publish blockers first, one work
+item per file.
 
-This branch uses the [ticket ABI v1](../../../../docs/research/ticket-protocol.md):
-one `<krn-ticket>` envelope per unit, not a task-store record or a skill-local
-template. `scripts/lib/ticket/ticket.mjs` and `krn ticket check --root REPO
---path DIR` parse the Markdown queue and reject another field set as
-`missing-field` only before activation. Carry the decision evidence into the
-envelope:
+The [ticket ABI v1](../../../../docs/research/ticket-protocol.md) remains a
+historical import format: `<krn-ticket>` envelopes are parsed by
+`scripts/lib/ticket/ticket.mjs` while migrating old KRN records. That parser
+is not another public CLI. Where an external tracker independently requires
+this format, its owner validates the required fields and decision evidence:
 
 - `Id`, `Title`, `Status`, `Type`, `Repository-base`, `Scope`, `Deciding check`,
   `Contract`, `Acceptance`, and `Blocked by` are required.
@@ -54,8 +55,8 @@ envelope:
 - `Execution` records agent, model, effort, and parallel group for the runner.
 - Prose below the block explains the behavior, dependency reason, and acceptance.
 
-Do not write a `Kind:`/`ready-for-agent` block or another competing Markdown
-shape; the ABI owns the envelope. Read back the files and their blocking edges.
+Do not invent a `Kind:`/`ready-for-agent` block or a KRN Markdown queue.
+Read back each externally configured work item and its blocking edges.
 
 ## Real tracker
 

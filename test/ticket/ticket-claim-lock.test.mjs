@@ -8,7 +8,6 @@ import test from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
-const cli = join(root, "scripts", "krn-codex.mjs");
 
 async function loadTicket() {
   try {
@@ -119,27 +118,6 @@ test("the fencing epoch increments across successive claims", async () => {
     assert.equal(result.claim.epoch, 5);
     assert.match(readFileSync(file, "utf8"), /^Claim: worker=worker-a; session=session-a; at=.*; epoch=5; renew=.*; duration=\d+$/m);
   });
-});
-
-test("the CLI claims through the same lock and records the epoch", () => {
-  const dir = mkdtempSync(join(tmpdir(), "krn-ticket-claim-cli-"));
-  try {
-    const tickets = join(dir, ".krn/tickets", "tickets");
-    mkdirSync(tickets, { recursive: true });
-    const file = join(tickets, "t-1.md");
-    writeFileSync(file, ticket(baseFields));
-    const result = spawnSync(
-      process.execPath,
-      [cli, "ticket", "claim", "--root", dir, "--path", tickets, "--id", "t-1", "--worker", "worker-a", "--json"],
-      { encoding: "utf8" },
-    );
-    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
-    assert.equal(JSON.parse(result.stdout).claim.epoch, 1);
-    assert.match(readFileSync(file, "utf8"), /^Claim: worker=worker-a; session=; at=.*; epoch=1; renew=.*; duration=\d+$/m);
-    assert.equal(existsSync(join(dir, ".krn", "claims", "t-1.lock")), true);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
 });
 
 test(".krn/claims/ is git-ignored", () => {

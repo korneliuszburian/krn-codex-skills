@@ -1,13 +1,10 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-const repo = fileURLToPath(new URL("../..", import.meta.url));
-const cli = join(repo, "scripts", "krn.mjs");
+import { claimTicket } from "../../scripts/lib/ticket/ticket.mjs";
 
 const ticket = (id) => [
   "<krn-ticket>",
@@ -43,12 +40,9 @@ test("claim locks are contained and injective for stable IDs", () => {
       return file;
     });
 
-    for (const id of ids) {
-      const result = spawnSync(process.execPath, [
-        cli, "ticket", "claim", "--root", root, "--path", ".krn/tickets", "--id", id, "--worker", "fixture", "--json",
-      ], { encoding: "utf8" });
-      assert.equal(result.status, 0, `${id}: ${result.stdout}${result.stderr}`);
-      assert.equal(JSON.parse(result.stdout).status, "claimed");
+    for (const [index, id] of ids.entries()) {
+      const result = claimTicket({ root, file: files[index], id, worker: "fixture" });
+      assert.equal(result.status, "claimed", `legacy claim ${id} must remain within the repository`);
     }
 
     const claims = join(root, ".krn", "claims");

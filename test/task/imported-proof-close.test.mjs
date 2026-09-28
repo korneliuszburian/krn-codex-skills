@@ -10,7 +10,7 @@ import test from "node:test";
 // Keep this observer loadable there; missing implementation is an assertion RED.
 const CLI = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
 const git = (root, ...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
-const command = (root, ...args) => spawnSync(process.execPath, [CLI, "ticket", ...args], {
+const command = (root, ...args) => spawnSync(process.execPath, [CLI, "task", ...args], {
   cwd: root, encoding: "utf8", env: { ...process.env, NODE_TEST_CONTEXT: undefined },
 });
 
