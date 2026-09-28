@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const CLI = path.join(REPO, "scripts", "krn.mjs");
@@ -181,6 +181,85 @@ test("installed CLI bootstraps a target repository through its public seam", () 
     const exportFromRelease = invoke(installedCli, ["skills", "export", "--root", target, "--upstream", path.join(root, "no-upstream")], root);
     assert.equal(exportFromRelease.status, 64, exportFromRelease.stdout + exportFromRelease.stderr);
     assert.match(exportFromRelease.stderr, /upstream checkout missing/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("frozen installed CLI and host adapters use the selected public task queue", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "krn-installed-task-"));
+  try {
+    const source = sourceFixture(root);
+    const installed = invoke(CLI, ["install", "apply", "--source", source, "--yes", "--json"], root);
+    assert.equal(installed.status, 0, installed.stderr);
+    const commit = JSON.parse(installed.stdout).commit;
+    const release = path.join(root, "codex", "krn", "releases", commit);
+    const installedCli = path.join(root, "bin", "krn");
+    const installedHook = path.join(root, "codex", "hooks", "krn_capsule.py");
+    const installedPlugin = path.join(root, "opencode", "plugins", "krn.js");
+    assert.equal(fs.realpathSync(installedCli), path.join(release, "scripts", "krn.mjs"));
+    assert.equal(fs.realpathSync(installedHook), path.join(release, "scripts", "hooks", "krn_capsule.py"));
+    assert.equal(fs.realpathSync(installedPlugin), path.join(release, "config", "opencode", "plugins", "krn.js"));
+    const command = (...args) => {
+      const result = invoke(installedCli, [...args, "--json"], root);
+      assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+      return JSON.parse(result.stdout);
+    };
+
+    const target = initTarget(root);
+    const applied = invoke(installedCli, ["repo", "apply", "--root", target, "--tracker", "local", "--domain", "single", "--delivery", "local"], root);
+    assert.equal(applied.status, 0, applied.stderr);
+    for (const id of ["selected-first", "selected-second"]) {
+      assert.equal(command("task", "add", "--root", target, "--id", id, "--title", id).status, "open");
+      assert.equal(command("task", "ready", "--root", target, "--id", id).status, "ready");
+    }
+    const legacy = path.join(target, ".krn", "tickets", "legacy-decoy.md");
+    fs.mkdirSync(path.dirname(legacy), { recursive: true });
+    fs.writeFileSync(legacy, [
+      "<krn-ticket>", "Id: legacy-decoy", "Title: Legacy decoy", "Status: ready", "Type: task",
+      "Repository-base: HEAD", "Scope: README.md", "Deciding check: true",
+      "Contract: test:bootstrap:red->green", "Acceptance: old queue stays separate", "Blocked by: none",
+      "</krn-ticket>", "",
+    ].join("\n"));
+    assert.deepEqual(command("task", "next", "--root", target).frontier, ["selected-first", "selected-second"]);
+    assert.deepEqual(command("task", "check", "--root", target).errors, []);
+
+    const hookContext = () => {
+      const result = spawnSync("python3", ["-B", installedHook], {
+        input: JSON.stringify({ hook_event_name: "SessionStart", cwd: target }),
+        encoding: "utf8", env: environment(root),
+      });
+      assert.equal(result.status, 0, result.stderr);
+      return result.stdout.trim() ? JSON.parse(result.stdout).hookSpecificOutput.additionalContext : null;
+    };
+    const plugin = await import(pathToFileURL(installedPlugin).href);
+    const adapter = await plugin.KrnAdapter({ directory: target });
+    const system = [];
+    await adapter["experimental.chat.system.transform"]({ sessionID: "frozen-host" }, { system });
+    assert.equal(system.length, 1, "the installed plugin callback injects exactly one system brief");
+    for (const brief of [hookContext(), system[0]]) {
+      assert.match(brief, /selected-first, selected-second/);
+      assert.match(brief, /krn task claim --root/);
+      assert.doesNotMatch(brief, /legacy-decoy/);
+    }
+    const before = execFileSync("git", ["-C", target, "rev-parse", "refs/krn/queue"], { encoding: "utf8" }).trim();
+    const claimed = command("task", "claim", "--root", target, "--id", "selected-first", "--worker", "fixture", "--session", "frozen-host");
+    assert.equal(claimed.owner, "fixture");
+    assert.notEqual(execFileSync("git", ["-C", target, "rev-parse", "refs/krn/queue"], { encoding: "utf8" }).trim(), before);
+    assert.match(command("task", "show", "--root", target, "--id", "selected-first").Claim, /worker=fixture/);
+    assert.deepEqual(command("task", "next", "--root", target).frontier, ["selected-second"]);
+
+    execFileSync("git", ["-C", target, "update-ref", "-d", "refs/krn/queue-active"]);
+    const refused = invoke(installedCli, ["task", "next", "--root", target, "--json"], root);
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stderr, /Git-ref task queue is not active/);
+    assert.equal(hookContext(), null);
+    const lostSelectorSystem = [];
+    await adapter["experimental.chat.system.transform"]({ sessionID: "lost-selector" }, { system: lostSelectorSystem });
+    assert.deepEqual(lostSelectorSystem, [], "the installed OpenCode callback does not revive the legacy queue");
+    assert.deepEqual(command("ticket", "next", "--root", target, "--path", ".krn/tickets").frontier, ["legacy-decoy"],
+      "the healthy Markdown decoy is only a negative control, never selected host work");
+    assert.match(fs.readFileSync(legacy, "utf8"), /Status: ready/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
