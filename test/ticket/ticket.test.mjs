@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
 
 import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
-import { activateTaskQueueFixture } from "./task-queue-fixture.mjs";
+import { activateTaskQueueFixture } from "../task/task-queue-fixture.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const modulePath = join(root, "scripts", "lib", "ticket", "ticket.mjs");
@@ -147,7 +147,7 @@ test("checkTickets selects the Git-ref task queue as its sole source when initia
 test("public task CLI adds a title-only task, readies it and shows its history", async () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-task-cli-"));
   const cli = join(root, "scripts", "krn.mjs");
-  const run = (...args) => spawnSync(process.execPath, [cli, "ticket", ...args], { encoding: "utf8" });
+  const run = (...args) => spawnSync(process.execPath, [cli, "task", ...args], { encoding: "utf8" });
   try {
     execFileSync("git", ["-C", dir, "init", "-q"]);
     execFileSync("git", ["-C", dir, "config", "user.email", "lab@krn.local"]);
@@ -214,7 +214,7 @@ test("public task CLI adds a title-only task, readies it and shows its history",
 test("public task CLI lists, edits and releases a claimed task as abandoned", async () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-task-cli-release-"));
   const cli = join(root, "scripts", "krn.mjs");
-  const run = (...args) => spawnSync(process.execPath, [cli, "ticket", ...args], { encoding: "utf8" });
+  const run = (...args) => spawnSync(process.execPath, [cli, "task", ...args], { encoding: "utf8" });
   try {
     execFileSync("git", ["-C", dir, "init", "-q"]);
     execFileSync("git", ["-C", dir, "config", "user.email", "lab@krn.local"]);
@@ -263,7 +263,7 @@ test("public task CLI lists, edits and releases a claimed task as abandoned", as
 test("public task CLI records typed failures and retains the retry gate", async () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-task-cli-fail-"));
   const cli = join(root, "scripts", "krn.mjs");
-  const run = (...args) => spawnSync(process.execPath, [cli, "ticket", ...args], { encoding: "utf8" });
+  const run = (...args) => spawnSync(process.execPath, [cli, "task", ...args], { encoding: "utf8" });
   try {
     execFileSync("git", ["-C", dir, "init", "-q"]);
     execFileSync("git", ["-C", dir, "config", "user.email", "lab@krn.local"]);
@@ -302,7 +302,7 @@ test("public task CLI records typed failures and retains the retry gate", async 
 test("public task CLI records an audited takeover after lease expiry", async () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-task-cli-takeover-"));
   const cli = join(root, "scripts", "krn.mjs");
-  const run = (...args) => spawnSync(process.execPath, [cli, "ticket", ...args], { encoding: "utf8" });
+  const run = (...args) => spawnSync(process.execPath, [cli, "task", ...args], { encoding: "utf8" });
   try {
     execFileSync("git", ["-C", dir, "init", "-q"]);
     execFileSync("git", ["-C", dir, "config", "user.email", "lab@krn.local"]);

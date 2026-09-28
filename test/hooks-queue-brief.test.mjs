@@ -8,7 +8,7 @@ import test from "node:test";
 
 import { openTaskStore } from "../scripts/lib/ticket/task-store.mjs";
 import { checkTickets } from "../scripts/lib/ticket/ticket.mjs";
-import { activateTaskQueueFixture } from "./ticket/task-queue-fixture.mjs";
+import { activateTaskQueueFixture } from "./task/task-queue-fixture.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pluginPath = join(root, "config", "opencode", "plugins", "krn.js");

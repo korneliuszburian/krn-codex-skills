@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -78,6 +78,14 @@ test("the observer fails on a tickets reference that does not link the ABI", () 
     `tickets reference must link the ticket ABI at ${ABI}`,
   ]);
   assert.deepEqual(ticketReferenceErrors(`See ${ABI} for the envelope.`), []);
+});
+
+test("active task product proof is registered under its task owner", () => {
+  const product = "test/task/task-product.test.mjs";
+  const script = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:lib"];
+  assert.ok(existsSync(join(root, product)), "task product proof must live with its task owner");
+  assert.ok(script.includes(product), "the shared gate must execute the moved product proof");
+  assert.ok(!script.includes("test/ticket/task-product.test.mjs"), "the gate must not retain the obsolete path");
 });
 
 test("AGENTS.md and README.md inventories name every lib owner and test group", () => {

@@ -820,8 +820,8 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreReadyWorkerMode && !taskSto
         laneRecipe: {
           base: "0123456789012345678901234567890123456789",
           scope: "scripts/lib/ticket/**",
-          check: "node --test test/ticket/task-product.test.mjs",
-          contract: "test/ticket/task-product.test.mjs:red->green",
+          check: "node --test test/task/task-product.test.mjs",
+          contract: "test/task/task-product.test.mjs:red->green",
           acceptance: "preserve task state",
         },
       });
@@ -829,8 +829,8 @@ if (!workerMode && !taskStoreWorkerMode && !taskStoreReadyWorkerMode && !taskSto
       assert.deepEqual(laneTask.laneRecipe, {
         base: "0123456789012345678901234567890123456789",
         scope: "scripts/lib/ticket/**",
-        check: "node --test test/ticket/task-product.test.mjs",
-        contract: "test/ticket/task-product.test.mjs:red->green",
+        check: "node --test test/task/task-product.test.mjs",
+        contract: "test/task/task-product.test.mjs:red->green",
         acceptance: "preserve task state",
       });
       await assert.rejects(writer.edit(laneTask.id, { laneRecipe: null }), /lane tasks require a complete lane recipe/);
