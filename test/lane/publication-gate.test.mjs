@@ -110,7 +110,7 @@ const publicTaskCli = (fixture, rejected) => {
   const krn = fileURLToPath(new URL("../../scripts/krn.mjs", import.meta.url));
   writeFileSync(path, `import { spawnSync } from "node:child_process";
 const args = process.argv.slice(2);
-const call = args.slice(0, args[1] === "operation" ? 3 : 2).join(" ");
+const call = args.slice(0, ["intent", "operation"].includes(args[1]) ? 3 : 2).join(" ");
 if (!args.includes("--path") && ${JSON.stringify(rejected)}.includes(call)) {
   process.stderr.write("selected Git-ref tasks must use public krn task: " + call + "\\n");
   process.exit(64);
@@ -197,7 +197,7 @@ echo "branch=$branch"
     chmodSync(activeLane, 0o755);
 
     const env = envFor(fixture, undefined);
-    env.KRN = publicTaskCli(fixture, ["ticket claim"]);
+    env.KRN = publicTaskCli(fixture, ["ticket claim", "ticket intent get"]);
     env.LANE = activeLane;
     env.LANE_RECEIPT = receiptPath;
     env.WORKER_NAME = "frontier-active-worker";

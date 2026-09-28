@@ -133,7 +133,7 @@ for iteration in $(seq 1 "$MAX_RUNS"); do
       echo "active task queue requires KRN_INTENT_ID from the current authority owner" >&2
       exit 1
     fi
-    claim_intent_revision=$(node "$KRN" ticket intent get --root "$ROOT" --intent "$claim_intent_id" --json \
+    claim_intent_revision=$(node "$KRN" task intent get --root "$ROOT" --intent "$claim_intent_id" --json \
       | python3 -c 'import json,sys;print(json.load(sys.stdin).get("revision", 0))')
     if ! [[ "$claim_intent_revision" =~ ^[1-9][0-9]*$ ]]; then
       echo "active outcome $claim_intent_id has no stored positive intent revision" >&2
