@@ -1,14 +1,14 @@
 # scripts/lane
 
 The AFK lane family, admitted into the repository from the LT-7 lab by `sh-62`.
-It lets a host run one ticket in an isolated worker session, gate the worker's
-commit, and hand the branch to an integrator. It carries no checkout or mount
+It lets a host run one selected Git-ref task in an isolated worker session,
+gate the worker's commit, and hand the branch to an integrator. It carries no checkout or mount
 prefix: every machine fact arrives as an environment variable with a relative or
 `command -v` default, and this page records the intended host wiring.
 
 ## Tools
 
-- `run-ticket.sh` — one ticket, one fresh worker session, one isolated clone.
+- `run-ticket.sh` — one selected task, one fresh worker session, one isolated clone.
   Modes: `probe` (default), `run`, `classify <check>`, `probe-verdict`, and
   `bwrap-args` (print the sandbox composition without running bwrap).
 - `run-frontier.sh` — loop `next -> claim -> lane -> integrate -> close` until
@@ -41,15 +41,12 @@ sandboxed worker:
 - `PUBLISH_GATE` — the command that verifies a green PR at the lane branch's
   fixed point (for example a CI check and a tagged PR readiness check). It is
   invoked as `"$PUBLISH_GATE" <branch>`. `run-frontier.sh` and `integrate.sh`
-  refuse to merge, and the frontier refuses to close the ticket, when it is
+  refuse to merge, and the frontier refuses to close the task, when it is
   unset or exits non-zero.
-- `KRN_QUEUE_MODE` — `run-frontier.sh` defaults to `selected` and uses public
-  `krn task` calls. A missing Git-ref selector refuses; it never falls back to
-  Markdown. Set `legacy` explicitly only for a pre-activation Markdown run.
-  Legacy mode refuses while `refs/krn/queue-active` exists. This opt-in keeps
-  a migrated-but-unselected queue usable without treating selector loss as
-  permission to run a different task. The selector checks are not an atomic
-  lock: finish a legacy frontier run before activating the Git-ref queue.
+- `KRN_QUEUE_MODE` — `run-frontier.sh` accepts only `selected` and uses public
+  `krn task` calls. `legacy` is retired and refuses before reading or changing
+  either queue. A missing Git-ref selector refuses; it never falls back to
+  Markdown. `run-ticket.sh` accepts `KRN_TASK_ID`, not `TICKET` file input.
 - `KRN_INTENT_ID` — required when the Git-ref queue is active. The host supplies
   the current outcome identity from its authority owner; the lane reads its
   stored revision through `krn task intent get`. Optional `KRN_INTENT_REVISION`
@@ -61,8 +58,7 @@ sandboxed worker:
 The worker runs inside a private clone under `$RUN_DIR/wt`. The fixture and the
 shared git common directory are bound read-only; only the run directory and the
 clone are writable. The host fetches the worker branch back into the fixture
-refs before the worker gate. The file-based compatibility route can use
-`integrate.sh`. In active-store mode, `run-ticket.sh` copies the
+refs before the worker gate. For the selected task queue, `run-ticket.sh` copies the
 two queue refs into the independent clone so read-only gates see the same task
 snapshot. `run-frontier.sh` creates a merge commit candidate without moving the
 target ref, runs the typed deciding check and `changes check` on that candidate,
@@ -70,9 +66,8 @@ prepares an operation under `.krn/runs/`, updates the target ref with expected-o
 CAS, then closes the task only after the same operation reads back the candidate.
 If recovery finds the target ref already at the candidate, a new claim
 generation can record that observed effect; it never retries an unknown effect.
-The explicit `KRN_QUEUE_MODE=legacy` compatibility route still uses the
-configured `TICKETS` path and legacy close receipt until the queue cutover is
-complete.
+Historical Markdown tickets remain import/archive data; they are not a
+runnable lane or a fallback when the selector is missing.
 
 ## Isolation and the red preflight
 
@@ -90,7 +85,7 @@ rule stays testable on a host without a sandbox.
 
 ## Contract
 
-Read `run-ticket.sh` for the envelope-driven base/scope/check/contract/agent
-handling, the single commit trailer set (`Ticket:`, `Change-contract:`, `Recall:`),
+Read `run-ticket.sh` for task-driven base/scope/check/contract/agent
+handling, the retained commit trailer set (`Ticket:`, `Change-contract:`, `Recall:`),
 the host-executed worker gate, and the integrator handoff. The publication-mode
 integrator (ADR 0004 Tier 1d) is a later ticket.
