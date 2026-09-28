@@ -143,8 +143,9 @@ test("the frontier, integrator, publication, and capsule tools still expose thei
   }
   assert.match(readIf("run-frontier.sh"), /ROOT:?\?/, "run-frontier must require its repository root");
   const runner = readIf("run-ticket.sh");
-  assert.match(runner, /ticket store copy --root "\$FIXTURE" --to "\$WT"/, "the isolated task clone receives its own snapshot of the active queue refs");
-  assert.ok(runner.indexOf("ticket store copy --root") < runner.indexOf("changes check --root \"$WT\""), "the cloned queue exists before host checks read task state");
+  assert.match(runner, /task store copy --root "\$FIXTURE" --to "\$WT"/, "the isolated task clone receives its own snapshot of the active queue refs");
+  assert.doesNotMatch(runner, /ticket store copy --root "\$FIXTURE"/, "selected task execution must not use the legacy CLI");
+  assert.ok(runner.indexOf("task store copy --root") < runner.indexOf("changes check --root \"$WT\""), "the cloned queue exists before host checks read task state");
   assert.match(readIf("integrate.sh"), /merge --no-ff/, "integrate must merge the worker branch");
   assert.match(readIf("publish.sh"), /PUBLISH_AUTHORITY/, "publish must gate on explicit authority");
   assert.match(readIf("capsule-writeback.py"), /def main/, "the capsule tool must expose a main entrypoint");

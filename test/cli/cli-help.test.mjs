@@ -12,6 +12,9 @@ test("task help names the explicit legacy queue migration with its archive and o
   const result = run(["task", "--help"]);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /krn task store migrate --root DIR \[--yes --archive FILE --actor NAME --reason TEXT\]/);
+  assert.match(result.stdout, /krn task store copy --root SOURCE --to ISOLATED-CLONE/);
+  assert.match(result.stdout, /krn task store export --root DIR/);
+  assert.match(result.stdout, /krn task store restore --root DIR --file ARCHIVE\.json/);
 });
 
 test("task help advertises its existing list and reopen commands without legacy reconciliation", () => {

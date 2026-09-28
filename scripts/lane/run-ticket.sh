@@ -478,7 +478,7 @@ if [ -n "$KRN_TASK_ID" ]; then
   # Git clone omits refs/krn by default. Copy the selected queue snapshot into
   # this independent clone so host checks resolve the same task without sharing
   # the canonical task-store refs or writing under the legacy Markdown path.
-  node "$KRN" ticket store copy --root "$FIXTURE" --to "$WT" --json >/dev/null
+  node "$KRN" task store copy --root "$FIXTURE" --to "$WT" --json >/dev/null
 fi
 
 # The lane requires a red task: if the deciding check already passes at the cut
