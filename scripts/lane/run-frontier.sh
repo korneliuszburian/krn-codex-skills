@@ -25,13 +25,13 @@ integrate_active_task() {
     echo "active task integration requires a current outcome ID and stored positive intent revision" >&2
     return 1
   fi
-  task_env=$(node "$KRN" ticket env --root "$ROOT" --id "$id")
+  task_env=$(node "$KRN" task env --root "$ROOT" --id "$id")
   eval "$task_env"
   if [ -z "${DECIDING_CHECK:-}" ] || [ -z "${CONTRACT_REF:-}" ] || [ -z "${CONTRACT_DIR:-}" ]; then
     echo "active task is missing its typed deciding check or change contract: $id" >&2
     return 1
   fi
-  task_fields=$(node "$KRN" ticket fields --root "$ROOT" --id "$id" --json)
+  task_fields=$(node "$KRN" task fields --root "$ROOT" --id "$id" --json)
   check_command=$(printf '%s' "$task_fields" | python3 -c 'import json,sys;x=json.load(sys.stdin);print(x.get("Deciding check", ""))')
   if [ -z "$check_command" ]; then
     echo "active task has no raw typed deciding check: $id" >&2
@@ -97,8 +97,8 @@ with open(file, "w", encoding="utf-8") as handle:
         "params": {"target": candidate, "intentRevision": revision, "expectedEffectValue": expected_effect},
     }, handle)
 PY
-  node "$KRN" ticket operation prepare --root "$ROOT" --file "$operation_file" --json >/dev/null
-  completed_status=$(node "$KRN" ticket operation apply --root "$ROOT" --id "$operation_id" \
+  node "$KRN" task operation prepare --root "$ROOT" --file "$operation_file" --json >/dev/null
+  completed_status=$(node "$KRN" task operation apply --root "$ROOT" --id "$operation_id" \
     --worker "$worker" --expected-epoch "$epoch" --json | python3 -c 'import json,sys;print(json.load(sys.stdin).get("status", ""))')
   if [ "$completed_status" != "observed" ]; then
     echo "operation $operation_id application is $completed_status; task remains open for recovery" >&2
