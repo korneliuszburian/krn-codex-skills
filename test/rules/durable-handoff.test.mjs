@@ -72,12 +72,15 @@ for (const surface of SURFACES) {
       /restore/i,
       `${surface.name} must name the restore-by-copy step`,
     );
-    for (const command of ["krn state check", "krn state resume", "krn ticket next"]) {
+    for (const command of ["krn state check", "krn state resume", "krn task next"]) {
       assert.ok(
         text.includes(command),
         `${surface.name} must record the resume command \`${command}\``,
       );
     }
+    assert.match(text, /absent selector[^.]*selector loss[^.]*refuse by default/i);
+    assert.match(text, /explicit pre-activation `KRN_QUEUE_MODE=legacy`/);
+    assert.match(text, /never use it with an active selector/i);
   });
 
   test(`${surface.name} records the wipe/restore falsifier`, () => {

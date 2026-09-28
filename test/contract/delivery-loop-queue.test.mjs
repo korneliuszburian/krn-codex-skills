@@ -11,11 +11,11 @@ const transitionsFile = fileURLToPath(
 );
 
 const QUEUE_VERBS = [
-  "krn ticket check",
-  "krn ticket next",
-  "krn ticket claim",
-  "krn ticket close",
-  "krn ticket fail",
+  "krn task check",
+  "krn task next",
+  "krn task claim",
+  "krn task close",
+  "krn task fail",
 ];
 const LANE_CONTRACT = ["red-at-base", "one writer", "worktree", "integrator", "Change-contract"];
 
@@ -25,14 +25,17 @@ export function queueCouplingErrors(text) {
     if (!text.includes(token)) errors.push(`delivery-loop must name ${token}`);
   }
   if (!/frontier/i.test(text)) errors.push("delivery-loop bind must read the configured queue frontier");
-  if (!/`?krn ticket claim`?[^.]*before\s+any\s+implementation/i.test(text)) {
+  if (!/`?krn task claim`?[^.]*before\s+any\s+implementation/i.test(text)) {
     errors.push("delivery-loop must claim before implementation");
   }
-  if (!/`?krn ticket close`?[^.]*evidence\s+and\s+resolution/i.test(text)) {
+  if (!/`?krn task close`?[^.]*evidence\s+and\s+resolution/i.test(text)) {
     errors.push("delivery-loop must close with evidence and resolution");
   }
-  if (!/refused\s+attempt[^.]*`?krn ticket fail`?/i.test(text)) {
+  if (!/refused\s+attempt[^.]*`?krn task fail`?/i.test(text)) {
     errors.push("delivery-loop must record a refused attempt");
+  }
+  if (/krn ticket (?:check|next|claim|close|fail|store)/.test(text)) {
+    errors.push("delivery-loop must not recommend live legacy queue commands");
   }
   return errors;
 }
@@ -57,7 +60,7 @@ export function laneContractErrors(text) {
 export function queueStateRowErrors(transitionsText) {
   const row = transitionsText.split("\n").find((line) => line.includes("`delivery-loop`"));
   if (!row) return ["transitions: no delivery-loop row"];
-  if (!row.includes("krn ticket")) {
+  if (!row.includes("krn task") || row.includes("krn ticket")) {
     return ["transitions: the delivery-loop row must name the queue verbs"];
   }
   return [];
@@ -81,10 +84,10 @@ test("the transitions table carries the delivery-loop queue state", () => {
 test("the queue observer rejects skill text that omits the verbs or the order", () => {
   assert.ok(queueCouplingErrors("# Delivery Loop\n").length > 0);
   const partial =
-    "frontier `krn ticket check` `krn ticket next` `krn ticket claim` before any implementation " +
-    "`krn ticket close` with evidence and resolution";
+    "frontier `krn task check` `krn task next` `krn task claim` before any implementation " +
+    "`krn task close` with evidence and resolution";
   assert.deepEqual(queueCouplingErrors(partial), [
-    "delivery-loop must name krn ticket fail",
+    "delivery-loop must name krn task fail",
     "delivery-loop must record a refused attempt",
   ]);
 });
