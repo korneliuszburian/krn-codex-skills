@@ -6,15 +6,13 @@ import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
 import { openTaskStore } from "../../scripts/lib/ticket/task-store.mjs";
+import { claimTicket, closeTicket, recordAttempt, reconcileTickets } from "../../scripts/lib/ticket/ticket.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const CLI = join(ROOT, "scripts/krn.mjs");
 const REAL_GIT = realpathSync(process.env.PATH.split(delimiter).map((dir) => join(dir, "git")).find((file) => existsSync(file)));
 const refs = ["refs/krn/queue", "refs/krn/queue-active"];
 
-function run(root, ...args) {
-  return spawnSync(process.execPath, [CLI, "ticket", ...args, "--root", root, "--json"], { encoding: "utf8" });
-}
 function task(root, ...args) {
   return spawnSync(process.execPath, [CLI, "task", ...args, "--root", root, "--json"], { encoding: "utf8" });
 }
@@ -40,7 +38,8 @@ function fixture() {
       "Custom Field: preserve exactly", "</krn-ticket>", "", "Original body.", "",
     ].join("\n"));
   }
-  ok(run(root, "claim", "--id", "claimed-task", "--worker", "old-worker"));
+  const claimed = claimTicket({ root, file: join(root, ".krn/tickets/claimed-task.md"), worker: "old-worker" });
+  assert.equal(claimed.claim.epoch, 1, "the source Markdown claim has one generation before import");
   const archive = join(root, ".krn/runs/migrate/legacy.json");
   mkdirSync(dirname(archive), { recursive: true });
   const migrate = ["store", "migrate", "--yes", "--archive", archive, "--actor", "operator", "--reason", "Adopt the selected task store"];
@@ -302,15 +301,14 @@ test("migration excludes legacy writers through activation and dead-owner recove
     await waitFor(`${barrier}.ready`);
     const original = [".krn/tickets/ready-task.md", ".krn/tickets/claimed-task.md", ".krn/claims/claimed-task.lock"]
       .map((file) => [file, readFileSync(join(root, file))]);
-    for (const args of [
-      ["claim", "--id", "ready-task", "--worker", "late-worker"],
-      ["fail", "--id", "claimed-task", "--reason", "late failure"],
-      ["close", "--id", "claimed-task", "--resolution", "late close"],
-      ["reconcile"],
+    const claimedFile = join(root, ".krn/tickets/claimed-task.md");
+    for (const [operation, writer] of [
+      ["claim", () => claimTicket({ root, file: join(root, ".krn/tickets/ready-task.md"), worker: "late-worker" })],
+      ["fail", () => recordAttempt({ root, file: claimedFile, reason: "late failure" })],
+      ["close", () => closeTicket({ root, file: claimedFile, resolution: "late close" })],
+      ["reconcile", () => reconcileTickets({ root })],
     ]) {
-      const refused = run(root, ...args);
-      assert.notEqual(refused.status, 0, args.join(" "));
-      assert.match(refused.stderr, /queue-write-busy/);
+      assert.throws(writer, /queue-write-busy/, `${operation} must not bypass the migration owner lock`);
     }
     for (const [file, bytes] of original) assert.deepEqual(readFileSync(join(root, file)), bytes);
     const held = ok(task(root, "store", "lock"));
@@ -370,7 +368,7 @@ test("recovery fences a surviving Git helper before admitting a later legacy wri
     await exited;
     assert.equal(ok(task(root, "store", "lock")).ownerState, "dead");
     ok(task(root, "store", "unlock", "--token", held.owner.token, "--actor", "operator", "--reason", "Recover while a Git helper survives"));
-    ok(run(root, "claim", "--id", "ready-task", "--worker", "later-worker"));
+    assert.equal(claimTicket({ root, file: join(root, ".krn/tickets/ready-task.md"), worker: "later-worker" }).claim.epoch, 1);
     writeFileSync(`${gate.barrier}.go`, "continue");
     await waitFor(`${gate.barrier}.done`);
     await pending.done;
@@ -386,10 +384,11 @@ test("recovery fences a surviving Git helper before admitting a later legacy wri
   }
 });
 
-test("public task CLI and ticket read one selected queue and fence a reused worker generation", () => {
+test("public task CLI reads imported ticket records and fences a reused worker generation", () => {
   const { root, migrate } = fixture();
   try {
-    ok(run(root, ...migrate));
+    ok(task(root, ...migrate));
+    assert.match(ok(task(root, "show", "--id", "claimed-task")).Claim, /worker=old-worker/);
     const created = ok(task(root, "add", "--id", "new-task", "--title", "Use the task CLI"));
     assert.equal(created.id, "new-task");
     const child = ok(task(root, "add", "--id", "dependent", "--title", "Wait for new-task", "--depends-on", created.id));
@@ -411,11 +410,13 @@ test("public task CLI and ticket read one selected queue and fence a reused work
     assert.match(stale.stderr, /stale claim generation/);
     assert.equal(git(root, "rev-parse", refs[0]), before, "stale generation must not mutate the shared queue");
     ok(task(root, "close", "--id", created.id, "--actor", "same-worker", "--expected-epoch", "2", "--reason", "Current pass complete"));
-    assert.equal(ok(run(root, "show", "--id", created.id)).Status, "done");
-    assert.equal(ok(task(root, "show", "--id", created.id)).task.comments[0].body, "First claim");
+    const closed = ok(task(root, "show", "--id", created.id));
+    assert.equal(closed.Status, "done");
+    assert.equal(closed.task.comments[0].body, "First claim");
     ok(task(root, "ready", "--id", child.id));
-    assert.ok(ok(run(root, "next")).frontier.includes(child.id));
-    assert.deepEqual(ok(task(root, "list")).map((item) => item.id).sort(), ok(run(root, "list")).map((item) => item.id).sort());
+    assert.ok(ok(task(root, "next")).frontier.includes(child.id));
+    assert.deepEqual(ok(task(root, "list")).map((item) => item.id).sort(),
+      ["claimed-task", "dependent", "new-task", "ready-task"]);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -424,12 +425,13 @@ test("public task intent, store and operation commands share the selected queue 
   try {
     assert.notEqual(task(root, "next").status, 0, "task must not fall through to legacy Markdown when no Git-ref queue is selected");
     noRefs(root);
-    ok(run(root, ...migrate));
+    ok(task(root, ...migrate));
     const beforeLegacyReconcile = git(root, "rev-parse", refs[0]);
     assert.notEqual(task(root, "reconcile").status, 0, "the new task name must not expose legacy reconciliation");
     assert.equal(git(root, "rev-parse", refs[0]), beforeLegacyReconcile);
     ok(task(root, "intent", "set", "--intent", "task-cutover", "--revision", "1", "--expected-revision", "0"));
-    assert.deepEqual(ok(task(root, "intent", "get", "--intent", "task-cutover")), ok(run(root, "intent", "get", "--intent", "task-cutover")));
+    assert.deepEqual(ok(task(root, "intent", "get", "--intent", "task-cutover")),
+      { intent: "task-cutover", revision: 1 });
     const recipeFile = join(root, ".krn/runs/route/recipe.json");
     mkdirSync(dirname(recipeFile), { recursive: true });
     const check = "node --test test/example.test.mjs";
@@ -450,15 +452,18 @@ test("public task intent, store and operation commands share the selected queue 
     assert.equal(ok(task(root, "operation", "complete", "--id", "route-1", "--worker", "lane-owner", "--expected-epoch", String(claimed.epoch))).status, "ambiguous");
     assert.equal(ok(task(root, "operation", "apply", "--id", "route-1", "--worker", "lane-owner", "--expected-epoch", String(claimed.epoch))).status, "observed");
     assert.equal(git(root, "rev-parse", "refs/krn/effects/route-1"), candidate);
-    assert.equal(ok(run(root, "show", "--id", lane.id)).Status, "done");
-    assert.deepEqual(ok(task(root, "store", "export")), ok(run(root, "store", "export")));
+    assert.equal(ok(task(root, "show", "--id", lane.id)).Status, "done");
+    const archive = ok(task(root, "store", "export"));
+    assert.equal(archive.format, "krn-task-queue");
+    assert.deepEqual(archive.refs.map((ref) => ref.name), refs);
+    assert.deepEqual(archive.refs.map((ref) => ref.oid), refs.map((ref) => git(root, "rev-parse", ref)));
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
 test("public task claim cannot fall through to the legacy writer if the selector disappears mid-command", () => {
   const { root, migrate } = fixture();
   try {
-    ok(run(root, ...migrate));
+    ok(task(root, ...migrate));
     const file = join(root, ".krn/tickets/ready-task.md");
     const original = readFileSync(file);
     const queue = git(root, "rev-parse", refs[0]);
@@ -474,7 +479,7 @@ test("public task claim cannot fall through to the legacy writer if the selector
 test("public task reconcile refuses before it can enter the legacy writer", () => {
   const { root, migrate } = fixture();
   try {
-    ok(run(root, ...migrate));
+    ok(task(root, ...migrate));
     const original = readFileSync(join(root, ".krn/tickets/claimed-task.md"));
     const { count, env } = selectorDropper(root);
     const attempt = spawnSync(process.execPath, [CLI, "task", "reconcile", "--root", root, "--json"], { encoding: "utf8", env });
