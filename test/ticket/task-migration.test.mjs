@@ -50,7 +50,7 @@ function noRefs(root) {
   for (const ref of refs) assert.equal(spawnSync(REAL_GIT, ["-C", root, "rev-parse", "--verify", "--quiet", ref]).status, 1);
 }
 function start(root, args, env) {
-  return startNode([CLI, "ticket", ...args, "--root", root, "--json"], env);
+  return startNode([CLI, "task", ...args, "--root", root, "--json"], env);
 }
 function startNode(args, env = process.env) {
   const child = spawn(process.execPath, args, { env, stdio: ["ignore", "pipe", "pipe"] });
@@ -313,17 +313,19 @@ test("migration excludes legacy writers through activation and dead-owner recove
       assert.match(refused.stderr, /queue-write-busy/);
     }
     for (const [file, bytes] of original) assert.deepEqual(readFileSync(join(root, file)), bytes);
-    const held = ok(run(root, "store", "lock"));
+    const held = ok(task(root, "store", "lock"));
     assert.equal(held.ownerState, "alive");
     const unlock = ["store", "unlock", "--token", held.owner.token, "--actor", "operator", "--reason", "Recover interrupted migration"];
-    assert.notEqual(run(root, ...unlock).status, 0, "a live owner is not expired by recovery");
+    const liveUnlock = task(root, ...unlock);
+    assert.notEqual(liveUnlock.status, 0, "a live owner is not expired by recovery");
+    assert.match(liveUnlock.stderr, /queue owner is alive or its process liveness is unknown/);
     pending.child.kill("SIGKILL");
     process.kill(Number(readFileSync(`${barrier}.ready`, "utf8")), "SIGKILL");
     await pending.done;
     pending = null;
     noRefs(root);
     assert.equal(existsSync(archive), true, "the completed rollback archive may outlive interrupted activation");
-    assert.equal(ok(run(root, "store", "lock")).ownerState, "dead");
+    assert.equal(ok(task(root, "store", "lock")).ownerState, "dead");
     const recoveryA = start(root, unlock, process.env), recoveryB = start(root, unlock, process.env);
     const recovered = [ok(await recoveryA.done), ok(await recoveryB.done)];
     assert.equal(recovered.filter((result) => result.recovered).length, 1);
@@ -331,17 +333,17 @@ test("migration excludes legacy writers through activation and dead-owner recove
     barrier = again.barrier;
     pending = start(root, migrate, again.env);
     await waitFor(`${barrier}.ready`);
-    const newGuard = ok(run(root, "store", "lock"));
+    const newGuard = ok(task(root, "store", "lock"));
     assert.notEqual(newGuard.owner.token, held.owner.token);
-    assert.equal(ok(run(root, ...unlock)).recovered, false);
-    assert.equal(ok(run(root, "store", "lock")).owner.token, newGuard.owner.token);
+    assert.equal(ok(task(root, ...unlock)).recovered, false);
+    assert.equal(ok(task(root, "store", "lock")).owner.token, newGuard.owner.token);
     writeFileSync(`${barrier}.go`, "continue");
     assert.equal(ok(await pending.done).status, "migrated");
     pending = null;
-    assert.equal(ok(run(root, "store", "lock")).status, "free");
+    assert.equal(ok(task(root, "store", "lock")).status, "free");
     for (const [file, bytes] of original) assert.deepEqual(readFileSync(join(root, file)), bytes);
-    assert.deepEqual(ok(run(root, "next")).frontier, ["ready-task"]);
-    assert.equal(ok(run(root, "claim", "--id", "ready-task", "--worker", "new-store-worker")).owner, "new-store-worker");
+    assert.deepEqual(ok(task(root, "next")).frontier, ["ready-task"]);
+    assert.equal(ok(task(root, "claim", "--id", "ready-task", "--worker", "new-store-worker")).owner, "new-store-worker");
     for (const [file, bytes] of original) assert.deepEqual(readFileSync(join(root, file)), bytes);
   } finally {
     if (pending) {
@@ -362,12 +364,12 @@ test("recovery fences a surviving Git helper before admitting a later legacy wri
   try {
     pending = start(root, migrate, gate.env);
     await waitFor(`${gate.barrier}.ready`);
-    const held = ok(run(root, "store", "lock"));
+    const held = ok(task(root, "store", "lock"));
     const exited = new Promise((resolve) => pending.child.once("exit", resolve));
     pending.child.kill("SIGKILL");
     await exited;
-    assert.equal(ok(run(root, "store", "lock")).ownerState, "dead");
-    ok(run(root, "store", "unlock", "--token", held.owner.token, "--actor", "operator", "--reason", "Recover while a Git helper survives"));
+    assert.equal(ok(task(root, "store", "lock")).ownerState, "dead");
+    ok(task(root, "store", "unlock", "--token", held.owner.token, "--actor", "operator", "--reason", "Recover while a Git helper survives"));
     ok(run(root, "claim", "--id", "ready-task", "--worker", "later-worker"));
     writeFileSync(`${gate.barrier}.go`, "continue");
     await waitFor(`${gate.barrier}.done`);
