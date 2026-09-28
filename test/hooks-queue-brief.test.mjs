@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
 
 import { openTaskStore } from "../scripts/lib/ticket/task-store.mjs";
+import { checkTickets } from "../scripts/lib/ticket/ticket.mjs";
 import { activateTaskQueueFixture } from "./ticket/task-queue-fixture.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -153,8 +154,9 @@ test("the plugin does not advertise a queue that ticket check rejects", async ()
       input: JSON.stringify(snapshot), encoding: "utf8",
     }).trim();
     git("update-ref", "refs/krn/queue", invalid, previous);
-    const checked = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "ticket", "check", "--root", dir, "--json"], { encoding: "utf8" });
-    assert.notEqual(checked.status, 0, "ticket check rejects the same selected queue during migration");
+    const checked = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "task", "check", "--root", dir, "--json"], { encoding: "utf8" });
+    assert.notEqual(checked.status, 0, "public task check rejects the same invalid selected queue");
+    assert.match(checked.stderr, /active task store is invalid/);
     const result = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "task", "next", "--root", dir, "--json"], { encoding: "utf8" });
     assert.notEqual(result.status, 0, "the selected store is invalid");
     assert.equal(adapter.queueBrief(dir), null);
@@ -225,9 +227,9 @@ test("OpenCode refuses a legacy queue brief when the selected Git-ref selector d
   await withSelectedQueue(async ({ dir, git }) => {
     assert.match(adapter.queueBrief(dir), /selected-ready/);
     git("update-ref", "-d", "refs/krn/queue-active");
-    const oldCheck = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "ticket", "check", "--root", dir, "--json"], { encoding: "utf8" });
-    assert.equal(oldCheck.status, 0, oldCheck.stderr || oldCheck.stdout);
-    assert.deepEqual(JSON.parse(oldCheck.stdout).frontier, ["legacy-decoy"], "a healthy legacy queue is the negative control");
+    const legacy = checkTickets({ root: dir });
+    assert.deepEqual(legacy.errors, []);
+    assert.deepEqual(legacy.frontier, ["legacy-decoy"], "a healthy Markdown queue is the negative control");
     const refused = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "task", "next", "--root", dir, "--json"], { encoding: "utf8" });
     assert.notEqual(refused.status, 0, "the public task command refuses an unselected queue");
     assert.equal(adapter.queueBrief(dir), null, "the host must not revive legacy-decoy as current work");
@@ -250,9 +252,9 @@ test("Codex SessionStart refuses legacy work when the selected Git-ref selector 
   await withSelectedQueue(async ({ dir, git }) => {
     assert.match(hookContext(dir, "SessionStart"), /selected-ready/);
     git("update-ref", "-d", "refs/krn/queue-active");
-    const oldNext = spawnSync(process.execPath, [join(root, "scripts", "krn.mjs"), "ticket", "next", "--root", dir, "--json"], { encoding: "utf8" });
-    assert.equal(oldNext.status, 0, oldNext.stderr);
-    assert.deepEqual(JSON.parse(oldNext.stdout).frontier, ["legacy-decoy"], "the legacy queue remains healthy");
+    const legacy = checkTickets({ root: dir });
+    assert.deepEqual(legacy.errors, []);
+    assert.deepEqual(legacy.frontier, ["legacy-decoy"], "the historical Markdown fixture remains healthy");
     assert.equal(hookContext(dir, "SessionStart"), null, "a lost selector cannot revive legacy advice");
   });
 });
