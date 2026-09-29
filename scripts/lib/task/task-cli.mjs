@@ -422,8 +422,28 @@ export async function runTaskCommand(argv, { usage, requireDirectory }) {
   const scope = command === "check" ? { id: options.id, base: options.base, head: options.head } : {};
   const report = checkTickets({ root: options.root, ...scope });
   if (command === "next") {
-    if (options.json) output({ root: options.root, frontier: report.frontier }, true);
-    else for (const id of report.frontier) process.stdout.write(`${id}\n`);
+    const byId = new Map(report.tickets.map((ticket) => [ticket.id, ticket]));
+    const pending = Object.fromEntries(["open", "ready", "claimed", "blocked", "in-review", "deferred", "abandoned"]
+      .map((status) => [status, report.tickets.filter((ticket) => ticket.status === status).length]));
+    const blockedReady = report.errors.length ? [] : report.tickets
+      .filter((ticket) => ticket.status === "ready")
+      .map((ticket) => ({
+        id: ticket.id,
+        blockedBy: ticket.blockedBy.filter((id) => byId.get(id)?.status !== "done")
+          .map((id) => ({ id, status: byId.get(id)?.status ?? "unknown" })),
+      }))
+      .filter((ticket) => ticket.blockedBy.length > 0)
+      .sort((a, b) => a.id.localeCompare(b.id));
+    if (options.json) output({ root: options.root, frontier: report.frontier, blockedReady, pending, errors: report.errors }, true);
+    else {
+      for (const id of report.frontier) process.stdout.write(`${id}\n`);
+      if (!report.frontier.length) {
+        process.stderr.write("No runnable tasks in the frontier.\n");
+        for (const ticket of blockedReady) process.stderr.write(`ready ${ticket.id} waits for ${ticket.blockedBy.map(({ id, status }) => `${id} (${status})`).join(", ")}\n`);
+        process.stderr.write(`Queue status: ${Object.entries(pending).map(([status, count]) => `${status}=${count}`).join(" ")}\n`);
+        for (const error of report.errors) process.stderr.write(`error: ${error.rule}: ${error.message}\n`);
+      }
+    }
     return;
   }
   output(report, options.json);

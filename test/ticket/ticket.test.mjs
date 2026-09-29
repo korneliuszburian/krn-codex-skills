@@ -255,6 +255,63 @@ test("public task CLI lists, edits and releases a claimed task as abandoned", as
     assert.equal(task.Status, "abandoned");
     assert.equal(task.task.history.at(-1).type, "released");
     assert.equal(task.task.history.at(-1).reason, "operator stopped this attempt");
+    const abandonedNext = run("next", "--root", dir, "--json");
+    assert.equal(abandonedNext.status, 0);
+    assert.deepEqual(JSON.parse(abandonedNext.stdout).frontier, []);
+    assert.equal(JSON.parse(abandonedNext.stdout).pending.abandoned, 1);
+    const abandonedPlain = run("next", "--root", dir);
+    assert.equal(abandonedPlain.stdout, "");
+    assert.match(abandonedPlain.stderr, /abandoned=1/);
+
+    const reopen = run("reopen", "--root", dir, "--id", "editable-task", "--actor", "maintainer", "--reason", "The release was an operator mistake; the task remains accepted", "--json");
+    assert.equal(reopen.status, 0, `${reopen.stdout}${reopen.stderr}`);
+    assert.equal(JSON.parse(reopen.stdout).status, "open");
+    const recovered = JSON.parse(run("show", "--root", dir, "--id", "editable-task", "--json").stdout);
+    assert.equal(recovered.Claim, undefined, "reopening an abandoned task does not restore a stale lease");
+    assert.deepEqual(recovered.task.history.slice(-2).map((entry) => entry.type), ["released", "reopened"]);
+    assert.equal(run("ready", "--root", dir, "--id", "editable-task").status, 0);
+    const reclaimed = run("claim", "--root", dir, "--id", "editable-task", "--worker", "maintainer", "--json");
+    assert.equal(reclaimed.status, 0, `${reclaimed.stdout}${reclaimed.stderr}`);
+    assert.equal(JSON.parse(reclaimed.stdout).epoch, Number(epoch) + 1, "recovery must never reuse the released claim generation");
+    const stale = run("comment", "--root", dir, "--id", "editable-task", "--worker", "maintainer", "--expected-epoch", epoch, "--body", "stale old claim", "--json");
+    assert.equal(stale.status, 64);
+    assert.match(stale.stderr, /stale claim generation/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("task next JSON explains a blocked ready task without admitting it to the frontier", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-task-next-blocked-"));
+  const cli = join(root, "scripts", "krn.mjs");
+  const run = (...args) => spawnSync(process.execPath, [cli, "task", ...args], { encoding: "utf8" });
+  try {
+    execFileSync("git", ["-C", dir, "init", "-q"]);
+    execFileSync("git", ["-C", dir, "config", "user.email", "lab@krn.local"]);
+    execFileSync("git", ["-C", dir, "config", "user.name", "lab"]);
+    execFileSync("git", ["-C", dir, "commit", "-q", "--allow-empty", "-m", "seed"]);
+    const store = openTaskStore(dir);
+    await store.add({ id: "blocker", title: "Dependency" });
+    await store.add({ id: "dependent", title: "Bounded task", dependencies: ["blocker"] });
+    await store.markReady("blocker");
+    await store.claim("blocker", { worker: "maintainer" });
+    await store.close("blocker", { actor: "maintainer", reason: "First pass completed", epoch: 1 });
+    await store.markReady("dependent");
+    await store.reopen("blocker", { actor: "maintainer", reason: "The first pass must be checked again" });
+    activateTaskQueueFixture(dir);
+
+    const next = run("next", "--root", dir, "--json");
+    assert.equal(next.status, 0, `${next.stdout}${next.stderr}`);
+    const result = JSON.parse(next.stdout);
+    assert.deepEqual(result.frontier, [], "a ready task with an open blocker must not be claimable");
+    assert.deepEqual(result.blockedReady, [{ id: "dependent", blockedBy: [{ id: "blocker", status: "open" }] }]);
+    assert.deepEqual(result.pending, { open: 1, ready: 1, claimed: 0, blocked: 0, "in-review": 0, deferred: 0, abandoned: 0 });
+    assert.deepEqual(result.errors, []);
+    const plain = run("next", "--root", dir);
+    assert.equal(plain.status, 0);
+    assert.equal(plain.stdout, "", "plain stdout remains an ID-only frontier for existing consumers");
+    assert.match(plain.stderr, /ready dependent waits for blocker \(open\)/);
+    assert.match(plain.stderr, /open=1 ready=1/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
