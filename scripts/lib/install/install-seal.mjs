@@ -47,8 +47,8 @@ function refuseLedgerDeletion(commit, key) {
 
 // The ledger is a repository artifact, never a release artifact: it is the
 // committed trust anchor the release bytes are checked against. It is
-// append-only, so a commit's digest can never be silently replaced — and, with
-// the committed anchor consulted below, never silently deleted either. The
+// append-only, so a commit's digest can never be silently replaced; consulting
+// the committed anchor below also prevents silent deletion. The
 // whole document is swapped through the shared atomic writer so a crash cannot
 // tear the previous ledger.
 export function sealReleaseDigest({ root, commit, digest, ops } = {}) {

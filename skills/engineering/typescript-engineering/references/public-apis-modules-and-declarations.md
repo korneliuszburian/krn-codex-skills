@@ -99,4 +99,4 @@ For public API, declaration, augmentation, or package-output changes, use a
 small consumer fixture that imports the published entry point with the real
 module settings. Check one valid use, one invalid use, declaration emit when
 claimed, and runtime import/build when interop changed. This proves the sampled
-surface—not semver safety for every consumer.
+surface, not semver safety for every consumer.

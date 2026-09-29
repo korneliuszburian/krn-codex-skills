@@ -10,6 +10,7 @@ import { walkFiles } from "./lib/kernel/walk.mjs";
 import { posixRelative } from "./lib/support/path-rules.mjs";
 import { ABI_LABELS } from "./lib/state/capsule-abi.mjs";
 import { checkDurablePages } from "./lib/rules/durable-pages.mjs";
+import { trackedEmDashErrors } from "./lib/rules/tracked-text.mjs";
 import { checkLessons } from "./lib/lessons/lessons.mjs";
 import { runtimeClosureErrors } from "./lib/contract/runtime-closure.mjs";
 import { loadRuntimeRisks, riskClassErrors } from "./lib/contract/risk-classes.mjs";
@@ -54,7 +55,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "skills", "manifest.json");
 const readmePath = path.join(root, "README.md");
 const upstreamSourcesPath = path.join(root, "config", "upstream-sources.json");
-const errors = [];
+const errors = [...trackedEmDashErrors(root)];
 
 const read = (file) => fs.readFileSync(file, "utf8");
 const json = readJson;

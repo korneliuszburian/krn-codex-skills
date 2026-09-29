@@ -343,7 +343,7 @@ export function checkSkills({ root }) {
     if (!fs.existsSync(openaiFile)) errors.push(`${entry.name}: missing agents/openai.yaml`);
     // Only implicitly invocable skills sit in the model's initial list, so an
     // explicit-only skill (`allow_implicit_invocation: false`) does not spend the
-    // discovery budget — which is the remedy the contract text recommends.
+    // discovery budget; the contract text recommends this remedy.
     else if (!/allow_implicit_invocation:\s*false\b/i.test(fs.readFileSync(openaiFile, "utf8"))) {
       total += fields.name.length + fields.description.length;
     }

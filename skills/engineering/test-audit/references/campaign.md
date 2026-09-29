@@ -90,8 +90,8 @@ their only proof and for new assertions that cannot fail, such as a rejection
 row the production code never reaches.
 
 For each restored contract, make one deliberate **mutation** of the production
-owner — the `scripts/lib/audit/mutation-probe.mjs` pattern, or a manual
-revert-control — and confirm the keeper goes red; then restore the source byte
+owner (using the `scripts/lib/audit/mutation-probe.mjs` pattern or a manual
+revert-control) and confirm the keeper goes red; then restore the source byte
 for byte.
 
 Done when every reported gap is restored or rejected with source evidence, and

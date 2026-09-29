@@ -20,9 +20,9 @@ ticket in the arc landed with a base-red observer, a green gate, an LT row, and
 stated non-proofs, and the `changes check --before` overlay caught three real
 defects a worker had missed (a dead export behind a variable dynamic import, a
 tier-observer conflict, and an unregenerated skill export). At the same time an
-independent quality pass reproduced two proof-layer holes — an unrelated green
+independent quality pass reproduced two proof-layer holes; an unrelated green
 check can seal a behavioral change (sh-60) and closure can skip verification
-without an anchor (sh-61) — which is why those run first. The measured friction
+without an anchor (sh-61), which is why those run first. The measured friction
 is in legibility, delivery, and loop economics:
 
 - **In-flight state is invisible in the queue.** Lanes ran 12, 20, and 29
@@ -83,7 +83,7 @@ decision must evaluate those consumers separately from prompt delivery.
 Adopt a sequenced, bounded evolution in three tiers, with no second store, no
 daemon, and no auto-adoption.
 
-1. **Tier 1 — legibility and loop economics.**
+1. **Tier 1; legibility and loop economics.**
    - **Ticket journal.** A `krn ticket note` verb appends to a `## Lane journal`
      section; the lane runner writes deterministic entries (claim, run dir,
      worktree, branch, worker exit, recovery, gate exit, commit) and the worker
@@ -102,7 +102,7 @@ daemon, and no auto-adoption.
      and non-proofs, CI watch, squash-or-merge policy, install, close, cleanup,
      stopping on any ambiguity. Review and publication authority stay with the
      maintainer.
-2. **Tier 2 — Beads parity where a consumer exists.**
+2. **Tier 2; Beads parity where a consumer exists.**
    - **Typed links.** `Supersedes:` and `Relates:` fields, `close
      --superseded-by`, resolved by `ticket check`, with superseded rows visible
      in the board.
@@ -113,7 +113,7 @@ daemon, and no auto-adoption.
      humans and for the brief; it ships after the typed links and the close
      gates so it can render superseded rows and gate evidence instead of
      promising fields the ABI does not yet carry.
-3. **Tier 3 — memory and durable knowledge.**
+3. **Tier 3; memory and durable knowledge.**
    - **Recall coverage.** Give the hottest surfaces triggers (starting with
      `path:scripts/lib/install/**`) and measure the hit-rate from the lanes'
      committed `Recall` trailers; a lesson with no delivery leaves the budget or

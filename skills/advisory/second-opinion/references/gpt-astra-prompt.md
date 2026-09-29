@@ -11,12 +11,12 @@ here for local verification.
 
 Name only the surface the question needs, and state each one's limit beside it:
 
-- **GitHub connector** — cross-file and cross-history reasoning on the live
+- **GitHub connector**: cross-file and cross-history reasoning on the live
   repository; it cannot see the working tree, ignored state, or uncommitted
   changes.
-- **Deep research** — the public landscape; not this repository.
-- **Code interpreter** — a cheap snippet or a small computation.
-- **Web browsing** — a current external fact, cited with a date.
+- **Deep research**: the public landscape, not this repository.
+- **Code interpreter**: a cheap snippet or a small computation.
+- **Web browsing**: a current external fact, cited with a date.
 
 Pick the model and reasoning effort deliberately; raise effort for cross-file
 or cross-history reasoning, not for a lookup.
@@ -25,16 +25,16 @@ or cross-history reasoning, not for a lookup.
 
 Assemble exactly these six blocks, in order:
 
-1. **Role and contract** — read-only reviewer; advisory only; no patch, no
+1. **Role and contract**: read-only reviewer; advisory only; no patch, no
    diff, no approval; state each surface's limit.
-2. **Fixed point** — repository, branch, commit, and the `path:line` set in
+2. **Fixed point**: repository, branch, commit, and the `path:line` set in
    scope; say what is out of scope.
-3. **Evidence bar** — repository findings need a `path:line` plus a short
+3. **Evidence bar**: repository findings need a `path:line` plus a short
    quoted fragment; literature findings need a primary URL, section, and date;
    separate observation from inference in every finding.
-4. **Output schema** — the five sections below, in order, and nothing else.
-5. **Questions back** — what the reviewer would need to answer more sharply.
-6. **Forbidden decisions** — what the analysis must not decide (merges,
+4. **Output schema**: the five sections below, in order, and nothing else.
+5. **Questions back**: what the reviewer would need to answer more sharply.
+6. **Forbidden decisions**: what the analysis must not decide (merges,
    installs, publication, or any decision owned elsewhere).
 
 ## Output schema
@@ -59,4 +59,4 @@ Next action
 
 End by asking what would sharpen the answer: specific files, decisions, or live
 results. If the question is under-specified, state the sharpest version you can
-and ask for the rest — do not let the reviewer guess the scope.
+and ask for the rest; do not let the reviewer guess the scope.

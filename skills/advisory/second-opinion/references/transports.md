@@ -5,7 +5,7 @@ that did **not** author the change. The runner owns the run directory, the
 artifact set, the timeout, and the exit contract; only the transport command
 differs.
 
-## `codex` — the Codex subscription models
+## `codex`: the Codex subscription models
 
 Runs `codex exec` read-only, non-interactive, ephemeral. Model and reasoning
 effort are config values, not flags.
@@ -41,7 +41,7 @@ Failure modes: auth-refresh failure (non-zero exit); plan/rate limits on a
 (handled by `--skip-git-repo-check`); an empty final message (the runner fails
 closed).
 
-## `opencode` — DeepSeek
+## `opencode`: DeepSeek
 
 Runs the `review` agent, non-interactive, JSON stream. Knobs:
 `SECOND_OPINION_MODEL` (default `opencode-go/deepseek-v4.1-flash`),

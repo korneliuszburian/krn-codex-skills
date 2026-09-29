@@ -20,8 +20,8 @@ guidance, especially for tools that embed the TypeScript programmatic API.
 TypeScript syntax has two host contracts: syntax erased without runtime work,
 and syntax that requires a transform. A host that only strips types cannot
 execute parameter properties, enums, runtime namespaces, or other non-erasable
-syntax unless a named transform owns them. Host execution rules—including file
-extension and module mode—decide the boundary.
+syntax unless a named transform owns them. Host execution rules (including file
+extension and module mode) decide the boundary.
 
 <typescript-example id="erasable-host-boundary">
 

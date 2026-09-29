@@ -320,7 +320,7 @@ export function checkLessons({ root, git = runGit }) {
           else warnings.push(`lesson "${row.lesson}": ${warning}`);
         }
         for (const token of recurrenceAfterProof(root, match[3], row.occurrences, git)) {
-          errors.push(`lesson "${row.lesson}": friction recurred at ${token} after its consolidation proof @${match[3]}; the gate did not stick — strengthen it or open a distinct class`);
+          errors.push(`lesson "${row.lesson}": friction recurred at ${token} after its consolidation proof @${match[3]}; the gate did not stick; strengthen it or open a distinct class`);
         }
       }
     }

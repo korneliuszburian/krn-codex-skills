@@ -12,12 +12,12 @@ repository before it changes anything.
    that proves the claim wrong, run it. A finding whose falsifier cannot be run
    is advisory only.
 4. **Label each finding** with exactly one disposition:
-   - `accept_and_fix` — reproduced, and the fix is in scope;
-   - `evidence_gap` — plausible but not reproducible from the artifact;
-   - `reject_with_evidence` — the local evidence contradicts it;
-   - `follow_up` — real but belongs to another owner or slice;
-   - `human_decision` — the operator must choose.
-5. **Record the non-proofs.** State what the pass did not establish — one
+   - `accept_and_fix`: reproduced, and the fix is in scope;
+   - `evidence_gap`: plausible but not reproducible from the artifact;
+   - `reject_with_evidence`: the local evidence contradicts it;
+   - `follow_up`: real but belongs to another owner or slice;
+   - `human_decision`: the operator must choose.
+5. **Record the non-proofs.** State what the pass did not establish; one
    artifact, one model family, one run, a path brief that is not a sandbox.
 6. **Never let the opinion approve, gate, or merge.** The owning workflow's
    review, approval, and local verification remain the authority.

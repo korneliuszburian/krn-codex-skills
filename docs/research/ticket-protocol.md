@@ -113,8 +113,8 @@ enforces both, with `test/state/friction-drain.test.mjs` as the observer.
 - Publication: one PR per iteration and adjacent tickets batch into one PR. A
   PR whose diff changes exported skill bytes is a **lane-integration merge**:
   the integrator merges it with a merge commit whose body is the exact
-  lane-integration merge template — `merge: integrate <branch>`, a blank line,
-  `Ticket: <id>`, then `Change-contract: <ref>:<direction>` — so the export
+  lane-integration merge template; `merge: integrate <branch>`, a blank line,
+  `Ticket: <id>`, then `Change-contract: <ref>:<direction>`; so the export
   marker commit stays in history; that merge commit keeps the worker commits,
   so its own body needs only `Ticket: <id>` and
   `Change-contract: <ref>:<direction>`. The sh-68 merge `464e535` and the sh-76
@@ -122,9 +122,9 @@ enforces both, with `test/state/friction-drain.test.mjs` as the observer.
   with no `Ticket:` or `Change-contract:`, and they are the witnesses for this
   rule. A code-only iteration may instead squash the lane into a single conventional
   commit, which discards the worker commits, so its body must carry every
-  trailer the squashed worker commit carried — `Ticket: <id>`,
+  trailer the squashed worker commit carried; `Ticket: <id>`,
   `Change-contract:`, `Recall:`, `At-risk:`, and `Applicability-change:`, plus
-  any future harness-read trailer — because the contract harness reads the integrated
+  any future harness-read trailer, because the contract harness reads the integrated
   commit body, not the dropped lane commit. The integrator copies the trailers
   from the lane head before merging, so a squashed closure keeps its commit
   reference, its recall bindings, and its applicability withdrawal. The sh-71
@@ -324,7 +324,7 @@ ADR 0001/0005. A task may link to a capsule ID, a lesson anchor, a Git
 revision or a path, but the queue does not copy their contents or verdicts.
 `Compiled context` is a read view for a consumer, not a fourth memory store.
 
-**Candidate 1 — deepen the queue module (`adopt`, sh-175).** H2 selects a
+**Candidate 1: deepen the queue module (`adopt`, sh-175).** H2 selects a
 versioned task snapshot in one private Git ref under the Git common directory.
 One expected-old ref update owns each transition across readiness, claim
 epoch, dependencies, comments, closure and operation receipt. CLI, lane, hook,
@@ -363,7 +363,7 @@ an expected-revision CAS. The lane does not infer current authority from task
 prose. These local gates coordinate cooperating writers; they are not
 isolation from a process with the same filesystem and Git permissions.
 
-**Candidate 2 — compose a provisional task brief (`lab-test`, delivery-loop
+**Candidate 2: compose a provisional task brief (`lab-test`, delivery-loop
 consumer, conditional on sh-174).** At claim or continuation, resolve explicit context links and
 show active lesson matches with their match reason and source revision. For a
 lane, the pre-work match uses declared scope and is labelled provisional:

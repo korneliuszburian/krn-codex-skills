@@ -2,11 +2,11 @@
 
 [![validate](https://github.com/korneliuszburian/krn-codex-skills/actions/workflows/validate.yml/badge.svg)](https://github.com/korneliuszburian/krn-codex-skills/actions/workflows/validate.yml)
 
-**What this is** — KRN's universal Codex workflows: one owner per repeated
+**What this is**: KRN's universal Codex workflows: one owner per repeated
 process, a small compiled context spine, and deterministic gates that keep
 agent work honest across long, multi-session outcomes.
 
-**Who it's for** — KRN engineers and their coding agents in any repository,
+**Who it's for**: KRN engineers and their coding agents in any repository,
 plus anyone maintaining the global skill set.
 
 **Start here**
@@ -133,7 +133,7 @@ consumer and falsifier. The curated harness subset named by `harness_skills` in
 `config/upstream-sources.json` are materialized into the
 generated, provenance-marked `.agents/skills/` by `krn skills export`
 (the full pin stays in `config/upstream-sources.json`); regenerate instead of
-editing, and `npm run skills:check` fails on a foreign destination, a stale upstream pin (against `config/upstream-sources.json`), or an exported KRN skill whose bytes differ from its source; upstream byte integrity is verified at export time against the pinned checkout (below), not re-verified at check time. `krn.commit` records the source HEAD when the export ran, which is the parent when the export accompanies a source change, so treat it as provenance, not a reproducible revision. `retired_skills` records KRN-owned skills this repository no longer ships; it does not retract an upstream skill a pin still delivers, and it never removes an entry from the generated `.agents/skills/` export — retiring an exported skill means editing `harness_skills` and the pin, then re-exporting.
+editing, and `npm run skills:check` fails on a foreign destination, a stale upstream pin (against `config/upstream-sources.json`), or an exported KRN skill whose bytes differ from its source; upstream byte integrity is verified at export time against the pinned checkout (below), not re-verified at check time. `krn.commit` records the source HEAD when the export ran, which is the parent when the export accompanies a source change, so treat it as provenance, not a reproducible revision. `retired_skills` records KRN-owned skills this repository no longer ships; it does not retract an upstream skill a pin still delivers, and it never removes an entry from the generated `.agents/skills/` export; retiring an exported skill means editing `harness_skills` and the pin, then re-exporting.
 
 Export-time upstream checks verify every *present* file against the pinned blob and reject symlinks, gitlinks, and untracked files, but they iterate the exported set, so a sparse or `skip-worktree` upstream checkout that silently omits a pinned file is not detected; a byte-complete checkout of the pinned commit is a precondition. The export marker and `skills:check` digests also cover path and bytes but not the executable bit, so mode drift is invisible. A dirty-source export is recorded and only warns at check time, so a committed export generated from a dirty tree can pass with a warning. `install` validates that each declared runtime path exists and contains no symlink/gitlink, but not that it is a regular file, so a declared directory injects its whole subtree into the release; an absent or empty `harness_skills` fails the check instead of silently disabling the exported-equals-manifest equality.
 
@@ -199,7 +199,7 @@ Start a fresh Codex session after installation. Discovery is session-scoped.
 `setup-repository-workflow`, `second-opinion`, and `unslop`
 require an explicit `$skill-name` attachment. Descriptions route the task;
 manifest invocation mode decides auto-attachment, and many composed upstream
-owners are explicit-only — including `ask-matt`, `implement`,
+owners are explicit-only, including `ask-matt`, `implement`,
 `improve-codebase-architecture`, `to-spec`, `to-tickets`, `triage`, `handoff`,
 and `wayfinder`.
 
@@ -217,8 +217,8 @@ rollback guarantees.
 `$setup-repository-workflow` writes one managed block into an existing root
 instruction owner, `.krn/runs/.gitignore`, and a `docs/research/workflow-lessons.md`
 memory page (created only when absent). In an empty repository it first
-bootstraps a thin `AGENTS.md`, and reports the three managed paths. It names tracker state — including `none` — and
-the context layout directly; `CONTEXT.md`, ADRs, and other research pages appear later
+bootstraps a thin `AGENTS.md`, and reports the three managed paths. It names tracker state (including `none`)
+and the context layout directly. `CONTEXT.md`, ADRs, and other research pages appear later
 only when a real decision earns them.
 
 `$second-opinion` stores its transient brief and response at
