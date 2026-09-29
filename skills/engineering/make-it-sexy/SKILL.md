@@ -35,10 +35,15 @@ finding, or a named evidence/authority gap:
 |---|---|
 | Intent and behavior | Compare the current user/task requirement with the public result. Exercise a legal case and a realistic failure or revoked-obligation case; agent prose cannot authorize its own scope change. |
 | Standards and safety | Apply the repository's instructions and relevant host/security policy at changed call paths; check errors, permissions, data preservation and failure visibility. Prefer a deterministic guard over reviewer confidence. |
-| Design and simplification | Use `$codebase-design` when the seam is unclear. Follow caller → interface → result; test whether deleting a wrapper, duplicate rule or speculative layer makes the design deeper without losing behavior. Refactor only where a concrete reader benefits. |
+| Design and simplification | Use `$codebase-design` when the seam is unclear. Follow caller → interface → result; compare a consequential choice with the strongest feasible simpler, native or unchanged option under the same constraints. Count operating cost and name the observation that would reverse the choice. Refactor only where a concrete reader benefits. |
 | Proof | Run the fastest owning observer, then required tests and gates at the reviewed fixed point. A new behavioral claim needs executed base-RED/head-GREEN and an independent verifier; 0-budget documentation work reports what its structural check does **not** prove. |
 | Knowledge and documentation | Compare affected user docs, skill descriptions, examples, indexes and generated exports with current code and primary sources. Update the owner in place; preserve history and cite a current source rather than copying a transcript. |
 | Real use and full cost | Where delivery touches installation, hooks or agent continuation, verify what a fresh host actually loaded; file equality is not that observation. Count retries, workers, review, false blocks, maintenance and rollback before claiming an improvement over unchanged/native work. |
+
+For each material claim, name its strongest concrete counterargument and a
+check that could make the conclusion wrong. Anchor objections in the accepted
+requirement, a current source or observed behavior; label an unsupported
+concern as a hypothesis, not a verified defect.
 
 The axes are a **scope-sensitive inspection contract**, not permission to
 rewrite every repository page, add six tests, or demand a feature the user did
