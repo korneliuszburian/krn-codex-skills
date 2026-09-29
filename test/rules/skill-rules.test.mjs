@@ -259,3 +259,11 @@ test("the delivery-loop close-out retires a merged branch and its worktree", () 
   assert.match(skill, /merge commit/i, "the close-out must name the merge-method rule");
   assert.match(skill, /SHA-pinned/i, "the close-out must name the SHA-pinned artifact");
 });
+
+test("make-it-sexy checks material claims against counterarguments and a feasible alternative", () => {
+  const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
+  const skill = readFileSync(join(repositoryRoot, "skills", "engineering", "make-it-sexy", "SKILL.md"), "utf8");
+  assert.match(skill, /material claim[^\n]*counterargument/i, "a material claim needs a concrete counterargument");
+  assert.match(skill, /check that could make the conclusion wrong/i, "the counterargument needs a disconfirming check");
+  assert.match(skill, /simpler, native or unchanged option/i, "a consequential choice needs a feasible competitor");
+});
