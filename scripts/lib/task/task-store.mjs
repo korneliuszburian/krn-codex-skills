@@ -996,7 +996,7 @@ export function openTaskStore(root) {
       if (!actor || !hasActionableReason(reason)) throw new Error("reopen requires actor and a non-placeholder reason");
       return transition((state) => {
         const task = taskFor(state, id);
-        if (!task || task.status !== "done") throw new Error(`task ${id} cannot reopen`);
+        if (!task || !["done", "abandoned"].includes(task.status)) throw new Error(`task ${id} cannot reopen`);
         task.status = "open";
         task.owner = "";
         delete task.lease;

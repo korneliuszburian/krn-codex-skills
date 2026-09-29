@@ -183,7 +183,16 @@ that task enters an automated lane. A claim, its owner and epoch, comments,
 dependencies, and close result live in the same task record. Closing a lane
 task still consumes the existing fixed-point proof; a general task can close
 with a non-placeholder reason. Claim recovery is an explicit audited release
-or takeover, rather than a second expiring lock file.
+or takeover, rather than a second expiring lock file. In the selected Git-ref
+queue, `release` marks the task abandoned, not merely unclaimed. An operator
+can recover an accepted task with `reopen --actor ... --reason ...`, which
+moves either `done` or `abandoned` to `open` without erasing its history or
+restoring the old claim; `ready` and a new claim are separate steps.
+`krn task next --json` preserves the runnable `frontier` and reports `blockedReady`
+with unfinished dependency statuses, counts by pending status (including
+abandoned), and validation errors. Its plain stdout remains frontier IDs only
+for scripts; an empty frontier also explains blockers and status counts on
+stderr. An empty frontier must not be interpreted as an empty queue.
 
 SQLite was the preferred **engine to trial** before H2 compared it with the
 private ref and file candidates. Its [write transactions](https://www.sqlite.org/lang_transaction.html)
