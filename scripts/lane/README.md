@@ -8,16 +8,16 @@ prefix: every machine fact arrives as an environment variable with a relative or
 
 ## Tools
 
-- `run-ticket.sh` — one selected task, one fresh worker session, one isolated clone.
+- `run-ticket.sh`: one selected task, one fresh worker session, one isolated clone.
   Modes: `probe` (default), `run`, `classify <check>`, `probe-verdict`, and
   `bwrap-args` (print the sandbox composition without running bwrap).
-- `run-frontier.sh` — loop `next -> claim -> lane -> integrate -> close` until
+- `run-frontier.sh`: loop `next -> claim -> lane -> integrate -> close` until
   the frontier is empty or `MAX_RUNS` is reached. With an active Git-ref task
   queue, it claims by ID and closes only through operation readback.
-- `integrate.sh` — merge one worker branch into the fixture worktree and gate
+- `integrate.sh`: merge one worker branch into the fixture worktree and gate
   the merged fixed point.
-- `publish.sh` — refuse publication without explicit authority; dry by default.
-- `capsule-writeback.py` — rewrite the mechanical fields of one outcome capsule.
+- `publish.sh`: refuse publication without explicit authority; dry by default.
+- `capsule-writeback.py`: rewrite the mechanical fields of one outcome capsule.
 
 ## Host wiring
 
@@ -25,29 +25,29 @@ The defaults are relative to the current directory, so a developer can run the
 structural modes anywhere. A real lane needs a fixture with a working tree and a
 sandboxed worker:
 
-- `BASE` — the lane root; defaults to the current directory.
-- `FIXTURE` — the git repository the worker branches from; defaults to `BASE`.
-- `BASE_REF` — the cut ref; defaults to `main`.
-- `KRN` — the `krn` CLI; defaults to `krn` on `PATH`, then
+- `BASE`: the lane root; defaults to the current directory.
+- `FIXTURE`: the git repository the worker branches from; defaults to `BASE`.
+- `BASE_REF`: the cut ref; defaults to `main`.
+- `KRN`: the `krn` CLI; defaults to `krn` on `PATH`, then
   `$FIXTURE/scripts/krn.mjs`.
-- `BWRAP` — the bubblewrap binary; defaults to `bwrap` on `PATH`. Version
+- `BWRAP`: the bubblewrap binary; defaults to `bwrap` on `PATH`. Version
   `0.12.0` or newer is required and a setuid build is refused.
-- `WORKER` — `codex`, `opencode`, or the `stub` test double; defaults to
+- `WORKER`: `codex`, `opencode`, or the `stub` test double; defaults to
   `codex`. `MODEL`/`ALLOWED_MODELS` pin the authorized model.
-- `CODEX_PKG_HOST`/`CODEX_JS` — the pinned Codex package root and entrypoint.
-- `OPENCODE_HOME`/`OPENCODE_AUTH` — the OpenCode install and its auth file.
-- `MISE_ROOT` — optional toolchain root mounted read-only at `/mise`.
-- `STUB_SCRIPT` — the double's script when `WORKER=stub`.
-- `PUBLISH_GATE` — the command that verifies a green PR at the lane branch's
+- `CODEX_PKG_HOST`/`CODEX_JS`: the pinned Codex package root and entrypoint.
+- `OPENCODE_HOME`/`OPENCODE_AUTH`: the OpenCode install and its auth file.
+- `MISE_ROOT`: optional toolchain root mounted read-only at `/mise`.
+- `STUB_SCRIPT`: the double's script when `WORKER=stub`.
+- `PUBLISH_GATE`: the command that verifies a green PR at the lane branch's
   fixed point (for example a CI check and a tagged PR readiness check). It is
   invoked as `"$PUBLISH_GATE" <branch>`. `run-frontier.sh` and `integrate.sh`
   refuse to merge, and the frontier refuses to close the task, when it is
   unset or exits non-zero.
-- `KRN_QUEUE_MODE` — `run-frontier.sh` accepts only `selected` and uses public
+- `KRN_QUEUE_MODE`: `run-frontier.sh` accepts only `selected` and uses public
   `krn task` calls. `legacy` is retired and refuses before reading or changing
   either queue. A missing Git-ref selector refuses; it never falls back to
   Markdown. `run-ticket.sh` accepts `KRN_TASK_ID`, not `TICKET` file input.
-- `KRN_INTENT_ID` — required when the Git-ref queue is active. The host supplies
+- `KRN_INTENT_ID`: required when the Git-ref queue is active. The host supplies
   the current outcome identity from its authority owner; the lane reads its
   stored revision through `krn task intent get`. Optional `KRN_INTENT_REVISION`
   asserts that the host's revision is still current when the frontier starts.

@@ -24,6 +24,12 @@ export function runGitInput(repo, args, input) {
   return asGitResult(runProcess("git", ["-C", repo, ...args], { input, stdio: ["pipe", "pipe", "pipe"] }));
 }
 
+// Batch object reads need exact blob bytes; decoding child stdout as UTF-8
+// would make binary and BOM-marked text indistinguishable.
+export function runGitBinary(repo, args, input) {
+  return asGitResult(runProcess("git", ["-C", repo, ...args], { input, encoding: null }));
+}
+
 export function gitText(repo, args) {
   const result = runGit(repo, args);
   return result.ok ? result.out : "";

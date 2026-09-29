@@ -123,11 +123,11 @@ end-to-end **vertical slices** and explicit **expand–migrate–contract stages
    artifacts and never replaces the outcome capsule's lifecycle-level
    `Publication state`:
 
-   - `NOT_REQUESTED` — the active outcome owner accepted the list without
+   - `NOT_REQUESTED`: the active outcome owner accepted the list without
      requesting durable publication;
-   - `PUBLISH_PENDING` — publication was requested but the destination or
+   - `PUBLISH_PENDING`: publication was requested but the destination or
      authority is missing;
-   - `PUBLISHED` — the tickets and blocking edges were read back.
+   - `PUBLISHED`: the tickets and blocking edges were read back.
 
    Never invent a tracker or fallback path.
 

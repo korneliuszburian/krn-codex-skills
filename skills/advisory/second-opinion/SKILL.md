@@ -17,7 +17,7 @@ A stronger reviewer helps in proportion to how much it **verifies** and how
 little it **opines**. It helps when the artifact has a checkable ground truth,
 the reviewer is genuinely independent, and the request is one falsifiable claim.
 It adds cost and noise when the reviewer is the same family, the task is
-subjective, or you show it your plan — that measures anchoring, not review.
+subjective, or you show it your plan; that measures anchoring, not review.
 Read [`references/brief-standard.md`](references/brief-standard.md) for the
 evidence and the exact brief rules before writing a brief.
 

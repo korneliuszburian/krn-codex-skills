@@ -104,8 +104,8 @@ plans remain ephemeral.
    writer and one implementation item at most; tracker-write authority is
    separate from setup's own instruction edits.
 
-   After any selected tracker initialization — or immediately when no tracker
-   is configured or the existing tracker needs none — apply the resolved
+   After any selected tracker initialization (or immediately when no tracker
+   is configured or the existing tracker needs none), apply the resolved
    repository contract with:
 
    ```text

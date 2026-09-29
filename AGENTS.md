@@ -6,21 +6,21 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
 
 ## Repository map
 
-- `config/AGENTS.md` — installed global contract; keep local facts out of it.
-- `skills/<group>/<name>/` — one promoted workflow with its direct resources.
-- `skills/manifest.json` — install names, paths, invocation, and retirement.
-- `scripts/` — CLI, hooks, and `lib/<owner>/` (audit, catalog, conformance, contract, install, kernel, lessons, rules, state, support, task, ticket).
-- `test/<group>/` — suites for architecture, audit, bootstrap-fixture, catalog, cli, conformance, contract, install, lane, lessons, opencode, repro, rules, state, support, task, and ticket, plus top-level `ci-workflow`, `hooks-guard`, `setup-workflow`, and `skill-scripts`.
-- `.agents/skills/` — generated skill export; regenerate with `krn skills export`, gated by `skills:check`.
-- `.github/` — CI workflow; `npm run gate` is the local equivalent of the gate sequence.
-- `test/bootstrap-fixture/` — retained installed-release smoke.
-- `CONTEXT.md` — current shared vocabulary and knowledge index.
-- `docs/research/` — source-backed synthesis curated by its README.
-- `docs/adr/` — earned, hard-to-reverse decisions.
-- `docs/capabilities.md` — global capability profiles and evidence states.
-- `docs/migration.md` — installation ownership, retirement, and rollback.
-- `.krn/runs/` — ignored working state; durable artifacts never live there.
-- `README.md` — operator entrypoint and human skill catalog.
+- `config/AGENTS.md`: installed global contract; keep local facts out of it.
+- `skills/<group>/<name>/`: one promoted workflow with its direct resources.
+- `skills/manifest.json`: install names, paths, invocation, and retirement.
+- `scripts/`: CLI, hooks, and `lib/<owner>/` (audit, catalog, conformance, contract, install, kernel, lessons, rules, state, support, task, ticket).
+- `test/<group>/`: suites for architecture, audit, bootstrap-fixture, catalog, cli, conformance, contract, install, lane, lessons, opencode, repro, rules, state, support, task, and ticket, plus top-level `ci-workflow`, `hooks-guard`, `setup-workflow`, and `skill-scripts`.
+- `.agents/skills/`: generated skill export; regenerate with `krn skills export`, gated by `skills:check`.
+- `.github/`: CI workflow; `npm run gate` is the local equivalent of the gate sequence.
+- `test/bootstrap-fixture/`: retained installed-release smoke.
+- `CONTEXT.md`: current shared vocabulary and knowledge index.
+- `docs/research/`: source-backed synthesis curated by its README.
+- `docs/adr/`: earned, hard-to-reverse decisions.
+- `docs/capabilities.md`: global capability profiles and evidence states.
+- `docs/migration.md`: installation ownership, retirement, and rollback.
+- `.krn/runs/`: ignored working state; durable artifacts never live there.
+- `README.md`: operator entrypoint and human skill catalog.
 
 ## Working rules
 

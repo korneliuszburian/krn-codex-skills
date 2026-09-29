@@ -68,7 +68,7 @@ to its blocking issues. Mark agent-ready unless instructed otherwise.
 The next outcome owner works the **frontier** of unblocked units; `$slice-work`
 never claims a unit, closes a parent issue, or owns the execution order.
 
-Avoid specific file paths or code snippets — they go stale fast. Exception: a
+Avoid specific file paths or code snippets; they go stale fast. Exception: a
 prototype snippet that encodes a decision more precisely than prose (state machine,
 reducer, schema, type shape) may be inlined briefly with a note that it came from a
 prototype.
@@ -79,11 +79,11 @@ Use migration stages when an existing compatibility boundary or wide mechanical
 blast radius means no direct vertical slice can land safely. Do not use them merely
 because a diff is large. Sequence the transition as **expand–migrate–contract**:
 
-1. **Expand** — add the new form beside the old so nothing breaks.
-2. **Migrate** — move the call sites over in batches sized by blast radius (per
+1. **Expand**; add the new form beside the old so nothing breaks.
+2. **Migrate**; move the call sites over in batches sized by blast radius (per
    package, per directory), each batch its own ticket blocked by the expand, keeping
    CI green batch to batch because the old form still exists.
-3. **Contract** — delete the old form once no caller remains, in a ticket blocked by
+3. **Contract**; delete the old form once no caller remains, in a ticket blocked by
    every migrate batch.
 
 Each stage states its entry invariant, exit invariant, falsifier, and rollback or

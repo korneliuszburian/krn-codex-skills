@@ -200,13 +200,13 @@ hosts own their mechanics and policy.
    fixed point (base, head or fingerprint, Spec, Standards) with reviewer
    identity and model, a verdict, and per-finding path plus local evidence.
    A disposition is admissible only when (a) the reviewer identity, model, and
-   context differ from the implementer's — a review that shares the producing
+   context differ from the implementer's; a review that shares the producing
    context or holds write authority for the outcome is not admissible, (b)
    every accepted finding carries a concrete path and local evidence, and (c)
    the recorded fixed point matches the reviewed fingerprints; advisory lanes
    never upgrade to approval. For a non-trivial change, add at least one
-   acceptance check the producer did not author — a composition or held-out
-   check — before the disposition counts; dispositions record executed evidence.
+   acceptance check the producer did not author (a composition or held-out
+   check) before the disposition counts; dispositions record executed evidence.
 
    **Done when:** acceptance is observable through the public seam, required
    proof passes, both review axes are dispositioned for the current fixed point,
@@ -216,17 +216,17 @@ hosts own their mechanics and policy.
    open or update a PR, merge, and deploy only under their separate authorities
    and current repository or host policy. A lane whose diff changes exported
    skill bytes is a lane-integration merge: the integrator writes the exact
-   lane-integration merge template in the merge commit body — `merge: integrate
+   lane-integration merge template in the merge commit body: `merge: integrate
    <branch>`, a blank line, `Ticket: <id>`, then
-   `Change-contract: <ref>:<direction>` — because the merge commit keeps the
+   `Change-contract: <ref>:<direction>`. The merge commit keeps the
    worker commits and so needs no other trailer. A `MERGED` transition retires
    the merged head branch in the same step: delete it local and remote and
    remove its worktree (`gh pr merge --delete-branch`, or `git branch -D
    <branch>` + `git push origin --delete <branch>` + `git worktree remove
    <dir>`). No merged lane branch or worktree outlives its merge. Promote a
-   range that carries a SHA-pinned artifact — the export marker or a lesson
-   proof anchor — with a merge commit, or re-pin that artifact in the same
-   promotion; a rebase-merge rewrites the SHAs those artifacts name and breaks
+   range that carries a SHA-pinned artifact (the export marker or a lesson
+   proof anchor) with a merge commit, or re-pin that artifact in the same
+   promotion. A rebase-merge rewrites the SHAs those artifacts name and breaks
    them. At each shared transition, update and
    read back the configured tracker when one exists, and confirm that any native
    Goal still owns the current outcome. For the selected queue, `krn task close`

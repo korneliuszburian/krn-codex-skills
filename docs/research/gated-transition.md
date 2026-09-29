@@ -12,14 +12,14 @@ not a second store and not a claim that the primitive lifts outcomes.
 **The gated transition.** A state change is admissible only when it carries:
 
 1. a **machine-executed falsifier** that was **red at the base and green at the
-   head** — the discharge is executed, never asserted;
-2. executed by a **verifier independent of the author** — a pinned base
+   head**; the discharge is executed, never asserted;
+2. executed by a **verifier independent of the author**; a pinned base
    evaluator, a world-state oracle, or a different model family;
 3. pinned to an **immutable fixed point** that **auto-invalidates** (a stale
    anchor fails the gate);
 4. any unpayable obligation is blocked until an **explicit, independently
    resolvable waiver names that obligation**; unscoped waivers are unsupported;
-5. **failure-gated escalation** — no new mechanism, store, or agent until a
+5. **failure-gated escalation**; no new mechanism, store, or agent until a
    *recorded, measured failure* of the current one survives bounded repair.
 
 One sentence: **verification is a precondition for a transition, not an
@@ -33,19 +33,19 @@ decision criteria, not helper APIs or evidence of agent benefit.
 Two swarms of read-only role-specialist subagents attacked the earlier theses;
 both revisions are recorded here because the primitive is what survived them.
 
-- **"One artifact replaces five stores" — refuted.** A trace is append-only, a
+- **"One artifact replaces five stores": refuted.** A trace is append-only, a
   state is mutable, a memory is reusable; fusing them is a category error and
   maximises the measured failure where the capsule copied task state and went
   stale while `state check` returned clean.
-- **"Author-immutability as a disjunction including family difference" —
+- **"Author-immutability as a disjunction including family difference":
   refuted.** Deterministic and mechanical checks outperform LLM judges for
   false-success detection; cross-family rotation is not the default lever.
-- **"The same shape at four scales" — refuted in code.** The surfaces are
+- **"The same shape at four scales": refuted in code.** The surfaces are
   distinct engines with incompatible triggers and discharges; the verifier is
   author-immutable at only the commit scale.
-- **The "45–48% self-report divergence" figure — asserted, not discharged.** Do
+- **The "45–48% self-report divergence" figure: asserted, not discharged.** Do
   not cite it without the exact table.
-- **Subagent benefit — qualified no.** A bounded read-only subagent cannot own
+- **Subagent benefit: qualified no.** A bounded read-only subagent cannot own
   the artifact; it needs the **brief** (fixed point + scope + one falsifier
   command + output contract), not the five facets. The claim is the
   integrator's artifact; the brief is the subagent's task packet, not a

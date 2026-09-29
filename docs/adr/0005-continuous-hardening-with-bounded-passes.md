@@ -11,7 +11,7 @@
   sh-31..sh-59, [ADR 0003](0003-finite-release-decision.md), the memory
   measurements recorded in [ADR 0004](0004-queue-legibility-and-memory-delivery.md),
   and the 2026-09-19 volatile-checkout loss and recovery (sh-80)
-- Supersedes: ADR-0003's stop rule only — the finite completion unit survives
+- Supersedes: ADR-0003's stop rule only; the finite completion unit survives
 
 ## Context
 
@@ -27,7 +27,7 @@ lives outside the repository; memory delivery reached 1 of 29 arc commits (2.2% 
 commits); the capsule is 32.8 KB with 91.5% narrative that the checks do not
 read. Six holes were reproduced, not argued:
 
-- a `green->green` contract is a blank check — an unrelated, unchanged, passing
+- a `green->green` contract is a blank check; an unrelated, unchanged, passing
   test seals a behavioral change (`errors: []`), queued as sh-60;
 - `ticket close` without `--base` skips the scope check and writes `done`,
   queued as sh-61;

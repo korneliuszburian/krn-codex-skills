@@ -257,12 +257,12 @@ function thinAgentsTemplate(root) {
 
 ## Commands
 
-<Build, test, run — or "none yet".>
+<Build, test, run (or "none yet").>
 
 ## Standing rules
 
 - <This repository's hard constraints.>
-- Methodology — production loop, proof budget, review, lifecycle — is owned by
+- Methodology (production loop, proof budget, review, lifecycle) is owned by
   the installed global skills and the global \`AGENTS.md\`, auto-composed by the
   harness. It is not repeated here.
 `;
