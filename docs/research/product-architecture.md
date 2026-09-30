@@ -1,6 +1,7 @@
 # KRN product architecture: live decisions across coding work
 
-Status: `lab-test`. Consumer: the active Goal integrator, `$delivery-loop`, and
+Status: `lab-test`. Consumer: the operator planning the project workbench,
+the active Goal integrator, `$delivery-loop`, and
 `$slice-work` after the decision gates settle.
 Owner: maintainer. Verified: 2026-09-30.
 The 2026-09-30 refresh compares design alternatives and workspace contracts;
@@ -281,6 +282,306 @@ retirement. Do not gradually turn one local queue into two live stores.
 - [LangGraph at `7daa3ab`](https://github.com/langchain-ai/langgraph/tree/7daa3ab49d678a5da75edb08baa87db4a2be52c3): checkpointed ongoing workflow versus long-term memory reinforces the Goal/capsule/knowledge split. **Reject** importing a second orchestration graph while Pi already owns the agent loop and its installed Goal extension owns branch-local outcome state.
 - [AHE](https://arxiv.org/abs/2604.25850), [ACE](https://arxiv.org/abs/2510.04618), [RRSI](https://arxiv.org/abs/2609.24972), [VibeMemBench](https://arxiv.org/abs/2609.23570), [Missing Complement](https://arxiv.org/abs/2609.20050), and [Impact Is Not Invalidation](https://arxiv.org/abs/2609.25130): keep incremental curated knowledge, small falsifiable edits, claim-relative applicability, and complete decision evidence **as tested policies**. VibeMemBench's transfer intervals all cross zero, ordinary memory systems rarely beat memory-off; Missing Complement's controller has real extra online cost. They do not establish KRN uplift. The local before-state repair and qualified sh-167 oracle have executed mechanical proof; agent behavior remains open.
 - Operator-supplied screenshots `IMG_8412`–`IMG_8419` (practitioner anecdotes, 2026-09-27): use small task-specific reference briefs, focused specialist advice, an independent UX/error-state question for UI work, and cheap deterministic tests before advisory review. Reject per-model-interaction `__log__` dumps, default LLM-judge approval and a broad self-improvement scheduler. The reported `/state` endpoint with many database calls is an **N+1 test candidate**, not evidence of a KRN query defect. Product delivery, bounded context and full cost outrank agent gymnastics. Do not copy the screenshots or their passages into Git.
+
+## Native project workbench: operator planning synthesis (2026-09-30)
+
+The operator now asks for a coherent project tool, eventual web session panel,
+official providers through Pi or Codex, useful memory, performance, minimal code,
+and a possible Polish-facing harness. This section is a design proposal for that
+consumer. It preserves the accepted C/Git-ref choice and existing defaults;
+it does not adopt a replacement runtime, translate pinned upstream skills,
+publish tasks, or authorize installation. Product development and better delivery
+of the operator's projects are both goals: use real project delivery as the first
+acceptance surface for the product, then qualify use by another operator.
+
+### What the supplied source actually says
+
+Peter Steinberger's [2026-09-22 reply](https://x.com/steipete/status/2102516479900229976)
+was verified against X's official syndication response, including its parent ID.
+He favors web over the [parent's many-agent editor setup](https://x.com/hraness/status/2102501684169634220).
+The parent advertises a large daily token budget; that is its author's claim,
+not measured productivity. The operator additionally supplied a clarification
+about a web interface managing sessions. That excerpt's separate post identity
+was not verified. Neither excerpt specifies a memory system or proves a quality
+gain. The KRN implication is a browser client for real sessions and projects.
+
+| Primary source, checked 2026-09-30 | Mechanism and local disposition | Limit / observation that could reverse it |
+|---|---|---|
+| Peter, [Shipping at Inference-Speed](https://steipete.me/posts/2025/shipping-at-inference-speed), 2025-12-28, and [Just Talk To It](https://steipete.me/posts/just-talk-to-it), 2025-10-14 | Start with an executable CLI and close the feedback loop; maintain subsystem knowledge in the repository; choose dependencies and data flow carefully; iterate on the actual product. **Adopt** these as design criteria, owned by the maintainer. | Personal practice is not a controlled result. His historical model comparisons and solo main-branch workflow do not replace KRN's current model or publication policy. Reopen a particular criterion when a real caller demonstrably pays more for it than the native alternative. |
+| T3 Code [architecture](https://github.com/pingdotgg/t3code/blob/c2fa9fc911daeac97df4760f95fc57dca42b84c8/docs/internals/overview.md) and [authoring rules](https://github.com/pingdotgg/t3code/blob/c2fa9fc911daeac97df4760f95fc57dca42b84c8/AGENTS.md), pin `c2fa9fc` | The environment server owns execution, credentials and Git; browser UI consumes typed commands/events. Accepted intent, agent completion and checkpoint settlement differ. **Adopt** those separations for the proposed panel; **defer** copying its DB/event engine. | This is an architectural precedent, not KRN proof. A reconnect showing an accepted command as a completed task, or two clients disagreeing about the current result, falsifies the panel design. The existing task store remains authoritative. |
+| Official [Codex App Server](https://learn.chatgpt.com/docs/app-server), verified 2026-09-30 | A custom client can use authentication, threads, streaming and approvals through the native protocol. **Lab-test** a local bridge using stdio before selecting the panel transport. | The documentation labels app-server and its WebSocket transport experimental and unsupported for production workloads. Official availability does not prove compatibility of the installed binary or permission to attach to an existing session. |
+| Pi [execution](https://pi.dev/docs/latest/how-pi-works), [sessions](https://pi.dev/docs/latest/session-format), [RPC](https://pi.dev/docs/latest/rpc) and [security](https://pi.dev/docs/latest/security), latest docs verified 2026-09-30 | Native modes share session mechanisms; session history and its active branch differ from compacted model context. **Lab-test** the documented control interface for the second real host adapter. | Resources and subprocesses retain process privileges. A session ID is not permission. Current source/docs do not establish loaded-host behavior, cancellation, or preservation of requirements after compaction. |
+| Official [Codex memories](https://learn.chatgpt.com/docs/customization/memories), verified 2026-09-30 | Local generated memories are optional recall from prior work; mandatory team rules belong in repository instructions/docs. **Lab-test** native recall before earning any KRN extractor; **reject** memory as task or approval authority. | Documentation does not show the feature enabled here, does not share that store with Pi, and does not establish outcome improvement. A stale memory overriding live intent falsifies an adapter's use of it. |
+| OpenClaw [memory architecture](https://github.com/openclaw/openclaw/blob/96af591f74c374532274d735c6b0ba8bd1a59d59/docs/concepts/memory-architecture.md) and [builtin memory](https://github.com/openclaw/openclaw/blob/96af591f74c374532274d735c6b0ba8bd1a59d59/docs/concepts/memory-builtin.md), pin `96af591` | Separate memory tiers and provenance; recalled text must not re-promote itself; one consolidation writer preserves source anchors and supersession. Markdown facts and derived search indexes have different owners. **Adopt** these review questions; **defer** an extractor, dreamer or index. | Declared origin metadata is not authenticated user authority; workspace edits are trusted and network taint depends on tools. Bootstrap descriptions differ across docs, so exact injection is unqualified. Its memory DB also contains session data: rebuilding indexes does not justify deleting that DB. |
+
+These sources point toward native execution with visible product feedback,
+small typed control surfaces and distinct memory responsibilities. That is a
+bounded synthesis, not a forecast that all harnesses converge or that KRN is
+the best implementation. The strongest simpler competitor is the native client
+with project instructions, current tasks and direct repository reading.
+
+### One complete user journey
+
+The initial target is one local operator, one explicitly selected repository,
+one writing integrator, and official OpenAI models through Codex or Pi. Other
+project panes can be visible without acquiring write authority. Broader provider,
+remote-team and autonomous-worker support require their own consumer and gates.
+
+1. **Connect a project.** Inspect its real Git root, existing instructions,
+   package/runtime commands, task selection and dirty work. Show the exact setup
+   effects and the reason for each. Reuse the project's standards; propose only
+   missing local facts and controls. A successful file write is distinct from a
+   fresh native session actually loading it.
+2. **Clarify and plan an outcome.** Keep the operator's objective, constraints
+   and observable result. Use the owner for the current uncertainty; ready work
+   gets small vertical tasks with dependencies and an acceptance check. Research
+   and unresolved design stay explicitly unsettled. Small edits retain a short
+   path; a plan does not force every task through every skill.
+3. **Choose legal work and supply context.** Read the selected queue and current
+   task generation. Show why work is blocked. A task-specific view cites the
+   current outcome, acceptance, applicable standards, code locations, source
+   revisions and missing evidence. Reuse current task/state views first; D5
+   still controls whether a new context compiler earns implementation.
+4. **Execute in the native host.** Bind the selected repository, task, claim
+   epoch and native session. Send the bounded request through the host's official
+   control interface. The native host owns the model/tool loop, conversation,
+   authentication and host approvals. KRN owns project/task correctness.
+5. **Verify and integrate.** Show the actual diff, fastest disagreeing check,
+   applicable repository gates and required review. Accepted command, successful
+   turn, tested candidate and observed merge remain separate states. Publication
+   uses existing authority; task close requires the task owner's readback.
+6. **Resume or change direction.** After reconnect, compaction, restart or a new
+   user constraint, reread live owners before the next consequential action.
+   Preserve unfinished obligations; replace or revoke them only through their
+   authorized owner. Keep a bounded continuation when needed, and promote only
+   reusable knowledge with its consumer and supersession rule.
+
+For example, plan a project's export feature, find its existing validation and
+file-writing convention, claim the next legal task, implement via Codex, verify
+the exported artifact, interrupt the session, and resume with the current task
+and unchanged acceptance. A later operator change to the export format must
+invalidate relevant old acceptance without losing retained atomicity obligations.
+The panel must also support diagnosing an existing regression, a bounded
+migration, and switching projects without leaking their context or permissions.
+
+### Code and product surfaces
+
+Keep the existing task, state, knowledge, proof, workspace and installer owners.
+The credible new code is a narrow native-host adapter, a local browser bridge
+and the web UI. They are roles, not an instruction to create seven packages or
+an orchestration framework. CLI and panel must call the same effect owners;
+the browser cannot implement a second status machine or write queue refs.
+
+```mermaid
+flowchart LR
+  Operator[Operator: outcome and authority] --> Clients[CLI or web panel]
+  Clients <--> Local[Local bridge: validate scope and commands]
+  Local <--> Owners[Existing KRN task, state and proof owners]
+  Local <--> Hosts[Native adapters: Codex or Pi]
+  Hosts --> Providers[Official model provider]
+  Owners --> Sources[Git queue, code and curated knowledge]
+```
+
+The host adapter normalizes only what both hosts actually support: session
+identity, start/resume, steer/interrupt where available, progress, approvals,
+terminal result and usage. Expose unsupported capabilities explicitly; do not
+invent equal guarantees or emulate host behavior by parsing terminal appearance.
+Keep upstream protocol types at that adapter and validate external events once.
+Provider history remains with the provider host; any KRN session/task association
+has one run owner and lifecycle, rather than another transcript or memory store.
+
+The bridge starts locally, keeps credentials outside the browser and scopes each
+command to the selected repository/session/current task. Browser authentication
+and per-command authority are different checks. Reconnect obtains a fresh
+snapshot, then current events; a gap forces readback. Cancellation and a lost
+response expose unknown effect until its owner inspects it. A stale UI cannot
+approve a newer request merely because its button retained the same position.
+Remote access is a separate product/security slice, not the default panel host.
+
+The proposed panel has project/session navigation; the task frontier and reasons
+for refusal; live conversation and approval inbox; the current diff with product
+preview where available; proof/publication readback; and a context inspector
+showing included sources, scope and stale/missing evidence. Model/effort, usage
+availability and complete cost are visible. These are views over owners. A pane
+turning green does not close a task, and arbitrary shell execution is not the
+panel's generic command interface. Build a polished single-project work screen
+before a fleet dashboard or an IDE clone. Use the workflow prototype to test
+layout against a real interrupted task before building the complete UI.
+
+Compare three actual delivery choices before authoring that client: the native
+UI plus current CLI, an existing web panel with a supported KRN integration, and
+a small owned client. Prefer the existing panel if its real extension seam can
+serve both hosts and KRN operations without a long-lived fork or duplicated task
+truth. No such integration was executed in this pass. The small owned client is
+the candidate when a reusable seam is absent; copying an entire competing harness
+does not minimize its maintenance. A working supported integration reverses that
+choice before new UI code is written.
+
+### Memory and context rot as separate failure modes
+
+Use the existing memory planes above. Native session history answers what was
+said; Goal/task/authority answer what currently applies; repository knowledge
+answers what is reusable; the outcome capsule answers where one outcome resumes.
+This contract is owned by `config/AGENTS.md`, `CONTEXT.md` and the existing topic,
+not by personal assistant memory, a transcript archive or this design section.
+Native generated recall may provide a clue, never replace a mandatory rule.
+
+| Failure | Smallest candidate intervention | Countercase for the real journey |
+|---|---|---|
+| Relevant fact was never found | Repair the knowledge-map pointer, name, explicit task reference or lexical lookup before indexing. | Needed evidence still cannot be reached; an irrelevant high-ranked hit is insufficient. |
+| Fact was found but lost during compaction | Reread the bounded current task/constraints at the next consequential action; retain pointers to supporting details. | Fresh continuation drops a retained requirement or repeats a delivered change. |
+| Recalled fact became stale | Check its current owner/revision and explicit supersession before using it. | Old intent wins after a legitimate change, or an unrelated change blocks valid work. |
+| Too much competing context | Supply only currently applicable rules and task evidence; disclose deeper material on demand. | Smaller context omits the complementary evidence required for the actual decision. |
+| Untrusted text appears authoritative | Keep source origin and permissions separate; only the real effect/intent owner grants authority. | A retrieved instruction, forged approval or foreign-project text changes an authorized operation. |
+
+These controls address concrete errors. They do not eliminate model fallibility,
+prove a universal context threshold, or establish memory uplift. The existing
+agent-facing mandatory recall was retired; this proposal does not restore it.
+D4/sh-169 and H9 own usefulness experiments. FTS remains a disposable candidate
+only after a repeatable miss survives current-rung repair; no new vector/graph
+store, automatic transcript promotion or universal fresh-session ritual is earned.
+
+### Stack, standards and subtraction
+
+Choose **TypeScript for new product control code and a React/Vite web client**,
+with Node ESM matching the repository's pinned supported runtime. The local
+runtime is currently `.mjs`; a whole-repository language rewrite is deferred.
+This is a local interactive client, with no demonstrated SSR/RSC consumer.
+[React's build-tool guidance](https://react.dev/learn/build-a-react-app-from-scratch)
+includes Vite but warns that routing/data needs can grow into a custom framework;
+[Vite](https://vite.dev/guide/) supplies development/build tooling, not project
+logic. Reuse a supported router/data library when the real screen needs it;
+reconsider the framework if the product gains server-rendered requirements.
+Migrate one real public seam at a time only when the types remove a demonstrated
+class of ambiguity and install/runtime closure remains proven. Retain Python or
+shell at existing external seams where replacement has no consumer benefit.
+Go/Rust become candidates only for a measured deployment or performance need.
+
+The [TypeScript companion](../../skills/engineering/typescript-engineering/SKILL.md)
+owns compiler and boundary details. The candidate uses `strict`,
+`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, inferred internals,
+explicit public contracts, discriminated states and exhaustive dispatch.
+External JSON stays `unknown` until one ingress validates shape and semantics.
+Types do not validate a queue, authorize an action or prove runtime behavior.
+Match NodeNext to the actual build/runtime; native type stripping does not read
+tsconfig or typecheck, so it cannot replace compiler proof. Pin a compatible
+compiler/build path before migration. Sources: [TSConfig](https://www.typescriptlang.org/tsconfig/)
+and [Node type stripping](https://r2.nodejs.org/docs/latest-jod/api/typescript.html)
+(the fetched mirror identifies v22.23.2, not the installed v22.23.3).
+
+Use `snake_case` consistently in newly owned internal functions, variables,
+fields and file stems if this operator convention is accepted for implementation;
+use PascalCase for TS types and React components. Preserve native protocol names,
+stable external fields, installed skill IDs and retained historical schemas.
+Mapping happens at the adapter, not by renaming provider data or bulk-editing
+the existing repository. Naming is a local convention, not a quality result.
+
+Put machine-checkable standards in existing formatter/linter/compiler or public
+behavior checks. Instructions carry applicability, reasons and architectural
+choices the tools cannot infer. Prefer deep modules, a few domain operations,
+plain data and standard libraries. Reuse one validator/implementation instead
+of parallel types, schemas and rules maintained by hand. A schema dependency
+earns its place when multiple real ingress consumers need it; no DSL, plugin
+framework, generic repository abstraction or state-manager stack by default.
+
+Delete a wrapper when deleting it removes complexity without spreading an
+invariant to callers. Retire a test only after its actual requirement, keeper
+and distinct failure mode are accounted for. The global `0/1/N` proof budget
+and local required gate continue to apply: zero new tests for docs/mechanical
+work, one focused public-seam falsifier per changed runtime contract, more only
+for distinct requirements/failures. New falsifiers first fail on the observed
+before-state. Static markup snapshots, callback mirrors and another test of the
+same obligation do not earn maintenance. Code beauty is locality, readable data
+flow and few caller obligations; raw line count alone is not acceptance.
+
+### Skills and Polish-facing work
+
+Keep one workflow owner for the current uncertainty, with a companion only for
+the live technical slice. A reproduced bug routes to diagnosis; a source question
+to research and a needed decision to source-to-decision; settled implementation
+honors the owner's invocation mode; a fixed candidate routes to the existing
+Standards/Spec review. TypeScript is a companion only for an actual typed seam,
+and `make-it-sexy` discharges the scoped quality bar. This is conditional routing,
+not a mandatory chain and not a replacement skill catalog or procedural fork.
+
+Descriptions should say which distinct situation admits the skill, its result
+and the neighboring owner to which it returns. Keep full procedure and branched
+references on demand. “Very precise” means unambiguous selection, not every
+instruction in every always-loaded description. For a Polish-facing explanation:
+“Diagnozuje konkretny błąd lub regresję i wskazuje sprawdzoną przyczynę;
+implementację przekazuje właściwemu właścicielowi.” This is illustrative UI prose,
+not a new installed skill description. The pinned upstream authoring aid is not
+experimental proof of wording, length or language superiority.
+
+**Lab-test** Polish instructions/descriptions against the existing canonical
+language on the same real cases, including ambiguous and neighboring triggers,
+wrong-project and stale-authority cases. Measure selection, correct execution,
+outcome and complete cost separately. Maintain one authored canonical procedure;
+do not create an EN/PL pair of live procedural truth or hand-edit upstream owners.
+Keep protocol IDs stable while the operator UI and conversation can be Polish.
+A from-scratch harness is deferred: replace one proven weak interface only after
+a native comparison, with a named migrator and rollback. No current observation
+authorizes replacing the adopted architecture.
+
+### Performance and delegation
+
+The [parallelism/context source qualification](orchestration.md#parallel-work-and-context-cost-workbench-qualification-2026-09-30)
+owns the paper mechanisms and their limits. Start with batched independent reads,
+one selected queue snapshot per operation and rebuildable caches keyed by real
+source generations. Never hold a queue lock across model work. Measure actual
+Git subprocesses, cold-start/resume latency and retained resources before adding
+an index, persistent worker or daemon. Native host/provider caches retain their
+own semantics; an old result cannot become current merely because it was cached.
+
+Use a separate agent for a bounded independent research/review question only
+when a separate context or parallel read can repay dispatch and integration.
+Give it fixed sources, a question, tool scope, deadline and evidence contract;
+the integrator checks the answer against sources. Keep dependency-sensitive
+implementation, authorization and shared effects sequential. Current work has
+one active implementation item and read-only parallelism. Isolated writing
+workers require legal admission and separately qualified isolation; panel tabs
+do not earn that authority. Compare accepted outcome latency and full cost,
+including retries and corrections, before changing concurrency or model choice.
+
+### Delivery priority and product acceptance
+
+The [roadmap](self-hardening-roadmap.md#current-target-delivery-graph) remains the
+delivery owner and the live queue remains the eligibility owner. This proposal
+orders questions for the operator; it does not ready, claim, reprioritize or close
+records. Existing completed H1/H2 and the task-next repair are not repeated.
+
+1. Qualify task recovery, selected-only reads, proof/effect readback and the
+   actual native loading/control path: relevant H3/H4/H6/H8 and sh-184/sh-185
+   retain their owners. Unresolved historical claims require their legal owner
+   transition; another session cannot manufacture a frontier.
+2. Complete one real project's plan → task → native execution → proof →
+   interrupted resume journey using current commands, and then a differently
+   shaped project. If it already works, improve the actual friction rather than
+   implementing D5 by assumption. H9/D4 still decide claimed usefulness.
+3. Add a read-only web session/task work screen over that qualified route;
+   exercise reconnect and current-context inspection. Then add a narrowly scoped
+   start/steer/stop/approval slice with truthful failure and effect readback.
+   Publish these as new work only after the corresponding specs/gates settle.
+4. Improve the actual performance bottleneck and retire unearned interfaces
+   through H10. Parallel reads, indexes, writing workers and remote access stay
+   conditional on their distinct consumer and deciding comparison.
+
+Measure accepted project outcomes and first-pass acceptance, retained-requirement
+errors, operator corrections/false blocks, setup/resume burden, latency and all
+model/tool/review/retry cost. Compare the native client against KRN under the
+same project, model, authority and independently frozen acceptance. A workflow
+screen qualifies the route; a repeated, paired real-project comparison is needed
+to claim improvement. Faster tokens, more tasks, attractive screens and a green
+suite cannot substitute for that result. Stop or reduce a layer when its real
+maintenance and operating cost outweigh its observed contribution.
+
+The decisions in this section return to the operator/maintainer as `lab-test`
+for the workbench, native adapters and Polish treatment; design criteria marked
+`adopt` govern this proposal only. New runtime, store, language migration,
+host loading and product uplift remain unobserved. Supersede this section in
+place when the operator settles product scope or a real journey changes one of
+its stated comparisons; retain source-specific limits and move any delivery
+decision to its existing roadmap/queue owner.
 
 ## Delivery contract and terminal decision
 

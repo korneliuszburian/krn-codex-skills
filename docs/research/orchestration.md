@@ -154,6 +154,48 @@ it, and strict delivery prefers squash merges so the maintained subject stays
 conventional. This does not prove that a prompt-level rule changes commit
 behavior; it makes the shared convention explicit and single-owned.
 
+## Parallel work and context cost: workbench qualification (2026-09-30)
+
+Consumer: the operator planning the native project workbench in
+[product-architecture.md](product-architecture.md#native-project-workbench-operator-planning-synthesis-2026-09-30).
+Owner: maintainer. These source decisions qualify proposed performance and
+delegation choices; they change no host defaults, WIP limit or writer authority.
+The existing instruction-efficacy refresh below remains the owner of the
+AGENTS.md/SkillsBench comparison; it is reused rather than repeated here.
+
+| Primary source / fixed version | Mechanism, disposition and falsifier | Non-proof |
+|---|---|---|
+| [Towards a Science of Scaling Agent Systems v3](https://arxiv.org/html/2512.08296v3), 2026-04-08, verified 2026-09-30 | Across 260 configurations and six benchmarks, decomposable tasks and sequential shared-state tasks react differently to agent topology. Coordination and compressed inter-agent state have a cost. **Lab-test** independent read delegation only at a real bottleneck; compare one native integrator, batched tool calls and a bounded child with the same acceptance. Reject a default fanout or score-threshold router. Falsifier: the child increases corrections/full cost without reducing accepted-work latency. | SWE/Terminal have 20 tasks per cell and broad uncertainty; financial cost coverage differs by benchmark. Cluster-robust analysis weakens some coefficients. Popular v1 counts and the approximate 45% baseline threshold are not a current KRN rule; v3 does not establish a best agent count. |
+| [Why Do Multi-Agent LLM Systems Fail? v3](https://arxiv.org/html/2503.13657v3), 2025-10-26, verified 2026-09-30 | MAST classifies specification, inter-agent disagreement and verification failures in more than 1600 traces; its human taxonomy began with 150 traces. **Adopt** these classes as counterquestions when a real delegation fails; **reject** another mandatory checklist. The existing local checklist rejection remains. Falsifier: a repeated concrete failure cannot be expressed or repaired by the current intent, writer, return and verification owners. | Older models and heterogeneous frameworks; taxonomy does not prove a proposed topology prevents failures or improves code. A delegated opinion has no task, approval or proof authority. |
+| [Context Length Alone Hurts LLM Performance Despite Perfect Retrieval](https://aclanthology.org/2025.findings-emnlp.1264.pdf), EMNLP Findings 2025, verified 2026-09-30 | Controlled input-length treatments, including whitespace and masked distractors, show that finding relevant evidence need not ensure its correct use. **Lab-test** retaining the exact current requirements and source pointers at a meaningful action/resume boundary, compared with native continuation. Falsifier: either route loses an independently specified retained obligation; include an unrelated-change control. | Synthetic lengthening, five earlier models and single experimental runs are not long production Codex/Pi sessions. Exceptions and retrieval quality constrain the proposed evidence repetition. No universal compaction threshold, fresh-session policy or memory-store benefit follows. |
+
+Return these dispositions to the workbench's operator/sole integrator. First
+batch independent tool reads in the current context; then delegate a bounded
+independent source or review question only when that separate context has a
+benefit to test. Dependent decisions, authorization and shared transactions
+remain sequential. Current parallel work is read-only. A future writing-worker
+trial needs legal WIP admission, isolated worktrees, scoped authority and one
+integrator; this evidence does not grant them.
+
+Give a child a fixed source/candidate identity, one question, required evidence,
+tool scope, deadline/cancellation and return contract. Count dispatch, parent
+context, child tokens, synthesis, retries, review and unavailable observations.
+Read back any consequential result at its existing owner. Reconnecting browser
+clients does not create agent workers, and batching tools is not multi-agent
+orchestration. Preserve those three distinct optimization choices.
+
+Use the existing [instruction refresh](#instruction-efficacy-and-delivery-source-refresh-2026-09-30)
+for skill combinations and description design: delivery, selection, correct
+execution and outcome are separate observations. SkillsBench's length/count
+buckets compare different tasks; they do not prove an ideal description size,
+a maximum skill count or that Polish is better. **Lab-test** a Polish-facing
+variant for this operator with one semantic source, unchanged host IDs and
+matched real triggers plus neighboring negatives. Defer a translated procedure
+fork or from-scratch runtime until the named comparison demonstrates a missing
+capability. Reopen this section when the source version or a real delegation,
+context or language result changes its disposition; update its index entry
+in the same change.
+
 ## Retrieval escalation ladder
 
 KRN keeps retrieval as a composed process, not one similarity search. The
