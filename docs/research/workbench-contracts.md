@@ -133,6 +133,17 @@ selection, correct execution and observed effect remain separate observations.
 policy engine; its proposed wording changes must survive the same countercases.
 The roadmap owns the slices and their falsifiers, not this comparison table.
 
+The operator's expanded request also admits a stronger native-only comparator:
+Codex/Pi plus the project's own instructions, current native request/history,
+Git/CI and any actual project tracker, with no KRN task/lifecycle surface.
+**Lab-test** that complete journey as a design alternative, not just removal of
+the web UI. Consumer/owner: operator and maintainer. Falsifier: an independently
+accepted obligation, exclusive turn, authority change or interrupted effect
+cannot be preserved/recovered at acceptable full cost. If it matches the KRN
+route more cheaply, the corresponding runtime is a retirement candidate. An
+adopted replacement needs lossless history/claim migration, a single cutover
+writer, recovery and explicit retirement; no current queue/profile was changed.
+
 ## Caller-facing CLI and memory qualification
 
 The installed source-owned front door is `krn`; `krn-codex-catalog` is a thin

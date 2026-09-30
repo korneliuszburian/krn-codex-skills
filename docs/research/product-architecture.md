@@ -48,6 +48,7 @@ pętlę model–narzędzia, historię, logowanie i swoje uprawnienia.
 
 | Wariant | Co zyskujemy | Co rozstrzyga wybór |
 |---|---|---|
+| Sam Codex/Pi i droga projektu, bez zadań/workflow KRN | Zero własnego silnika procesu: cel i sesja natywna, instrukcje, Git, kontrole i ewentualny tracker projektu. | Radykalna kontrola porównawcza. Jeśli zachowuje obowiązki i odzyskiwanie przy mniejszym koszcie, warstwa KRN ma być wycofana z migracją odbiorców, bez utraty pracy. |
 | Natywne UI + mała integracja KRN | Najmniej własnego kodu; standardy, zadania i sprawdzanie przez aktualne narzędzia. | To kontrola porównawcza. Jeśli działa równie dobrze i taniej, dodatkowa warstwa musi uzasadnić swój koszt. |
 | Mały panel obok Codexa/Pi | Jeden widok projektu, sesji, zadania i dowodów; można wrócić do CLI bez migracji całego projektu. | To pierwszy kandydat produktu. Wycofujemy go, jeśli wymaga konkurencyjnych kopii stanu i ręcznego uzgadniania. |
 | Produkt zintegrowany, np. rozszerzenie T3 | Potencjalne wykorzystanie istniejącego UI, sesji i silnika poleceń. | Wybór tylko po próbie pokazującej niższy koszt zmian, aktualizacji i odzyskiwania. Jeden nowy właściciel zastępuje starego, zamiast tworzyć drugi tracker. |
@@ -129,6 +130,12 @@ nieaktualna, więc mechanizm wymaga własnej kwalifikacji.
 Jeden ekran: **wybór projektu i wyniku → obszar sesji → szuflada kontekstu i dowodów**.
 Lista dopuszczonych zadań, pamięć, koszty i orkiestracja nie potrzebują osobnych dashboardów.
 
+Docelowo panel obejmuje wszystkie sesje operatora w Codex/Pi i jego projektach,
+również wcześniej istniejące. Każda ma osobno wskazany dostęp do historii,
+obserwacji na żywo i sterowania. Oficjalne API oraz wersja hosta muszą ten zakres
+potwierdzić; nieobsługiwane przyłączenie do żywego procesu pozostaje jawną luką,
+a nie ukrytym wyłączeniem z obietnicy „wszystkich sesji”.
+
 Po podłączeniu widzisz wykryty root, obowiązujące instrukcje, komendy projektu,
 własność wcześniejszych zmian i dokładny plan brakującej konfiguracji.
 Następnego dnia system ponownie sprawdza źródła i pokazuje rozbieżność.
@@ -140,7 +147,7 @@ zmianę polecenia w trakcie pracy, przerwanie, pytania i zatwierdzenie. Zasoby i
 oficjalne protokoły nie oznaczają automatycznie zgodności z zainstalowaną wersją.
 
 Ważne stany produktu to pusty projekt, brak legalnego zadania, błąd, nieaktualny
-widok, reconnect i nieznany efekt. Ograniczamy zbędne pytania: przywracalne kroki
+widok, ponowne połączenie i nieznany efekt. Ograniczamy zbędne pytania: przywracalne kroki
 prowadzimy dalej; pytamy, gdy brak zmienia zakres, uprawnienie, wynik lub cel.
 Znane użycie i limity pokazujemy ze źródłem; brak danych nie staje się zerowym
 kosztem. Backup i powrót do wcześniejszej wersji trzeba sprawdzić także po nowych
@@ -163,15 +170,19 @@ Opis precyzuje sytuację wejściową i wynik, procedura i referencje są na żą
 Polski jest kierunkiem interfejsu/operatora; wpływ tłumaczenia na zachowanie
 agenta wymaga porównania. Nie utrzymujemy dwóch wersji prawdy ani kopii upstream.
 
-Pomysł code-simplifier włączam jako **jeden pass nad zmienionym kodem przed końcowym
+Pomysł code-simplifier włączam jako **jeden przegląd zmienionego kodu przed końcowym
 dowodem**, pod obecnym właścicielem jakości. Zachowujemy zachowanie, upraszczamy
 nazwy, zagnieżdżenia i nadmiarowe abstrakcje. Arrow, typ wyniku i `catch` dobieramy
 do realnych kontraktów; przejrzystość wygrywa z gęstym skracaniem. Szersza
-refaktoryzacja lub naprawa dostaje własny zakres. Nowy stan unieważnia stare review.
+refaktoryzacja lub naprawa dostaje własny zakres. Nowy stan unieważnia stary przegląd.
+To świadome doprecyzowanie podanego promptu: deklaracje funkcji i jawne typy
+publicznych kontraktów są preferencją, ale zachowujemy semantykę arrow oraz
+użyteczne wnioskowanie lokalne zamiast automatycznie przepisywać każdą funkcję.
 
-Z `code-modernization` bierzemy rozróżnienie uplift/rewrite, poznanie reguł przed
-migracją i reprezentatywny pilot przed fan-out. Jego raporty równoważności mają
-granice dowodu; nie kopiujemy całego pipeline’u ani automatycznej armii agentów.
+Z `code-modernization` bierzemy rozróżnienie aktualizacji wersji i zmiany stosu,
+poznanie reguł przed migracją oraz pilot przed rozszerzeniem pracy na kolejne
+moduły. Jego raporty równoważności mają granice dowodu; nie kopiujemy całej
+procedury ani automatycznej armii agentów.
 [Analiza pluginu i uproszczeń](orchestration.md#scoped-simplification-and-modernization-2026-09-30).
 
 Budżet nowych falsyfikatorów zostaje `0/1/N`: zero dla dokumentów/mechaniki,
@@ -179,7 +190,7 @@ jeden dla zmienionego kontraktu, więcej dla różnych wymagań i awarii.
 Nowy falsyfikator najpierw przegrywa na przed-stanie. Zachowanie już objęte
 dowodem chronimy dotychczasową kontrolą. Testy retirowane mają rozliczonego
 odbiorcę i zachowane różne wymagania. Najpierw batch niezależnych odczytów, potem
-potrzebny osobny kontekst; równoległe pisanie wymaga izolacji i legalnego admission.
+potrzebny osobny kontekst; równoległe pisanie wymaga izolacji i legalnego dopuszczenia.
 
 <a id="delivery-contract-and-terminal-decision"></a>
 ## 7. Kolejność budowy i warunki przejścia
@@ -205,7 +216,7 @@ odmienny stos i brak kolejki, zamiast narzucać standardy własnego repo.
 Nie ogłaszamy transferu jakości przed rzeczywistymi próbami.
 
 Mierzymy zaakceptowany wynik, zachowane wymagania, poprawki operatora,
-fałszywe blokady, setup/resume oraz cały czas i koszt wykonania, czytania,
+fałszywe blokady, podłączenie/wznowienie oraz cały czas i koszt wykonania, czytania,
 pisania pamięci, delegacji, kontroli i prób nieudanych. Natywny klient dostaje
 te same wymagania i dostęp. Dobry pojedynczy przykład pokazuje wykonalność;
 korzyść produktu wymaga porównania. Obecny indeks i ADR 0006 zachowują koszt
