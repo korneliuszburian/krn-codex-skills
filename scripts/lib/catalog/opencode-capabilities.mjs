@@ -21,6 +21,11 @@ export function skillPermissionProjection({ profile, inventory, admission, codex
     const enabled = resolved.desired.skills[skill.path];
     if (enabled !== undefined) states.set(skill.id, states.get(skill.id) === true || enabled);
   }
+  // Quarantine survives inventory omission and overrides project/global allows.
+  // Exact denies must follow preserved wildcard rules in OpenCode's name map.
+  for (const evidence of inventory.hardQuarantine || []) {
+    if (evidence.kind === "skill") states.set(evidence.id, false);
+  }
   const permission = Object.fromEntries(Object.entries(existing).filter(([name]) => !states.has(name)));
   for (const [name, enabled] of states) permission[name] = enabled ? "allow" : "deny";
   return permission;
