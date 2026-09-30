@@ -275,6 +275,34 @@ def static_simple_words(command: str) -> tuple[str, ...] | None:
     return words or None
 
 
+def redirected_script_words(command: str) -> tuple[str, ...] | None:
+    """Extract literal argv for script inspection, never for direct-command grants."""
+
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>()")
+    lexer.whitespace_split = True
+    lexer.commenters = ""
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return None
+    words: list[str] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token in {">", ">>", ">|", ">&", "<", "<&", "&>", "&>>"}:
+            if index + 1 >= len(tokens):
+                return None
+            if words and words[-1].isdigit():
+                words.pop()
+            index += 2
+            continue
+        if token and all(character in ";&|<>()" for character in token):
+            return None
+        words.append(token)
+        index += 1
+    return tuple(words) or None
+
+
 def split_safe_and_chain(command: str) -> tuple[str, ...] | None:
     """Split a chain only when its shell operators are literal ``&&`` or ``||``.
 
@@ -1146,18 +1174,26 @@ def bash_denial_reason(command: str, cwd: Path, inside_script: bool = False) -> 
         return None
     words = static_simple_words(literal_text)
     effective = strip_wrappers(words) if words is not None else None
-    if effective:
-        executable = executable_name(effective[0])
+    script_words = words if words is not None else redirected_script_words(literal_text)
+    script_effective = strip_wrappers(script_words) if script_words is not None else None
+    if script_effective:
+        executable = executable_name(script_effective[0])
         if executable in SHELL_INTERPRETERS:
-            for position, argument in enumerate(effective[1:], start=1):
+            for position, argument in enumerate(script_effective[1:], start=1):
                 if argument == "-c" or re.fullmatch(r"-[a-zA-Z]*c", argument):
                     script_index = position + 1
-                    if script_index < len(effective) and effective[script_index] == "--":
+                    if script_index < len(script_effective) and script_effective[script_index] == "--":
                         script_index += 1
-                    if script_index < len(effective):
-                        return bash_denial_reason(effective[script_index], cwd, inside_script=True)
+                    if script_index < len(script_effective):
+                        reason = bash_denial_reason(script_effective[script_index], cwd, inside_script=True)
+                        if reason is not None:
+                            return reason
+                        # Redirected argv never upgrades a composition to a
+                        # direct command or skips the outer writer checks.
+                        if words is not None:
+                            return None
                     break
-        if executable == "eval" and len(effective) >= 2:
+        if effective and executable == "eval" and len(effective) >= 2:
             return bash_denial_reason(" ".join(effective[1:]), cwd, inside_script=True)
     forbidden = references_forbidden_capability(lexical_text)
     literal_risk = (
