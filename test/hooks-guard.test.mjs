@@ -184,6 +184,16 @@ test("direct cleanup admits a clean registered secondary worktree without forcin
     `git worktree remove '${top}'`,
     `env GIT_DIR=/tmp/foreign git worktree remove '${worker}'`,
   ]) assert.ok(decisionAt("Bash", command, repo), command);
+  for (const prefix of ["bash -c", "env GIT_DIR=/tmp/foreign bash -c", "eval"]) {
+    assert.ok(decisionAt("Bash", `${prefix} ${JSON.stringify(remove)}`, repo), "shell wrappers do not gain the direct cleanup exception");
+  }
+  const relativeWorker = join(repo, "worker");
+  git(["worktree", "add", "--detach", "--quiet", relativeWorker, "HEAD"]);
+  writeFileSync(join(relativeWorker, ".env"), "FIXTURE_SECRET=relative-sentinel\n");
+  const relativeRemove = `git -C '${repo}' worktree remove ./worker`;
+  assert.ok(decisionAt("Bash", relativeRemove, top), "-C inspects the actual relative target, not its clean namesake");
+  rmSync(join(relativeWorker, ".env"));
+  assert.equal(decisionAt("Bash", relativeRemove, top), null);
   assert.ok(decisionAt("Bash", remove, worker), "the active checkout stays protected");
   writeFileSync(join(worker, "untracked.txt"), "preserve\n");
   assert.ok(decisionAt("Bash", remove, repo), "untracked work stays protected");

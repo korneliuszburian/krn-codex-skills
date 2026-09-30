@@ -422,8 +422,10 @@ def direct_worktree_remove_denial_reason(words: tuple[str, ...], cwd: Path) -> s
         targets = targets[1:]
     if len(targets) != 1 or targets[0].startswith("-"):
         return "worktree cleanup requires one literal target without --force or other options"
-    target = resolve_target(targets[0], cwd)
-    if repository is None or target is None or not target.is_dir():
+    if repository is None:
+        return "worktree cleanup repository is unavailable or expanding"
+    target = resolve_target(targets[0], repository)
+    if target is None or not target.is_dir():
         return "worktree cleanup target or repository is unavailable or expanding"
     if target == cwd.resolve() or target in cwd.resolve().parents:
         return "worktree cleanup cannot remove the active working directory"
@@ -1120,7 +1122,7 @@ def remote_transfer_denial_reason(command: str, cwd: Path) -> str | None:
     return None
 
 
-def bash_denial_reason(command: str, cwd: Path) -> str | None:
+def bash_denial_reason(command: str, cwd: Path, inside_script: bool = False) -> str | None:
     lexical_text = command.replace("\\\r\n", "").replace("\\\n", "")
     literal_text = without_shell_comments(lexical_text)
     deploy_state, deploy_reason = dev_deploy_decision(literal_text, cwd)
@@ -1137,7 +1139,7 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
     if chain is not None and len(chain) > 1:
         active_cwd = cwd
         for segment in chain:
-            reason = bash_denial_reason(segment, active_cwd)
+            reason = bash_denial_reason(segment, active_cwd, inside_script)
             if reason is not None:
                 return reason
             active_cwd = cd_target(segment, active_cwd) or active_cwd
@@ -1153,10 +1155,10 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
                     if script_index < len(effective) and effective[script_index] == "--":
                         script_index += 1
                     if script_index < len(effective):
-                        return bash_denial_reason(effective[script_index], cwd)
+                        return bash_denial_reason(effective[script_index], cwd, inside_script=True)
                     break
         if executable == "eval" and len(effective) >= 2:
-            return bash_denial_reason(" ".join(effective[1:]), cwd)
+            return bash_denial_reason(" ".join(effective[1:]), cwd, inside_script=True)
     forbidden = references_forbidden_capability(lexical_text)
     literal_risk = (
         DESTRUCTIVE_LITERAL.search(literal_text) is not None
@@ -1189,7 +1191,7 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
     if effective and executable_name(effective[0]) == "git":
         offset = 3 if len(effective) > 3 and effective[1] == "-C" else 1
         if effective[offset:offset + 2] == ("worktree", "remove"):
-            if words != effective:
+            if inside_script or words != effective:
                 return "worktree cleanup requires a direct Git command without shell wrappers"
             return direct_worktree_remove_denial_reason(effective, cwd)
 
