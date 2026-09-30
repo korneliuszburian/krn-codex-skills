@@ -196,6 +196,119 @@ capability. Reopen this section when the source version or a real delegation,
 context or language result changes its disposition; update its index entry
 in the same change.
 
+## Action applicability and scoped memory: workbench deepening (2026-09-30)
+
+Consumer: the operator choosing the memory branch of the [single product plan](product-architecture.md#4-pamięć-odzyskiwać-właściwą-informację-nie-gromadzić-rozmowy).
+Owner: maintainer. Disposition: `lab-test` for runtime changes; the separated
+questions below are design criteria. These sources extend existing memory,
+retrieval and invalidation decisions, not another store or benchmark.
+
+| Primary source / fixed version, verified 2026-09-30 | Mechanism and local disposition | Limit / falsifier |
+|---|---|---|
+| [Sufficient Context v3](https://arxiv.org/html/2411.06037v3), 2025-04-23, §§3.1/4.3/5.1 | Relevant, useful, sufficient and correct are separate questions. **Adopt** that separation in the existing derived view; **reject** a model's sufficiency label as approval or a universal stop gate. | Its definition can call a wrong factual answer sufficient; the autorater qualification has 115 QA cases. Models can answer with insufficient context, so indiscriminate abstention reduces coverage. Falsifier: sufficient-but-wrong evidence admits an unsupported effect; QA is not repository execution. |
+| [MINJA v5](https://arxiv.org/html/2503.03704v5), 2026-02-12, §§3/5.4 | Query-only interaction can induce agent-authored records that misdirect later queries. **Adopt** the contamination countercase; **reject** agent authorship, embedding similarity or a detector vote as authentication. | Shared automatic recording and benchmark-specific attack assumptions constrain transfer. Detection has a specificity/generalization tradeoff. Falsifier: recalled content manufactures operator authority. This is not an observed KRN exploit or proof the proposed controls stop all injection. |
+| [MemoryArena v2](https://arxiv.org/html/2602.16313v2), 2026-09-17, §§4.2–4.4 | Successful partial steps can violate final constraints in dependent multi-session tasks. **Adopt** scoring the complete outcome and requirement preservation; **defer** another benchmark runner. | External memory is not universally better than full history; dependency depth and task class matter. Inconsistent GPT-5-mini/GPT-5.1-mini naming limits exact transfer. Falsifier: locally successful actions produce an invalid overall result; these tasks do not establish a Codex/Pi backend. |
+| [Break It Down, Pass It On v1](https://arxiv.org/html/2608.20274v1), 2026-08-20, §§3–5/Limitations | Subtask-level induced guidance transfers better than whole-task guidance in the tested systems; text generally transfers better than generated code. **Lab-test** one scoped procedural experience after actual recurrence; **reject** automatic outcome-to-skill promotion. | Three benchmarks and eleven models use architecture-specific no-memory baselines; coding agents and revisable memories are future work. Falsifier: a recipient inherits source-specific assumptions or loses to native reading at full cost. This does not require decomposing every task. |
+| [ShareMem v1](https://arxiv.org/html/2609.32511v1), 2026-09-26, §§4.4/A.1/B.5–B.6 | Separate reusable procedure from recipient-specific values. **Adopt** that applicability question; **lab-test** guidance applied using current project values; **defer** pooled memory and its manager. | Foreign-preference misuse persists with labels/instructions; reported misuse is same-model-confirmed among exposed failures. MemoryCode uses fixed history and AST/regex grading, not executed repository changes. Falsifier: foreign values govern this project. Cross-user sharing is an analogy, not a cross-project benefit result. |
+
+Owner for acquisition/applicability: existing task/state/source readers; owner
+for authority: actual operator/host ingress; owner for learning: existing
+knowledge/lesson maintainer. The consumer is the next action or a fresh eligible
+recipient. Separate scope, authentic actor, current applicability, named required
+evidence and observed effect. `applicable[]` binds a rule to source/scope/revision;
+`missingEvidence[]` identifies a missing complement or contradiction and its
+source owner. Stop only the dependent consequential transition; independent
+reads can continue. No schema establishes every implicit fact a coding task needs.
+
+The plan compares native reconstruction without extra KRN memory, an earned
+derived action view, and a small curated experience library. Responsibilities
+do not require separate files. Capsules/lesson prose are retirement candidates
+only if their actual consumers and non-reconstructible information migrate;
+no current surface was removed. The creative contrastive-memory hypothesis
+keeps a verified correction beside a near-match that must not use it. A reviewed
+paragraph and source/check links are the smallest candidate, not a graph store.
+
+Promotion uses current knowledge/lesson owners: project values remain local,
+global procedure needs recipient applicability and a countercase, and recalled
+text never promotes itself by repetition. Active budgets require owned
+supersession; low usage cannot erase an obligation. Native storage deletion,
+Git history, exports and active retrieval have different retention contracts.
+Inspect/correct/reject a suggestion at its owner; show unavailable native memory
+influence as unknown. Native session export and reconstruction remain qualified
+capabilities, not portable credentials or a promised complete context inspector.
+
+**Smallest continuation screen:** refine the existing sh-169/sh-167 protocol
+without changing its acceptance or publishing another lab. Select a genuine
+project task with independently frozen acceptance, public checks and input
+versions. Obtain a correct agent-authored checkpoint at a real interruption;
+its write cost and omissions count. Apply an identifiable operator replacement
+afterward while retaining a behavior obligation. Qualify the instrument on
+valid code, retained-behavior mutants, identical code under different retirement
+authority and an unrelated edit; setup/load failure is not behavioral RED.
+Keep existing native Goal/live-reading, capsule and transcript controls with
+matched source/tool/model/settings access and repair opportunities. Trace the
+requirement and source governing the action, separately from retrieval or skill
+selection. Score final behavior, lost obligations, unsupported completion,
+false blocks and recovery; include generation, acquisition, rereading, compaction,
+unavailable/failed attempts, checks and operator corrections in full cost.
+
+**Return:** the operator/maintainer chooses the next gate through existing H9/D4
+owners. A screen proves feasibility, not uplift. If native reading satisfies the
+same controls at lower cost, reject the extra view/library. Unavailable cost
+keeps efficiency inconclusive. Supersede this section in place when a source
+version, real transfer failure or qualified comparison changes its disposition;
+update the index. Reuse VibeMemBench, Total Recall, Missing Complement, Impact
+Is Not Invalidation, ACE and LongMemEval at their existing decisions.
+
+## Scoped simplification and modernization (2026-09-30)
+
+Consumer: operator/maintainer deciding how the [single product plan](product-architecture.md#6-kod-skills-i-make-it-sexy)
+improves code. Owner: maintainer. Source: operator-supplied simplifier prompt and
+[Anthropic code-modernization](https://github.com/anthropics/claude-plugins-official/tree/aa5654b7acb7d3096b5db44381bcfceaf4a71dfb/plugins/code-modernization),
+pin `aa5654b`, manifest version `1.0.0`, verified 2026-09-30.
+Source contents were read, not installed or executed.
+
+| Mechanism / primary resource | Disposition and owner | Limit / falsifier |
+|---|---|---|
+| [Uplift](https://github.com/anthropics/claude-plugins-official/blob/aa5654b7acb7d3096b5db44381bcfceaf4a71dfb/plugins/code-modernization/commands/modernize-uplift.md) separates same-stack version deltas from cross-stack transformation; a representative pilot informs later migration batches. | **Adopt** that distinction only for a matching migration, at the current migration/task owner. Read actual build/runtime feasibility and retained behavior before selecting tooling or rewriting. | Not an ordinary-fix pipeline. Falsifier: a version-only upgrade gratuitously rewrites code, or a real redesign is treated as a mechanical uplift. Pilot/source/old-new environment and all repair cost count. |
+| [Transform](https://github.com/anthropics/claude-plugins-official/blob/aa5654b7acb7d3096b5db44381bcfceaf4a71dfb/plugins/code-modernization/commands/modernize-transform.md) starts from the behavior contract; [proof pack](https://github.com/anthropics/claude-plugins-official/blob/aa5654b7acb7d3096b5db44381bcfceaf4a71dfb/plugins/code-modernization/scripts/proof_pack.py) checks result files, counts, freshness and rule markers; [comparator](https://github.com/anthropics/claude-plugins-official/blob/aa5654b7acb7d3096b5db44381bcfceaf4a71dfb/plugins/code-modernization/scripts/compare.py) compares supplied outputs and detects a byte-flip canary. | **Lab-test** a required old/new same-input comparison through existing executable proof owners. Account for skips, missing output, masks/tolerances and authorized differences. | The scripts do not execute the programs/tests themselves. File evidence and test-name markers cannot establish execution origin, oracle quality or semantic rule coverage; configured checks passing is not universal equivalence. Falsifier: fake/missing/skipped/wrong-candidate evidence or an undetected changed output is admitted. |
+| [Plugin README](https://github.com/anthropics/claude-plugins-official/blob/aa5654b7acb7d3096b5db44381bcfceaf4a71dfb/plugins/code-modernization/README.md), workflow inputs and [hook limitations](https://github.com/anthropics/claude-plugins-official/blob/aa5654b7acb7d3096b5db44381bcfceaf4a71dfb/plugins/code-modernization/hooks/README.md) describe a Claude-specific artifact/agent pipeline and human gates. | **Defer** the whole plugin, report hierarchy, fleet and hooks for KRN; **adopt** source-grounded scope and explicit next-action questions where an existing owner needs them. | Model-generated rule citations and worker build fields remain assertions. Typed approval names are not authenticated operator events; file-tool guards omit shell/subprocess effects. Falsifier: a receipt or prose approval grants an unsupported effect. Official provenance is not native Pi/Codex compatibility or a quality result. |
+
+The supplied simplifier is a quality companion under existing `make-it-sexy`,
+not a new always-loaded instruction or agent after every edit. **Adopt** clarity,
+recent-diff scope, behavior preservation and project-specific standards as
+criteria; **lab-test** the effect of an extra advice pass before making it routine.
+Read actual repository instructions, rather than assume `CLAUDE.md` exists.
+Keep arrows when receiver/callback semantics require them, annotate public TS
+relationships rather than blanket-widen inferred locals, and retain catch at
+real error translation/recovery/cleanup seams. Nested-condition readability is
+not permission to combine concerns or remove useful depth. A discovered bug or
+version migration is a changed contract, not behavior-preserving cleanup.
+
+Keep an unchanged owning check green before/after a observed behavior-preserving
+refinement; a genuinely new failure mode earns its own falsifier under `0/1/N`.
+Any edit invalidates earlier fixed-point proof/review. Count advice, producer
+repair, checks/review and operator correction against unchanged/native work;
+shorter code and agreement are non-proofs. Supersede this section when the
+source pin, a real changed-code use case or its measured cost changes the
+disposition. No plugin workflow, host hook, new skill or runtime test ran here.
+
+**Read-tool contextualization candidate.** In the same pin,
+[register.ts](https://github.com/anthropics/claude-plugins-official/blob/aa5654b7acb7d3096b5db44381bcfceaf4a71dfb/plugins/code-modernization/hooks/register.ts)
+adds X-ray context after a successful legacy-file read;
+[xray.ts](https://github.com/anthropics/claude-plugins-official/blob/aa5654b7acb7d3096b5db44381bcfceaf4a71dfb/plugins/code-modernization/hooks/xray/xray.ts)
+caps the note at 2,400 characters, nine rules and two citations per rule, with
+data framing. The inspected path consumes an analysis snapshot without
+per-read source hashing or cited-line revalidation; rule/delta basename lookups
+can require disambiguation, and an unmatched range can broaden to all cited rules.
+Those are source-level limits, not an executed collision or KRN exploit.
+**Lab-test** a capped current-source hint only after a real file-read miss survives
+the existing pointer/CLI ladder. Owner: native read/context adapter; consumer:
+that next decision. Falsifier: wrong/stale/range-mismatched guidance governs an
+action or adds cost/corrections versus native reading. Delimiters and cleaned
+names do not prove truth or authority. Reject always-on analysis-store/hook
+copying; no Pi/Codex applicability or benefit was observed.
+
 ## Retrieval escalation ladder
 
 KRN keeps retrieval as a composed process, not one similarity search. The
@@ -342,7 +455,7 @@ Wrappers and companions:
   diagnosis, design, or review.
 - `$second-opinion` is explicit read-only advice on one named artifact, never
   a patch or approval; the initiating owner verifies and disposes its output.
-  This Goal's model routing follows the current [product topology](product-architecture.md#runtime-and-host-profile),
+  This Goal's model routing follows the current [product topology](workbench-contracts.md#runtime-and-host-profile),
   not the historical OpenCode transport experiment below.
 - `setup-repository-workflow` performs one explicit adoption/repair pass and
   then disappears from ordinary work.
@@ -1581,7 +1694,7 @@ not prove loading in a current session. No new memory owner is adopted.
 **Superseded for the current Goal (2026-09-27).** This run-specific Astra-root
 recommendation answered an earlier operator request. The current operator made
 GPT-6 Sol the writing integrator, GPT-6 Luna the bounded reader and GPT-6
-Astra a rare complex-question escalator; [product-architecture.md](product-architecture.md#runtime-and-host-profile)
+Astra a rare complex-question escalator; [workbench-contracts.md](workbench-contracts.md#runtime-and-host-profile)
 owns that current topology. Preserve the evidence and non-proofs below as
 history, not as a launch instruction for this Goal.
 

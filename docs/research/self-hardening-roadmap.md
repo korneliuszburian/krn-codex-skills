@@ -8,7 +8,8 @@ older dated experiments and host observations retain their original scope.
 This page owns the bounded plan and its decision dependencies. The configured
 Git-ref queue owns task status and claims; [orchestration.md](orchestration.md)
 owns research mechanisms, [product-architecture.md](product-architecture.md)
-owns target interfaces and invariants, [capabilities](../capabilities.md)
+owns the one operator-facing product plan, [workbench-contracts.md](workbench-contracts.md)
+owns target interfaces/invariants, [capabilities](../capabilities.md)
 owns capability policy, and the outcome capsule owns current operational
 state. This is not a second queue or a claim that a planned mechanism works.
 Historical phases below retain their dated evidence; the
@@ -147,7 +148,7 @@ queue/history evidence; source changes alone still do not certify a loaded host.
 The Goal is one outcome and has one writing integrator. The operator selected
 `krn task` without a final `krn ticket` alias; `sh-181` only expands the new
 CLI while the old name remains temporarily reachable. The current model/Herdr
-policy and its limits live in [product-architecture.md](product-architecture.md#runtime-and-host-profile):
+policy and its limits live in [workbench-contracts.md](workbench-contracts.md#runtime-and-host-profile):
 Sol owns implementation, GPT-6 Luna handles bounded read-only questions and
 GPT-6 Astra is rare and question-justified. The recorded operator delegation
 covers routine bounded publication without repeated prompts; install, seal and
@@ -180,7 +181,7 @@ setup is not a valid RED, and no supplied green receipt proves execution.
 | H10: measured simplification and release, maintainer/installer | `hardening-simplification`: retire a surface only after migrating its actual consumers and preserving proof/rollback; decide retain/reduce/reject from a discriminating result | no blanket skill/doc/test deletion or new graph/store/controller; host release remains operator-gated; null benefit is an honest terminal decision |
 
 The path contract and three design alternatives live in
-[product-architecture.md](product-architecture.md#design-alternatives-and-bounded-recommendation-2026-09-30).
+[workbench-contracts.md](workbench-contracts.md#design-alternatives-and-bounded-recommendation-2026-09-30).
 The recommended candidate is native-host execution plus deep existing owners,
 common-user clarity, and action-specific correctness invariants. ADR 0006's
 installed defaults remain in force; opt-in replacement is an unresolved product
@@ -214,7 +215,7 @@ new planning row.
 | D11: repository hygiene, audit owner | **After** the measurement decision. Test-audit one subsystem at a time with R/F/C/D, keeper and mutant; correct only receipt-backed warning classes, preserve the foreign WIP and defer F repairs without their transcript. Report null benefit and retire unearned surfaces rather than manufacture a breakthrough. |
 
 The source-backed target interfaces, memory planes, chosen local storage and
-failure/scale matrix live only in [product-architecture.md](product-architecture.md).
+failure/scale matrix live only in [workbench-contracts.md](workbench-contracts.md).
 An external source does not authorize an implementation; this graph is consumed
 one uncertainty at a time, and `$slice-work` publishes only settled units with
 a named falsifier and real status readback. If native controls saturate or win,
