@@ -1,6 +1,6 @@
 # Local typed judgements
 
-Status: `lab-test` for offline task-type suggestion; reject a default model in the guard or queue. Consumer: `task-sh160-model-disposition` operator and a future task-type evaluator. Owner: KRN maintainer. Verified: 2026-09-29.
+Status: `lab-test` for offline task-type suggestion; reject a default model in the guard or queue. Consumer: `task-sh160-model-disposition` operator and a future task-type evaluator. Owner: KRN maintainer. Verified: 2026-09-30.
 
 ## Decision
 
@@ -25,6 +25,19 @@ The same README's [honest limits](https://github.com/NandhaKishorM/laya/blob/v0.
 | [EmbeddingGemma 300M model card, revision `57c266a7`](https://huggingface.co/google/embeddinggemma-300m/blob/57c266a740f537b4dc058e1b0cda161fd15afa75/README.md) | About 303M parameters; sentence similarity/embeddings, under the distinct Gemma license. | Needs a separate classifier and license review; no verified KRN advantage over a smaller classifier or the incumbent. Not the first experiment. |
 
 The alternatives have different training and operating surfaces. Official pages establish availability, architecture or license, not comparative KRN benefit. The local result below is evidence about these exact configurations, not a ready-made replacement.
+
+### Hosted finite-answer candidate (source check 2026-09-30)
+
+OpenAI's [DevDay recap](https://openai.com/index/devday-2026-recap/) announces
+Decisions API: Luna answers user-defined questions with finite predefined
+answers, in limited preview. This verifies the announcement, not a public
+schema, account access, latency, calibration or KRN benefit. **Defer** it as an
+offline suggestion candidate under this topic's existing consumer; keep the
+guard, authority and task types deterministic. The same adjudicated-label,
+episode-separated, correction-cost comparison below must disagree with the
+incumbent before any hosted trial or adoption. The source does not resume sh-85,
+create a second router or authorize private-task uploads. No hosted inference
+or account/configuration change was performed in this pass.
 
 ## KRN offline trial, 2026-09-29
 

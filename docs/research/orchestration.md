@@ -1416,6 +1416,37 @@ instruction decision when its source, host delivery, acceptance, or falsifier
 changes, or a repeatable miss survives the existing map/lexical/link repair.
 Otherwise reuse the owning topic rather than repeating this research.
 
+### Current provider capabilities and local implications (verified 2026-09-30)
+
+**Consumer and scope.** The maintainer and current integrator compare native
+provider capabilities before building equivalent KRN machinery. This source
+refresh is retained only where it changes a named decision; it is not a daily
+news log or permission to install a service. [OpenAI's DevDay 2026 recap](https://openai.com/index/devday-2026-recap/)
+and [official RSS](https://openai.com/news/rss.xml) confirm the 2026-09-29
+announcements. The [API changelog](https://developers.openai.com/api/docs/changelog)
+separately dates the Sol release, hosted computer use and Astra Ultrafast.
+Do not conflate an announcement, beta access, plan eligibility and a qualified
+local transport.
+
+| Capability / primary source | Verified mechanism or limit | KRN disposition and falsifier |
+|---|---|---|
+| [GPT-6.1 Sol release](https://openai.com/index/introducing-gpt-6-1-sol/), [GPT-6 guidance](https://developers.openai.com/api/docs/guides/latest-model) | released 2026-09-29; Sol 6.1 supports low/medium/high/xhigh/max effort, not none/minimal; tool calling requires Responses; unsupported sampling parameters must be removed | retain explicit requested model identity and qualify actual host parameters before matched trials; API guidance does not prove a child used xhigh or that vendor benchmarks transfer to KRN |
+| [Responses Multi-agent](https://developers.openai.com/api/docs/guides/responses-multi-agent) | beta supports Sol 6.1; concurrency counts all descendants, but total tree size/depth is not fixed; all agents can emit configured developer tool calls; automatic per-agent compaction is implicit, and max_tool_calls is unsupported | defer replacing current isolated read-only profiles; a real second caller must qualify tool attribution, writer enforcement, cancellation, recovery and full usage first; prompt-only read-only roles fail the intended boundary |
+| [Agents API](https://developers.openai.com/api/docs/guides/agents-api/overview) | managed Codex sessions, orchestration, compaction and recovery; hosted or self-hosted environments; US-only residency and no ZDR, including with a self-hosted sandbox | defer a second hosted loop and retention domain; retain as an external control candidate only when a real consumer and explicit data/host grant exist; a sandbox location does not satisfy privacy or task-authority requirements |
+| [Astra Ultrafast](https://developers.openai.com/api/docs/guides/ultrafast-mode) | separate service tier, rate limits and US/global processing restriction; Sol 6.1 Ultrafast is announced as coming soon, not currently qualified by this pass | defer transport optimization until latency is the measured bottleneck; availability and generated-token speed do not establish shorter or more reliable KRN outcomes |
+| [Decisions API announcement](https://openai.com/index/devday-2026-recap/) | finite user-defined answers using Luna; limited preview, not a verified local SDK/schema/access contract | defer in [local typed judgements](local-typed-judgements.md); do not reopen sh-85 or replace authorization, the guard or task types without adjudicated outcomes |
+| Native Codex CLI worktrees/agents and cloud review, in the recap | new native UI/coordination surfaces are announced; actual client version, loaded capability and host policy still matter | compare the supported native host before writing another controller or reviewer service; do not treat cloud security eligibility as proof that a failed local Daybreak-access probe is repaired |
+
+**Return and reopen.** Keep one local writing integrator and existing truth
+owners. No capability above was installed, benchmarked or enabled by this
+pass; no raw repository data was submitted to a new hosted service. Refresh
+when a source/API version, real consumer, privacy requirement or deciding
+failure changes, not because another day passed. The current delegation tools
+expose model selection but no thinking override; actual effort remains
+unverified unless the host supplies a readback. This is not a claim that GPT-6
+models lack xhigh. Neither new shared spaces nor personal auto-memory replaces
+the repository's reviewed knowledge owners.
+
 ### Pi as a comparison candidate (2026-09-24)
 
 Pi's official design is a small terminal agent loop: the request combines its

@@ -1,7 +1,9 @@
 # Self-hardening research and delivery roadmap
 
 Status: `accepted`. Consumer: the maintainer resuming self-hardening.
-Owner: maintainer. Verified: 2026-09-27.
+Owner: maintainer. Verified: 2026-09-30.
+The 2026-09-30 refresh plans audited repairs and a fresh-context handoff;
+older dated experiments and host observations retain their original scope.
 
 This page owns the bounded plan and its decision dependencies. The configured
 Git-ref queue owns task status and claims; [orchestration.md](orchestration.md)
@@ -121,20 +123,26 @@ Task resolution, not this paragraph, controls eligibility.
 
 ## Current target delivery graph
 
-At clean main `34ee7eb7` (2026-09-27), PR #250 is merged: `sh-180`,
-`sh-167` and `sh-181` are `done`, with `sh-167` still only fixture-scoped
-qualification, not authenticated user authority. The selected Git-ref queue
-has 107 tasks, 78 warnings, no errors; `sh-182` is `ready` behind the now-done
-`sh-181`, and `sh-183` is `open` behind `sh-182`. `sh-184` is `open` for a real
-Pi Goal/host readback; `sh-185` is `open` behind `sh-183` and `sh-184`; `sh-169`
-is `open` behind `sh-185`. `sh-186` is `open` behind `sh-184`, with its GPT-6
-policy corrected in the queue. `sh-165` remains `deferred`, blocking the
-`sh-168`/`sh-163` experiment despite their `ready` labels. The installed
-sealed release is still `6f50e815`: its older checker misreads the later
-`sh-167` close, and neither release equality nor host hook trust has been
-observed at main. The earlier research branch's two uncommitted files and
-other separately owned worktrees remain untouched. The queue, not this dated
-snapshot, decides live eligibility.
+The read-only audit used `c13652f4745472ef4cb67eff2fe242956c30e4c9`.
+Its live queue read had 112 records and 13 neither done nor abandoned despite
+an empty frontier: deferred `sh-165` blocked `sh-168` and `sh-163`, `sh-184`
+was claimed at epoch 4, and historical in-review tasks lacked closure readback.
+Zero unfinished effect operations would not discharge those tasks. The
+installed release matched that SHA by value; filesystem inspection still
+reported host-session loading unobservable. A later `.krn` hash changed during
+the audit, so complete checkout non-mutation was not established; tracked
+files, refs and monitored installation/configuration were unchanged at that
+boundary. No cause was attributed and no old capsule was rewritten.
+
+PR #288 landed the first instruction/research cleanup at
+`f550c6317c44b912473afa2b7a927a2f080d61d4`; independent Standards/Spec review,
+remote fast/deep CI and the local merged full gate passed. This is evidence
+of that slice, not runtime repairs or agent-performance uplift. The follow-up
+planning item is `task-hardening-plan-20260930`. The queue owns every claim and
+published task status; read it before choosing implementation. Existing
+sh-165/166/170/173/184/185/186 and their gates are not automatically resumed,
+taken over or closed by this plan. The completed task CLI cutover retains its
+queue/history evidence; source changes alone still do not certify a loaded host.
 
 The Goal is one outcome and has one writing integrator. The operator selected
 `krn task` without a final `krn ticket` alias; `sh-181` only expands the new
@@ -148,11 +156,51 @@ separate read-back transition. Units below are stages, not claims that
 proposed mechanisms already shipped; conditional work requires its failure
 trigger and the active queue's eligibility.
 
+### Audited hardening slices (2026-09-30)
+
+These ten units order the new repair campaign. Their task IDs are execution
+records, not a second status table. The task body carries each finding's
+severity, source path/line, consumer, evidence class, counterargument, cheapest
+falsifier and no-change alternative. A reproduced policy result, a static
+race/path analysis, a hypothesis and an evidence gap are different claims.
+Every bug is reproduced at its consumer before implementation; a failed
+setup is not a valid RED, and no supplied green receipt proves execution.
+
+| Slice / owner | Tasks and acceptance | Dependency / no-change boundary |
+|---|---|---|
+| H1: literal hook policy, hook owner | `hardening-git-alias`, `hardening-copy-target`, `hardening-shell-redirection`: the three reproduced policy bypasses refuse while benign counterparts remain allowed; exercise actual host adapter payloads without executing destructive commands | first runnable repair after this plan lands; guard remains a mistake-catcher, not an OS sandbox |
+| H2: quarantine projection, capability owner | `hardening-quarantine`: forbidden names do not retain existing allow through the OpenCode projection; `hardening-skill-identity` first diagnoses directory/frontmatter selector identity against the real consumer | source fixtures can follow H1; fresh host evidence and any installed change require their own grant |
+| H3: queue lifecycle/readback, task owner | `hardening-task-recovery`, `hardening-effect-cas`, `hardening-lease-input`, `hardening-selector-read`, `hardening-next-errors`: legal recovery, exact atomic readback, valid imported leases and selected-only truthful reads; preserve IDs, epochs and history | each uses current public task flow, not hand-edited refs; no automatic takeover, un-defer or old-task closure |
+| H4: proof and evaluator integrity, contract/kernel/conformance owners | `hardening-observer-preservation`, `hardening-frozen-base`, `hardening-tap-classification`, plus diagnostic `hardening-proof-origin`: reject the regressions each current observer misses while allowing explicitly authorized acceptance evolution | repairs must retain legal test retirement such as PR #288; a graph, judge or self-authored checkResult is not a proof fix |
+| H5: install ownership/seal, installer | `hardening-current-binding`, `hardening-seal-root`: inspect/apply agree about owned current; seal cannot write a ledger into an installed release or its alias | disposable homes/releases only; no live install, rollback, prune or trust action implied |
+| H6: state and capsule consumers, state/adapter owners | `hardening-state-markup`, `hardening-run-alias`, `hardening-review-containment`, `hardening-head-unknown`: accepted field syntax reaches the brief, physical run identity agrees, evidence is contained and unavailable freshness is explicit | repair consumer behavior without promoting capsule structure to task/authority proof or rewriting another outcome |
+| H7: normalized workspace lifecycle, kernel/lane/harness owners | `hardening-workspace-frontier`, `hardening-workspace-cleanup`, `hardening-workspace-copy`; diagnose `hardening-benchmark-retention`, `hardening-legacy-integrator`, `hardening-publication-binding`, `hardening-lane-retirement`: run-scoped paths, truthful owned cleanup, no copied private/source-linked state and checked publication identities | H4/H3 constrain any integration change; retained candidate/evidence after ambiguous effects must keep a named recovery consumer; temporary fixtures, Git locks and atomic install staging are explicit exceptions |
+| H8: knowledge, telemetry and setup, current knowledge/catalog/setup owners | `hardening-usage-evidence`, `hardening-live-docs`, `hardening-repro-scope`, `hardening-setup-delivery`, `hardening-setup-plan`: attempts are not successful body reads, operational docs name live interfaces, proof labels match their observers, host composition is qualified and setup shows exact effects before writing | use existing topics and commands; do not mirror manifests or create AGENTS.memory, onboarding framework or empty documentation by default |
+| H9: instruction/workflow qualification, existing LT/integrator owners | `hardening-workflow-eval`: matched existing-versus-minimal task journeys separate delivery, selection, execution and effect; calibrated independent acceptance, all retries and untouched final evaluation | only after relevant H1-H8 controls; single-case screens qualify the instrument, not uplift; existing sh-169/sh-185/D4 gates remain separate |
+| H10: measured simplification and release, maintainer/installer | `hardening-simplification`: retire a surface only after migrating its actual consumers and preserving proof/rollback; decide retain/reduce/reject from a discriminating result | no blanket skill/doc/test deletion or new graph/store/controller; host release remains operator-gated; null benefit is an honest terminal decision |
+
+The path contract and three design alternatives live in
+[product-architecture.md](product-architecture.md#design-alternatives-and-bounded-recommendation-2026-09-30).
+The recommended candidate is native-host execution plus deep existing owners,
+common-user clarity, and action-specific correctness invariants. ADR 0006's
+installed defaults remain in force; opt-in replacement is an unresolved product
+choice, not adopted because a model recommended it. Short labels or a new CLI
+facade must reduce caller obligations, not merely hide them.
+
+### Existing product and experiment gates
+
+D0-D11 retain their decision dependencies and historical qualification. They
+are not additional mandatory stages for every repair or a cache of live task
+status. In particular, H1-H8 correctness work does not require stealing the
+unrelated sh-184 claim, and a read-only review needs no implementation claim.
+An experiment still needs its actual predecessor and authority, not merely a
+new planning row.
+
 | Unit / type / owner | Prerequisite and result that can disagree |
 |---|---|
 | D0: `sh-180`, proof-close repair, task owner | **Done** via PR #249 and public CLI; `sh-167` was then closed with its actual fixture-scoped evidence. Forged receipt, wrong trailer/scope, stale claim or moved target refuse without writing `done`. Authentic user authority is still D3, not established by this close. |
-| D1: `krn task` public cutover, task owner | `sh-181` **done** via PR #250: `task` reaches the selected Git-ref queue; `ticket` remains transitional. Next `sh-182` **ready** migrates live CLI, hooks, skills, scripts, tests, instructions and install callers. `sh-183` **open** retires `ticket` without an alias only when no live caller remains; preserve task IDs, old Git history, lossless export/restore and rollback. No intermediate source commit is an installed cutover. |
-| D2: `sh-184`, Pi/host first-message readback, `$delivery-loop` | **Open**; read-only discovery can run while D1 proceeds, but production caller cutover waits for D1. A fresh supported Pi session reads its actual branch-local Pi-Agent-Goal state and project instructions; a fresh Codex session loads the trusted capsule hook; disabled treatment still works natively. Pi Goal 2026.7.18 peers `<0.81` against host0.87 need live compatibility, bounded idle continuation and restart checks. The operator, not `install check`, witnesses `/hooks` trust. |
+| D1: `krn task` public cutover, task owner | Source cutover and retirement through sh-181/sh-182/sh-183 are delivered; `task` reaches the selected queue and `ticket` refuses with a migration hint. Preserve task IDs, historical Markdown ABI, Git history, export/restore and rollback. Their immutable evidence stays in the queue; installed and loaded-host identity still require separate observations. |
+| D2: `sh-184`, Pi/host first-message readback, `$delivery-loop` | Read its current claim and evidence; do not infer completion or permission to take over. Read-only discovery can proceed independently. A fresh supported Pi session reads its actual branch-local Pi-Agent-Goal state and project instructions; a fresh Codex session loads the trusted capsule hook; disabled treatment still works natively. Pi Goal 2026.7.18 peers `<0.81` against host0.87 need live compatibility, bounded idle continuation and restart checks. The operator, not `install check`, witnesses `/hooks` trust. |
 | D3: `sh-185`, user-authority ingress, task/host owner | **Open**, blocked by `sh-183` and `sh-184`. Identify one genuine host/operator source, then bind scoped preserve/replace/revoke against expected task intent revision by CAS. Omitted obligations stay active and unverifiable source refuses; if host authentication cannot be observed, require deliberate operator confirmation rather than an invented source label. |
 | D4: `sh-169`, blinded *experiment*, `$delivery-loop` | **Open**, blocked by `sh-185` and an authentic post-checkpoint authority transition. Compare native Goal/live task+repo, agent-written capsule and matched excerpt at one model/tool/window with a frozen independent scorer; count writing, reading, retries, regression and whole-workflow cost. One case screens only; saturated or invalid control stops promotion. |
 | D5: next-decision frame, *conditional* prototype then implementation, state/task owner | Only a concrete native failure in D4. First manually construct and falsify the smallest bounded source/obligation/evidence view against direct live reading. Add a stateless read interface only if a current owner and second real caller use it and a paired downstream decision improves at counted cost. Otherwise reject this runtime mechanism; never create a second authoritative store. |

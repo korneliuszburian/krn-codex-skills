@@ -1,6 +1,8 @@
 # Evidence-driven agent depth
 
-Status: `lab-test`. Consumer: the active Goal integrator, `sh-184` host-readback owner, and `sh-186` worker-transport owner before any new memory, compression, or investigation skill. Owner: maintainer. Verified: 2026-09-27.
+Status: `lab-test`. Consumer: the active Goal integrator, `sh-184` host-readback owner, and `sh-186` worker-transport owner before any new memory, compression, or investigation skill. Owner: maintainer. Verified: 2026-09-30.
+The latest refresh checks Foreman's pinned control paths and discovery limits;
+earlier dated host observations and measurements are not newly revalidated.
 
 This page decides whether Beads-style memory, `sqz`-style context compression, or an expensive opt-in investigation skill earns a KRN consumer. [Product architecture](product-architecture.md) owns the target truth planes and [ticket protocol](ticket-protocol.md) owns the queue and task links. This page is **not** another roadmap, memory register, implementation spec, or evidence that an agent works better.
 
@@ -35,6 +37,48 @@ A bounded GitHub API sweep on 2026-09-27 used eight memory/context/orchestration
 - [`Sandbox Agent` `bbc195c`](https://github.com/rivet-dev/sandbox-agent/tree/bbc195cc3fb5a1dd9cb05d8437442768c511e17e), [`SWE-ReX` `5c995c3`](https://github.com/SWE-agent/SWE-ReX/tree/5c995c365d460add7516e41191d0e90274654e16) and [`Agent Orchestrator` `4113f05`](https://github.com/Untrivial-ai/agent-orchestrator/tree/4113f05907fb8df962d710c593ebc6d98602a890) offer remote execution, universal agent APIs or a persistent worker controller. KRN has one local writer and Herdr for panes; **defer** a remote server, planner and another session store until `sh-186` proves an isolation or throughput need at full integration cost. AO's [telemetry disclosure](https://github.com/Untrivial-ai/agent-orchestrator/blob/4113f05907fb8df962d710c593ebc6d98602a890/README.md#L243-L250) is also a host/privacy decision, not free UX.
 - [`ECC` `e482e57`](https://github.com/affaan-m/ECC/tree/e482e579415fde18357cafce70f177ae19fd7f03) advertises 68 agents/292 skills and has an [eval-harness skill](https://github.com/affaan-m/ECC/blob/e482e579415fde18357cafce70f177ae19fd7f03/.agents/skills/eval-harness/SKILL.md). Its scale and model-graded review do not prove improvement over KRN's existing owners and executed falsifiers. **Reject a blanket install**; a small explicit depth brief must win the matched pilot below before any extra skill is promoted.
 
+### Foreman: useful controls, not another KRN orchestrator
+
+[Foreman at `aa92236`](https://github.com/mastaan66/foreman/tree/aa92236f62a7b0fd24e0d1ae83cd91e583480819)
+uses OpenCode, tiered roles, ticket/run directories, deterministic checkpoints
+and engine-executed verify commands. Static first-party code inspection, not
+its demo or zero-dependency badge, establishes the following narrower limits:
+
+- [Verify and accept](https://github.com/mastaan66/foreman/blob/aa92236f62a7b0fd24e0d1ae83cd91e583480819/foreman.mjs#L555-L606)
+  execute current ticket/config commands but store lastVerify without a candidate
+  revision; accept checks that old verdict without a current fingerprint.
+  Execution is stronger than REPORT, not independent frozen acceptance.
+- [run --verify](https://github.com/mastaan66/foreman/blob/aa92236f62a7b0fd24e0d1ae83cd91e583480819/foreman.mjs#L484-L485)
+  can explicitly exit zero for a finished worker after the failed verifier set
+  exitCode=3. Its queue separately checks verified state, so this is not proof
+  that the queue admits the same failure.
+- The [daemon lock](https://github.com/mastaan66/foreman/blob/aa92236f62a7b0fd24e0d1ae83cd91e583480819/foreman.mjs#L668-L678)
+  is check-then-write, [state mutation](https://github.com/mastaan66/foreman/blob/aa92236f62a7b0fd24e0d1ae83cd91e583480819/lib.mjs#L260-L265)
+  has no expected-old CAS, and [worker spawn/stop](https://github.com/mastaan66/foreman/blob/aa92236f62a7b0fd24e0d1ae83cd91e583480819/foreman.mjs#L226-L249)
+  uses one project cwd and signals the child, not a proven whole-process-tree
+  isolation/termination boundary. Concurrency caps are not workspace fencing.
+- A [pure budget decision](https://github.com/mastaan66/foreman/blob/aa92236f62a7b0fd24e0d1ae83cd91e583480819/lib.mjs#L547-L573)
+  and deterministic checkpoint separate policy from execution; they remain
+  telemetry-dependent and clipping can lose later evidence. Its doctor calls
+  [agent synchronization](https://github.com/mastaan66/foreman/blob/aa92236f62a7b0fd24e0d1ae83cd91e583480819/foreman.mjs#L915),
+  which can write configuration, so do not assume an inspection command is read-only.
+
+**Disposition:** reject importing its hierarchy, store or daemon. Reuse the
+existing checker-verdict experiment below for the narrow counterexample:
+finished worker plus executed red checker must be failure at every KRN consumer;
+unexecuted checker remains unknown. Keep source-bound checkpointing deferred
+until a real restart miss earns a comparison with native/state resume. No
+Foreman command, test or installation ran, and no upstream repair or KRN uplift
+is claimed. Maintainer retains this residue; KRN harness/state owners receive
+only the applicable falsifier, not copied code or another task database.
+
+An operator-owned RSS service may supply candidate source URLs for this same
+question. It is discovery, not primary evidence, authority or a second research
+store. Read-only listing and stats are distinct from refresh/open/state actions;
+do not copy its stream into Git. If unavailable, stop that lookup and verify
+selected public sources directly rather than inventing a news result. No
+crawler, scheduled daily loop, feed mutation or service startup is adopted.
+
 ## Observations against current KRN
 
 - The public `krn task comment --body` already recorded a multiline `sh-182` checkpoint with author and fenced claim epoch; its Git-ref readback confirmed the result. Beads' `--stdin` removes shell quoting friction, **not** a missing memory database. A future `krn task comment --stdin` check must preserve newlines and refuse a stale epoch without writing.
@@ -50,6 +94,6 @@ A bounded GitHub API sweep on 2026-09-27 used eight memory/context/orchestration
 4. **Lab-test a premium *explicit* depth brief, not a magic skill.** The operator uses “sexy” as a shorthand for quality-closing *accepted work*, distinct from premium outside-source investigation; `$make-it-sexy` composes the existing owners for that request without a new authority, default subagent team or claim of measured uplift. A quoted adjective or UI styling alone is not that request. The **separate** premium investigation still needs a deliberate `/skill:<name>` or named prompt: first compare Sol composing `$source-to-decision`, `$codebase-design` and `$delivery-loop` against the *same Sol* with a short opt-in brief. Both receive the same frozen question, source access, time/token budget, tools and authority. Require a hidden, independent source/implementation check and executed downstream acceptance; measure unsupported claims, misses, false blocks, retry, Luna/Astra/parent cost and wall. A bounded Luna question is earned by a named evidence gap; Astra only by a rare genuinely complex decision. An extra investigation skill becomes installable only if repeated trials beat the direct owner baseline without extra false success. Stop or delete the draft if it merely lengthens the prompt, mandates subagents without need, or encourages a new authority. **No skill guarantees it will not err.**
 5. **Lab-test checker-owned verdict precedence before any harness comparison.** Use the existing KRN harness owner and the OpenBench counterexample as a negative hypothesis: recovered 429 followed by a completed failing checker must remain a real failure, but a transport that never completed cannot be called a solve or wrong answer. Run both controls on KRN's own runner with pinned task/agent outputs, count excluded trials and lost cost, and stop without code if KRN already distinguishes them. An external benchmark's reported failure rate is not KRN evidence.
 
-These are dispositions, not task publication. `sh-182` remains the current implementation item; `sh-183` owns alias retirement, `sh-184` host/Goal truth, `sh-185` real user authority, `sh-169` the authentic revoked-obligation/native-control pilot, and `sh-186` bounded transport. Any new tracked task needs its own queue authority and readback. A proven native failure may reopen one *conditional* mechanism in [product architecture](product-architecture.md); a green CI or vendor fixture cannot.
+These are dispositions, not live task status. The dated sh-182/sh-183 cutover evidence stays in the queue; sh-184 owns host/Goal truth, sh-185 real user authority, sh-169 the authentic revoked-obligation/native-control pilot, and sh-186 bounded transport. Read current eligibility and claims rather than treating this page as a second queue. Any new tracked task needs its own queue authority and readback. A proven native failure may reopen one *conditional* mechanism in [product architecture](product-architecture.md); a green CI or vendor fixture cannot.
 
 Reopen when an executed, matched native KRN decision fails and the named intervention clears its independent check at full cost; when `sh-184` exposes a silent host/source failure; or when a later source revision changes one of the pinned mechanisms. Otherwise keep the current planes and retire the unearned experiment rather than promoting a fashionable layer.
