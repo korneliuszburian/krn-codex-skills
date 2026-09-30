@@ -479,7 +479,8 @@ def git_static_risk(args: tuple[str, ...]) -> bool:
             if token == "-c" and index + 1 < len(args):
                 assignment = args[index + 1].split("=", 1)
                 if len(assignment) == 2 and assignment[0].startswith("alias."):
-                    return alias_is_risky(assignment[1])
+                    if alias_is_risky(assignment[1]):
+                        return True
             index += 2
             continue
         if token.startswith("-"):
