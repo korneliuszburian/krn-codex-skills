@@ -214,6 +214,29 @@ test("clustered sed -i, bare git checkout ., and rtk-prefixed writers are denied
   assert.ok(decision("Bash", "rtk proxy mv /tmp/x .env"), "rtk proxy mv must be denied");
 });
 
+test("benign inline Git aliases do not bypass destructive argv checks", async () => {
+  const { KrnAdapter } = await import("../config/opencode/plugins/krn.js");
+  const adapter = await KrnAdapter({ directory: root });
+  // Only submit command text to the policy/adapter; never execute these commands.
+  for (const command of [
+    "git -c alias.x=status clean -fdx",
+    "git -c alias.x=status -c alias.y=clean status",
+  ]) {
+    const result = runHook("Bash", command);
+    const output = result.stdout.trim() ? JSON.parse(result.stdout).hookSpecificOutput : null;
+    assert.equal(output?.permissionDecision, "deny", `Codex must deny: ${command}`);
+    await assert.rejects(adapter["tool.execute.before"]({ tool: "bash" }, { args: { command } }), `OpenCode must deny: ${command}`);
+  }
+  for (const command of [
+    "git -c alias.x=status status",
+    "git -c alias.x=status x",
+    "git -c core.clean=clean status",
+  ]) {
+    assert.equal(decision("Bash", command), null, `Codex must allow: ${command}`);
+    await assert.doesNotReject(adapter["tool.execute.before"]({ tool: "bash" }, { args: { command } }), `OpenCode must allow: ${command}`);
+  }
+});
+
 // The sed script can arrive through -e/--expression, leaving the target as the
 // first positional; in-place sed is denied outright so no flag grammar slips.
 test("in-place sed is denied through every flag spelling", () => {
