@@ -172,6 +172,31 @@ test("OpenCode generated exact permissions follow preserved wildcard rules", () 
   assert.equal(result.owned, "allow");
 });
 
+test("OpenCode quarantine denies follow preserved allows even for absent inventory skills", () => {
+  // Only inert records: no quarantined skill files are read or loaded.
+  const results = [];
+  for (const present of [false, true]) {
+    for (const exact of [false, true]) {
+      const inventory = {
+        skills: [skill("owned"), skill("optional"), skill("project"), ...(present ? [skill("superpowers-fixture")] : [])],
+        plugins: [],
+        hardQuarantine: [{ kind: "skill", id: "superpowers-fixture", evidence: "supplied-name", sourceId: "fixture" }],
+      };
+      const existing = { ...(exact ? { "superpowers-fixture": "allow" } : {}), "*": "allow", custom: "ask", project: "allow" };
+      const permission = openCode.skillPermissionProjection({
+        profile: policy,
+        inventory,
+        admission: { names: ["owned"] },
+        projectNames: ["project", "superpowers-fixture"],
+        existing,
+      });
+      results.push(Object.entries(permission));
+    }
+  }
+  const expected = [["*", "allow"], ["custom", "ask"], ["project", "allow"], ["owned", "allow"], ["optional", "deny"], ["superpowers-fixture", "deny"]];
+  assert.deepEqual(results, [expected, expected, expected, expected]);
+});
+
 test("OpenCode native scalar permission keeps its default and other permission keys", async (t) => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "krn-opencode-scalar-"));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
