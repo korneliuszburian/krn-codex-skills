@@ -1280,6 +1280,18 @@ dump as a fixture file and is excluded. The current long-running conversation
 still has its startup skill catalogue; only a new host session observes the
 withdrawn global entries.
 
+Codex's fresh-process readback succeeded. The active conversation's startup
+catalog is unchanged until that host session restarts. OpenCode remains
+unconverged: its installed KRN plugin reads the older profile in release
+`10fd088`, while the changed source projection has only focused test coverage.
+The delivery owner must publish a clean release and read back a new OpenCode
+process before claiming project-only scope there. The Luna runs show that
+natural task wording can select a skill; they do not measure task benefit. Keep
+the pinned upstream source cache needed to build the project export, and leave
+plugin-cache deletion to its owner; the KRN Codex profile now writes explicit
+disabled entries. This probe expires when OpenCode readback or a paired KRN
+task comparison supersedes it.
+
 ### Instruction efficacy and delivery (source refresh 2026-09-30)
 
 **Decision question and consumer.** How should the maintainer write, select,
@@ -1403,18 +1415,6 @@ experiment ran, and no claim covers all 103 indexed papers. Reopen a named
 instruction decision when its source, host delivery, acceptance, or falsifier
 changes, or a repeatable miss survives the existing map/lexical/link repair.
 Otherwise reuse the owning topic rather than repeating this research.
-
-Codex's fresh-process readback succeeded. The active conversation's startup
-catalog is unchanged until that host session restarts. OpenCode remains
-unconverged: its installed KRN plugin reads the older profile in release
-`10fd088`, while the changed source projection has only focused test coverage.
-The delivery owner must publish a clean release and read back a new OpenCode
-process before claiming project-only scope there. The Luna runs show that
-natural task wording can select a skill; they do not measure task benefit. Keep
-the pinned upstream source cache needed to build the project export, and leave
-plugin-cache deletion to its owner; the KRN Codex profile now writes explicit
-disabled entries. This probe expires when OpenCode readback or a paired KRN
-task comparison supersedes it.
 
 ### Pi as a comparison candidate (2026-09-24)
 
