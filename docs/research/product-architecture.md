@@ -2,7 +2,9 @@
 
 Status: `lab-test`. Consumer: the active Goal integrator, `$delivery-loop`, and
 `$slice-work` after the decision gates settle.
-Owner: maintainer. Verified: 2026-09-27.
+Owner: maintainer. Verified: 2026-09-30.
+The 2026-09-30 refresh compares design alternatives and workspace contracts;
+historical host observations below are not newly revalidated.
 This is the selected target topology and its testable contracts,
 not a claim that the product already improves agent outcomes. The current
 mechanisms and source comparisons remain in [orchestration.md](orchestration.md);
@@ -39,7 +41,7 @@ for admission and restart; a single laboratory case cannot establish uplift.
 
 | Truth | Current owner and selected target | Not its authority |
 |---|---|---|
-| Current outcome | Codex's native Goal or the installed Pi-Agent-Goal extension on the active Pi session branch; only its operator can change acceptance. | A child process's copied prompt or the task queue. |
+| Current outcome | The accepted operator request, or its native Goal when one exists; only the operator can change acceptance. Codex/Pi Goal state follows the actual host and session branch. | A child process's copied prompt or the task queue. |
 | Work item and user-approved task intent | The one operating `refs/krn/queue` snapshot, updated with expected-old Git-ref CAS. Existing `tasks`, `operations` and `intents` stay its owner; add scoped intent events to the task only after host-source validation. | Capsule, lesson, Herdr pane, Markdown mirror or a second DB. |
 | Code and executable acceptance | Immutable Git objects, frozen tests and candidate-bound receipts. Commit, task close, review and handoff have different source-of-truth checks. | Agent self-report or reviewer vote. |
 | One outcome's restart | `$delivery-loop`'s ignored, bounded checkpoint, derived from Goal/task/code and removed at its cleanup trigger. | Canonical user authority or task status. |
@@ -81,6 +83,97 @@ not a global diff-level stale flag. If the exact source or required evidence
 cannot be resolved, return `unknown` and stop the affected transition. Count
 all extraction, reading, retry and context tokens before claiming efficiency.
 
+## Design alternatives and bounded recommendation (2026-09-30)
+
+Three independent read-only designs challenged the existing target rather than
+assuming a new framework. This is design evidence, not an outcome experiment.
+
+| Alternative | Useful leverage | Strongest counterargument | Disposition |
+|---|---|---|---|
+| A: reduce to native execution and deep task/state/install owners | removes repeated caller-side sequencing and unearned always-loaded instructions | fewer command names can hide more operator work; deleting a live consumer is not simplification | retain existing ownership and repair its seams first; do not retire aliases, lessons, skills or laboratory tools without consumer evidence |
+| B: typed prerequisites and a derived evidence graph | makes action-specific refusals, unknown effects and stale generations explicit | a well-typed graph can still contain forged authority or a self-authored green receipt | retain execution, fencing and readback invariants at effect owners; defer a shared action DSL, persistent graph or new registry |
+| C: make the common user's onboarding/work/review/resume path trivial | hides flags and protocol order while exposing scope and actual effects | the native host may already provide this interface; another facade can add no value | lab-test clearer existing command results and exact setup plans before adding commands or interactive machinery |
+
+The recommended direction combines A's subtraction, C's user-facing clarity,
+and B's irreducible correctness conditions. It does not supersede ADR 0006's
+installed defaults, choose a different task backend, or claim a breakthrough.
+The counterexample set includes stale authority, a supplied green record,
+crash after effect, two independent clones, cancelled continuation, an unrelated
+change, a small typo and a full source review. Each effect owner must still
+refuse independently if every explanatory graph or UI is removed.
+
+A normal outcome uses one authorized writer and the recorded PR/review/fix/merge
+scope; install and host changes keep separate grants. No per-commit approval
+ritual and no automatic expansion of authority are introduced. Reuse existing
+knowledge before refreshing its primary source. Instruction delivery, procedure
+selection, correct execution and observed effect remain separate observations.
+`writing-for-agents` is a pinned authoring aid, not an empirically certified
+policy engine; its proposed wording changes must survive the same countercases.
+The roadmap owns the slices and their falsifiers, not this comparison table.
+
+## Caller-facing CLI and memory qualification
+
+The installed source-owned front door is `krn`; `krn-codex-catalog` is a thin
+compatibility wrapper into its capability command. Other personal binaries
+sharing the prefix have another checkout/owner and are not this installer’s
+retirement targets. Current installation identity, command existence and
+fresh-process loading are separate observations.
+
+| Surface | Current role | Candidate disposition, not an implemented retirement |
+|---|---|---|
+| task | authoritative work/claim/history/intent and checked effects | retain the deep owner; qualify single-task machine reads and structured generations before adding orchestration |
+| state | bounded restart/compile/readback | retain conditional continuation; no cached approval or task-status authority |
+| memory / lessons | memory dispatches procedural lesson recall/usage/check/verify/reanchor; lessons aliases the last three | one canonical semantic entrypoint after real caller migration; neither is a second DB or a general search over all repository knowledge |
+| repo / skills / capability | local adoption, generated export and explicit capability maintenance | improve exact plans and read-only inspection; keep host/profile writes explicit and developer operations out of the default daily journey |
+| changes / gate / conformance | different proof, transition and frozen-acceptance contracts | preserve the distinctions and truthful failure; do not merge them into one green badge |
+| install / doctor | host release lifecycle and readable inspection | retain actual operator consumers and rollback; aliases may be retired only after their external callers are qualified |
+| harness compare | laboratory/measurement consumer | preserve ADR 0006’s consumer/proof boundary; development-only exposure is a choice to qualify, not immediate deletion |
+
+Observed integrator friction includes whole-task-list extraction for current
+owner/epoch/lease, while show/fields expose presentation labels and env serves
+lane bindings. The smallest improvement must first account for those existing
+interfaces, preserve compatibility, identify a second real caller and keep
+read-only effects/unknowns explicit. New wrappers, command names and root
+defaults must not hide wrong-repository selection or another permission.
+
+Useful memory means the agent can obtain the evidence needed for its next
+question from current authorities and reusable knowledge, not that it calls
+recall on every turn. Keep live task history, outcome continuation, reviewed
+shared facts and executable procedural lessons distinct. A composed read view
+may cite them without becoming their store or granting authority. Measure a
+real miss against current/native reading, source applicability, counterevidence
+and changed-authority cases before implementing another view or index. Existing
+D4/D5/sh-169/sh-185 gates remain; neutral small work must not acquire a mandatory
+memory ritual. CLI integration and memory-usefulness decisions are tasks in the
+roadmap, and their publication is not evidence of product benefit.
+
+## Workspace and run contract
+
+Persistent working state has one existing shape:
+`.krn/runs/<workflow>/<run-id>/`. Candidate, clone, home, operation packet and
+logs belong to that run as children, not independently located peer roots.
+A writable sandbox clone is not a linked Git worktree; callers must name the
+actual mode rather than call both `WT`. Queue coordination follows canonical
+Git common-directory identity, while a run belongs to its actual checkout.
+
+| Resource | Owner and lifecycle | Deliberate exception / refusal |
+|---|---|---|
+| Persistent workflow run | creating workflow and the outcome's sole writer; one named consumer and cleanup/supersession trigger | a transfer does not authorize deleting another owner's run or resurrecting a cancelled outcome |
+| Candidate linked worktree | existing kernel/worktree owner, called by the integrator | refusal/failure must report owned cleanup; removing one resource must not prune or delete unrelated author worktrees |
+| Isolated writable clone/copy | existing lane/harness owner; source is read-only and the candidate is read back before integration | reject destination-inside-source recursion and source-linked `.git` metadata; exclude unrelated runs and private data |
+| Short-lived proof/test fixture | caller-owned temporary scope, removed on success and failure | temporary fixtures are not durable continuation; do not force all test trees into the source checkout |
+| Queue lock | task owner under the shared Git common directory | not a workflow run and not a distributed lock |
+| Install staging | installer on the release filesystem for atomic rename | do not relocate staging into a generic run or weaken prior-current rollback |
+
+Extend an existing owner only for an actual caller; do not create a universal
+workspace service or `.krn/worktrees` registry. Normalize persistent paths,
+realpath containment and cleanup outcomes together. Preserve condensed evidence
+needed for recovery, but separately minimize credential-bearing home retention.
+After an ambiguous external effect, read back the effect before replay or
+cleanup that could erase required recovery evidence. These are target contracts;
+current shell/harness divergences are repairs in the roadmap, not guarantees
+already delivered by this page.
+
 ## Runtime and host profile
 
 The supported **local profile** is Node 22 ESM, one writing integrator, the
@@ -105,7 +198,7 @@ Pi 0.87.1; `get_goal` works, but idle continuation requires its opt-in flag,
 version-compatibility and live TUI smoke before any unattended promise.
 Codex's non-managed `/hooks` trust requires genuine operator review.
 
-**Model and Herdr topology (operator scope for this Goal):** GPT-6 Sol is
+**Model and Herdr topology (historical operator scope, 2026-09-27):** GPT-6 Sol is
 the sole writing integrator and direct control. GPT-6 Luna from `openai-codex`
 handles bounded read-only questions; GPT-6 Astra is reserved for rare genuinely
 complex design or counterexample questions with a stated reason and measured
@@ -134,6 +227,19 @@ unrelated malformed mise config; the verified direct Pi 0.87.1 binary runs
 read-only workers. No persistent Herdr worker pane or KRN Pi extension is
 installed by this research; the temporary Luna pane noted by `sh-186` was
 closed. Do not confuse a green pane icon with completed work.
+
+**Current instruction/source qualification (2026-09-30).** The current accepted
+request has a Sol 6.1 writing integrator and separately identified read-only
+research/review workers. Official [GPT-6 guidance](https://developers.openai.com/api/docs/guides/latest-model)
+now distinguishes Sol 6.1 from Sol and lists supported effort settings; a
+requested model or tool's default does not establish the actual backend effort.
+The current delegation interface exposes model selection but no thinking
+parameter, so do not label a worker xhigh without readback. Provider-native
+multi-agent/managed-host alternatives, shared tools, compaction, privacy and
+access limits are qualified in [orchestration](orchestration.md#current-provider-capabilities-and-local-implications-verified-2026-09-30).
+No new host, account tier, writing-worker transport or cloud authority was
+adopted. The historical profile above is not an unbounded permission for a new
+session; re-read the accepted request and current queue before acting.
 
 ## Failure and scale contract
 
@@ -181,8 +287,8 @@ retirement. Do not gradually turn one local queue into two live stores.
 The exact staged implementation, instrument and experiment DAG has one owner:
 [self-hardening-roadmap.md](self-hardening-roadmap.md#current-target-delivery-graph).
 The Git-ref queue alone owns published task status and claim state; this page
-owns *target interfaces and invariants*, not a second priority list. The active
-Goal remains the sole outcome. A settled capability can become one vertical
+owns *target interfaces and invariants*, not a second priority list. The accepted
+request, represented by a native Goal when present, remains the outcome authority. A settled capability can become one vertical
 implementation task; a behavioral uncertainty becomes an explicitly bounded
 experiment. Do not publish a conditional runtime mechanism as ready work.
 
