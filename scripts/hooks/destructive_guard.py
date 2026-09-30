@@ -346,6 +346,55 @@ def _target_directory(rest: list[str]) -> str | None:
     return destination
 
 
+def _copy_write_targets(executable: str, rest: list[str], cwd: Path) -> list[str]:
+    """Name literal copy destinations, including children of a target directory."""
+    value_options = {"-t", "--target-directory", "-S", "--suffix"}
+    if executable == "install":
+        value_options.update({"-m", "--mode", "-o", "--owner", "-g", "--group", "--strip-program"})
+    operands: list[str] = []
+    directory: str | None = None
+    no_target_directory = False
+    index = 0
+    while index < len(rest):
+        word = rest[index]
+        if word == "--":
+            operands.extend(rest[index + 1 :])
+            break
+        if not word.startswith("-") or word == "-":
+            operands.append(word)
+        else:
+            option, separator, value = word.partition("=")
+            attached = value if separator else None
+            if word.startswith("--"):
+                if option == "--no-target-directory" or (executable == "install" and option == "--directory"):
+                    no_target_directory = True
+            else:
+                for position, letter in enumerate(word[1:], start=2):
+                    if letter == "T" or (executable == "install" and letter == "d"):
+                        no_target_directory = True
+                    if f"-{letter}" in value_options:
+                        option = f"-{letter}"
+                        attached = word[position:] or None
+                        break
+            if option in value_options:
+                if attached is None and index + 1 < len(rest):
+                    index += 1
+                    attached = rest[index]
+                if option in {"-t", "--target-directory"}:
+                    directory = attached
+        index += 1
+    explicit_directory = directory is not None
+    if directory is None:
+        if len(operands) < 2:
+            return []
+        directory = operands.pop()
+    targets = [directory]
+    target = resolve_target(directory, cwd)
+    if not no_target_directory and target is not None and (explicit_directory or target.is_dir()):
+        targets.extend(str(target / Path(source).name) for source in operands)
+    return targets
+
+
 def is_scoped_skill_update_target(target: Path) -> bool:
     """Admit one named skill entry, never the installed index or protected files."""
     index = Path.home().resolve() / ".agents" / "skills"
@@ -384,12 +433,7 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
             return None
         targets = arguments
     elif executable in {"cp", "install"}:
-        directory = _target_directory(list(words[1:]))
-        if directory is None:
-            if len(arguments) < 2:
-                return None
-            directory = arguments[-1]
-        targets = [directory]
+        targets = _copy_write_targets(executable, list(words[1:]), cwd)
     elif executable == "tee":
         targets = arguments
     elif executable == "sed" and any(

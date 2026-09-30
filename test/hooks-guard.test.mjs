@@ -121,6 +121,47 @@ test("cp target-directory into a protected path is denied", () => {
   assert.ok(decision("Bash", "cp --target-directory=.git ./src"), "cp --target-directory=.git must be denied");
 });
 
+test("copy directory destinations guard resulting protected children", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-copy-target-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  mkdirSync(join(dir, "source"));
+  mkdirSync(join(dir, "config"));
+  writeFileSync(join(dir, "source", ".env"), "FIXTURE_ONLY=source\n");
+  writeFileSync(join(dir, "source", "notes.txt"), "ordinary fixture\n");
+  const sentinel = "FIXTURE_ONLY=preserve\n";
+  writeFileSync(join(dir, "config", ".env"), sentinel);
+  const { KrnAdapter } = await import("../config/opencode/plugins/krn.js");
+  const adapter = await KrnAdapter({ directory: dir });
+  // Submit inert command text only; neither adapter executes cp/install.
+  for (const command of [
+    "cp source/.env config/",
+    "install source/.env config/",
+    "cp -t config source/.env",
+    "cp --target-directory=config source/.env",
+    "cp -vtconfig source/.env",
+    "install -t config source/.env",
+    "cp source/notes.txt source/.env config/",
+  ]) {
+    const result = runHook("Bash", command, dir);
+    const output = result.stdout.trim() ? JSON.parse(result.stdout).hookSpecificOutput : null;
+    assert.equal(output?.permissionDecision, "deny", `Codex must deny: ${command}`);
+    await assert.rejects(adapter["tool.execute.before"]({ tool: "bash" }, { args: { command } }), `OpenCode must deny: ${command}`);
+  }
+  for (const command of [
+    "cp source/notes.txt config/",
+    "install -m 600 source/notes.txt config/",
+    "cp -t config source/notes.txt",
+    "cp -S .env source/notes.txt config/",
+    "cp source/.env config/renamed.txt",
+    "cp -T source/.env config/",
+  ]) {
+    assert.equal(decisionAt("Bash", command, dir), null, `Codex must allow: ${command}`);
+    await assert.doesNotReject(adapter["tool.execute.before"]({ tool: "bash" }, { args: { command } }), `OpenCode must allow: ${command}`);
+  }
+  assert.equal(readFileSync(join(dir, "config", ".env"), "utf8"), sentinel, "policy inspection must not copy over the fixture");
+  assert.equal(existsSync(join(dir, "config", "notes.txt")), false, "policy inspection must not execute benign copies either");
+});
+
 test("a named skill entry accepts nondeleting updates while the index and removal stay guarded", () => {
   const index = join(homedir(), ".agents", "skills");
   for (const name of ["playwright-cli", "new-skill"]) {
