@@ -9,8 +9,8 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
 - `config/AGENTS.md`: installed global contract; keep local facts out of it.
 - `skills/<group>/<name>/`: one promoted workflow with its direct resources.
 - `skills/manifest.json`: install names, paths, invocation, and retirement.
-- `scripts/`: CLI, hooks, and `lib/<owner>/` (audit, catalog, conformance, contract, install, kernel, lessons, rules, state, support, task, ticket).
-- `test/<group>/`: suites for architecture, audit, bootstrap-fixture, catalog, cli, conformance, contract, install, lane, lessons, opencode, repro, rules, state, support, task, and ticket, plus top-level `ci-workflow`, `hooks-guard`, `setup-workflow`, and `skill-scripts`.
+- `scripts/`: CLI, hooks, and runtime modules under `lib/<owner>/`.
+- `test/`: owner-scoped suites and top-level integration checks.
 - `.agents/skills/`: generated skill export; regenerate with `krn skills export`, gated by `skills:check`.
 - `.github/`: CI workflow; `npm run gate` is the local equivalent of the gate sequence.
 - `test/bootstrap-fixture/`: retained installed-release smoke.
@@ -25,8 +25,11 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
 ## Working rules
 
 1. Run `git status --short --branch` before editing; preserve unrelated work.
-2. Read the affected `SKILL.md` and direct references; load research only when
-   the decision depends on it. Consult `CONTEXT.md` when vocabulary may move.
+2. Read the affected `SKILL.md` and direct references. Before external-source
+   lookup or reviewing a source-backed decision, read `docs/research/README.md`,
+   search its index for the source or question, and follow the matching topic.
+   Its reuse and refresh rules decide whether new research is needed. Consult
+   `CONTEXT.md` when vocabulary or ownership may move.
 3. Do not add per-skill mirrors; durable
    knowledge keeps one owner per artifact, defined by `CONTEXT.md` and the
    research curation contract.
@@ -40,46 +43,29 @@ contract is `config/AGENTS.md`; this file adds only facts true for this checkout
 8. A conflicted merge or rebase is continued, aborted, or committed only under
    the operator's authority; the composed upstream `resolving-merge-conflicts`
    procedure is guidance, not a mandate.
-9. A merged branch is retired in the same close-out: delete it local and remote
-   and remove its worktree (`gh pr merge --delete-branch`, or `git branch -D
-   <branch>` + `git push origin --delete <branch>` + `git worktree remove
-   <dir>`). Never leave a merged lane branch or worktree behind.
+9. Retire an owned merged branch locally and remotely, and remove its worktree,
+   in the same close-out under recorded deletion authority. Report any blocked
+   cleanup; a merged branch does not itself grant authority over another owner's
+   branch or worktree.
 
 ## Local gates
 
-The global contract owns proof budgeting. `npm run gate` is the union of `gate:fast`
-(cheap rejectors: validate, changes:check, quality:audit, test:lib,
-conformance:check) and `gate:deep` (install, bootstrap, and seal suites). Run the
-whole set once before handoff:
+The global contract owns proof budgeting; `package.json` owns gate composition.
+`gate:fast` contains cheap rejectors, including `quality:audit`; `gate:deep`
+covers install, bootstrap, and seal checks. Before the integrator hands off a
+changed fixed point, run `npm run gate` once on that fixed point. Read-only
+findings do not require the full gate. Use the Node version pinned in
+`.node-version`; running gates does not authorize host toolchain changes.
 
-```bash
-npm run validate
-npm run test:bootstrap
-npm run test:install
-npm run test:hooks
-npm run test:state
-npm run test:skills
-npm run skills:check
-npm run lessons:verify
-npm run quality:audit
-npm run test:repro
-npm run changes:check
-npm run test:lessons
-npm run test:lessons-verify
-npm run test:change-contract
-npm run test:conformance
-npm run test:durable-pages
-npm run test:catalog
-npm run test:setup
-npm run test:skill-scripts
-npm run test:lib
-npm run conformance:check
-bash -n scripts/install.sh
-bash -n skills/advisory/second-opinion/scripts/check-opinion.sh
-bash -n skills/advisory/second-opinion/scripts/run-opinion.sh
-git diff --check
-```
+## Delivery profile
 
-Work on a branch you own; reuse the current outcome's recorded publication authority without per-step prompts. Stop outside its scope.
+Deliver authorized repository changes through an owned branch and PR.
+`$delivery-loop` owns proof, fixed-point Standards/Spec review, and the
+repair/re-review loop. Merge after the current fixed point passes the required
+CI and reviews, then read back the merge and retire owned branch/worktree state.
+Reuse recorded publication authority without per-step prompts; stop outside
+the current outcome's scope. Installation and host changes require their
+separate grants.
+
 Installation, retirement, and rollback follow
 `scripts/lib/install/install-release.mjs` and `docs/migration.md`.

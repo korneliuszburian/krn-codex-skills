@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -36,19 +36,6 @@ export function slicePublicationErrors(text) {
   }
   return errors;
 }
-
-export function inventoryErrors(label, text, names) {
-  const body = String(text);
-  return names
-    .filter((name) => !new RegExp(`\\b${name}\\b`).test(body))
-    .map((name) => `${label} inventory omits ${name}`);
-}
-
-const directoryNames = (relative) =>
-  readdirSync(join(root, relative), { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort();
 
 test("the manifest runtime_paths are sorted", () => {
   const manifest = JSON.parse(readFileSync(join(root, "skills/manifest.json"), "utf8"));
@@ -97,17 +84,4 @@ test("one live task store, import and queue lock live under the task owner", () 
     assert.ok(manifest.runtime_paths.includes(taskPath), `${taskPath} is installed`);
     assert.ok(!existsSync(join(root, `scripts/lib/ticket/${name}`)), `${name} must not have a second legacy owner`);
   }
-});
-
-test("AGENTS.md and README.md inventories name every lib owner and test group", () => {
-  const names = [...directoryNames("scripts/lib"), ...directoryNames("test")];
-  for (const label of ["AGENTS.md", "README.md"]) {
-    assert.deepEqual(inventoryErrors(label, readFileSync(join(root, label), "utf8"), names), []);
-  }
-});
-
-test("the observer fails on an inventory that omits an owner", () => {
-  assert.deepEqual(inventoryErrors("README.md", "catalog and contract and install", ["catalog", "contract", "install", "ticket"]), [
-    "README.md inventory omits ticket",
-  ]);
 });

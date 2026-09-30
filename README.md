@@ -249,8 +249,8 @@ AGENTS.md             source-repository editing contract
 config/               installed global contract and hook configuration
 skills/               canonical workflow owners and direct resources
 .agents/skills/       generated skill export, verified by skills:check
-scripts/              CLI, hooks, and lib/ grouped by owner (audit, catalog, conformance, contract, install, kernel, lessons, rules, state, support, task, ticket)
-test/                 suites for architecture, audit, bootstrap-fixture, catalog, cli, conformance, contract, install, lane, lessons, opencode, repro, rules, state, support, task, and ticket, plus top-level ci-workflow, hooks-guard, setup-workflow, and skill-scripts
+scripts/              CLI, hooks, and runtime modules grouped by owner
+test/                 owner-scoped suites and top-level integration checks
 .github/              CI workflow that runs the change-contract and gate suites
 CONTEXT.md            compact current vocabulary and knowledge index
 docs/research/        living source-backed synthesis
