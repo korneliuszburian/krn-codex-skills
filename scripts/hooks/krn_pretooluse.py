@@ -15,6 +15,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import shlex
+import subprocess
 import sys
 from typing import Any
 
@@ -406,6 +407,46 @@ def direct_destructive_kind(words: tuple[str, ...]) -> str | None:
         return "git-clean"
     if executable == "git" and len(remaining) > 1 and remaining[1] == "restore":
         return "git-restore"
+    return None
+
+
+def direct_worktree_remove_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
+    """Inspect one clean registered secondary tree; never execute its removal."""
+    arguments = list(words[1:])
+    repository = cwd.resolve()
+    if arguments[:1] == ["-C"]:
+        repository = resolve_target(arguments[1], cwd)
+        arguments = arguments[2:]
+    targets = arguments[2:]
+    if targets[:1] == ["--"]:
+        targets = targets[1:]
+    if len(targets) != 1 or targets[0].startswith("-"):
+        return "worktree cleanup requires one literal target without --force or other options"
+    target = resolve_target(targets[0], cwd)
+    if repository is None or target is None or not target.is_dir():
+        return "worktree cleanup target or repository is unavailable or expanding"
+    if target == cwd.resolve() or target in cwd.resolve().parents:
+        return "worktree cleanup cannot remove the active working directory"
+    try:
+        listed = subprocess.run(
+            ["git", "-C", str(repository), "worktree", "list", "--porcelain", "-z"],
+            capture_output=True, text=True, timeout=5,
+            env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"},
+        )
+        if listed.returncode != 0:
+            return "worktree registration could not be verified"
+        paths = [Path(record[9:]).resolve() for record in listed.stdout.split("\0") if record.startswith("worktree ")]
+        if not paths or target not in paths or target == paths[0]:
+            return "worktree cleanup requires a registered secondary tree in this repository"
+        status = subprocess.run(
+            ["git", "-C", str(target), "status", "--porcelain=v1", "--untracked-files=all", "--ignored=matching"],
+            capture_output=True, text=True, timeout=5,
+            env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"},
+        )
+        if status.returncode != 0 or status.stdout.strip():
+            return "worktree cleanup refuses unknown, modified, untracked or ignored data"
+    except (OSError, subprocess.TimeoutExpired):
+        return "worktree cleanup inspection failed; target safety is unknown"
     return None
 
 
@@ -1144,6 +1185,13 @@ def bash_denial_reason(command: str, cwd: Path) -> str | None:
         return "blocked by the global forbidden-capability policy"
     if is_safe_inspection(effective):
         return None
+
+    if effective and executable_name(effective[0]) == "git":
+        offset = 3 if len(effective) > 3 and effective[1] == "-C" else 1
+        if effective[offset:offset + 2] == ("worktree", "remove"):
+            if words != effective:
+                return "worktree cleanup requires a direct Git command without shell wrappers"
+            return direct_worktree_remove_denial_reason(effective, cwd)
 
     kind = direct_destructive_kind(effective) if effective else None
     if kind is None:

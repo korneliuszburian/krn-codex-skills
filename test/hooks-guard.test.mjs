@@ -158,6 +158,41 @@ test("a glob writer target fails closed", () => {
 
 // A disposable temporary tree is removable even when it carries a copied .git,
 // while the temporary root itself stays protected.
+test("direct cleanup admits a clean registered secondary worktree without forcing removal", (t) => {
+  const top = mkdtempSync(join(tmpdir(), "krn-worktree-removal-"));
+  t.after(() => rmSync(top, { recursive: true, force: true }));
+  const repo = join(top, "repo");
+  const worker = join(top, "worker");
+  mkdirSync(repo);
+  const git = (args, cwd = repo) => {
+    const result = spawnSync("git", ["-C", cwd, ...args], { encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+  };
+  git(["init", "-q"]);
+  writeFileSync(join(repo, "AGENTS.md"), "Fixture instructions\n");
+  writeFileSync(join(repo, ".gitignore"), ".env\n");
+  git(["add", "."]);
+  git(["-c", "user.name=fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"]);
+  git(["worktree", "add", "--detach", "--quiet", worker, "HEAD"]);
+  const remove = `git worktree remove '${worker}'`;
+  assert.equal(decisionAt("Bash", remove, repo), null);
+  assert.equal(decisionAt("Bash", `git -C '${repo}' worktree remove -- '${worker}'`, top), null);
+  for (const command of [
+    `git worktree remove --force '${worker}'`,
+    `git worktree remove '${repo}'`,
+    `git worktree remove /tmp`,
+    `git worktree remove '${top}'`,
+    `env GIT_DIR=/tmp/foreign git worktree remove '${worker}'`,
+  ]) assert.ok(decisionAt("Bash", command, repo), command);
+  assert.ok(decisionAt("Bash", remove, worker), "the active checkout stays protected");
+  writeFileSync(join(worker, "untracked.txt"), "preserve\n");
+  assert.ok(decisionAt("Bash", remove, repo), "untracked work stays protected");
+  rmSync(join(worker, "untracked.txt"));
+  writeFileSync(join(worker, ".env"), "FIXTURE_SECRET=sentinel\n");
+  assert.ok(decisionAt("Bash", remove, repo), "ignored private data stays protected");
+  assert.ok(existsSync(worker), "policy inspection never removes the target");
+});
+
 test("a temporary directory with copied Git metadata is removable", () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-temp-removal-"));
   try {
