@@ -266,14 +266,10 @@ def _read_redirection_target(command: str, index: int) -> tuple[str, int]:
     return target, index
 
 
-def redirection_targets(command: str) -> list[str]:
-    """Return files named by shell redirection operators, ignoring quoted text.
+def _literal_redirections(command: str) -> list[tuple[int, int, str, bool]]:
+    """Locate literal redirections without interpreting shell execution."""
 
-    Recognizes ``>``, ``>>``, ``>|``, ``>&file``, and ``&>file``.  A numeric
-    target (``>&2``) is a file-descriptor duplication, not an overwrite.
-    """
-
-    targets: list[str] = []
+    redirections: list[tuple[int, int, str, bool]] = []
     quote: str | None = None
     index = 0
     while index < len(command):
@@ -293,23 +289,58 @@ def redirection_targets(command: str) -> list[str]:
         if character == "\\" and index + 1 < len(command):
             index += 2
             continue
-        if character == "&" and index + 1 < len(command) and command[index + 1] == ">":
-            target, index = _read_redirection_target(command, index + 2)
-            if target and not target.isdigit():
-                targets.append(target)
-            continue
-        if character == ">":
+        operator_end = index + 1
+        writes = character == ">"
+        if character == "&" and operator_end < len(command) and command[operator_end] == ">":
+            writes = True
+            operator_end += 1
+            if operator_end < len(command) and command[operator_end] == ">":
+                operator_end += 1
+        elif character == ">":
+            if operator_end < len(command) and command[operator_end] in {">", "|", "&"}:
+                operator_end += 1
+        elif character == "<":
+            if operator_end < len(command) and command[operator_end] == "<":
+                # Heredocs/here-strings are not literal argv redirections.
+                index += 2
+                continue
+            if operator_end < len(command) and command[operator_end] in {">", "&"}:
+                writes = command[operator_end] == ">"
+                operator_end += 1
+        else:
             index += 1
-            if index < len(command) and command[index] in {">", "|"}:
-                index += 1
-            elif index < len(command) and command[index] == "&":
-                index += 1
-            target, index = _read_redirection_target(command, index)
-            if target and not target.isdigit():
-                targets.append(target)
             continue
-        index += 1
-    return targets
+        start = index
+        if character in {"<", ">"}:
+            while start > 0 and command[start - 1].isdigit():
+                start -= 1
+            if start > 0 and not (command[start - 1].isspace() or command[start - 1] in ";&|()<>"):
+                start = index
+        target, index = _read_redirection_target(command, operator_end)
+        if target:
+            redirections.append((start, index, target, writes))
+    return redirections
+
+
+def redirection_targets(command: str) -> list[str]:
+    """Return literal output files, excluding numeric descriptor duplications."""
+
+    return [
+        target for _, _, target, writes in _literal_redirections(command)
+        if writes and not target.isdigit()
+    ]
+
+
+def without_literal_redirections(command: str) -> str:
+    """Remove only redirection spans, preserving quoted argv for static parsing."""
+
+    parts: list[str] = []
+    previous = 0
+    for start, end, _, _ in _literal_redirections(command):
+        parts.extend((command[previous:start], " "))
+        previous = end
+    parts.append(command[previous:])
+    return "".join(parts)
 
 
 def redirection_denial_reason(command: str, cwd: Path) -> str | None:

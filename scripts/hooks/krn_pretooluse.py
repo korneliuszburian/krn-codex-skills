@@ -29,6 +29,7 @@ from destructive_guard import (
     redirection_denial_reason,
     resolve_target,
     write_target_denial_reason,
+    without_literal_redirections,
 )
 
 
@@ -273,34 +274,6 @@ def static_simple_words(command: str) -> tuple[str, ...] | None:
     except ValueError:
         return None
     return words or None
-
-
-def redirected_script_words(command: str) -> tuple[str, ...] | None:
-    """Extract literal argv for script inspection, never for direct-command grants."""
-
-    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>()")
-    lexer.whitespace_split = True
-    lexer.commenters = ""
-    try:
-        tokens = list(lexer)
-    except ValueError:
-        return None
-    words: list[str] = []
-    index = 0
-    while index < len(tokens):
-        token = tokens[index]
-        if token in {">", ">>", ">|", ">&", "<", "<&", "&>", "&>>"}:
-            if index + 1 >= len(tokens):
-                return None
-            if words and words[-1].isdigit():
-                words.pop()
-            index += 2
-            continue
-        if token and all(character in ";&|<>()" for character in token):
-            return None
-        words.append(token)
-        index += 1
-    return tuple(words) or None
 
 
 def split_safe_and_chain(command: str) -> tuple[str, ...] | None:
@@ -1174,7 +1147,9 @@ def bash_denial_reason(command: str, cwd: Path, inside_script: bool = False) -> 
         return None
     words = static_simple_words(literal_text)
     effective = strip_wrappers(words) if words is not None else None
-    script_words = words if words is not None else redirected_script_words(literal_text)
+    script_words = words if words is not None else static_simple_words(
+        without_literal_redirections(literal_text)
+    )
     script_effective = strip_wrappers(script_words) if script_words is not None else None
     if script_effective:
         executable = executable_name(script_effective[0])

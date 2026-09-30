@@ -302,6 +302,8 @@ test("literal shell wrappers keep protected-write analysis with outer redirectio
     "bash -c > /dev/null 'printf fixture > .env'",
     "env -u UNUSED bash -lc 'printf fixture > .env' 2>/dev/null",
     "bash -c 'printf fixture' > .env",
+    "bash -c 'printf fixture > .env' '|' > /dev/null",
+    "bash --rcfile '>' -c 'printf fixture > .env' > /dev/null",
   ]) {
     const result = runHook("Bash", command, dir);
     const output = result.stdout.trim() ? JSON.parse(result.stdout).hookSpecificOutput : null;
@@ -314,6 +316,7 @@ test("literal shell wrappers keep protected-write analysis with outer redirectio
     "bash -c 'printf fixture' 2>/dev/null",
     "bash -c 'printf fixture > notes.txt' > /dev/null",
     "bash -c 'printf \"> .env\"' > /dev/null",
+    "bash -c 'printf fixture' '|' > /dev/null",
   ]) {
     assert.equal(decisionAt("Bash", command, dir), null, `Codex must allow: ${command}`);
     await assert.doesNotReject(adapter["tool.execute.before"]({ tool: "bash" }, { args: { command } }), `OpenCode must allow: ${command}`);
