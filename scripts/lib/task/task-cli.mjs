@@ -444,6 +444,7 @@ export async function runTaskCommand(argv, { usage, requireDirectory }) {
         for (const error of report.errors) process.stderr.write(`error: ${error.rule}: ${error.message}\n`);
       }
     }
+    if (report.errors.length) process.exitCode = 1;
     return;
   }
   output(report, options.json);

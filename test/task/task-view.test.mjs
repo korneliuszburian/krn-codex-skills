@@ -79,6 +79,48 @@ test("public task show, fields and env read the selected Git-ref record rather t
   }
 });
 
+test("public task next fails with checker diagnostics but succeeds for a valid empty frontier", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-task-next-errors-"));
+  try {
+    execFileSync("git", ["-C", dir, "init", "-q", "-b", "main"]);
+    execFileSync("git", ["-C", dir, "config", "user.email", "lab@krn.local"]);
+    execFileSync("git", ["-C", dir, "config", "user.name", "lab"]);
+    execFileSync("git", ["-C", dir, "commit", "-q", "--allow-empty", "-m", "seed"]);
+    const store = openTaskStore(dir);
+    await store.add({ id: "missing-observer", title: "Observer not yet available", lane: true,
+      laneRecipe: { base: "main", scope: "test/missing.test.mjs", check: "node --test test/missing.test.mjs",
+        contract: "test/missing.test.mjs:red->green", acceptance: "the declared check passes" } });
+    activateTaskQueueFixture(dir);
+
+    const empty = command(dir, "next", "--root", dir, "--json");
+    assert.equal(empty.status, 0, `${empty.stdout}${empty.stderr}`);
+    assert.deepEqual(JSON.parse(empty.stdout).frontier, []);
+    assert.deepEqual(JSON.parse(empty.stdout).errors, []);
+    assert.equal(JSON.parse(empty.stdout).pending.open, 1);
+    const humanEmpty = command(dir, "next", "--root", dir);
+    assert.equal(humanEmpty.status, 0, humanEmpty.stderr);
+    assert.equal(humanEmpty.stdout, "");
+    assert.match(humanEmpty.stderr, /No runnable tasks/);
+    assert.match(humanEmpty.stderr, /open=1/);
+
+    await store.markReady("missing-observer");
+    const check = command(dir, "check", "--root", dir, "--json");
+    assert.equal(check.status, 1, `${check.stdout}${check.stderr}`);
+    const errors = JSON.parse(check.stdout).errors;
+    assert.ok(errors.some(({ rule }) => rule === "scope-missing-package-json"));
+    const next = command(dir, "next", "--root", dir, "--json");
+    assert.deepEqual(JSON.parse(next.stdout).errors, errors);
+    assert.deepEqual(JSON.parse(next.stdout).frontier, []);
+    assert.equal(next.status, 1, `${next.stdout}${next.stderr}`);
+    const human = command(dir, "next", "--root", dir);
+    assert.equal(human.status, 1, human.stderr);
+    assert.equal(human.stdout, "");
+    assert.match(human.stderr, /error: scope-missing-package-json:/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("public task views render a current claim without erasing the imported claim", async () => {
   const dir = mkdtempSync(join(tmpdir(), "krn-task-imported-view-"));
   try {
