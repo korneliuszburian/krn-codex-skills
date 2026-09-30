@@ -111,6 +111,42 @@ selection, correct execution and observed effect remain separate observations.
 policy engine; its proposed wording changes must survive the same countercases.
 The roadmap owns the slices and their falsifiers, not this comparison table.
 
+## Caller-facing CLI and memory qualification
+
+The installed source-owned front door is `krn`; `krn-codex-catalog` is a thin
+compatibility wrapper into its capability command. Other personal binaries
+sharing the prefix have another checkout/owner and are not this installer’s
+retirement targets. Current installation identity, command existence and
+fresh-process loading are separate observations.
+
+| Surface | Current role | Candidate disposition, not an implemented retirement |
+|---|---|---|
+| task | authoritative work/claim/history/intent and checked effects | retain the deep owner; qualify single-task machine reads and structured generations before adding orchestration |
+| state | bounded restart/compile/readback | retain conditional continuation; no cached approval or task-status authority |
+| memory / lessons | memory dispatches procedural lesson recall/usage/check/verify/reanchor; lessons aliases the last three | one canonical semantic entrypoint after real caller migration; neither is a second DB or a general search over all repository knowledge |
+| repo / skills / capability | local adoption, generated export and explicit capability maintenance | improve exact plans and read-only inspection; keep host/profile writes explicit and developer operations out of the default daily journey |
+| changes / gate / conformance | different proof, transition and frozen-acceptance contracts | preserve the distinctions and truthful failure; do not merge them into one green badge |
+| install / doctor | host release lifecycle and readable inspection | retain actual operator consumers and rollback; aliases may be retired only after their external callers are qualified |
+| harness compare | laboratory/measurement consumer | preserve ADR 0006’s consumer/proof boundary; development-only exposure is a choice to qualify, not immediate deletion |
+
+Observed integrator friction includes whole-task-list extraction for current
+owner/epoch/lease, while show/fields expose presentation labels and env serves
+lane bindings. The smallest improvement must first account for those existing
+interfaces, preserve compatibility, identify a second real caller and keep
+read-only effects/unknowns explicit. New wrappers, command names and root
+defaults must not hide wrong-repository selection or another permission.
+
+Useful memory means the agent can obtain the evidence needed for its next
+question from current authorities and reusable knowledge, not that it calls
+recall on every turn. Keep live task history, outcome continuation, reviewed
+shared facts and executable procedural lessons distinct. A composed read view
+may cite them without becoming their store or granting authority. Measure a
+real miss against current/native reading, source applicability, counterevidence
+and changed-authority cases before implementing another view or index. Existing
+D4/D5/sh-169/sh-185 gates remain; neutral small work must not acquire a mandatory
+memory ritual. CLI integration and memory-usefulness decisions are tasks in the
+roadmap, and their publication is not evidence of product benefit.
+
 ## Workspace and run contract
 
 Persistent working state has one existing shape:
