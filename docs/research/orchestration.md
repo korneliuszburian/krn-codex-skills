@@ -1,8 +1,10 @@
 # Orchestration and compact context
 
 Status: `accepted`. Consumer: maintainer, `$delivery-loop`, and
-`$source-to-decision`. Owner: maintainer. Verified: 2026-09-27. Rework this page
+`$source-to-decision`. Owner: maintainer. Verified: 2026-09-30. Rework this page
 in place when a falsifier fires; do not append a parallel “v2” report.
+The 2026-09-30 refresh covers instruction efficacy, delivery, and evaluation;
+earlier dated host observations remain historical, not newly revalidated.
 
 ## Decision question
 
@@ -1278,16 +1280,129 @@ dump as a fixture file and is excluded. The current long-running conversation
 still has its startup skill catalogue; only a new host session observes the
 withdrawn global entries.
 
-External results support measuring selection rather than maximizing skill
-count: the [AGENTS.md study](https://arxiv.org/abs/2602.11988) reports added
-exploration and over 20% higher inference cost in its tested settings, with
-developer-written instructions showing a small, statistically non-significant
-average success change. [SkillsBench](https://arxiv.org/abs/2602.12670) found
-curated skills helpful on average but harmful on a subset of tasks;
-[SWE-Skills-Bench](https://arxiv.org/abs/2603.15401) reports version-mismatched
-skill guidance can conflict with project context, but remains a preprint. These
-results motivate a KRN-specific comparison; they do not choose KRN's global
-profile.
+### Instruction efficacy and delivery (source refresh 2026-09-30)
+
+**Decision question and consumer.** How should the maintainer write, select,
+and reuse repository instructions without adding ritual or losing authority,
+quality, and continuation? This refresh informs the repository contract and
+its existing setup/delivery owners; it does not establish a new instruction,
+memory, evaluation, or routing owner.
+
+**Repository context is not automatically a performance improvement.**
+[Evaluating AGENTS.md v3](https://arxiv.org/html/2602.11988v3), updated
+2026-09-29, compares 300 SWE-bench Lite tasks and 138 CTXbench tasks from Python
+repositories using four model/harness pairs. Relative to no context file,
+neither generated nor developer-provided files produce a statistically
+significant aggregate task-resolution improvement. Developer files outperform
+generated ones on CTXbench (p=0.038), which is a different comparison. Generated
+files increase mean inference cost by 20%/23% in the two datasets. The study
+samples one completion per agent/task/condition; it does not evaluate GPT-6,
+Pi, KRN publication, security, or long-running continuity. Its length buckets
+do not establish an optimal word count. Removing the other documentation
+changes the result: generated context can then help. Do not translate
+non-significance into equivalence, this result into "delete all docs", or
+reported standard errors into confidence intervals. Prefer the detailed tables
+where narrative numbers or labels disagree.
+
+**Skills help when they supply a missing, compatible procedure.**
+[SkillsBench v4](https://arxiv.org/html/2602.12670v4), dated 2026-06-14, reports
+33.9% to 50.5% aggregate verifier reward/pass rate across 87 tasks and 18
+model/harness configurations. It selects curated, skill-dependent tasks and
+supplies whole bundles, including scripts and references. Its reported
++16.6 percentage points is not a KRN uplift or an unconditional count of fully
+solved tasks. Three selected public trials per cell and healthy-first selection
+also limit reliability and full-cost interpretation. By contrast,
+[SWE-Skills-Bench v1](https://arxiv.org/html/2603.15401v1), dated 2026-03-16,
+uses one Claude Code/Haiku 4.5 configuration and individual skill documents:
+39 of 49 skills have no pass-rate gain, with a reported average 89.8% to 91.0%.
+A high baseline leaves little headroom; version-mismatched guidance can harm.
+It does not report independent repeated trials or confidence intervals.
+Neither study justifies a fixed three-module limit, catalogue expansion, or
+removal of every skill. Different task selection, interventions, and verifiers
+explain why their aggregate numbers must not be pooled.
+
+**Descriptive studies are not a ranking of instruction styles.**
+[Agent READMEs v2](https://arxiv.org/html/2511.12884v2), dated 2026-08-09,
+characterizes 2,303 files from 1,925 repositories and their maintenance.
+[Context Engineering v4](https://arxiv.org/html/2510.21413v4), dated 2026-02-05,
+finds context files in 466 of 10,000 selected mature repositories and examines
+155 AGENTS.md files. Their categories, readability, and change frequencies do
+not prove that a particular wording, mandatory section, or shorter file
+improves an agent. Security being rarely mentioned does not measure security
+coverage supplied by tooling, CI, or review.
+
+**Conditional compliance needs its own observation.**
+[AGENTIF v1](https://arxiv.org/html/2505.16944v1) tests 707 instructions from
+50 agentic applications with code, LLM, and hybrid graders; conditions and tool
+specifications are difficult for its tested models. It does not demonstrate
+that progressive disclosure fixes those failures. [IFScale v1](https://arxiv.org/html/2507.11538v1)
+tests English business reports with 10 to 500 required keywords, five seeds
+per density, and retries after invalid outputs. Its density curves do not set
+a universal 150, 300, or 400-instruction budget for KRN. Leading words,
+positive phrasing, splitting, and completion criteria from the pinned
+`writing-for-agents` remain useful design hypotheses, not independently
+validated guarantees. Retain required safety prohibitions; do not edit the
+upstream export to turn a hypothesis into a local fork.
+
+**Delivery is host-specific.** [Codex instruction discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+loads at most one recognized file per directory, with override/fallback rules;
+`AGENTS.memory.md` is not an automatically merged extra layer. Existing
+`CONTEXT.md`, research, and lessons keep their owners. A pointer earns its place
+when a real branch needs the referenced knowledge. [Claude Code memory](https://code.claude.com/docs/en/memory)
+documents different discovery/import rules, including version-scoped native
+AGENTS.md support. Do not transplant one host's loader contract to Pi or Claude.
+In [Codex 0.159.1 source](https://github.com/openai/codex/tree/8e68a98ef03cdde76d2e6800791ebdf1b3b95b24),
+`codex-rs/ext/skills/src/provider/host.rs` hides host skills with implicit
+invocation disabled; `render.rs` budgets the model-visible catalogue by context
+size with an 8,000-character fallback, and may shorten or omit entries. This
+supports front-loading a skill's actual trigger, not a host-independent promise
+of zero context cost or a proof that any installed skill was loaded.
+
+**Practitioner guidance supplies candidates, not an earned migration.**
+[OpenAI's Astra guidance](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra)
+and Anthropic's [skills lessons](https://claude.dev/blog/lessons-from-building-claude-code-how-we-use-skills/),
+[tool-design lessons](https://claude.dev/blog/seeing-like-an-agent/), and
+[Claude 5 context guidance](https://claude.dev/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models/)
+favor scoped knowledge, progressive disclosure, clear interfaces, and revisiting
+old scaffolding as models change. A reported 80% prompt reduction is not KRN's
+target. [HTML artifacts](https://claude.dev/blog/using-claude-code-the-unreasonable-effectiveness-of-html/)
+are an optional human review view, not a replacement knowledge store or a second
+maintained spec. Matt's [AGENTS guide](https://www.aihero.dev/a-complete-guide-to-agents-md)
+and [init critique](https://www.aihero.dev/never-run-claude-init) motivate removing
+redundant discovery caches; their instruction-count estimates are not universal
+thresholds. Karpathy's [compiled wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
+supports reuse of maintained synthesis, not the claim that maintenance is free.
+
+**Disposition.** Adopt versioned, conditional evidence reuse and one semantic
+owner. Reject universal length budgets, automatic memory layers, and benchmark
+uplifts as KRN proof. Keep the pinned writing owner and current routing; lab-test
+one wording or procedure only against a named failure. The repository owns its
+publication profile; `$delivery-loop` owns the method and fixed-point review.
+A profile does not grant install/host authority or replace host checks.
+
+**Smallest evaluation that can disagree.** Separate four questions: was the
+instruction delivered, was the right branch/procedure selected, was the action
+executed correctly, and did the required effect occur? Compare the existing
+contract with one bounded change on matched task/model/host/revision/rights.
+Include true/false triggers, a neutral small task, reuse versus a changed source,
+and stale-review/authority cases. Keep acceptance independent of the producer;
+measure required outcomes, false activation/omission, rework, all retries, full
+cost, and latency. Qualify the grader before trusting aggregate scores. Use
+repetitions proportional to observed variance, not an arbitrary suite size.
+[Empirical-study guidelines v8](https://arxiv.org/html/2508.15503v8), especially
+sections 5.4, 5.5, and 5.7, support traces, justified constructs, baselines, and
+human calibration where needed. [Eval design and hillclimbing](https://claude.dev/blog/automating-eval-design-and-hillclimbing/)
+supports one attributable change and held-out cases; a set repeatedly used to
+select patches is validation, so final evaluation must remain untouched.
+Existing LT-102 controls and the lab registry own any experiment; no new eval
+framework or raw-trace store is adopted.
+
+**Non-proofs and reopen.** This pass read primary methods/results and relevant
+appendices, not every cited replication package or figure. No KRN agent-benefit
+experiment ran, and no claim covers all 103 indexed papers. Reopen a named
+instruction decision when its source, host delivery, acceptance, or falsifier
+changes, or a repeatable miss survives the existing map/lexical/link repair.
+Otherwise reuse the owning topic rather than repeating this research.
 
 Codex's fresh-process readback succeeded. The active conversation's startup
 catalog is unchanged until that host session restarts. OpenCode remains

@@ -57,6 +57,15 @@ changed fixed point, run `npm run gate` once on that fixed point. Read-only
 findings do not require the full gate. Use the Node version pinned in
 `.node-version`; running gates does not authorize host toolchain changes.
 
-Work on a branch you own; reuse the current outcome's recorded publication authority without per-step prompts. Stop outside its scope.
+## Delivery profile
+
+Deliver authorized repository changes through an owned branch and PR.
+`$delivery-loop` owns proof, fixed-point Standards/Spec review, and the
+repair/re-review loop. Merge after the current fixed point passes the required
+CI and reviews, then read back the merge and retire owned branch/worktree state.
+Reuse recorded publication authority without per-step prompts; stop outside
+the current outcome's scope. Installation and host changes require their
+separate grants.
+
 Installation, retirement, and rollback follow
 `scripts/lib/install/install-release.mjs` and `docs/migration.md`.
