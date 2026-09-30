@@ -29,6 +29,7 @@ from destructive_guard import (
     redirection_denial_reason,
     resolve_target,
     write_target_denial_reason,
+    without_literal_redirections,
 )
 
 
@@ -1146,18 +1147,28 @@ def bash_denial_reason(command: str, cwd: Path, inside_script: bool = False) -> 
         return None
     words = static_simple_words(literal_text)
     effective = strip_wrappers(words) if words is not None else None
-    if effective:
-        executable = executable_name(effective[0])
+    script_words = words if words is not None else static_simple_words(
+        without_literal_redirections(literal_text)
+    )
+    script_effective = strip_wrappers(script_words) if script_words is not None else None
+    if script_effective:
+        executable = executable_name(script_effective[0])
         if executable in SHELL_INTERPRETERS:
-            for position, argument in enumerate(effective[1:], start=1):
+            for position, argument in enumerate(script_effective[1:], start=1):
                 if argument == "-c" or re.fullmatch(r"-[a-zA-Z]*c", argument):
                     script_index = position + 1
-                    if script_index < len(effective) and effective[script_index] == "--":
+                    if script_index < len(script_effective) and script_effective[script_index] == "--":
                         script_index += 1
-                    if script_index < len(effective):
-                        return bash_denial_reason(effective[script_index], cwd, inside_script=True)
+                    if script_index < len(script_effective):
+                        reason = bash_denial_reason(script_effective[script_index], cwd, inside_script=True)
+                        if reason is not None:
+                            return reason
+                        # Redirected argv never upgrades a composition to a
+                        # direct command or skips the outer writer checks.
+                        if words is not None:
+                            return None
                     break
-        if executable == "eval" and len(effective) >= 2:
+        if effective and executable == "eval" and len(effective) >= 2:
             return bash_denial_reason(" ".join(effective[1:]), cwd, inside_script=True)
     forbidden = references_forbidden_capability(lexical_text)
     literal_risk = (

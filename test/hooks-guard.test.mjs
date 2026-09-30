@@ -289,6 +289,42 @@ test("leading assignments and wrapper option values do not hide a writer", () =>
   assert.ok(decision("Bash", "sudo -u root mv /tmp/x .env"), "sudo -u root mv must be denied");
 });
 
+test("literal shell wrappers keep protected-write analysis with outer redirection", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-shell-redirection-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const { KrnAdapter } = await import("../config/opencode/plugins/krn.js");
+  const adapter = await KrnAdapter({ directory: dir });
+  // These are inert policy inputs; neither adapter may execute the scripts.
+  for (const command of [
+    "bash -c 'printf fixture > .env'",
+    "bash -c 'printf fixture > .env' > /dev/null",
+    "> /dev/null bash -c 'printf fixture > .env'",
+    "bash -c > /dev/null 'printf fixture > .env'",
+    "env -u UNUSED bash -lc 'printf fixture > .env' 2>/dev/null",
+    "bash -c 'printf fixture' > .env",
+    "bash -c 'printf fixture > .env' '|' > /dev/null",
+    "bash --rcfile '>' -c 'printf fixture > .env' > /dev/null",
+  ]) {
+    const result = runHook("Bash", command, dir);
+    const output = result.stdout.trim() ? JSON.parse(result.stdout).hookSpecificOutput : null;
+    assert.equal(output?.permissionDecision, "deny", `Codex must deny: ${command}`);
+    await assert.rejects(adapter["tool.execute.before"]({ tool: "bash" }, { args: { command } }), `OpenCode must deny: ${command}`);
+  }
+  for (const command of [
+    "bash -c 'printf fixture'",
+    "bash -c 'printf fixture' > /dev/null",
+    "bash -c 'printf fixture' 2>/dev/null",
+    "bash -c 'printf fixture > notes.txt' > /dev/null",
+    "bash -c 'printf \"> .env\"' > /dev/null",
+    "bash -c 'printf fixture' '|' > /dev/null",
+  ]) {
+    assert.equal(decisionAt("Bash", command, dir), null, `Codex must allow: ${command}`);
+    await assert.doesNotReject(adapter["tool.execute.before"]({ tool: "bash" }, { args: { command } }), `OpenCode must allow: ${command}`);
+  }
+  assert.equal(existsSync(join(dir, ".env")), false, "policy inspection must not execute the protected write");
+  assert.equal(existsSync(join(dir, "notes.txt")), false, "policy inspection must not execute benign writes either");
+});
+
 test("eval inspects all of its operands", () => {
   assert.ok(decision("Bash", "eval rm -rf .env"), "eval rm -rf .env must be denied");
 });
