@@ -137,7 +137,7 @@ def strip_wrappers(words: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(tokens)
 
 
-def pipe_segments(command: str) -> list[str]:
+def pipe_segments(command: str, *, split_commands: bool = False) -> list[str]:
     segments: list[str] = []
     quote: str | None = None
     start = 0
@@ -158,6 +158,13 @@ def pipe_segments(command: str) -> list[str]:
             continue
         if character == "\\" and index + 1 < len(command):
             index += 2
+            continue
+        if split_commands and (
+            character in {";", "\n", "\r"} or command[index:index + 2] in {"&&", "||"}
+        ):
+            segments.append(command[start:index].strip())
+            index += 2 if command[index:index + 2] in {"&&", "||"} else 1
+            start = index
             continue
         if character == "|":
             if (index + 1 < len(command) and command[index + 1] == "|") or (
@@ -603,7 +610,7 @@ def naive_writer_reason(segment: str, cwd: Path) -> str | None:
     ``sed`` is mutating only with a literal in-place flag; ``sed -n`` reads.
     """
 
-    for subcommand in SUBCOMMAND_SPLIT.split(segment):
+    for subcommand in pipe_segments(segment, split_commands=True):
         words = static_simple_words(subcommand)
         if words is not None:
             reason = write_target_denial_reason(strip_wrappers(words), cwd)
