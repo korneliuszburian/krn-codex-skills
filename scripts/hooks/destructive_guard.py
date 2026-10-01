@@ -148,7 +148,7 @@ def protected_contents_reason(target: Path) -> str | None:
     return None
 
 
-def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | None:
+def protected_path_reason(target: Path, cwd: Path, recursive: bool, project_config_write: bool = False) -> str | None:
     home = Path.home().resolve()
     repo_root = find_repo_root(cwd)
 
@@ -193,13 +193,14 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
     }
     if repo_root is not None:
         protected_anchors.add(repo_root)
-        protected_exact.update(
-            {
-                repo_root / ".env",
-                repo_root / "AGENTS.md",
-                repo_root / "CLAUDE.md",
-            }
-        )
+        if not project_config_write:
+            protected_exact.update(
+                {
+                    repo_root / ".env",
+                    repo_root / "AGENTS.md",
+                    repo_root / "CLAUDE.md",
+                }
+            )
         protected_subtrees.update({repo_root / ".beads", repo_root / ".git"})
 
     temporary = False
@@ -221,7 +222,7 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool) -> str | Non
 
     if target == cwd:
         return f"target {target} is the active working directory"
-    if is_protected_file(target):
+    if is_protected_file(target) and not project_config_write:
         return f"target {target} is a protected instruction, secret, key, or database file"
     if (target / ".git").exists():
         return f"target {target} is a Git checkout root"
@@ -345,6 +346,8 @@ def without_literal_redirections(command: str) -> str:
 
 def redirection_denial_reason(command: str, cwd: Path) -> str | None:
     for raw_target in redirection_targets(command):
+        if is_protected_file(Path(raw_target)):
+            return "overwrite of a protected path is blocked: protected file name"
         target = resolve_target(raw_target, cwd)
         if target is None:
             return (
@@ -489,6 +492,8 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
         for word in words[1:]
     )
     for raw_target in targets:
+        if is_protected_file(Path(raw_target)):
+            return "overwrite of a protected path is blocked: protected file name"
         target = resolve_target(raw_target, cwd)
         if target is None:
             return (
@@ -528,6 +533,8 @@ def rm_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
         targets.append(word)
 
     for raw_target in targets:
+        if is_protected_file(Path(raw_target)):
+            return "destructive removal blocked: protected file name"
         target = resolve_target(raw_target, cwd)
         if target is None:
             return (

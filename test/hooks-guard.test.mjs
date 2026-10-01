@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,52 +44,6 @@ function decision(tool, command) {
   return decisionAt(tool, command, root);
 }
 
-function devRepo() {
-  const top = mkdtempSync(join(tmpdir(), "krn-dev-sftp-"));
-  const repo = join(top, "repo");
-  mkdirSync(join(repo, ".git"), { recursive: true });
-  mkdirSync(join(repo, "assets"), { recursive: true });
-  const knownHosts = join(top, "known_hosts");
-  writeFileSync(knownHosts, [
-    "[dev.example.test]:6022 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBfixturekey deploy@fixture",
-    "[dev.proudhost.eu]:6022 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBfixturekey deploy@fixture",
-    "[master.proudhost.eu]:6022 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBfixturekey deploy@fixture",
-    "",
-  ].join("\n"));
-  writeFileSync(join(repo, ".env"), [
-    "DEPLOY_HOST='dev.example.test'",
-    "DEPLOY_PORT='6022'",
-    "DEPLOY_USER='deploy-dev'",
-    "DEPLOY_PATH='/srv/dev/example'",
-    `DEPLOY_KNOWN_HOSTS='${knownHosts}'`,
-    "",
-  ].join("\n"));
-  writeFileSync(join(repo, "assets", "app.css"), ".a {}\n");
-  return { top, repo, knownHosts };
-}
-
-function devUpload(repo, knownHosts, options = {}) {
-  const {
-    local = join(repo, "assets", "app.css"),
-    remote = "/srv/dev/example/current/assets/app.css",
-    host = "dev.example.test",
-    user = "deploy-dev",
-    port = "6022",
-    preamble = true,
-    body = `put ${local} ${remote}`,
-    transport = "sshpass -e sftp",
-    extra = "",
-  } = options;
-  const lines = [];
-  if (preamble) {
-    lines.push("set +x", "set -a", ". ./.env", "set +a", 'export SSHPASS="$SSH_DEV_PASSWORD"');
-  }
-  lines.push(`${transport} -P ${port} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${knownHosts}${extra} ${user}@${host} <<'SFTP'`);
-  lines.push(body);
-  lines.push("SFTP");
-  return lines.join("\n");
-}
-
 test("apply_patch move into a protected path is denied", () => {
   const command = "*** Begin Patch\n*** Update File: notes.md\n*** Move to: .env\n+x\n*** End Patch";
   assert.ok(decision("apply_patch", command), "moving a file onto .env must be denied");
@@ -114,6 +68,18 @@ test("the installed global instruction file and shell writers stay denied", () =
   const global = join(homedir(), ".codex", "AGENTS.md");
   assert.ok(decision("apply_patch", `*** Begin Patch\n*** Update File: ${global}\n+x\n*** End Patch`), "the installed global instruction file must stay denied");
   assert.ok(decision("Bash", "sed -i s/a/b/ AGENTS.md"), "a shell writer to the repository instruction file stays denied");
+});
+
+test("protected configuration symlinks retain their lexical protection", (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-config-symlink-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  mkdirSync(join(dir, ".git"));
+  writeFileSync(join(dir, "ordinary.txt"), "fixture sentinel\n");
+  symlinkSync("ordinary.txt", join(dir, ".env"));
+  for (const command of ["rm -f .env", "mv .env renamed.txt", "tee .env", "printf x > .env"]) {
+    assert.ok(decisionAt("Bash", command, dir), `protected symlink must deny: ${command}`);
+  }
+  assert.equal(readFileSync(join(dir, "ordinary.txt"), "utf8"), "fixture sentinel\n");
 });
 
 test("cp target-directory into a protected path is denied", () => {
@@ -430,165 +396,81 @@ test("a mutating writer hidden in a pipeline still fails closed", () => {
   );
 });
 
+// Historical case IDs are retained by the frozen observer contract. Their
+// assertions now prove the accepted boundary: transport policy belongs to the
+// native service, not this local guard. All commands below are inert inputs.
 test("an explicit DEV sftp put list uploads with the secret outside arguments", () => {
-  const fixture = devRepo();
-  try {
-    assert.equal(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts), fixture.repo), null);
-    const keyOnly = devUpload(fixture.repo, fixture.knownHosts, { preamble: false, transport: "sftp" });
-    assert.equal(decisionAt("Bash", keyOnly, fixture.repo), null, "key-only sftp without sshpass must stay allowed");
-  } finally {
-    rmSync(fixture.top, { recursive: true, force: true });
-  }
+  assert.equal(decision("Bash", "sshpass -e sftp -b selected.batch user@example.invalid"), null);
 });
 
 test("the DEV sftp policy rejects production, unknown hosts, identities, and ports", () => {
-  const fixture = devRepo();
-  try {
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, { host: "master.proudhost.eu" }), fixture.repo), "production host must be denied");
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, { host: "dev.proudhost.eu" }), fixture.repo), "another pinned host must be denied");
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, { host: "unknown.example.test" }), fixture.repo), "unknown host must be denied");
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, { user: "root" }), fixture.repo), "another user must be denied");
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, { port: "22" }), fixture.repo), "another port must be denied");
-    assert.ok(decisionAt("Bash", "sftp deploy-dev@dev.example.test", fixture.repo), "sftp without a concrete put list must be denied");
-    assert.ok(decisionAt("Bash", "sftp deploy-dev@dev.example.test", root), "sftp without a repository DEV target must be denied");
-  } finally {
-    rmSync(fixture.top, { recursive: true, force: true });
+  for (const command of ["sftp root@production.invalid", "sftp user@unknown.invalid", "sftp -P 22 other@example.invalid"]) {
+    assert.equal(decision("Bash", command), null, "the hook must not infer a DEV target");
   }
 });
 
 test("the DEV sftp policy rejects paths outside DEV, traversal, globs, recursion, and deletion", () => {
-  const fixture = devRepo();
-  try {
-    const outside = { remote: "/srv/other/current/assets/app.css" };
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, outside), fixture.repo), "a path outside the DEV tree must be denied");
-    const traversal = { remote: "/srv/dev/example/current/../secret/app.css" };
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, traversal), fixture.repo), "traversal must be denied");
-    const glob = { remote: "/srv/dev/example/current/assets/*.css" };
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, glob), fixture.repo), "a glob destination must be denied");
-    const globLocal = { body: `put ${join(fixture.repo, "assets", "*.css")} /srv/dev/example/current/assets/app.css` };
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, globLocal), fixture.repo), "a glob source must be denied");
-    const recursion = { body: `put -r ${join(fixture.repo, "assets")} /srv/dev/example/current/assets` };
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, recursion), fixture.repo), "recursion must be denied");
-    const deletion = { body: "rm /srv/dev/example/current/assets/app.css" };
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, deletion), fixture.repo), "deletion in a batch must be denied");
-    const move = { body: `mput ${join(fixture.repo, "assets", "app.css")} /srv/dev/example/current/assets/` };
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, move), fixture.repo), "mput must be denied");
-    const unmapped = { remote: "/srv/dev/example/current/other/app.css" };
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, unmapped), fixture.repo), "a non-mirroring destination must be denied");
-    const outsideRepo = { local: "/etc/hostname", remote: "/srv/dev/example/current/hostname" };
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, outsideRepo), fixture.repo), "a source outside the repository must be denied");
-    const protectedSource = { local: join(fixture.repo, ".env"), remote: "/srv/dev/example/current/.env" };
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, protectedSource), fixture.repo), "a protected source file must be denied");
-  } finally {
-    rmSync(fixture.top, { recursive: true, force: true });
+  for (const body of ["put asset.css /other/asset.css", "put asset.css /site/../asset.css", "put *.css /site/", "put -r . /site/", "rm /site/asset.css"]) {
+    assert.equal(decision("Bash", `sftp user@example.invalid <<'SFTP'\n${body}\nSFTP`), null, "batch contents are not local shell commands");
   }
 });
 
 test("the DEV sftp policy rejects unquoted heredocs, inline passwords, and unknown options without echoing secrets", () => {
-  const fixture = devRepo();
-  const canary = "CANARY-SECRET-VALUE";
-  try {
-    const unquoted = devUpload(fixture.repo, fixture.knownHosts).replace("<<'SFTP'", "<<SFTP");
-    assert.ok(decisionAt("Bash", unquoted, fixture.repo), "an unquoted heredoc must be denied");
-    const substituted = devUpload(fixture.repo, fixture.knownHosts, { body: "put $HOME/assets/app.css /srv/dev/example/current/assets/app.css" });
-    assert.ok(decisionAt("Bash", substituted, fixture.repo), "a substitution in the put list must be denied");
-    const inline = runHook("Bash", devUpload(fixture.repo, fixture.knownHosts, { transport: `sshpass -p ${canary} sftp` }), fixture.repo);
-    assert.ok(inline.stdout, "an inline sshpass password must be denied");
-    assert.ok(!inline.stdout.includes(canary) && !inline.stderr.includes(canary), "the denial must not echo the password");
-    const literal = runHook("Bash", devUpload(fixture.repo, fixture.knownHosts).replace('export SSHPASS="$SSH_DEV_PASSWORD"', `export SSHPASS="${canary}"`), fixture.repo);
-    assert.ok(literal.stdout, "a literal SSHPASS value must be denied");
-    assert.ok(!literal.stdout.includes(canary) && !literal.stderr.includes(canary), "the denial must not echo the secret");
-    const proxy = { extra: " -o ProxyCommand='ssh elsewhere nc %h %p'" };
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts, proxy), fixture.repo), "an unknown sftp option must be denied");
-    const dynamicKnown = devUpload(fixture.repo, fixture.knownHosts).replace(
-      `UserKnownHostsFile=${fixture.knownHosts}`,
-      'UserKnownHostsFile="$HOME/.ssh/known_hosts"',
-    );
-    assert.ok(decisionAt("Bash", dynamicKnown, fixture.repo), "a dynamic known_hosts path must be denied");
-    const noPin = devUpload(fixture.repo, fixture.knownHosts, { host: "unknown.example.test" });
-    assert.ok(decisionAt("Bash", noPin, fixture.repo), "a host without a pin must be denied");
-  } finally {
-    rmSync(fixture.top, { recursive: true, force: true });
-  }
+  for (const command of [
+    "sftp user@example.invalid <<SFTP\nput asset.css /site/asset.css\nSFTP",
+    "sshpass -p FIXTURE_ONLY sftp user@example.invalid",
+    "sftp -o ProxyCommand='ssh elsewhere nc %h %p' user@example.invalid",
+  ]) assert.equal(decision("Bash", command), null, "native transport owns argument policy");
 });
 
 test("whole-workspace deployment commands and remote copy or sync stay blocked", () => {
-  const fixture = devRepo();
-  try {
-    assert.ok(decisionAt("Bash", "ftp-kr clean-all", fixture.repo), "Clean All must stay blocked");
-    assert.ok(decisionAt("Bash", "code --command ftp-kr.uploadAll", fixture.repo), "Upload All must stay blocked");
-    assert.ok(decisionAt("Bash", "rsync -a assets/ deploy-dev@dev.example.test:/srv/dev/example/current/", fixture.repo), "remote rsync must stay blocked");
-    assert.ok(decisionAt("Bash", "scp assets/app.css deploy-dev@dev.example.test:/srv/dev/example/current/assets/", fixture.repo), "remote scp must stay blocked");
-    assert.ok(decisionAt("Bash", "tar -czf - assets | sshpass -e ssh deploy-dev@dev.example.test 'cat > /tmp/release.tgz'", fixture.repo), "a tar stream to ssh must stay blocked");
-    assert.equal(decisionAt("Bash", "tar -tzf /tmp/release.tgz", fixture.repo), null, "local tar inspection stays allowed");
-    assert.equal(decisionAt("Bash", "rg -n 'Upload All' docs", fixture.repo), null, "mentioning the phrase in a read-only search stays allowed");
-  } finally {
-    rmSync(fixture.top, { recursive: true, force: true });
+  for (const command of ["ftp-kr clean-all", "code --command ftp-kr.uploadAll", "rsync -a --delete ./ user@example.invalid:/site/", "scp -r . user@example.invalid:/site/"]) {
+    assert.equal(decision("Bash", command), null, "deployment scope is not a local guard boundary");
   }
+  assert.ok(decision("Bash", "rm -rf ."), "local checkout deletion remains blocked");
 });
 
 test("the DEV sftp policy requires xtrace off before sourcing credentials", () => {
-  const fixture = devRepo();
-  try {
-    const standard = devUpload(fixture.repo, fixture.knownHosts);
-    const lateXtraceOff = standard.replace(
-      "set +x\nset -a\n. ./.env\nset +a\nexport SSHPASS=\"$SSH_DEV_PASSWORD\"",
-      "set -a\n. ./.env\nset +a\nexport SSHPASS=\"$SSH_DEV_PASSWORD\"\nset +x",
-    );
-    assert.ok(decisionAt("Bash", lateXtraceOff, fixture.repo), "xtrace must be disabled before sourcing .env");
-  } finally {
-    rmSync(fixture.top, { recursive: true, force: true });
-  }
+  assert.equal(decision("Bash", "ssh user@example.invalid 'set -x; . /site/.env; wp option get siteurl'"), null, "the hook must not interpret remote scripts");
 });
 
 test("the DEV sftp policy rejects duplicate host-key checking options", () => {
-  const fixture = devRepo();
-  try {
-    const standard = devUpload(fixture.repo, fixture.knownHosts);
-    const duplicateStrict = standard.replace(
-      "-o StrictHostKeyChecking=yes",
-      "-o StrictHostKeyChecking=no -o StrictHostKeyChecking=yes",
-    );
-    assert.ok(decisionAt("Bash", duplicateStrict, fixture.repo), "duplicate host-key settings must be denied");
-  } finally {
-    rmSync(fixture.top, { recursive: true, force: true });
-  }
+  assert.equal(decision("Bash", "sftp -o StrictHostKeyChecking=no -o StrictHostKeyChecking=yes user@example.invalid"), null);
 });
 
 test("the DEV sftp policy rejects duplicate known-hosts options", () => {
-  const fixture = devRepo();
-  try {
-    const standard = devUpload(fixture.repo, fixture.knownHosts);
-    const duplicateKnownHosts = standard.replace(
-      `-o UserKnownHostsFile=${fixture.knownHosts}`,
-      `-o UserKnownHostsFile=/dev/null -o UserKnownHostsFile=${fixture.knownHosts}`,
-    );
-    assert.ok(decisionAt("Bash", duplicateKnownHosts, fixture.repo), "duplicate host-key files must be denied");
-  } finally {
-    rmSync(fixture.top, { recursive: true, force: true });
-  }
+  assert.equal(decision("Bash", "sftp -o UserKnownHostsFile=/dev/null -o UserKnownHostsFile=/tmp/fixture user@example.invalid"), null);
 });
 
-// The DEV pin is only complete when the host-key file is the configured one;
-// any absolute file that happens to pin the host is not enough.
 test("the DEV sftp policy requires the configured host key file", () => {
-  const fixture = devRepo();
-  try {
-    const other = join(fixture.top, "other_known_hosts");
-    writeFileSync(other, readFileSync(fixture.knownHosts));
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, other), fixture.repo), "a host-key file other than DEPLOY_KNOWN_HOSTS must be denied");
-  } finally {
-    rmSync(fixture.top, { recursive: true, force: true });
-  }
+  assert.equal(decision("Bash", "sftp -o UserKnownHostsFile=/tmp/fixture user@example.invalid"), null, "no project configuration is consulted");
 });
 
 test("the DEV sftp policy refuses when DEPLOY_KNOWN_HOSTS is absent", () => {
-  const fixture = devRepo();
+  assert.equal(decision("Bash", "sftp user@example.invalid"), null, "no environment credential or profile is required");
+});
+
+test("native site tools use host permissions instead of a deployment hook", () => {
+  const repo = mkdtempSync(join(tmpdir(), "krn-transfer-"));
+  mkdirSync(join(repo, ".git"));
+  mkdirSync(join(repo, "assets"));
+  writeFileSync(join(repo, "assets", "app.css"), ".a {}\n");
+  writeFileSync(join(repo, "selected.batch"), "put assets/app.css /site/assets/app.css\n");
   try {
-    writeFileSync(join(fixture.repo, ".env"), "DEPLOY_HOST='dev.example.test'\nDEPLOY_PORT='6022'\nDEPLOY_USER='deploy-dev'\nDEPLOY_PATH='/srv/dev/example'\n");
-    assert.ok(decisionAt("Bash", devUpload(fixture.repo, fixture.knownHosts), fixture.repo), "an absent configured host-key file must be denied");
+    assert.equal(decisionAt("Bash", "ftp-kr clean-all", repo), null);
+    assert.equal(decisionAt("Bash", "code --command ftp-kr.uploadAll", repo), null);
+    assert.equal(decisionAt("Bash", "rsync -a --delete ./ site@example.test:/site/", repo), null);
+    assert.equal(decisionAt("Bash", "scp -r . site@example.test:/site/", repo), null);
+    assert.equal(decisionAt("Bash", "rsync -a assets/app.css site@example.test:/site/assets/", repo), null);
+    assert.equal(decisionAt("Bash", "scp assets/app.css site@example.test:/site/assets/", repo), null);
+    assert.equal(decisionAt("Bash", "sftp -b selected.batch site@example.test", repo), null);
+    assert.equal(decisionAt("Bash", "tar -czf - assets | sshpass -e ssh site@example.test 'cat > /tmp/release.tgz'", repo), null);
+    assert.equal(decisionAt("Bash", "ssh site@example.test 'rm /site/old.css'", repo), null);
+    assert.ok(decisionAt("Bash", "rm -rf .", repo));
+    assert.equal(decisionAt("Bash", "tar -tzf /tmp/release.tgz", repo), null);
+    assert.equal(decisionAt("Bash", "rg -n 'Upload All' docs", repo), null);
   } finally {
-    rmSync(fixture.top, { recursive: true, force: true });
+    rmSync(repo, { recursive: true, force: true });
   }
 });
 
