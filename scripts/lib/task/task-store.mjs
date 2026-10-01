@@ -360,6 +360,7 @@ function operationAuthorized(state, operation, { worker, epoch } = {}) {
   const recoveredOwner = operation.recovery?.worker === worker && operation.recovery?.epoch === epoch;
   if (!operationParamsMatch(operation) || stored?.id !== operation.id || stored?.status !== "prepared"
     || !task || task.status !== "claimed" || task.owner !== worker || task.epoch !== epoch
+    || task.lease?.worker !== worker || task.lease?.epoch !== epoch || leaseExpired(task.lease, new Date().toISOString())
     || (!originalOwner && !recoveredOwner)
     || typeof operation.intent !== "string" || operation.intent.length === 0
     || !Number.isInteger(operation.intentRevision) || !Object.hasOwn(state.intents, operation.intent)

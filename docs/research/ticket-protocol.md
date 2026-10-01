@@ -26,6 +26,11 @@ mechanics, not the product: no Dolt store, no daemon, and no second database.
 
 ## The KRN ticket ABI v1
 
+The ABI and pre-cutover file workflow below are historical import provenance,
+not the operating queue. The selected Git-ref queue uses `krn task`; its current
+migration, claim and recovery contracts are specified below. Retaining legacy
+examples does not authorize a Markdown fallback or a retired CLI invocation.
+
 One fenced block at the top of a ticket file, in KRN's local
 `.krn/tickets/` queue or an external tracker such as a GitHub issue body or a
 Beads description, parsed
@@ -326,8 +331,9 @@ decision under sh-175. The candidates below are trial designs, not a frozen
 task schema or permission to build a second live store.
 
 The queue's **Work item** owns identity, dependencies, discussion and result;
-the **Claim** owns one executor turn. The outcome capsule still owns current
-outcome authority, and `workflow-lessons.md` currently owns active and retired
+the **Claim** owns one executor turn. The accepted request or native Goal owns
+current outcome authority; the capsule carries derived continuation, not approval.
+`workflow-lessons.md` currently owns active and retired
 cross-run lessons pending sh-174's retain/simplify/retire decision. This follows the existing vocabulary in `CONTEXT.md` and
 ADR 0001/0005. A task may link to a capsule ID, a lesson anchor, a Git
 revision or a path, but the queue does not copy their contents or verdicts.
@@ -345,14 +351,14 @@ completion and recovery share the checked-candidate/operation-readback path.
 The queue references the existing fixed-point proof rather than storing a
 second verdict.
 
-For the active Git-ref queue, `ticket next` and claim are task-ID views; the
+For the active Git-ref queue, `krn task next` and claim are task-ID views; the
 lane copies the selected queue and selector refs into its independent clone so
-its host checks see the same immutable task snapshot. `ticket operation prepare`
+its host checks see the same immutable task snapshot. `krn task operation prepare`
 accepts only a JSON file below `.krn/runs/`, derives the current claim owner and
 epoch from the task store, and requires the task's typed deciding check to
 match the receipt for the exact candidate. The integrator builds the merge
 commit object before moving the target branch, checks that object and prepares
-an operation with its expected old branch value. `ticket operation apply`
+an operation with its expected old branch value. `krn task operation apply`
 atomically compares and updates both the target branch ref and task-store ref;
 the operation's `effectObject` must equal `candidateIdentity`. A check receipt
 for a pre-merge object cannot authorize writing a distinct unchecked merge
@@ -367,7 +373,7 @@ candidate object that it will write after the expected-old ref check; recovery
 passes the actual target-ref readback. Missing or different readback stays
 `ambiguous` and does not trigger a retry.
 The user or host supplies the outcome identity (`KRN_INTENT_ID`); its revision
-is read through `ticket intent get` and advanced with `ticket intent set` using
+is read through `krn task intent get` and advanced with `krn task intent set` using
 an expected-revision CAS. The lane does not infer current authority from task
 prose. These local gates coordinate cooperating writers; they are not
 isolation from a process with the same filesystem and Git permissions.
@@ -440,7 +446,7 @@ not proof that the old CLI can operate it. Reject cutover if a post-cutover
 task is lost on restore or a capsule candidate goes dangling because a reader
 still uses the old paths.
 
-**Production migration.** `krn ticket store migrate --root REPO --json` reports
+**Production migration.** `krn task store migrate --root REPO --json` reports
 the legacy path/ID set, ambiguities and unmapped fields without writing queue
 state. After reviewing that report and completing the cutover gates, apply it
 with `--yes --archive FILE --actor NAME --reason TEXT`. The archive parent must
@@ -458,7 +464,7 @@ operation runs inside this section. Existing identical archive bytes admit a
 retry; different backup bytes or an unselected existing queue refuse it. An
 already selected valid queue returns `already-active` without replaying import.
 
-`krn ticket store lock --root REPO` shows the owner token and observed process
+`krn task store lock --root REPO` shows the owner token and observed process
 liveness. `store unlock --root REPO --token TOKEN --actor NAME --reason TEXT`
 recovers only that exact token after the local kernel reports its PID absent.
 A live or reused PID, another host or unknown liveness refuses recovery; age
@@ -502,14 +508,14 @@ An existing observer file establishes availability, not a passing result. Queue
 queries leave outcome classification to the lane's executing preflight, which
 still refuses an already-green check or a load/setup failure.
 
-**Queue recovery after new writes.** `krn ticket store export --root REPO
+**Queue recovery after new writes.** `krn task store export --root REPO
 --json` prints a version-1 `krn-task-queue` archive containing the exact blob
 contents and Git object IDs for `refs/krn/queue` and `refs/krn/queue-active`.
 Export reads a pinned snapshot and does not write refs. Save that output with
 the outcome archive; the legacy ticket-file backup alone cannot preserve work
 added after import.
 
-`krn ticket store restore --root REPO --file ARCHIVE.json --json` validates
+`krn task store restore --root REPO --file ARCHIVE.json --json` validates
 the complete archive and both object identities before writing. It atomically
 creates absent refs and verifies any identical existing refs. Repeating an
 identical restore is a no-op; a differing or symbolic destination ref is
