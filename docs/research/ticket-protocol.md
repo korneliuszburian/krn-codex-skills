@@ -494,6 +494,21 @@ client that does not implement this protocol. Process-crash checks do not prove
 power-loss durability or protection from a process with the same filesystem
 permissions.
 
+**Explicit nonterminal recovery.** After current readback, `krn task resume
+--root REPO --id ID --actor WHO --reason WHY --status BEFORE --expected-epoch E`
+re-admits `deferred`, `in-review` or `blocked` work to `open`. Obtain the actual
+status and epoch from the selected task (`show` plus the typed `list` record);
+zero is valid for imported work without a historical claim. The status/epoch
+must still match at the queue CAS. This cooperating operator transition does
+not authenticate an actor string or grant publication authority. It preserves
+ID, dependencies, proof/lane recipe, historical claims, gates and attempts;
+`ready` rechecks dependencies and a later claim creates a fresh generation.
+External CI/tracker and unknown gates refuse rather than being waived by prose.
+An explicitly authorized exhausted-lane retry preserves its old attempt count,
+so another failure blocks it again; no automatic retry budget is reset.
+Resume is not close or effect replay, and never parks or steals a claimed turn.
+Terminal `reopen` and expired-claim `takeover` retain their separate contracts.
+
 For selected queues, a claimed-task writer passes its own `--expected-epoch`
 from the claim response to `comment`, `fail`, `release`, `renew` and claimed
 `close`. The CLI does not replace a missing generation with the current one.

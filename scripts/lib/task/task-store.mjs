@@ -1006,6 +1006,30 @@ export function openTaskStore(root) {
       });
     },
 
+    async resume(id, { actor, reason, expectedStatus, expectedEpoch } = {}) {
+      if (typeof actor !== "string" || typeof reason !== "string" || !hasActionableReason(actor) || !hasActionableReason(reason)
+        || !["deferred", "in-review", "blocked"].includes(expectedStatus)
+        || !Number.isSafeInteger(expectedEpoch) || expectedEpoch < 0) {
+        throw new Error("resume requires actor, reason, current nonterminal status and claim generation");
+      }
+      return transition((state) => {
+        const task = taskFor(state, id);
+        if (!task || task.status !== expectedStatus || task.epoch !== expectedEpoch) {
+          throw new Error("task state or claim generation changed before resume");
+        }
+        const gates = [task.gate?.legacyRaw, ...[task.legacyFields.Gate ?? []].flat()].filter(Boolean).map(String);
+        if ((task.gate && !["none", "human"].includes(task.gate.kind))
+          || gates.some((gate) => !/^(?:none|retries-exhausted|human:\s*.+)$/i.test(gate.trim()))) {
+          throw new Error("resume cannot discharge an unresolved external or unknown gate");
+        }
+        task.status = "open";
+        task.owner = "";
+        delete task.lease;
+        task.history.push({ type: "resumed", from: expectedStatus, actor: actor.trim(), reason: reason.trim(), epoch: task.epoch });
+        return task;
+      });
+    },
+
     async release(id, { actor, reason, epoch } = {}) {
       if (!actor || !hasActionableReason(reason) || !Number.isInteger(epoch)) {
         throw new Error("release requires actor, a non-placeholder reason and claim generation");

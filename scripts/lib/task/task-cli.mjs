@@ -101,6 +101,7 @@ async function runTaskStoreCommand(command, positional, options, usage, requireD
     comment: ["root", "id", "worker", "body", "expectedEpoch"],
     close: ["root", "id", "actor", "reason", "resolution", "expectedEpoch", "base", "head", "integrated"],
     reopen: ["root", "id", "actor", "reason"],
+    resume: ["root", "id", "actor", "reason", "status", "expectedEpoch"],
     release: ["root", "id", "actor", "reason", "expectedEpoch"],
     takeover: ["root", "id", "worker", "session", "expectedEpoch", "reason"],
     fail: ["root", "id", "worker", "reason", "signature", "expectedEpoch"],
@@ -113,7 +114,7 @@ async function runTaskStoreCommand(command, positional, options, usage, requireD
   requireDirectory(options.root);
   if (command === "add" && !options.title) fail("task add requires --title", EXIT_CODES.USAGE);
   if (command === "ready" && !options.id) fail("task ready requires --id", EXIT_CODES.USAGE);
-  if (["claim", "renew", "comment", "close", "reopen", "fail", "takeover"].includes(command) && !options.id
+  if (["claim", "renew", "comment", "close", "reopen", "resume", "fail", "takeover"].includes(command) && !options.id
     && !(command === "claim" && options.ready)) fail(`task ${command} requires --id`, EXIT_CODES.USAGE);
   if (["edit", "release"].includes(command) && !options.id) fail(`task ${command} requires --id`, EXIT_CODES.USAGE);
   if (["claim", "renew"].includes(command) && !options.worker) fail(`task ${command} requires --worker`, EXIT_CODES.USAGE);
@@ -123,14 +124,18 @@ async function runTaskStoreCommand(command, positional, options, usage, requireD
     fail("task takeover requires --worker, --expected-epoch and --reason", EXIT_CODES.USAGE);
   }
   if (command === "comment" && (!options.worker || !options.body)) fail("task comment requires --worker and --body", EXIT_CODES.USAGE);
-  if (["close", "reopen"].includes(command) && !(options.reason ?? options.resolution)) fail(`task ${command} requires --reason`, EXIT_CODES.USAGE);
-  if (["close", "reopen", "release"].includes(command) && !options.actor) fail(`task ${command} requires --actor`, EXIT_CODES.USAGE);
+  if (["close", "reopen", "resume"].includes(command) && !(options.reason ?? options.resolution)) fail(`task ${command} requires --reason`, EXIT_CODES.USAGE);
+  if (["close", "reopen", "resume", "release"].includes(command) && !options.actor) fail(`task ${command} requires --actor`, EXIT_CODES.USAGE);
+  if (command === "resume" && (!options.status || options.expectedEpoch === undefined)) {
+    fail("task resume requires --status and --expected-epoch from current task readback", EXIT_CODES.USAGE);
+  }
   if (["comment", "renew", "release", "fail"].includes(command) && options.expectedEpoch === undefined) {
     fail(`task ${command} requires --expected-epoch from the claim response`, EXIT_CODES.USAGE);
   }
   const epoch = options.expectedEpoch === undefined ? undefined : Number(options.expectedEpoch);
-  if (epoch !== undefined && (!Number.isSafeInteger(epoch) || epoch < 1)) {
-    fail(`task ${command} requires a positive --expected-epoch`, EXIT_CODES.USAGE);
+  const minimumEpoch = command === "resume" ? 0 : 1;
+  if (epoch !== undefined && (!Number.isSafeInteger(epoch) || epoch < minimumEpoch)) {
+    fail(`task ${command} requires a ${minimumEpoch === 0 ? "non-negative" : "positive"} --expected-epoch`, EXIT_CODES.USAGE);
   }
   const store = selectedTaskStore(options.root);
   try {
@@ -159,6 +164,8 @@ async function runTaskStoreCommand(command, positional, options, usage, requireD
       result = await store.close(options.id, { actor, reason: options.reason ?? options.resolution, epoch, proof });
     } else if (command === "reopen") {
       result = await store.reopen(options.id, { actor: options.actor, reason: options.reason });
+    } else if (command === "resume") {
+      result = await store.resume(options.id, { actor: options.actor, reason: options.reason, expectedStatus: options.status, expectedEpoch: epoch });
     } else if (command === "release") {
       const actor = options.actor;
       result = await store.release(options.id, { actor, reason: options.reason, epoch });
@@ -414,7 +421,7 @@ export async function runTaskCommand(argv, { usage, requireDirectory }) {
   if (command === "operation") return runTaskOperation(positional, options, usage, requireDirectory);
   if (command === "show") return showTask(positional, options, usage);
   if (command === "fields" || command === "env") return renderTaskFields(positional, options, usage);
-  if (["add", "ready", "claim", "renew", "comment", "close", "reopen", "release", "takeover", "list", "edit", "fail"].includes(command)) {
+  if (["add", "ready", "claim", "renew", "comment", "close", "reopen", "resume", "release", "takeover", "list", "edit", "fail"].includes(command)) {
     return runTaskStoreCommand(command, positional, options, usage, requireDirectory);
   }
   rejectOptions(options, ["root", "id", "base", "head"]);
