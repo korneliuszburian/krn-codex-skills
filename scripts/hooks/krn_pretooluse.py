@@ -81,7 +81,7 @@ def executable_name(token: str) -> str:
 
 COMMAND_WRAPPERS = {
     "builtin", "busybox", "command", "doas", "env", "exec", "ionice", "nice",
-    "nohup", "rtk", "setsid", "stdbuf", "sudo", "time", "timeout",
+    "nohup", "rtk", "setsid", "sshpass", "stdbuf", "sudo", "time", "timeout",
 }
 SHELL_INTERPRETERS = {"sh", "bash", "dash", "zsh", "ash", "ksh"}
 WRITER_EXECUTABLES = {
@@ -102,6 +102,7 @@ WRAPPER_VALUE_FLAGS = {
     "stdbuf": {"-i", "--input", "-o", "--output", "-e", "--error"},
     "time": {"-f", "--format", "-o", "--output"},
     "doas": {"-u", "-C"},
+    "sshpass": {"-p", "-f", "-d", "-P"},
 }
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 EXPANSION_OR_GLOB = re.compile(r"[*?\[]|\$\(|\$\{|\$[A-Za-z_]|`")
@@ -645,497 +646,9 @@ def cd_target(segment: str, cwd: Path) -> Path | None:
     return resolve_target(words[1], cwd)
 
 
-DEPLOY_ENV_SETTING_KEYS = frozenset(
-    {
-        "DEPLOY_HOST",
-        "DEPLOY_PORT",
-        "DEPLOY_USER",
-        "DEPLOY_PATH",
-        "DEPLOY_KNOWN_HOSTS",
-        "SSH_DEV_USER",
-    }
-)
-DEV_ENV_SOURCES = frozenset({". ./.env", ". .env"})
-DEV_SSHPASS_EXPORT = 'export SSHPASS="$SSH_DEV_PASSWORD"'
-SSHPASS_EXPORT = re.compile(r'^export SSHPASS="\$\{?SSH_DEV_PASSWORD\}?"$')
-DEV_PUT = re.compile(r"^put\s+(\S+)\s+(\S+)$")
-DEV_PATH_ESCAPE = re.compile(r"[*?\[\]{}$`]")
-REMOTE_TARGET = re.compile(
-    r"^(?:[A-Za-z0-9._-]+@)?[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+:"
-)
-WHOLE_TREE_DEPLOY = re.compile(
-    r"\bftp-kr\b|(?<![A-Za-z0-9])(?:upload|clean)[ _-]?all(?![A-Za-z0-9])",
-    re.IGNORECASE,
-)
-SFTP_MENTION = re.compile(r"(?<![\w-])sftp(?![\w-])")
-REMOTE_TRANSPORT_HEADS = frozenset({"ssh", "sshpass", "scp", "sftp", "rsync"})
-MAX_DEV_BATCH_BYTES = 64 * 1024
-
-
-def read_deploy_settings(root: Path) -> dict[str, str] | None:
-    try:
-        text = (root / ".env").read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return None
-    settings: dict[str, str] = {}
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            continue
-        key, _, raw = stripped.partition("=")
-        key = key.strip()
-        if key not in DEPLOY_ENV_SETTING_KEYS:
-            continue
-        value = raw.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
-            value = value[1:-1]
-        settings[key] = value
-    return settings
-
-
-def dev_deploy_target(cwd: Path) -> dict[str, Any] | None:
-    root = find_repo_root(cwd)
-    if root is None:
-        return None
-    settings = read_deploy_settings(root)
-    if settings is None:
-        return None
-    host = settings.get("DEPLOY_HOST", "")
-    port = settings.get("DEPLOY_PORT", "")
-    user = settings.get("DEPLOY_USER") or settings.get("SSH_DEV_USER", "")
-    deploy_path = settings.get("DEPLOY_PATH", "").rstrip("/")
-    known_hosts = settings.get("DEPLOY_KNOWN_HOSTS", "")
-    if not host or DEV_PATH_ESCAPE.search(host):
-        return None
-    if not port.isdigit() or not 1 <= int(port) <= 65535:
-        return None
-    if not user or DEV_PATH_ESCAPE.search(user):
-        return None
-    if not deploy_path.startswith("/") or ".." in deploy_path.split("/"):
-        return None
-    return {
-        "root": root,
-        "host": host,
-        "port": port,
-        "user": user,
-        "deploy_path": deploy_path,
-        "known_hosts": known_hosts,
-    }
-
-
-def known_hosts_pins(path: Path, host: str, port: str) -> bool:
-    try:
-        text = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return False
-    expected = host if port == "22" else f"[{host}]:{port}"
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or stripped.startswith("|"):
-            continue
-        names = stripped.split()[0].split(",")
-        if expected in names:
-            return True
-    return False
-
-
-def split_single_heredoc(command: str) -> tuple[str, str | None, str | None]:
-    """Return (header, body, error) for exactly one quoted sftp heredoc.
-
-    Only a single-quoted delimiter is admitted because the batch must never
-    pass through shell expansion; the unreadable forms are reported instead of
-    interpreted.
-    """
-
-    quote: str | None = None
-    start: int | None = None
-    end_token: int | None = None
-    marker = ""
-    index = 0
-    while index < len(command):
-        character = command[index]
-        if quote == "'":
-            if character == "'":
-                quote = None
-            index += 1
-            continue
-        if quote == '"':
-            if character == "\\" and index + 1 < len(command):
-                index += 2
-                continue
-            if character == '"':
-                quote = None
-            index += 1
-            continue
-        if character == "\\" and index + 1 < len(command):
-            index += 2
-            continue
-        if character in {"'", '"'}:
-            quote = character
-            index += 1
-            continue
-        if character == "<" and index + 1 < len(command) and command[index + 1] == "<":
-            if start is not None:
-                return "", None, "multiple heredocs are unsupported"
-            if index + 2 < len(command) and command[index + 2] == "<":
-                return "", None, "herestrings are unsupported"
-            cursor = index + 2
-            if cursor < len(command) and command[cursor] == "-":
-                return "", None, "tab-stripping heredocs are unsupported"
-            while cursor < len(command) and command[cursor] in " \t":
-                cursor += 1
-            if cursor >= len(command) or command[cursor] != "'":
-                return "", None, "the sftp batch requires one single-quoted heredoc delimiter"
-            cursor += 1
-            marker_start = cursor
-            while cursor < len(command) and command[cursor] != "'":
-                cursor += 1
-            if cursor >= len(command):
-                return "", None, "the heredoc delimiter is unterminated"
-            marker = command[marker_start:cursor]
-            if not marker:
-                return "", None, "the heredoc delimiter is empty"
-            start = index
-            end_token = cursor + 1
-            index = end_token
-            continue
-        index += 1
-    if start is None or end_token is None:
-        return command, None, None
-    newline = command.find("\n", end_token)
-    if newline == -1:
-        return "", None, "the heredoc body must start on the next line"
-    body_lines: list[str] = []
-    cursor = newline + 1
-    while cursor <= len(command):
-        line_end = command.find("\n", cursor)
-        if line_end == -1:
-            line_end = len(command)
-        line = command[cursor:line_end].rstrip("\r")
-        if line == marker:
-            trailing = command[line_end:]
-            if trailing.strip():
-                return "", None, "commands after the sftp batch are unsupported"
-            header = command[:start] + command[end_token:newline]
-            return header, "\n".join(body_lines), None
-        body_lines.append(line)
-        if line_end >= len(command):
-            break
-        cursor = line_end + 1
-    return "", None, "the heredoc body is unterminated"
-
-
-def segment_mentions_sftp(segment: str) -> bool:
-    words = static_simple_words(segment)
-    if words is not None:
-        return "sftp" in words
-    return SFTP_MENTION.search(segment) is not None
-
-
-def dev_sftp_transport(
-    words: tuple[str, ...],
-) -> tuple[dict[str, str | None], bool, str | None]:
-    if words and executable_name(words[0]) == "sshpass":
-        if len(words) < 3 or words[1] != "-e" or executable_name(words[2]) != "sftp":
-            return {}, False, "sshpass must pass the secret through SSHPASS with -e before sftp"
-        rest = list(words[3:])
-        sshpass = True
-    elif words and executable_name(words[0]) == "sftp":
-        rest = list(words[1:])
-        sshpass = False
-    else:
-        return {}, False, "sftp must run directly or through sshpass -e"
-
-    port: str | None = None
-    known_hosts: str | None = None
-    strict: str | None = None
-    batch: str | None = None
-    seen_options: set[str] = set()
-    seen_flags: set[str] = set()
-    positionals: list[str] = []
-    index = 0
-    while index < len(rest):
-        token = rest[index]
-        if token == "-P":
-            if token in seen_flags:
-                return {}, sshpass, "duplicate sftp -P options are blocked"
-            seen_flags.add(token)
-            if index + 1 >= len(rest):
-                return {}, sshpass, "sftp -P needs one concrete DEV port"
-            port = rest[index + 1]
-            index += 2
-            continue
-        if token == "-o":
-            if index + 1 >= len(rest):
-                return {}, sshpass, "sftp -o needs one key=value option"
-            option = rest[index + 1]
-            key, separator, value = option.partition("=")
-            if not separator:
-                return {}, sshpass, "sftp -o options must be key=value pairs"
-            lowered = key.lower()
-            if lowered in seen_options:
-                return {}, sshpass, "duplicate sftp options are blocked"
-            seen_options.add(lowered)
-            index += 2
-            if lowered == "stricthostkeychecking":
-                strict = value.lower()
-            elif lowered == "userknownhostsfile":
-                known_hosts = value
-            elif lowered == "connecttimeout":
-                if not value.isdigit():
-                    return {}, sshpass, "sftp ConnectTimeout must be a number of seconds"
-            else:
-                return {}, sshpass, "sftp options outside the DEV upload policy are blocked"
-            continue
-        if token == "-b":
-            if token in seen_flags:
-                return {}, sshpass, "duplicate sftp -b options are blocked"
-            seen_flags.add(token)
-            if index + 1 >= len(rest):
-                return {}, sshpass, "sftp -b needs one concrete batch file or -"
-            batch = rest[index + 1]
-            index += 2
-            continue
-        if token.startswith("-"):
-            return {}, sshpass, "sftp flags outside the DEV upload policy are blocked"
-        positionals.append(token)
-        index += 1
-    if len(positionals) != 1:
-        return {}, sshpass, "sftp needs exactly one user@host argument"
-    return (
-        {
-            "port": port,
-            "known_hosts": known_hosts,
-            "strict": strict,
-            "batch": batch,
-            "identity": positionals[0],
-        },
-        sshpass,
-        None,
-    )
-
-
-def dev_sftp_destination(
-    transport: dict[str, str | None],
-    target: dict[str, Any],
-) -> str | None:
-    if transport["port"] != target["port"]:
-        return "the sftp port is not the configured DEV port"
-    if transport["strict"] != "yes":
-        return "sftp must verify the host key with StrictHostKeyChecking=yes"
-    known = transport["known_hosts"]
-    if not known or DEV_PATH_ESCAPE.search(known):
-        return "sftp must name one concrete UserKnownHostsFile"
-    known_path = Path(known)
-    if not known_path.is_absolute() or not known_path.is_file():
-        return "the named known_hosts file must exist as one concrete path"
-    configured = target.get("known_hosts", "")
-    if not configured or DEV_PATH_ESCAPE.search(configured) or not Path(configured).is_absolute():
-        return "the DEV deployment requires an absolute DEPLOY_KNOWN_HOSTS host key file"
-    if known_path.resolve() != Path(configured).resolve():
-        return "the sftp host key file is not the configured DEPLOY_KNOWN_HOSTS"
-    identity = transport["identity"] or ""
-    user, separator, host = identity.rpartition("@")
-    if not separator or user != target["user"]:
-        return "the sftp user is not the configured DEV user"
-    if not known_hosts_pins(known_path, host, target["port"]):
-        return f"the named known_hosts file does not pin {host}"
-    if host != target["host"]:
-        return "the sftp host is not the configured DEV host"
-    return None
-
-
-def dev_batch_decision(
-    batch_text: str,
-    cwd: Path,
-    target: dict[str, Any],
-) -> tuple[str, str | None]:
-    if len(batch_text.encode("utf-8", errors="replace")) > MAX_DEV_BATCH_BYTES:
-        return "deny", "the sftp put list is too large"
-    root = target["root"]
-    deploy_root = PurePosixPath(target["deploy_path"])
-    puts = 0
-    for raw_line in batch_text.splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        match = DEV_PUT.fullmatch(line)
-        if match is None:
-            return (
-                "deny",
-                "the sftp batch allows only put of named files; other verbs, "
-                "options, globs, and recursion are blocked",
-            )
-        local_raw, remote_raw = match.groups()
-        if DEV_PATH_ESCAPE.search(local_raw) or DEV_PATH_ESCAPE.search(remote_raw):
-            return "deny", "put paths must be concrete; globs, braces, and expansions are blocked"
-        if ".." in Path(local_raw).parts:
-            return "deny", "put paths must not contain .. segments"
-        local = Path(local_raw)
-        if not local.is_absolute():
-            local = cwd / local
-        try:
-            local = local.resolve()
-        except OSError:
-            return "deny", "the put source cannot be inspected"
-        if not local.is_file():
-            return "deny", "the put source must be one existing file"
-        try:
-            relative = local.relative_to(root)
-        except ValueError:
-            return "deny", "the put source must be one file inside the repository"
-        if ".git" in relative.parts:
-            return "deny", "the put source must not be Git metadata"
-        if is_protected_file(local):
-            return "deny", "the put source must not be a protected instruction, secret, key, or database file"
-        remote = PurePosixPath(remote_raw)
-        if not remote.is_absolute() or ".." in remote.parts or remote_raw.endswith("/"):
-            return "deny", "the put destination must be one concrete absolute file path"
-        if remote == deploy_root or deploy_root not in remote.parents:
-            return "deny", "the put destination is outside the configured DEV tree"
-        if not str(remote).endswith("/" + relative.as_posix()):
-            return "deny", "the put destination must mirror the repository-relative source under the DEV tree"
-        puts += 1
-    if puts == 0:
-        return "deny", "the sftp batch needs at least one put of a named file"
-    return "allow", None
-
-
-def dev_deploy_decision(command: str, cwd: Path) -> tuple[str, str | None]:
-    """Classify one command as the sanctioned DEV sftp upload or a denial.
-
-    ``pass`` means no DEV sftp policy applies and the ordinary destructive-path
-    policy decides. The admitted form is the only remote transfer the hook
-    allows: one sshpass -e (or key-only) sftp invocation on the configured DEV
-    host, port, user, and host pin, uploading a finite put list under the
-    repository's DEV tree. The hook never executes the command to resolve
-    variables; every path and flag must already be concrete.
-    """
-
-    words = static_simple_words(command)
-    if words is not None and (is_safe_text(words) or is_safe_inspection(words)):
-        return "pass", None
-    header, body, heredoc_error = split_single_heredoc(command)
-    if heredoc_error is not None:
-        if SFTP_MENTION.search(command):
-            return "deny", f"the DEV sftp upload is blocked: {heredoc_error}"
-        return "pass", None
-    segments = [segment.strip() for segment in re.split(r"&&|\|\||;|\n", header) if segment.strip()]
-    sftp_indexes = [
-        index for index, segment in enumerate(segments) if segment_mentions_sftp(segment)
-    ]
-    if not sftp_indexes:
-        return "pass", None
-    if len(sftp_indexes) != 1:
-        return "deny", "exactly one sftp invocation per command is allowed"
-    sftp_index = sftp_indexes[0]
-    if sftp_index != len(segments) - 1:
-        return "deny", "the sftp invocation must be the last command segment"
-    target = dev_deploy_target(cwd)
-    if target is None:
-        return "deny", "no DEV deployment target is declared in this repository; sftp upload is blocked"
-    prologue = segments[:sftp_index]
-    sftp_words = static_simple_words(segments[sftp_index])
-    if sftp_words is None:
-        return "deny", "the sftp transport must be one concrete command without expansion"
-    transport, sshpass, reason = dev_sftp_transport(sftp_words)
-    if reason is not None:
-        return "deny", reason
-    if sshpass:
-        expected = ["set +x", "set -a", ". ./.env", "set +a", DEV_SSHPASS_EXPORT]
-        normalized = [". ./.env" if segment in DEV_ENV_SOURCES else segment for segment in prologue]
-        if normalized != expected:
-            return (
-                "deny",
-                'sshpass upload must source ./.env, export SSHPASS="$SSH_DEV_PASSWORD", '
-                "and disable tracing",
-            )
-    elif prologue:
-        return "deny", "the key-only sftp form takes no shell prologue"
-    if not (target["root"] / ".env").is_file():
-        return "deny", "the DEV deployment environment file is absent"
-    reason = dev_sftp_destination(transport, target)
-    if reason is not None:
-        return "deny", reason
-    batch = transport["batch"]
-    if body is None:
-        if not batch or batch == "-":
-            return "deny", "sftp upload must name an explicit put list"
-        if DEV_PATH_ESCAPE.search(batch) or ".." in Path(batch).parts:
-            return "deny", "the sftp batch file must be one concrete path"
-        batch_path = Path(batch)
-        if not batch_path.is_absolute():
-            batch_path = cwd / batch_path
-        try:
-            batch_path = batch_path.resolve()
-        except OSError:
-            return "deny", "the sftp batch file cannot be inspected"
-        if not batch_path.is_file() or is_protected_file(batch_path):
-            return "deny", "the sftp batch file must be one existing unprotected file"
-        try:
-            batch_text = batch_path.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            return "deny", "the sftp batch file cannot be read"
-    else:
-        if batch not in {None, "-"}:
-            return "deny", "the sftp batch must come from either the heredoc or -b, not both"
-        batch_text = body
-    return dev_batch_decision(batch_text, cwd, target)
-
-
-def remote_transfer_denial_reason(command: str, cwd: Path) -> str | None:
-    """Block deployment-wide transfers while the DEV put list is the one exception."""
-
-    words = static_simple_words(command)
-    if words is not None and (is_safe_text(words) or is_safe_inspection(words)):
-        return None
-    piped = pipe_segments(command)
-    heads: list[str] = []
-    for segment in piped:
-        segment_words = static_simple_words(segment)
-        if segment_words is None:
-            heads.append(naive_writer_head(segment))
-            continue
-        effective = strip_wrappers(segment_words)
-        heads.append(executable_name(effective[0]) if effective else "")
-    for index, head in enumerate(heads):
-        if head == "tar" and index + 1 < len(heads) and heads[index + 1] in REMOTE_TRANSPORT_HEADS:
-            return "streaming a tar archive to a remote host is blocked; use the explicit DEV sftp put list"
-    for segment in piped:
-        for subcommand in SUBCOMMAND_SPLIT.split(segment):
-            sub_words = static_simple_words(subcommand)
-            if sub_words is None:
-                if WHOLE_TREE_DEPLOY.search(subcommand):
-                    return "whole-workspace deployment commands are blocked; use the explicit DEV sftp put list"
-                continue
-            effective = strip_wrappers(sub_words)
-            if not effective:
-                continue
-            head = executable_name(effective[0])
-            if WHOLE_TREE_DEPLOY.search(subcommand):
-                return "whole-workspace deployment commands are blocked; use the explicit DEV sftp put list"
-            if head in {"rsync", "scp"} and any(
-                REMOTE_TARGET.match(argument)
-                for argument in effective[1:]
-                if not argument.startswith("-")
-            ):
-                return "remote copy or sync deployment is blocked; use the explicit DEV sftp put list"
-    return None
-
-
 def bash_denial_reason(command: str, cwd: Path, inside_script: bool = False) -> str | None:
     lexical_text = command.replace("\\\r\n", "").replace("\\\n", "")
     literal_text = without_shell_comments(lexical_text)
-    deploy_state, deploy_reason = dev_deploy_decision(literal_text, cwd)
-    if deploy_state == "deny":
-        return deploy_reason
-    if deploy_state == "allow":
-        if references_forbidden_capability(lexical_text):
-            return "blocked by the global forbidden-capability policy"
-        return None
-    transfer_reason = remote_transfer_denial_reason(literal_text, cwd)
-    if transfer_reason is not None:
-        return transfer_reason
     chain = split_safe_and_chain(literal_text)
     if chain is not None and len(chain) > 1:
         active_cwd = cwd
@@ -1145,8 +658,48 @@ def bash_denial_reason(command: str, cwd: Path, inside_script: bool = False) -> 
                 return reason
             active_cwd = cd_target(segment, active_cwd) or active_cwd
         return None
+    pipeline = pipe_segments(literal_text)
+    if len(pipeline) > 1 and all(static_simple_words(segment) for segment in pipeline):
+        for index, segment in enumerate(pipeline):
+            segment_words = strip_wrappers(static_simple_words(segment) or ())
+            if index and segment_words and executable_name(segment_words[0]) in SHELL_INTERPRETERS:
+                return "piping data into a shell interpreter is blocked"
+            if direct_destructive_kind(segment_words) is not None:
+                return "local destructive command in shell composition is blocked"
+            reason = bash_denial_reason(segment, cwd, inside_script)
+            if reason is not None:
+                return reason
+        return None
     words = static_simple_words(literal_text)
     effective = strip_wrappers(words) if words is not None else None
+    native_words = effective
+    if native_words is None:
+        redirected_words = static_simple_words(without_literal_redirections(literal_text))
+        native_words = strip_wrappers(redirected_words) if redirected_words else None
+    if native_words is None:
+        lines = literal_text.strip().splitlines()
+        if len(lines) > 1:
+            marker = re.search(r"\s<<\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1\s*$", lines[0])
+            if marker is not None and lines[-1] == marker[2]:
+                header_words = static_simple_words(lines[0][:marker.start()])
+                native_words = strip_wrappers(header_words) if header_words else None
+    if native_words:
+        native_head = executable_name(native_words[0])
+        remote_copy = native_head in {"scp", "rsync"} and any(
+            ":" in argument for argument in native_words[1:] if not argument.startswith("-")
+        )
+        if native_head in {"ssh", "sftp", "ftp", "wp"} or remote_copy:
+            if references_forbidden_capability(lexical_text):
+                return "blocked by the global forbidden-capability policy"
+            reason = redirection_denial_reason(literal_text, cwd)
+            if reason is not None:
+                return reason
+            if remote_copy and ":" not in native_words[-1]:
+                # Only the literal local destination is ours to protect. Do
+                # not interpret the remote source, account, or transfer scope.
+                writer = "cp" if native_head == "scp" else "rsync"
+                return write_target_denial_reason((writer, *native_words[1:]), cwd)
+            return None
     script_words = words if words is not None else static_simple_words(
         without_literal_redirections(literal_text)
     )
@@ -1260,25 +813,35 @@ def patch_denial_reason(command: str, cwd: Path) -> str | None:
         if path_has_forbidden_component(candidate):
             return "patch target belongs to the quarantined capability"
 
-    # The repository's own instruction file is maintained by the session that
-    # owns the repository, so the sanctioned edit path may update it; deleting
-    # it, moving another file onto it, shell writers, and the installed global
-    # instruction files stay denied (see the sh-105 decision).
-    repo_root = find_repo_root(cwd)
-    repo_instructions = {repo_root / "AGENTS.md", repo_root / "CLAUDE.md"} if repo_root is not None else set()
+    # Native workspace permissions still decide write authority. The hook
+    # distinguishes project edits from installed globals and destructive moves.
+    cwd_repo = find_repo_root(cwd)
     write_paths = re.findall(r"^\*\*\* (?:Add|Update) File: (.+)$", command, re.MULTILINE)
     for raw_target in write_paths:
         target = resolve_target(raw_target.strip(), cwd)
         if target is None:
             return "file write target is not inspectable"
-        if target in repo_instructions:
-            continue
-        reason = protected_path_reason(target, cwd, recursive=False)
+        raw_path = Path(raw_target.strip()).expanduser()
+        if not raw_path.is_absolute():
+            raw_path = cwd / raw_path
+        config_name = raw_path.name in {"AGENTS.md", "CLAUDE.md", ".env"} or raw_path.name.startswith(".env.")
+        lexical_target = raw_path.parent.resolve(strict=False) / raw_path.name
+        if config_name and target != lexical_target:
+            return "protected file write blocked: project configuration must not follow a file symlink"
+        target_repo = find_repo_root(target.parent)
+        project_config_write = (
+            config_name
+            and target_repo is not None
+            and (target_repo == cwd_repo or target_repo == cwd or cwd in target_repo.parents)
+        )
+        reason = protected_path_reason(target, cwd, recursive=False, project_config_write=project_config_write)
         if reason is not None:
             return f"protected file write blocked: {reason}"
 
     deleted_paths = re.findall(r"^\*\*\* Delete File: (.+)$", command, re.MULTILINE)
     for raw_target in deleted_paths:
+        if is_protected_file(Path(raw_target.strip())):
+            return "protected file deletion blocked: protected file name"
         target = resolve_target(raw_target.strip(), cwd)
         if target is None:
             return "file deletion target is not inspectable"
@@ -1302,6 +865,8 @@ def patch_denial_reason(command: str, cwd: Path) -> str | None:
         elif line == "*** End Patch":
             current_update = None
     for raw_source in moved_sources:
+        if is_protected_file(Path(raw_source.strip())):
+            return "protected file move blocked: protected file name"
         source = resolve_target(raw_source.strip(), cwd)
         if source is None:
             return "file move source is not inspectable"
@@ -1309,6 +874,8 @@ def patch_denial_reason(command: str, cwd: Path) -> str | None:
         if reason is not None:
             return f"protected file move blocked: {reason}"
     for raw_destination in moved_destinations:
+        if is_protected_file(Path(raw_destination.strip())):
+            return "protected file move blocked: protected file name"
         destination = resolve_target(raw_destination.strip(), cwd)
         if destination is None:
             return "file move destination is not inspectable"

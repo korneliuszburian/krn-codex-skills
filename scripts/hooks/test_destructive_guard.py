@@ -11,6 +11,100 @@ HOOK = Path(__file__).with_name("krn_pretooluse.py")
 
 
 class DestructiveGuardSmoke(unittest.TestCase):
+    def hook_decision(self, tool: str, command: str, cwd: Path) -> str | None:
+        result = subprocess.run(
+            [sys.executable, str(HOOK)],
+            input=json.dumps({
+                "hook_event_name": "PreToolUse", "tool_name": tool,
+                "cwd": str(cwd), "tool_input": {"command": command},
+            }),
+            text=True, capture_output=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        if not result.stdout.strip():
+            return None
+        return json.loads(result.stdout)["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_connection_names_in_local_data_do_not_mean_deployment(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            (repo / ".git").mkdir()
+            commands = [
+                "python3 -c 'print(\"ftp-kr.json\")'",
+                "python3 -c 'print(\"sftp\", \"upload all\")'",
+                "git add -- ftp-kr.json",
+                "git commit -m 'docs: disable upload-all in ftp-kr.json'",
+                "rg -n 'sftp|ftp-kr' README.md | head -20",
+            ]
+            for command in commands:
+                with self.subTest(command=command):
+                    self.assertIsNone(self.hook_decision("Bash", command, repo))
+
+    def test_project_configuration_patch_is_scoped_to_its_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            repo = workspace / "repo"
+            other = workspace / "other"
+            for root in [repo, other]:
+                (root / ".git").mkdir(parents=True)
+            nested = repo / "app"
+            nested.mkdir()
+
+            def patch(target: Path) -> str:
+                return f"*** Begin Patch\n*** Update File: {target}\n@@\n+FIXTURE_ONLY=true\n*** End Patch"
+
+            for target in [repo / "AGENTS.md", repo / "CLAUDE.md", repo / ".env", nested / "AGENTS.md", nested / ".env.local"]:
+                with self.subTest(target=str(target)):
+                    self.assertIsNone(self.hook_decision("apply_patch", patch(target), workspace))
+            self.assertIsNone(self.hook_decision("apply_patch", patch(repo / "AGENTS.md"), nested))
+            self.assertIsNotNone(self.hook_decision("apply_patch", patch(other / "AGENTS.md"), repo))
+            self.assertIsNotNone(self.hook_decision("apply_patch", patch(Path.home() / ".codex" / "AGENTS.md"), workspace))
+            self.assertIsNotNone(self.hook_decision("apply_patch", patch(repo / ".git" / "AGENTS.md"), workspace))
+            (repo / ".env").symlink_to(other / "settings.txt")
+            self.assertIsNotNone(self.hook_decision("apply_patch", patch(repo / ".env"), workspace))
+            self.assertIsNotNone(self.hook_decision("apply_patch", f"*** Begin Patch\n*** Delete File: {repo / '.env'}\n*** End Patch", workspace))
+
+    def test_native_site_tools_do_not_have_a_second_command_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            (repo / ".git").mkdir()
+            (repo / "asset.css").write_text("fixture", encoding="utf-8")
+            (repo / "selected.batch").write_text("put asset.css /site/asset.css\n", encoding="utf-8")
+            (repo / "whole.batch").write_text("put -r . /site/\n", encoding="utf-8")
+            (repo / "delete.batch").write_text("rm /site/asset.css\n", encoding="utf-8")
+            allowed = [
+                "sftp -b selected.batch site@example.invalid",
+                "cd . && sftp -b selected.batch site@example.invalid",
+                "sftp site@example.invalid <<'FILES'\nput asset.css /site/asset.css\nFILES",
+                "scp asset.css site@example.invalid:/site/asset.css",
+                "scp -i /tmp/fixture.key -P 6022 asset.css site@example.invalid:/site/asset.css",
+                "sshpass -e scp asset.css site@example.invalid:/site/asset.css",
+                "rsync -a asset.css site@example.invalid:/site/asset.css",
+                "ssh -p 6022 site@example.invalid 'wp --path=/site option get siteurl'",
+                "ssh site@example.invalid 'rm /site/old.css'",
+                "ssh site@example.invalid 'rm /site/old.css' | head -20",
+                "wp post update 123 --post_content='rm and sftp are ordinary article text'",
+                "sftp -b whole.batch site@example.invalid",
+                "sftp -b delete.batch site@example.invalid",
+                "sftp site@example.invalid <<'FILES'\nput -r . /site/\nFILES",
+                "sftp site@example.invalid <<'FILES'\nrm /site/old.css\nFILES",
+                "scp -r . site@example.invalid:/site/",
+                "sshpass -e scp -r . site@example.invalid:/site/",
+                "rsync -a --delete ./ site@example.invalid:/site/",
+            ]
+            for command in allowed:
+                with self.subTest(command=command):
+                    self.assertIsNone(self.hook_decision("Bash", command, repo))
+            denied = [
+                "rm -rf .",
+                "git reset --hard",
+                "ssh site@example.invalid 'cat file' > .env",
+                "ssh site@example.invalid 'true' | rm -rf .",
+            ]
+            for command in denied:
+                with self.subTest(command=command):
+                    self.assertIsNotNone(self.hook_decision("Bash", command, repo))
+
     def test_installed_hook_blocks_protected_root_and_allows_disposable_output(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary) / "repo"
@@ -151,7 +245,7 @@ class DestructiveGuardSmoke(unittest.TestCase):
                 "quarantined capability",
                 patch_reason("*** Add File: superpowers/notes.md") or "",
             )
-            self.assertIn("protected file write blocked", patch_reason("*** Update File: .env\n+x\n") or "")
+            self.assertIsNone(patch_reason("*** Update File: .env\n+x\n"), "scoped project configuration may be updated")
             self.assertIsNone(patch_reason("*** Update File: AGENTS.md\n+x\n"), "the repository owner may update its instruction file")
             self.assertIn("protected file deletion blocked", patch_reason("*** Delete File: AGENTS.md") or "")
             self.assertIn(
