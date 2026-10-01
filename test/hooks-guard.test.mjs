@@ -44,6 +44,23 @@ function decision(tool, command) {
   return decisionAt(tool, command, root);
 }
 
+test("quoted writer names in heredoc are data while shell writers stay guarded", () => {
+  for (const command of [
+    "python3 -B - <<'PY'\nprint('TIMEOUT; install check unqualified')\nPY",
+    "python3 -B - <<'PY'\nprint('status && cp source .env')\nPY",
+    "python3 -B - <<'PY'\nprint('status || tee .env')\nPY",
+  ]) {
+    assert.equal(decision("Bash", command), null, `quoted data must pass: ${command}`);
+  }
+  for (const command of [
+    "echo status; cp /tmp/source .env",
+    'echo status; cp "$SOURCE" .env',
+    "echo status && tee .env",
+  ]) {
+    assert.ok(decision("Bash", command), `local writer must stay guarded: ${command}`);
+  }
+});
+
 test("apply_patch move into a protected path is denied", () => {
   const command = "*** Begin Patch\n*** Update File: notes.md\n*** Move to: .env\n+x\n*** End Patch";
   assert.ok(decision("apply_patch", command), "moving a file onto .env must be denied");
