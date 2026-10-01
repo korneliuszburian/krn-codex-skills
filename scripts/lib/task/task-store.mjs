@@ -98,7 +98,7 @@ function commitSnapshot(root, previous, next) {
   return writeSnapshot(root, previous.oid, next);
 }
 
-// A retrospective close observes an effect already on the target branch.
+// Readback completion observes an effect already present on the target ref.
 // Verify that ref in the same transaction as the queue CAS without moving it.
 function commitSnapshotWithRefVerify(root, previous, next, ref, expected) {
   next.version = previous.state.version + 1;
@@ -113,7 +113,7 @@ function commitSnapshotWithRefVerify(root, previous, next, ref, expected) {
     "",
   ].join("\n");
   const updated = runGitInput(root, ["update-ref", "--stdin"], transaction);
-  if (!updated.ok) throw new StoreConflict(updated.stderr || "queue or target changed before retrospective close");
+  if (!updated.ok) throw new StoreConflict(updated.stderr || "queue or target changed before checked completion");
 }
 
 // The imported Contract is proof-gated but is not a lane operation. An
@@ -1212,7 +1212,7 @@ export function openTaskStore(root) {
       delete task.lease;
       task.result = { operationId, effectObject: current.effectObject };
       task.history.push({ type: "operation-observed", id: operationId });
-      commitSnapshot(repo, previous, next);
+      commitSnapshotWithRefVerify(repo, previous, next, current.effectRef, effectReadback);
       return { idempotent: false, status: "observed" };
     },
   });
