@@ -450,6 +450,31 @@ test("the DEV sftp policy refuses when DEPLOY_KNOWN_HOSTS is absent", () => {
   assert.equal(decision("Bash", "sftp user@example.invalid"), null, "no environment credential or profile is required");
 });
 
+test("inbound native copies keep local destination protections", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "krn-inbound-copy-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  mkdirSync(join(dir, ".git"));
+  const { guardReason } = await import("../config/opencode/plugins/krn.js");
+  for (const command of [
+    "rsync fixture@example.invalid:/file .env",
+    "scp fixture@example.invalid:/file .env",
+    "rsync fixture@example.invalid:/file .git/config",
+    "scp fixture@example.invalid:/file .git/config",
+    "rsync -a --delete fixture@example.invalid:/empty/ .",
+  ]) {
+    assert.ok(decisionAt("Bash", command, dir), command);
+    assert.ok(guardReason("bash", { command }, dir), command);
+  }
+  for (const command of [
+    "rsync fixture@example.invalid:/file notes.txt",
+    "scp fixture@example.invalid:/file notes.txt",
+    "rsync -a --delete ./ fixture@example.invalid:/site/",
+  ]) {
+    assert.equal(decisionAt("Bash", command, dir), null, command);
+    assert.equal(guardReason("bash", { command }, dir), null, command);
+  }
+});
+
 test("native site tools use host permissions instead of a deployment hook", () => {
   const repo = mkdtempSync(join(tmpdir(), "krn-transfer-"));
   mkdirSync(join(repo, ".git"));

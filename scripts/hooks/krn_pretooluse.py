@@ -691,7 +691,15 @@ def bash_denial_reason(command: str, cwd: Path, inside_script: bool = False) -> 
         if native_head in {"ssh", "sftp", "ftp", "wp"} or remote_copy:
             if references_forbidden_capability(lexical_text):
                 return "blocked by the global forbidden-capability policy"
-            return redirection_denial_reason(literal_text, cwd)
+            reason = redirection_denial_reason(literal_text, cwd)
+            if reason is not None:
+                return reason
+            if remote_copy and ":" not in native_words[-1]:
+                # Only the literal local destination is ours to protect. Do
+                # not interpret the remote source, account, or transfer scope.
+                writer = "cp" if native_head == "scp" else "rsync"
+                return write_target_denial_reason((writer, *native_words[1:]), cwd)
+            return None
     script_words = words if words is not None else static_simple_words(
         without_literal_redirections(literal_text)
     )
