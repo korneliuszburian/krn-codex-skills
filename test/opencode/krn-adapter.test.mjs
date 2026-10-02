@@ -99,7 +99,8 @@ test("the guard delegates protected commands and paths to the shared policy", as
   withDir((dir) => {
     assert.ok(adapter.guardReason("bash", { command: "rm -rf .env" }, dir), "a protected rm must be denied");
     assert.equal(adapter.guardReason("bash", { command: "ls -la" }, dir), null, "a read-only command stays allowed");
-    assert.ok(adapter.guardReason("write", { filePath: join(dir, ".env"), content: "x" }, dir), "a write to .env must be denied");
+    assert.equal(adapter.guardReason("write", { filePath: join(dir, ".env"), content: "x" }, dir), null, "workspace configuration edits do not require Git");
+    assert.ok(adapter.guardReason("write", { filePath: "/etc/codex/requirements.toml", content: "x" }, dir), "global policy stays protected");
     assert.equal(
       adapter.guardReason("write", { filePath: join(dir, "notes.md"), content: "x" }, dir),
       null,

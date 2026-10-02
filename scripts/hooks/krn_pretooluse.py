@@ -653,9 +653,52 @@ def cd_target(segment: str, cwd: Path) -> Path | None:
     return resolve_target(words[1], cwd)
 
 
+def remote_heredoc_header(command: str) -> str | None:
+    """A single quoted heredoc supplies stdin, not local shell commands."""
+    match = re.fullmatch(r"([^\n]+?)\s*<<\s*'([A-Za-z_][A-Za-z0-9_]*)'\s*\n([\s\S]*)\n\2\s*", command)
+    if match is None or match[2] in match[3].splitlines():
+        return None
+    return match[1]
+
+
+def remote_heredoc_denial(command: str) -> str | None:
+    lines = command.splitlines()
+    marker = re.search(r"(?<!<)<<\s*(?:'([A-Za-z_][A-Za-z0-9_]*)'|([A-Za-z_][A-Za-z0-9_]*))\s*$", lines[0])
+    if marker is None:
+        return None
+    # Shell substitutions in the local header run before the transport starts.
+    quote = None
+    index = 0
+    while index < marker.start():
+        character = lines[0][index]
+        if character == "\\" and quote != "'":
+            index += 2
+            continue
+        if character in {"'", '"'} and (quote is None or quote == character):
+            quote = character if quote is None else None
+        elif quote != "'" and (character == "`" or lines[0][index:index + 2] == "$("):
+            return "local command substitution in a remote stdin header is blocked"
+        elif quote is None and character in {"&", "|", ";", "<", ">"}:
+            return "local shell composition in a remote stdin header is blocked"
+        index += 1
+    delimiter = marker[1] or marker[2]
+    try:
+        end = lines.index(delimiter, 1)
+    except ValueError:
+        return "unterminated remote stdin heredoc"
+    if any(line.strip() for line in lines[end + 1:]):
+        return "remote stdin and trailing local commands must be separate calls"
+    if marker[2] and re.search(r"\$\(|`", "\n".join(lines[1:end])):
+        return "local command substitution in remote stdin is blocked; quote the heredoc delimiter"
+    return None
+
+
 def bash_denial_reason(command: str, cwd: Path, inside_script: bool = False) -> str | None:
     lexical_text = command.replace("\\\r\n", "").replace("\\\n", "")
     literal_text = without_shell_comments(lexical_text)
+    if re.search(r"(?<!<)<<\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1\s*$", lexical_text.partition("\n")[0]):
+        # A heredoc body is stdin data; '#' there is not a shell comment.
+        literal_text = lexical_text
     chain = split_safe_and_chain(literal_text)
     if chain is not None and len(chain) > 1:
         active_cwd = cwd
@@ -686,9 +729,15 @@ def bash_denial_reason(command: str, cwd: Path, inside_script: bool = False) -> 
     if native_words is None:
         lines = literal_text.strip().splitlines()
         if len(lines) > 1:
-            marker = re.search(r"\s<<\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1\s*$", lines[0])
-            if marker is not None and lines[-1] == marker[2]:
-                header_words = static_simple_words(lines[0][:marker.start()])
+            marker = re.search(r"(?<!<)<<\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1\s*$", lines[0])
+            if marker is not None:
+                header = lines[0][:marker.start()]
+                header_words = static_simple_words(header)
+                if header_words is None and len(pipe_segments(header, split_commands=True)) == 1:
+                    try:
+                        header_words = tuple(shlex.split(header))
+                    except ValueError:
+                        header_words = None
                 native_words = strip_wrappers(header_words) if header_words else None
     if native_words:
         native_head = executable_name(native_words[0])
@@ -698,7 +747,11 @@ def bash_denial_reason(command: str, cwd: Path, inside_script: bool = False) -> 
         if native_head in {"ssh", "sftp", "ftp", "wp"} or remote_copy:
             if references_forbidden_capability(lexical_text):
                 return "blocked by the global forbidden-capability policy"
-            reason = redirection_denial_reason(literal_text, cwd)
+            heredoc_header = remote_heredoc_header(literal_text)
+            heredoc_reason = remote_heredoc_denial(literal_text)
+            if heredoc_reason is not None:
+                return heredoc_reason
+            reason = redirection_denial_reason(heredoc_header or literal_text, cwd)
             if reason is not None:
                 return reason
             if remote_copy and ":" not in native_words[-1]:
@@ -838,8 +891,10 @@ def patch_denial_reason(command: str, cwd: Path) -> str | None:
         target_repo = find_repo_root(target.parent)
         project_config_write = (
             config_name
-            and target_repo is not None
-            and (target_repo == cwd_repo or target_repo == cwd or cwd in target_repo.parents)
+            and (
+                (target_repo is not None and (target_repo == cwd_repo or target_repo == cwd or cwd in target_repo.parents))
+                or (target_repo is None and cwd in target.parents)
+            )
         )
         reason = protected_path_reason(target, cwd, recursive=False, project_config_write=project_config_write)
         if reason is not None:

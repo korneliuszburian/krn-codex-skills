@@ -148,7 +148,7 @@ def protected_contents_reason(target: Path) -> str | None:
     return None
 
 
-def protected_path_reason(target: Path, cwd: Path, recursive: bool, project_config_write: bool = False) -> str | None:
+def protected_path_reason(target: Path, cwd: Path, recursive: bool, project_config_write: bool = False, workspace_import: bool = False) -> str | None:
     home = Path.home().resolve()
     repo_root = find_repo_root(cwd)
 
@@ -220,7 +220,9 @@ def protected_path_reason(target: Path, cwd: Path, recursive: bool, project_conf
         if path_is_within(target, protected) or path_contains(target, protected):
             return f"target {target} overlaps protected path {protected}"
 
-    if target == cwd:
+    if target != cwd and path_contains(target, cwd):
+        return f"target {target} contains the active working directory"
+    if target == cwd and not workspace_import:
         return f"target {target} is the active working directory"
     if is_protected_file(target) and not project_config_write:
         return f"target {target} is a protected instruction, secret, key, or database file"
@@ -502,7 +504,21 @@ def write_target_denial_reason(words: tuple[str, ...], cwd: Path) -> str | None:
             )
         if is_exempt_device(target):
             continue
-        reason = protected_path_reason(target, cwd, recursive=False)
+        # A recursive, additive import may populate a non-Git workspace. Archive
+        # metadata, symlink following, deletion and removal remain outside this exception.
+        import_options = list(words[1:-1])
+        if "-e" in import_options:
+            position = import_options.index("-e")
+            del import_options[position:position + 2]
+        additive_import = (
+            executable == "rsync"
+            and "--ignore-existing" in words
+            and "-r" in words
+            and all(not word.startswith("-") or word in {"-r", "--ignore-existing", "--"}
+                    or word.startswith("--exclude=") for word in import_options)
+            and target == cwd
+        )
+        reason = protected_path_reason(target, cwd, recursive=False, workspace_import=additive_import)
         if reason is not None and nondeleting_skill_update and is_scoped_skill_update_target(target):
             continue
         if reason is not None:
