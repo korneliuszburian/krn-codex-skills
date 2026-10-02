@@ -805,16 +805,17 @@ export function openTaskStore(root) {
       return clone(task);
     },
 
-    async markReady(id) {
+    async markReady(id, { admitBlocked = false } = {}) {
+      if (typeof admitBlocked !== "boolean") throw new Error("admitBlocked must be boolean");
       return transition((state) => {
         const task = taskFor(state, id);
         if (!task || task.status !== "open") throw new Error(`task ${id} is not open`);
         if (hasDependencyCycle(state, id)) throw new Error(`task ${id} has a dependency cycle`);
-        if (!task.dependencies.every((dependency) => taskFor(state, dependency)?.status === "done")) {
+        if (!admitBlocked && !task.dependencies.every((dependency) => taskFor(state, dependency)?.status === "done")) {
           throw new Error(`task ${id} has unresolved dependencies`);
         }
         task.status = "ready";
-        task.history.push({ type: "ready" });
+        task.history.push({ type: "ready", ...(admitBlocked ? { admitBlocked: true } : {}) });
         return task;
       });
     },
