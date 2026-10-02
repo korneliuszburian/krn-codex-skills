@@ -175,9 +175,14 @@ hosts own their mechanics and policy.
    The composed reviewer defaults to `<fixed-point>...HEAD`, which excludes the
    working tree, and expects a tracker document. Supply the review scope
    explicitly (a base that contains the intended work, or the fingerprinted
-   working tree), the acceptance/spec, and `tracker=none` when no tracker is
-   configured; a working-tree review must say so rather than rely on the
-   default. Do not fork the upstream procedure in this repository.
+   working tree) and the acceptance/spec. For the selected Git-ref queue, provide
+   the actual task readback from `krn task show`; use `tracker=none` only when no
+   tracker is configured. A missing legacy tracker document does not authorize
+   setup, `/setup-matt-pocock-skills`, or another queue. A working-tree review
+   must say so rather than rely on the default. Pass the already-agreed seam,
+   current effect grants and repository-owned gates to the handler; reach its
+   resources through the host's supported skill command or file reader, not an
+   assumed `Skill` tool. Do not fork the upstream procedure in this repository.
 
    A mechanical, low-risk 0-budget slice records its cheapest evidence and skips
    fixed-point review only when it changes no behavior, authority, security, or

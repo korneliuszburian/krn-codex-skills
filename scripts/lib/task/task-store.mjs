@@ -98,7 +98,7 @@ function commitSnapshot(root, previous, next) {
   return writeSnapshot(root, previous.oid, next);
 }
 
-// A retrospective close observes an effect already on the target branch.
+// Readback completion observes an effect already present on the target ref.
 // Verify that ref in the same transaction as the queue CAS without moving it.
 function commitSnapshotWithRefVerify(root, previous, next, ref, expected) {
   next.version = previous.state.version + 1;
@@ -113,7 +113,7 @@ function commitSnapshotWithRefVerify(root, previous, next, ref, expected) {
     "",
   ].join("\n");
   const updated = runGitInput(root, ["update-ref", "--stdin"], transaction);
-  if (!updated.ok) throw new StoreConflict(updated.stderr || "queue or target changed before retrospective close");
+  if (!updated.ok) throw new StoreConflict(updated.stderr || "queue or target changed before checked completion");
 }
 
 // The imported Contract is proof-gated but is not a lane operation. An
@@ -360,6 +360,7 @@ function operationAuthorized(state, operation, { worker, epoch } = {}) {
   const recoveredOwner = operation.recovery?.worker === worker && operation.recovery?.epoch === epoch;
   if (!operationParamsMatch(operation) || stored?.id !== operation.id || stored?.status !== "prepared"
     || !task || task.status !== "claimed" || task.owner !== worker || task.epoch !== epoch
+    || task.lease?.worker !== worker || task.lease?.epoch !== epoch || leaseExpired(task.lease, new Date().toISOString())
     || (!originalOwner && !recoveredOwner)
     || typeof operation.intent !== "string" || operation.intent.length === 0
     || !Number.isInteger(operation.intentRevision) || !Object.hasOwn(state.intents, operation.intent)
@@ -1005,6 +1006,30 @@ export function openTaskStore(root) {
       });
     },
 
+    async resume(id, { actor, reason, expectedStatus, expectedEpoch } = {}) {
+      if (typeof actor !== "string" || typeof reason !== "string" || !hasActionableReason(actor) || !hasActionableReason(reason)
+        || !["deferred", "in-review", "blocked"].includes(expectedStatus)
+        || !Number.isSafeInteger(expectedEpoch) || expectedEpoch < 0) {
+        throw new Error("resume requires actor, reason, current nonterminal status and claim generation");
+      }
+      return transition((state) => {
+        const task = taskFor(state, id);
+        if (!task || task.status !== expectedStatus || task.epoch !== expectedEpoch) {
+          throw new Error("task state or claim generation changed before resume");
+        }
+        const gates = [task.gate?.legacyRaw, ...[task.legacyFields.Gate ?? []].flat()].filter(Boolean).map(String);
+        if ((task.gate && !["none", "human"].includes(task.gate.kind))
+          || gates.some((gate) => !/^(?:none|retries-exhausted|human:\s*.+)$/i.test(gate.trim()))) {
+          throw new Error("resume cannot discharge an unresolved external or unknown gate");
+        }
+        task.status = "open";
+        task.owner = "";
+        delete task.lease;
+        task.history.push({ type: "resumed", from: expectedStatus, actor: actor.trim(), reason: reason.trim(), epoch: task.epoch });
+        return task;
+      });
+    },
+
     async release(id, { actor, reason, epoch } = {}) {
       if (!actor || !hasActionableReason(reason) || !Number.isInteger(epoch)) {
         throw new Error("release requires actor, a non-placeholder reason and claim generation");
@@ -1187,7 +1212,7 @@ export function openTaskStore(root) {
       delete task.lease;
       task.result = { operationId, effectObject: current.effectObject };
       task.history.push({ type: "operation-observed", id: operationId });
-      commitSnapshot(repo, previous, next);
+      commitSnapshotWithRefVerify(repo, previous, next, current.effectRef, effectReadback);
       return { idempotent: false, status: "observed" };
     },
   });

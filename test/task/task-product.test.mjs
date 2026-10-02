@@ -1107,7 +1107,8 @@ test("the production Git-ref store recovers a lost claim response and fences the
       await store.setIntentRevision("outcome", 1);
       const task = await store.add({ id: "takeover-operation", title: "Recover integrated work", laneRecipe: TEST_LANE_RECIPE, lane: true });
       await store.markReady(task.id);
-      const oldClaim = await store.claim(task.id, { worker: "worker-old", at: "2000-01-01T00:00:00Z", duration: 10 });
+      const expiredAt = new Date(Date.now() - 11_000).toISOString();
+      const oldClaim = await store.claim(task.id, { worker: "worker-old", at: expiredAt, duration: 10 });
       const candidate = writeBlob(fixture.root, "checked-candidate-after-takeover");
       const effect = candidate;
       const operation = {
@@ -1130,7 +1131,6 @@ test("the production Git-ref store recovers a lost claim response and fences the
         worker: "worker-new",
         expectedEpoch: oldClaim.epoch,
         reason: "recover a prepared effect after the old lease expired",
-        at: "2000-01-01T00:00:11Z",
       });
       assert.equal(recoveryClaim.epoch, oldClaim.epoch + 1);
 
@@ -1147,7 +1147,7 @@ test("the production Git-ref store recovers a lost claim response and fences the
 
       const unapplied = await store.add({ id: "takeover-unapplied", title: "Do not replay an unknown effect", laneRecipe: TEST_LANE_RECIPE, lane: true });
       await store.markReady(unapplied.id);
-      const unappliedClaim = await store.claim(unapplied.id, { worker: "worker-old", at: "2000-01-01T00:00:00Z", duration: 10 });
+      const unappliedClaim = await store.claim(unapplied.id, { worker: "worker-old", at: expiredAt, duration: 10 });
       const unappliedCandidate = writeBlob(fixture.root, "candidate-without-effect");
       const unappliedEffect = unappliedCandidate;
       const unappliedOperation = {
@@ -1168,7 +1168,6 @@ test("the production Git-ref store recovers a lost claim response and fences the
         worker: "worker-new",
         expectedEpoch: unappliedClaim.epoch,
         reason: "inspect an effect whose response was lost",
-        at: "2000-01-01T00:00:11Z",
       });
       assert.equal((await store.completeOperation(unappliedOperation.id, { worker: "worker-new", epoch: retryClaim.epoch })).status, "ambiguous");
       const unresolved = await store.read();

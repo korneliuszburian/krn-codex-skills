@@ -26,12 +26,12 @@ untriggered row, and `lessons:verify` re-runs each named case: a failing case, o
 a pattern that matches no test, fails the command. A recurrence recorded after
 the proof commit fails closed as a gate that did not stick: the friction came
 back, so the lesson is strengthened or split into a distinct class.
-`krn-codex lessons reanchor --root .` re-runs each stale case and bumps an anchor only
+`krn memory reanchor --root .` re-runs each stale case and bumps an anchor only
 when the named case stays green, so drift is confirmed rather than blessed.
 
 A row may carry a sixth `Trigger` column of `path:<glob>`, `symbol:<name>`, or
 `churn:<glob>` entries. Delivery is harness-evaluated, not left to the reader:
-`krn-codex memory recall --root . --changed <paths>` and `--symbol <names>` return every
+`krn memory recall --root . --changed <paths>` and `--symbol <names>` return every
 lesson whose trigger matches (a `symbol:` trigger is evaluated against the
 commit's changed line ranges by `changes check`, while `memory recall --symbol`
 matches names you pass explicitly, and a `churn:` trigger fires when a
