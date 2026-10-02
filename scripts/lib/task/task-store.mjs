@@ -400,6 +400,15 @@ function taskStoreErrors(state) {
     if (task.id !== id) errors.push(`task ${id} has a mismatched ID`);
     if (task.status !== "open" && !STATUSES.has(task.status)) errors.push(`task ${id} has an invalid status`);
     if (task.type !== undefined && !TYPES.has(task.type)) errors.push(`task ${id} has an invalid type`);
+    if (task.lease !== undefined) {
+      for (const field of ["at", "renew"]) {
+        const value = task.lease?.[field];
+        if (field === "renew" && value === undefined) continue;
+        if (typeof value !== "string" || value.trim() === "" || !Number.isFinite(Date.parse(value))) {
+          errors.push(`task ${id} has invalid lease ${field}`);
+        }
+      }
+    }
     if (!task.legacyFields || typeof task.legacyFields !== "object" || Array.isArray(task.legacyFields)) {
       errors.push(`task ${id} legacy fields are not an object`);
     }
