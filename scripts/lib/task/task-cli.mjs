@@ -39,7 +39,7 @@ const VALUE_FLAGS = {
 
 function parseArgs(argv) {
   return parseCliArgs(argv, {
-    booleans: { "--json": "json", "--source": "source", "--yes": "yes", "--ready": "ready" },
+    booleans: { "--json": "json", "--source": "source", "--yes": "yes", "--ready": "ready", "--admit-blocked": "admitBlocked" },
     values: VALUE_FLAGS,
     lists: { "--depends-on": "dependencies" },
     defaults: { json: false, source: false, yes: false },
@@ -95,7 +95,7 @@ function selectedTaskStore(root) {
 async function runTaskStoreCommand(command, positional, options, usage, requireDirectory) {
   const allowedByCommand = {
     add: ["root", "id", "title", "body", "type", "dependencies", "laneRecipeFile"],
-    ready: ["root", "id"],
+    ready: ["root", "id", "admitBlocked"],
     claim: ["root", "id", "worker", "session", "ready"],
     renew: ["root", "id", "worker", "expectedEpoch"],
     comment: ["root", "id", "worker", "body", "expectedEpoch"],
@@ -144,7 +144,7 @@ async function runTaskStoreCommand(command, positional, options, usage, requireD
     if (command === "add") {
       result = await store.add({ id: options.id, title: options.title, body: options.body ?? "", type: options.type ?? "task", dependencies: options.dependencies ?? [], ...laneAssignment });
     } else if (command === "ready") {
-      result = await store.markReady(options.id);
+      result = await store.markReady(options.id, { admitBlocked: options.admitBlocked ?? false });
     } else if (command === "claim") {
       const claim = { worker: options.worker, session: options.session ?? "" };
       result = options.ready ? await store.claimReady(claim) : await store.claim(options.id, claim);

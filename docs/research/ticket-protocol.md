@@ -1,7 +1,7 @@
 # Ticket protocol
 
 Status: `accepted`. Consumer: the maintainer, the lane runner, and any worker or
-integrator session. Owner: maintainer. Verified: 2026-09-27.
+integrator session. Owner: maintainer. Verified: 2026-10-02.
 
 ## Decision question
 
@@ -193,6 +193,13 @@ queue, `release` marks the task abandoned, not merely unclaimed. An operator
 can recover an accepted task with `reopen --actor ... --reason ...`, which
 moves either `done` or `abandoned` to `open` without erasing its history or
 restoring the old claim; `ready` and a new claim are separate steps.
+For already approved work, `krn task ready --id B --admit-blocked` admits B
+while its dependencies remain unfinished. Default `ready` still refuses that
+case. The opt-in records admission in the existing history; it does not clear
+blockers or grant a claim. `next`, direct `claim`, and `claim --ready` still
+require every dependency to be done. B then enters the frontier without a
+second admission. Editing still-blocked admitted work returns it to `open`,
+requiring fresh admission; graph validation and proof-gated closure are unchanged.
 `krn task next --json` preserves the runnable `frontier` and reports `blockedReady`
 with unfinished dependency statuses, counts by pending status (including
 abandoned), and validation errors. Its plain stdout remains frontier IDs only
