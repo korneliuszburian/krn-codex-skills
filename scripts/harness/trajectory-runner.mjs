@@ -16,13 +16,14 @@
 // Its source label does not authenticate the real user who issued a request.
 // The agent command comes from KRN_HARNESS_AGENT and receives the same JSON
 // envelope the lane runner uses, plus the current `step`.
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 
 import { runProcess } from "../lib/kernel/proc.mjs";
 import { Refusal, lastJsonLine, readStdin, refusalFor } from "./runner-support.mjs";
+import { copyCandidateWorkspace } from "./workspace-copy.mjs";
 
 const refuse = refusalFor("trajectory-runner");
 
@@ -64,7 +65,7 @@ function main() {
   const hidden = stringList(task.hidden);
   const held = new Map();
   try {
-    cpSync(source, disposable, { recursive: true });
+    copyCandidateWorkspace(source, disposable, refuse);
     for (const relative of hidden) {
       const from = path.resolve(disposable, relative);
       if (path.isAbsolute(relative) || (from !== disposable && !from.startsWith(`${disposable}${path.sep}`))) refuse("hidden-outside-workspace", relative);

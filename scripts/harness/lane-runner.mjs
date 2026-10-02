@@ -4,13 +4,14 @@
 // the configured agent command inside the task workspace with the lane's
 // enabled components, then runs the task's deciding check there and reports the
 // pass verdict, the agent's token count, and the wall time.
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 
 import { runProcess } from "../lib/kernel/proc.mjs";
 import { Refusal, lastJsonLine, readStdin, refusalFor } from "./runner-support.mjs";
+import { copyCandidateWorkspace } from "./workspace-copy.mjs";
 
 const refuse = refusalFor("lane-runner");
 
@@ -40,7 +41,7 @@ function main() {
   // Nothing readable or writable is left on disk.
   const held = new Map();
   try {
-    cpSync(source, disposable, { recursive: true });
+    copyCandidateWorkspace(source, disposable, refuse);
     for (const relative of hidden) {
       const from = path.resolve(disposable, relative);
       if (path.isAbsolute(relative) || (from !== disposable && !from.startsWith(`${disposable}${path.sep}`))) refuse("hidden-outside-workspace", relative);
