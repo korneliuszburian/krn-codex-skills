@@ -44,6 +44,41 @@ function decision(tool, command) {
   return decisionAt(tool, command, root);
 }
 
+test("additive imports populate a non-Git workspace without permitting overwrite or deletion", () => {
+  const cwd = mkdtempSync(join(tmpdir(), "krn-additive-import-"));
+  try {
+    assert.equal(decisionAt("Bash", "rsync -r --ignore-existing site@example.invalid:/site/ ./", cwd), null);
+    for (const command of [
+      "rsync -a --ignore-existing site@example.invalid:/site/ ./",
+      "rsync -r --ignore-existing --delete site@example.invalid:/site/ ./",
+      "rsync -r --ignore-existing site@example.invalid:/site/ /etc/",
+      "rsync -r --ignore-existing site@example.invalid:/site/ ../",
+    ]) assert.ok(decisionAt("Bash", command, cwd), command);
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+});
+
+test("remote quoted stdin is data and local heredoc substitutions remain guarded", () => {
+  const allowed = "ssh site@example.invalid 'python3 -'<<'PY'\nprint([x for x in [1] if x > 0])\nPY";
+  assert.equal(decision("Bash", allowed), null);
+  for (const spacing of [" ", ""]) {
+    assert.ok(decision("Bash", `ssh site@example.invalid 'cat'${spacing}<<PY\n$(tee .env)\nPY`));
+    assert.ok(decision("Bash", `ssh site@example.invalid 'cat'${spacing}<<'PY'\nprint(1)`));
+  }
+  assert.ok(decision("Bash", allowed + "\necho secret > .env"));
+  assert.ok(decision("Bash", "ssh site@example.invalid 'cat'<<PY\n# $(tee .env)\nPY"));
+  assert.ok(decision("Bash", 'ssh site@example.invalid "$(tee .env)" <<\'PY\'\ndata\nPY'));
+  assert.ok(decision("Bash", "ssh site@example.invalid 'cat' & tee .env <<'PY'\ndata\nPY"));
+  assert.ok(decision("Bash", "ssh site@example.invalid 'cat' <(tee .env) <<'PY'\ndata\nPY"));
+});
+
+test("workspace configuration edits do not require Git initialization", () => {
+  const cwd = mkdtempSync(join(tmpdir(), "krn-workspace-config-"));
+  try {
+    const patch = `*** Begin Patch\n*** Add File: ${join(cwd, "AGENTS.md")}\n+Use the local profile.\n*** End Patch`;
+    assert.equal(decisionAt("apply_patch", patch, cwd), null);
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+});
+
 test("quoted writer names in heredoc are data while shell writers stay guarded", () => {
   for (const command of [
     "python3 -B - <<'PY'\nprint('TIMEOUT; install check unqualified')\nPY",
