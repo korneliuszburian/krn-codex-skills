@@ -99,11 +99,19 @@ test("the guard delegates protected commands and paths to the shared policy", as
   withDir((dir) => {
     assert.ok(adapter.guardReason("bash", { command: "rm -rf .env" }, dir), "a protected rm must be denied");
     assert.equal(adapter.guardReason("bash", { command: "ls -la" }, dir), null, "a read-only command stays allowed");
-    assert.ok(adapter.guardReason("write", { filePath: join(dir, ".env"), content: "x" }, dir), "a write to .env must be denied");
+    // Keep the secret target outside the declared checkout even when an
+    // ancestor of the temporary fixture happens to contain a Git marker.
+    assert.ok(adapter.guardReason("write", { filePath: join(dir, ".env"), content: "x" }, root), "an outside-project .env write must be denied");
     assert.equal(
-      adapter.guardReason("write", { filePath: join(dir, "notes.md"), content: "x" }, dir),
+      adapter.guardReason("write", { filePath: join(dir, "notes.md"), content: "x" }, root),
       null,
       "an ordinary write stays allowed",
+    );
+    mkdirSync(join(dir, ".git"));
+    assert.equal(
+      adapter.guardReason("write", { filePath: join(dir, ".env"), content: "x" }, dir),
+      null,
+      "an owned-project config write follows the shared policy exemption",
     );
   });
 });
