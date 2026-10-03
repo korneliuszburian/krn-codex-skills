@@ -1,309 +1,349 @@
-# KRN product architecture: live decisions across coding work
+# KRN: jeden plan produktu
 
-Status: `lab-test`. Consumer: the active Goal integrator, `$delivery-loop`, and
-`$slice-work` after the decision gates settle.
-Owner: maintainer. Verified: 2026-09-30.
-The 2026-09-30 refresh compares design alternatives and workspace contracts;
-historical host observations below are not newly revalidated.
-This is the selected target topology and its testable contracts,
-not a claim that the product already improves agent outcomes. The current
-mechanisms and source comparisons remain in [orchestration.md](orchestration.md);
-[self-hardening-roadmap.md](self-hardening-roadmap.md) owns the historical
-research edges and current staged delivery graph, this page owns target runtime
-contracts, and the Git-ref queue owns published task states. This page is neither a second
-tracker nor a replacement for the current host's accepted Goal.
+Status: `lab-test`. Consumer: operator i maintainer planujący produkt KRN.
+Owner: maintainer. Verified: 2026-10-01.
 
-## Product contract, not a document count
+To rekomendowany kierunek po badaniach i dwóch rundach pracy trzech agentów:
+integracja natywna, pamięć i kontekst, jakość kodu i proces pracy.
+Korekta operatora z 2026-10-01 ustala priorytet: najpierw mechanika tasków,
+pamięci, sandboxu i odzyskiwania; panel/frontend jest odroczony do jej kwalifikacji.
+Możemy zakwestionować obecne założenia. Działające domyślne ustawienia i wybór
+C/Git-ref pozostają aktualną bazą, dopóki nie wybierzemy i nie zweryfikujemy
+następcy. Ten dokument jest jednym planem produktu; kolejka posiada stan zadań,
+a istniejący roadmap ich wykonanie. Badania nie wykazały jeszcze przewagi KRN.
 
-Given an accepted user outcome, KRN must let a fresh supported coding-agent
-session: discover eligible work; claim one task without stealing another worker's
-turn; distinguish preserved, legally replaced and revoked obligations against
-an authentic user request; read only the missing evidence for its next action;
-repair code; prove the changed requirement and regressions at a pinned fixed
-point; close only after the checked effect is observed; and recover after an
-interrupted session without trusting an obsolete checkpoint. The native agent
-with live Goal, repository and task reads is the mandatory control. A green
-suite, a model verdict, a retrieval hit, or a neat Markdown page does not
-establish this contract or an outcome improvement.
+<a id="product-contract-not-a-document-count"></a>
+<a id="native-project-workbench-operator-planning-synthesis-2026-09-30"></a>
+## 1. Co budujemy i po co
 
-One concrete failure: task B depends on A. After A closes, exactly one worker
-claims B. A later user request replaces an old public symbol but preserves
-atomicity and isolation. A stale checkpoint still asks for the old symbol.
-The next session must read the authoritative request, preserve the behavioral
-obligations under an executed mapping, reject an unauthorized revoke, and
-refuse close if the evidence belongs to another request revision or commit.
-An unrelated change must not force a false block. A worker cannot invent its
-own user approval. The checked base/head and merged fixed point remain visible
-in the task result. This scenario supplies positive, negative and native arms
-for admission and restart; a single laboratory case cannot establish uplift.
+**Spójny rdzeń pracy nad projektem w Codexie lub Pi.**
+W natywnej sesji i CLI podłączasz repo, opisujesz wynik i widzisz, co obowiązuje,
+czego brakuje, co sprawdzono oraz jakie jest następne legalne działanie.
 
-## Chosen ownership, types and storage
+Wartość ma być odczuwalna: mniej ponownego tłumaczenia projektu, błędnych zadań,
+utraconych wymagań, ręcznego łączenia sesji z branchem i napraw po „gotowym” kodzie.
+Agent zachowuje swobodę przywracalnej pracy; aktualne uprawnienia określają
+właściciele rzeczywistych efektów.
 
-| Truth | Current owner and selected target | Not its authority |
-|---|---|---|
-| Current outcome | The accepted operator request, or its native Goal when one exists; only the operator can change acceptance. Codex/Pi Goal state follows the actual host and session branch. | A child process's copied prompt or the task queue. |
-| Work item and user-approved task intent | The one operating `refs/krn/queue` snapshot, updated with expected-old Git-ref CAS. Existing `tasks`, `operations` and `intents` stay its owner; add scoped intent events to the task only after host-source validation. | Capsule, lesson, Herdr pane, Markdown mirror or a second DB. |
-| Code and executable acceptance | Immutable Git objects, frozen tests and candidate-bound receipts. Commit, task close, review and handoff have different source-of-truth checks. | Agent self-report or reviewer vote. |
-| One outcome's restart | `$delivery-loop`'s ignored, bounded checkpoint, derived from Goal/task/code and removed at its cleanup trigger. | Canonical user authority or task status. |
-| Reusable procedural knowledge | Gate-backed `workflow-lessons.md`, with trigger, evidence and retirement. | Automatic conversion of task comments or entire transcripts. |
-| Shared facts and hard decisions | Git-reviewed `CONTEXT.md`, ADRs and curated topic pages. | Session memory or an unchecked memory extractor. |
-| Search | Map, exact/lexical/Git, metadata and explicit links; optional *derived and disposable* FTS5 only after a measured miss survives repair. | Embeddings, a graph or index ranking as source of truth. |
+Docelowe zastosowania: rozwijanie funkcji, diagnoza regresji, modernizacja,
+bezpieczne porządkowanie kodu i wznowienie przerwanej pracy. Dobra realizacja
+jednego projektu jest pierwszym sprawdzianem KRN jako produktu. Potem sprawdzamy
+drugi, odmienny projekt i dopiero skalujemy zarządzanie wieloma projektami.
 
-These are conceptual interfaces, **not** a new schema already shipped:
-
-```text
-Task: id, dependsOn[], status, claim{owner, epoch, lease},
-      intentRevision, obligationIds[], acceptanceRefs[], result?
-IntentChange: taskId, expectedRevision, source{host, session/message locator,
-              content digest, approving actor}, scope[obligationId],
-              action[preserve | replace(successor, mappingCheck) | revoke]
-DecisionFrame: goalId, taskId, claimEpoch, intentRevision, gitHead,
-               sourceRefs[], applicable[], missingEvidence[], nextGate
-ProofReceipt: taskId, intentRevision, baseSha, authoredSha, mergedSha,
-              checkRef, executedBase, executedHead, verifierIdentity
+```mermaid
+flowchart LR
+  Projekt --> Cel
+  Cel --> Zadanie
+  Zadanie --> Kontekst
+  Kontekst --> Sesja["Codex / Pi"]
+  Sesja --> Dowod["Sprawdzenie i odczyt wyniku"]
+  Dowod --> Decyzja["Dostarczenie albo kolejna poprawka"]
 ```
 
-Only the task owner writes task intent. The host or operator captures a real
-user request and approves its scope; a model may *propose*, never approve,
-`replace`/`revoke`. A digest binds bytes but does not authenticate authorship.
-If Pi/Codex cannot expose an independently identifiable user event, require an
-explicit operator-confirmed task transition; do not infer authority from task
-prose, an agent-written capsule or a model classification. A delta preserves
-all omitted obligations; complete-snapshot semantics remain unsupported until
-a separate qualified source and test exist. `sh-167` presently exercises only
-caller-curated fixtures, so this real-user ingress is open work.
+<a id="design-alternatives-and-bounded-recommendation-2026-09-30"></a>
+## 2. Wybrany kierunek i uczciwe alternatywy
 
-`DecisionFrame` is a bounded read view, not another persistent record. Resolve
-Goal, one queue snapshot, HEAD and only source identities required by the next
-decision. Key it by `(goalId, taskId, claimEpoch, intentRevision, HEAD,
-source digests)`; discard and re-resolve on a changed key. Never store an old
-`ready` or approval claim in a capsule as authority. A sourced requirement may
-remain true after unrelated code changes: evaluate its own applicability,
-not a global diff-level stale flag. If the exact source or required evidence
-cannot be resolved, return `unknown` and stop the affected transition. Count
-all extraction, reading, retry and context tokens before claiming efficiency.
+Rekomenduję **rdzeń task–kontekst–sandbox–dowód–odzyskiwanie w natywnym Codexie/Pi**.
+Najpierw jedna poprawna droga przez istniejące narzędzia, bez budowania panelu.
+Gotowe narzędzia mogą dostarczać mechanizmy wykonania i izolacji; granice wymagają
+kwalifikacji konkretnego profilu. KRN wnosi spójność projektu, aktualnych zobowiązań
+i dowodów. Natywny host prowadzi
+pętlę model–narzędzia, historię, logowanie i swoje uprawnienia.
 
-## Design alternatives and bounded recommendation (2026-09-30)
-
-Three independent read-only designs challenged the existing target rather than
-assuming a new framework. This is design evidence, not an outcome experiment.
-
-| Alternative | Useful leverage | Strongest counterargument | Disposition |
-|---|---|---|---|
-| A: reduce to native execution and deep task/state/install owners | removes repeated caller-side sequencing and unearned always-loaded instructions | fewer command names can hide more operator work; deleting a live consumer is not simplification | retain existing ownership and repair its seams first; do not retire aliases, lessons, skills or laboratory tools without consumer evidence |
-| B: typed prerequisites and a derived evidence graph | makes action-specific refusals, unknown effects and stale generations explicit | a well-typed graph can still contain forged authority or a self-authored green receipt | retain execution, fencing and readback invariants at effect owners; defer a shared action DSL, persistent graph or new registry |
-| C: make the common user's onboarding/work/review/resume path trivial | hides flags and protocol order while exposing scope and actual effects | the native host may already provide this interface; another facade can add no value | lab-test clearer existing command results and exact setup plans before adding commands or interactive machinery |
-
-The recommended direction combines A's subtraction, C's user-facing clarity,
-and B's irreducible correctness conditions. It does not supersede ADR 0006's
-installed defaults, choose a different task backend, or claim a breakthrough.
-The counterexample set includes stale authority, a supplied green record,
-crash after effect, two independent clones, cancelled continuation, an unrelated
-change, a small typo and a full source review. Each effect owner must still
-refuse independently if every explanatory graph or UI is removed.
-
-A normal outcome uses one authorized writer and the recorded PR/review/fix/merge
-scope; install and host changes keep separate grants. No per-commit approval
-ritual and no automatic expansion of authority are introduced. Reuse existing
-knowledge before refreshing its primary source. Instruction delivery, procedure
-selection, correct execution and observed effect remain separate observations.
-`writing-for-agents` is a pinned authoring aid, not an empirically certified
-policy engine; its proposed wording changes must survive the same countercases.
-The roadmap owns the slices and their falsifiers, not this comparison table.
-
-## Caller-facing CLI and memory qualification
-
-The installed source-owned front door is `krn`; `krn-codex-catalog` is a thin
-compatibility wrapper into its capability command. Other personal binaries
-sharing the prefix have another checkout/owner and are not this installer’s
-retirement targets. Current installation identity, command existence and
-fresh-process loading are separate observations.
-
-| Surface | Current role | Candidate disposition, not an implemented retirement |
+| Wariant | Co zyskujemy | Co rozstrzyga wybór |
 |---|---|---|
-| task | authoritative work/claim/history/intent and checked effects | retain the deep owner; qualify single-task machine reads and structured generations before adding orchestration |
-| state | bounded restart/compile/readback | retain conditional continuation; no cached approval or task-status authority |
-| memory / lessons | memory dispatches procedural lesson recall/usage/check/verify/reanchor; lessons aliases the last three | one canonical semantic entrypoint after real caller migration; neither is a second DB or a general search over all repository knowledge |
-| repo / skills / capability | local adoption, generated export and explicit capability maintenance | improve exact plans and read-only inspection; keep host/profile writes explicit and developer operations out of the default daily journey |
-| changes / gate / conformance | different proof, transition and frozen-acceptance contracts | preserve the distinctions and truthful failure; do not merge them into one green badge |
-| install / doctor | host release lifecycle and readable inspection | retain actual operator consumers and rollback; aliases may be retired only after their external callers are qualified |
-| harness compare | laboratory/measurement consumer | preserve ADR 0006’s consumer/proof boundary; development-only exposure is a choice to qualify, not immediate deletion |
+| Sam Codex/Pi i droga projektu, bez zadań/workflow KRN | Zero własnego silnika procesu: cel i sesja natywna, instrukcje, Git, kontrole i ewentualny tracker projektu. | Radykalna kontrola porównawcza. Jeśli zachowuje obowiązki i odzyskiwanie przy mniejszym koszcie, warstwa KRN ma być wycofana z migracją odbiorców, bez utraty pracy. |
+| Natywne UI + mała integracja KRN | Najmniej własnego kodu; standardy, zadania i sprawdzanie przez aktualne narzędzia. | To kontrola porównawcza. Jeśli działa równie dobrze i taniej, dodatkowa warstwa musi uzasadnić swój koszt. |
+| Mały panel obok Codexa/Pi | Późniejszy widok projektu, sesji, zadania i dowodów. | Odroczony do sprawdzenia rdzenia; UI nie może maskować niegotowej mechaniki ani wymagać kopii stanu. |
+| Produkt zintegrowany, np. rozszerzenie T3 | Potencjalne późniejsze wykorzystanie istniejącego UI, sesji i silnika poleceń. | Odroczony. Wybór dopiero po kwalifikacji rdzenia i porównaniu kosztu migracji; jeden właściciel zastępuje starego. |
 
-Observed integrator friction includes whole-task-list extraction for current
-owner/epoch/lease, while show/fields expose presentation labels and env serves
-lane bindings. The smallest improvement must first account for those existing
-interfaces, preserve compatibility, identify a second real caller and keep
-read-only effects/unknowns explicit. New wrappers, command names and root
-defaults must not hide wrong-repository selection or another permission.
+T3 ma rzeczywiste punkty rozszerzenia w źródle; gotowa wtyczka KRN/Pi nie została
+ustalona. Fork, własny backend i inny magazyn zadań pozostają pełnoprawnymi
+alternatywami do porównania, z migracją i listą rzeczy do wycofania.
+[Kontrakty i porównanie źródeł](workbench-contracts.md#code-and-product-surfaces).
 
-Useful memory means the agent can obtain the evidence needed for its next
-question from current authorities and reusable knowledge, not that it calls
-recall on every turn. Keep live task history, outcome continuation, reviewed
-shared facts and executable procedural lessons distinct. A composed read view
-may cite them without becoming their store or granting authority. Measure a
-real miss against current/native reading, source applicability, counterevidence
-and changed-authority cases before implementing another view or index. Existing
-D4/D5/sh-169/sh-185 gates remain; neutral small work must not acquire a mandatory
-memory ritual. CLI integration and memory-usefulness decisions are tasks in the
-roadmap, and their publication is not evidence of product benefit.
+<a id="chosen-ownership-types-and-storage"></a>
+<a id="workspace-and-run-contract"></a>
+<a id="runtime-and-host-profile"></a>
+<a id="failure-and-scale-contract"></a>
+## 3. Jak to ma się spinać
 
-## Workspace and run contract
+| Pytanie | Jeden właściciel informacji |
+|---|---|
+| Czego chcemy i co wolno? | Aktualne żądanie operatora; Goal (cel zapisany w sesji), jeśli istnieje, oraz autoryzowane zmiany wymagań. |
+| Co robić i kto ma turę? | Tracker, jeśli projekt go skonfigurował; w KRN Git-ref z claimem (wyłączną turą wykonawcy). Bez trackera pracę określa żądanie/Goal, bez udawanej kolejki. |
+| Co wiadomo o projekcie? | Aktualny kod, instrukcje i kuratorowana wiedza repo. |
+| Co dzieje się w sesji? | Natywny Codex/Pi; bieżący właściciel wykonania wiąże sesję z zadaniem i środowiskiem. |
+| Czy wynik jest poprawny i dostarczony? | Wykonane kontrole dla konkretnego kandydata oraz odczyt rzeczywistego efektu. |
 
-Persistent working state has one existing shape:
-`.krn/runs/<workflow>/<run-id>/`. Candidate, clone, home, operation packet and
-logs belong to that run as children, not independently located peer roots.
-A writable sandbox clone is not a linked Git worktree; callers must name the
-actual mode rather than call both `WT`. Queue coordination follows canonical
-Git common-directory identity, while a run belongs to its actual checkout.
+Natywna sesja i CLI korzystają z tych samych właścicieli; ewentualny panel będzie
+ich późniejszym klientem. Widok, pamięć i odpowiedź
+agenta nie nadają uprawnienia ani nie zamykają zadania. „Polecenie przyjęte”,
+„sesja bezczynna”, „kandydat sprawdzony” i „zmiana dostarczona” są różnymi faktami.
 
-| Resource | Owner and lifecycle | Deliberate exception / refusal |
+Najpierw wiążemy projekt, osobny checkout (worktree), zadanie i właściwą sesję. Obserwatorów może
+być wielu; konfliktujący zasób ma jednego piszącego i jawny handoff. Docelowo
+niezależne projekty mogą działać równolegle; aktualny limit rozpoczętej pracy (WIP)
+i uprawnienia pozostają
+bez zmian do osobnej kwalifikacji. Token kontrolera UI nie zatrzyma obcego
+edytora, TUI ani starego procesu.
+
+Wznowienie historii, przyłączenie do żywego procesu, fork rozmowy, fork workspace,
+checkpoint kodu i backup mają osobne znaczenie. Pokazujemy wspierane możliwości
+konkretnego hosta, a brak jako brak. Po utracie połączenia lub odpowiedzi odczytujemy
+stan przed kolejnym efektem. Stop sesji nie oznacza cofnięcia zmian ani oddania
+claima. [Szczegóły kontroli](workbench-contracts.md#native-control-and-recovery-qualification).
+
+<a id="memory-and-context-rot-as-separate-failure-modes"></a>
+## 4. Pamięć: odzyskiwać właściwą informację, nie gromadzić rozmowy
+
+Rozdzielamy pięć pytań: czy informacja dotyczy tego działania, kto ją dostarczył,
+czy nadal obowiązuje, czy mamy nazwane potrzebne dowody i czy działanie się udało.
+Kompletny kontekst może zawierać błędną informację; trafny wynik wyszukiwania może
+być nieaktualny. Pamięć nie zatwierdza zmiany celu.
+
+| Poziom | Najmniejsza wersja | Kiedy zasługuje na własny mechanizm |
 |---|---|---|
-| Persistent workflow run | creating workflow and the outcome's sole writer; one named consumer and cleanup/supersession trigger | a transfer does not authorize deleting another owner's run or resurrecting a cancelled outcome |
-| Candidate linked worktree | existing kernel/worktree owner, called by the integrator | refusal/failure must report owned cleanup; removing one resource must not prune or delete unrelated author worktrees |
-| Isolated writable clone/copy | existing lane/harness owner; source is read-only and the candidate is read back before integration | reject destination-inside-source recursion and source-linked `.git` metadata; exclude unrelated runs and private data |
-| Short-lived proof/test fixture | caller-owned temporary scope, removed on success and failure | temporary fixtures are not durable continuation; do not force all test trees into the source checkout |
-| Queue lock | task owner under the shared Git common directory | not a workflow run and not a distributed lock |
-| Install staging | installer on the release filesystem for atomic rename | do not relocate staging into a generic run or weaken prior-current rollback |
+| Odtworzenie z bieżących źródeł | Natywna sesja, tracker, Git i wiedza repo. | Punkt odniesienia. Kapsuła pomaga tylko przy informacji, której nie da się taniej odtworzyć. |
+| Kontekst dla następnego działania | Odtwarzalny widok aktualnych wymagań, źródeł, sprzeczności i braków. | Gdy rzeczywista próba ujawni powtarzalny błąd zdobycia lub zastosowania informacji. |
+| Biblioteka doświadczeń | Mała kuratorowana wiedza: warunek, metoda, dowód oraz podobny przypadek, w którym metoda nie działa. | Gdy nawracający problem przetrwa poprawę kodu, reguły i nawigacji; koszt całego uczenia musi się opłacić. |
 
-Extend an existing owner only for an actual caller; do not create a universal
-workspace service or `.krn/worktrees` registry. Normalize persistent paths,
-realpath containment and cleanup outcomes together. Preserve condensed evidence
-needed for recovery, but separately minimize credential-bearing home retention.
-After an ambiguous external effect, read back the effect before replay or
-cleanup that could erase required recovery evidence. These are target contracts;
-current shell/harness divergences are repairs in the roadmap, not guarantees
-already delivered by this page.
+Najciekawsza hipoteza to **pamięć kontrastowa**: utrwalić różnicę między błędem
+i sprawdzoną poprawką, z warunkiem zastosowania. Pierwsza wersja może być jednym
+reviewowanym akapitem i dwoma odsyłaczami, bez grafowej bazy ani ekstraktora.
 
-## Runtime and host profile
+Nowy research doprecyzowuje pierwszy wariant: **kontekst przygotowany pod
+następne działanie**. Obecny właściciel wybiera aktualne wymagania, właściwe
+źródła, ostatnią istotną obserwację i brakujący dowód. Krótki widok wskazuje,
+co pominięto przez budżet, czego nie odnaleziono i co wymaga ponownego odczytu.
+Nieudana próba ma zakres i warunek powrotu; proponowana lekcja przechodzi
+wąskie sprawdzenie w aktualnym repo. Handoff odpowiada potrzebom następcy.
 
-The supported **local profile** is Node 22 ESM, one writing integrator, the
-shared Git common directory for linked worktrees, a short queue-write lock
-plus ref CAS, and isolated task branches. There is no distributed consensus
-or multi-host write guarantee. Other clones submit candidate commits and
-proof to this integrator; they do not compete to write a locally independent
-`refs/krn/queue`. Multi-writer remote sync requires a distinct demonstrated
-consumer and a storage migration; a Git-ref CAS in two disconnected clones
-is not a distributed lock. `sh-180` repairs the observed imported proof-close
-gap before dependent `sh-167` can become `done`.
+Do porównania dodajemy wariant z mniejszą ilością przypominanych lekcji:
+aktualny cel/task, potrzebne obserwacje, odsyłacze i istniejące kontrole.
+Mierzymy zachowanie wymagań, poprawny rezultat i koszt przygotowania, czytania,
+sprawdzania oraz poprawek. Korzyść pozostaje hipotezą; aktualny zakres dopuszcza
+research, a istniejący właściciel eksperymentu rozstrzyga legalną realizację.
+[Źródła, małe mechanizmy i kontrprzykłady](orchestration.md#task-conditioned-memory-deep-research-2026-10-01).
 
-The **agent-host profile** uses the installed Pi-Agent-Goal extension's
-branch-local state for current intent, and Codex/OpenCode hook surfaces only
-where they actually
-load. A future read-only CLI view may compile a decision frame for
-`krn task`/`state` consumers; do not install a Pi extension solely to insert
-unmeasured prompt text. Pi's first-message project `AGENTS.md` and skill
-*descriptions* were observed, not a loaded global Codex contract or Codex
-hook. Pi Agent Goal 2026.7.18 declares Pi peers `<0.81` while this host runs
-Pi 0.87.1; `get_goal` works, but idle continuation requires its opt-in flag,
-version-compatibility and live TUI smoke before any unattended promise.
-Codex's non-managed `/hooks` trust requires genuine operator review.
+Wymagania, wartości projektu i uprawnienia zostają przy aktualnym źródle.
+Między projektami przenosimy kwalifikowaną metodę, nie cudze ścieżki, nazewnictwo
+czy prywatne dane. Treść przywołana z pamięci nie awansuje przez samo powtarzanie.
 
-**Model and Herdr topology (historical operator scope, 2026-09-27):** GPT-6 Sol is
-the sole writing integrator and direct control. GPT-6 Luna from `openai-codex`
-handles bounded read-only questions; GPT-6 Astra is reserved for rare genuinely
-complex design or counterexample questions with a stated reason and measured
-cost, not routine review. Do not dispatch GPT-5.6 or DeepSeek for new work in
-this Goal; their prior runs remain historical evidence with their limits.
-A writing worker requires separately verified whole-process isolation, distinct
-worktrees, restricted credentials/network, scope and cancellation, and an
-integrator-read-back diff; a writer handoff is a separate authorized action.
-Dispatch an ephemeral `pi --mode json` child with an
-exact model, thinking level, tool allowlist, SHA, deadline and output contract.
-Require terminal `message_end`, `agent_settled`, process exit, usage and error
-readback; `agent_end` or exit zero alone does not indicate success. Pi's
-example subagent extension is **not** a production sandbox: it parses an
-undocumented `tool_result_end` instead of `tool_execution_end` and its SIGKILL
-fallback does not prove process-tree exit. Start with this one-shot transport;
-use RPC/SDK or a project extension only after a second real caller needs
-steering or persistent interactive control.
+Widok może być cache’owany opisowo. Aktualny cel, kolejka/selector, wejścia kodu
+i źródła muszą mieć właściwe wersje; uprawnienia sprawdza właściciel działania.
+Ten sam Goal ID może mieć nowe wymagania, a lease wygasa bez zmiany Git OID.
+Natywna pamięć pozostaje opcjonalna; jej wpływ pokazujemy jako nieznany, jeśli
+host go nie ujawnia. Indeks dodajemy dopiero po rzeczywistym braku w obecnej
+nawigacji. Retencja i fizyczne usunięcie danych mają swoich właścicieli.
+[Źródła i próba pamięci](orchestration.md#action-applicability-and-scoped-memory-workbench-deepening-2026-09-30).
 
-Herdr is the operator's pane and agent-state console. The installed personal
-Pi extension reports session identity and `working/blocked/idle` only for
-TUI root sessions; JSON children do not acquire task authority from it.
-Herdr may host separately identified interactive worker panes and show their
-state, but queue claim, Goal, authorization, proof and costs remain with their
-canonical owners. The user's existing `pi` wrapper currently fails on an
-unrelated malformed mise config; the verified direct Pi 0.87.1 binary runs
-read-only workers. No persistent Herdr worker pane or KRN Pi extension is
-installed by this research; the temporary Luna pane noted by `sh-186` was
-closed. Do not confuse a green pane icon with completed work.
+Warto sprawdzić kontekst przy konkretnym odczycie pliku: krótka wskazówka
+z aktualnym źródłem i zakresem zamiast przypominania całej pamięci na każdej
+turze. X-ray z pluginu pokazuje taki punkt podłączenia; jego analiza może być
+nieaktualna, więc mechanizm wymaga własnej kwalifikacji.
 
-**Current instruction/source qualification (2026-09-30).** The current accepted
-request has a Sol 6.1 writing integrator and separately identified read-only
-research/review workers. Official [GPT-6 guidance](https://developers.openai.com/api/docs/guides/latest-model)
-now distinguishes Sol 6.1 from Sol and lists supported effort settings; a
-requested model or tool's default does not establish the actual backend effort.
-The current delegation interface exposes model selection but no thinking
-parameter, so do not label a worker xhigh without readback. Provider-native
-multi-agent/managed-host alternatives, shared tools, compaction, privacy and
-access limits are qualified in [orchestration](orchestration.md#current-provider-capabilities-and-local-implications-verified-2026-09-30).
-No new host, account tier, writing-worker transport or cloud authority was
-adopted. The historical profile above is not an unbounded permission for a new
-session; re-read the accepted request and current queue before acting.
+<a id="caller-facing-cli-and-memory-qualification"></a>
+## 5. Natywne Codex/Pi i codzienna praca
 
-## Failure and scale contract
+Obecnym interfejsem są natywne Codex/Pi i CLI. Odczytujemy właściwy root,
+instrukcje, komendy, właściciela zmian i aktualne zadanie; brak legalnej pracy,
+nieznany efekt i rozbieżność po wznowieniu mają czytelny powód.
+Przywracalne kroki prowadzimy dalej. Pytamy, gdy brak zmienia zakres,
+uprawnienie, wynik lub cel; znane koszty mają źródło, nieznane pozostają nieznane.
 
-Each row is a condition to exercise, not a claimed guarantee. Test local
-behavior first; the remote profile is conditional. Freeze run count, p95/cost
-budget and failure classification before an outcome pilot.
+Nowe Pi ma natywne MCP, wyszukiwanie narzędzi i code mode do łączenia wywołań.
+To pierwszy kandydat do reuse przy przyszłym profilu, zamiast własnego transportu
+i katalogu narzędzi. Pi 1.0 z 1 października zastępuje poprzedni cel
+dokumentacyjny 0.99.2; wersja, auth i uprawnienia w naszym środowisku wymagają
+próby. [Zakres i ograniczenia](orchestration.md#native-pi-tool-discovery-and-composition-verified-2026-10-01).
 
-| Risk and owner | Current mechanism or selected invariant | Deciding failure test / escalation |
+Ogłoszone tego samego dnia **Pi Durable** jest osobnym eksperymentalnym SDK.
+Może zastąpić planowane własne checkpointy, wznowienie wywołań i widoki wykonania.
+Porównamy je przed budową takiej warstwy, zachowując natywne Pi jako kontrolę.
+Nie zastępuje Git-ref, bieżącej zgody, sandboxu ani dowodu; profil konta,
+przerwanie efektu i procesy potomne mają konkretne niewiadome.
+[Kandydat do reuse i warunki kwalifikacji](workbench-contracts.md#pi-durable-runtime-reuse-2026-10-01).
+
+**Panel jest odroczony do kwalifikacji rdzenia.** Przyszły zakres to wszystkie
+sesje operatora, również istniejące, z osobno potwierdzoną historią, obserwacją
+i kontrolą. Nieobsługiwane przyłączenie nie znika z obietnicy. Docelowy ekran
+może łączyć projekt, sesję i dowody; jego źródłami zostają obecni właściciele.
+[Przyszłe interfejsy i ograniczenia](workbench-contracts.md#code-and-product-surfaces).
+
+Do porównania dochodzi mały widok MCP Apps w zgodnym hoście: operacje zwracają
+dane, a osobne renderowanie pomaga obejrzeć task lub dowód. To może ograniczyć
+własny panel i backend widoku. Rdzeń działa również bez komponentu; obsługa
+iframe w Codexie/Pi oraz dostęp do prywatnego lokalnego repo wymagają osobnej
+kwalifikacji. Wracamy do tej opcji po sprawdzeniu mechaniki.
+[Wariant MCP Apps](workbench-contracts.md#optional-host-rendered-mcp-apps-view).
+
+## 6. Kod, skills i „make it sexy”
+
+Dla potrzebnych nowych interfejsów rdzenia rozważamy TypeScript; obecny JS
+zostaje, a JSDoc/`checkJs` lub migracja jednej granicy muszą usuwać konkretną
+niejasność. React/Vite należy do odroczonego panelu. Proponowane `snake_case`
+dotyczy własnych identyfikatorów, PascalCase typów/komponentów; obce protokoły
+zachowują nazwy. Standardy projektów pozostają lokalne.
+
+Piękno kodu oznacza czytelny przepływ, lokalność zmian i niewiele obowiązków
+wywołującego: głębokie moduły, jawne stany, walidacja wejścia raz.
+Jeden skill prowadzi niepewność, companion tylko swój wycinek. Opis precyzuje
+wejście/wynik, szczegóły są na żądanie. Polski jest kierunkiem ergonomii;
+efekt tłumaczenia wymaga porównania, bez dwóch wersji prawdy lub kopii upstream.
+
+Code-simplifier to jeden przegląd zmienionego kodu przed końcowym dowodem.
+Zachowujemy zachowanie i upraszczamy odpowiedzialności; szersza refaktoryzacja
+lub naprawa ma własny zakres. Świadomie doprecyzowujemy podany prompt:
+preferujemy deklaracje funkcji i jawne publiczne typy, zachowując semantykę
+arrow, wnioskowanie lokalne i potrzebną obsługę błędów. Każda zmiana unieważnia
+poprzedni przegląd. `code-modernization` inspiruje poznanie reguł, odróżnienie
+aktualizacji od zmiany stosu i pilot przed szeroką migracją; nie kopiujemy floty.
+[Źródła i granice uproszczeń](orchestration.md#scoped-simplification-and-modernization-2026-09-30).
+
+Naprawę zaczynamy od nazwanej gwarancji i rzeczywistego przepływu. Zniknięcie
+lintu i zielone testy nie zastępują walidacji lub autoryzacji. Odróżniamy lokalną
+naprawę, problem właścicielstwa i poprawny kod; abstrakcja wskazuje, co usuwa.
+Kontrolę nawracającego błędu dodajemy w małym sprawdzonym zakresie, z powodem
+odmowy. [Dostarczony artykuł](orchestration.md#contract-driven-cleanup-supplied-practitioner-source-2026-10-01).
+
+Budżet `0/1/N`: zero nowych testów dla dokumentów/mechaniki, jeden dla kontraktu,
+więcej dla różnych wymagań/awarii. Nowy falsyfikator najpierw przegrywa na
+przed-stanie; zachowanie objęte dowodem chroni dotychczasowa kontrola.
+Retirement rozlicza odbiorców i różne wymagania. Najpierw batch odczytów,
+potem potrzebny osobny kontekst; równoległe pisanie wymaga izolacji/dopuszczenia.
+
+Wzorce z Twojego RSS doprecyzowują ergonomię: swobodny opis zamiaru prowadzi do
+małego sprawdzalnego kroku; pamięć jest jawna i poprawialna; przeciwną argumentację
+zamieniamy w konkretny sprawdzian. Nowy element musi zmniejszać rzeczywisty ból
+oraz mieć drogę wycofania. [Posty, napięcia i skutki dla KRN](orchestration.md#practitioner-patterns-selected-from-the-operators-rss).
+
+Dots i Grok Bot doprecyzowują docelowy produkt: skill opisuje sposób pracy,
+harmonogram określa kiedy, a aktualne uprawnienia wyznaczają dozwolony efekt.
+Pamięć zespołu i prywatne notatki mają różny zakres; handoff ma jednego właściciela.
+Najpierw kwalifikujemy ręczny przebieg, później pracę w tle z anulowaniem,
+ochroną przed podwójnym efektem i czytelnym wynikiem. [Mechanizmy i granice źródeł](workbench-contracts.md#persistent-teammates-dots-and-grok-bot-2026-10-01).
+
+Naprawy hooka są scalone w [#298](https://github.com/korneliuszburian/krn-codex-skills/pull/298)
+i [#299](https://github.com/korneliuszburian/krn-codex-skills/pull/299), globalny release
+to `ab403fdb…`. Checker z czystego main potwierdził instalację i seal; świeży
+Codex odczytał cytowany tekst Pythona i otrzymał prawdziwą odmowę kasowania
+nieistniejącego celu w potoku. To dowody tych przepływów, bez deklaracji pełnej
+zgodności wszystkich komend lub wzrostu jakości pracy nad projektem.
+Wracamy do mechaniki tasków/recovery, sandboxu i pamięci. Stara gałąź researchu
+wymaga przeniesienia czterech dokumentów na aktualne main: jej dawny ledger
+nie poświadcza nowego release'u. Naprawa launchera i spójność skillsów dostępu
+mają osobne zakresy; wdrożenie hooka ich nie potwierdza.
+
+Docelowy przepływ dostępu jest krótki: kompletny profil `.env` → `ftp-kr.json`
+→ jedno doprecyzowanie nieudanego logowania → BW jako fallback. Po sukcesie
+używamy połączenia oraz natywnego SSH/WP-CLI/FTP/SFTP; setup wraca przy braku
+lub awarii dostępu. Przy kończeniu trzy automatyzacje FTP są wyłączone. Zasady
+storage, hook i skill muszą mówić to samo; zwykła operacja nie tworzy nowego
+runnera ani pełnej ceremonii projektu. [Naprawy, właściciele i granice](workbench-contracts.md#operational-friction-hook-and-site-access).
+
+<a id="delivery-contract-and-terminal-decision"></a>
+## 7. Kolejność budowy i warunki przejścia
+
+| Pion | Wynik widoczny dla użytkownika | Co pozwala iść dalej |
 |---|---|---|
-| Dependency cycle and deadlock: task | Reject unknown blockers/cycles at write; short queue lock protects a synchronous CAS, never a model call. | Two linked worktrees contend; one claim wins. Opposite-order operations, interrupted lock holder and explicit recovery never silently admit both. |
-| Claim race, stale worker: task | Epoch plus lease and expected-old ref; a retry reads state before another effect. | Old worker response after takeover cannot change task or apply code. |
-| N+1 reads: task/context | Read one queue snapshot per command; batch source identities before opening selected evidence. | Instrument Git subprocess/read counts on 100 and larger frozen task sets; rising per-task lookups or p95 beyond a preregistered budget reopens a derived index. |
-| Memory growth and context rot: Pi/capsule | Bounded model-facing frame and checkpoint; discard raw child JSON after safe accounting and retain no copied corpus in Git. | Long-session soak checks RSS, file descriptors, retained runs, bytes and cost; full workflow outcome, not compression ratio, chooses retention. |
-| Credential or cross-task leak: host | Do not pass host home/secrets into workers; sanitize logs before any persistent record; untrusted retrieval is data. | Deliberate sentinel in foreign task/source must not enter worker output, memory write, pane status or published artifact. |
-| Local versus distributed lock: task | CAS and worktree-common lock only on one Git common directory. Remote clones are candidate producers, not independent queue leaders. | Two independent clones attempting the same claim demonstrate the missing guarantee; refuse that topology, do not market it as synchronized. |
-| Eventual consistency and stale context: delivery-loop | Source revisions, task epoch and HEAD must match on each high-impact decision; the checkpoint is a cache. | Change task authority after checkpoint; stale-consistent action or stale proof admission fails. No automatic background re-sync is assumed. |
-| Crash, failover and idempotency: task/host | Read operation/effect refs and claim epoch after crash; ambiguous readback blocks blind retry. An operator designates a successor writer. | Fault injection before/after queue+effect CAS and lost response produces at most one observed result, otherwise remains ambiguous. |
-| Provider outage, 429 and cancellation: dispatch | Bounded retries and deadlines with all cost charged; no silent model substitution during a matched evaluation. | 429, aborted child, missing `agent_settled` and an unexited process tree report unavailable, not successful zero-cost work. |
-| Load balancing: integrator | No fleet daemon. Schedule bounded independent reads by the actual bottleneck; at most one writing integrator. | Compare accepted repairs per wall-time and billed total against one Sol agent and one ordinary read-only brief; discard fanout without net benefit. |
-| Rollback: release/task/memory | Git revert/fix-forward preserves evidence; sealed immutable release and prior `current` remain recoverable; task intent change is a compensating new revision; regenerate derived frame. | Failed install restores prior release, schema downgrade refuses unknown state, restore retains task IDs/claim epochs, and no reopened task erases history. |
-| External approval and proof: maintainer | Git/CI checks, human approval and current Goal have separate owners. | Invalid waiver, fake `Task:` trailer, changed merged commit or untrusted approval fails closed; tests cannot sign user intent. |
+| 1. Taski i aktualna intencja | Wybór legalnej pracy, claim, zależności i zmiana wymagań mają jeden sprawdzalny przebieg. | Wygaśnięta tura i stare wyniki nie przejmują pracy; odzyskiwanie zachowuje zobowiązania. |
+| 2. Izolowane wykonanie | Codex/Pi pracuje na ograniczonym kandydacie w gotowym środowisku wykonania. | Sprawdzone granice plików/sekretów/sieci, zakończenie procesu i dzieci, wejścia oraz sprzątanie. |
+| 3. Kontekst i pamięć | Wznowiona sesja stosuje aktualne wymagania i potrzebne źródła. | Zmiana intencji, nieaktualna pamięć i obcy projekt nie kierują efektem; pełny koszt uzasadnia dodatkową warstwę. |
+| 4. Dowód, integracja i odzyskiwanie | Konkretny kandydat jest sprawdzony, a efekt odczytany także po przerwaniu. | Exit=0, snapshot i opis agenta nie zastępują dowodu; zgubiona odpowiedź nie powoduje ślepego ponowienia. |
+| 5. Cały przepływ i odejmowanie | Jeden rzeczywisty przypadek przechodzi całą drogę w natywnej sesji/CLI. | Poprawność, fałszywe blokady i koszt są porównane z natywnym przebiegiem; dopiero wtedy wracamy do panelu. |
 
-Cross-machine multi-writer durability, automatic leader election, distributed
-locks and a replicated memory service are **not** in the selected product.
-If a measured need appears, compare a single remote coordinator with a
-versioned transactional backend such as Beads' Dolt design using an explicit
-export, dual-read migration, fenced writes, recovery and contract-stage
-retirement. Do not gradually turn one local queue into two live stores.
+Pierwszy przypadek dotyczy `krn-codex-skills`: zadanie przechodzi przez claim,
+izolowane wykonanie, aktualny dowód, integrację i zamknięcie, także po przerwaniu.
+Istniejący właściciel tasków rozstrzyga recovery/CAS/selector; wybrany element
+H3 wymaga legalnego dopuszczenia. `hardening-cli-integration` pozostaje późniejszą
+poprawą interfejsu, nie zastępuje sprawdzenia tej mechaniki. Ten plan nie nadaje
+ready, nie przejmuje claimów i nie uruchamia nowej implementacji.
+Wcześniejszy kandydat frontendowy został wycofany po korekcie operatora.
+Aktualny przypadek ma sprawdzić rdzeń KRN w tym repo; nie rozszerzamy zakresu
+na WordPress/frontendy ani nie deklarujemy transferu jakości bez rzeczywistych prób.
 
-## What external implementations earn here
+Najbliższe rozstrzygnięcie dotyczy `hardening-task-recovery`: jak legalnie
+wznowić importowane zadanie z wymaganym dowodem, zachowując historię,
+zobowiązania i warunki zamknięcia. Najpierw trzeba odtworzyć odmowę przez
+publiczny interfejs, następnie zaprojektować jedno przejście u obecnego
+właściciela tasków. Powrót do pracy nie oznacza wykonania zadania ani przyjęcia
+starego wyniku. To rekomendacja pierwszego zakresu po dopuszczeniu, nie nowy
+status lub claim. Szerszy przebieg z przerwaniem workera kwalifikujemy później.
 
-- Pi 0.87.1 [extensions](https://pi.dev/docs/latest/extensions), [JSON event stream](https://pi.dev/docs/latest/json), [CLI integration](https://pi.dev/docs/latest/cli-integration) and [security](https://pi.dev/docs/latest/security), checked against the installed 0.87.1 files on 2026-09-27: `agent_settled` and finalized `message_end` are stronger completion signals than `agent_end`, while extensions and subprocesses retain their OS privileges. [Pi Agent Goal 2026.7.18](https://github.com/KristjanPikhof/Pi-Agent-Goal) has branch-local state and opt-in continuation but declares peers below 0.81. **Lab-test** this host before any long-running dispatch; don't invent a daemon.
-- [Herdr's agent guide](https://herdr.dev/agent-guide.md), its installed `herdr --skill` output and the personal `herdr-agent-state.ts` inspected 2026-09-27: panes and TUI lifecycle are observable; Herdr does not own task, Goal or proof state. **Adopt** it as display/control only and verify each worker's identity and actual checkout before promotion.
-- [Mem0 at `94c3fe9`](https://github.com/mem0ai/mem0/tree/94c3fe9f238f3dbf29c9ce98643bd71eb13077cd), [add](https://github.com/mem0ai/mem0/blob/94c3fe9f238f3dbf29c9ce98643bd71eb13077cd/docs/core-concepts/memory-operations/add.mdx) and [search](https://github.com/mem0ai/mem0/blob/94c3fe9f238f3dbf29c9ce98643bd71eb13077cd/docs/core-concepts/memory-operations/search.mdx): scoped search and the OSS [`explain` score breakdown](https://github.com/mem0ai/mem0/blob/94c3fe9f238f3dbf29c9ce98643bd71eb13077cd/docs/core-concepts/memory-operations/search.mdx#explain-oss-search-scores) are useful *lab-test* patterns. Both managed and OSS `add` use additive extraction; OSS also exposes explicit update/delete. Managed benchmark scores reflect proprietary optimizations that OSS users cannot reproduce directly. Neither fact extraction nor embeddings authenticate a revoked coding requirement. **Reject** it as the authority store.
-- [Mastra at `edc77fc`](https://github.com/mastra-ai/mastra/tree/edc77fcd6897323d2d69e919148321edf07dfa84), [observational memory](https://github.com/mastra-ai/mastra/blob/edc77fcd6897323d2d69e919148321edf07dfa84/docs/src/content/en/docs/memory/observational-memory.mdx): thread-scoped observations link back to raw message ranges; delayed hints are cleared on activation, and shared resource scope is deprecated. **Lab-test** source pointers if an authentic restart fails; **defer** another background observer/storage owner. Its self-reported compression is not a KRN outcome.
-- [Letta Code at `1cab1b7`](https://github.com/letta-ai/letta-code/tree/1cab1b78d413789cf77c852a884aee47eada6007), [conflict repair](https://github.com/letta-ai/letta-code/blob/1cab1b78d413789cf77c852a884aee47eada6007/src/agent/memory-conflict-repair.ts): Git-backed MemFS and a token/owner-bound conflict attempt illustrate safe recovery under actual concurrent memory writers. **Defer** its repair worker while KRN has one capsule writer; reopen on a reproducible lost update, not on feature parity.
-- [Graphiti at `6b4b56f`](https://github.com/getzep/graphiti/tree/6b4b56ff6f4b1e4e69c3c3c5487cf1b8762c483a): source-linked temporal validity is a useful *model of the question*. Its episodes, graph database and extraction would duplicate KRN's user/task authority at this size. **Reject** a graph store without a recurring historical-query consumer after the existing link ladder fails.
-- [Beads at `54dd4da`](https://github.com/gastownhall/beads/tree/54dd4da6708558840f88863266b9ca702893feb1), [dependencies and gates](https://github.com/gastownhall/beads/blob/54dd4da6708558840f88863266b9ca702893feb1/docs/core-concepts/dependencies.md) and [README schema guard](https://github.com/gastownhall/beads/blob/54dd4da6708558840f88863266b9ca702893feb1/README.md#schema-version-guard): dependency frontier and explicit CI/PR/human gates are candidate contracts for KRN's queue; an older binary refusing a newer schema is a useful migration guard, not a reason to switch to Dolt. Its Dolt server/embedded modes and remote sync solve a different distributed topology; **defer** replacing a local Git-ref backend without measured multi-writer demand.
-- [LangGraph at `7daa3ab`](https://github.com/langchain-ai/langgraph/tree/7daa3ab49d678a5da75edb08baa87db4a2be52c3): checkpointed ongoing workflow versus long-term memory reinforces the Goal/capsule/knowledge split. **Reject** importing a second orchestration graph while Pi already owns the agent loop and its installed Goal extension owns branch-local outcome state.
-- [AHE](https://arxiv.org/abs/2604.25850), [ACE](https://arxiv.org/abs/2510.04618), [RRSI](https://arxiv.org/abs/2609.24972), [VibeMemBench](https://arxiv.org/abs/2609.23570), [Missing Complement](https://arxiv.org/abs/2609.20050), and [Impact Is Not Invalidation](https://arxiv.org/abs/2609.25130): keep incremental curated knowledge, small falsifiable edits, claim-relative applicability, and complete decision evidence **as tested policies**. VibeMemBench's transfer intervals all cross zero, ordinary memory systems rarely beat memory-off; Missing Complement's controller has real extra online cost. They do not establish KRN uplift. The local before-state repair and qualified sh-167 oracle have executed mechanical proof; agent behavior remains open.
-- Operator-supplied screenshots `IMG_8412`–`IMG_8419` (practitioner anecdotes, 2026-09-27): use small task-specific reference briefs, focused specialist advice, an independent UX/error-state question for UI work, and cheap deterministic tests before advisory review. Reject per-model-interaction `__log__` dumps, default LLM-judge approval and a broad self-improvement scheduler. The reported `/state` endpoint with many database calls is an **N+1 test candidate**, not evidence of a KRN query defect. Product delivery, bounded context and full cost outrank agent gymnastics. Do not copy the screenshots or their passages into Git.
+### Gotowe narzędzia zamiast własnej infrastruktury
 
-## Delivery contract and terminal decision
+Rozdzielamy bibliotekę prowadzenia agentów od granicy izolacji. Sandcastle może
+uprościć lifecycle/workspace; nie staje się przez to samodzielną mikroVM.
 
-The exact staged implementation, instrument and experiment DAG has one owner:
-[self-hardening-roadmap.md](self-hardening-roadmap.md#current-target-delivery-graph).
-The Git-ref queue alone owns published task status and claim state; this page
-owns *target interfaces and invariants*, not a second priority list. The accepted
-request, represented by a native Goal when present, remains the outcome authority. A settled capability can become one vertical
-implementation task; a behavioral uncertainty becomes an explicitly bounded
-experiment. Do not publish a conditional runtime mechanism as ready work.
+| Kandydat | Rola i powód rozważenia | Co sprawdzamy przed użyciem |
+|---|---|---|
+| Obecny lokalny profil KRN | Kontrola porównawcza z istniejącym kodem. | To nie certyfikat bezpieczeństwa: auth trafia do workera, a sieć/procesy/Pi mają niezakończoną kwalifikację. |
+| Docker Sandboxes, `sbx` | Lokalna mikroVM i udokumentowana obsługa Codexa; samodzielne narzędzie także na Ubuntu/KVM. | Nasz host, oczyszczone wejścia, proxy/OAuth, eksport i zakończenie pracy; clone nie usuwa sekretów ze źródła. |
+| Sandcastle Matta | Biblioteka agent/workspace/provider, możliwa redukcja własnego glue. | Wąski adapter nad niezależnym klonem; bez domyślnego merge i ujawniania source Git; aktualny parser/identity Pi. |
+| Cloudflare | Zarządzane wykonanie i snapshoty plików, gdy potrzebujemy chmury. | Nowe API/beta, account/auth, sieć, drzewo procesów, odtworzenie i pełny koszt. |
+| E2B | Kandydat, gdy zachowanie RAM/procesu ma konkretną wartość. | Pauza i jej fallback, stara intencja po wznowieniu, retencja, auth i odbiór wyniku. |
+| NVIDIA OpenShell | Nadzorowane wykonanie, polityki i proxy credentials; możliwe usunięcie własnego glue. | Właściwy driver izolacji oraz Pi/Codex OAuth, refresh, zakończenie pracy i pełny koszt. |
 
-Complete the operating task/close and host readback before an authority-changing
-memory pilot. Only an actual native-control failure earns the proposed
-`DecisionFrame` runtime; a successful native run rejects that extra surface.
-After a valid instrument, measure transfer, real catches, false blocks and
-complete workflow cost before claiming uplift. Hygiene follows the terminal
-product decision, not a green CI alone. If the pilot finds no informative
-failure or a weaker/costlier treatment, retain only the earned task/commit
-correctness owners and explicitly report that this Goal has **not** established
-a breakthrough. The operator may then revise its objective; no benchmark result
-or model vote can silently rewrite it.
+Najpierw kwalifikujemy jeden lokalny profil dla jednego natywnego hosta, jeżeli
+warunki platformy pasują. Nie instalujemy wszystkich. Taski, intencja, niezależny
+dowód i integracja zostają poza zapisywalnym workerem. Dalszy wybór zależy od
+kontraktu i całego kosztu, nie rankingu startu sandboxów.
+[Aktualne porównanie i ograniczenia](workbench-contracts.md#sandbox-comparison-and-first-profile-decision-2026-10-01).
 
-This page is superseded only by an operator-reviewed end-state design with a
-named migrator, or by a recorded counterexample that changes a selected
-invariant. Raw corpora, prompt logs, model opinions and user screenshots never
-become canonical artifacts.
+### Czy można już zacząć?
+
+**Informacji wystarcza do przygotowania małego hardeningu rdzenia.** Nie trzeba
+najpierw zaprojektować idealnej docelowej platformy. H3/H4/H7 mają istniejących
+właścicieli i konkretne kontrakty; nie zależą od wyboru końcowej chmury ani panelu.
+Przed pierwszym piszącym workerem trzeba rozstrzygnąć poniższe punkty:
+
+| Decyzja przed próbą | Najmniejsza rekomendacja / warunek |
+|---|---|
+| Host i auth | Pierwszy profil: wybrane Pi i oficjalne modele OpenAI Codex. Kwalifikujemy jedną wersję, model i rzeczywisty account/protocol; Codex CLI pozostaje osobnym porównaniem. Nie zastępujemy OAuth płatnym API bez decyzji. |
+| Dopuszczenie pracy | Jedno legalne zadanie, jeden integrator; aktualny claim/lease/intent. Odzyskanie nie oznacza porzucenia zobowiązań. |
+| Granica izolacji | Niezależny oczyszczony kandydat, dozwolone wejścia/sieć; źródło, sekrety i publikacja poza nim. Provider musi spełnić tę granicę. |
+| Dowód | Akceptacja oraz źródło kontroli niezależne od workera; kandydat i wymagane dirty/ignored/generated wejścia powiązane z wykonaniem. |
+| Przerwanie | Reguła dla utraconej odpowiedzi, dzieci procesu, starego claima i restore. Najpierw odczyt efektu; unknown nie zamienia się w done. |
+| Pamięć i koszt | Obecne repo/Goal/task i wymagany bounded zapis wznowienia; bez nowej bazy. Liczymy utracone wymagania, poprawki, fałszywe blokady, wszystkie próby i koszt. |
+
+Kwalifikacja konkretnego auth/hosta i wyniku nie da się zastąpić dalszą lekturą.
+Przyjęte C/Git-ref pozostaje bazą. Finalny provider, bogata pamięć, wiele zespołów
+i frontend mogą poczekać na pierwszy przebieg. Gotowość informacji nie omija
+rzeczywistej eligibility ani uprawnień Git; plan nie zmienia kolejki i lease'ów.
+[Granice gotowości i następny krok](workbench-contracts.md#core-hardening-readiness-2026-10-01).
+
+### Nowe pomysły i konkurujące podejścia
+
+Schemat z jednym leadem, dwoma zespołami i wspólnymi ustaleniami zachowujemy
+jako opcję dla trudnej decyzji: różne izolowane kandydaty, jedna aktualna
+akceptacja, jeden integrator i końcowy dowód po syntezie. To nie domyślna armia
+na każdy ticket. Ustalenia są materiałem bieżącego zadania, nie nową bazą pamięci.
+
+Limen daje inspirację do jednego wejścia koordynatora i odróżnienia końca joba
+od wykonania zadania; jego worktree/proces nie jest sandboxem bezpieczeństwa.
+Nie dokładamy drugiego silnika zadań. Każdy nowy link wiążemy z decyzją, którą
+może zmienić, kodem do usunięcia i jedną próbą. Kończymy ogólne researchowanie,
+gdy kontrakt następnego pionu jest jasny; resztę poznajemy przez realną pracę.
+[Źródła, diagram i bramka pomysłów](orchestration.md#shared-findings-and-idea-admission-2026-10-01).
+
+Mierzymy zaakceptowany wynik, zachowane wymagania, poprawki operatora,
+fałszywe blokady, podłączenie/wznowienie oraz cały czas i koszt wykonania, czytania,
+pisania pamięci, delegacji, kontroli i prób nieudanych. Natywny klient dostaje
+te same wymagania i dostęp. Dobry pojedynczy przykład pokazuje wykonalność;
+korzyść produktu wymaga porównania. Obecny indeks i ADR 0006 zachowują koszt
+oraz niejednoznaczność wcześniejszych wyników.
+
+<a id="what-external-implementations-earn-here"></a>
+## Materiały pomocnicze
+
+- [Kontrakty wykonania i integracji](workbench-contracts.md): szczegóły wymagane
+  przy konkretnym pionie; protokoły, źródła, awarie i ograniczenia.
+- [Badania i decyzje](orchestration.md): mechanizmy, kontrargumenty i granice dowodów.
+- [Istniejący roadmap](self-hardening-roadmap.md#current-target-delivery-graph):
+  właściciel realizacji; live queue rozstrzyga eligibility i status.
+
+Supersession: aktualizujemy ten jeden plan, gdy operator wybierze inny kierunek
+lub rzeczywista próba obali założenie. Następca wskazuje migrację i wycofanie
+starego właściciela. Szczegóły pozostają przy swoich źródłach; nie dodajemy
+równoległego planu ani drugiej kopii statusu; opis propozycji nie jest jej wdrożeniem.

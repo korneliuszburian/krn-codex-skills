@@ -9,6 +9,10 @@ agent work honest across long, multi-session outcomes.
 **Who it's for**: KRN engineers and their coding agents in any repository,
 plus anyone maintaining the global skill set.
 
+The proposed project workbench has [one product plan in Polish](docs/research/product-architecture.md),
+with technical contracts and source evidence linked only where needed. It is a
+design proposal, not installed product behavior.
+
 **Start here**
 
 ```bash
