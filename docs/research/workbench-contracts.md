@@ -1,7 +1,7 @@
 # KRN workbench: runtime contracts and source comparisons
 
 Status: `lab-test`. Consumer: native adapter, task/state/proof maintainers and
-`$slice-work` after the operator settles a slice. Owner: maintainer. Verified: 2026-09-30.
+`$slice-work` after the operator settles a slice. Owner: maintainer. Verified: 2026-10-03.
 
 This is the technical reference linked from the [single product plan](product-architecture.md).
 It preserves prior mechanisms, constraints, counterexamples and source identities
@@ -9,6 +9,9 @@ while keeping that plan readable. Historical host observations are not freshly
 revalidated; proposed contracts do not certify implementation or product uplift.
 The existing roadmap/queue owns execution and admission, and
 [orchestration](orchestration.md) owns the broader research mechanisms.
+The 2026-10-01 operator correction defers frontend/panel and frontend pilots
+until task, memory, isolation, proof and recovery mechanisms are qualified.
+Retained panel protocols below are future reference, not the current frontier.
 
 ## Product contract, not a document count
 
@@ -180,6 +183,142 @@ D4/D5/sh-169/sh-185 gates remain; neutral small work must not acquire a mandator
 memory ritual. CLI integration and memory-usefulness decisions are tasks in the
 roadmap, and their publication is not evidence of product benefit.
 
+## Operational friction: hook and site access
+
+Consumer: operator/maintainer removing false refusals and repeated credential
+setup before more product machinery. Owners: this repository's hook/contract
+maintainers; `mise-en-plesk` owns its access/deploy skills and credential policy.
+Operator steering 2026-10-01 adopts project-local working connection reuse:
+resolve a complete `.env` profile, then `ftp-kr.json`, clarify an authentication
+failure once, and use BW only for missing/rejected access. A routine site edit
+does not restart setup. The native-boundary repair was delivered in
+[PR #298](https://github.com/korneliuszburian/krn-codex-skills/pull/298), and the
+quoted-data follow-up in [PR #299](https://github.com/korneliuszburian/krn-codex-skills/pull/299).
+Current global release: `ab403fdb075435c9d6f3488400752dc4e5a3501f`. Separately owned site-skill alignment
+and launcher repair are outside that delivered scope.
+
+### Native boundaries, narrow interception
+
+Official [Codex security and approvals](https://learn.chatgpt.com/docs/agent-approvals-security)
+separate OS-enforced local isolation from approval policy. Anthropic's
+[sandbox documentation](https://code.claude.com/docs/en/sandboxing) separates
+filesystem and network boundaries; its [containment account](https://www.anthropic.com/engineering/how-we-contain-claude)
+describes product-specific isolation. These systems also use permission/action
+review: the evidence does not support saying nobody analyzes commands.
+
+**Adopt** the separation, owned by the existing native/sandbox and hook owners:
+native permissions constrain local effects; a site's account permissions
+constrain remote effects; the project owns deployment scope and readback.
+The universal hook catches recognized local deletion, protected targets,
+Git risk and exact forbidden references. **Reject** a second SSH/FTP/WP-CLI
+policy interpreter, global DEV recipe and inspection of SFTP batch contents.
+Passing the hook does not grant remote authority. Countercase: an ordinary
+config read refuses, or a retained local root/Git/global safeguard passes.
+
+### Observed, not inferred completion
+
+The reproduced before-state is HEAD `4105e239f43e274cf6f4245f8b1033055f899be1`, hook SHA-256
+`69842a8c8ea7663a04913f1a866090417aef0030fe96298157861f8574a6b0f2`
+and installed release `0731782fb5080a083ad6852a29e88ffc6077c4f2`
+through actual JSON entrypoints and disposable inputs. Both denied local
+read/edit/staging containing the FTP config name. Project instruction updates
+depended incorrectly on launch cwd, and project `.env` updates refused.
+
+The merged repair removes the deployment/credential/batch analyzer, admits
+scoped project configuration patches and delegates native site tools. It also
+guards local destinations of remote copies. Protected config deletes/moves,
+out-of-scope repository instructions, globals and Git metadata remain guarded.
+Static local pipeline checks distinguish remote arguments from local effects;
+piping into a shell remains refused. Native filesystem policy still decides
+write authority; a hook scope match is not authentication.
+
+The operator's delivery handoff reports full pinned-Node gates before publication
+and after merge, CI, independent Standards/Spec approval and fresh Codex 0.159.3
+read/denial probes without bypassing hook trust. Readback here confirms the merge
+object, installed release and hook links, the retained 16-case adapter matrix
+with zero failures, the fresh-host read transcript and denial log. An actual
+non-secret FTP-config fixture read also succeeded in this session. At that initial
+readback, GitHub API access was unavailable, so #298 CI status relied on the
+handoff. The #299 follow-up below has its own executed gates, CI and installation
+readback. No site action or vault access was performed.
+The remaining Python-wrapper false refusal was minimized to a heredoc containing
+only `print('TIMEOUT; install check unqualified')`. The active hook refuses it
+as an uninspectable writer; replacing the semicolon with a colon or passing the
+same Python expression through `-c` succeeds. In the installed hook,
+`naive_writer_reason` splits with `SUBCOMMAND_SPLIT` regardless of quoting and
+mistakes the string fragment starting with `install` for a writer command.
+The published follow-up reuses `pipe_segments` with an optional command-boundary
+mode, replacing only this blind writer split. One permanent Node observer in
+`test/hooks-guard.test.mjs` asserts quoted data and retained local writer guards;
+it failed with an actual assertion against `f1557a0…` and passes after the fix.
+Full pinned-Node gates passed before publication and after merge; PR and merge
+CI fast/deep succeeded. Independent Standards/Spec reviews found no issues.
+Standard installation used the clean merged checkout and `allowUnsealed: false`.
+The original heredoc now succeeds both in this conversation and a fresh Codex
+0.159.3 process. The fresh process's actual tool result returns exit 0, while
+its separate nonexistent-target destructive pipeline receives a real PreToolUse
+denial. No hook-trust bypass or real deletion was used. Consumer/owner: hook
+maintainer; supersede on an executed countercase or replacement. This proves
+the named flow, not universal benign-composition compatibility; no language
+interpreter was added. The provisional Python observer was not duplicated in
+the published tests, and owned temporary candidate patches are retired.
+
+The research checkout remains at `4105e239…`; its four document changes are
+preserved separately. Its old committed ledger does not attest the new release,
+so source-anchored inspection there can still refuse. Ordinary `install check`
+from the clean merged `ab403fdb…` checkout passes `filesystem_installed`,
+`anchor: committed`, `sealed_by_value`; seal key
+`cdbc6c1e7af9aa64b4453cbffedebdd982889b89` is a verified ancestor of that merge.
+No immutable release was edited. Carry the research changes onto current main
+before its source-anchored handoff; this does not require changing the installed
+seal or weakening inspection. The hotfix's owned branch/worktrees are retired
+after installation and host readback.
+
+The standard launcher's missing `codex-code-mode-host` is a separate limitation
+reported in the handoff. The successful fresh-host proof used an existing
+complete 0.159.3 binary. Filesystem inspection does not prove this conversation
+reloaded its global instructions or repair the launcher.
+
+The last separate site-skill read was clean `mise-en-plesk` at `95df377…`.
+The main skill bodies already allow local-first setup and native execution,
+but YAML descriptions promote broker/guarded execution and `AGENTS.md` leaves
+the development ceremony too broad. The seven-file alignment proposal also
+clarifies an unrelated/incomplete `.env`, optional CLI limitations and FTP
+automation at close-out. It was not applied here and is not delivered by #298.
+Re-read the owning checkout before applying; keep its broker's implementation
+limits distinct from authorized native operations.
+
+### Smallest coherent repair order
+
+| Slice / owner | Required behavior and cheapest deciding signal |
+|---|---|
+| Local config and native site commands, hook owner | Delivered in #298, quoted-data follow-up in #299; installed at `ab403fdb…`. Entrypoint, matrix and fresh-host evidence are distinct from product benefit. H1's completed campaign tasks are not reopened. |
+| Project instruction/config scope, hook/native owner | Delivered in #298 with scoped positive/negative checks. Native permissions remain authoritative. |
+| Credential/setup policy, `mise-en-plesk` owner | Reconcile `AGENTS.md`, setup skill and bootstrap reference with the operator's local-first rule. Parse `.env` as data, keep complete transport groups, reuse success, classify auth separately from DNS/TLS/timeout/path errors, and open BW only for its named fallback. No credential dump, master/session persistence, secret commit, broad vault crawl or automatic unrelated-account reset. |
+| Native site execution, deployment owner | Known connection → current scoped SSH/WP-CLI/FTP/SFTP action → effect readback. Existing runners are optional tools; remove mandatory toolchain/vault/spec/ticket work from routine edits. Leave domain-specific deployment checks with the site/project owner rather than a universal DEV recipe; an exact request retains its scope without repeated consent. |
+| Source-to-host delivery, installer/operator | Hook publication, sealed installation, ordinary committed-main inspection and fresh-host read/denial delivered through #299. Research still needs its current-main integration. Launcher and site skills retain separate owners. |
+
+Setup ends after verified login/account/root access. If local configuration is
+missing or rejected after clarification, select one exact/unique site BW item,
+test the complete tuple, and update only the approved local credential location
+and corresponding item where authorized. Credential creation/rotation uses the
+actual named account and available privilege; a failed network or permission
+check does not establish a bad password. Once access works, subsequent site
+tasks reuse it until missing/rejected or the operator changes the target.
+
+Finishing work leaves `autoUpload`, `autoDownload`, `autoDelete` false. Shared
+FTP routing may be versioned without secret values; local secret handling must
+use a mechanism the actual extension supports, not guessed env interpolation.
+The current universal no-secret-persistence wording also needs to distinguish
+explicitly approved local credential configuration from logs/Git and BW master
+or session values. New helper commands, stores and per-plugin wrappers are not
+earned by these repairs. The #299 follow-up changes writer-boundary detection,
+one Node observer and the seal ledger; research remains on its separate branch.
+The standard installer performed the authorized global delivery. No site account,
+vault, selected queue or separately owned site-skill checkout was changed.
+Supersede on publication, full-gate/installation/loading evidence or changed owning
+policy; update the index. Retire temporary repair handoffs when superseded or installed.
+
 ## Workspace and run contract
 
 Persistent working state has one existing shape:
@@ -220,6 +359,265 @@ migration or explicitly report it unavailable. A code checkpoint alone is not
 that backup. Owner: existing workspace/task/host maintainers; consumer: actual
 interrupted-project recovery. Falsifier: a plausible restore loses an obligation,
 accepted task write or necessary input. No checkpoint/backup was executed here.
+
+## Cloudflare execution reuse (2026-10-01)
+
+Consumer: maintainer choosing execution/isolation for the current mechanism-first
+plan. Owner: existing sandbox/workspace/recovery maintainers; root is the result
+writer. Disposition: `lab-test`, not installation or cloud adoption. No account,
+credentials, native/cloud process or billing access was inspected or exercised.
+
+| Primary source, verified 2026-10-01 | Reusable mechanism | Limit that constrains KRN |
+|---|---|---|
+| [Cloudflare article](https://blog.cloudflare.com/faster-agent-sandboxes/), published 2026-09-30 | Native `ctx.container`, runtime image/instance selection and filesystem snapshots under public-beta `durable_object` scheduling. Reuse VM provisioning/lifecycle rather than build it. | Reported startup speed is not KRN outcome latency, account capacity or cost; repository/dependency setup remains. SDK 1.0/native APIs differ from legacy 0.x examples. |
+| [Sandboxes overview](https://developers.cloudflare.com/sandbox/) | A Linux container is a separate microVM; the Worker controls exposed application data/APIs and Internet. | Requires Workers Paid. Dynamic Workers are a different environment. A VM separates candidates, not every process/path inside one candidate. |
+| [Native Container API](https://developers.cloudflare.com/containers/api/durable-object-container/) | Direct executable/argument-array execution, process streams and exit state, lifecycle control. | Running/start is not ready; `user` under new scheduling does not reduce root capabilities. No built-in exec deadline; kill/abort targets one process, children can survive. Disconnect does not stop work and retry can duplicate it. Buffered output and monitoring/inactivity recovery belong to the caller. |
+| [Snapshots](https://developers.cloudflare.com/containers/guides/snapshots/) | Immutable filesystem state for a prepared candidate and later restoration. | Image-version-bound, not portable to another image; no RAM, running processes or separate mounted filesystems. The entrypoint restarts. Current API retention is implicit rather than a chosen durable-memory lifecycle. A snapshot is neither task authority nor semantic memory. |
+| [Outbound traffic](https://developers.cloudflare.com/containers/configuration/outbound-traffic/) | Worker-side HTTP(S) policy and credential injection outside the VM. | Start deny-by-default and qualify all permitted routes/TLS. Internet-on can leave non-intercepted paths; policy needs re-registration after stop. Allowed destination is not permission for every API method/repository/effect. |
+| [Pricing](https://developers.cloudflare.com/containers/platform/pricing/) | Managed running compute with CPU usage and provisioned memory/disk billing, plus platform/egress costs. | Pricing page precedes the new beta. Full snapshot cost, current quotas/account access and complete KRN cost remain unobserved; no cheap/free/available promise. |
+
+Cloudflare also supplies [Codex](https://developers.cloudflare.com/sandbox/coding-agents/codex/)
+and [Pi](https://developers.cloudflare.com/sandbox/coding-agents/pi/) runner
+recipes, with pinned binaries and native outcome handling. These are real reuse
+candidates, not a reason to copy configurations blindly: the Codex example uses
+OpenAI API credentials through AI Gateway and disables its inner approvals/sandbox
+in favor of container policy; it does not prove existing ChatGPT-plan OAuth works
+there. The Pi example selects an Anthropic model through Gateway, not this
+operator's OpenAI-Codex profile. Native login/refresh, model access, TLS, complete
+events and required project resources must be qualified without leaking a host
+credential home. A recipe's `succeeded` denotes its execution outcome, not KRN
+acceptance, proof or task close. No example was run or deployed here.
+
+Smallest candidate: one isolated VM/clone for one candidate, running a pinned
+native Pi/Codex process; Worker/DO owns environment policy and a run handle.
+KRN's authoritative queue, current operator intent, independent proof and
+integration remain outside that writable candidate. The DO is not a second
+task store or semantic-memory database. The article's optional brain-in-DO
+pattern would add a loop we already receive from the native host. No frontend
+is needed to submit a bounded job or inspect its result.
+
+Compare with the already-owned local isolation/clone profile first, after its
+actual version, non-setuid and boundary readback; old index evidence does not
+certify today's host. Docker Sandboxes is another existing provider candidate,
+not an installation mandate. Worktree, prompt or tool allowlist alone is not
+OS isolation. Do not place integrator home, publication rights, live task queue
+or unrelated runs in a cloud candidate; treat exported code/config/hooks as
+untrusted at the later host/evaluator handoff.
+
+The later deciding screen has distinct failure modes: wrong project/path and
+cross-candidate read; denied egress and scoped credential proxy using non-secret
+canaries; surviving children/crash/lost ACK; required dirty/ignored input and
+image-bound restore; stale intent/lease/candidate or forged execution receipt.
+Stop/readback the whole candidate where required, and recheck task authority
+before integration. Restore filesystem state then explicitly resume native
+session state; do not call it process continuation. Independent acceptance stays
+outside the worker's writable evidence. These are future requirements, not new
+tests or measured guarantees.
+
+Count cold/warm startup, upload/clone, dependency/toolchain/native initialization,
+auth, inference, tests, snapshot/restore, download, retries, operator recovery and
+CF compute/egress/DO/storage/logs plus model usage per accepted outcome. Prefer
+Cloudflare only when it satisfies the actual contract at justified total cost;
+otherwise retain the simpler local/native route. Supersede this decision when
+the API/SDK/image or a qualified paired journey changes it; update the index.
+
+## Sandbox comparison and first-profile decision (2026-10-01)
+
+Consumer: the operator/maintainer choosing the first isolated native candidate.
+Owner: current sandbox/workspace/recovery owners. Disposition: `lab-test` for
+provider integration; no default replacement, host probe, install or account
+qualification. This refresh extends the existing 2026-09-16 isolation family;
+the earlier Docker Desktop-focused description is historical, not current setup.
+
+| Candidate / layer | Current source and useful fit | Deciding gaps and disposition |
+|---|---|---|
+| Sandcastle: agent/workspace/provider orchestration | Observed v0.12.0, `e99f832f26dc9d245c019a9ddd19fa5dee792427` (2026-06-29); [README](https://github.com/mattpocock/sandcastle/blob/e99f832f26dc9d245c019a9ddd19fa5dee792427/README.md). Docker/Podman bind-mount versus isolated providers, native session/worktree lifecycle and configurable branches are reusable seams. | Not an independent OS boundary. Default head or merge-to-head and automatic merge/capture must not replace KRN task/proof/publication. Lab-test a narrow handle over a private independent clone only if it deletes real glue; defer whole-runner adoption. |
+| Docker Sandboxes: local microVM/runtime | Current [overview](https://docs.docker.com/ai/sandboxes/) and [installation](https://docs.docker.com/ai/sandboxes/install/) describe standalone `sbx`, not a Docker Desktop/Engine prerequisite. Ubuntu 24.04+ with KVM is supported; derivatives are not. | Actual host prerequisites/version are unobserved. [Isolation](https://docs.docker.com/ai/sandboxes/security/isolation/) separates VM, proxy and workspace; direct sharing is writable, clone still exposes original ignored data. Qualify sanitized clone/mountless input, forwarded SSH/shared skills/MCP and export first. |
+| Cloudflare: managed isolated runtime | The [current native/API qualification](#cloudflare-execution-reuse-2026-10-01) supplies VM, lifecycle, output and filesystem snapshots without a custom provisioner. | No process-memory restore, broad in-VM root capabilities, process-tree/retry and secret-proxy obligations; native account and full cost remain unknown. Candidate when remote reproducibility/concurrency has an actual consumer. |
+| E2B: cloud VM and continuation | [Overview](https://docs.e2b.dev/) describes managed Linux execution; [persistence](https://docs.e2b.dev/sandbox/persistence) preserves RAM/filesystem by default and offers filesystem-only pause. | Pause can be refused; rollout/backlog auto-pause may lose RAM. Paused data has no automatic deletion TTL. Native Pi/Codex OAuth, egress, candidate export and disposal were not qualified here. Defer unless process continuation earns its extra state/auth/retention cost. |
+| OpenShell: supervised policy/runtime | NVIDIA [v0.1.2](https://github.com/NVIDIA/OpenShell/tree/6648bd0c290efbc41ba131ee9831ee45cd431f94), released 2026-09-28; matching [architecture](https://docs.nvidia.com/openshell/latest/about/architecture) separates trusted supervisor, untrusted workload and compute driver. | Container placement still shares a kernel; VM placement is a different boundary. Lab-test reuse that removes isolation/credential glue; Pi OAuth, stop/recovery, actual host and complete cost remain unqualified. |
+
+Docker's [Codex recipe](https://docs.docker.com/ai/sandboxes/agents/codex/) documents
+host-side OpenAI OAuth/API-key handling and proxy injection. It does not prove
+our existing account, model, user config or headless completion works; Pi support
+was not established in these compared pages. A local profile is the first
+candidate to qualify if actual platform requirements fit. Cloudflare is the
+first already-researched cloud alternative; E2B is specifically interesting for
+RAM continuation. No comparison establishes price, escape resistance or benefit.
+
+OpenShell's matching [provider contract](https://docs.nvidia.com/openshell/latest/how-it-works/providers/overview)
+requires both calling-process/destination policy and credential binding to
+host/port/path. Opaque references and gateway refresh can keep material outside
+the workload, but response bodies/cookies and unsupported traffic are not
+rewritten. Its pinned [Codex profile](https://github.com/NVIDIA/OpenShell/blob/6648bd0c290efbc41ba131ee9831ee45cd431f94/providers/codex.yaml)
+declares actual OAuth token/account fields and inference/refresh endpoints;
+this is a candidate for existing subscription auth, not merely an API-key
+example. It does not prove Pi's credential format, Node identity, refresh or
+streaming works. The source [sandbox contract](https://github.com/NVIDIA/OpenShell/blob/6648bd0c290efbc41ba131ee9831ee45cd431f94/architecture/sandbox.md)
+describes process ownership/stop; the standalone proxy lacks the full runtime's
+identity, credential and lifecycle responsibilities.
+
+**Lab-test** only a complete native-auth comparison after host authority.
+Client-side OAuth refresh might receive real replacement tokens in an unchanged
+response body; gateway-managed refresh is a distinct path. This is an untested
+counterexample, not an observed leak. Reject the profile if rotation exposes
+credential material, requires API-key substitution, admits a denied
+binary/endpoint, or loses candidate/effect state after supervisor interruption.
+Count gateway, image, policy/profile upkeep and recovery alongside agent cost.
+This comparison uses matching latest/v0.1.2 docs and pinned source, not dev/main
+or legacy providers-v2 claims. No deployment, provider grant or cutover occurred.
+
+Sandcastle source checks at the same pin matter beyond the README:
+
+| Primary code seam | Source-level observation / later falsifier |
+|---|---|
+| [AgentProvider.ts](https://github.com/mattpocock/sandcastle/blob/e99f832f26dc9d245c019a9ddd19fa5dee792427/src/AgentProvider.ts) | Pi parsing is commented as verified with 0.73.1 and uses `agent_end`, without `agent_settled`; its factory has no separate provider/OAuth contract. Native builders choose broad permission modes. Qualify actual Pi/openai-codex completion/model/auth before reuse; a retry/error cannot become successful terminal work. |
+| [SandboxFactory.ts](https://github.com/mattpocock/sandcastle/blob/e99f832f26dc9d245c019a9ddd19fa5dee792427/src/SandboxFactory.ts) | Linked-worktree parent Git metadata is added to mounts. Its reviewed entries do not declare readonly; full lower-level rendering remains unqualified. Dirty-status failure can become false and cleanup failures can be suppressed. Refuse source-linked Git and preserve owned work on unknown cleanup state. |
+| [Docker provider](https://github.com/mattpocock/sandcastle/blob/e99f832f26dc9d245c019a9ddd19fa5dee792427/src/sandboxes/docker.ts) | Configurable bridge network/mounts, container close and shell exec; null exit can normalize to zero. Unknown exit, transport failure or surviving children must remain distinct from success. No cancellation/runtime experiment was performed. |
+| [WorktreeManager.ts](https://github.com/mattpocock/sandcastle/blob/e99f832f26dc9d245c019a9ddd19fa5dee792427/src/WorktreeManager.ts) | Worktree reuse/refresh and force-removal paths need current owner/branch/dirty readback. A managed path is not preserved-work proof. Qualify dirty-check failure, ambiguous close and parallel forks before automated cleanup. |
+
+These are bounded source findings, not reproduced escape/cleanup defects or
+full framework certification. The existing KRN [lane](../../scripts/lane/run-ticket.sh)
+also remains unqualified for a new writing profile: its source requires non-setuid
+bwrap >=0.12.0 and an independent candidate, but copies Codex auth into the worker,
+does not declare network/PID namespace isolation in composition, and has no Pi
+worker transport. Do not call that readback a secret/egress/process-tree boundary
+or today's host guarantee. Keep a source-level control distinct from a passed
+runtime profile; do not invoke new host probes under research authority.
+
+The smallest deciding comparison binds one host/model/auth route, sanitized
+code plus declared necessary dirty/generated inputs, and an independent clone.
+Test foreign source/refs/secret/sibling visibility, network scope, native error
+and completion, surviving children/lost ACK, input-faithful restore and preserve
+on unknown cleanup. Authority and acceptance stay outside each writable worker.
+Measure total setup/read/write/agent/check/recovery/export cost per accepted task.
+One profile may pass while another remains unsupported; never silently fall back
+to weaker isolation. Supersede this comparison when its source pin/API/version
+or actual qualified task journey changes the recommendation; update the index.
+
+Permitted package services and caches are also communication surfaces. Matthew
+Green's [2026-09-30 analysis](https://blog.cryptographyengineering.com/2026/09/30/is-sandboxing-sufficient-to-contain-rogue-agents/)
+was followed to [OpenAI's incident report](https://openai.com/index/hugging-face-incident-and-the-road-ahead/)
+and [Anthropic's evaluation review](https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals),
+verified 2026-10-01. The former reports package infrastructure used for messages
+and unintended Internet access; the latter reports unintended live Internet
+access from evaluation environments. These environment-specific cyber-eval
+failures do not certify a defect in a KRN provider; Green's broader containment
+thesis is analysis, not an executed local result.
+
+**Lab-test** the existing isolation contract with per-candidate writable caches
+or immutable shared data. Consumer/owner: first Pi/OpenAI worker and current
+sandbox/workspace maintainers. A non-secret sentinel written by one candidate
+must not cross into another through an allowed cache/artifact, and a permitted
+package endpoint must not relay a denied destination. The existing integrator
+owns whole-run stop/escalation and effect readback, including surviving children.
+This tightens the planned boundary without a warden model or new control owner;
+no runtime trial or cross-run failure rate was measured. Reopen on a qualified
+countercase or source change; preserve the incident-context limits.
+
+### Bounded local Pi qualification (2026-10-03)
+
+Consumer/owner: the `sh-186` integrator and the next native-profile qualifier.
+Disposition: **reject this credentialless/netless profile as a writing worker**;
+retain Sol-direct. This updates only the local observation, not the dated
+provider comparison or the unqualified source lane above. Evidence is in the
+selected queue's fenced `sh-186` comments (`krn task show --root REPO --id sh-186`).
+
+Pi 1.0.0 with a pinned Luna/off, no-tools invocation completed a transport
+baseline. A disposable observer refused replayed 429/retry, absent
+`agent_settled`, false result, stale SHA and model error despite exit 0; each
+assertion was red with its guard disabled. These are instrument controls, not
+an actual provider-429 observation or a production acceptance gate.
+
+Strict whole-process bwrap controls denied the declared host-only read,
+synthetic secret, host-process and loopback surfaces while an allowed read
+worked. Independently selected `setsid` child controls exposed survivors outside
+the boundary after cancellation, deadline and even natural exit 0; none survived
+inside it. This does not establish resistance to other escapes or a live Pi
+writer. The official readonly runtime closure restored Pi's authentic version
+readback; binary-only relocation had reported `0.0.0`. Isolated native auth
+remained `not_ready`, so no credential copy, weaker fallback, new broker or
+fixture writing artifact was admitted.
+
+Cost must include the controller and advisory lanes, not just a cheap child.
+For one closed prototype episode, reported model cost was about $1.40051334:
+Sol $1.38507, two Luna advisory lanes $0.01543184, transport $0.0000115. The
+observed Pi Agents Team 2026.9.19 compact receipts are cumulative: replay the
+active branch, deduplicate record IDs, then use the latest worker usage once;
+do not sum terminal revisions or turn missing cost into zero. This is
+software-reported usage, not billing/subscription allocation or complete outcome
+cost; later cost recovery, an unsuccessful delegation, prior sessions and some
+setup wall remain outside that episode. No matched accepted-task throughput
+or worker benefit was measured.
+
+Supersede this rejection only with an authorized credential-separated inference
+route, a real scoped writing artifact, independent acceptance, whole-tree
+interruption/recovery and a complete matched cost/throughput comparison against
+Sol-direct. A different profile remains eligible to qualify; neither these
+controls nor ownership alone waive its admission gates.
+
+## Core hardening readiness (2026-10-01)
+
+Consumer: operator deciding whether another research pass is necessary before a
+bounded implementation. Owner: existing task/proof/workspace maintainers; this
+section returns readiness, not admission or a new roadmap. Disposition: enough
+design information for a selected H3/H4/H7 correctness slice; not a complete or
+empirically superior harness and not a qualified writing-worker profile.
+
+Keep current C/Git-ref, native execution, one writing integrator and existing
+knowledge/continuation/proof owners. API/wire/domain/memory/authority boundaries
+are already named. A task repair can use its public seam and owning focused
+observer without choosing a permanent cloud provider. Reproduce one deciding
+failure, repair the smallest complete slice, run unchanged relevant checks and
+required fixed-point review/gates under their actual authority. No broad new
+test suite, memory store or orchestration engine is earned.
+
+Before the first writing-worker attempt, bind one exact native host/model/auth
+route, safe candidate input/export, authority ingress, independent acceptance
+and required hidden-input closure, whole-candidate stop/recovery, cleanup and
+complete outcome-cost accounting. If real host/operator user events cannot be
+qualified, retain deliberate operator confirmation for changed obligations;
+an agent-authored digest/approval field cannot supply it. Use the minimum
+existing repository memory and current owner's capsule where required, and
+measure a concrete acquisition/applicability miss before adding delivery/indexes.
+
+The recorded first host scope is Pi with official OpenAI Codex models; select
+one actual version/model/auth route within it. Codex CLI remains a separately
+qualified comparison, not a silently interchangeable transport. The source lane
+currently lacks a Pi worker, so this host choice does not certify a writing run.
+
+The recommended first task is `hardening-task-recovery`, conditional on legal
+admission. Its public body and current source readback on 2026-10-01 identify
+imported proof-required deferred/in-review/blocked records without a supported
+resume path: `markReady` requires open, `edit` permits open/ready, and `reopen`
+permits done/abandoned. This is static evidence; no runtime falsifier was run.
+First reproduce one required public transition in an owned isolated fixture,
+then design the smallest recovery operation in the existing task module.
+Preserve ID, history, obligations and proof requirements; bind actor, reason
+and current generations, refuse stale/unauthorized requests, and recheck normal
+dependencies before a new claim. Resume is not close or permission to reuse old
+proof. Do not combine this repair with worker transport, a new lifecycle engine
+or historical-record migration. Expired-claim parking and exact effect CAS keep
+their own admission/contracts. The task's existing body owns final acceptance;
+the live queue still owns status, and no task transition was made here.
+
+Observe one eligible task → claim → isolated candidate → native execution →
+independent deciding proof → effect readback/integration → close, with an actual
+interruption and legitimate intent change. A paused filesystem/RAM/session is
+not a parked task or fresh authority. Learn one profile's measured cost before
+choosing numeric production budgets; missing account/billed data stays unknown.
+The matched native path is the simpler control.
+
+Read-only public `task check` and `task next` on 2026-10-01 at source HEAD
+`4105e239f43e274cf6f4245f8b1033055f899be1` returned no errors and an empty legal
+frontier. Historical lease/task owners remain responsible; expired time is not
+proof their process ended or a takeover grant. Source Git metadata is currently
+read-only. These are execution boundaries, not missing theory: no task was
+readied/claimed/closed, no protected Git write or host probe occurred here.
+The live queue alone decides later eligibility; this dated observation is not
+a cached status authority. Revalidate before implementation. Supersede this
+readiness return when a real contract, source/boundary or first-slice result
+changes it; preserve existing task acceptance and owners.
 
 ## Runtime and host profile
 
@@ -367,6 +765,37 @@ bounded synthesis, not a forecast that all harnesses converge or that KRN is
 the best implementation. The strongest simpler competitor is the native client
 with project instructions, current tasks and direct repository reading.
 
+### Persistent teammates: Dots and Grok Bot (2026-10-01)
+
+Consumer: operator/maintainer selecting what the harness should add beyond a
+native coding agent. Owners: existing native execution, task, memory and recovery
+maintainers. These are current first-party product contracts, not inspected
+implementation code, comparative outcome evidence or a new KRN runtime grant.
+At this check `dot.com` redirects to `x.ai/bot`; OpenAI Dots is verified separately
+through its [official help page](https://help.openai.com/en/articles/20001530-getting-started-with-your-dot).
+
+| Documented mechanism | KRN disposition and deciding countercase |
+|---|---|
+| [OpenAI Dots](https://help.openai.com/en/articles/20001530-getting-started-with-your-dot): persistent cloud work, scheduled activity, app-derived memory, optional local access and delegation to Codex tasks; custom rules distinguish explicitly requested actions from actions that need confirmation. | **Adopt** the responsibility/action-scope distinction; **defer** a second always-on controller. A routine wakeup must use current task authority and approved effects, not its old prompt. Repeated confirmation of the same authorized operation is friction; a new target/effect is different scope. |
+| [Grok skills/routines](https://docs.x.ai/grok-bot/skills-routines-and-automations): instructions explain how; a separately owned routine supplies schedule/event, inputs and missing-data behavior. A demonstrated workflow is a draft to inspect and test. | **Adopt** this separation. First earn one working manual flow; later qualify a native scheduler against it. Refuse stale inputs, duplicated work or an unknown effect after restart. Do not bake scheduling, vault setup or a daemon into every skill. |
+| [Grok Team Bots](https://docs.x.ai/grok-bot/team-bots): shared team memory and private per-person notes; an owner promotes shared skills. Connector authentication can be per person or use a shared service credential. | **Adopt** explicit knowledge/access namespaces. Existing reviewed repository knowledge stays shared truth; personal context and another user's access must not leak into it. A new memory store is **deferred** until a real miss survives existing reading. |
+| [Grok collaboration](https://docs.x.ai/grok-bot/chat-and-collaboration): asynchronous handoff, visible progress and one owner per stage; direct user steering takes precedence over background work. | **Adopt** small specialist returns and current-user priority. Existing queue claims and candidate integration own exclusivity; a group thread does not prove a lock or safe parallel writing. Stop/readback already performed effects before changing direction. |
+| [Grok security](https://docs.x.ai/grok-bot/approvals-security-and-privacy): personal Bots share a user's persistent machine; separate Bot names are not isolation. Auto Review is model-based and complements scoped access. | **Reject** copying shared browser/files/logins as candidate isolation or treating a reviewer as proof. Use the existing isolated-candidate contract; do not add an LLM gate to the hook. A model's “allow” cannot widen native permissions. |
+
+Dots' documented memory deletion currently requires resetting the dot; removing
+an app does not erase already obtained information. This **sharpens a question**
+for existing KRN memory owners: source removal, expiry and supersession must have
+defined effects, distinct from revoking access. The page does not reveal memory
+storage/retrieval algorithms or an integration API. Grok's docs likewise do not
+establish memory quality or an orchestration speedup. Keep those as unknowns.
+
+Before background execution, settle only the real missing decisions: what event
+admits work and under whose current authority; what cancels or replaces it; how
+overlapping/restarted runs avoid repeating an effect; what result or blocker
+reaches the operator. Prefer an existing native scheduler once the manual
+task-to-effect path qualifies. Keep frontend deferred. Supersede this comparison
+when provider contracts or a qualified native/manual/background result change it.
+
 ### One complete user journey
 
 The initial target is one local operator, one explicitly selected repository,
@@ -503,6 +932,36 @@ old writable task/continuation owner through lossless export, comparison and a
 single cutover writer; it must not sit above a second active task engine. This
 is an authorized design comparison, not a backend decision or migration grant.
 
+### Optional host-rendered MCP Apps view
+
+Consumer: operator considering a smaller future interface after core
+qualification. Owner: existing native/UI adapter maintainer; task, state and
+proof keep their owners. Disposition: `lab-test` design alternative; frontend
+deferral remains. No server, component, host connection or deployment was built.
+
+OpenAI's [UI guide](https://developers.openai.com/plugins/build/chatgpt-ui),
+verified 2026-10-01, separates data tools from a render tool: structured results
+remain useful without a widget, presentation attaches only when needed, and
+ephemeral UI selection is distinct from business data. The [reference](https://developers.openai.com/plugins/reference)
+uses `_meta.ui.resourceUri` and the shared MCP Apps bridge before optional
+`window.openai` extensions. Visibility and model-context updates do not supply
+KRN authority. The [quickstart](https://developers.openai.com/plugins/build/app-quickstart)
+exposes tools to ChatGPT/Codex but describes iframe UI specifically in ChatGPT;
+its developer connection uses an HTTPS endpoint/tunnel. Pi/Codex rendering,
+private local connectivity and account access remain unqualified.
+
+Smallest future candidate: inspect one selected task, relevant requirement or
+proof through a host-rendered view over existing reads. A thin adapter must
+preserve per-request project/actor identity and current generations, rather
+than share process-global CLI context between concurrent users. Re-read actual
+IDs/versions at effect owners; model-supplied display data and staged selection
+are not accepted state. Qualification must show a stale view cannot grant an
+effect and the same workflow works without rendering. This may remove a
+standalone view/backend, not the UI code or native execution/recovery contract.
+Decide host, local/remote service placement and authentic authorization before
+implementation. Supersede on a supported host contract or qualified journey;
+no new queue, session store or model-provider route is selected by this source.
+
 ### Native control and recovery qualification
 
 This is a proposed adapter checklist consumed only when that adapter is built,
@@ -524,6 +983,77 @@ The [Pi SDK](https://pi.dev/docs/latest/sdk) owns runtime replacement/disposal a
 finalized context; any future embedding must preserve its subscriptions and
 lifecycle. A process boundary is not an OS sandbox. No host probe, provider call,
 new cancellation test, remote deployment or writing-worker grant occurred here.
+
+### Codex 0.160 native continuation source refresh (2026-10-02)
+
+Consumer: existing native-host authority/recovery qualification. Owner:
+maintainer. [Release 0.160.0](https://github.com/openai/codex/releases/tag/rust-v0.160.0),
+published 2026-10-01, is pinned to
+[`a956835`](https://github.com/openai/codex/tree/a956835d020762cb2b570053af06f643a11c0ecc).
+These source observations do not qualify the installed host or Pi behavior.
+**Defer** additional integration; use them to sharpen the existing comparator.
+
+- Opt-in Guardian history/handoff retrieval is disabled by default. The
+  [history path](https://github.com/openai/codex/blob/a956835d020762cb2b570053af06f643a11c0ecc/codex-rs/core/src/mcp_tool_call/conversation_history.rs)
+  uses the parent's Apps connection and current app/tool policy. Original user
+  instructions and later revocations are a possible native control; missing/
+  clipped results preserve uncertainty. It is not a general history API for KRN.
+- [Post-turn compaction](https://github.com/openai/codex/blob/a956835d020762cb2b570053af06f643a11c0ecc/codex-rs/core/src/session/turn.rs#L743)
+  reports usage-limit failures to lifecycle extensions while preserving the
+  completed answer and stopping automatic continuation. An answer is still
+  separate from checked repository delivery; no extra compaction hook is earned.
+- [Reconnect](https://github.com/openai/codex/blob/a956835d020762cb2b570053af06f643a11c0ecc/codex-rs/tui/src/chatwidget/reconnect.rs)
+  reconciles exact client-message IDs against recovered history/receipts.
+  Uncertain submissions remain paused; only unsent input can resume. Receipt
+  recovery does not establish an executed effect or task close.
+
+No launch, upgrade, Guardian enablement, private-memory inspection or host
+experiment occurred in this refresh. Supersede on changed native source or actual
+authorized revocation/reconnect/quota qualification, preserving current owners.
+
+### Pi Durable runtime reuse (2026-10-01)
+
+Consumer: native-host/workspace/recovery maintainers comparing reuse before
+building a custom durable worker. Owner: maintainer. **Lab-test** the separate
+experimental [Pi Durable release](https://earendil.com/posts/pi-durable/),
+2026-10-01; source [`7fbbd5f`](https://github.com/earendil-works/pi/tree/7fbbd5f4a1d982bb02d63472dde0774fa639f99b),
+package `pi-durable` 1.0.0, MIT. This is an SDK for building applications, not
+automatic crash recovery added to the normal Pi CLI. No installation, provider
+call, local host probe, isolation or outcome trial was performed.
+
+Its [contract](https://github.com/earendil-works/pi/blob/7fbbd5f4a1d982bb02d63472dde0774fa639f99b/packages/durable/docs/spec.md)
+owns immutable transcript entries, application documents, checkpointed runtime
+tasks, idempotent submissions and committed-state views. Its task means a model
+request/tool call/state-machine step; KRN's Git-ref work item and authority stay
+with the current task/intent/effect owners. SQLite/JSONL persistence assumes one
+owning process. SQLite NORMAL WAL distinguishes process crash from host/power
+failure; reopening also needs compatible registry/task definitions and handles.
+Do not infer a multi-process lock or RAM/process resurrection from `resume()`.
+
+| Mechanism to compare | Source-level condition / later qualification |
+|---|---|
+| Persisted tool intent and safe replay | [ToolTask](https://github.com/earendil-works/pi/blob/7fbbd5f4a1d982bb02d63472dde0774fa639f99b/packages/durable/src/harness/tool.ts#L50) commits resolved arguments/replay before execution. Recovery reruns only when stored and current tools both declare safe replay; the replay path does not rerun `beforeTool`. Revalidate current KRN generation/candidate/scope at the effect owner, including after revoked intent. A saved approval memo cannot supply that readback. |
+| Submission deduplication | [Admission](https://github.com/earendil-works/pi/blob/7fbbd5f4a1d982bb02d63472dde0774fa639f99b/packages/durable/src/harness/submissions.ts#L148) returns the existing `(conversationId, requestId)` submission and checks type, not revised input content. Bind IDs to exact admitted operations/generations; this is not exactly-once external effects. |
+| Ownership-tree cancellation and restart | Wait cancellation cancels the waiter; ordinary abort skips background work; broader abort covers work existing at admission. `close()` stops invocations without terminal outcomes so reopening can resume them. Host shutdown needs a deadline and a separate durable cancellation choice. |
+| Local process stop | [NodeExecutionEnv](https://github.com/earendil-works/pi/blob/7fbbd5f4a1d982bb02d63472dde0774fa639f99b/packages/durable/src/env/node.ts#L437) keeps PIDs in memory and spawns detached POSIX groups. SIGKILL/OOM can leave a child outside a reopened environment's PID set. This is a source-derived qualification case, not a reproduced defect; bind whole-candidate containment/stop/effect readback. Its cwd and default inherited files/env are not OS isolation. |
+| Compaction, reset and current views | Background compaction joins at a turn boundary and keeps originals. `viewState`/`watch` expose committed state/deltas, potentially replacing planned reconnect caches. Framework sections can be live, but the [experimental coding prompt](https://github.com/earendil-works/pi/blob/7fbbd5f4a1d982bb02d63472dde0774fa639f99b/packages/coding-agent/src/experimental/durable/prompt.ts#L22) loads context/skills once per directory. Current requirement delivery and source changes still need a real trial. |
+| Model/auth and usage reuse | The [coding example](https://github.com/earendil-works/pi/blob/7fbbd5f4a1d982bb02d63472dde0774fa639f99b/packages/coding-agent/src/experimental/durable/README.md) reuses Pi runtime/auth/settings. The pin distinguishes legacy `openai-codex` from newer OpenAI API-key/ChatGPT OAuth routes. [OpenAI's documented eligible route](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt) does not prove this operator's entitlement, refresh or model journey; do not silently change the recorded profile or billing. Supplied usage counters omit costs they do not observe. |
+
+A qualified adapter could remove planned homemade model/tool checkpointing,
+submission retry deduplication, child ownership, compaction scheduling, execution
+view caches and duplicate credential plumbing. Retain Git-ref tasks/current
+intent, candidate/workspace isolation, independent acceptance, effect CAS/readback
+and curated knowledge. Durable documents can hold runtime handles, not a second
+task/authority ledger. A portable execution interface does not qualify a hosted
+sandbox, snapshot/export or sanitization profile.
+
+The experimental coding example lacks normal Pi extensions, prompt templates,
+images, login and session/fork-tree UI. Native terminal Pi remains the control.
+First compare one exact permitted model/auth route and interrupted read/model/
+unsafe-shell work, changed intent/registry, unavailable credentials, surviving
+children and candidate input/export at full cost. A countercase may reject reuse
+or narrow the adapter. Supersede this candidate when the SDK/profile changes or
+that actual qualification passes; no second lifecycle engine is authorized here.
 
 ### Memory and context rot as separate failure modes
 
@@ -700,19 +1230,11 @@ The [single operator plan](product-architecture.md) owns the proposed product se
 The [roadmap](self-hardening-roadmap.md#current-target-delivery-graph) and live queue
 retain execution/admission; this reference is not a second plan or status table.
 
-The plan's second pilot candidate is `bloom-barista-www`. The observation-only
-read on 2026-09-30 bound HEAD `a90342c0a5c7fd87ce1f072244e7fa602546745a`, main
-ahead of its recorded upstream and seven pre-existing changed paths, to root
-AGENTS/README/package metadata (CONTEXT absent). Its contract declares no durable
-tracker, local PHP/WordPress/CSS rules, project-specific checks, preserved WIP
-and separate deployment/credential authority. Before/after HEAD and path status
-matched; metadata digest was
-`62ab096e89157a9d166f278ca9bb2465e25fd3951f87720c63c12a0ad398efc8`.
-No target files, refs, tasks, tests, host, credentials or remote were changed or
-invoked. This proves the bounded metadata observation, not whole-checkout
-immutability, runtime correctness, loaded KRN or task authority. Revalidate
-identity/instructions and settle prior-work ownership before any authorized
-pilot. Never impose a Git-ref queue or emulate claims on its no-tracker profile.
+The earlier frontend pilot was withdrawn on 2026-10-01; its metadata-only
+observation remains in Git history, not a live implementation mandate. No target
+was repaired, run, installed or published. Current qualification stays on the
+task/memory/sandbox/recovery flow in KRN. Explicit no-tracker project handling
+remains a retained generic contract, not permission to manufacture a queue.
 
 Measure accepted project outcomes and first-pass acceptance, retained-requirement
 errors, operator corrections/false blocks, setup/resume burden, latency and all

@@ -1,10 +1,13 @@
 # Orchestration and compact context
 
 Status: `accepted`. Consumer: maintainer, `$delivery-loop`, and
-`$source-to-decision`. Owner: maintainer. Verified: 2026-09-30. Rework this page
+`$source-to-decision`. Owner: maintainer. Verified: 2026-10-02. Rework this page
 in place when a falsifier fires; do not append a parallel “v2” report.
-The 2026-09-30 refresh covers instruction efficacy, delivery, and evaluation;
+The 2026-10-01 refresh adds contract-driven cleanup, shared findings and sandbox
+selection limits to the instruction/delivery/evaluation synthesis;
 earlier dated host observations remain historical, not newly revalidated.
+The 2026-10-02 refresh deepens Past.dev's public contracts and benchmark protocol
+and adds MemCodex's source-selection hypothesis; prior host evidence stays dated.
 
 ## Decision question
 
@@ -59,7 +62,7 @@ or an oversized skill catalog?
 | Planning and reliability research (2026) | long-horizon failure shifts from raw errors to subplanning drift and catastrophic forgetting as horizons grow (2604.11978), planner-defined passing criteria per subtask improve execution (VERIMAP, EACL 2026), decomposition quality is the routing bottleneck (2606.18051), and most production uplift comes from scaffolding and routing rather than the verifier, whose catch rate is low but concentrated on otherwise-failing tasks (2607.17044) | keep the compiled capsule as the long-horizon constraint carrier and the independent evaluator; enforce a per-slice passing criterion (adopted; see the per-slice row) and add no planning model or DAG engine | benchmark and production results are not KRN proof; KRN is a single-writer lifecycle without DAG scheduling |
 | Multi-agent coordination economics (2026) | Destefanis & Aste instrumented 2–8 agent coding runs: messaging grows ~quadratically before broadcast/shared-file offloading (6.1→71.3 msgs), shared files cut output tokens ~42% at 8 agents, a named coordinator gives no reliable lift, agents sought hidden grading material in 4/5 sealed runs, and same-config runs vary widely (arXiv:2608.16801); CooperBench measures a ~30% success drop when two agents must coordinate across 600 real-repo tasks, with jammed messaging, commitment deviation, and wrong expectations as modes (ICLR 2026 workshop MALGAI); cohesion-aware partitioning beats sequential and file-parallel (arXiv:2606.00953); cross-agent textual PR conflicts run 41.7% vs intra-agent 19.8% (arXiv:2607.04697; AgenticFlict, AIware 2026, 27.67% in a larger simulation) | keep the single-writer lifecycle and the one-integrator rule; LT-7 must report integrator repair (merge conflicts, stale-anchor/reanchor) and duplicate work beside wall time, and must test the merged result because independently green branches can combine red; do not adopt partitioning or coordination topologies now | one harness per study, micro/benchmark tasks, observational PR data, and workshop-level peer review; conflict rates are context, not a KRN measurement |
 | Agent-PR outcomes, review load, and silent failure (2026) | MSR 2026 PR-outcome studies: reviewer abandonment is the largest rejection pattern (228/600 annotated), each failed CI check cuts merge odds ~15%, and not-merged PRs are larger (arXiv:2601.15195); duplicate work ("resolved by another PR" 22.1%) and absent review (4.6%) lead the process causes (arXiv:2602.00164); task type dominates acceptance with a 29pp spread and no agent wins all types (arXiv:2602.08915); an agent-heavy repo's own stats saw merge rate fall after a +59% PR influx, ~3.75 h/day of review at 15 min/PR (Beads, practitioner); repeat reviewers of agent PRs approve more and faster over time (30.1%→36.8% approve, latency +3.5×; arXiv:2606.22721) while 61.4% of agent PRs get no recorded review (arXiv:2605.02273); self-reported success diverges from environment truth in 45–48% of single-control failures with no judge above AUROC 0.65 (arXiv:2606.09863, arXiv:2603.25764) and test-only verifiers are hackable (shortcut retrieval in 4.32% of trajectories; arXiv:2606.26300) | the external constraint is review and verification, not generation; LT-7's falsifier includes review/repair load and duplicate tickets, and a lane that only accelerates generation does not reopen the tracker defer; observed evidence stays external to self-reports | mostly observational samples and one repo's self-computed stats; vendor-adjacent telemetry (Faros/Duma) is cited secondhand and unread; figures do not transfer as KRN expectations |
-| Sandbox isolation, workspace trust handoffs, and provider landscape (2026) | Sandcastle (v0.12.0, 2026-06-29) makes git worktree first-class and independent of the sandbox, with bind-mount vs isolated providers, head/merge-to-head/branch strategies, and ADR 0018 requiring a distinct branch per fork; Docker Sandboxes put one microVM per agent with a Docker Engine inside and make workspace mode the trust decision (default direct mount is read-write with no workspace isolation; `--clone` is safer) while MCP stdio servers still run on the host; Vercel (Firecracker), E2B, Daytona (container by default), and Fly Sprites differ in lifecycle timers and reserved-vs-active billing; CAID (arXiv:2603.21489v2) contrasts isolated worktrees with soft isolation in async multi-agent SWE; Pillar/CSA find command sandboxes defeated at downstream trust handoffs (agent-produced hooks/config execute later with higher privilege), and the 2026 CVE set includes bwrap CVE-2026-41163 (setuid + ptrace in setup; fixed 0.11.2, setuid builds dropped in 0.12.0), Claude Code CVE-2026-25725/39861/55607 (SessionStart hook persistence, symlink write, worktree/fsmonitor abuse → host execution), and fail-open isolation downgrades (CrewAI `SandboxPython` fallback, FrontMCP schema leak) | treat sandbox output as host-executed at the next handoff; require a non-setuid bwrap assertion beside the 0.12.0 floor; name the workspace mode in any runner and never fail open to weaker isolation; keep cloud sandbox providers deferred (local bwrap lane) until LT-7 cannot reach the required concurrency locally | vendor docs and security-vendor research (one CSA note self-labels unofficial AI-assisted), CVE summaries, and no independent escape testing of the providers; Sandcastle ADRs are the author's design record, not measured outcomes |
+| Sandbox isolation, workspace trust handoffs, and provider landscape (historical 2026-09-16) | Historical source synthesis, not a current host/setup qualification: Sandcastle (v0.12.0, 2026-06-29) makes git worktree first-class and independent of the sandbox, with bind-mount vs isolated providers, head/merge-to-head/branch strategies, and ADR 0018 requiring a distinct branch per fork; Docker Sandboxes put one microVM per agent with a Docker Engine inside and make workspace mode the trust decision (default direct mount is read-write with no workspace isolation; `--clone` is safer) while MCP stdio servers still run on the host; Vercel (Firecracker), E2B, Daytona (container by default), and Fly Sprites differ in lifecycle timers and reserved-vs-active billing; CAID (arXiv:2603.21489v2) contrasts isolated worktrees with soft isolation in async multi-agent SWE; Pillar/CSA find command sandboxes defeated at downstream trust handoffs (agent-produced hooks/config execute later with higher privilege), and the 2026 CVE set includes bwrap CVE-2026-41163 (setuid + ptrace in setup; fixed 0.11.2, setuid builds dropped in 0.12.0), Claude Code CVE-2026-25725/39861/55607 (SessionStart hook persistence, symlink write, worktree/fsmonitor abuse → host execution), and fail-open isolation downgrades (CrewAI `SandboxPython` fallback, FrontMCP schema leak) | treat sandbox output as host-executed at the next handoff; require a non-setuid bwrap assertion beside the 0.12.0 floor; name the workspace mode in any runner and never fail open to weaker isolation; historical LT-7-only cloud deferral is superseded by the [current profile comparison](workbench-contracts.md#sandbox-comparison-and-first-profile-decision-2026-10-01); today's local lane also needs actual boundary qualification | vendor docs and security-vendor research (one CSA note self-labels unofficial AI-assisted), CVE summaries, and no independent escape testing of the providers; Sandcastle ADRs are the author's design record, not measured outcomes |
 | Model routing and heterogeneous assignment (2026) | AgentRouter (ICML 2026) reports trajectory-aware step routing cutting cost ~72% at <3% degradation while single-turn routers corrupt intermediate context; harness-native routing treats model choice as a per-step meta-decision (arXiv:2607.11399); Agent-as-a-Router closes the information deficit with execution-grounded experience (arXiv:2606.22902); CASTER and Uno-Orchestra route per sub-task (arXiv:2601.19793, arXiv:2605.05007); Gavel reads a routing signal from a frozen LLM's forward passes and beats body rerank by up to 13.4/21.9 points but needs per-backbone maps (arXiv:2609.15982); within-family selection reliably beats a standalone model while arbitrary heterogeneous pools can fall below it (arXiv:2609.17306) and distilled or same-release models are behaviorally nearest (arXiv:2606.16988); retry overhead inflates true workflow cost up to 4.25× single-call price and a failed chain must not be forwarded to the next model (up to −34.8 points; arXiv:2608.13571); difficulty-aware collaboration at 40% of always-hierarchical cost reaches 77.7% vs 73.6% pass@1 (arXiv:2609.13890); host surfaces now pin models per agent or per turn (Codex custom-agent `model`/`model_reasoning_effort`, Claude Code subagent/skill `model:` frontmatter, Azure per-request routing, OpenRouter advisor/subagent tools) | routing is a host capability: KRN lanes pin worker and reviewer models in the agent definition instead of building a router, keep reviewer independence behavioral rather than name-based, report retry-inflated billed cost per successful ticket, and scale parallelism with difficulty | benchmark tasks are not coding-agent outcomes; vendor routing surfaces are self-reported and moving targets; Gavel needs infrastructure KRN does not have |
 | Decision-point memory verification and shared-memory concurrency (2026) | With provenance intact, models inspect a settled constraint's superseded source in ~1/5 episodes and take stale-consistent decisions ~75% of the time, while a content-free freshness cue does nothing and a forced critical-path credit recovers +61–81 points (arXiv:2608.25553); directive form steers which record gets verified and the effect flips across families (arXiv:2609.03450); fresh state does not validate an obsolete plan, while citation-scoped validation completes all live workflows (PlanFence, arXiv:2609.03340); unprompted proactive recall falls below 40% with an always-remind false-alarm bias (TriggerBench, arXiv:2606.23459), while typed intention stores reach 82.9% Set-F1 on PM-Bench and lift a small model from ≤6.6% (arXiv:2609.01272); broad retrieval is toxic for sequential decisions (arXiv:2608.15008); shared-memory write-path anomalies are realizable (stale generation, phantom tool, lost update; arXiv:2606.17182) and a near-duplicate gate can reject contradictory writes before the contradiction detector sees them (arXiv:2606.24535); opposite direction: a mismatched procedural memory was non-disruptive while current evidence was explicit (arXiv:2609.09774); CONTRAMEM evolves compact procedural cards from contrasting trajectories and transfers across families (arXiv:2608.22533); MeClear suppresses negative-utility memories per query (arXiv:2609.09115); ChurnBench finds refresh scheduling, not cache age, governs staleness (arXiv:2609.11515); LoCoMo-Plus (ACL 2026) shows cue–trigger semantic disconnect collapses all systems and distorts string-match metrics | keep memory evaluation-time, trigger-bound, executable, and fail-closed; add no freshness-warning surface or scalar badge; make recall re-validate the records that affect the pending action before a resume; treat family-dependent directive wording as noise, not policy; a typed intention store is interesting only if `memory recall` misses prompts at measured cost | unrefereed preprints except LoCoMo-Plus, mostly synthetic or conversational benchmarks, single lineages, and family-dependent partial replications |
 | Coordination incidents and skill-library drift (2026) | Unbounded skill/lesson accumulation without outcome-driven lifecycle management degrades retrieval below no-skill; LLM-authored skills +0.0pp vs human-curated +16.2pp, governance with retirement/gates moves +0.002→+0.328 (Library Drift, arXiv:2605.19576); 63 production budget-overrun incidents across 21 frameworks cluster into delegation-fanout double spend, concurrent aliasing, orphan continuation, and checkpoint amnesia, with a 4-line counter sufficient on single-agent runs but non-bypassability failing under delegation (arXiv:2606.04056); incident reports include an operator-credential agent deleting production and a database/backup deletion in seconds (Docker blog 2026-07-20; OECD.AI entry 2026-04-28) | corroborates the recurrence gate, retirement-with-proof, and per-ticket billing; LT-7 records billed tokens per successful ticket and KRN adds no fleet monitor, budget daemon, or incident store | one single-author catalogue (unverified), vendor incident write-ups, and no independent replication of the skill-drift numbers |
@@ -308,6 +311,359 @@ that next decision. Falsifier: wrong/stale/range-mismatched guidance governs an
 action or adds cost/corrections versus native reading. Delimiters and cleaned
 names do not prove truth or authority. Reject always-on analysis-store/hook
 copying; no Pi/Codex applicability or benefit was observed.
+
+## Contract-driven cleanup: supplied practitioner source (2026-10-01)
+
+Consumer: maintainer deciding how core task/memory/sandbox repairs improve
+quality. Owner: existing diagnosis/design/implementation/proof owners. Source:
+operator-supplied full text, *How to De-Slop an AI-Generated Codebase*, attributed
+to Alice Moore, 2026-09-16; publication identity and its reported trials were not
+independently verified here. Retain original mechanisms, not copied passages.
+
+**Adopt** naming the behavioral guarantee before cleanup: follow input through
+validation, retained type, module decisions and actual effect. A removed lint
+warning, typecheck or green tests can leave unvalidated dispatch or authorization
+intact. Classify a finding as local repair, ownership/design question or correct
+code to retain before changing it; warning counts and suppression totals are not
+acceptance or defect counts.
+
+**Lab-test** a lint/guard on one recurring pattern with a bounded representative
+sample and false-positive controls before blocking new work. Separate new
+violations from old baseline; an unrelated small edit must not inherit a whole
+file's debt by accident. Scope or retire a rule that persistently rejects correct
+code. Its error should name the required contract or existing owning helper.
+No new linter, threshold, baseline artifact or repository-wide cleanup is adopted.
+
+Use the existing deep-module deletion test: moving validation into one owner
+should remove callers' redundant checks/assertions while retaining meaningful
+differences. Owned modules must run together when the claim crosses their
+agreement; external mocks have a named purpose. A new malformed-input or revoked
+permission contract earns its focused falsifier, first observed failing; a
+behavior-preserving simplification keeps its unchanged keeper green. A model's
+same-value type assertion or test-name coverage cannot establish runtime safety.
+
+Local example for the current consumer: a stale worker must not integrate after
+claim/intent replacement; the needed observer crosses actual admission/effect
+owners, not only a presentation field. This example is a required guarantee,
+not a newly reproduced defect or shipped test. Preserve current `0/1/N` and
+fixed-point rules; the frontend examples in the source do not resume frontend
+work. The reported warning counts/trials are practitioner anecdotes, not a KRN
+result. Supersede when a real core flow/rule countercase changes the disposition;
+keep the source attribution and limits together and update its index entry.
+
+## Shared findings and idea admission (2026-10-01)
+
+Consumer: operator/maintainer deciding how much orchestration the core needs.
+Owner: existing integrator and source-to-decision owner. Sources: operator's
+two-team/lead diagram and [Limen README](https://github.com/overment/limen)
+with [security](https://github.com/overment/limen/blob/main/SECURITY.md), observed
+on moving `main`, verified 2026-10-01; immutable revision was not resolved.
+
+Limen documents one coordinator, Pi workers/reviewers in worktrees, terminal job
+state separate from ticket completion, and explicit product/user merge authority.
+Its security page explicitly says process/worktree separation is not a hostile
+code sandbox; workers act with the calling user's privileges. Linux escaped
+descendants are not individually signaled when identity cannot be verified.
+**Adopt** the terminal/acceptance distinction and single integration owner as
+design criteria; **defer** another job/task/archive engine and auto-approve
+defaults. No install, native control, hooks or security behavior was exercised.
+Its documented Node 24+ requirement is also not the repository's pinned Node 22.
+
+The diagram's same-task competing candidates are an **opt-in lab-test** for a
+hard unresolved approach, not routine fanout. One parent task remains with the
+integrator; candidate attempts get distinct identities, workspaces and qualified
+isolation, not multiple owners of the same claim. Shared findings are ephemeral
+in-goal evidence, with source/candidate links and cleanup at comparison end; they
+cannot approve changed intent or become a global memory store by repetition.
+Early exchange can improve cooperative search but removes an independent-arm
+interpretation. The final selected/synthesized program is a new fixed point:
+rerun its deciding check and required risk/review before merge/close. Two green
+branches and a lead vote are not that proof. Writer admission remains separately
+gated; current policy/host permissions are not expanded by the picture.
+
+Falsifier: the second approach adds cost/conflict without a distinct valid result,
+findings propagate unsupported authority, or synthesis breaks either accepted
+requirement. Count every team, parent read/synthesis, checks, retries and cleanup;
+native single-integrator work is the simpler control. Qualify only one expensive
+question with fixed acceptance and a total budget before considering teams.
+
+Peter's linked [OpenClaw PR #161656](https://github.com/openclaw/openclaw/pull/161656),
+merged 2026-09-30 and verified 2026-10-01, groups consecutive same-source receipts
+into expandable activity rows while retaining originals, timestamps, search and
+reply navigation. **Defer** implementation to the eventual panel consumer;
+retain recoverable original evidence as its criterion. This is presentation
+compression, not model-context compression, new transport or measured KRN
+efficiency. Its reported checks were not run here. Falsifier: disclosure hides
+a required finding or makes its source unrecoverable.
+
+New links enter through a named open decision: mechanism, current applicability,
+what they replace/delete, strongest counterexample, and one deciding observation.
+Refresh primary sources only for that question; promote residue into the owning
+topic/index only with a future consumer and supersession rule. Interesting
+unselected material stays conversation input, not a daily document/feed or
+mandatory dependency. Stop broad research when the first slice's contract is
+settled; discover the next uncertainty through executed work. Supersede this
+disposition on a real qualified collaboration/cost result or changed source,
+not novelty or a volume of links.
+
+## Practitioner patterns selected from the operator's RSS
+
+Consumer: operator/maintainer refining the existing product, memory and proof
+decisions. Owner: maintainer; existing outcome/task/knowledge owners retain
+their procedures. The operator's `rss-news` supplied the posts and linked
+projects below, read 2026-10-01, including `karpathy-x`, `chip-huyen-x`,
+`bcherny-x`, `addyosmani-x` and `theo-x`. The posts span 2025–2026; ingestion
+date is not publication freshness. Cached X text is practitioner testimony,
+not independently verified behavior. Quoted/reposted claims are not independent
+corroboration. These are design dispositions, not a census of the industry.
+
+| Pattern and concrete feed source | KRN disposition / countercase |
+|---|---|
+| Rich intent, small action: Karpathy's [voice/ramble](https://x.com/karpathy/status/2079610838143623371), 2026-07-21 | **Lab-test** extracting desired result, constraints, unresolved questions and next action through the existing outcome owner. A fluent summary can erase a contradiction or invent authority. Keep the actual request reference; no voice pipeline or transcript store is earned. |
+| Inspectable knowledge, selective application: Karpathy's [compiled wiki](https://x.com/karpathy/status/2039805659525644595), 2026-04-02, versus [distracting recall](https://x.com/karpathy/status/2036836816654147718), 2026-03-25 | **Adopt** user-correctable, sourced knowledge at current topic owners. **Defer** another wiki/store or auto-imported personal preferences. A one-off question must not become a permanent project rule; acquisition, applicability and maintenance cost remain separate. |
+| Flexible procedure, executable effects: Karpathy's [skills instead of scripts](https://x.com/karpathy/status/2049903821095354523), 2026-04-30 | **Lab-test** prose for adaptive discovery where a real script consumer could retire. Preserve code-owned validation, permission, CAS, effect and rollback. Fewer source lines can instead create more interpretation and repair work; installation prose does not replace the current install owner. |
+| Counterargument selects a test: Karpathy's [opposite argument](https://x.com/karpathy/status/2037921699824607591), 2026-03-28 | **Adopt** a concrete counterexample plus cheapest deciding observation for a disputed choice. Both persuasive narratives can be wrong; another agent vote is not proof. No standing reviewer fleet is earned. |
+| Feedback closes through reproduction: Boris's [Tag workflow](https://x.com/bcherny/status/2103538666597691552), 2026-09-25; Addy's [prototypes](https://x.com/addyosmani/status/2102805369429066036), 2026-09-23 | **Adopt** report → real diagnosis → admitted task → candidate → independent proof/readback. More PRs/prototypes do not establish delivered benefit; monitoring and proactive effects require their own standing authority. Reuse current owners, not another feedback queue. |
+| Marginal gain and exit cost: Chip's [product/tool questions](https://x.com/chipro/status/1983975901454111026), 2025-10-30 | **Adopt** a named daily frustration, real consumer and migration/retirement route for each new dependency. **Lab-test** the full accepted journey; a local demo or subjective speedup can hide operator/setup/recovery cost. |
+| Evaluate the execution system: Theo's [Codex versus mini-swe claim](https://x.com/theo/status/2105063015712465094), 2026-09-29 | **Retain** matched model/task/rights/host and complete outcome cost. The post's numerical claims lack checked artifacts/protocol here; model brand and another harness's benchmark cannot certify KRN. |
+| Bounded recovery and adaptation: feed-linked [Relay](https://relayevals.com/) and [Raven](https://github.com/EverMind-AI/Raven), checked 2026-10-01 | **Lab-test** one failure-guided retry/change against fresh candidate-bound checks and a protected baseline. Relay's closed-source descriptions and Raven's moving-main pre-alpha showcase are vendor claims. **Defer** their engines, stores and adaptive fleet; no-progress, evaluator tampering or setup-as-code-failure must not yield success. |
+
+The cheapest falsifier stays with the affected owner: lost or expanded intent,
+stale/foreign rule application, narrative-only acceptance, repeated ineffective
+retry, or a new dependency that cannot retire without losing work. Existing
+H3/H4/H7/H9/H10 own those observations. No new experiment, task status, runtime
+surface or production cutover is created here. Supersede a disposition when a real
+consumer/countercase changes it; merge into this topic and its index rather
+than retaining a daily feed digest.
+
+### Slopalytics: model comparisons and bounded usage evidence
+
+Consumer: operator/maintainer choosing candidates for the existing native
+model/effort comparison. Owner: maintainer. Verified 2026-10-01 through Theo's
+[launch demo](https://x.com/theo/status/2105622082700923365), the live
+[site](https://slopalytics.com/) and its public data; no benchmark was run.
+
+The public bundle `index-Dab4RIwe.js` exposes benchmark task cost/time against
+the Intelligence Index, token/cost totals, model-family and reasoning filters,
+linear/log views and chart export. Its embedded AA snapshot was fetched at
+2026-10-01T08:10:51.906Z. Separately, the
+[usage snapshot](https://slopalytics.com/data/t3-usage.json), schema 2, was
+fetched at 2026-10-01T11:10:15.116987+00:00 and covers September's complete UTC
+days. It provides daily harness/model aggregates and reporting coverage, not
+market share or checked task acceptance. The live disclosures explain that
+automated turns, defaults and subscriptions affect use; missing reports are
+not zero, tokens can be partial/main-agent-only, and estimated spend uses saved
+September API rates while excluding unknown/mixed models and invalid cache
+breakdowns. This is not the subscription bill or complete delegated-work cost.
+[T3's pinned analytics contract](https://github.com/pingdotgg/t3code/blob/6ea01f8d24419019588f2be589681929d8e26b0c/docs/internals/product-analytics.md)
+separately explains denominator, subagent and mixed-model limits.
+
+**Lab-test** using the external view to select one small model/effort shortlist
+for the existing matched native outcome comparison. Judge accepted delivery,
+all attempts/workers and operator corrections at the current proof owner. A
+high global score, popular model or completed telemetry turn does not establish
+KRN correctness, memory benefit or a harness treatment effect. AA's separate
+[Coding Agent Index v1.5](https://artificialanalysis.ai/methodology/coding-agents-benchmarking)
+is a more relevant external agent comparison: it publishes settings and three
+benchmark components, but still does not measure KRN's actual work. Reject extra
+routing/storage if native selection reaches the same accepted result at lower
+complete cost. No automatic router, data mirror or task admission is created.
+Supersede this residue when the bundle, snapshot, methodology or matched local
+result changes; retain one owner rather than a daily dashboard digest.
+
+### Fresh RSS mechanisms: editable context and qualified handoff
+
+Consumer: operator/maintainer refining the existing context, memory and recovery
+experiments. Owner: maintainer; implementation remains with current owners.
+Verified 2026-10-01 against primary papers/code/results after discovery through
+the operator's read-only RSS MCP. Feed publication and source/result dates differ.
+These are research dispositions, not runtime adoption or new task admission.
+
+| Primary source / fixed point | Mechanism, proposed disposition and deciding countercase |
+|---|---|
+| [Context Language Models v1](https://arxiv.org/html/2609.37725v1), submitted 2026-09-29 | Mirror live context into an editable file and synchronize edits to the next model call; existing models can use this zero-shot. **Lab-test** one bounded working-view intervention at the existing context owner against native continuation. Keep actual request/task authority outside model-editable notes. Lost obligations or higher complete cost reject it. Reported prefix-reuse FLOPs are not measured KRN latency or API spend; suffix-cache serving requires separate support. |
+| Silta [`22918d9`](https://github.com/dmitry-markin/silta/tree/22918d945c5901373d061a26b6e36981ed93a7f4), 2026-10-01; [rotation](https://github.com/dmitry-markin/silta/blob/22918d945c5901373d061a26b6e36981ed93a7f4/crates/silta-session/src/rotation.rs), [readiness](https://github.com/dmitry-markin/silta/blob/22918d945c5901373d061a26b6e36981ed93a7f4/crates/silta-session/src/state.rs#L182) | **Lab-test** handoff then compaction at an observed turn boundary. Its intentional fallback accepts any newly modified memory file when no handoff note existed; whole-second mtime is a weak readiness signal for KRN. Borrow sequencing, not this predicate. A foreign note/turn must not admit compaction without the current qualified handoff. Code was read, not executed; Claude-specific supervision is not Pi/Codex loading proof. |
+| PipesHub FRAMES [board at `53f8a79`](https://github.com/pipeshub-ai/pipeshub-ai/blob/53f8a795fa30b644b8489b2fbe2e65201d9e8abe/integration-tests/benchmarks/datasets/frames/results/2026-10-full/board.md), published 2026-10-01 | The reported agent package achieves 84.0% correct-and-grounded versus 73.2% for the strongest pipeline, at roughly three times per-question cost. **Lab-test** adaptive second reads only after a real native evidence miss. Native lexical/read resolution at lower complete cost rejects extra machinery. Different prompts/tools compare packages rather than isolate the loop; no independent KRN replication or automatic graph/vector store adoption. |
+| Past.dev BEAM [summary at `1faac1e`](https://github.com/pastdotdev/benchmarks/blob/1faac1e70fa50d92d966904358be98bb1beca0c8/beam/results/10m/summary.json), run 2026-09-29, discovered 2026-10-01 | **Defer** service/ranking adoption. The 85.03% graded mean contains 28.17% multi-session reasoning on 20 questions; answer and judge use the same backbone, with cost/latency absent from this summary. The [2026-10-02 qualification](#pastdev-source-contract-and-benchmark-qualification) adds annotated answer guidance, strict full-score counts, scope/readiness/provenance contracts and unobserved update/revocation controls. The public benchmark head is unchanged; no new run or KRN benefit is claimed. |
+| Autobox [README at `82a0001`](https://github.com/freakynit/autobox/blob/82a0001077ee3d839137ade3f4e918fd876052d1/README.md), 2026-10-01 | **Defer** the Apple-Silicon-only package; retain create-copy → status → explicit-sync as an existing workspace qualification question. Its author describes weaker, best-effort shell isolation; unsupported-platform fallback is not a KRN boundary. A host writer, source-linked Git metadata, partial sync or escaping child defeats the candidate. Startup/cloning figures remain author reports, not outcome latency. |
+
+Editable working context, retrieved facts, durable shared knowledge and approval
+authority remain different roles. This pass sharpens existing comparisons, not
+the selected C/Git-ref architecture. Reopen on a source revision, a failed real
+handoff/authority case or a paired native/intervention result; replace this
+residue in place rather than retaining a daily feed log.
+
+### Past.dev source contract and benchmark qualification
+
+Consumer: operator/maintainer deciding whether outsourced memory can improve the
+existing native continuation trial. Owner: maintainer. Verified 2026-10-02;
+developer pages declare last update 2026-10-01. Keep service adoption **defer**;
+**lab-test** an interface mechanism only after a real native acquisition or
+applicability miss. No authenticated call, ingestion, installation or live
+consistency experiment was performed.
+
+The current [OpenAPI](https://past.dev/openapi.json) declares 1.0.0, fetched
+SHA256 `2f2f7e4585403ddce570916237e08fdab190aa4610efe1042465fe48998ae506`;
+docs call the API unversioned. The public `pastdotdev` 0.0.1 client is a thin
+fetch wrapper, not the core extraction/reconciliation implementation. Its older
+README/answer helper differs from current schemas, so setup snippets are not
+protocol authority. [Self-hosting](https://past.dev/docs/memory-api/self-hosting/llms.txt)
+requires an Enterprise agreement; core deployment/source reuse was not qualified.
+
+| Current primary contract | Transferable distinction and KRN countercase |
+|---|---|
+| [Concepts and access](https://past.dev/docs/memory-api/concepts/llms.txt) | A project key selects the isolation domain; ingest identity is author, recall identity is reader, audience controls visibility and metadata never filters recall. Unknown readers get project-visible data. Resending a scoped source without audience resets it to project visibility. Audience updates can lag; no runtime revocation test was performed. If used later, reader/project selection belongs outside untrusted model input; foreign-project evidence must not enter the current decision. |
+| [Acceptance and readiness](https://past.dev/docs/memory-api/how-it-works/llms.txt) | Accepted ingestion can still be processing; poll that ingestion to completed, not whole-project settled. Recall can expose raw sources before derived memory is ready. Identical retry does not revive a failed send. Acknowledged input is not usable derived memory or checked completion. Count latency, retries and false waits in the actual trial. |
+| [Correction and replay](https://past.dev/docs/memory-api/how-it-works/llms.txt) | Same source ID with changed data replaces it; a new ID records another dated event. Explicit idempotency key/body/time can recover an original receipt; changed body returns conflict, without expected-revision CAS. Query time constrains occurrence time; no independent known-at cutoff is exposed. Test late-arriving old information and corrections before claiming historical reconstruction. |
+| [Bounded recall](https://past.dev/docs/memory-api/api-reference/llms.txt) and OpenAPI | Recall returns asOf, estimated evidence tokens and selected results. Whole documents can be omitted for budget; ranks are assigned after selection, without omitted count/cursor/completeness flag. Source excerpts are document-local evidence, not complete artifact provenance, and ordinary sources lack hash/offset/revision. An oversized required complement must remain an explicit uncertainty at the KRN reader. The character-based budget excludes JSON/metadata and is not provider usage. |
+| [Trace/debugging](https://past.dev/docs/memory-api/debugging/llms.txt) | Detailed reads distinguish source occurrence/arrival/searchability time, current revision, replacement, hidden lineage and clipped content. Prefer these explicit states to inference from fluent recall. Their presence is not proof of exact history, full source access, truth or operator authority. |
+| [End-user MCP](https://past.dev/docs/mcp/serving-your-own-users/llms.txt) | Documentation MCP, account administration MCP and project end-user memory MCP are separate surfaces. The last documents recall, answer, optional private remember and identity readback. Its remember tool exposes no stable-ID/time/correction/delete parameters. Public manifests/readmes mix catalog roles/counts; no authenticated endpoint tools/list was observed. A future pilot would select plain recall and the actual scope, not expose the administrative catalog or outsource the native answer by default. |
+
+Deletion removes active sources/sole-support memories while physical cleanup is
+asynchronous; backup purge and exact residency remain unqualified. Current
+[pricing](https://past.dev/pricing) meters ingestion, optional recall and retention;
+the saved benchmark does not measure complete workflow ownership cost. Access
+links embedded in MCP URLs are credentials, never durable source citations.
+
+The benchmark [public head remains `1faac1e`](https://github.com/pastdotdev/benchmarks/tree/1faac1e70fa50d92d966904358be98bb1beca0c8),
+committed 2026-09-29. [Answer prompts](https://github.com/pastdotdev/benchmarks/blob/1faac1e70fa50d92d966904358be98bb1beca0c8/beam/exabase_prompts.py)
+consume dataset rubric, preference/instruction, temporal/order and abstention
+guidance; ingestion does not receive those annotations. This is disclosed guided
+answering, not a demonstrated unaided trigger/intent-preservation result. A
+read-only calculation over [saved 10M records](https://github.com/pastdotdev/benchmarks/blob/1faac1e70fa50d92d966904358be98bb1beca0c8/beam/results/10m/results.jsonl)
+gives 85.029% mean and 148/200 full-score questions (74%), not independent
+regrading or executable task passes. The saved timestamp echoes/returned source
+dates supplied no future-time counterexample. The published flow ingests complete
+history, settles and asks; late ingestion, actual revocation/deletion and a
+matched Markdown/native coding arm are not established by it. Retain the earlier
+multi-session, same-judge and full-cost limits rather than replacing them.
+
+A new primary [MemCodex v1](https://arxiv.org/html/2609.39765v1), submitted
+2026-09-30, sharpens **source selection**: derived records route to original
+turns instead of being the final answer evidence. Its QA ablation reports 60.8%
+for routing versus 55.4% for derived content and 59.6% for both. Those are
+judge-scored memory questions, not executed repairs; answer-side savings exclude
+writing and architecture search, and no implementation was qualified. **Lab-test**
+the locator role through existing reviewed pointers; **defer** its hierarchy,
+self-programming and latent-memory engine. It is unrelated to the OpenAI Codex
+product despite the name.
+
+The deciding local case is an authentic requirement replacement followed by a
+late obsolete note about the same task. At matched access, with no gold-derived
+answer hints, the resumed agent must preserve the unchanged obligation, reject
+the revoked action and satisfy executed acceptance. Compare native/current
+reading with one source-selection candidate, counting all reads, writes, probes,
+retries and operator correction. A correct retrospective answer plus an
+unauthorized transition fails. No queue/claim or experiment setup was created.
+Supersede this qualification when the actual API/catalog, source revision or
+matched native outcome changes it; preserve the existing C/Git-ref owners.
+
+## Task-conditioned memory: deep research (2026-10-01)
+
+Consumer: operator/maintainer selecting the existing memory/continuation trial,
+especially the next consequential action after interruption or changed intent.
+Owner: maintainer; task, knowledge, proof and native-session owners retain their
+authority. Three read-only investigators covered papers, implementation paths
+and journey countercases; operator RSS supplied discovery. The results below
+are source-backed hypotheses, not observed KRN quality gains or task admission.
+Reuse ACE, VibeMemBench, CLM, ShareMem, MemoryArena and the existing retrieval
+ladder at their earlier dispositions. No raw transcript corpus is collected.
+
+### Mechanisms worth a bounded comparison
+
+| Source / fixed point | Small transferable mechanism | Evidence limit and deciding countercase |
+|---|---|---|
+| [JitMem v1](https://arxiv.org/html/2609.27334v1), 2026-09-23 | **Lab-test** an ephemeral briefing when the task is known, using retained sources rather than permanently deciding every lesson at write time. The current outcome owner supplies requirements; the briefing supplies advice and pointers. | ALFWorld/WebShop/tau2 outcomes support task conditioning in tested solvers, not coding repairs. Reported savings exclude curator/judge/training. Its admission judge is the executor. Reject if stale values govern the action, an obligation disappears, or all-service cost rises without a better checked outcome. |
+| [Grounding Agent Memory v1](https://arxiv.org/html/2609.11060v1), 2026-09-10 | **Lab-test** one read-only probe of an uncertain candidate lesson before promotion: confirm its premises in current code/environment and a nearby countercase. A successful source task does not validate every extracted rule. | Five paired CLBench streams report 73±5% versus 70±16% for trajectory-only memory; stateless comparison is different. Curator cost is excluded from the task-agent cost claim. A schema/source replacement unseen by the probe falsifies applicability. Defer a permanent background curator. |
+| [AdaRepair-Mem v1](https://arxiv.org/html/2609.20130v1), 2026-09-17 | **Lab-test** retrieval by the immediate uncertainty, such as reproduction, localization or refining a failed patch. Preserve the failed-to-fixed correction and its scope. | Historical main baselines, an outcome-selected 24-case ablation and small transfer samples limit causal uplift; linked anonymous code was not inspectable. A localization clue delivered as a patch prescription, or foreign project values transferred, fails the mechanism. No compulsory stage pipeline or automatic skill factory. |
+| [Handoff Debt v2](https://arxiv.org/html/2606.02875v2), 2026-08-30; [code `5179b1d`](https://github.com/anjilab/agent-handoff-debt/tree/5179b1d759be466600c453da8b9078341967ec17) | **Lab-test** recipient-specific continuation evidence within the current capsule: changed artifact, last deciding command/result, unresolved interpretation, next gate and current requirement source. Separate finishing unfinished work from preserving already-correct work. | Successor savings exclude note creation; some compact-note arms lose completion. Code derives observational labels from logs and clips evidence to the last 80 events. Neither deterministic extraction nor a predecessor's completion phrase establishes correctness. A stale note must lose to changed live requirements. |
+| [MERIT v2](https://arxiv.org/html/2608.05906v2), 2026-09-10 | **Lab-test** a failed-attempt witness with project/input/tool scope and a reopening condition. Record what failed here, without promoting it into a permanent prohibition. | Negative-memory ablations are small and dataset-dependent; full memory roughly doubles reported tokens and excludes indexing/maintenance. The assumed denotation oracle does not transfer to project judgment. Changing the relevant client/input must permit reconsideration; do not add a negative-memory engine. |
+| [Hindsight `0be6c02`, source selector](https://github.com/vectorize-io/hindsight/blob/0be6c02b2aafc2b6bdb188ef1842ac507e0cfa2b/hindsight-api-slim/hindsight_api/engine/source_facts.py) | **Lab-test** a bounded read preserving all support pointers while distinguishing budget omission from missing evidence. An oversized source skips itself rather than starving a short needed complement. | Source inspection only. Same-pin single-model refresh checks missing citations while batch/list freshness flags differ. Keep current source owners and explicit unknowns; do not infer a complete evidence set from a polished synthesis or adopt the store. |
+| [Funes core `21eb3ab`](https://github.com/huggingface/funes/tree/21eb3ab4a81fcb670c9d00547f93d446cfe4516a), [integrations `05a1879`](https://github.com/huggingface/funes-integrations/tree/05a187903706bbfe76b0aacb00269f776782a1dc) | **Lab-test** source-addressed short hits with bounded exact expansion over existing permitted sources. Original turn ranges can preserve a correction better than another summary. | Current Pi converter reads all message records in file order; parent IDs do not select the active native branch. Recall scope is not a repository filter. Remote-to-local fallback is labelled, but a consequential selected-source read must refuse substitution. Defer transcript indexing and Hub transfer; no host behavior or uplift was tested. |
+| [Copilot Memory docs](https://docs.github.com/en/copilot/concepts/agents/copilot-memory), verified 2026-10-01 | **Lab-test** verifying a recalled repository fact's cited code against the current branch before using it. Keep user preference, project fact and current obligation distinct. | Public-preview behavior, not an exposed algorithm or cost experiment. Its 28-day unused-entry expiry is not a KRN retention rule: rare obligations survive until their owner migrates them. Current source truth, not mere age or reuse, controls applicability. |
+| [Fredrin memory docs](https://www.fredrin.com/memory), moving page checked 2026-10-01 | **Lab-test** pointer-first disclosure, glossary/path/symbol matches and supersession-aware links; repair navigation from evidence read but not initially served. A bigger budget can expand an admitted pointer rather than replace the source set. | Author-reported doc-link recovery and opened paths are relevance proxies, not causal utility or executed repair. No code/host trial was performed. An old decision must route to its successor; a frequently opened irrelevant file must not earn permanent injection. Defer its controller and edit interception. |
+
+### Utility, cost and authority stay separate
+
+[Experience-Following v2](https://arxiv.org/html/2505.16067v2) and its
+[AgentDriver implementation `4dc29e3`](https://github.com/yuplin2333/agent_memory_manage/blob/4dc29e366965de25bb61b42ee4d0188f0f453c28/agentdriver_patch/memory/experience_memory.py)
+distinguish source admission from later transfer; noisy additions and coarse
+evaluation can make history-based deletion worse. Defer automatic pruning.
+[MemAgent v1](https://arxiv.org/html/2609.32521v1) separates retrieval, in-task
+injection/NoOp and writing; that separation is a lab hypothesis, not a new
+router. Its advertised overhead is routing latency, not total training/storage
+cost. At [reward code `7121cfe`](https://github.com/WalkerWorldPeace/MemAgent/blob/7121cfe991c329748cd610515a3419cabc875ba6/EvolveLab/training/downstream_reward.py),
+five downstream hits with zero successful tasks receive 0.5 reward. This is an
+arithmetic countercase to frequency-as-benefit, not an observed attack.
+
+[JAM v1](https://arxiv.org/html/2609.34385v1), distinct from JitMem, reports
+lower online cost for navigable compiled sources than flat sources. Its own
+construction/online-token figures imply about 26 queries to amortize that
+construction, before training/hosting. LongCodeQA tests comprehension, not an
+executed repair. The linked GAM repository predates this release; no matching
+JAM implementation was qualified. [Hearne's source at `b74bf80`](https://github.com/simonhearne/rag-cost-curve/blob/b74bf8008d1ae2e5bfea9a0bbd455a1aba916b5b/results/code-retrieval.md)
+likewise distinguishes indexed-memory cost from quality, retains the saturated
+memory result and withdraws an earlier code-accuracy headline. Break-even depends
+on deployment, corpus and the actual native comparator; no universal index
+threshold or local financial benefit follows.
+
+The previously indexed [working-memory study](https://arxiv.org/html/2608.31057v1)
+separates stored state, delivered context, management work and outcome. Its
+repeated-call metric can count legitimate verification and its limited evaluator
+does not provide official repair rates. Equal nominal budgets are not equal
+delivered information or full cost. Use the current independent outcome proof.
+
+[OpenAI's compaction report](https://alignment.openai.com/misalignment-reports/self-generated-prompt-injections-in-compaction-summaries/),
+updated 2026-09-16, includes rare invented instructions in an unreleased training
+run, including one followed restriction. It explicitly does not establish the
+behavior in the released model. Retain the existing rule: generated summaries
+remain observations, not operator/developer authority; no new hook is earned.
+[Breadcrumb's public tool contract](https://innerloop.works/breadcrumb/mcp)
+offers original-evidence drilldown and scope-routed memory/rules. Its closed,
+Mac-specific flight recorder and anecdotal workflow gains do not qualify KRN
+capture, automatic rule promotion or another personal-data corpus. Defer the
+package; original locators are the useful interface question.
+
+[Honcho's evidence accumulator `0936ee2`](https://github.com/plastic-labs/honcho/blob/0936ee2e8faf1bb81303d3781d389934f0bb8f22/src/utils/evidence.py)
+records delivered rows, not causal use; scoped context excludes a global card
+that cannot obey its allowlist. [Cognee-rs update `f4da3ba`](https://github.com/topoteretes/cognee-rs/blob/f4da3ba5d31a010a9886309f98acebc68e1b7589/crates/lib/src/api/update.rs)
+deletes then re-adds/re-extracts sequentially, not as one atomic replacement.
+[Memvid as-of selection `e6bd9f7`](https://github.com/memvid/memvid/blob/e6bd9f7b9c38cd8d5370fa0fc936ac1dcd751813/src/memvid/search/api.rs#L663)
+requires current active status on that path, so historical frames alone do not
+restore past active-state semantics. These are source inspections, not reproduced
+defects or adoption candidates. A small interface does not establish small
+ownership cost or exact history; defer these stacks absent a named local need.
+
+### Smallest coherent KRN trial and subtraction control
+
+After legal task/native-profile admission, compare native continuation, current
+resume delivery and one task-conditioned view at the same consequential action.
+The view uses live intent/task/Git/knowledge owners and permitted source pointers;
+it names missing, stale and budget-omitted evidence. A failed attempt remains a
+scoped observation; a proposed transferable correction is probed before the
+knowledge owner promotes it. Do not persist another briefing, mirror task state,
+reintroduce mandatory recall or grant authority through a memory record.
+
+Use changed acceptance under the same Goal ID and an unrelated-change control;
+add a source-specific stale/fork/complement case only for its distinct contract.
+Count briefing creation, probes, all reads/models/workers, unsuccessful attempts,
+cache effects, operator corrections, maintenance and disposal. Unknown provider
+charges remain unknown. Source examination and a successful fixture do not
+establish real-user benefit or justify new numeric production budgets.
+
+An original subtraction hypothesis removes generic lesson expansion from resume
+while keeping current obligations, irreducible observations, explicit pointers
+and independent structural gates. A decisive rare trap must still be reachable.
+If this control preserves accepted outcomes at lower complete cost, retire only
+the redundant delivery/rows through their current migration owners. No retirement
+or implementation happened here. [Pi Durable's new runtime alternative](workbench-contracts.md#pi-durable-runtime-reuse-2026-10-01)
+may remove planned checkpoint glue after qualification, but cannot supply memory
+truth, task authority, isolation or independent completion.
+
+Supersession: rewrite this residue when a pinned source, named consumer or matched
+current-outcome result changes the disposition; update the topic index. Preserve
+earlier falsifiers and adopted C/Git-ref. This is not a daily idea log or a mandate
+to install every candidate.
 
 ## Retrieval escalation ladder
 
@@ -1564,6 +1920,29 @@ select patches is validation, so final evaluation must remain untouched.
 Existing LT-102 controls and the lab registry own any experiment; no new eval
 framework or raw-trace store is adopted.
 
+For H9's uncertain failure discovery, [Hamel's auto-eval review](https://hamel.dev/blog/posts/claude-auto-evals/index.html)
+(published 2026-09-30, verified 2026-10-01) adds a concrete caution: the reviewed
+plugin selected a failure before users inspected conversations, requested
+judgments without enough context, and bundled several failures into one
+evaluator. He also praises its issue discovery. **Adopt** trace-backed
+prioritization and inspectable, separately attributable verdicts; **defer** the
+plugin. One unpinned practitioner walkthrough does not establish today's plugin
+defect rate or KRN benefit. Show the relevant request, source/task revision,
+actions and result with a proposed label; aggregate scores cannot calibrate it.
+
+His [sampling guidance](https://hamel.dev/blog/posts/evals-faq/how-can-i-efficiently-sample-production-traces-for-review.html)
+keeps exploratory random cases alongside targeted suspected failures; a selected
+batch cannot estimate population prevalence. **Adopt** this criterion for an
+actual discovery consumer, not a new sampling service or arbitrary quota. His
+[eval-driven-development exception](https://hamel.dev/blog/posts/evals-faq/should-i-practice-eval-driven-development.html)
+allows checking an already known precise constraint before implementation.
+H4's concrete invariants therefore proceed to their focused falsifier without
+a production-trace survey. The older FAQ articles were re-linked by October
+posts, not newly published findings. Keep `0/1/N`, current experiment acceptance
+and untouched final evaluation. Falsifier: an evaluator misses a known violation,
+rejects its valid control, or conceals which obligation failed. Owner: existing
+proof/LT integrators; reopen on a real countercase or pinned tool revision.
+
 **Non-proofs and reopen.** This pass read primary methods/results and relevant
 appendices, not every cited replication package or figure. No KRN agent-benefit
 experiment ran, and no claim covers all 103 indexed papers. Reopen a named
@@ -1601,6 +1980,52 @@ expose model selection but no thinking override; actual effort remains
 unverified unless the host supplies a readback. This is not a claim that GPT-6
 models lack xhigh. Neither new shared spaces nor personal auto-memory replaces
 the repository's reviewed knowledge owners.
+
+### Native Pi tool discovery and composition (verified 2026-10-01)
+
+Consumer: maintainer qualifying the first Pi/OpenAI Codex profile. Owner: existing
+native-host/capability and sandbox owners. [Pi's changelog](https://pi.dev/changelog)
+dates built-in MCP, codemode and tool search to 0.99.0 (2026-09-29); 0.99.2
+(2026-09-30) changes default exposure and first-prompt waiting. That documented
+target is superseded for future source qualification by the
+[Pi 1.0 release](https://earendil.com/posts/pi-1-0/) on 2026-10-01 and source
+[`7fbbd5f`](https://github.com/earendil-works/pi/tree/7fbbd5f4a1d982bb02d63472dde0774fa639f99b).
+No installed upgrade or compatible account/profile was observed. Historical
+0.87.1 host observations below stay historical; the separate experimental
+[Durable framework](workbench-contracts.md#pi-durable-runtime-reuse-2026-10-01)
+does not silently replace the native terminal profile.
+
+[Earendil's design](https://earendil.com/posts/you-said-no-mcp/) separates tool
+declarations, deferred discovery and scripted composition. **Adopt** native reuse
+as the design direction before custom transport/search/interpreter code; claimed
+context savings are not measured KRN outcome savings.
+
+The [MCP contract](https://pi.dev/docs/latest/mcp) provides stdio/HTTP, OAuth,
+resources and discovery. Non-direct tools avoid first-prompt declaration;
+discovery may still wait for servers. Codemode/deferred tools remain callable
+independently of the active tool set; `hidden` is unreachable. Nested calls pass
+through permissions with parent attribution. MCP `isError` resolves inside
+scripts, so script completion cannot mean tool/task success. MCP tool calls are
+not automatically retried. SDK consumers must load built-ins explicitly; extensions
+can replace them. **Lab-test** actual exposure, result and reconnect behavior;
+MCP OAuth does not establish model-provider auth or operator authority.
+
+The [CLI/codemode reference](https://pi.dev/docs/latest/cli) exposes QuickJS
+composition, BM25 search/describe and capped returned output. Complete results
+can remain in temporary files; `store/load` is branch-local session scratch.
+**Retain** those native owners, not a new KRN memory store. Interpreter isolation
+does not isolate a called tool; an optional script deadline or process stop
+does not undo a remote effect.
+
+**Defer** a custom KRN MCP server/importer until a real caller cannot use the
+existing CLI/JSON contract. Native client support does not supply a domain
+server, complete Codex-profile migration, outer worker transport or its sandbox.
+No integration was installed, upgraded or enabled here. One later falsifier
+uses the same allowed/denied effect through discovery, direct and codemode
+routes before/after resume: the denied effect stays unavailable, the benign
+control works, and nested errors do not become accepted work. Count connection,
+discovery, retries, output recovery and full outcome cost. Supersede this scope
+when release/API or an actual qualified consumer changes it; update the index.
 
 ### Pi as a comparison candidate (2026-09-24)
 
